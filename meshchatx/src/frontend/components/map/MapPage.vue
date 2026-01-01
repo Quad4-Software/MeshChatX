@@ -140,6 +140,102 @@
 
             <div ref="mapContainer" class="absolute inset-0" :class="{ 'cursor-crosshair': isExportMode }"></div>
 
+            <!-- telemetry marker overlay -->
+            <div
+                v-if="selectedMarker"
+                class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 z-20 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden"
+            >
+                <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="size-8 rounded-full flex items-center justify-center border-2"
+                            :style="{
+                                color: selectedMarker.peer?.lxmf_user_icon?.foreground_colour || '#3b82f6',
+                                borderColor: selectedMarker.peer?.lxmf_user_icon?.foreground_colour || '#3b82f6',
+                                backgroundColor: selectedMarker.peer?.lxmf_user_icon?.background_colour || '#ffffff',
+                            }"
+                        >
+                            <MaterialDesignIcon
+                                :icon-name="selectedMarker.peer?.lxmf_user_icon?.icon_name || 'account'"
+                                class="size-5"
+                            />
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900 dark:text-zinc-100 truncate w-40">
+                                {{
+                                    selectedMarker.peer?.display_name ||
+                                    selectedMarker.telemetry.destination_hash.substring(0, 8)
+                                }}
+                            </h3>
+                            <div class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter">
+                                {{ selectedMarker.telemetry.destination_hash }}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300"
+                        @click="selectedMarker = null"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                Latitude
+                            </div>
+                            <div class="font-mono">
+                                {{ selectedMarker.telemetry.telemetry.location.latitude.toFixed(6) }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                Longitude
+                            </div>
+                            <div class="font-mono">
+                                {{ selectedMarker.telemetry.telemetry.location.longitude.toFixed(6) }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                Altitude
+                            </div>
+                            <div>{{ selectedMarker.telemetry.telemetry.location.altitude.toFixed(1) }}m</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Speed</div>
+                            <div>{{ selectedMarker.telemetry.telemetry.location.speed.toFixed(1) }}km/h</div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="selectedMarker.telemetry.physical_link"
+                        class="pt-2 border-t border-gray-100 dark:border-zinc-800"
+                    >
+                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Signal</div>
+                        <div class="flex gap-4 text-xs font-mono">
+                            <span>RSSI: {{ selectedMarker.telemetry.physical_link.rssi }}</span>
+                            <span>SNR: {{ selectedMarker.telemetry.physical_link.snr }}</span>
+                            <span>Q: {{ selectedMarker.telemetry.physical_link.q }}%</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 text-[10px] text-gray-400 flex items-center gap-1">
+                        <MaterialDesignIcon icon-name="clock-outline" class="size-3" />
+                        Updated: {{ formatTimestamp(selectedMarker.telemetry.timestamp) }}
+                    </div>
+
+                    <button
+                        class="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-colors text-sm flex items-center justify-center gap-2"
+                        @click="openChat(selectedMarker.telemetry.destination_hash)"
+                    >
+                        <MaterialDesignIcon icon-name="message-text" class="size-4" />
+                        Open Chat
+                    </button>
+                </div>
+            </div>
+
             <!-- export instructions overlay -->
             <div
                 v-if="isExportMode && !selectedBbox"
@@ -537,7 +633,12 @@ import "ol/ol.css";
 import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
+import VectorLayer from "ol/layer/Vector";
 import XYZ from "ol/source/XYZ";
+import VectorSource from "ol/source/Vector";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
+import { Style, Icon, Text, Fill, Stroke, Circle as CircleStyle } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
 import DragBox from "ol/interaction/DragBox";
@@ -545,6 +646,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
 import Toggle from "../forms/Toggle.vue";
+import WebSocketConnection from "../../js/WebSocketConnection";
 
 export default {
     name: "MapPage",
@@ -563,6 +665,13 @@ export default {
             currentCenter: [0, 0],
             currentZoom: 2,
             config: null,
+            peers: {},
+
+            // telemetry
+            telemetryList: [],
+            markerSource: null,
+            markerLayer: null,
+            selectedMarker: null,
 
             // caching
             cachingEnabled: true,
@@ -625,6 +734,24 @@ export default {
         await this.checkOfflineMap();
         await this.loadMBTilesList();
 
+        await this.fetchPeers();
+        await this.fetchTelemetryMarkers();
+
+        // Listen for websocket messages
+        WebSocketConnection.on("message", this.onWebsocketMessage);
+
+        // Check for query params to center map
+        if (this.$route.query.lat && this.$route.query.lon) {
+            const lat = parseFloat(this.$route.query.lat);
+            const lon = parseFloat(this.$route.query.lon);
+            const zoom = parseInt(this.$route.query.zoom || 15);
+
+            if (!isNaN(lat) && !isNaN(lon)) {
+                this.map.getView().setCenter(fromLonLat([lon, lat]));
+                this.map.getView().setZoom(zoom);
+            }
+        }
+
         // Listen for moveend to update coordinates in UI
         if (this.map) {
             this.map.on("moveend", () => {
@@ -643,12 +770,19 @@ export default {
         // Check screen size for mobile
         this.checkScreenSize();
         window.addEventListener("resize", this.checkScreenSize);
+
+        // Update info every few seconds
+        this.reloadInterval = setInterval(() => {
+            this.fetchTelemetryMarkers();
+        }, 30000);
     },
     beforeUnmount() {
+        if (this.reloadInterval) clearInterval(this.reloadInterval);
         if (this.exportInterval) clearInterval(this.exportInterval);
         if (this.searchTimeout) clearTimeout(this.searchTimeout);
         document.removeEventListener("click", this.handleClickOutside);
         window.removeEventListener("resize", this.checkScreenSize);
+        WebSocketConnection.off("message", this.onWebsocketMessage);
     },
     methods: {
         async getConfig() {
@@ -731,6 +865,23 @@ export default {
                     attribution: false,
                     rotate: false,
                 }),
+            });
+
+            // setup telemetry markers
+            this.markerSource = new VectorSource();
+            this.markerLayer = new VectorLayer({
+                source: this.markerSource,
+                zIndex: 100,
+            });
+            this.map.addLayer(this.markerLayer);
+
+            this.map.on("click", (evt) => {
+                const feature = this.map.forEachFeatureAtPixel(evt.pixel, (f) => f);
+                if (feature && feature.get("telemetry")) {
+                    this.onMarkerClick(feature);
+                } else {
+                    this.selectedMarker = null;
+                }
             });
 
             this.currentCenter = [defaultLon, defaultLat];
@@ -1306,6 +1457,108 @@ export default {
         },
         checkScreenSize() {
             this.isMobileScreen = window.innerWidth < 640;
+        },
+        async fetchPeers() {
+            try {
+                const response = await window.axios.get("/api/v1/lxmf/conversations");
+                const peers = {};
+                for (const conv of response.data.conversations) {
+                    peers[conv.destination_hash] = conv;
+                }
+                this.peers = peers;
+            } catch (e) {
+                console.error("Failed to fetch peers", e);
+            }
+        },
+        async fetchTelemetryMarkers() {
+            try {
+                const response = await window.axios.get("/api/v1/telemetry/peers");
+                this.telemetryList = response.data.telemetry;
+                this.updateMarkers();
+            } catch (e) {
+                console.error("Failed to fetch telemetry", e);
+            }
+        },
+        updateMarkers() {
+            if (!this.markerSource) return;
+            this.markerSource.clear();
+
+            for (const t of this.telemetryList) {
+                const loc = t.telemetry?.location;
+                if (!loc || loc.latitude === undefined || loc.longitude === undefined) continue;
+
+                const peer = this.peers[t.destination_hash];
+                const displayName = peer?.display_name || t.destination_hash.substring(0, 8);
+
+                const feature = new Feature({
+                    geometry: new Point(fromLonLat([loc.longitude, loc.latitude])),
+                    telemetry: t,
+                    peer: peer,
+                });
+
+                // Default style
+                let iconColor = "#3b82f6";
+                let bgColor = "#ffffff";
+
+                if (peer?.lxmf_user_icon) {
+                    iconColor = peer.lxmf_user_icon.foreground_colour || iconColor;
+                    bgColor = peer.lxmf_user_icon.background_colour || bgColor;
+                }
+
+                feature.setStyle(
+                    new Style({
+                        image: new CircleStyle({
+                            radius: 8,
+                            fill: new Fill({ color: bgColor }),
+                            stroke: new Stroke({ color: iconColor, width: 2 }),
+                        }),
+                        text: new Text({
+                            text: displayName,
+                            offsetY: -15,
+                            font: "bold 11px sans-serif",
+                            fill: new Fill({ color: "#000" }),
+                            stroke: new Stroke({ color: "#fff", width: 2 }),
+                        }),
+                    })
+                );
+
+                this.markerSource.addFeature(feature);
+            }
+        },
+        onMarkerClick(feature) {
+            this.selectedMarker = {
+                telemetry: feature.get("telemetry"),
+                peer: feature.get("peer"),
+            };
+        },
+        async onWebsocketMessage(message) {
+            const json = JSON.parse(message.data);
+            if (json.type === "lxmf.telemetry") {
+                // Find and update or add to telemetryList
+                const index = this.telemetryList.findIndex((t) => t.destination_hash === json.destination_hash);
+                const entry = {
+                    destination_hash: json.destination_hash,
+                    timestamp: json.timestamp,
+                    telemetry: json.telemetry,
+                    updated_at: new Date().toISOString(),
+                };
+
+                if (index !== -1) {
+                    this.telemetryList.splice(index, 1, entry);
+                } else {
+                    this.telemetryList.push(entry);
+                }
+                this.updateMarkers();
+            }
+        },
+        formatTimestamp(ts) {
+            return new Date(ts * 1000).toLocaleString();
+        },
+        openChat(hash) {
+            this.$router.push({
+                name: "messages",
+                params: { destinationHash: hash },
+            });
         },
     },
 };
