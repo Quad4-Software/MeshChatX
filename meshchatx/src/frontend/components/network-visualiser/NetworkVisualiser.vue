@@ -265,6 +265,7 @@ export default {
     },
     data() {
         return {
+            reticulumLogoPath: "/assets/images/reticulum_logo_512.png",
             config: null,
             autoReload: false,
             reloadInterval: null,
@@ -598,7 +599,7 @@ export default {
                     group: "me",
                     size: 50,
                     shape: "circularImage",
-                    image: "/assets/images/reticulum_logo_512.png",
+                    image: this.reticulumLogoPath,
                     label: meLabel,
                     title: `Local Node: ${meLabel}\nIdentity: ${this.config?.identity_hash ?? "Unknown"}`,
                     color: { border: "#3b82f6", background: isDarkMode ? "#1e3a8a" : "#dbeafe" },

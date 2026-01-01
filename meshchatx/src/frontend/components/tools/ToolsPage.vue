@@ -102,7 +102,7 @@
                     <div
                         class="tool-card__icon bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-200"
                     >
-                        <img src="/rnode-flasher/reticulum_logo_512.png" class="w-8 h-8 rounded-full" alt="RNode" />
+                        <img :src="rnodeLogoPath" class="w-8 h-8 rounded-full" alt="RNode" />
                     </div>
                     <div class="flex-1">
                         <div class="tool-card__title">{{ $t("tools.rnode_flasher.title") }}</div>
@@ -123,6 +123,11 @@ export default {
     name: "ToolsPage",
     components: {
         MaterialDesignIcon,
+    },
+    data() {
+        return {
+            rnodeLogoPath: "/rnode-flasher/reticulum_logo_512.png",
+        };
     },
 };
 </script>
