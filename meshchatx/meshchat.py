@@ -2785,6 +2785,14 @@ class ReticulumMeshChat:
                 return web.json_response({"message": "Voicemail deleted"})
             return web.json_response({"message": "Voicemail not found"}, status=404)
 
+        # serve greeting audio
+        @routes.get("/api/v1/telephone/voicemail/greeting/audio")
+        async def telephone_voicemail_greeting_audio(request):
+            filepath = os.path.join(self.voicemail_manager.greetings_dir, "greeting.opus")
+            if os.path.exists(filepath):
+                return web.FileResponse(filepath)
+            return web.json_response({"message": "Greeting audio not found"}, status=404)
+
         # serve voicemail audio
         @routes.get("/api/v1/telephone/voicemails/{id}/audio")
         async def telephone_voicemail_audio(request):
@@ -4116,13 +4124,13 @@ class ReticulumMeshChat:
             # get query params
             search_query = request.query.get("q", None)
             filter_unread = ReticulumMeshChat.parse_bool_query_param(
-                request.query.get("unread", "false"),
+                request.query.get("unread", request.query.get("filter_unread", "false")),
             )
             filter_failed = ReticulumMeshChat.parse_bool_query_param(
-                request.query.get("failed", "false"),
+                request.query.get("failed", request.query.get("filter_failed", "false")),
             )
             filter_has_attachments = ReticulumMeshChat.parse_bool_query_param(
-                request.query.get("has_attachments", "false"),
+                request.query.get("has_attachments", request.query.get("filter_has_attachments", "false")),
             )
 
             local_hash = self.local_lxmf_destination.hexhash
@@ -4239,6 +4247,15 @@ class ReticulumMeshChat:
 
             if filter_unread:
                 conversations = [c for c in conversations if c["is_unread"]]
+                # Filter out notifications that have been viewed
+                filtered_conversations = []
+                for c in conversations:
+                    message_timestamp = c["latest_message_created_at"]
+                    if not self.database.messages.is_notification_viewed(
+                        c["destination_hash"], message_timestamp
+                    ):
+                        filtered_conversations.append(c)
+                conversations = filtered_conversations
 
             if filter_failed:
                 conversations = [
@@ -4262,6 +4279,27 @@ class ReticulumMeshChat:
 
             # mark lxmf conversation as read
             self.database.messages.mark_conversation_as_read(destination_hash)
+
+            return web.json_response(
+                {
+                    "message": "ok",
+                },
+            )
+
+        # mark notifications as viewed
+        @routes.post("/api/v1/notifications/mark-as-viewed")
+        async def notifications_mark_as_viewed(request):
+            data = await request.json()
+            destination_hashes = data.get("destination_hashes", [])
+
+            if not destination_hashes:
+                return web.json_response(
+                    {"error": "destination_hashes is required"},
+                    status=400,
+                )
+
+            # mark all notifications as viewed
+            self.database.messages.mark_all_notifications_as_viewed(destination_hashes)
 
             return web.json_response(
                 {
@@ -4871,6 +4909,23 @@ class ReticulumMeshChat:
 
         if "map_nominatim_api_url" in data:
             self.config.map_nominatim_api_url.set(data["map_nominatim_api_url"])
+
+        # update voicemail settings
+        if "voicemail_enabled" in data:
+            self.config.voicemail_enabled.set(bool(data["voicemail_enabled"]))
+
+        if "voicemail_greeting" in data:
+            self.config.voicemail_greeting.set(data["voicemail_greeting"])
+
+        if "voicemail_auto_answer_delay_seconds" in data:
+            self.config.voicemail_auto_answer_delay_seconds.set(
+                int(data["voicemail_auto_answer_delay_seconds"])
+            )
+
+        if "voicemail_max_recording_seconds" in data:
+            self.config.voicemail_max_recording_seconds.set(
+                int(data["voicemail_max_recording_seconds"])
+            )
 
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
