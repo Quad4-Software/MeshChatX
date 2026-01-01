@@ -147,7 +147,20 @@ tasks:
                   -f {{.DOCKERFILE}} \
                   {{.DOCKER_CONTEXT}}
 
+    build-demo-docker:
+        desc: Build Frontend-only Demo Docker image
+        cmds:
+            - task: build-docker
+              vars:
+                  DOCKERFILE: Dockerfile.demo
+                  DOCKER_IMAGE: reticulum-meshchatx-demo:local
+
     run-docker:
         desc: Run Docker container using docker-compose
         cmds:
             - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f {{.DOCKER_COMPOSE_FILE}} up --remove-orphans --pull never reticulum-meshchatx'
+
+    run-demo-docker:
+        desc: Run Frontend-only Demo Docker container
+        cmds:
+            - 'MESHCHAT_DEMO_IMAGE="reticulum-meshchatx-demo:local" {{.DOCKER_COMPOSE_CMD}} -f docker-compose.demo.yml up --remove-orphans'
