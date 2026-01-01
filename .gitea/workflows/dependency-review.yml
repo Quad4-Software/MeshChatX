@@ -14,9 +14,9 @@ jobs:
 
         steps:
             - name: "Checkout repository"
-              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+              uses: https://git.quad4.io/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
             - name: "Dependency Review"
-              uses: actions/dependency-review-action@3c4e3dcb1aa7874d2c16be7d79418e9b7efd6261 # v4
+              uses: https://git.quad4.io/actions/dependency-review-action@3c4e3dcb1aa7874d2c16be7d79418e9b7efd6261 # v4
               with:
                   comment-summary-in-pr: always
