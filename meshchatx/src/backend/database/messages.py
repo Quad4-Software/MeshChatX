@@ -177,3 +177,32 @@ class MessageDAO:
 
     def get_all_forwarding_mappings(self):
         return self.provider.fetchall("SELECT * FROM lxmf_forwarding_mappings")
+
+    def mark_notification_as_viewed(self, destination_hash):
+        now = datetime.now(UTC).isoformat()
+        self.provider.execute(
+            "INSERT OR REPLACE INTO notification_viewed_state (destination_hash, last_viewed_at, updated_at) VALUES (?, ?, ?)",
+            (destination_hash, now, now),
+        )
+
+    def mark_all_notifications_as_viewed(self, destination_hashes):
+        now = datetime.now(UTC).isoformat()
+        for destination_hash in destination_hashes:
+            self.provider.execute(
+                "INSERT OR REPLACE INTO notification_viewed_state (destination_hash, last_viewed_at, updated_at) VALUES (?, ?, ?)",
+                (destination_hash, now, now),
+            )
+
+    def is_notification_viewed(self, destination_hash, message_timestamp):
+        row = self.provider.fetchone(
+            "SELECT last_viewed_at FROM notification_viewed_state WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+        if not row or not row["last_viewed_at"]:
+            return False
+
+        last_viewed_at = datetime.fromisoformat(row["last_viewed_at"])
+        if last_viewed_at.tzinfo is None:
+            last_viewed_at = last_viewed_at.replace(tzinfo=UTC)
+
+        return message_timestamp <= last_viewed_at.timestamp()
