@@ -6,6 +6,7 @@ from .misc import MiscDAO
 from .provider import DatabaseProvider
 from .schema import DatabaseSchema
 from .telephone import TelephoneDAO
+from .telemetry import TelemetryDAO
 from .voicemails import VoicemailDAO
 
 
@@ -18,6 +19,7 @@ class Database:
         self.announces = AnnounceDAO(self.provider)
         self.misc = MiscDAO(self.provider)
         self.telephone = TelephoneDAO(self.provider)
+        self.telemetry = TelemetryDAO(self.provider)
         self.voicemails = VoicemailDAO(self.provider)
 
     def initialize(self):
