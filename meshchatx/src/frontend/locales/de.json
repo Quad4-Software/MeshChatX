@@ -324,7 +324,7 @@
     },
     "forwarder": {
         "title": "LXMF-Weiterleiter",
-        "description": "Nachrichten von einer Adresse zu einer anderen weiterleiten, mit transparenter Rückleitung. Wie SimpleLogin für LXMF.",
+        "description": "Nachrichten von einer Adresse zu einer anderen weiterleiten, mit transparenter Rückleitung.",
         "add_rule": "Weiterleitungsregel hinzufügen",
         "forward_to_hash": "Weiterleiten an Hash",
         "destination_placeholder": "Ziel-LXMF-Hash...",

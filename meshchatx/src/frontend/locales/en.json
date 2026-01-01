@@ -279,6 +279,11 @@
         "no_active_chat": "No Active Chat",
         "select_peer_or_enter_address": "Select a peer from the sidebar or enter an address below",
         "add_files": "Add Files",
+        "location": "Location",
+        "share_location": "Share Location",
+        "request_location": "Request Location",
+        "view_on_map": "View on Map",
+        "request": "Request",
         "recording": "Recording: {duration}",
         "nomad_network_node": "Nomad Network Node",
         "toggle_source": "Toggle Source Code"
@@ -324,7 +329,7 @@
     },
     "forwarder": {
         "title": "LXMF Forwarder",
-        "description": "Forward messages from one address to another, with transparent return routing. Like SimpleLogin for LXMF.",
+        "description": "Forward messages from one address to another, with transparent return routing.",
         "add_rule": "Add Forwarding Rule",
         "forward_to_hash": "Forward to Hash",
         "destination_placeholder": "Destination LXMF hash...",

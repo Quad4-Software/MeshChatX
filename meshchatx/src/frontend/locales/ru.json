@@ -324,7 +324,7 @@
     },
     "forwarder": {
         "title": "LXMF Форвардер",
-        "description": "Пересылка сообщений с одного адреса на другой с прозрачной обратной маршрутизацией. Похоже на SimpleLogin для LXMF.",
+        "description": "Пересылка сообщений с одного адреса на другой с прозрачной обратной маршрутизацией.",
         "add_rule": "Добавить правило пересылки",
         "forward_to_hash": "Пересылать на хеш",
         "destination_placeholder": "Хеш назначения LXMF...",
@@ -378,7 +378,7 @@
         },
         "forwarder": {
             "title": "Forwarder",
-            "description": "Пересылка LXMF в стиле SimpleLogin с маршрутизацией обратного пути."
+            "description": "Пересылка LXMF с маршрутизацией обратного пути."
         },
         "rnode_flasher": {
             "title": "RNode Flasher",
