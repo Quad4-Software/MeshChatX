@@ -1,27 +1,27 @@
 services:
-  meshchatx-demo:
-    build:
-      context: .
-      dockerfile: Dockerfile.demo
-    image: ${MESHCHAT_DEMO_IMAGE:-reticulum-meshchatx-demo:local}
-    container_name: reticulum-meshchatx-demo
-    restart: unless-stopped
-    
-    # Security Hardening
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:mode=1777
-      - /var/cache/nginx:mode=1777
-      - /var/run:mode=1777
-    cap_drop:
-      - ALL
-    
-    # Resource Limits
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
+    meshchatx-demo:
+        build:
+            context: .
+            dockerfile: Dockerfile.demo
+        image: ${MESHCHAT_DEMO_IMAGE:-reticulum-meshchatx-demo:local}
+        container_name: reticulum-meshchatx-demo
+        restart: unless-stopped
+
+        # Security Hardening
+        security_opt:
+            - no-new-privileges:true
+        read_only: true
+        tmpfs:
+            - /tmp:mode=1777
+            - /var/cache/nginx:mode=1777
+            - /var/run:mode=1777
+        cap_drop:
+            - ALL
+
+        # Resource Limits
+        deploy:
+            resources:
+                limits:
+                    memory: 128M
+                reservations:
+                    memory: 64M
