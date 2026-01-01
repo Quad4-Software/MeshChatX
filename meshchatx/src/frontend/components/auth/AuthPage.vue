@@ -5,7 +5,7 @@
                 class="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border border-gray-200 dark:border-zinc-800 p-8"
             >
                 <div class="text-center mb-8">
-                    <img class="w-16 h-16 mx-auto mb-4" src="/assets/images/logo-chat-bubble.png" />
+                    <img class="w-16 h-16 mx-auto mb-4" src="/assets/images/logo.png" />
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
                         {{ isSetup ? "Initial Setup" : "Authentication Required" }}
                     </h1>

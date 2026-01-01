@@ -15,13 +15,22 @@ class MiscDAO:
         )
 
     def is_destination_blocked(self, destination_hash):
-        return self.provider.fetchone("SELECT 1 FROM blocked_destinations WHERE destination_hash = ?", (destination_hash,)) is not None
+        return (
+            self.provider.fetchone(
+                "SELECT 1 FROM blocked_destinations WHERE destination_hash = ?",
+                (destination_hash,),
+            )
+            is not None
+        )
 
     def get_blocked_destinations(self):
         return self.provider.fetchall("SELECT * FROM blocked_destinations")
 
     def delete_blocked_destination(self, destination_hash):
-        self.provider.execute("DELETE FROM blocked_destinations WHERE destination_hash = ?", (destination_hash,))
+        self.provider.execute(
+            "DELETE FROM blocked_destinations WHERE destination_hash = ?",
+            (destination_hash,),
+        )
 
     # Spam Keywords
     def add_spam_keyword(self, keyword):
@@ -45,9 +54,12 @@ class MiscDAO:
         return False
 
     # User Icons
-    def update_lxmf_user_icon(self, destination_hash, icon_name, foreground_colour, background_colour):
+    def update_lxmf_user_icon(
+        self, destination_hash, icon_name, foreground_colour, background_colour
+    ):
         now = datetime.now(UTC)
-        self.provider.execute("""
+        self.provider.execute(
+            """
             INSERT INTO lxmf_user_icons (destination_hash, icon_name, foreground_colour, background_colour, updated_at)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(destination_hash) DO UPDATE SET 
@@ -55,10 +67,15 @@ class MiscDAO:
                 foreground_colour = EXCLUDED.foreground_colour, 
                 background_colour = EXCLUDED.background_colour, 
                 updated_at = EXCLUDED.updated_at
-        """, (destination_hash, icon_name, foreground_colour, background_colour, now))
+        """,
+            (destination_hash, icon_name, foreground_colour, background_colour, now),
+        )
 
     def get_user_icon(self, destination_hash):
-        return self.provider.fetchone("SELECT * FROM lxmf_user_icons WHERE destination_hash = ?", (destination_hash,))
+        return self.provider.fetchone(
+            "SELECT * FROM lxmf_user_icons WHERE destination_hash = ?",
+            (destination_hash,),
+        )
 
     # Forwarding Rules
     def get_forwarding_rules(self, identity_hash=None, active_only=False):
@@ -71,18 +88,31 @@ class MiscDAO:
             query += " AND is_active = 1"
         return self.provider.fetchall(query, params)
 
-    def create_forwarding_rule(self, identity_hash, forward_to_hash, source_filter_hash, is_active=True):
+    def create_forwarding_rule(
+        self, identity_hash, forward_to_hash, source_filter_hash, is_active=True
+    ):
         now = datetime.now(UTC)
         self.provider.execute(
             "INSERT INTO lxmf_forwarding_rules (identity_hash, forward_to_hash, source_filter_hash, is_active, updated_at) VALUES (?, ?, ?, ?, ?)",
-            (identity_hash, forward_to_hash, source_filter_hash, 1 if is_active else 0, now),
+            (
+                identity_hash,
+                forward_to_hash,
+                source_filter_hash,
+                1 if is_active else 0,
+                now,
+            ),
         )
 
     def delete_forwarding_rule(self, rule_id):
-        self.provider.execute("DELETE FROM lxmf_forwarding_rules WHERE id = ?", (rule_id,))
+        self.provider.execute(
+            "DELETE FROM lxmf_forwarding_rules WHERE id = ?", (rule_id,)
+        )
 
     def toggle_forwarding_rule(self, rule_id):
-        self.provider.execute("UPDATE lxmf_forwarding_rules SET is_active = NOT is_active WHERE id = ?", (rule_id,))
+        self.provider.execute(
+            "UPDATE lxmf_forwarding_rules SET is_active = NOT is_active WHERE id = ?",
+            (rule_id,),
+        )
 
     # Archived Pages
     def archive_page(self, destination_hash, page_path, content, page_hash):
@@ -105,7 +135,9 @@ class MiscDAO:
             params.append(destination_hash)
         if query:
             like_term = f"%{query}%"
-            sql += " AND (destination_hash LIKE ? OR page_path LIKE ? OR content LIKE ?)"
+            sql += (
+                " AND (destination_hash LIKE ? OR page_path LIKE ? OR content LIKE ?)"
+            )
             params.extend([like_term, like_term, like_term])
 
         sql += " ORDER BY created_at DESC"
@@ -113,25 +145,41 @@ class MiscDAO:
 
     def delete_archived_pages(self, destination_hash=None, page_path=None):
         if destination_hash and page_path:
-            self.provider.execute("DELETE FROM archived_pages WHERE destination_hash = ? AND page_path = ?", (destination_hash, page_path))
+            self.provider.execute(
+                "DELETE FROM archived_pages WHERE destination_hash = ? AND page_path = ?",
+                (destination_hash, page_path),
+            )
         else:
             self.provider.execute("DELETE FROM archived_pages")
 
     # Crawl Tasks
-    def upsert_crawl_task(self, destination_hash, page_path, status="pending", retry_count=0):
-        self.provider.execute("""
+    def upsert_crawl_task(
+        self, destination_hash, page_path, status="pending", retry_count=0
+    ):
+        self.provider.execute(
+            """
             INSERT INTO crawl_tasks (destination_hash, page_path, status, retry_count)
             VALUES (?, ?, ?, ?)
             ON CONFLICT(destination_hash, page_path) DO UPDATE SET 
                 status = EXCLUDED.status, 
                 retry_count = EXCLUDED.retry_count
-        """, (destination_hash, page_path, status, retry_count))
+        """,
+            (destination_hash, page_path, status, retry_count),
+        )
 
     def get_pending_crawl_tasks(self):
-        return self.provider.fetchall("SELECT * FROM crawl_tasks WHERE status = 'pending'")
+        return self.provider.fetchall(
+            "SELECT * FROM crawl_tasks WHERE status = 'pending'"
+        )
 
     def update_crawl_task(self, task_id, **kwargs):
-        allowed_keys = {"destination_hash", "page_path", "status", "retry_count", "updated_at"}
+        allowed_keys = {
+            "destination_hash",
+            "page_path",
+            "status",
+            "retry_count",
+            "updated_at",
+        }
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
 
         if not filtered_kwargs:
@@ -150,5 +198,6 @@ class MiscDAO:
         )
 
     def get_archived_page_by_id(self, archive_id):
-        return self.provider.fetchone("SELECT * FROM archived_pages WHERE id = ?", (archive_id,))
-
+        return self.provider.fetchone(
+            "SELECT * FROM archived_pages WHERE id = ?", (archive_id,)
+        )

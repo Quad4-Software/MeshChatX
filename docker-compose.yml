@@ -1,17 +1,17 @@
 services:
-  reticulum-meshchatx:
-    container_name: reticulum-meshchatx
-    image: ${MESHCHAT_IMAGE:-ghcr.io/sudo-ivan/reticulum-meshchatx:latest}
-    pull_policy: always
-    restart: unless-stopped
-    # Make the meshchat web interface accessible from the host on port 8000
-    ports:
-      - 127.0.0.1:8000:8000
-    volumes:
-      - meshchat-config:/config
-    # Uncomment if you have a USB device connected, such as an RNode
-    # devices:
-    #   - /dev/ttyUSB0:/dev/ttyUSB0
+    reticulum-meshchatx:
+        container_name: reticulum-meshchatx
+        image: ${MESHCHAT_IMAGE:-ghcr.io/sudo-ivan/reticulum-meshchatx:latest}
+        pull_policy: always
+        restart: unless-stopped
+        # Make the meshchat web interface accessible from the host on port 8000
+        ports:
+            - 127.0.0.1:8000:8000
+        volumes:
+            - meshchat-config:/config
+        # Uncomment if you have a USB device connected, such as an RNode
+        # devices:
+        #   - /dev/ttyUSB0:/dev/ttyUSB0
 
 volumes:
     meshchat-config:

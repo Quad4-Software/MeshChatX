@@ -31,8 +31,14 @@ class RNProbeHandler:
         if not RNS.Transport.has_path(destination_hash):
             RNS.Transport.request_path(destination_hash)
 
-        timeout_after = time.time() + (timeout or self.DEFAULT_TIMEOUT + self.reticulum.get_first_hop_timeout(destination_hash))
-        while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after:
+        timeout_after = time.time() + (
+            timeout
+            or self.DEFAULT_TIMEOUT
+            + self.reticulum.get_first_hop_timeout(destination_hash)
+        )
+        while (
+            not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
+        ):
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):
@@ -70,8 +76,14 @@ class RNProbeHandler:
             if_name = self.reticulum.get_next_hop_if_name(destination_hash)
             if_str = f" on {if_name}" if if_name and if_name != "None" else ""
 
-            timeout_after = time.time() + (timeout or self.DEFAULT_TIMEOUT + self.reticulum.get_first_hop_timeout(destination_hash))
-            while receipt.status == RNS.PacketReceipt.SENT and time.time() < timeout_after:
+            timeout_after = time.time() + (
+                timeout
+                or self.DEFAULT_TIMEOUT
+                + self.reticulum.get_first_hop_timeout(destination_hash)
+            )
+            while (
+                receipt.status == RNS.PacketReceipt.SENT and time.time() < timeout_after
+            ):
                 await asyncio.sleep(0.1)
 
             result: dict = {
@@ -96,9 +108,15 @@ class RNProbeHandler:
 
                 reception_stats = {}
                 if self.reticulum.is_connected_to_shared_instance:
-                    reception_rssi = self.reticulum.get_packet_rssi(receipt.proof_packet.packet_hash)
-                    reception_snr = self.reticulum.get_packet_snr(receipt.proof_packet.packet_hash)
-                    reception_q = self.reticulum.get_packet_q(receipt.proof_packet.packet_hash)
+                    reception_rssi = self.reticulum.get_packet_rssi(
+                        receipt.proof_packet.packet_hash
+                    )
+                    reception_snr = self.reticulum.get_packet_snr(
+                        receipt.proof_packet.packet_hash
+                    )
+                    reception_q = self.reticulum.get_packet_q(
+                        receipt.proof_packet.packet_hash
+                    )
 
                     if reception_rssi is not None:
                         reception_stats["rssi"] = reception_rssi
@@ -134,4 +152,3 @@ class RNProbeHandler:
             "timeouts": sum(1 for r in results if r["status"] == "timeout"),
             "failed": sum(1 for r in results if r["status"] == "failed"),
         }
-

@@ -23,7 +23,9 @@ class DatabaseProvider:
     @property
     def connection(self):
         if not hasattr(self._local, "connection"):
-            self._local.connection = sqlite3.connect(self.db_path, check_same_thread=False)
+            self._local.connection = sqlite3.connect(
+                self.db_path, check_same_thread=False
+            )
             self._local.connection.row_factory = sqlite3.Row
             # Enable WAL mode for better concurrency
             self._local.connection.execute("PRAGMA journal_mode=WAL")
@@ -62,4 +64,3 @@ class DatabaseProvider:
 
     def checkpoint(self):
         return self.fetchall("PRAGMA wal_checkpoint(TRUNCATE)")
-

@@ -7,7 +7,15 @@ class AnnounceManager:
     def __init__(self, db: Database):
         self.db = db
 
-    def upsert_announce(self, reticulum, identity, destination_hash, aspect, app_data, announce_packet_hash):
+    def upsert_announce(
+        self,
+        reticulum,
+        identity,
+        destination_hash,
+        aspect,
+        app_data,
+        announce_packet_hash,
+    ):
         # get rssi, snr and signal quality if available
         rssi = reticulum.get_packet_rssi(announce_packet_hash)
         snr = reticulum.get_packet_snr(announce_packet_hash)
@@ -15,7 +23,9 @@ class AnnounceManager:
 
         # prepare data to insert or update
         data = {
-            "destination_hash": destination_hash.hex() if isinstance(destination_hash, bytes) else destination_hash,
+            "destination_hash": destination_hash.hex()
+            if isinstance(destination_hash, bytes)
+            else destination_hash,
             "aspect": aspect,
             "identity_hash": identity.hash.hex(),
             "identity_public_key": base64.b64encode(identity.get_public_key()).decode(
@@ -32,7 +42,14 @@ class AnnounceManager:
 
         self.db.announces.upsert_announce(data)
 
-    def get_filtered_announces(self, aspect=None, identity_hash=None, destination_hash=None, query=None, blocked_identity_hashes=None):
+    def get_filtered_announces(
+        self,
+        aspect=None,
+        identity_hash=None,
+        destination_hash=None,
+        query=None,
+        blocked_identity_hashes=None,
+    ):
         sql = "SELECT * FROM announces WHERE 1=1"
         params = []
 
@@ -56,4 +73,3 @@ class AnnounceManager:
 
         sql += " ORDER BY updated_at DESC"
         return self.db.provider.fetchall(sql, params)
-

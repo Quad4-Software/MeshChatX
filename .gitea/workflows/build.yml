@@ -1,343 +1,343 @@
 name: Build and Release
 
 on:
-  push:
-    tags:
-      - "*"
-  workflow_dispatch:
-    inputs:
-      build_windows:
-        description: 'Build Windows'
-        required: false
-        default: 'true'
-        type: boolean
-      build_mac:
-        description: 'Build macOS'
-        required: false
-        default: 'true'
-        type: boolean
-      build_linux:
-        description: 'Build Linux'
-        required: false
-        default: 'true'
-        type: boolean
-      build_docker:
-        description: 'Build Docker'
-        required: false
-        default: 'true'
-        type: boolean
+    push:
+        tags:
+            - "*"
+    workflow_dispatch:
+        inputs:
+            build_windows:
+                description: "Build Windows"
+                required: false
+                default: "true"
+                type: boolean
+            build_mac:
+                description: "Build macOS"
+                required: false
+                default: "true"
+                type: boolean
+            build_linux:
+                description: "Build Linux"
+                required: false
+                default: "true"
+                type: boolean
+            build_docker:
+                description: "Build Docker"
+                required: false
+                default: "true"
+                type: boolean
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  build_frontend:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Clone Repo
-        uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+    build_frontend:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - name: Clone Repo
+              uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
 
-      - name: Install NodeJS
-        uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
-        with:
-          node-version: 22
+            - name: Install NodeJS
+              uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
+              with:
+                  node-version: 22
 
-      - name: Install Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.12"
+            - name: Install Python
+              uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+              with:
+                  python-version: "3.12"
 
-      - name: Sync versions
-        run: python scripts/sync_version.py
+            - name: Sync versions
+              run: python scripts/sync_version.py
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
 
-      - name: Install NodeJS Deps
-        run: pnpm install
+            - name: Install NodeJS Deps
+              run: pnpm install
 
-      - name: Build Frontend
-        run: pnpm run build-frontend
+            - name: Build Frontend
+              run: pnpm run build-frontend
 
-      - name: Upload frontend artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: frontend-build
-          path: meshchatx/public
-          if-no-files-found: error
+            - name: Upload frontend artifact
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              with:
+                  name: frontend-build
+                  path: meshchatx/public
+                  if-no-files-found: error
 
-  build_desktop:
-    name: Build Desktop (${{ matrix.name }})
-    needs: build_frontend
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: windows
-            os: windows-latest
-            node: 22
-            python: "3.13"
-            release_artifacts: "dist/*-win-installer.exe,dist/*-win-portable.exe"
-            build_input: build_windows
-            dist_script: dist-prebuilt
-            variant: standard
-            electron_version: "39.2.4"
-          - name: mac
-            os: macos-14
-            node: 22
-            python: "3.13"
-            release_artifacts: "dist/*-mac-*.dmg"
-            build_input: build_mac
-            dist_script: dist:mac-universal
-            variant: standard
-            electron_version: "39.2.4"
-          - name: linux
-            os: ubuntu-latest
-            node: 22
-            python: "3.13"
-            release_artifacts: "dist/*-linux.AppImage,dist/*-linux.deb,python-dist/*.whl"
-            build_input: build_linux
-            dist_script: dist-prebuilt
-            variant: standard
-            electron_version: "39.2.4"
-          - name: windows-legacy
-            os: windows-latest
-            node: 18
-            python: "3.11"
-            release_artifacts: "dist/*-win-installer*.exe,dist/*-win-portable*.exe"
-            build_input: build_windows
-            dist_script: dist-prebuilt
-            variant: legacy
-            electron_version: "30.0.8"
-          - name: linux-legacy
-            os: ubuntu-latest
-            node: 18
-            python: "3.11"
-            release_artifacts: "dist/*-linux*.AppImage,dist/*-linux*.deb,python-dist/*.whl"
-            build_input: build_linux
-            dist_script: dist-prebuilt
-            variant: legacy
-            electron_version: "30.0.8"
-    permissions:
-      contents: write
-    steps:
-      - name: Clone Repo
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
+    build_desktop:
+        name: Build Desktop (${{ matrix.name }})
+        needs: build_frontend
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - name: windows
+                      os: windows-latest
+                      node: 22
+                      python: "3.13"
+                      release_artifacts: "dist/*-win-installer.exe,dist/*-win-portable.exe"
+                      build_input: build_windows
+                      dist_script: dist-prebuilt
+                      variant: standard
+                      electron_version: "39.2.4"
+                    - name: mac
+                      os: macos-14
+                      node: 22
+                      python: "3.13"
+                      release_artifacts: "dist/*-mac-*.dmg"
+                      build_input: build_mac
+                      dist_script: dist:mac-universal
+                      variant: standard
+                      electron_version: "39.2.4"
+                    - name: linux
+                      os: ubuntu-latest
+                      node: 22
+                      python: "3.13"
+                      release_artifacts: "dist/*-linux.AppImage,dist/*-linux.deb,python-dist/*.whl"
+                      build_input: build_linux
+                      dist_script: dist-prebuilt
+                      variant: standard
+                      electron_version: "39.2.4"
+                    - name: windows-legacy
+                      os: windows-latest
+                      node: 18
+                      python: "3.11"
+                      release_artifacts: "dist/*-win-installer*.exe,dist/*-win-portable*.exe"
+                      build_input: build_windows
+                      dist_script: dist-prebuilt
+                      variant: legacy
+                      electron_version: "30.0.8"
+                    - name: linux-legacy
+                      os: ubuntu-latest
+                      node: 18
+                      python: "3.11"
+                      release_artifacts: "dist/*-linux*.AppImage,dist/*-linux*.deb,python-dist/*.whl"
+                      build_input: build_linux
+                      dist_script: dist-prebuilt
+                      variant: legacy
+                      electron_version: "30.0.8"
+        permissions:
+            contents: write
+        steps:
+            - name: Clone Repo
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e # v1
 
-      - name: Set legacy Electron version
-        if: |
-          matrix.variant == 'legacy' &&
-          (github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true))
-        shell: bash
-        run: |
-          node -e "const fs=require('fs');const pkg=require('./package.json');pkg.devDependencies.electron='${{ matrix.electron_version }}';fs.writeFileSync('package.json', JSON.stringify(pkg,null,2));"
-          if [ -f pnpm-lock.yaml ]; then rm pnpm-lock.yaml; fi
+            - name: Set legacy Electron version
+              if: |
+                  matrix.variant == 'legacy' &&
+                  (github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true))
+              shell: bash
+              run: |
+                  node -e "const fs=require('fs');const pkg=require('./package.json');pkg.devDependencies.electron='${{ matrix.electron_version }}';fs.writeFileSync('package.json', JSON.stringify(pkg,null,2));"
+                  if [ -f pnpm-lock.yaml ]; then rm pnpm-lock.yaml; fi
 
-      - name: Install NodeJS
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
-        with:
-          node-version: ${{ matrix.node }}
+            - name: Install NodeJS
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e # v1
+              with:
+                  node-version: ${{ matrix.node }}
 
-      - name: Install Python
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: ${{ matrix.python }}
+            - name: Install Python
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+              with:
+                  python-version: ${{ matrix.python }}
 
-      - name: Install Poetry
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        run: python -m pip install --upgrade pip poetry
+            - name: Install Poetry
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              run: python -m pip install --upgrade pip poetry
 
-      - name: Sync versions
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        run: python scripts/sync_version.py
+            - name: Sync versions
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              run: python scripts/sync_version.py
 
-      - name: Install Python Deps
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        run: python -m poetry install
+            - name: Install Python Deps
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              run: python -m poetry install
 
-      - name: Install pnpm
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+            - name: Install pnpm
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
 
-      - name: Install NodeJS Deps
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        run: pnpm install
+            - name: Install NodeJS Deps
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              run: pnpm install
 
-      - name: Prepare frontend directory
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        run: python scripts/prepare_frontend_dir.py
+            - name: Prepare frontend directory
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              run: python scripts/prepare_frontend_dir.py
 
-      - name: Download frontend artifact
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: frontend-build
-          path: meshchatx/public
+            - name: Download frontend artifact
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+              with:
+                  name: frontend-build
+                  path: meshchatx/public
 
-      - name: Install patchelf
-        if: |
-          startsWith(matrix.name, 'linux') &&
-          (github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true))
-        run: sudo apt-get update && sudo apt-get install -y patchelf
+            - name: Install patchelf
+              if: |
+                  startsWith(matrix.name, 'linux') &&
+                  (github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true))
+              run: sudo apt-get update && sudo apt-get install -y patchelf
 
-      - name: Build Python wheel
-        if: |
-          startsWith(matrix.name, 'linux') &&
-          (github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true))
-        run: |
-          python -m poetry build -f wheel
-          mkdir -p python-dist
-          mv dist/*.whl python-dist/
-          rm -rf dist
+            - name: Build Python wheel
+              if: |
+                  startsWith(matrix.name, 'linux') &&
+                  (github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true))
+              run: |
+                  python -m poetry build -f wheel
+                  mkdir -p python-dist
+                  mv dist/*.whl python-dist/
+                  rm -rf dist
 
-      - name: Build Electron App (Universal)
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        run: pnpm run ${{ matrix.dist_script }}
+            - name: Build Electron App (Universal)
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              run: pnpm run ${{ matrix.dist_script }}
 
-      - name: Rename artifacts for legacy build
-        if: |
-          matrix.variant == 'legacy' &&
-          (github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true))
-        run: ./scripts/rename_legacy_artifacts.sh
+            - name: Rename artifacts for legacy build
+              if: |
+                  matrix.variant == 'legacy' &&
+                  (github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true))
+              run: ./scripts/rename_legacy_artifacts.sh
 
-      - name: Upload build artifacts
-        if: |
-          github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.name }}
-          path: |
-            dist/*-win-installer*.exe
-            dist/*-win-portable*.exe
-            dist/*-mac-*.dmg
-            dist/*-linux*.AppImage
-            dist/*-linux*.deb
-            python-dist/*.whl
-          if-no-files-found: ignore
+            - name: Upload build artifacts
+              if: |
+                  github.event_name == 'push' ||
+                  (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
+              uses: actions/upload-artifact@v4
+              with:
+                  name: build-${{ matrix.name }}
+                  path: |
+                      dist/*-win-installer*.exe
+                      dist/*-win-portable*.exe
+                      dist/*-mac-*.dmg
+                      dist/*-linux*.AppImage
+                      dist/*-linux*.deb
+                      python-dist/*.whl
+                  if-no-files-found: ignore
 
-  create_release:
-    name: Create Release
-    needs: build_desktop
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    permissions:
-      contents: write
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          path: artifacts
+    create_release:
+        name: Create Release
+        needs: build_desktop
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push'
+        permissions:
+            contents: write
+        steps:
+            - name: Download all artifacts
+              uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+              with:
+                  path: artifacts
 
-      - name: Display structure of downloaded files
-        run: ls -R artifacts
+            - name: Display structure of downloaded files
+              run: ls -R artifacts
 
-      - name: Prepare release assets
-        run: |
-          mkdir -p release-assets
-          find artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.whl" \) -exec cp {} release-assets/ \;
-          ls -lh release-assets/
+            - name: Prepare release assets
+              run: |
+                  mkdir -p release-assets
+                  find artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.whl" \) -exec cp {} release-assets/ \;
+                  ls -lh release-assets/
 
-      - name: Generate SHA256 checksums
-        run: |
-          cd release-assets
-          echo "## SHA256 Checksums" > release-body.md
-          echo "" >> release-body.md
+            - name: Generate SHA256 checksums
+              run: |
+                  cd release-assets
+                  echo "## SHA256 Checksums" > release-body.md
+                  echo "" >> release-body.md
 
-          for file in *.exe *.dmg *.AppImage *.deb *.whl; do
-            if [ -f "$file" ]; then
-              sha256sum "$file" | tee "${file}.sha256"
-              echo "\`$(cat "${file}.sha256")\`" >> release-body.md
-            fi
-          done
-          
-          echo "" >> release-body.md
-          echo "Individual \`.sha256\` files are included for each artifact." >> release-body.md
-          
-          cat release-body.md
-          echo ""
-          echo "Generated .sha256 files:"
-          ls -1 *.sha256 2>/dev/null || echo "No .sha256 files found"
+                  for file in *.exe *.dmg *.AppImage *.deb *.whl; do
+                    if [ -f "$file" ]; then
+                      sha256sum "$file" | tee "${file}.sha256"
+                      echo "\`$(cat "${file}.sha256")\`" >> release-body.md
+                    fi
+                  done
 
-      - name: Create Release
-        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1
-        with:
-          draft: true
-          artifacts: "release-assets/*"
-          bodyFile: "release-assets/release-body.md"
+                  echo "" >> release-body.md
+                  echo "Individual \`.sha256\` files are included for each artifact." >> release-body.md
 
-  build_docker:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_docker == 'true')
-    permissions:
-      packages: write
-      contents: read
-    steps:
-      - name: Clone Repo
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+                  cat release-body.md
+                  echo ""
+                  echo "Generated .sha256 files:"
+                  ls -1 *.sha256 2>/dev/null || echo "No .sha256 files found"
 
-      - name: Set lowercase repository owner
-        run: echo "REPO_OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+            - name: Create Release
+              uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1
+              with:
+                  draft: true
+                  artifacts: "release-assets/*"
+                  bodyFile: "release-assets/release-body.md"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3
+    build_docker:
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_docker == 'true')
+        permissions:
+            packages: write
+            contents: read
+        steps:
+            - name: Clone Repo
+              uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+            - name: Set lowercase repository owner
+              run: echo "REPO_OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
-      - name: Log in to the GitHub Container registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3
 
-      - name: Build and push Docker images
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: >-
-            ghcr.io/${{ env.REPO_OWNER_LC }}/reticulum-meshchatx:latest,
-            ghcr.io/${{ env.REPO_OWNER_LC }}/reticulum-meshchatx:${{ github.ref_name }}
-          labels: >-
-            org.opencontainers.image.title=Reticulum MeshChatX,
-            org.opencontainers.image.description=Docker image for Reticulum MeshChatX,
-            org.opencontainers.image.url=https://github.com/${{ github.repository }}/pkgs/container/reticulum-meshchatx/
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3
+
+            - name: Log in to the GitHub Container registry
+              uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Build and push Docker images
+              uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+              with:
+                  context: .
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  tags: >-
+                      ghcr.io/${{ env.REPO_OWNER_LC }}/reticulum-meshchatx:latest,
+                      ghcr.io/${{ env.REPO_OWNER_LC }}/reticulum-meshchatx:${{ github.ref_name }}
+                  labels: >-
+                      org.opencontainers.image.title=Reticulum MeshChatX,
+                      org.opencontainers.image.description=Docker image for Reticulum MeshChatX,
+                      org.opencontainers.image.url=https://github.com/${{ github.repository }}/pkgs/container/reticulum-meshchatx/

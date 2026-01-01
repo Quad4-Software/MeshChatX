@@ -24,4 +24,3 @@ class ConfigDAO:
 
     def delete(self, key):
         self.provider.execute("DELETE FROM config WHERE key = ?", (key,))
-

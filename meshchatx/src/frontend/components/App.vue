@@ -26,7 +26,7 @@
                         <div
                             class="hidden sm:flex my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 shadow-inner"
                         >
-                            <img class="w-12 h-12 object-contain p-1.5" src="/assets/images/logo-chat-bubble.png" />
+                            <img class="w-12 h-12 object-contain p-1.5" src="/assets/images/logo.png" />
                         </div>
                         <div class="my-auto">
                             <div
@@ -387,11 +387,7 @@
                 </div>
             </template>
         </template>
-        <CallOverlay
-            v-if="activeCall || isCallEnded"
-            :active-call="activeCall || lastCall"
-            :is-ended="isCallEnded"
-        />
+        <CallOverlay v-if="activeCall || isCallEnded" :active-call="activeCall || lastCall" :is-ended="isCallEnded" />
         <Toast />
     </div>
 </template>

@@ -2,11 +2,13 @@
 
 A heavily customized and updated fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat).
 
+This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project.
+
 ## Features of this Fork
 
 ### Major
 
-- Full LXST support.
+- Full LXST support w/ custom voicemail support.
 - Map (w/ MBTiles support for offline)
 - Security improvements
 - Custom UI/UX
@@ -27,12 +29,12 @@ A heavily customized and updated fork of [Reticulum MeshChat](https://github.com
 - [ ] Spam filter (based on keywords)
 - [ ] Multi-identity support.
 - [ ] TAK tool/integration
-- [ ] RNS Tunnel - tunnel your regular services over RNS to another MeshchatX user. 
+- [ ] RNS Tunnel - tunnel your regular services over RNS to another MeshchatX user.
 - [ ] RNS Filesync - P2P file sync
 
 ## Usage
 
-Check [releases](https://git.quad4.io/RNS-Things/reticulum-meshchatX/releases) for pre-built binaries or appimages.
+Check [releases](https://git.quad4.io/Ivan/MeshChatX/releases) for pre-built binaries or appimages.
 
 ## Building
 
@@ -47,28 +49,29 @@ You can run `task run` or `task develop` (a thin alias) to start the backend + f
 
 ### Available Tasks
 
-| Task | Description |
-|------|-------------|
-| `task install` | Install all dependencies (syncs version, installs node modules and python deps) |
-| `task node_modules` | Install Node.js dependencies only |
-| `task python` | Install Python dependencies using Poetry only |
-| `task sync-version` | Sync version numbers across project files |
-| `task run` | Run the application |
-| `task develop` | Run the application in development mode (alias for `run`) |
-| `task build` | Build the application (frontend and backend) |
-| `task build-frontend` | Build only the frontend |
-| `task clean` | Clean build artifacts and dependencies |
-| `task wheel` | Build Python wheel package (outputs to `python-dist/`) |
-| `task build-appimage` | Build Linux AppImage |
-| `task build-exe` | Build Windows portable executable |
-| `task dist` | Build distribution (defaults to AppImage) |
-| `task electron-legacy` | Install legacy Electron version |
-| `task build-appimage-legacy` | Build Linux AppImage with legacy Electron version |
-| `task build-exe-legacy` | Build Windows portable executable with legacy Electron version |
-| `task build-docker` | Build Docker image using buildx |
-| `task run-docker` | Run Docker container using docker-compose |
+| Task                         | Description                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `task install`               | Install all dependencies (syncs version, installs node modules and python deps) |
+| `task node_modules`          | Install Node.js dependencies only                                               |
+| `task python`                | Install Python dependencies using Poetry only                                   |
+| `task sync-version`          | Sync version numbers across project files                                       |
+| `task run`                   | Run the application                                                             |
+| `task develop`               | Run the application in development mode (alias for `run`)                       |
+| `task build`                 | Build the application (frontend and backend)                                    |
+| `task build-frontend`        | Build only the frontend                                                         |
+| `task clean`                 | Clean build artifacts and dependencies                                          |
+| `task wheel`                 | Build Python wheel package (outputs to `python-dist/`)                          |
+| `task build-appimage`        | Build Linux AppImage                                                            |
+| `task build-exe`             | Build Windows portable executable                                               |
+| `task dist`                  | Build distribution (defaults to AppImage)                                       |
+| `task electron-legacy`       | Install legacy Electron version                                                 |
+| `task build-appimage-legacy` | Build Linux AppImage with legacy Electron version                               |
+| `task build-exe-legacy`      | Build Windows portable executable with legacy Electron version                  |
+| `task build-docker`          | Build Docker image using buildx                                                 |
+| `task run-docker`            | Run Docker container using docker-compose                                       |
 
 All tasks support environment variable overrides. For example:
+
 - `PYTHON=python3.12 task install`
 - `DOCKER_PLATFORMS=linux/amd64,linux/arm64 task build-docker`
 
@@ -130,11 +133,12 @@ The `cx_setup.py` script uses cx_Freeze for creating standalone executables (App
 
 ## Internationalization (i18n)
 
-Multi-language support is in progress. We use `vue-i18n` for the frontend. 
+Multi-language support is in progress. We use `vue-i18n` for the frontend.
 
 Translation files are located in `meshchatx/src/frontend/locales/`.
 
 Currently supported languages:
+
 - English (Primary)
 - Russian
 - German

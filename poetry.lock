@@ -1376,6 +1376,18 @@ files = [
 test = ["importlib_metadata (>=2.0)", "pytest (>=6.0)"]
 
 [[package]]
+name = "ply"
+version = "3.11"
+description = "Python Lex & Yacc"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce"},
+    {file = "ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3"},
+]
+
+[[package]]
 name = "propcache"
 version = "0.4.1"
 description = "Accelerated property cache"
@@ -1975,4 +1987,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "fc66bbe16d88af079264f801bc18fd10385c0e6af437fdf0e5ab960349971b21"
+content-hash = "6dae87a310bad0bec81b8eea974fd5cb4b0c40dd2873d09ff7f4659a13f63d7e"

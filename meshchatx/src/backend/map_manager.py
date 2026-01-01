@@ -55,13 +55,15 @@ class MapManager:
                 if f.endswith(".mbtiles"):
                     full_path = os.path.join(mbtiles_dir, f)
                     stats = os.stat(full_path)
-                    files.append({
-                        "name": f,
-                        "path": full_path,
-                        "size": stats.st_size,
-                        "mtime": stats.st_mtime,
-                        "is_active": full_path == self.get_offline_path(),
-                    })
+                    files.append(
+                        {
+                            "name": f,
+                            "path": full_path,
+                            "size": stats.st_size,
+                            "mtime": stats.st_mtime,
+                            "is_active": full_path == self.get_offline_path(),
+                        }
+                    )
         return sorted(files, key=lambda x: x["mtime"], reverse=True)
 
     def delete_mbtiles(self, filename):
@@ -97,7 +99,10 @@ class MapManager:
 
             # Basic validation: ensure it's raster (format is not pbf)
             if metadata.get("format") == "pbf":
-                RNS.log("MBTiles file is in vector (PBF) format, which is not supported.", RNS.LOG_ERROR)
+                RNS.log(
+                    "MBTiles file is in vector (PBF) format, which is not supported.",
+                    RNS.LOG_ERROR,
+                )
                 return None
 
             self._metadata_cache = metadata
@@ -176,8 +181,12 @@ class MapManager:
 
             # create schema
             cursor.execute("CREATE TABLE metadata (name text, value text)")
-            cursor.execute("CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)")
-            cursor.execute("CREATE UNIQUE INDEX tile_index on tiles (zoom_level, tile_column, tile_row)")
+            cursor.execute(
+                "CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)"
+            )
+            cursor.execute(
+                "CREATE UNIQUE INDEX tile_index on tiles (zoom_level, tile_column, tile_row)"
+            )
 
             # insert metadata
             metadata = [
@@ -205,7 +214,11 @@ class MapManager:
                             # wait a bit to be nice to OSM
                             time.sleep(0.1)
 
-                            response = requests.get(tile_url, headers={"User-Agent": "MeshChatX/1.0 MapExporter"}, timeout=10)
+                            response = requests.get(
+                                tile_url,
+                                headers={"User-Agent": "MeshChatX/1.0 MapExporter"},
+                                timeout=10,
+                            )
                             if response.status_code == 200:
                                 # MBTiles uses TMS (y flipped)
                                 tms_y = (1 << z) - 1 - y
@@ -214,11 +227,16 @@ class MapManager:
                                     (z, x, tms_y, response.content),
                                 )
                         except Exception as e:
-                            RNS.log(f"Export failed to download tile {z}/{x}/{y}: {e}", RNS.LOG_ERROR)
+                            RNS.log(
+                                f"Export failed to download tile {z}/{x}/{y}: {e}",
+                                RNS.LOG_ERROR,
+                            )
 
                         current_count += 1
                         self._export_progress[export_id]["current"] = current_count
-                        self._export_progress[export_id]["progress"] = int((current_count / total_tiles) * 100)
+                        self._export_progress[export_id]["progress"] = int(
+                            (current_count / total_tiles) * 100
+                        )
 
                 # commit after each zoom level
                 conn.commit()
@@ -236,9 +254,13 @@ class MapManager:
 
     def _lonlat_to_tile(self, lon, lat, zoom):
         lat_rad = math.radians(lat)
-        n = 2.0 ** zoom
+        n = 2.0**zoom
         x = int((lon + 180.0) / 360.0 * n)
-        y = int((1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi) / 2.0 * n)
+        y = int(
+            (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi)
+            / 2.0
+            * n
+        )
         return x, y
 
     def close(self):

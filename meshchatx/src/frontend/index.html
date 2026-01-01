@@ -1,33 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/png" href="favicons/favicon-512x512.png"/>
-    <title>Reticulum MeshChat</title>
-
-</head>
-<body class="bg-gray-100">
-<div id="app"></div>
-<script type="module" src="main.js"></script>
-<script>
-    // install service worker
-    if('serviceWorker' in navigator){
-        navigator.serviceWorker.register('/service-worker.js').catch((error) => {
-            // Silently handle SSL certificate errors and other registration failures
-            // This is common in development with self-signed certificates
-            const errorMessage = error.message || '';
-            const errorName = error.name || '';
-            if (errorName === 'SecurityError' || errorMessage.includes('SSL certificate') || errorMessage.includes('certificate')) {
-                return;
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" type="image/png" href="favicons/favicon-512x512.png" />
+        <title>Reticulum MeshChat</title>
+    </head>
+    <body class="bg-gray-100">
+        <div id="app"></div>
+        <script type="module" src="main.js"></script>
+        <script>
+            // install service worker
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+                    // Silently handle SSL certificate errors and other registration failures
+                    // This is common in development with self-signed certificates
+                    const errorMessage = error.message || "";
+                    const errorName = error.name || "";
+                    if (
+                        errorName === "SecurityError" ||
+                        errorMessage.includes("SSL certificate") ||
+                        errorMessage.includes("certificate")
+                    ) {
+                        return;
+                    }
+                    // Log other errors for debugging but don't throw
+                    console.debug("Service worker registration failed:", error);
+                });
             }
-            // Log other errors for debugging but don't throw
-            console.debug('Service worker registration failed:', error);
-        });
-    }
-</script>
-</body>
+        </script>
+    </body>
 </html>

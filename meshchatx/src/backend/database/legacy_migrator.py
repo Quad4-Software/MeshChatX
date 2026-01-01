@@ -8,8 +8,7 @@ class LegacyMigrator:
         self.identity_hash_hex = identity_hash_hex
 
     def get_legacy_db_path(self):
-        """Detect the path to the legacy database based on the Reticulum config directory.
-        """
+        """Detect the path to the legacy database based on the Reticulum config directory."""
         possible_dirs = []
         if self.reticulum_config_dir:
             possible_dirs.append(self.reticulum_config_dir)
@@ -21,7 +20,9 @@ class LegacyMigrator:
 
         # Check each directory
         for config_dir in possible_dirs:
-            legacy_path = os.path.join(config_dir, "identities", self.identity_hash_hex, "database.db")
+            legacy_path = os.path.join(
+                config_dir, "identities", self.identity_hash_hex, "database.db"
+            )
             if os.path.exists(legacy_path):
                 # Ensure it's not the same as our current DB path
                 # (though this is unlikely given the different base directories)
@@ -58,8 +59,7 @@ class LegacyMigrator:
         return True
 
     def migrate(self):
-        """Perform the migration from the legacy database.
-        """
+        """Perform the migration from the legacy database."""
         legacy_path = self.get_legacy_db_path()
         if not legacy_path:
             return False
@@ -100,11 +100,23 @@ class LegacyMigrator:
                     if res:
                         # Get columns from both databases to ensure compatibility
                         # These PRAGMA calls are safe as they use controlled table/alias names
-                        legacy_columns = [row["name"] for row in self.provider.fetchall(f"PRAGMA {alias}.table_info({table})")]
-                        current_columns = [row["name"] for row in self.provider.fetchall(f"PRAGMA table_info({table})")]
+                        legacy_columns = [
+                            row["name"]
+                            for row in self.provider.fetchall(
+                                f"PRAGMA {alias}.table_info({table})"
+                            )
+                        ]
+                        current_columns = [
+                            row["name"]
+                            for row in self.provider.fetchall(
+                                f"PRAGMA table_info({table})"
+                            )
+                        ]
 
                         # Find common columns
-                        common_columns = [col for col in legacy_columns if col in current_columns]
+                        common_columns = [
+                            col for col in legacy_columns if col in current_columns
+                        ]
 
                         if common_columns:
                             cols_str = ", ".join(common_columns)
@@ -112,9 +124,13 @@ class LegacyMigrator:
                             # The table and columns are controlled by us
                             migrate_query = f"INSERT OR IGNORE INTO {table} ({cols_str}) SELECT {cols_str} FROM {alias}.{table}"  # noqa: S608
                             self.provider.execute(migrate_query)
-                            print(f"  - Migrated table: {table} ({len(common_columns)} columns)")
+                            print(
+                                f"  - Migrated table: {table} ({len(common_columns)} columns)"
+                            )
                         else:
-                            print(f"  - Skipping table {table}: No common columns found")
+                            print(
+                                f"  - Skipping table {table}: No common columns found"
+                            )
                 except Exception as e:
                     print(f"  - Failed to migrate table {table}: {e}")
 

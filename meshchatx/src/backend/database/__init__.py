@@ -6,6 +6,7 @@ from .misc import MiscDAO
 from .provider import DatabaseProvider
 from .schema import DatabaseSchema
 from .telephone import TelephoneDAO
+from .voicemails import VoicemailDAO
 
 
 class Database:
@@ -17,12 +18,15 @@ class Database:
         self.announces = AnnounceDAO(self.provider)
         self.misc = MiscDAO(self.provider)
         self.telephone = TelephoneDAO(self.provider)
+        self.voicemails = VoicemailDAO(self.provider)
 
     def initialize(self):
         self.schema.initialize()
 
     def migrate_from_legacy(self, reticulum_config_dir, identity_hash_hex):
-        migrator = LegacyMigrator(self.provider, reticulum_config_dir, identity_hash_hex)
+        migrator = LegacyMigrator(
+            self.provider, reticulum_config_dir, identity_hash_hex
+        )
         if migrator.should_migrate():
             return migrator.migrate()
         return False
@@ -32,4 +36,3 @@ class Database:
 
     def close(self):
         self.provider.close()
-

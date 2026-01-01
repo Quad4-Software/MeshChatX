@@ -7,12 +7,17 @@
         <!-- Header -->
         <div class="p-3 flex items-center bg-gray-50 dark:bg-zinc-800/50 border-b border-gray-100 dark:border-zinc-800">
             <div class="flex-1 flex items-center space-x-2">
-                <div 
-                    class="size-2 rounded-full" 
-                    :class="isEnded ? 'bg-red-500' : 'bg-green-500 animate-pulse'"
-                ></div>
+                <div class="size-2 rounded-full" :class="isEnded ? 'bg-red-500' : 'bg-green-500 animate-pulse'"></div>
                 <span class="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
-                    {{ isEnded ? "Call Ended" : (activeCall.status === 6 ? "Active Call" : "Call Status") }}
+                    {{
+                        isEnded
+                            ? "Call Ended"
+                            : activeCall.is_voicemail
+                              ? "Recording Voicemail"
+                              : activeCall.status === 6
+                                ? "Active Call"
+                                : "Call Status"
+                    }}
                 </span>
             </div>
             <button
@@ -31,12 +36,12 @@
         <div v-show="!isMinimized" class="p-4">
             <!-- icon and name -->
             <div class="flex flex-col items-center mb-4">
-                <div 
+                <div
                     class="p-4 rounded-full mb-3"
                     :class="isEnded ? 'bg-red-100 dark:bg-red-900/30' : 'bg-blue-100 dark:bg-blue-900/30'"
                 >
-                    <MaterialDesignIcon 
-                        icon-name="account" 
+                    <MaterialDesignIcon
+                        icon-name="account"
                         class="size-8"
                         :class="isEnded ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'"
                     />
@@ -60,10 +65,11 @@
                 <div
                     class="text-sm font-medium"
                     :class="[
-                        isEnded ? 'text-red-600 dark:text-red-400 animate-pulse' :
-                        (activeCall.status === 6
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-gray-600 dark:text-zinc-400')
+                        isEnded
+                            ? 'text-red-600 dark:text-red-400 animate-pulse'
+                            : activeCall.status === 6
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-gray-600 dark:text-zinc-400',
                     ]"
                 >
                     <span v-if="isEnded">Call Ended</span>
@@ -150,7 +156,10 @@
         </div>
 
         <!-- Minimized State -->
-        <div v-show="isMinimized && !isEnded" class="px-4 py-2 flex items-center justify-between bg-white dark:bg-zinc-900">
+        <div
+            v-show="isMinimized && !isEnded"
+            class="px-4 py-2 flex items-center justify-between bg-white dark:bg-zinc-900"
+        >
             <div class="flex items-center space-x-2 overflow-hidden mr-2">
                 <MaterialDesignIcon icon-name="account" class="size-5 text-blue-500" />
                 <span class="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate">

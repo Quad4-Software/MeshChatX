@@ -22,9 +22,17 @@ class RNCPHandler:
         self.allow_overwrite_on_receive = False
         self.allowed_identity_hashes = []
 
-    def setup_receive_destination(self, allowed_hashes=None, fetch_allowed=False, fetch_jail=None, allow_overwrite=False):
+    def setup_receive_destination(
+        self,
+        allowed_hashes=None,
+        fetch_allowed=False,
+        fetch_jail=None,
+        allow_overwrite=False,
+    ):
         if allowed_hashes:
-            self.allowed_identity_hashes = [bytes.fromhex(h) if isinstance(h, str) else h for h in allowed_hashes]
+            self.allowed_identity_hashes = [
+                bytes.fromhex(h) if isinstance(h, str) else h for h in allowed_hashes
+            ]
 
         self.fetch_jail = fetch_jail
         self.allow_overwrite_on_receive = allow_overwrite
@@ -44,7 +52,9 @@ class RNCPHandler:
             "receive",
         )
 
-        self.receive_destination.set_link_established_callback(self._client_link_established)
+        self.receive_destination.set_link_established_callback(
+            self._client_link_established
+        )
 
         if fetch_allowed:
             self.receive_destination.register_request_handler(
@@ -86,7 +96,9 @@ class RNCPHandler:
         if resource.status == RNS.Resource.COMPLETE:
             if resource.metadata:
                 try:
-                    filename = os.path.basename(resource.metadata["name"].decode("utf-8"))
+                    filename = os.path.basename(
+                        resource.metadata["name"].decode("utf-8")
+                    )
                     save_dir = os.path.join(self.storage_dir, "rncp_received")
                     os.makedirs(save_dir, exist_ok=True)
 
@@ -105,13 +117,17 @@ class RNCPHandler:
                     while os.path.isfile(saved_filename):
                         counter += 1
                         base, ext = os.path.splitext(filename)
-                        saved_filename = os.path.join(save_dir, f"{base}.{counter}{ext}")
+                        saved_filename = os.path.join(
+                            save_dir, f"{base}.{counter}{ext}"
+                        )
 
                     shutil.move(resource.data.name, saved_filename)
 
                     if transfer_id in self.active_transfers:
                         self.active_transfers[transfer_id]["status"] = "completed"
-                        self.active_transfers[transfer_id]["saved_path"] = saved_filename
+                        self.active_transfers[transfer_id]["saved_path"] = (
+                            saved_filename
+                        )
                         self.active_transfers[transfer_id]["filename"] = filename
                 except Exception as e:
                     if transfer_id in self.active_transfers:
@@ -120,7 +136,9 @@ class RNCPHandler:
         elif transfer_id in self.active_transfers:
             self.active_transfers[transfer_id]["status"] = "failed"
 
-    def _fetch_request(self, path, data, request_id, link_id, remote_identity, requested_at):
+    def _fetch_request(
+        self, path, data, request_id, link_id, remote_identity, requested_at
+    ):
         if self.fetch_jail:
             if data.startswith(self.fetch_jail + "/"):
                 data = data.replace(self.fetch_jail + "/", "")
@@ -171,7 +189,9 @@ class RNCPHandler:
             RNS.Transport.request_path(destination_hash)
 
         timeout_after = time.time() + timeout
-        while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after:
+        while (
+            not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
+        ):
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):
@@ -257,7 +277,9 @@ class RNCPHandler:
             RNS.Transport.request_path(destination_hash)
 
         timeout_after = time.time() + timeout
-        while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after:
+        while (
+            not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
+        ):
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):
@@ -326,7 +348,9 @@ class RNCPHandler:
             if resource.status == RNS.Resource.COMPLETE:
                 if resource.metadata:
                     try:
-                        filename = os.path.basename(resource.metadata["name"].decode("utf-8"))
+                        filename = os.path.basename(
+                            resource.metadata["name"].decode("utf-8")
+                        )
                         if save_path:
                             save_dir = os.path.abspath(os.path.expanduser(save_path))
                             os.makedirs(save_dir, exist_ok=True)
@@ -367,7 +391,12 @@ class RNCPHandler:
         link.set_resource_strategy(RNS.Link.ACCEPT_ALL)
         link.set_resource_started_callback(fetch_resource_started)
         link.set_resource_concluded_callback(fetch_resource_concluded)
-        link.request("fetch_file", data=file_path, response_callback=request_response, failed_callback=request_failed)
+        link.request(
+            "fetch_file",
+            data=file_path,
+            response_callback=request_response,
+            failed_callback=request_failed,
+        )
 
         while not request_resolved:
             await asyncio.sleep(0.1)
@@ -418,4 +447,3 @@ class RNCPHandler:
                     "error": transfer.get("error"),
                 }
         return None
-

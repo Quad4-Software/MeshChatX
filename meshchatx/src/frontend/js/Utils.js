@@ -79,7 +79,7 @@ class Utils {
 
     static formatTimeAgo(datetimeString) {
         if (!datetimeString) return "unknown";
-        
+
         // ensure UTC if no timezone is provided
         let dateString = datetimeString;
         if (typeof dateString === "string" && !dateString.includes("Z") && !dateString.includes("+")) {
@@ -87,7 +87,7 @@ class Utils {
             // Replace space with T and append Z for ISO format
             dateString = dateString.replace(" ", "T") + "Z";
         }
-        
+
         const millisecondsAgo = Date.now() - new Date(dateString).getTime();
         const secondsAgo = Math.round(millisecondsAgo / 1000);
         return this.formatSeconds(secondsAgo);

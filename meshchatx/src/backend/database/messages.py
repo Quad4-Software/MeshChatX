@@ -15,17 +15,33 @@ class MessageDAO:
 
         # Ensure all required fields are present and handle defaults
         fields = [
-            "hash", "source_hash", "destination_hash", "state", "progress",
-            "is_incoming", "method", "delivery_attempts", "next_delivery_attempt_at",
-            "title", "content", "fields", "timestamp", "rssi", "snr", "quality", "is_spam",
+            "hash",
+            "source_hash",
+            "destination_hash",
+            "state",
+            "progress",
+            "is_incoming",
+            "method",
+            "delivery_attempts",
+            "next_delivery_attempt_at",
+            "title",
+            "content",
+            "fields",
+            "timestamp",
+            "rssi",
+            "snr",
+            "quality",
+            "is_spam",
         ]
 
         columns = ", ".join(fields)
         placeholders = ", ".join(["?"] * len(fields))
         update_set = ", ".join([f"{f} = EXCLUDED.{f}" for f in fields if f != "hash"])
 
-        query = f"INSERT INTO lxmf_messages ({columns}, updated_at) VALUES ({placeholders}, ?) " \
-                f"ON CONFLICT(hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"  # noqa: S608
+        query = (
+            f"INSERT INTO lxmf_messages ({columns}, updated_at) VALUES ({placeholders}, ?) "
+            f"ON CONFLICT(hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"
+        )  # noqa: S608
 
         params = []
         for f in fields:
@@ -38,10 +54,14 @@ class MessageDAO:
         self.provider.execute(query, params)
 
     def get_lxmf_message_by_hash(self, message_hash):
-        return self.provider.fetchone("SELECT * FROM lxmf_messages WHERE hash = ?", (message_hash,))
+        return self.provider.fetchone(
+            "SELECT * FROM lxmf_messages WHERE hash = ?", (message_hash,)
+        )
 
     def delete_lxmf_message_by_hash(self, message_hash):
-        self.provider.execute("DELETE FROM lxmf_messages WHERE hash = ?", (message_hash,))
+        self.provider.execute(
+            "DELETE FROM lxmf_messages WHERE hash = ?", (message_hash,)
+        )
 
     def get_conversation_messages(self, destination_hash, limit=100, offset=0):
         return self.provider.fetchall(
@@ -73,13 +93,16 @@ class MessageDAO:
         )
 
     def is_conversation_unread(self, destination_hash):
-        row = self.provider.fetchone("""
+        row = self.provider.fetchone(
+            """
             SELECT m.timestamp, r.last_read_at 
             FROM lxmf_messages m
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = ?
             WHERE (m.destination_hash = ? OR m.source_hash = ?)
             ORDER BY m.timestamp DESC LIMIT 1
-        """, (destination_hash, destination_hash, destination_hash))
+        """,
+            (destination_hash, destination_hash, destination_hash),
+        )
 
         if not row:
             return False
@@ -93,13 +116,16 @@ class MessageDAO:
         return row["timestamp"] > last_read_at.timestamp()
 
     def mark_stuck_messages_as_failed(self):
-        self.provider.execute("""
+        self.provider.execute(
+            """
             UPDATE lxmf_messages 
             SET state = 'failed', updated_at = ?
             WHERE state = 'outbound' 
             OR (state = 'sent' AND method = 'opportunistic') 
             OR state = 'sending'
-        """, (datetime.now(UTC).isoformat(),))
+        """,
+            (datetime.now(UTC).isoformat(),),
+        )
 
     def get_failed_messages_for_destination(self, destination_hash):
         return self.provider.fetchall(
@@ -115,9 +141,14 @@ class MessageDAO:
         return row["count"] if row else 0
 
     # Forwarding Mappings
-    def get_forwarding_mapping(self, alias_hash=None, original_sender_hash=None, final_recipient_hash=None):
+    def get_forwarding_mapping(
+        self, alias_hash=None, original_sender_hash=None, final_recipient_hash=None
+    ):
         if alias_hash:
-            return self.provider.fetchone("SELECT * FROM lxmf_forwarding_mappings WHERE alias_hash = ?", (alias_hash,))
+            return self.provider.fetchone(
+                "SELECT * FROM lxmf_forwarding_mappings WHERE alias_hash = ?",
+                (alias_hash,),
+            )
         if original_sender_hash and final_recipient_hash:
             return self.provider.fetchone(
                 "SELECT * FROM lxmf_forwarding_mappings WHERE original_sender_hash = ? AND final_recipient_hash = ?",
@@ -131,8 +162,11 @@ class MessageDAO:
             data = dict(data)
 
         fields = [
-            "alias_identity_private_key", "alias_hash", "original_sender_hash",
-            "final_recipient_hash", "original_destination_hash",
+            "alias_identity_private_key",
+            "alias_hash",
+            "original_sender_hash",
+            "final_recipient_hash",
+            "original_destination_hash",
         ]
         columns = ", ".join(fields)
         placeholders = ", ".join(["?"] * len(fields))
@@ -143,4 +177,3 @@ class MessageDAO:
 
     def get_all_forwarding_mappings(self):
         return self.provider.fetchall("SELECT * FROM lxmf_forwarding_mappings")
-

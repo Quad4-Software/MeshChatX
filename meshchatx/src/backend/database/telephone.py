@@ -1,4 +1,3 @@
-
 from .provider import DatabaseProvider
 
 
@@ -41,4 +40,3 @@ class TelephoneDAO:
             "SELECT * FROM call_history ORDER BY timestamp DESC LIMIT ?",
             (limit,),
         )
-

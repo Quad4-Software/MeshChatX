@@ -76,7 +76,9 @@ class TelephoneManager:
         destination_identity = RNS.Identity.recall(destination_hash)
         if destination_identity is None:
             # If not found by identity hash, try as destination hash
-            destination_identity = RNS.Identity.recall(destination_hash) # Identity.recall takes identity hash
+            destination_identity = RNS.Identity.recall(
+                destination_hash
+            )  # Identity.recall takes identity hash
 
         if destination_identity is None:
             msg = "Destination identity not found"
@@ -92,4 +94,3 @@ class TelephoneManager:
         self.call_is_incoming = False
         await asyncio.to_thread(self.telephone.call, destination_identity)
         return self.telephone.active_call
-

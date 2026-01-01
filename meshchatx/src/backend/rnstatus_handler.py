@@ -25,7 +25,12 @@ class RNStatusHandler:
     def __init__(self, reticulum_instance):
         self.reticulum = reticulum_instance
 
-    def get_status(self, include_link_stats: bool = False, sorting: str | None = None, sort_reverse: bool = False):
+    def get_status(
+        self,
+        include_link_stats: bool = False,
+        sorting: str | None = None,
+        sort_reverse: bool = False,
+    ):
         stats = None
         link_count = None
 
@@ -53,15 +58,25 @@ class RNStatusHandler:
         if sorting and isinstance(sorting, str):
             sorting = sorting.lower()
             if sorting in ("rate", "bitrate"):
-                interfaces.sort(key=lambda i: i.get("bitrate", 0) or 0, reverse=sort_reverse)
+                interfaces.sort(
+                    key=lambda i: i.get("bitrate", 0) or 0, reverse=sort_reverse
+                )
             elif sorting == "rx":
-                interfaces.sort(key=lambda i: i.get("rxb", 0) or 0, reverse=sort_reverse)
+                interfaces.sort(
+                    key=lambda i: i.get("rxb", 0) or 0, reverse=sort_reverse
+                )
             elif sorting == "tx":
-                interfaces.sort(key=lambda i: i.get("txb", 0) or 0, reverse=sort_reverse)
+                interfaces.sort(
+                    key=lambda i: i.get("txb", 0) or 0, reverse=sort_reverse
+                )
             elif sorting == "rxs":
-                interfaces.sort(key=lambda i: i.get("rxs", 0) or 0, reverse=sort_reverse)
+                interfaces.sort(
+                    key=lambda i: i.get("rxs", 0) or 0, reverse=sort_reverse
+                )
             elif sorting == "txs":
-                interfaces.sort(key=lambda i: i.get("txs", 0) or 0, reverse=sort_reverse)
+                interfaces.sort(
+                    key=lambda i: i.get("txs", 0) or 0, reverse=sort_reverse
+                )
             elif sorting == "traffic":
                 interfaces.sort(
                     key=lambda i: (i.get("rxb", 0) or 0) + (i.get("txb", 0) or 0),
@@ -84,13 +99,19 @@ class RNStatusHandler:
                     reverse=sort_reverse,
                 )
             elif sorting == "held":
-                interfaces.sort(key=lambda i: i.get("held_announces", 0) or 0, reverse=sort_reverse)
+                interfaces.sort(
+                    key=lambda i: i.get("held_announces", 0) or 0, reverse=sort_reverse
+                )
 
         formatted_interfaces = []
         for ifstat in interfaces:
             name = ifstat.get("name", "")
 
-            if name.startswith("LocalInterface[") or name.startswith("TCPInterface[Client") or name.startswith("BackboneInterface[Client on"):
+            if (
+                name.startswith("LocalInterface[")
+                or name.startswith("TCPInterface[Client")
+                or name.startswith("BackboneInterface[Client on")
+            ):
                 continue
 
             formatted_if: dict[str, Any] = {
@@ -165,9 +186,13 @@ class RNStatusHandler:
                 formatted_if["peers"] = ifstat["peers"]
 
             if "incoming_announce_frequency" in ifstat:
-                formatted_if["incoming_announce_frequency"] = ifstat["incoming_announce_frequency"]
+                formatted_if["incoming_announce_frequency"] = ifstat[
+                    "incoming_announce_frequency"
+                ]
             if "outgoing_announce_frequency" in ifstat:
-                formatted_if["outgoing_announce_frequency"] = ifstat["outgoing_announce_frequency"]
+                formatted_if["outgoing_announce_frequency"] = ifstat[
+                    "outgoing_announce_frequency"
+                ]
             if "held_announces" in ifstat:
                 formatted_if["held_announces"] = ifstat["held_announces"]
 
@@ -181,4 +206,3 @@ class RNStatusHandler:
             "link_count": link_count,
             "timestamp": time.time(),
         }
-

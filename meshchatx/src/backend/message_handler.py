@@ -5,7 +5,15 @@ class MessageHandler:
     def __init__(self, db: Database):
         self.db = db
 
-    def get_conversation_messages(self, local_hash, destination_hash, limit=100, offset=0, after_id=None, before_id=None):
+    def get_conversation_messages(
+        self,
+        local_hash,
+        destination_hash,
+        limit=100,
+        offset=0,
+        after_id=None,
+        before_id=None,
+    ):
         query = """
             SELECT * FROM lxmf_messages 
             WHERE ((source_hash = ? AND destination_hash = ?) 
@@ -31,7 +39,9 @@ class MessageHandler:
             WHERE ((source_hash = ? AND destination_hash = ?) 
                OR (destination_hash = ? AND source_hash = ?))
         """
-        self.db.provider.execute(query, [local_hash, destination_hash, local_hash, destination_hash])
+        self.db.provider.execute(
+            query, [local_hash, destination_hash, local_hash, destination_hash]
+        )
 
     def search_messages(self, local_hash, search_term):
         like_term = f"%{search_term}%"
@@ -61,6 +71,12 @@ class MessageHandler:
             WHERE m1.source_hash = ? OR m1.destination_hash = ?
             ORDER BY m1.timestamp DESC
         """
-        params = [local_hash, local_hash, local_hash, local_hash, local_hash, local_hash]
+        params = [
+            local_hash,
+            local_hash,
+            local_hash,
+            local_hash,
+            local_hash,
+            local_hash,
+        ]
         return self.db.provider.fetchall(query, params)
-

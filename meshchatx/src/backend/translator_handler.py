@@ -6,12 +6,14 @@ from typing import Any
 
 try:
     import requests
+
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
 
 try:
     from argostranslate import package, translate
+
     HAS_ARGOS_LIB = True
 except ImportError:
     HAS_ARGOS_LIB = False
@@ -63,7 +65,9 @@ LANGUAGE_CODE_TO_NAME = {
 
 class TranslatorHandler:
     def __init__(self, libretranslate_url: str | None = None):
-        self.libretranslate_url = libretranslate_url or os.getenv("LIBRETRANSLATE_URL", "http://localhost:5000")
+        self.libretranslate_url = libretranslate_url or os.getenv(
+            "LIBRETRANSLATE_URL", "http://localhost:5000"
+        )
         self.has_argos = HAS_ARGOS
         self.has_argos_lib = HAS_ARGOS_LIB
         self.has_argos_cli = HAS_ARGOS_CLI
@@ -136,7 +140,12 @@ class TranslatorHandler:
         if self.has_requests:
             try:
                 url = libretranslate_url or self.libretranslate_url
-                return self._translate_libretranslate(text, source_lang=source_lang, target_lang=target_lang, libretranslate_url=url)
+                return self._translate_libretranslate(
+                    text,
+                    source_lang=source_lang,
+                    target_lang=target_lang,
+                    libretranslate_url=url,
+                )
             except Exception as e:
                 if self.has_argos:
                     return self._translate_argos(text, source_lang, target_lang)
@@ -148,7 +157,13 @@ class TranslatorHandler:
         msg = "No translation backend available. Install requests for LibreTranslate or argostranslate for local translation."
         raise RuntimeError(msg)
 
-    def _translate_libretranslate(self, text: str, source_lang: str, target_lang: str, libretranslate_url: str | None = None) -> dict[str, Any]:
+    def _translate_libretranslate(
+        self,
+        text: str,
+        source_lang: str,
+        target_lang: str,
+        libretranslate_url: str | None = None,
+    ) -> dict[str, Any]:
         if not self.has_requests:
             msg = "requests library not available"
             raise RuntimeError(msg)
@@ -172,12 +187,16 @@ class TranslatorHandler:
         result = response.json()
         return {
             "translated_text": result.get("translatedText", ""),
-            "source_lang": result.get("detectedLanguage", {}).get("language", source_lang),
+            "source_lang": result.get("detectedLanguage", {}).get(
+                "language", source_lang
+            ),
             "target_lang": target_lang,
             "source": "libretranslate",
         }
 
-    def _translate_argos(self, text: str, source_lang: str, target_lang: str) -> dict[str, Any]:
+    def _translate_argos(
+        self, text: str, source_lang: str, target_lang: str
+    ) -> dict[str, Any]:
         if source_lang == "auto":
             if self.has_argos_lib:
                 detected_lang = self._detect_language(text)
@@ -200,7 +219,9 @@ class TranslatorHandler:
         msg = "Argos Translate not available (neither library nor CLI)"
         raise RuntimeError(msg)
 
-    def _translate_argos_lib(self, text: str, source_lang: str, target_lang: str) -> dict[str, Any]:
+    def _translate_argos_lib(
+        self, text: str, source_lang: str, target_lang: str
+    ) -> dict[str, Any]:
         try:
             installed_packages = package.get_installed_packages()
             translation_package = None
@@ -228,7 +249,9 @@ class TranslatorHandler:
             msg = f"Argos Translate error: {e}"
             raise RuntimeError(msg)
 
-    def _translate_argos_cli(self, text: str, source_lang: str, target_lang: str) -> dict[str, Any]:
+    def _translate_argos_cli(
+        self, text: str, source_lang: str, target_lang: str
+    ) -> dict[str, Any]:
         if source_lang == "auto" or not source_lang:
             msg = "Auto-detection is not supported with CLI. Please select a source language manually."
             raise ValueError(msg)
@@ -251,7 +274,14 @@ class TranslatorHandler:
             raise RuntimeError(msg)
 
         try:
-            args = [executable, "--from-lang", source_lang, "--to-lang", target_lang, text]
+            args = [
+                executable,
+                "--from-lang",
+                source_lang,
+                "--to-lang",
+                target_lang,
+                text,
+            ]
             result = subprocess.run(args, capture_output=True, text=True, check=True)  # noqa: S603
             translated_text = result.stdout.strip()
             if not translated_text:
@@ -264,7 +294,11 @@ class TranslatorHandler:
                 "source": "argos",
             }
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr.decode() if isinstance(e.stderr, bytes) else (e.stderr or str(e))
+            error_msg = (
+                e.stderr.decode()
+                if isinstance(e.stderr, bytes)
+                else (e.stderr or str(e))
+            )
             msg = f"Argos Translate CLI error: {error_msg}"
             raise RuntimeError(msg)
         except Exception as e:
@@ -333,7 +367,9 @@ class TranslatorHandler:
 
         return languages
 
-    def install_language_package(self, package_name: str = "translate") -> dict[str, Any]:
+    def install_language_package(
+        self, package_name: str = "translate"
+    ) -> dict[str, Any]:
         argospm = shutil.which("argospm")
         if not argospm:
             msg = "argospm not found in PATH. Install argostranslate first."

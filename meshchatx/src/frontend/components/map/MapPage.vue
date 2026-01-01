@@ -388,7 +388,9 @@
 
                     <div class="border-t border-gray-100 dark:border-zinc-800 pt-4 space-y-4">
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">MBTiles Storage Directory</label>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1"
+                                >MBTiles Storage Directory</label
+                            >
                             <input
                                 v-model="mbtilesDir"
                                 type="text"
@@ -407,8 +409,14 @@
                                     class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-800"
                                 >
                                     <div class="flex flex-col min-w-0 flex-1 mr-2">
-                                        <span class="text-xs font-medium text-gray-900 dark:text-zinc-100 truncate" :title="file.name">{{ file.name }}</span>
-                                        <span class="text-[10px] text-gray-500">{{ (file.size / 1024 / 1024).toFixed(1) }} MB</span>
+                                        <span
+                                            class="text-xs font-medium text-gray-900 dark:text-zinc-100 truncate"
+                                            :title="file.name"
+                                            >{{ file.name }}</span
+                                        >
+                                        <span class="text-[10px] text-gray-500"
+                                            >{{ (file.size / 1024 / 1024).toFixed(1) }} MB</span
+                                        >
                                     </div>
                                     <div class="flex items-center space-x-1">
                                         <button
@@ -648,7 +656,8 @@ export default {
                 const response = await window.axios.get("/api/v1/config");
                 this.config = response.data.config;
                 this.offlineEnabled = this.config.map_offline_enabled;
-                this.cachingEnabled = this.config.map_tile_cache_enabled !== undefined ? this.config.map_tile_cache_enabled : true;
+                this.cachingEnabled =
+                    this.config.map_tile_cache_enabled !== undefined ? this.config.map_tile_cache_enabled : true;
                 this.mbtilesDir = this.config.map_mbtiles_dir || "";
                 if (this.config.map_tile_server_url) {
                     this.tileServerUrl = this.config.map_tile_server_url;
@@ -674,7 +683,7 @@ export default {
                 await this.checkOfflineMap();
                 await this.loadMBTilesList();
                 ToastUtils.success("Map source updated");
-            } catch (e) {
+            } catch {
                 ToastUtils.error("Failed to set active map");
             }
         },
@@ -687,7 +696,7 @@ export default {
                     await this.checkOfflineMap();
                 }
                 ToastUtils.success("File deleted");
-            } catch (e) {
+            } catch {
                 ToastUtils.error("Failed to delete file");
             }
         },
@@ -698,7 +707,7 @@ export default {
                 });
                 ToastUtils.success("Storage directory saved");
                 this.loadMBTilesList();
-            } catch (e) {
+            } catch {
                 ToastUtils.error("Failed to save directory");
             }
         },
@@ -800,7 +809,7 @@ export default {
             const customTileUrl = this.tileServerUrl || defaultTileUrl;
             const isCustomLocal = this.isLocalUrl(customTileUrl);
             const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl, "tile");
-            
+
             let tileUrl;
             if (isOffline) {
                 if (isCustomLocal || (!isDefaultOnline && customTileUrl !== defaultTileUrl)) {
@@ -811,14 +820,14 @@ export default {
             } else {
                 tileUrl = customTileUrl;
             }
-            
+
             const source = new XYZ({
                 url: tileUrl,
                 crossOrigin: "anonymous",
             });
 
             const originalTileLoadFunction = source.getTileLoadFunction();
-            
+
             if (isOffline) {
                 source.setTileLoadFunction(async (tile, src) => {
                     try {
@@ -832,7 +841,7 @@ export default {
                         }
                         const blob = await response.blob();
                         tile.getImage().src = URL.createObjectURL(blob);
-                    } catch (error) {
+                    } catch {
                         tile.setState(3);
                     }
                 });
@@ -902,15 +911,15 @@ export default {
             if (enabled) {
                 const defaultTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
                 const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
-                
+
                 const isCustomTileLocal = this.isLocalUrl(this.tileServerUrl);
                 const isDefaultTileOnline = this.isDefaultOnlineUrl(this.tileServerUrl, "tile");
                 const hasCustomTile = this.tileServerUrl && this.tileServerUrl !== defaultTileUrl;
-                
+
                 const isCustomNominatimLocal = this.isLocalUrl(this.nominatimApiUrl);
                 const isDefaultNominatimOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl, "nominatim");
                 const hasCustomNominatim = this.nominatimApiUrl && this.nominatimApiUrl !== defaultNominatimUrl;
-                
+
                 if (hasCustomTile && !isCustomTileLocal && !isDefaultTileOnline) {
                     const isAccessible = await this.checkApiConnection(this.tileServerUrl);
                     if (!isAccessible) {
@@ -918,7 +927,7 @@ export default {
                         return;
                     }
                 }
-                
+
                 if (hasCustomNominatim && !isCustomNominatimLocal && !isDefaultNominatimOnline) {
                     const isAccessible = await this.checkApiConnection(this.nominatimApiUrl);
                     if (!isAccessible) {
@@ -1199,7 +1208,7 @@ export default {
             const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
             const isCustomLocal = this.isLocalUrl(this.nominatimApiUrl);
             const isDefaultOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl, "nominatim");
-            
+
             if (this.offlineEnabled) {
                 if (isCustomLocal || (!isDefaultOnline && this.nominatimApiUrl !== defaultNominatimUrl)) {
                     const isAccessible = await this.checkApiConnection(this.nominatimApiUrl);
