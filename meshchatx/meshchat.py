@@ -675,6 +675,10 @@ class ReticulumMeshChat:
             if should_announce:
                 await self.announce()
 
+                # also announce forwarding aliases if any
+                if self.forwarding_manager:
+                    await asyncio.to_thread(self.forwarding_manager.announce_aliases)
+
             # wait 1 second before next loop
             await asyncio.sleep(1)
 
