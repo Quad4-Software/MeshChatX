@@ -1,15 +1,19 @@
 import base64
+import os
 
+import LXMF
 import RNS
 
 from .database import Database
 
 
 class ForwardingManager:
-    def __init__(self, db: Database, message_router):
+    def __init__(self, db: Database, storage_path: str, delivery_callback):
         self.db = db
-        self.message_router = message_router
+        self.storage_path = storage_path
+        self.delivery_callback = delivery_callback
         self.forwarding_destinations = {}
+        self.forwarding_routers = {}
 
     def load_aliases(self):
         mappings = self.db.messages.get_all_forwarding_mappings()
@@ -19,10 +23,26 @@ class ForwardingManager:
                     mapping["alias_identity_private_key"]
                 )
                 alias_identity = RNS.Identity.from_bytes(private_key_bytes)
-                alias_destination = self.message_router.register_delivery_identity(
+                alias_hash = mapping["alias_hash"]
+
+                # create temp router for this alias
+                router_storage_path = os.path.join(
+                    self.storage_path, "forwarding", alias_hash
+                )
+                os.makedirs(router_storage_path, exist_ok=True)
+
+                router = LXMF.LXMRouter(
+                    identity=alias_identity, storagepath=router_storage_path
+                )
+                router.register_delivery_callback(self.delivery_callback)
+
+                alias_destination = router.register_delivery_identity(
                     identity=alias_identity
                 )
-                self.forwarding_destinations[mapping["alias_hash"]] = alias_destination
+
+                self.forwarding_destinations[alias_hash] = alias_destination
+                self.forwarding_routers[alias_hash] = router
+
             except Exception as e:
                 print(f"Failed to load forwarding alias {mapping['alias_hash']}: {e}")
 
@@ -38,10 +58,23 @@ class ForwardingManager:
             alias_identity = RNS.Identity()
             alias_hash = alias_identity.hash.hex()
 
-            alias_destination = self.message_router.register_delivery_identity(
-                alias_identity
+            # create temp router for this alias
+            router_storage_path = os.path.join(
+                self.storage_path, "forwarding", alias_hash
             )
+            os.makedirs(router_storage_path, exist_ok=True)
+
+            router = LXMF.LXMRouter(
+                identity=alias_identity, storagepath=router_storage_path
+            )
+            router.register_delivery_callback(self.delivery_callback)
+
+            alias_destination = router.register_delivery_identity(
+                identity=alias_identity
+            )
+
             self.forwarding_destinations[alias_hash] = alias_destination
+            self.forwarding_routers[alias_hash] = router
 
             data = {
                 "alias_identity_private_key": base64.b64encode(
