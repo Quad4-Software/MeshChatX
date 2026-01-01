@@ -33,7 +33,7 @@
                         <div
                             class="hidden sm:flex my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner"
                         >
-                            <img class="w-12 h-12 object-contain p-1.5" src="/assets/images/logo.png" />
+                            <img class="w-12 h-12 object-contain p-1.5" :src="logoUrl" />
                         </div>
                         <div class="my-auto">
                             <div
@@ -414,6 +414,7 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import NotificationBell from "./NotificationBell.vue";
 import LanguageSelector from "./LanguageSelector.vue";
 import CallOverlay from "./call/CallOverlay.vue";
+import logoUrl from "../assets/images/logo.png";
 
 export default {
     name: "App",
@@ -428,6 +429,7 @@ export default {
     },
     data() {
         return {
+            logoUrl,
             reloadInterval: null,
             appInfoInterval: null,
 

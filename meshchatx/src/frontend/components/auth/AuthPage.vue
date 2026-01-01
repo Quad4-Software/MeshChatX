@@ -8,7 +8,7 @@
                     <div
                         class="w-16 h-16 mx-auto mb-4 rounded-2xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner flex items-center justify-center"
                     >
-                        <img class="w-16 h-16 object-contain p-2" src="/assets/images/logo.png" />
+                        <img class="w-16 h-16 object-contain p-2" :src="logoUrl" />
                     </div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
                         {{ isSetup ? "Initial Setup" : "Authentication Required" }}
@@ -83,10 +83,13 @@
 </template>
 
 <script>
+import logoUrl from "../../assets/images/logo.png";
+
 export default {
     name: "AuthPage",
     data() {
         return {
+            logoUrl,
             password: "",
             confirmPassword: "",
             error: "",

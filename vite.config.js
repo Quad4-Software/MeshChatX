@@ -8,6 +8,8 @@ export default {
     // vite app is loaded from /meshchatx/src/frontend
     root: path.join(__dirname, "meshchatx", "src", "frontend"),
 
+    publicDir: path.join(__dirname, "meshchatx", "src", "frontend", "public"),
+
     build: {
         minify: "terser",
         terserOptions: {
