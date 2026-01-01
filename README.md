@@ -2,13 +2,11 @@
 
 A heavily customized and updated fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat).
 
-This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project.
+This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project. It has been completely reworked, but I try to maintain a migrator to auto-migrate from old database to new one. 
 
-## Features of this Fork
+## Major Features
 
-### Major
-
-- Full LXST support w/ custom voicemail support.
+- Full LXST support w/ custom voicemail support (espeak-ng and ffmpeg required).
 - Map (w/ MBTiles support for offline)
 - Security improvements
 - Custom UI/UX
