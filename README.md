@@ -4,40 +4,26 @@ A heavily customized and updated fork of [Reticulum MeshChat](https://github.com
 
 ## Features of this Fork
 
-| Feature                                                           | Description                                                                 |
-|-------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| Custom UI/UX                                                      | Modern, improved interface                                                  |
-| Inbound LXMF & local node stamps                                  | Configure inbound messaging and node propogation addresses                  |
-| Improved config parsing                                           | More accurate and flexible parsing of config files                          |
-| Automatic HTTPS                                                   | Generates self-signed certificates for secure access                        |
-| Cancelable fetches & downloads                                    | Cancel page fetching or downloading                                         |
-| Built-in page archiving                                           | Archive pages; background crawler automatically archives nodes that announces|
-| Translator tool                                                   | Translate messages via Argos Translate or LibreTranslate API                |
-| Network visualization                                             | Faster, improved visualization page                                         |
-| User & node blocking                                              | Block specific users or nodes                                               |
-| Database insights                                                 | Advanced settings and raw database access                                   |
-| Multi-language support                                            | Internationalization (i18n) provided                                        |
-| Offline maps (OpenLayers + MBTiles)                               | Interactive map using OpenLayers with MBTiles offline support               |
-| Extra tools                                                       | RNCP, RNStatus, RNProbe, Translator, Message Forwarding                     |
-| Major codebase reorganization                                     | Cleaner, refactored architecture                                            |
-| Better Dependency management                                      | Poetry for Python, PNPM for Node.js packages                                |
-| Increased statistics                                              | More network and usage stats (About page)                                   |
-| Supply Chain Protection                                           | Actions and docker images use full SHA  hashes                              |
-| Docker optimizations                                              | Smaller sizes, more secure                                                  |
-| Electron improvements                                             | Security, ASAR packaging                                                    |
-| Updated dependencies                                              | Latest PNPM and Python package versions                                     |
-| Linting & SAST cleanup                                            | Improved code quality and security                                          |
-| Performance improvements                                          | Faster and more efficient operation                                         |
-| SQLite backend                                                    | Raw SQLite database backend (replaces Peewee ORM)                           |
-| Map                                                               | OpenLayers and MBTiles support                                              |
+### Major
+
+- Full LXST support.
+- Map (w/ MBTiles support for offline)
+- Security improvements
+- Custom UI/UX
+- More Tools
+- Built-in page archiving and automatic crawler (no multi-page support yet).
+- Block LXMF users and NomadNet Nodes
+- Toast system for notifications
+- i18n support (En, De, Ru)
+- Raw SQLite database backend (replaced Peewee ORM)
 
 ## TODO
 
 - [ ] Tests and proper CI/CD pipeline.
 - [ ] RNS hot reload fix
 - [ ] Backup/Import identities, messages and interfaces.
-- [ ] Full LXST support.
 - [ ] Offline Reticulum documentation tool
+- [ ] LXMF Telemtry for map
 - [ ] Spam filter (based on keywords)
 - [ ] Multi-identity support.
 - [ ] TAK tool/integration

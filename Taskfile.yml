@@ -1,0 +1,153 @@
+version: '3'
+
+vars:
+  PYTHON:
+    sh: echo "${PYTHON:-python}"
+  NPM:
+    sh: echo "${NPM:-pnpm}"
+  LEGACY_ELECTRON_VERSION:
+    sh: echo "${LEGACY_ELECTRON_VERSION:-30.0.8}"
+  DOCKER_COMPOSE_CMD:
+    sh: echo "${DOCKER_COMPOSE_CMD:-docker compose}"
+  DOCKER_COMPOSE_FILE:
+    sh: echo "${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
+  DOCKER_IMAGE:
+    sh: echo "${DOCKER_IMAGE:-reticulum-meshchatx:local}"
+  DOCKER_BUILDER:
+    sh: echo "${DOCKER_BUILDER:-meshchatx-builder}"
+  DOCKER_PLATFORMS:
+    sh: echo "${DOCKER_PLATFORMS:-linux/amd64}"
+  DOCKER_BUILD_FLAGS:
+    sh: echo "${DOCKER_BUILD_FLAGS:---load}"
+  DOCKER_BUILD_ARGS:
+    sh: echo "${DOCKER_BUILD_ARGS:-}"
+  DOCKER_CONTEXT:
+    sh: echo "${DOCKER_CONTEXT:-.}"
+  DOCKERFILE:
+    sh: echo "${DOCKERFILE:-Dockerfile}"
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  install:
+    desc: Install all dependencies (syncs version, installs node modules and python deps)
+    deps: [sync-version, node_modules, python]
+
+  node_modules:
+    desc: Install Node.js dependencies
+    cmds:
+      - '{{.NPM}} install'
+
+  python:
+    desc: Install Python dependencies using Poetry
+    cmds:
+      - '{{.PYTHON}} -m poetry install'
+
+  run:
+    desc: Run the application
+    deps: [install]
+    cmds:
+      - '{{.PYTHON}} -m poetry run meshchat'
+
+  develop:
+    desc: Run the application in development mode
+    cmds:
+      - task: run
+
+  build:
+    desc: Build the application (frontend and backend)
+    deps: [install]
+    cmds:
+      - '{{.NPM}} run build'
+
+  build-frontend:
+    desc: Build only the frontend
+    deps: [node_modules]
+    cmds:
+      - '{{.NPM}} run build-frontend'
+
+  wheel:
+    desc: Build Python wheel package
+    deps: [install]
+    cmds:
+      - '{{.PYTHON}} -m poetry build -f wheel'
+      - '{{.PYTHON}} scripts/move_wheels.py'
+
+  build-appimage:
+    desc: Build Linux AppImage
+    deps: [build]
+    cmds:
+      - '{{.NPM}} run electron-postinstall'
+      - '{{.NPM}} run dist -- --linux AppImage'
+
+  build-exe:
+    desc: Build Windows portable executable
+    deps: [build]
+    cmds:
+      - '{{.NPM}} run electron-postinstall'
+      - '{{.NPM}} run dist -- --win portable'
+
+  dist:
+    desc: Build distribution (defaults to AppImage)
+    cmds:
+      - task: build-appimage
+
+  electron-legacy:
+    desc: Install legacy Electron version
+    cmds:
+      - '{{.NPM}} install --no-save electron@{{.LEGACY_ELECTRON_VERSION}}'
+
+  build-appimage-legacy:
+    desc: Build Linux AppImage with legacy Electron version
+    deps: [build, electron-legacy]
+    cmds:
+      - '{{.NPM}} run electron-postinstall'
+      - '{{.NPM}} run dist -- --linux AppImage'
+      - './scripts/rename_legacy_artifacts.sh'
+
+  build-exe-legacy:
+    desc: Build Windows portable executable with legacy Electron version
+    deps: [build, electron-legacy]
+    cmds:
+      - '{{.NPM}} run electron-postinstall'
+      - '{{.NPM}} run dist -- --win portable'
+      - './scripts/rename_legacy_artifacts.sh'
+
+  clean:
+    desc: Clean build artifacts and dependencies
+    cmds:
+      - rm -rf node_modules
+      - rm -rf build
+      - rm -rf dist
+      - rm -rf python-dist
+      - rm -rf meshchatx/public
+
+  sync-version:
+    desc: Sync version numbers across project files
+    cmds:
+      - '{{.PYTHON}} scripts/sync_version.py'
+
+  build-docker:
+    desc: Build Docker image using buildx
+    cmds:
+      - |
+        if ! docker buildx inspect {{.DOCKER_BUILDER}} >/dev/null 2>&1; then
+          docker buildx create --name {{.DOCKER_BUILDER}} --use >/dev/null
+        else
+          docker buildx use {{.DOCKER_BUILDER}}
+        fi
+      - |
+        docker buildx build --builder {{.DOCKER_BUILDER}} --platform {{.DOCKER_PLATFORMS}} \
+          {{.DOCKER_BUILD_FLAGS}} \
+          -t {{.DOCKER_IMAGE}} \
+          {{.DOCKER_BUILD_ARGS}} \
+          -f {{.DOCKERFILE}} \
+          {{.DOCKER_CONTEXT}}
+
+  run-docker:
+    desc: Run Docker container using docker-compose
+    cmds:
+      - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f {{.DOCKER_COMPOSE_FILE}} up --remove-orphans --pull never reticulum-meshchatx'

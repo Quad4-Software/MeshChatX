@@ -1,0 +1,9 @@
+dist
+node_modules
+build
+electron/assets
+meshchatx/public
+pnpm-lock.yaml
+poetry.lock
+*.log
+

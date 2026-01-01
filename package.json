@@ -1,0 +1,155 @@
+{
+  "name": "reticulum-meshchatx",
+  "version": "2.50.0",
+  "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
+  "author": "Sudo-Ivan",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite dev",
+    "watch": "pnpm run build-frontend -- --watch",
+    "build-frontend": "vite build",
+    "build-backend": "node scripts/build-backend.js",
+    "build": "pnpm run build-frontend && pnpm run build-backend",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "electron-postinstall": "electron-builder install-app-deps",
+    "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
+    "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
+    "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
+    "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
+    "dist:mac-universal": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --universal --publish=never"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@10.0.0",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@rushstack/eslint-patch": "^1.15.0",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "electron": "^39.2.7",
+    "electron-builder": "^24.13.3",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-security": "^3.0.1",
+    "eslint-plugin-vue": "^10.6.2",
+    "globals": "^16.5.0",
+    "prettier": "^3.7.4",
+    "terser": "^5.44.1"
+  },
+  "build": {
+    "appId": "com.sudoivan.reticulummeshchat",
+    "productName": "Reticulum MeshChatX",
+    "asar": true,
+    "asarUnpack": [
+      "build/exe/**/*"
+    ],
+    "files": [
+      "electron/**/*"
+    ],
+    "directories": {
+      "buildResources": "electron/build"
+    },
+    "mac": {
+      "target": {
+        "target": "dmg",
+        "arch": [
+          "universal"
+        ]
+      },
+      "identity": null,
+      "artifactName": "ReticulumMeshChat-v${version}-mac-${arch}.${ext}",
+      "x64ArchFiles": "Contents/Resources/app/electron/build/exe/**",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
+        "com.apple.security.device.audio-input": true
+      },
+      "extraFiles": [
+        {
+          "from": "build/exe",
+          "to": "Resources/app/electron/build/exe",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "artifactName": "ReticulumMeshChat-v${version}-${os}.${ext}",
+      "target": [
+        {
+          "target": "portable"
+        },
+        {
+          "target": "nsis"
+        }
+      ],
+      "extraFiles": [
+        {
+          "from": "build/exe",
+          "to": "Resources/app/electron/build/exe",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "artifactName": "ReticulumMeshChat-v${version}-${os}.${ext}",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "maintainer": "Sudo-Ivan",
+      "category": "Network",
+      "extraFiles": [
+        {
+          "from": "build/exe",
+          "to": "resources/app/electron/build/exe",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "writeUpdateInfo": false
+    },
+    "portable": {
+      "artifactName": "ReticulumMeshChat-v${version}-${os}-portable.${ext}"
+    },
+    "nsis": {
+      "artifactName": "ReticulumMeshChat-v${version}-${os}-installer.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "@mdi/js": "^7.4.47",
+    "@tailwindcss/forms": "^0.5.11",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "autoprefixer": "^10.4.23",
+    "axios": "^1.13.2",
+    "click-outside-vue3": "^4.0.1",
+    "compressorjs": "^1.2.1",
+    "dayjs": "^1.11.19",
+    "electron-prompt": "^1.7.0",
+    "micron-parser": "^1.0.2",
+    "mitt": "^3.0.1",
+    "ol": "^10.7.0",
+    "postcss": "^8.5.6",
+    "protobufjs": "^7.5.4",
+    "tailwindcss": "^3.4.19",
+    "vis-data": "^7.1.10",
+    "vis-network": "^9.1.13",
+    "vite": "^6.4.1",
+    "vite-plugin-vuetify": "^2.1.2",
+    "vue": "^3.5.26",
+    "vue-i18n": "^11.2.8",
+    "vue-router": "^4.6.4",
+    "vuetify": "^3.11.6"
+  }
+}

@@ -1,0 +1,93 @@
+import path from "path";
+import vue from "@vitejs/plugin-vue";
+import vuetify from "vite-plugin-vuetify";
+
+export default {
+    plugins: [vue(), vuetify()],
+
+    // vite app is loaded from /meshchatx/src/frontend
+    root: path.join(__dirname, "meshchatx", "src", "frontend"),
+
+    build: {
+        minify: "terser",
+        terserOptions: {
+            compress: {
+                drop_console: false,
+                pure_funcs: ["console.debug"],
+            },
+        },
+
+        // we want to compile vite app to meshchatx/public which is bundled and served by the python executable
+        outDir: path.join(__dirname, "meshchatx", "public"),
+        emptyOutDir: true,
+
+        rollupOptions: {
+            treeshake: {
+                moduleSideEffects: (id) => {
+                    if (id.includes("@mdi/js")) {
+                        return false;
+                    }
+                    return null;
+                },
+            },
+            input: {
+                // we want to use /meshchatx/src/frontend/index.html as the entrypoint for this vite app
+                app: path.join(__dirname, "meshchatx", "src", "frontend", "index.html"),
+            },
+            output: {
+                manualChunks(id) {
+                    if (id.includes("node_modules")) {
+                        if (id.includes("vuetify")) {
+                            return "vendor-vuetify";
+                        }
+                        if (id.includes("vis-network") || id.includes("vis-data")) {
+                            return "vendor-vis";
+                        }
+                        if (id.includes("vue-router")) {
+                            return "vendor-vue-router";
+                        }
+                        if (id.includes("vue")) {
+                            return "vendor-vue";
+                        }
+                        if (id.includes("protobufjs") || id.includes("@protobufjs")) {
+                            return "vendor-protobuf";
+                        }
+                        if (id.includes("dayjs")) {
+                            return "vendor-dayjs";
+                        }
+                        if (id.includes("axios")) {
+                            return "vendor-axios";
+                        }
+                        if (id.includes("@mdi/js")) {
+                            return "vendor-mdi";
+                        }
+                        if (id.includes("compressorjs")) {
+                            return "vendor-compressor";
+                        }
+                        if (id.includes("click-outside-vue3")) {
+                            return "vendor-click-outside";
+                        }
+                        if (id.includes("mitt")) {
+                            return "vendor-mitt";
+                        }
+                        if (id.includes("micron-parser")) {
+                            return "vendor-micron";
+                        }
+                        if (id.includes("electron-prompt")) {
+                            return "vendor-electron-prompt";
+                        }
+                        return "vendor-other";
+                    }
+                },
+            },
+        },
+    },
+
+    optimizeDeps: {
+        include: ["dayjs", "vue"],
+    },
+
+    resolve: {
+        dedupe: ["vue"],
+    },
+};

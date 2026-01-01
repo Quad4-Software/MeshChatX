@@ -1,0 +1,77 @@
+# Documentation
+README.md
+LICENSE
+donate.md
+screenshots/
+docs/
+
+# Development files
+.github/
+electron/
+scripts/
+Makefile
+
+# Build artifacts and cache
+build/
+dist/
+public/
+meshchatx/public/
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+python-dist/
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Local storage and runtime data
+storage/
+testing/
+telemetry_test_lxmf/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Environment variables
+.env
+.env.local
+.env.*.local

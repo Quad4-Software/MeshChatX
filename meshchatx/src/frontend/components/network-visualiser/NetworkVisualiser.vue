@@ -1,0 +1,812 @@
+<template>
+    <div class="flex-1 h-full min-w-0 relative dark:bg-zinc-950 overflow-hidden">
+        <!-- network -->
+        <div id="network" class="w-full h-full"></div>
+
+        <!-- loading overlay -->
+        <div
+            v-if="isLoading"
+            class="absolute inset-0 z-20 flex items-center justify-center bg-zinc-950/10 backdrop-blur-[2px] transition-all duration-300"
+        >
+            <div
+                class="bg-white/90 dark:bg-zinc-900/90 border border-gray-200 dark:border-zinc-800 rounded-2xl px-6 py-4 flex flex-col items-center gap-3"
+            >
+                <div class="relative">
+                    <div
+                        class="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                    ></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div
+                            class="w-6 h-6 border-4 border-emerald-500/20 border-b-emerald-500 rounded-full animate-spin-reverse"
+                        ></div>
+                    </div>
+                </div>
+                <div class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ loadingStatus }}</div>
+                <div
+                    v-if="totalNodesToLoad > 0"
+                    class="w-48 h-1.5 bg-gray-200 dark:bg-zinc-800 rounded-full overflow-hidden"
+                >
+                    <div
+                        class="h-full bg-blue-500 transition-all duration-300"
+                        :style="{ width: `${(loadedNodesCount / totalNodesToLoad) * 100}%` }"
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- controls & search -->
+        <div
+            class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-10 flex flex-col sm:flex-row gap-2 pointer-events-none"
+        >
+            <!-- header glass card -->
+            <div
+                class="pointer-events-auto border border-gray-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl rounded-2xl overflow-hidden w-full sm:min-w-[280px] sm:w-auto transition-all duration-300"
+            >
+                <div
+                    class="flex items-center px-4 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-zinc-800/50 transition-colors"
+                    @click="isShowingControls = !isShowingControls"
+                >
+                    <div class="flex-1 flex flex-col min-w-0 mr-2">
+                        <span class="font-bold text-gray-900 dark:text-zinc-100 tracking-tight truncate"
+                            >Reticulum Mesh</span
+                        >
+                        <span
+                            class="text-[10px] uppercase font-bold text-gray-500 dark:text-zinc-500 tracking-widest truncate"
+                            >Network Visualizer</span
+                        >
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white transition-all active:scale-95"
+                            :disabled="isUpdating || isLoading"
+                            @click.stop="manualUpdate"
+                        >
+                            <svg
+                                v-if="!isUpdating && !isLoading"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="2"
+                                stroke="currentColor"
+                                class="w-4 h-4 sm:w-5 sm:h-5"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                                />
+                            </svg>
+                            <svg
+                                v-else
+                                class="animate-spin h-4 w-4 sm:h-5 sm:w-5"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                            >
+                                <circle
+                                    class="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    stroke-width="4"
+                                ></circle>
+                                <path
+                                    class="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                            </svg>
+                        </button>
+                        <div class="w-5 sm:w-6 flex justify-center">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform duration-300"
+                                :class="{ 'rotate-180': isShowingControls }"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    v-show="isShowingControls"
+                    class="px-5 pb-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
+                >
+                    <!-- divider -->
+                    <div
+                        class="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-800 to-transparent"
+                    ></div>
+
+                    <!-- auto update toggle -->
+                    <div class="flex items-center justify-between">
+                        <label
+                            for="auto-reload"
+                            class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
+                            >Auto Update</label
+                        >
+                        <Toggle id="auto-reload" v-model="autoReload" />
+                    </div>
+
+                    <!-- physics toggle -->
+                    <div class="flex items-center justify-between">
+                        <label
+                            for="enable-physics"
+                            class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
+                            >Live Layout</label
+                        >
+                        <Toggle id="enable-physics" v-model="enablePhysics" />
+                    </div>
+
+                    <!-- stats -->
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <div
+                            class="bg-gray-50/50 dark:bg-zinc-800/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                        >
+                            <div
+                                class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
+                            >
+                                Nodes
+                            </div>
+                            <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ nodes.length }}</div>
+                        </div>
+                        <div
+                            class="bg-gray-50/50 dark:bg-zinc-800/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                        >
+                            <div
+                                class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
+                            >
+                                Links
+                            </div>
+                            <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                                {{ edges.length }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-zinc-950/5 dark:bg-white/5 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                    >
+                        <div
+                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-2"
+                        >
+                            Interfaces
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                <span class="text-xs font-bold text-gray-700 dark:text-zinc-300"
+                                    >{{ onlineInterfaces.length }} Online</span
+                                >
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                                <span class="text-xs font-bold text-gray-700 dark:text-zinc-300"
+                                    >{{ offlineInterfaces.length }} Offline</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- search box -->
+            <div class="sm:ml-auto w-full sm:w-auto pointer-events-auto">
+                <div class="relative group">
+                    <div
+                        class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                            <path
+                                fill-rule="evenodd"
+                                d="M9 3.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM2.25 10a7.75 7.75 0 1 1 14.03 4.5l3.47 3.47a.75.75 0 0 1-1.06 1.06l-3.47-3.47A7.75 7.75 0 0 1 2.25 10Z"
+                                clip-rule="evenodd"
+                            />
+                        </svg>
+                    </div>
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        :placeholder="`Search nodes (${nodes.length})...`"
+                        class="block w-full sm:w-64 pl-9 pr-10 py-2.5 sm:py-3 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-gray-200/50 dark:border-zinc-800/50 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/50 sm:focus:w-80 transition-all dark:text-zinc-100 shadow-sm"
+                    />
+                    <button
+                        v-if="searchQuery"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors"
+                        @click="searchQuery = ''"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                            <path
+                                d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- navigation breadcrumb style legend -->
+        <div
+            class="absolute bottom-4 right-4 z-10 hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl"
+        >
+            <div class="flex items-center gap-1.5">
+                <div class="w-3 h-3 rounded-full border-2 border-emerald-500 bg-emerald-500/20"></div>
+                <span class="text-[10px] font-bold text-gray-600 dark:text-zinc-400 uppercase">Direct</span>
+            </div>
+            <div class="w-px h-3 bg-gray-200 dark:bg-zinc-800 mx-1"></div>
+            <div class="flex items-center gap-1.5">
+                <div class="w-3 h-3 rounded-full border-2 border-blue-500/50 bg-blue-500/10"></div>
+                <span class="text-[10px] font-bold text-gray-600 dark:text-zinc-400 uppercase">Multi-Hop</span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+import "vis-network/styles/vis-network.css";
+import { Network } from "vis-network";
+import { DataSet } from "vis-data";
+import * as mdi from "@mdi/js";
+import Utils from "../../js/Utils";
+import Toggle from "../forms/Toggle.vue";
+
+export default {
+    name: "NetworkVisualiser",
+    components: {
+        Toggle,
+    },
+    data() {
+        return {
+            config: null,
+            autoReload: false,
+            reloadInterval: null,
+            isShowingControls: true,
+            isUpdating: false,
+            isLoading: false,
+            enablePhysics: true,
+            loadingStatus: "Initializing...",
+            loadedNodesCount: 0,
+            totalNodesToLoad: 0,
+
+            interfaces: [],
+            pathTable: [],
+            announces: {},
+            conversations: {},
+
+            network: null,
+            nodes: new DataSet(),
+            edges: new DataSet(),
+            iconCache: {},
+
+            pageSize: 100,
+            searchQuery: "",
+        };
+    },
+    computed: {
+        onlineInterfaces() {
+            return this.interfaces.filter((i) => i.status);
+        },
+        offlineInterfaces() {
+            return this.interfaces.filter((i) => !i.status);
+        },
+    },
+    watch: {
+        enablePhysics(val) {
+            if (this.network) {
+                this.network.setOptions({ physics: { enabled: val } });
+            }
+        },
+        searchQuery() {
+            // we don't want to trigger a full update from server, just re-run the filtering on existing data
+            this.processVisualization();
+        },
+    },
+    beforeUnmount() {
+        clearInterval(this.reloadInterval);
+        if (this.network) {
+            this.network.destroy();
+        }
+    },
+    mounted() {
+        const isMobile = window.innerWidth < 640;
+        if (isMobile) {
+            this.isShowingControls = false;
+        }
+        this.init();
+    },
+    methods: {
+        async getInterfaceStats() {
+            try {
+                const response = await window.axios.get(`/api/v1/interface-stats`);
+                this.interfaces = response.data.interface_stats?.interfaces ?? [];
+            } catch (e) {
+                console.error("Failed to fetch interface stats", e);
+            }
+        },
+        async getPathTableBatch() {
+            this.pathTable = [];
+            let offset = 0;
+            let totalCount = 1; // dummy initial value
+
+            while (offset < totalCount) {
+                this.loadingStatus = `Loading Paths (${offset} / ${totalCount === 1 ? "..." : totalCount})`;
+                try {
+                    const response = await window.axios.get(`/api/v1/path-table`, {
+                        params: { limit: this.pageSize, offset: offset },
+                    });
+                    this.pathTable.push(...response.data.path_table);
+                    totalCount = response.data.total_count;
+                    offset += this.pageSize;
+                } catch (e) {
+                    console.error("Failed to fetch path table batch", e);
+                    break;
+                }
+            }
+        },
+        async getAnnouncesBatch() {
+            this.announces = {};
+            let offset = 0;
+            let totalCount = 1;
+
+            while (offset < totalCount) {
+                this.loadingStatus = `Loading Announces (${offset} / ${totalCount === 1 ? "..." : totalCount})`;
+                try {
+                    const response = await window.axios.get(`/api/v1/announces`, {
+                        params: { limit: this.pageSize, offset: offset },
+                    });
+
+                    for (const announce of response.data.announces) {
+                        this.announces[announce.destination_hash] = announce;
+                    }
+
+                    totalCount = response.data.total_count;
+                    offset += this.pageSize;
+                } catch (e) {
+                    console.error("Failed to fetch announces batch", e);
+                    break;
+                }
+            }
+        },
+        async getConfig() {
+            try {
+                const response = await window.axios.get("/api/v1/config");
+                this.config = response.data.config;
+            } catch (e) {
+                console.error("Failed to fetch config", e);
+            }
+        },
+        async getConversations() {
+            try {
+                const response = await window.axios.get(`/api/v1/lxmf/conversations`);
+                this.conversations = {};
+                for (const conversation of response.data.conversations) {
+                    this.conversations[conversation.destination_hash] = conversation;
+                }
+            } catch (e) {
+                console.error("Failed to fetch conversations", e);
+            }
+        },
+        async createIconImage(iconName, foregroundColor, backgroundColor, size = 64) {
+            const cacheKey = `${iconName}-${foregroundColor}-${backgroundColor}-${size}`;
+            if (this.iconCache[cacheKey]) {
+                return this.iconCache[cacheKey];
+            }
+
+            return new Promise((resolve) => {
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+
+                // draw background circle
+                const gradient = ctx.createLinearGradient(0, 0, 0, size);
+                gradient.addColorStop(0, backgroundColor);
+                // slightly darken the bottom for depth
+                gradient.addColorStop(1, backgroundColor);
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size / 2 - 2, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // stroke
+                ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // load MDI icon SVG
+                const iconSvg = this.getMdiIconSvg(iconName, foregroundColor);
+                const img = new Image();
+                const svgBlob = new Blob([iconSvg], { type: "image/svg+xml" });
+                const url = URL.createObjectURL(svgBlob);
+                img.onload = () => {
+                    ctx.drawImage(img, size * 0.25, size * 0.25, size * 0.5, size * 0.5);
+                    URL.revokeObjectURL(url);
+                    const dataUrl = canvas.toDataURL();
+                    this.iconCache[cacheKey] = dataUrl;
+                    resolve(dataUrl);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    const dataUrl = canvas.toDataURL();
+                    this.iconCache[cacheKey] = dataUrl;
+                    resolve(dataUrl);
+                };
+                img.src = url;
+            });
+        },
+        getMdiIconSvg(iconName, foregroundColor) {
+            const mdiIconName =
+                "mdi" +
+                iconName
+                    .split("-")
+                    .map((word) => {
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                    })
+                    .join("");
+
+            const iconPath = mdi[mdiIconName] || mdi["mdiAccountOutline"];
+
+            return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${foregroundColor}" d="${iconPath}"/></svg>`;
+        },
+        async init() {
+            const container = document.getElementById("network");
+            const isDarkMode = document.documentElement.classList.contains("dark");
+
+            this.network = new Network(
+                container,
+                {
+                    nodes: this.nodes,
+                    edges: this.edges,
+                },
+                {
+                    interaction: {
+                        tooltipDelay: 100,
+                        hover: true,
+                        hideEdgesOnDrag: true,
+                        hideEdgesOnZoom: true,
+                    },
+                    layout: {
+                        randomSeed: 42,
+                        improvedLayout: false, // faster for large networks
+                    },
+                    physics: {
+                        enabled: this.enablePhysics,
+                        solver: "barnesHut",
+                        barnesHut: {
+                            gravitationalConstant: -8000,
+                            springConstant: 0.04,
+                            springLength: 150,
+                            damping: 0.09,
+                            avoidOverlap: 0.5,
+                        },
+                        stabilization: {
+                            enabled: true,
+                            iterations: 100,
+                            updateInterval: 25,
+                        },
+                    },
+                    nodes: {
+                        borderWidth: 2,
+                        borderWidthSelected: 4,
+                        font: {
+                            face: "Inter, system-ui, sans-serif",
+                            strokeWidth: 4,
+                            strokeColor: isDarkMode ? "rgba(9, 9, 11, 0.95)" : "rgba(255, 255, 255, 0.95)",
+                        },
+                        shadow: {
+                            enabled: false,
+                        },
+                    },
+                    edges: {
+                        smooth: {
+                            type: "continuous",
+                            roundness: 0.5,
+                        },
+                        selectionWidth: 4,
+                        hoverWidth: 3,
+                    },
+                }
+            );
+
+            this.network.on("doubleClick", (params) => {
+                const clickedNodeId = params.nodes[0];
+                if (!clickedNodeId) return;
+
+                const node = this.nodes.get(clickedNodeId);
+                if (!node || !node._announce) return;
+
+                const announce = node._announce;
+                if (announce.aspect === "lxmf.delivery") {
+                    this.$router.push({
+                        name: "messages",
+                        params: { destinationHash: announce.destination_hash },
+                    });
+                } else if (announce.aspect === "nomadnetwork.node") {
+                    this.$router.push({
+                        name: "nomadnetwork",
+                        params: { destinationHash: announce.destination_hash },
+                    });
+                }
+            });
+
+            await this.manualUpdate();
+
+            // auto reload
+            this.reloadInterval = setInterval(this.onAutoReload, 15000);
+        },
+        async manualUpdate() {
+            if (this.isLoading) return;
+            this.isLoading = true;
+            this.isUpdating = true;
+            try {
+                await this.update();
+            } finally {
+                this.isLoading = false;
+                this.isUpdating = false;
+            }
+        },
+        async onAutoReload() {
+            if (!this.autoReload || this.isUpdating || this.isLoading) return;
+            this.isUpdating = true;
+            try {
+                await this.update();
+            } finally {
+                this.isUpdating = false;
+            }
+        },
+        async update() {
+            this.loadingStatus = "Fetching basic info...";
+            await this.getConfig();
+            await this.getInterfaceStats();
+            await this.getConversations();
+
+            this.loadingStatus = "Fetching network table...";
+            await this.getPathTableBatch();
+
+            this.loadingStatus = "Fetching node data...";
+            await this.getAnnouncesBatch();
+
+            await this.processVisualization();
+        },
+        async processVisualization() {
+            this.loadingStatus = "Processing visualization...";
+
+            const newNodes = [];
+            const newEdges = [];
+
+            const isDarkMode = document.documentElement.classList.contains("dark");
+            const fontColor = isDarkMode ? "#ffffff" : "#000000";
+
+            // search filter helper
+            const searchLower = this.searchQuery.toLowerCase();
+            const matchesSearch = (text) => !this.searchQuery || (text && text.toLowerCase().includes(searchLower));
+
+            // Add me
+            const meLabel = this.config?.display_name ?? "Local Node";
+            if (matchesSearch(meLabel) || matchesSearch(this.config?.identity_hash)) {
+                newNodes.push({
+                    id: "me",
+                    group: "me",
+                    size: 50,
+                    shape: "circularImage",
+                    image: "/assets/images/reticulum_logo_512.png",
+                    label: meLabel,
+                    title: `Local Node: ${meLabel}\nIdentity: ${this.config?.identity_hash ?? "Unknown"}`,
+                    color: { border: "#3b82f6", background: isDarkMode ? "#1e3a8a" : "#dbeafe" },
+                    font: { color: fontColor, size: 16, bold: true },
+                });
+            }
+
+            // Add interfaces
+            for (const entry of this.interfaces) {
+                let label = entry.interface_name ?? entry.name;
+                if (entry.type === "LocalServerInterface" || entry.parent_interface_name != null) {
+                    label = entry.name;
+                }
+
+                if (matchesSearch(label) || matchesSearch(entry.name)) {
+                    newNodes.push({
+                        id: entry.name,
+                        group: "interface",
+                        label: label,
+                        title: `${entry.name}\nState: ${entry.status ? "Online" : "Offline"}\nBitrate: ${Utils.formatBitsPerSecond(entry.bitrate)}\nTX: ${Utils.formatBytes(entry.txb)}\nRX: ${Utils.formatBytes(entry.rxb)}`,
+                        size: 35,
+                        shape: "circularImage",
+                        image: entry.status
+                            ? "/assets/images/network-visualiser/interface_connected.png"
+                            : "/assets/images/network-visualiser/interface_disconnected.png",
+                        color: { border: entry.status ? "#10b981" : "#ef4444" },
+                        font: { color: fontColor, size: 12 },
+                    });
+
+                    newEdges.push({
+                        id: `me~${entry.name}`,
+                        from: "me",
+                        to: entry.name,
+                        color: entry.status ? (isDarkMode ? "#065f46" : "#10b981") : isDarkMode ? "#7f1d1d" : "#ef4444",
+                        width: 3,
+                        length: 200,
+                        arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+                    });
+                }
+            }
+
+            // Process path table in batches to prevent UI block
+            this.totalNodesToLoad = this.pathTable.length;
+            this.loadedNodesCount = 0;
+
+            const aspectsToShow = ["lxmf.delivery", "nomadnetwork.node"];
+
+            // Process in chunks of 50
+            const chunkSize = 50;
+            for (let i = 0; i < this.pathTable.length; i += chunkSize) {
+                const chunk = this.pathTable.slice(i, i + chunkSize);
+
+                for (const entry of chunk) {
+                    this.loadedNodesCount++;
+                    if (entry.hops == null) continue;
+
+                    const announce = this.announces[entry.hash];
+                    if (!announce || !aspectsToShow.includes(announce.aspect)) continue;
+
+                    const displayName = announce.custom_display_name ?? announce.display_name;
+                    if (
+                        !matchesSearch(displayName) &&
+                        !matchesSearch(announce.destination_hash) &&
+                        !matchesSearch(announce.identity_hash)
+                    ) {
+                        continue;
+                    }
+
+                    const conversation = this.conversations[announce.destination_hash];
+                    const node = {
+                        id: entry.hash,
+                        group: "announce",
+                        size: 25,
+                        _announce: announce,
+                        font: { color: fontColor, size: 11 },
+                    };
+
+                    node.label = displayName;
+                    node.title = `${displayName}\nAspect: ${announce.aspect}\nHops: ${entry.hops}\nVia: ${entry.interface}\nLast Seen: ${Utils.convertDateTimeToLocalDateTimeString(new Date(announce.updated_at))}`;
+
+                    if (announce.aspect === "lxmf.delivery") {
+                        if (conversation?.lxmf_user_icon) {
+                            node.shape = "circularImage";
+                            node.image = await this.createIconImage(
+                                conversation.lxmf_user_icon.icon_name,
+                                conversation.lxmf_user_icon.foreground_colour,
+                                conversation.lxmf_user_icon.background_colour,
+                                64
+                            );
+                            node.size = 30;
+                        } else {
+                            node.shape = "circularImage";
+                            node.image =
+                                entry.hops === 1
+                                    ? "/assets/images/network-visualiser/user_1hop.png"
+                                    : "/assets/images/network-visualiser/user.png";
+                        }
+                        node.color = { border: entry.hops === 1 ? "#10b981" : "#3b82f6" };
+                    } else if (announce.aspect === "nomadnetwork.node") {
+                        node.shape = "circularImage";
+                        node.image =
+                            entry.hops === 1
+                                ? "/assets/images/network-visualiser/server_1hop.png"
+                                : "/assets/images/network-visualiser/server.png";
+                        node.color = { border: entry.hops === 1 ? "#10b981" : "#8b5cf6" };
+                    }
+
+                    newNodes.push(node);
+                    newEdges.push({
+                        id: `${entry.interface}~${entry.hash}`,
+                        from: entry.interface,
+                        to: entry.hash,
+                        color:
+                            entry.hops === 1
+                                ? isDarkMode
+                                    ? "#065f46"
+                                    : "#10b981"
+                                : isDarkMode
+                                  ? "#1e3a8a"
+                                  : "#3b82f6",
+                        width: entry.hops === 1 ? 2 : 1,
+                        dashes: entry.hops > 1,
+                        opacity: entry.hops === 1 ? 1 : 0.5,
+                    });
+                }
+
+                // Allow UI to breathe
+                if (i % 100 === 0) {
+                    this.loadingStatus = `Processing Visualization (${this.loadedNodesCount} / ${this.totalNodesToLoad})...`;
+                    await new Promise((r) => setTimeout(r, 0));
+                }
+            }
+
+            this.processNewNodes(newNodes);
+            this.processNewEdges(newEdges);
+            this.totalNodesToLoad = 0;
+            this.loadedNodesCount = 0;
+        },
+        processNewNodes(newNodes) {
+            const oldNodeIds = this.nodes.getIds();
+            const newNodeIds = newNodes.map((n) => n.id);
+            const newNodeIdsSet = new Set(newNodeIds);
+
+            // remove old
+            const toRemove = oldNodeIds.filter((id) => !newNodeIdsSet.has(id));
+            if (toRemove.length > 0) this.nodes.remove(toRemove);
+
+            // update/add
+            this.nodes.update(newNodes);
+        },
+        processNewEdges(newEdges) {
+            const oldEdgeIds = this.edges.getIds();
+            const newEdgeIds = newEdges.map((e) => e.id);
+            const newEdgeIdsSet = new Set(newEdgeIds);
+
+            // remove old
+            const toRemove = oldEdgeIds.filter((id) => !newEdgeIdsSet.has(id));
+            if (toRemove.length > 0) this.edges.remove(toRemove);
+
+            // update/add
+            this.edges.update(newEdges);
+        },
+    },
+};
+</script>
+
+<style>
+.vis-network:focus {
+    outline: none;
+}
+
+.vis-tooltip {
+    color: #f4f4f5 !important;
+    background: rgba(9, 9, 11, 0.9) !important;
+    border: 1px solid rgba(63, 63, 70, 0.5) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    font-style: normal !important;
+    font-family: Inter, system-ui, sans-serif !important;
+    line-height: 1.5 !important;
+    backdrop-filter: blur(8px) !important;
+    pointer-events: none !important;
+}
+
+#network {
+    background-color: #f8fafc;
+    background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+.dark #network {
+    background-color: #09090b;
+    background-image: radial-gradient(#18181b 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+@keyframes spin-reverse {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(-360deg);
+    }
+}
+
+.animate-spin-reverse {
+    animation: spin-reverse 1s linear infinite;
+}
+</style>
