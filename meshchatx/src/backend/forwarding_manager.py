@@ -8,10 +8,11 @@ from .database import Database
 
 
 class ForwardingManager:
-    def __init__(self, db: Database, storage_path: str, delivery_callback):
+    def __init__(self, db: Database, storage_path: str, delivery_callback, config=None):
         self.db = db
         self.storage_path = storage_path
         self.delivery_callback = delivery_callback
+        self.config = config
         self.forwarding_destinations = {}
         self.forwarding_routers = {}
 
@@ -34,6 +35,12 @@ class ForwardingManager:
                 router = LXMF.LXMRouter(
                     identity=alias_identity, storagepath=router_storage_path
                 )
+                router.PROCESSING_INTERVAL = 1
+                if self.config:
+                    router.delivery_per_transfer_limit = (
+                        self.config.lxmf_delivery_transfer_limit_in_bytes.get() / 1000
+                    )
+
                 router.register_delivery_callback(self.delivery_callback)
 
                 alias_destination = router.register_delivery_identity(
@@ -67,6 +74,12 @@ class ForwardingManager:
             router = LXMF.LXMRouter(
                 identity=alias_identity, storagepath=router_storage_path
             )
+            router.PROCESSING_INTERVAL = 1
+            if self.config:
+                router.delivery_per_transfer_limit = (
+                    self.config.lxmf_delivery_transfer_limit_in_bytes.get() / 1000
+                )
+
             router.register_delivery_callback(self.delivery_callback)
 
             alias_destination = router.register_delivery_identity(
@@ -88,3 +101,8 @@ class ForwardingManager:
             self.db.messages.create_forwarding_mapping(data)
             return data
         return mapping
+
+    def announce_aliases(self):
+        for alias_hash in self.forwarding_destinations:
+            destination = self.forwarding_destinations[alias_hash]
+            destination.announce()
