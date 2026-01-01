@@ -267,7 +267,10 @@ class ReticulumMeshChat:
 
         # load and register all forwarding alias identities
         self.forwarding_manager = ForwardingManager(
-            self.database, lxmf_router_path, self.on_lxmf_delivery
+            self.database,
+            lxmf_router_path,
+            self.on_lxmf_delivery,
+            config=self.config,
         )
         self.forwarding_manager.load_aliases()
 
