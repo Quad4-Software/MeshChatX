@@ -28,7 +28,8 @@ WORKDIR /app
 
 # Install Python deps
 COPY ./requirements.txt .
-RUN apk add --no-cache --virtual .build-deps \
+RUN apk add --no-cache ffmpeg espeak-ng opusfile && \
+    apk add --no-cache --virtual .build-deps \
         gcc \
         musl-dev \
         linux-headers \
