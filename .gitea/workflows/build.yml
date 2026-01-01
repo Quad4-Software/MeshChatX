@@ -55,7 +55,7 @@ jobs:
             - name: Install pnpm
               uses: https://git.quad4.io/pnpm/action-setup@v4
               with:
-                  version: 9
+                  version: 10
 
             - name: Install NodeJS Deps
               run: pnpm install
@@ -182,7 +182,7 @@ jobs:
                   (github.event_name == 'workflow_dispatch' && inputs[matrix.build_input] == true)
               uses: https://git.quad4.io/pnpm/action-setup@v4
               with:
-                  version: 9
+                  version: 10
 
             - name: Install NodeJS Deps
               if: |
