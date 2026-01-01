@@ -15,6 +15,9 @@ ipcMain.handle("app-version", () => {
     return app.getVersion();
 });
 
+// ignore ssl errors
+app.commandLine.appendSwitch("ignore-certificate-errors");
+
 // add support for showing an alert window via ipc
 ipcMain.handle("alert", async (event, message) => {
     return await dialog.showMessageBox(mainWindow, {
