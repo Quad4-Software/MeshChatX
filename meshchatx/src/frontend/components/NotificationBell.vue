@@ -146,14 +146,10 @@ export default {
             isLoading: false,
             notifications: [],
             reloadInterval: null,
-            manuallyCleared: false,
         };
     },
     computed: {
         unreadCount() {
-            if (this.manuallyCleared) {
-                return 0;
-            }
             return this.notifications.length;
         },
     },
@@ -173,11 +169,11 @@ export default {
         }, 5000);
     },
     methods: {
-        toggleDropdown() {
+        async toggleDropdown() {
             this.isDropdownOpen = !this.isDropdownOpen;
             if (this.isDropdownOpen) {
-                this.loadNotifications();
-                this.manuallyCleared = true;
+                await this.loadNotifications();
+                await this.markNotificationsAsViewed();
             }
         },
         closeDropdown() {
@@ -194,17 +190,25 @@ export default {
                 });
                 const newNotifications = response.data.conversations || [];
 
-                // if we have more notifications than before, show the red dot again
-                if (newNotifications.length > this.notifications.length) {
-                    this.manuallyCleared = false;
-                }
-
                 this.notifications = newNotifications;
             } catch (e) {
                 console.error("Failed to load notifications", e);
                 this.notifications = [];
             } finally {
                 this.isLoading = false;
+            }
+        },
+        async markNotificationsAsViewed() {
+            if (this.notifications.length === 0) {
+                return;
+            }
+            try {
+                const destination_hashes = this.notifications.map((n) => n.destination_hash);
+                await window.axios.post("/api/v1/notifications/mark-as-viewed", {
+                    destination_hashes: destination_hashes,
+                });
+            } catch (e) {
+                console.error("Failed to mark notifications as viewed", e);
             }
         },
         onNotificationClick(notification) {
@@ -221,6 +225,10 @@ export default {
             const json = JSON.parse(message.data);
             if (json.type === "lxmf.delivery") {
                 await this.loadNotifications();
+                // If dropdown is open, mark new notifications as viewed
+                if (this.isDropdownOpen) {
+                    await this.markNotificationsAsViewed();
+                }
             }
         },
     },

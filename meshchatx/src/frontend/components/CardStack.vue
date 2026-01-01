@@ -1,19 +1,19 @@
 <template>
-    <div class="card-stack-wrapper" :class="{ 'is-expanded': isExpanded }">
+    <div class="card-stack-wrapper flex-1 flex flex-col min-h-0" :class="{ 'is-expanded': isExpanded }">
         <div
             v-if="items && items.length > 0"
             class="relative"
             :class="{ 'stack-mode': !isExpanded && items.length > 1, 'grid-mode': isExpanded || items.length === 1 }"
         >
             <!-- Grid Mode (Expanded or only 1 item) -->
-            <div v-if="isExpanded || items.length === 1" :class="gridClass">
+            <div v-if="isExpanded || items.length === 1" :class="gridClass" class="flex-1 min-h-0">
                 <div v-for="(item, index) in items" :key="index" class="w-full">
                     <slot :item="item" :index="index"></slot>
                 </div>
             </div>
 
             <!-- Stack Mode (Collapsed and > 1 item) -->
-            <div v-else class="relative" :style="{ height: stackHeight + 'px' }">
+            <div v-else class="relative flex-1 min-h-[320px]" :style="{ minHeight: stackHeight + 'px' }">
                 <div
                     v-for="(item, index) in stackedItems"
                     :key="index"

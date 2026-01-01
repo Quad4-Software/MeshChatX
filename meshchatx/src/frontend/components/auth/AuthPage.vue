@@ -5,7 +5,9 @@
                 class="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border border-gray-200 dark:border-zinc-800 p-8"
             >
                 <div class="text-center mb-8">
-                    <img class="w-16 h-16 mx-auto mb-4" src="/assets/images/logo.png" />
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-2xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner flex items-center justify-center">
+                        <img class="w-16 h-16 object-contain p-2" src="/assets/images/logo.png" />
+                    </div>
                     <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
                         {{ isSetup ? "Initial Setup" : "Authentication Required" }}
                     </h1>

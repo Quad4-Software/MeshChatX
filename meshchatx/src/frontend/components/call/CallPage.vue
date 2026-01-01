@@ -45,8 +45,8 @@
 
             <!-- Phone Tab -->
             <div v-if="activeTab === 'phone'" class="flex-1 flex flex-col">
-                <div v-if="activeCall || isCallEnded" class="flex my-auto">
-                    <div class="mx-auto my-auto min-w-64">
+                <div v-if="activeCall || isCallEnded" class="flex mt-8 mb-12">
+                    <div class="mx-auto min-w-64">
                         <div class="text-center">
                             <div>
                                 <!-- icon -->
@@ -224,7 +224,7 @@
                     </div>
                 </div>
 
-                <div v-else class="my-auto">
+                <div v-else class="mt-8 mb-12">
                     <div class="text-center mb-4">
                         <div class="text-xl font-semibold text-gray-500 dark:text-zinc-100">Telephone</div>
                         <div class="text-gray-500 dark:text-zinc-400">Enter an identity hash to call.</div>
@@ -249,7 +249,7 @@
                 </div>
 
                 <!-- Call History -->
-                <div v-if="callHistory.length > 0 && !activeCall && !isCallEnded" class="mt-8">
+                <div v-if="callHistory.length > 0 && !activeCall && !isCallEnded" class="mt-4">
                     <div
                         class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
                     >
@@ -283,18 +283,25 @@
                                                 {{ entry.timestamp ? formatDateTime(entry.timestamp * 1000) : "" }}
                                             </span>
                                         </div>
-                                        <div class="flex items-center justify-between mt-0.5">
-                                            <div
-                                                class="flex items-center text-xs text-gray-500 dark:text-zinc-400 space-x-2"
-                                            >
-                                                <span>{{ entry.status }}</span>
-                                                <span v-if="entry.duration_seconds > 0"
-                                                    >• {{ formatDuration(entry.duration_seconds) }}</span
+                                        <div class="flex items-start justify-between mt-0.5">
+                                            <div class="flex-1 min-w-0">
+                                                <div
+                                                    class="flex items-center text-xs text-gray-500 dark:text-zinc-400 space-x-2"
                                                 >
+                                                    <span class="capitalize">{{ entry.status }}</span>
+                                                    <span v-if="entry.duration_seconds > 0"
+                                                        >• {{ formatDuration(entry.duration_seconds) }}</span
+                                                    >
+                                                </div>
+                                                <div
+                                                    class="text-[10px] text-gray-400 dark:text-zinc-600 font-mono truncate mt-0.5"
+                                                >
+                                                    {{ entry.remote_identity_hash }}
+                                                </div>
                                             </div>
                                             <button
                                                 type="button"
-                                                class="text-[10px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-tighter"
+                                                class="text-[10px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-tighter ml-4"
                                                 @click="
                                                     destinationHash = entry.remote_identity_hash;
                                                     call(destinationHash);
@@ -492,7 +499,11 @@
                                     This text will be converted to speech using eSpeak NG.
                                 </p>
                                 <button
-                                    :disabled="!voicemailStatus.has_espeak || isGeneratingGreeting"
+                                    :disabled="
+                                        !voicemailStatus.has_espeak ||
+                                        !voicemailStatus.has_ffmpeg ||
+                                        isGeneratingGreeting
+                                    "
                                     class="text-[10px] bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 px-3 py-1 rounded-full font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                                     @click="
                                         updateConfig({ voicemail_greeting: config.voicemail_greeting });
@@ -500,6 +511,17 @@
                                     "
                                 >
                                     {{ isGeneratingGreeting ? "Generating..." : "Save & Generate" }}
+                                </button>
+                                <button
+                                    v-if="voicemailStatus.has_espeak && voicemailStatus.has_ffmpeg"
+                                    class="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full font-bold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-1"
+                                    @click="playGreeting"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="isPlayingGreeting ? 'stop' : 'play'"
+                                        class="size-3"
+                                    />
+                                    {{ isPlayingGreeting ? "Stop Preview" : "Preview Greeting" }}
                                 </button>
                             </div>
                         </div>
@@ -582,6 +604,7 @@ export default {
             isGeneratingGreeting: false,
             playingVoicemailId: null,
             audioPlayer: null,
+            isPlayingGreeting: false,
         };
     },
     computed: {
@@ -772,6 +795,27 @@ export default {
             } catch {
                 ToastUtils.error("Failed to delete voicemail");
             }
+        },
+        async playGreeting() {
+            if (this.isPlayingGreeting) {
+                this.audioPlayer.pause();
+                this.isPlayingGreeting = false;
+                return;
+            }
+
+            if (this.audioPlayer) {
+                this.audioPlayer.pause();
+            }
+
+            this.isPlayingGreeting = true;
+            this.audioPlayer = new Audio("/api/v1/telephone/voicemail/greeting/audio");
+            this.audioPlayer.play().catch(() => {
+                ToastUtils.error("No greeting audio found. Please generate one first.");
+                this.isPlayingGreeting = false;
+            });
+            this.audioPlayer.onended = () => {
+                this.isPlayingGreeting = false;
+            };
         },
         async call(identityHash) {
             if (!identityHash) {

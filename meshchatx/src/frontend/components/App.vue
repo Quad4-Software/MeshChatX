@@ -3,6 +3,10 @@
         :class="{ dark: config?.theme === 'dark' }"
         class="h-screen w-full flex flex-col bg-slate-50 dark:bg-zinc-950 transition-colors"
     >
+        <div v-if="appInfo?.is_demo" class="relative z-[100] bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] py-1 text-center select-none border-b border-white/10 shadow-sm">
+            Demo Mode &bull; Read Only
+        </div>
+
         <RouterView v-if="$route.name === 'auth'" />
 
         <template v-else>
@@ -24,7 +28,7 @@
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
                         </button>
                         <div
-                            class="hidden sm:flex my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 shadow-inner"
+                            class="hidden sm:flex my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner"
                         >
                             <img class="w-12 h-12 object-contain p-1.5" src="/assets/images/logo.png" />
                         </div>
@@ -562,6 +566,15 @@ export default {
             await this.getConfig();
         },
         async updateConfig(config) {
+            // update local state immediately if in demo mode, as websocket is not available
+            if (this.appInfo?.is_demo) {
+                this.config = {
+                    ...this.config,
+                    ...config,
+                };
+                return;
+            }
+
             try {
                 WebSocketConnection.send(
                     JSON.stringify({

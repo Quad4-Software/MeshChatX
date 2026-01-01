@@ -60,11 +60,11 @@
                 </p>
             </div>
 
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div v-for="group in groupedArchives" :key="group.destination_hash" class="relative">
-                    <div class="sticky top-6">
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+                <div v-for="group in groupedArchives" :key="group.destination_hash" class="relative flex">
+                    <div class="sticky top-6 w-full flex flex-col">
                         <div
-                            class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-lg overflow-hidden"
+                            class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-lg overflow-hidden flex flex-col h-full min-h-[400px]"
                         >
                             <div
                                 class="p-5 border-b border-gray-100 dark:border-zinc-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800/50"
@@ -87,11 +87,11 @@
                                     {{ group.destination_hash.substring(0, 16) }}...
                                 </p>
                             </div>
-                            <div class="p-5 pb-6">
+                            <div class="p-5 pb-6 flex-1 flex flex-col min-h-0">
                                 <CardStack :items="group.archives" :max-visible="3">
                                     <template #default="{ item: archive }">
                                         <div
-                                            class="stacked-card bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg p-4 h-full hover:shadow-xl transition-all duration-200 cursor-pointer group"
+                                            class="stacked-card bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg p-4 h-full flex flex-col hover:shadow-xl transition-all duration-200 cursor-pointer group"
                                             @click="viewArchive(archive)"
                                         >
                                             <div class="flex items-start justify-between mb-3">
@@ -117,11 +117,11 @@
                                             </div>
                                             <!-- eslint-disable-next-line vue/no-v-html -->
                                             <div
-                                                class="text-xs text-gray-700 dark:text-gray-300 line-clamp-5 micron-preview leading-relaxed"
+                                                class="text-xs text-gray-700 dark:text-gray-300 line-clamp-5 micron-preview leading-relaxed flex-1 min-h-[120px]"
                                                 v-html="renderPreview(archive)"
                                             ></div>
                                             <div
-                                                class="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-700 flex items-center justify-between"
+                                                class="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-700 flex items-center justify-between flex-shrink-0"
                                             >
                                                 <div
                                                     class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"
