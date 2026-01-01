@@ -349,6 +349,31 @@
                                     </div>
                                 </a>
                             </div>
+
+                            <!-- telemetry / location field -->
+                            <div v-if="chatItem.lxmf_message.fields?.telemetry?.location" class="pb-1 mt-1">
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                    :class="
+                                        chatItem.is_outbound
+                                            ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                            : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                    "
+                                    @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
+                                >
+                                    <MaterialDesignIcon icon-name="map-marker" class="size-5" />
+                                    <div class="text-left">
+                                        <div class="font-bold text-xs uppercase tracking-wider opacity-80">
+                                            Location
+                                        </div>
+                                        <div class="text-[10px] font-mono opacity-70">
+                                            {{ chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(6) }},
+                                            {{ chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(6) }}
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- actions -->
@@ -679,6 +704,24 @@
                         >
                             <span>{{ $t("messages.recording", { duration: audioAttachmentRecordingDuration }) }}</span>
                         </AddAudioButton>
+                        <button
+                            type="button"
+                            class="attachment-action-button"
+                            :title="$t('messages.share_location')"
+                            @click="shareLocation"
+                        >
+                            <MaterialDesignIcon icon-name="map-marker" class="w-4 h-4" />
+                            <span>{{ $t("messages.location") }}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="attachment-action-button"
+                            :title="$t('messages.request_location')"
+                            @click="requestLocation"
+                        >
+                            <MaterialDesignIcon icon-name="crosshairs-question" class="w-4 h-4" />
+                            <span>{{ $t("messages.request") }}</span>
+                        </button>
                         <div class="ml-auto my-auto">
                             <SendMessageButton
                                 :is-sending-message="isSendingMessage"
@@ -792,6 +835,7 @@ import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
 import IconButton from "../IconButton.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "ConversationViewer",
@@ -835,6 +879,7 @@ export default {
             newMessageImage: null,
             newMessageImageUrl: null,
             newMessageAudio: null,
+            newMessageTelemetry: null,
             newMessageFiles: [],
             isSendingMessage: false,
             autoScrollOnNewMessage: true,
@@ -1123,19 +1168,21 @@ export default {
             GlobalEmitter.emit("compose-new-message", destinationHash);
         },
         onLxmfMessageReceived(lxmfMessage) {
+            // only add if it's for the current conversation
+            if (lxmfMessage.source_hash !== this.selectedPeer?.destination_hash) {
+                return;
+            }
+
             // add inbound message to ui
             this.chatItems.push({
                 type: "lxmf_message",
                 lxmf_message: lxmfMessage,
             });
 
-            // if inbound message is for a conversation we are currently looking at, mark it as read
-            if (lxmfMessage.source_hash === this.selectedPeer?.destination_hash) {
-                // find conversation
-                const conversation = this.findConversation(this.selectedPeer.destination_hash);
-                if (conversation) {
-                    this.markConversationAsRead(conversation);
-                }
+            // mark conversation as read
+            const conversation = this.findConversation(this.selectedPeer.destination_hash);
+            if (conversation) {
+                this.markConversationAsRead(conversation);
             }
 
             // show notification for new messages if window is not focussed
@@ -1149,8 +1196,12 @@ export default {
             }
         },
         onLxmfMessageCreated(lxmfMessage) {
+            // only add if it's for the current conversation
+            if (lxmfMessage.destination_hash !== this.selectedPeer?.destination_hash) {
+                return;
+            }
+
             // add new outbound lxmf message from server
-            // todo check if received message is for this conversation
             if (!this.isLxmfMessageInUi(lxmfMessage.hash)) {
                 this.chatItems.push({
                     type: "lxmf_message",
@@ -1166,7 +1217,6 @@ export default {
                 (chatItem) => chatItem.lxmf_message?.hash === lxmfMessageHash
             );
             if (chatItemIndex === -1) {
-                console.log("did not find existing chat item index for lxmf message hash: " + lxmfMessage.hash);
                 return;
             }
 
@@ -1579,6 +1629,11 @@ export default {
                 // build fields
                 const fields = {};
 
+                // add telemetry if present
+                if (this.newMessageTelemetry) {
+                    fields["telemetry"] = this.newMessageTelemetry;
+                }
+
                 // add file attachments
                 var fileAttachmentsTotalSize = 0;
                 if (this.newMessageFiles.length > 0) {
@@ -1661,6 +1716,7 @@ export default {
                 this.newMessageImage = null;
                 this.newMessageImageUrl = null;
                 this.newMessageAudio = null;
+                this.newMessageTelemetry = null;
                 this.newMessageFiles = [];
                 this.clearFileInput();
             } catch (e) {
@@ -1729,6 +1785,73 @@ export default {
                 DialogUtils.alert(message);
                 console.log(e);
             }
+        },
+        async shareLocation() {
+            try {
+                if (!navigator.geolocation) {
+                    DialogUtils.alert("Geolocation is not supported by your browser");
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        this.newMessageTelemetry = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            altitude: position.coords.altitude || 0,
+                            speed: (position.coords.speed || 0) * 3.6, // m/s to km/h to match Sideband
+                            bearing: position.coords.heading || 0,
+                            accuracy: position.coords.accuracy || 0,
+                            last_update: Math.floor(Date.now() / 1000),
+                        };
+                        this.sendMessage();
+                    },
+                    (error) => {
+                        DialogUtils.alert(`Failed to get location: ${error.message}`);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0,
+                    }
+                );
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async requestLocation() {
+            try {
+                if (!this.selectedPeer) return;
+
+                // Send a telemetry request command
+                await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                    lxmf_message: {
+                        destination_hash: this.selectedPeer.destination_hash,
+                        content: "",
+                        fields: {
+                            commands: [
+                                { "0x01": Math.floor(Date.now() / 1000) }, // Sideband TELEMETRY_REQUEST
+                            ],
+                        },
+                    },
+                });
+
+                ToastUtils.success("Location request sent");
+            } catch (e) {
+                console.log(e);
+                ToastUtils.error("Failed to send location request");
+            }
+        },
+        viewLocationOnMap(location) {
+            // navigate to map and center on location
+            this.$router.push({
+                name: "map",
+                query: {
+                    lat: location.latitude,
+                    lon: location.longitude,
+                    zoom: 15,
+                },
+            });
         },
         formatTimeAgo: function (datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
