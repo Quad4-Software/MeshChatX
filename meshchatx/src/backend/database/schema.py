@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 14
+    LATEST_VERSION = 15
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -212,6 +212,19 @@ class DatabaseSchema:
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """,
+            "lxmf_telemetry": """
+                CREATE TABLE IF NOT EXISTS lxmf_telemetry (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT,
+                    timestamp REAL,
+                    data BLOB,
+                    received_from TEXT,
+                    physical_link TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(destination_hash, timestamp)
+                )
+            """,
         }
 
         for table_name, create_sql in tables.items():
@@ -245,6 +258,16 @@ class DatabaseSchema:
                 )
                 self.provider.execute(
                     "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)"
+                )
+            elif table_name == "lxmf_telemetry":
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)"
+                )
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)"
+                )
+                self.provider.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)"
                 )
 
     def migrate(self, current_version):
@@ -441,6 +464,30 @@ class DatabaseSchema:
             )
             self.provider.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)"
+            )
+
+        if current_version < 15:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_telemetry (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT,
+                    timestamp REAL,
+                    data BLOB,
+                    received_from TEXT,
+                    physical_link TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(destination_hash, timestamp)
+                )
+            """)
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)"
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)"
+            )
+            self.provider.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)"
             )
 
         # Update version in config
