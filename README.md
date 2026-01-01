@@ -2,7 +2,7 @@
 
 A heavily customized and updated fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat).
 
-This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project. It has been completely reworked, but I try to maintain a migrator to auto-migrate from old database to new one. 
+This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project. It has been completely reworked, but I try to maintain a migrator to auto-migrate from old database to new one.
 
 ## Major Features
 
