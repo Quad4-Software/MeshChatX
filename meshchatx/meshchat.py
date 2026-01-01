@@ -6300,6 +6300,26 @@ class ReticulumMeshChat:
             source_hash = lxmf_message.source_hash.hex()
             destination_hash = lxmf_message.destination_hash.hex()
 
+            # extract fields for potential forwarding
+            lxmf_fields = lxmf_message.get_fields()
+            image_field = None
+            audio_field = None
+            file_attachments_field = None
+
+            if LXMF.FIELD_IMAGE in lxmf_fields:
+                val = lxmf_fields[LXMF.FIELD_IMAGE]
+                image_field = LxmfImageField(val[0], val[1])
+
+            if LXMF.FIELD_AUDIO in lxmf_fields:
+                val = lxmf_fields[LXMF.FIELD_AUDIO]
+                audio_field = LxmfAudioField(val[0], val[1])
+
+            if LXMF.FIELD_FILE_ATTACHMENTS in lxmf_fields:
+                attachments = []
+                for val in lxmf_fields[LXMF.FIELD_FILE_ATTACHMENTS]:
+                    attachments.append(LxmfFileAttachment(val[0], val[1]))
+                file_attachments_field = LxmfFileAttachmentsField(attachments)
+
             # check if this message is for an alias identity (REPLY PATH)
             mapping = self.database.messages.get_forwarding_mapping(
                 alias_hash=destination_hash
@@ -6317,6 +6337,9 @@ class ReticulumMeshChat:
                         title=lxmf_message.title
                         if hasattr(lxmf_message, "title")
                         else "",
+                        image_field=image_field,
+                        audio_field=audio_field,
+                        file_attachments_field=file_attachments_field,
                     ),
                 )
                 return
@@ -6354,10 +6377,16 @@ class ReticulumMeshChat:
                         if hasattr(lxmf_message, "title")
                         else "",
                         sender_identity_hash=mapping["alias_hash"],
+                        image_field=image_field,
+                        audio_field=audio_field,
+                        file_attachments_field=file_attachments_field,
                     ),
                 )
         except Exception as e:
             print(f"Error in handle_forwarding: {e}")
+            import traceback
+
+            traceback.print_exc()
 
     # handle delivery status update for an outbound lxmf message
     def on_lxmf_sending_state_updated(self, lxmf_message):
