@@ -3,7 +3,10 @@
         :class="{ dark: config?.theme === 'dark' }"
         class="h-screen w-full flex flex-col bg-slate-50 dark:bg-zinc-950 transition-colors"
     >
-        <div v-if="appInfo?.is_demo" class="relative z-[100] bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] py-1 text-center select-none border-b border-white/10 shadow-sm">
+        <div
+            v-if="appInfo?.is_demo"
+            class="relative z-[100] bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] py-1 text-center select-none border-b border-white/10 shadow-sm"
+        >
             Demo Mode &bull; Read Only
         </div>
 
