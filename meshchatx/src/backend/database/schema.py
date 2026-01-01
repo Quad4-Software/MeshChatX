@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 13
+    LATEST_VERSION = 14
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -203,6 +203,15 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """,
+            "notification_viewed_state": """
+                CREATE TABLE IF NOT EXISTS notification_viewed_state (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    last_viewed_at DATETIME,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
         }
 
         for table_name, create_sql in tables.items():
@@ -229,6 +238,13 @@ class DatabaseSchema:
             elif table_name == "spam_keywords":
                 self.provider.execute(
                     "CREATE INDEX IF NOT EXISTS idx_spam_keywords_keyword ON spam_keywords(keyword)"
+                )
+            elif table_name == "notification_viewed_state":
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)"
+                )
+                self.provider.execute(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)"
                 )
 
     def migrate(self, current_version):
@@ -408,6 +424,23 @@ class DatabaseSchema:
             )
             self.provider.execute(
                 "CREATE INDEX IF NOT EXISTS idx_voicemails_timestamp ON voicemails(timestamp)"
+            )
+
+        if current_version < 14:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS notification_viewed_state (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    last_viewed_at DATETIME,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)"
+            )
+            self.provider.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)"
             )
 
         # Update version in config
