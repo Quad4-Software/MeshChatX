@@ -1651,12 +1651,26 @@ class ReticulumMeshChat:
 
             # check if path is public
             is_public = any(path.startswith(public) for public in public_paths)
+            
+            # Allow WebSocket connections without auth if it's the handshake/upgrade request
+            # Real auth for WS happens inside the connection if needed, or by cookie
+            if path == "/ws":
+                return await handler(request)
 
             # check if requesting setup page (index.html will show setup if needed)
             if (
                 path == "/"
                 or path.startswith("/assets/")
                 or path.startswith("/favicons/")
+                or path.endswith(".js")
+                or path.endswith(".css")
+                or path.endswith(".json")
+                or path.endswith(".wasm")
+                or path.endswith(".png")
+                or path.endswith(".jpg")
+                or path.endswith(".jpeg")
+                or path.endswith(".ico")
+                or path.endswith(".svg")
             ):
                 is_public = True
 
