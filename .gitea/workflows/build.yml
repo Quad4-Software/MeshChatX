@@ -1,9 +1,10 @@
+# Appimage builds produced by action are broken for now
 name: Build and Release
 
 on:
-    push:
-        tags:
-            - "*"
+    # push:
+    #     tags:
+    #         - "*"
     workflow_dispatch:
         inputs:
             version:
