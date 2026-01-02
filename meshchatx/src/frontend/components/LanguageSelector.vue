@@ -2,11 +2,11 @@
     <div class="relative">
         <button
             type="button"
-            class="relative rounded-full p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+            class="relative rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
             :title="$t('app.language')"
             @click="toggleDropdown"
         >
-            <MaterialDesignIcon icon-name="translate" class="w-6 h-6" />
+            <MaterialDesignIcon icon-name="translate" class="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
 
         <div

@@ -52,29 +52,29 @@
                                 >
                             </div>
                         </div>
-                        <div class="flex my-auto ml-auto mr-0 sm:mr-2 space-x-2">
+                        <div class="flex my-auto ml-auto mr-0 sm:mr-2 space-x-1 sm:space-x-2">
                             <button
                                 type="button"
-                                class="relative rounded-full p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="relative rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
                                 @click="toggleTheme"
                             >
                                 <MaterialDesignIcon
                                     :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
-                                    class="w-6 h-6"
+                                    class="w-5 h-5 sm:w-6 sm:h-6"
                                 />
                             </button>
                             <LanguageSelector @language-change="onLanguageChange" />
                             <NotificationBell />
                             <button
                                 type="button"
-                                class="rounded-full p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="$t('app.audio_calls')"
                                 @click="$router.push({ name: 'call' })"
                             >
-                                <MaterialDesignIcon icon-name="phone" class="w-6 h-6" />
+                                <MaterialDesignIcon icon-name="phone" class="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
-                            <button type="button" class="rounded-full" @click="syncPropagationNode">
+                            <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
                                 <span
                                     class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-sm transition"
                                 >
@@ -86,7 +86,7 @@
                                     }}</span>
                                 </span>
                             </button>
-                            <button type="button" class="rounded-full" @click="composeNewMessage">
+                            <button type="button" class="hidden sm:flex rounded-full" @click="composeNewMessage">
                                 <span
                                     class="flex text-white bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 hover:from-blue-500/90 hover:to-purple-500/90 px-3 py-1.5 rounded-full shadow-md transition"
                                 >
@@ -562,6 +562,19 @@ export default {
                     NotificationUtils.showIncomingCallNotification();
                     this.updateTelephoneStatus();
                     this.playRingtone();
+                    break;
+                }
+                case "telephone_missed_call": {
+                    NotificationUtils.showMissedCallNotification(
+                        json.remote_identity_name || json.remote_identity_hash
+                    );
+                    break;
+                }
+                case "new_voicemail": {
+                    NotificationUtils.showNewVoicemailNotification(
+                        json.remote_identity_name || json.remote_identity_hash
+                    );
+                    this.updateTelephoneStatus();
                     break;
                 }
                 case "telephone_call_established":

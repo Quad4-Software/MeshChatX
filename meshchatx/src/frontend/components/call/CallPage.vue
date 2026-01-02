@@ -53,21 +53,19 @@
                     >
                         {{ $t("call.ringtone") }}
                     </button>
-                    <button
-                        :class="[
-                            activeTab === 'settings'
-                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:border-gray-300',
-                        ]"
-                        class="py-2 px-4 border-b-2 font-medium text-sm ml-auto transition-all"
-                        @click="activeTab = 'settings'"
-                    >
-                        <MaterialDesignIcon icon-name="cog" class="size-4" />
-                    </button>
                 </div>
 
                 <!-- Phone Tab -->
                 <div v-if="activeTab === 'phone'" class="flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <Toggle
+                            id="dnd-toggle"
+                            :model-value="config?.do_not_disturb_enabled"
+                            :label="$t('call.do_not_disturb')"
+                            @update:model-value="toggleDoNotDisturb"
+                        />
+                    </div>
+
                     <div v-if="activeCall || isCallEnded" class="flex mt-8 mb-12">
                         <div class="mx-auto min-w-64">
                             <div class="text-center">
@@ -157,6 +155,12 @@
                                     class="text-gray-500 dark:text-zinc-400 mb-4 text-center font-mono text-lg"
                                 >
                                     {{ elapsedTime }}
+                                </div>
+                                <div
+                                    v-if="isCallEnded && callDuration"
+                                    class="text-gray-500 dark:text-zinc-400 mb-4 text-center font-mono text-lg"
+                                >
+                                    {{ callDuration }}
                                 </div>
 
                                 <!-- settings during connected call -->
@@ -298,7 +302,7 @@
                     <div v-else class="mt-8 mb-12">
                         <div class="text-center mb-4">
                             <div class="text-xl font-semibold text-gray-500 dark:text-zinc-100">Telephone</div>
-                            <div class="text-gray-500 dark:text-zinc-400">Enter an identity hash to call.</div>
+                            <div class="text-gray-500 dark:text-zinc-400">Enter an identity to call.</div>
                         </div>
 
                         <div class="flex space-x-2">
@@ -324,21 +328,36 @@
                         <div
                             class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
                         >
-                            <div
-                                class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 flex justify-between items-center"
-                            >
-                                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                                    Call History
-                                </h3>
-                                <div class="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        class="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase tracking-tighter transition-colors"
-                                        @click="clearHistory"
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 flex flex-col gap-3">
+                                <div class="flex justify-between items-center">
+                                    <h3
+                                        class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider"
                                     >
-                                        {{ $t("app.clear_history") }}
-                                    </button>
-                                    <MaterialDesignIcon icon-name="history" class="size-4 text-gray-400" />
+                                        Call History
+                                    </h3>
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            class="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase tracking-tighter transition-colors"
+                                            @click="clearHistory"
+                                        >
+                                            {{ $t("app.clear_history") }}
+                                        </button>
+                                        <MaterialDesignIcon icon-name="history" class="size-4 text-gray-400" />
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <input
+                                        v-model="callHistorySearch"
+                                        type="text"
+                                        :placeholder="$t('call.search_history')"
+                                        class="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                                        @input="onCallHistorySearchInput"
+                                    />
+                                    <MaterialDesignIcon
+                                        icon-name="magnify"
+                                        class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400"
+                                    />
                                 </div>
                             </div>
                             <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
@@ -411,13 +430,21 @@
                                                     </button>
                                                     <button
                                                         type="button"
+                                                        class="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                                                        :title="$t('common.block')"
+                                                        @click="blockIdentity(entry.remote_identity_hash)"
+                                                    >
+                                                        <MaterialDesignIcon icon-name="account-remove" class="size-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
                                                         class="text-[10px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-tighter"
                                                         @click="
                                                             destinationHash = entry.remote_identity_hash;
                                                             call(destinationHash);
                                                         "
                                                     >
-                                                        Call Back
+                                                        {{ $t("call.call_back") }}
                                                     </button>
                                                 </div>
                                             </div>
@@ -425,6 +452,18 @@
                                     </div>
                                 </li>
                             </ul>
+                            <div
+                                v-if="hasMoreCallHistory"
+                                class="p-3 border-t border-gray-100 dark:border-zinc-800 text-center"
+                            >
+                                <button
+                                    type="button"
+                                    class="text-xs text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest"
+                                    @click="loadMoreCallHistory"
+                                >
+                                    {{ $t("call.load_more") }}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -442,6 +481,208 @@
                             />
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                 <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Voicemail Settings Card -->
+                    <div
+                        v-if="config"
+                        class="mb-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                    >
+                        <button
+                            type="button"
+                            class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                            @click="isVoicemailSettingsExpanded = !isVoicemailSettingsExpanded"
+                        >
+                            <div class="flex items-center gap-2">
+                                <MaterialDesignIcon icon-name="cog" class="size-5 text-blue-500" />
+                                <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                                    Voicemail Settings
+                                </h3>
+                            </div>
+                            <MaterialDesignIcon
+                                :icon-name="isVoicemailSettingsExpanded ? 'chevron-up' : 'chevron-down'"
+                                class="size-5 text-gray-400"
+                            />
+                        </button>
+
+                        <div v-if="isVoicemailSettingsExpanded" class="px-4 pb-6 space-y-6">
+                            <!-- Status Banner -->
+                            <div
+                                v-if="!voicemailStatus.has_espeak || !voicemailStatus.has_ffmpeg"
+                                class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-3 items-start"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="alert"
+                                    class="size-5 text-amber-600 dark:text-amber-400 shrink-0"
+                                />
+                                <div class="text-xs text-amber-800 dark:text-amber-200">
+                                    <p class="font-bold mb-1">Dependencies Missing</p>
+                                    <p v-if="!voicemailStatus.has_espeak">
+                                        Voicemail requires `espeak-ng` to generate greetings. Please install it on your
+                                        system.
+                                    </p>
+                                    <p
+                                        v-if="!voicemailStatus.has_ffmpeg"
+                                        :class="{ 'mt-1': !voicemailStatus.has_espeak }"
+                                    >
+                                        Voicemail requires `ffmpeg` to process audio files. Please install it on your
+                                        system.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Enabled Toggle -->
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                        Enable Voicemail
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-zinc-400">
+                                        Accept calls automatically and record messages
+                                    </div>
+                                </div>
+                                <button
+                                    :disabled="!voicemailStatus.has_espeak || !voicemailStatus.has_ffmpeg"
+                                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    :class="config.voicemail_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-zinc-700'"
+                                    @click="
+                                        config.voicemail_enabled = !config.voicemail_enabled;
+                                        updateConfig({ voicemail_enabled: config.voicemail_enabled });
+                                    "
+                                >
+                                    <span
+                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                        :class="config.voicemail_enabled ? 'translate-x-5' : 'translate-x-0'"
+                                    ></span>
+                                </button>
+                            </div>
+
+                            <!-- Greeting Text -->
+                            <div class="space-y-2">
+                                <label
+                                    class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tighter"
+                                    >Greeting Message</label
+                                >
+                                <textarea
+                                    v-model="config.voicemail_greeting"
+                                    rows="3"
+                                    class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-zinc-900"
+                                    placeholder="Enter greeting text..."
+                                ></textarea>
+                                <div class="flex justify-between items-center">
+                                    <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                        This text will be converted to speech using eSpeak NG.
+                                    </p>
+                                    <div class="flex gap-2">
+                                        <button
+                                            :disabled="
+                                                !voicemailStatus.has_espeak ||
+                                                !voicemailStatus.has_ffmpeg ||
+                                                isGeneratingGreeting
+                                            "
+                                            class="text-[10px] bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 px-3 py-1 rounded-full font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                                            @click="
+                                                updateConfig({ voicemail_greeting: config.voicemail_greeting });
+                                                generateGreeting();
+                                            "
+                                        >
+                                            {{ isGeneratingGreeting ? "Generating..." : "Save & Generate" }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Custom Greeting Upload -->
+                            <div class="space-y-2">
+                                <label
+                                    class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tighter"
+                                    >Custom Audio Greeting</label
+                                >
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <input
+                                        ref="greetingUpload"
+                                        type="file"
+                                        accept="audio/*"
+                                        class="hidden"
+                                        @change="uploadGreeting"
+                                    />
+                                    <button
+                                        :disabled="!voicemailStatus.has_ffmpeg || isUploadingGreeting"
+                                        class="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                                        @click="$refs.greetingUpload.click()"
+                                    >
+                                        <MaterialDesignIcon icon-name="upload" class="size-4" />
+                                        {{ isUploadingGreeting ? "Uploading..." : "Upload Audio File" }}
+                                    </button>
+                                    <div v-if="voicemailStatus.has_greeting" class="flex items-center gap-2">
+                                        <button
+                                            class="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center gap-2"
+                                            @click="deleteGreeting"
+                                        >
+                                            <MaterialDesignIcon icon-name="delete" class="size-4" />
+                                            Remove Greeting
+                                        </button>
+                                        <button
+                                            class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-lg font-bold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-2"
+                                            @click="playGreeting"
+                                        >
+                                            <MaterialDesignIcon
+                                                :icon-name="isPlayingGreeting ? 'stop' : 'play'"
+                                                class="size-4"
+                                            />
+                                            {{ isPlayingGreeting ? "Stop Preview" : "Preview" }}
+                                        </button>
+                                    </div>
+                                    <div v-else class="text-[10px] text-gray-500 dark:text-zinc-500 italic">
+                                        No custom greeting uploaded (default text will be used)
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                    Supports MP3, OGG, WAV, M4A, FLAC. Will be converted to Opus.
+                                </p>
+                            </div>
+
+                            <!-- Delays -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label
+                                        class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tighter"
+                                        >Answer Delay (s)</label
+                                    >
+                                    <input
+                                        v-model.number="config.voicemail_auto_answer_delay_seconds"
+                                        type="number"
+                                        min="1"
+                                        max="120"
+                                        class="block w-full rounded-lg border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                        @change="
+                                            updateConfig({
+                                                voicemail_auto_answer_delay_seconds:
+                                                    config.voicemail_auto_answer_delay_seconds,
+                                            })
+                                        "
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <label
+                                        class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tighter"
+                                        >Max Recording (s)</label
+                                    >
+                                    <input
+                                        v-model.number="config.voicemail_max_recording_seconds"
+                                        type="number"
+                                        min="5"
+                                        max="600"
+                                        class="block w-full rounded-lg border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                        @change="
+                                            updateConfig({
+                                                voicemail_max_recording_seconds: config.voicemail_max_recording_seconds,
+                                            })
+                                        "
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -748,13 +989,13 @@
                                     <div
                                         v-for="ringtone in ringtones"
                                         :key="ringtone.id"
-                                        class="group p-4 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30 flex items-center gap-4 transition-all hover:shadow-md"
+                                        class="group p-4 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30 flex items-center gap-4 transition-all hover:shadow-md overflow-hidden"
                                         :class="{
                                             'ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-900/10':
                                                 ringtone.is_primary,
                                         }"
                                     >
-                                        <div class="flex-1 min-w-0">
+                                        <div class="flex-1 min-w-0 overflow-hidden">
                                             <div
                                                 v-if="editingRingtoneId === ringtone.id"
                                                 class="flex items-center gap-2"
@@ -769,6 +1010,7 @@
                                             <div v-else class="flex items-center gap-2 min-w-0">
                                                 <span
                                                     class="text-sm font-medium text-gray-900 dark:text-white truncate"
+                                                    :title="ringtone.display_name"
                                                 >
                                                     {{ ringtone.display_name }}
                                                 </span>
@@ -785,7 +1027,10 @@
                                                     <MaterialDesignIcon icon-name="pencil" class="size-3" />
                                                 </button>
                                             </div>
-                                            <div class="text-[10px] text-gray-500 dark:text-zinc-500 truncate">
+                                            <div
+                                                class="text-[10px] text-gray-500 dark:text-zinc-500 truncate"
+                                                :title="ringtone.filename"
+                                            >
                                                 {{ ringtone.filename }}
                                             </div>
                                         </div>
@@ -843,196 +1088,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Settings Tab -->
-                <div v-if="activeTab === 'settings' && config" class="flex-1 space-y-6">
-                    <div
-                        class="bg-white dark:bg-zinc-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-800"
-                    >
-                        <h3
-                            class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-6 flex items-center gap-2"
-                        >
-                            <MaterialDesignIcon icon-name="voicemail" class="size-5 text-blue-500" />
-                            Voicemail Settings
-                        </h3>
-
-                        <!-- Status Banner -->
-                        <div
-                            v-if="!voicemailStatus.has_espeak || !voicemailStatus.has_ffmpeg"
-                            class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-3 items-start"
-                        >
-                            <MaterialDesignIcon
-                                icon-name="alert"
-                                class="size-5 text-amber-600 dark:text-amber-400 shrink-0"
-                            />
-                            <div class="text-xs text-amber-800 dark:text-amber-200">
-                                <p class="font-bold mb-1">Dependencies Missing</p>
-                                <p v-if="!voicemailStatus.has_espeak">
-                                    Voicemail requires `espeak-ng` to generate greetings. Please install it on your
-                                    system.
-                                </p>
-                                <p v-if="!voicemailStatus.has_ffmpeg" :class="{ 'mt-1': !voicemailStatus.has_espeak }">
-                                    Voicemail requires `ffmpeg` to process audio files. Please install it on your
-                                    system.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="space-y-6">
-                            <!-- Enabled Toggle -->
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                                        Enable Voicemail
-                                    </div>
-                                    <div class="text-xs text-gray-500 dark:text-zinc-400">
-                                        Accept calls automatically and record messages
-                                    </div>
-                                </div>
-                                <button
-                                    :disabled="!voicemailStatus.has_espeak || !voicemailStatus.has_ffmpeg"
-                                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                    :class="config.voicemail_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-zinc-700'"
-                                    @click="
-                                        config.voicemail_enabled = !config.voicemail_enabled;
-                                        updateConfig({ voicemail_enabled: config.voicemail_enabled });
-                                    "
-                                >
-                                    <span
-                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                        :class="config.voicemail_enabled ? 'translate-x-5' : 'translate-x-0'"
-                                    ></span>
-                                </button>
-                            </div>
-
-                            <!-- Greeting Text -->
-                            <div class="space-y-2">
-                                <label
-                                    class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tighter"
-                                    >Greeting Message</label
-                                >
-                                <textarea
-                                    v-model="config.voicemail_greeting"
-                                    rows="3"
-                                    class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-zinc-900"
-                                    placeholder="Enter greeting text..."
-                                ></textarea>
-                                <div class="flex justify-between items-center">
-                                    <p class="text-[10px] text-gray-500 dark:text-zinc-500">
-                                        This text will be converted to speech using eSpeak NG.
-                                    </p>
-                                    <div class="flex gap-2">
-                                        <button
-                                            :disabled="
-                                                !voicemailStatus.has_espeak ||
-                                                !voicemailStatus.has_ffmpeg ||
-                                                isGeneratingGreeting
-                                            "
-                                            class="text-[10px] bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 px-3 py-1 rounded-full font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
-                                            @click="
-                                                updateConfig({ voicemail_greeting: config.voicemail_greeting });
-                                                generateGreeting();
-                                            "
-                                        >
-                                            {{ isGeneratingGreeting ? "Generating..." : "Save & Generate" }}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Custom Greeting Upload -->
-                            <div class="space-y-2">
-                                <label
-                                    class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tighter"
-                                    >Custom Audio Greeting</label
-                                >
-                                <div class="flex items-center gap-3">
-                                    <input
-                                        ref="greetingUpload"
-                                        type="file"
-                                        accept="audio/*"
-                                        class="hidden"
-                                        @change="uploadGreeting"
-                                    />
-                                    <button
-                                        :disabled="!voicemailStatus.has_ffmpeg || isUploadingGreeting"
-                                        class="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                                        @click="$refs.greetingUpload.click()"
-                                    >
-                                        <MaterialDesignIcon icon-name="upload" class="size-4" />
-                                        {{ isUploadingGreeting ? "Uploading..." : "Upload Audio File" }}
-                                    </button>
-                                    <div v-if="voicemailStatus.has_greeting" class="flex items-center gap-2">
-                                        <button
-                                            class="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center gap-2"
-                                            @click="deleteGreeting"
-                                        >
-                                            <MaterialDesignIcon icon-name="delete" class="size-4" />
-                                            Remove Greeting
-                                        </button>
-                                        <button
-                                            class="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-lg font-bold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-2"
-                                            @click="playGreeting"
-                                        >
-                                            <MaterialDesignIcon
-                                                :icon-name="isPlayingGreeting ? 'stop' : 'play'"
-                                                class="size-4"
-                                            />
-                                            {{ isPlayingGreeting ? "Stop Preview" : "Preview" }}
-                                        </button>
-                                    </div>
-                                    <div v-else class="text-[10px] text-gray-500 dark:text-zinc-500 italic">
-                                        No custom greeting uploaded (default text will be used)
-                                    </div>
-                                </div>
-                                <p class="text-[10px] text-gray-500 dark:text-zinc-500">
-                                    Supports MP3, OGG, WAV, M4A, FLAC. Will be converted to Opus.
-                                </p>
-                            </div>
-
-                            <!-- Delays -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <label
-                                        class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tighter"
-                                        >Answer Delay (s)</label
-                                    >
-                                    <input
-                                        v-model.number="config.voicemail_auto_answer_delay_seconds"
-                                        type="number"
-                                        min="1"
-                                        max="120"
-                                        class="block w-full rounded-lg border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
-                                        @change="
-                                            updateConfig({
-                                                voicemail_auto_answer_delay_seconds:
-                                                    config.voicemail_auto_answer_delay_seconds,
-                                            })
-                                        "
-                                    />
-                                </div>
-                                <div class="space-y-2">
-                                    <label
-                                        class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tighter"
-                                        >Max Recording (s)</label
-                                    >
-                                    <input
-                                        v-model.number="config.voicemail_max_recording_seconds"
-                                        type="number"
-                                        min="5"
-                                        max="600"
-                                        class="block w-full rounded-lg border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
-                                        @change="
-                                            updateConfig({
-                                                voicemail_max_recording_seconds: config.voicemail_max_recording_seconds,
-                                            })
-                                        "
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1042,11 +1097,12 @@
 import Utils from "../../js/Utils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
+import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "CallPage",
-    components: { MaterialDesignIcon, LxmfUserIcon },
+    components: { MaterialDesignIcon, LxmfUserIcon, Toggle },
     data() {
         return {
             config: null,
@@ -1056,6 +1112,10 @@ export default {
             destinationHash: "",
             isShowingStats: false,
             callHistory: [],
+            callHistorySearch: "",
+            callHistoryLimit: 10,
+            callHistoryOffset: 0,
+            hasMoreCallHistory: true,
             isCallEnded: false,
             wasDeclined: false,
             lastCall: null,
@@ -1094,6 +1154,7 @@ export default {
                 remote_identity_hash: "",
             },
             searchDebounceTimeout: null,
+            isVoicemailSettingsExpanded: false,
         };
     },
     computed: {
@@ -1109,6 +1170,13 @@ export default {
             }
             const elapsed = Math.floor(Date.now() / 1000 - this.activeCall.call_start_time);
             return Utils.formatMinutesSeconds(elapsed);
+        },
+        callDuration() {
+            if (!this.isCallEnded || !this.lastCall?.call_start_time) {
+                return null;
+            }
+            const duration = Math.floor(Date.now() / 1000 - this.lastCall.call_start_time);
+            return Utils.formatMinutesSeconds(duration);
         },
     },
     mounted() {
@@ -1244,12 +1312,53 @@ export default {
                 ToastUtils.error(e.response?.data?.message || "Failed to add contact");
             }
         },
-        async getHistory() {
+        async getHistory(loadMore = false) {
             try {
-                const response = await window.axios.get("/api/v1/telephone/history?limit=10");
-                this.callHistory = response.data.call_history;
+                if (!loadMore) {
+                    this.callHistoryOffset = 0;
+                    this.hasMoreCallHistory = true;
+                }
+
+                const response = await window.axios.get(
+                    `/api/v1/telephone/history?limit=${this.callHistoryLimit}&offset=${this.callHistoryOffset}${
+                        this.callHistorySearch ? `&search=${encodeURIComponent(this.callHistorySearch)}` : ""
+                    }`
+                );
+
+                const newItems = response.data.call_history;
+                if (loadMore) {
+                    this.callHistory = [...this.callHistory, ...newItems];
+                } else {
+                    this.callHistory = newItems;
+                }
+
+                this.hasMoreCallHistory = newItems.length === this.callHistoryLimit;
             } catch (e) {
                 console.log(e);
+            }
+        },
+        async loadMoreCallHistory() {
+            this.callHistoryOffset += this.callHistoryLimit;
+            await this.getHistory(true);
+        },
+        onCallHistorySearchInput() {
+            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
+            this.searchDebounceTimeout = setTimeout(() => {
+                this.getHistory();
+            }, 500);
+        },
+        async toggleDoNotDisturb(value) {
+            try {
+                await window.axios.post("/api/v1/config", {
+                    key: "do_not_disturb_enabled",
+                    value: value ? "true" : "false",
+                });
+                if (this.config) {
+                    this.config.do_not_disturb_enabled = value;
+                }
+                ToastUtils.success(value ? "Do Not Disturb enabled" : "Do Not Disturb disabled");
+            } catch {
+                ToastUtils.error("Failed to update Do Not Disturb status");
             }
         },
         async clearHistory() {
@@ -1261,6 +1370,18 @@ export default {
             } catch (e) {
                 console.error(e);
                 ToastUtils.error("Failed to clear call history");
+            }
+        },
+        async blockIdentity(hash) {
+            if (!confirm(`Are you sure you want to block this identity?`)) return;
+            try {
+                await window.axios.post("/api/v1/blocked-destinations", {
+                    destination_hash: hash,
+                });
+                ToastUtils.success("Identity blocked");
+                this.getHistory();
+            } catch {
+                ToastUtils.error("Failed to block identity");
             }
         },
         async getVoicemailStatus() {
@@ -1577,7 +1698,7 @@ export default {
         },
         async call(identityHash) {
             if (!identityHash) {
-                ToastUtils.error("Enter an identity hash to call");
+                ToastUtils.error("Enter an identity to call");
                 return;
             }
             try {

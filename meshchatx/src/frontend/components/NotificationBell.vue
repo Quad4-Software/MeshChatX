@@ -2,10 +2,10 @@
     <div class="relative">
         <button
             type="button"
-            class="relative rounded-full p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+            class="relative rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
             @click="toggleDropdown"
         >
-            <MaterialDesignIcon icon-name="bell" class="w-6 h-6" />
+            <MaterialDesignIcon icon-name="bell" class="w-5 h-5 sm:w-6 sm:h-6" />
             <span
                 v-if="unreadCount > 0"
                 class="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white"

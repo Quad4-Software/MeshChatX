@@ -117,6 +117,9 @@
                 >
                     {{ elapsedTime }}
                 </div>
+                <div v-if="isEnded && callDuration" class="text-xs text-gray-500 dark:text-zinc-400 mt-1 font-mono">
+                    {{ callDuration }}
+                </div>
             </div>
 
             <!-- Stats (only when connected and not minimized) -->
@@ -297,6 +300,13 @@ export default {
             }
             const elapsed = Math.floor(Date.now() / 1000 - this.activeCall.call_start_time);
             return Utils.formatMinutesSeconds(elapsed);
+        },
+        callDuration() {
+            if (!this.isEnded || !this.activeCall?.call_start_time) {
+                return null;
+            }
+            const duration = Math.floor(Date.now() / 1000 - this.activeCall.call_start_time);
+            return Utils.formatMinutesSeconds(duration);
         },
     },
     mounted() {
