@@ -56,7 +56,7 @@ class MessageHandler:
         params = [local_hash, local_hash, like_term, like_term, like_term, like_term]
         return self.db.provider.fetchall(query, params)
 
-    def get_conversations(self, local_hash):
+    def get_conversations(self, local_hash, filter_unread=False):
         # Implementation moved from get_conversations DAO but with local_hash filter
         query = """
             SELECT m1.* FROM lxmf_messages m1
@@ -69,8 +69,7 @@ class MessageHandler:
                 GROUP BY peer_hash
             ) m2 ON (CASE WHEN m1.source_hash = ? THEN m1.destination_hash ELSE m1.source_hash END = m2.peer_hash 
                      AND m1.timestamp = m2.max_ts)
-            WHERE m1.source_hash = ? OR m1.destination_hash = ?
-            ORDER BY m1.timestamp DESC
+            WHERE (m1.source_hash = ? OR m1.destination_hash = ?)
         """
         params = [
             local_hash,
@@ -80,4 +79,11 @@ class MessageHandler:
             local_hash,
             local_hash,
         ]
+
+        if filter_unread:
+            query += " AND EXISTS (SELECT 1 FROM lxmf_messages m3 WHERE (m3.source_hash = m2.peer_hash AND m3.destination_hash = ?) AND m3.state = 'received' AND m3.is_incoming = 1)"
+            params.append(local_hash)
+
+        query += " ORDER BY m1.timestamp DESC"
+
         return self.db.provider.fetchall(query, params)
