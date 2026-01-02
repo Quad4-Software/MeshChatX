@@ -355,63 +355,6 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- audio calls -->
-                                <div
-                                    v-if="config"
-                                    class="bg-white/80 border-t dark:bg-zinc-900/70 dark:border-zinc-800 pb-3"
-                                >
-                                    <div
-                                        class="flex text-gray-700 p-3 cursor-pointer"
-                                        @click="isShowingCallsSection = !isShowingCallsSection"
-                                    >
-                                        <div class="my-auto mr-2">
-                                            <MaterialDesignIcon icon-name="phone" class="dark:text-white w-6 h-6" />
-                                        </div>
-                                        <div class="my-auto dark:text-white">{{ $t("app.calls") }}</div>
-                                        <div class="ml-auto">
-                                            <RouterLink
-                                                :to="{ name: 'call' }"
-                                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 transition-colors"
-                                            >
-                                                <MaterialDesignIcon
-                                                    icon-name="phone"
-                                                    class="w-3.5 h-3.5 flex-shrink-0"
-                                                />
-                                            </RouterLink>
-                                        </div>
-                                    </div>
-                                    <div
-                                        v-if="isShowingCallsSection"
-                                        class="divide-y text-gray-900 border-t border-gray-200 dark:border-zinc-800"
-                                    >
-                                        <div class="p-2 flex dark:border-zinc-800 dark:text-white">
-                                            <div>
-                                                <div>{{ $t("app.status") }}</div>
-                                                <div class="text-sm text-gray-700 dark:text-white">
-                                                    <div v-if="isTelephoneCallActive" class="flex space-x-2">
-                                                        <span>{{ $t("app.active_call") }}</span>
-                                                    </div>
-                                                    <div v-else>{{ $t("app.hung_up_waiting") }}</div>
-                                                </div>
-                                            </div>
-                                            <div v-if="isTelephoneCallActive" class="ml-auto my-auto mr-1 space-x-2">
-                                                <!-- hangup all calls -->
-                                                <button
-                                                    :title="$t('app.hangup_all_calls')"
-                                                    type="button"
-                                                    class="my-auto inline-flex items-center gap-x-1 rounded-full bg-red-500 p-2 text-sm font-semibold text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-                                                    @click="hangupTelephoneCall"
-                                                >
-                                                    <MaterialDesignIcon
-                                                        icon-name="phone-hangup"
-                                                        class="w-5 h-5 rotate-[135deg] translate-y-0.5"
-                                                    />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
