@@ -91,6 +91,9 @@ from meshchatx.src.version import __version__ as app_version
 # https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
 # bearer:disable python_lang_path_traversal
 def get_file_path(filename):
+    # Remove trailing slashes for path joining consistency
+    filename = filename.rstrip("/\\")
+    
     if getattr(sys, "frozen", False):
         datadir = os.path.dirname(sys.executable)
         return os.path.join(datadir, filename)
@@ -1705,6 +1708,15 @@ class ReticulumMeshChat:
                     "Cache-Control": "no-cache, no-store",
                 },
             )
+
+        # allow serving manifest.json and service-worker.js directly at root
+        @routes.get("/manifest.json")
+        async def manifest(request):
+            return web.FileResponse(get_file_path("public/manifest.json"))
+
+        @routes.get("/service-worker.js")
+        async def service_worker(request):
+            return web.FileResponse(get_file_path("public/service-worker.js"))
 
         # serve ping
         @routes.get("/api/v1/status")
@@ -5969,6 +5981,8 @@ class ReticulumMeshChat:
                 response.headers["Content-Type"] = "text/css; charset=utf-8"
             elif path.endswith(".json"):
                 response.headers["Content-Type"] = "application/json; charset=utf-8"
+            elif path.endswith(".wasm"):
+                response.headers["Content-Type"] = "application/wasm"
             elif path.endswith(".html"):
                 response.headers["Content-Type"] = "text/html; charset=utf-8"
             return response
@@ -6048,9 +6062,15 @@ class ReticulumMeshChat:
         )
 
         app.add_routes(routes)
-        app.add_routes(
-            [web.static("/", get_file_path("public/"))],
-        )  # serve anything in public folder
+        
+        # serve anything else from public folder
+        # we use add_static here as it's more robust for serving directories
+        public_dir = get_file_path("public")
+        if os.path.exists(public_dir):
+            app.router.add_static("/", public_dir, name="static", follow_symlinks=True)
+        else:
+            print(f"Warning: Static files directory not found at {public_dir}")
+
         app.on_shutdown.append(
             self.shutdown,
         )  # need to force close websockets and stop reticulum now
