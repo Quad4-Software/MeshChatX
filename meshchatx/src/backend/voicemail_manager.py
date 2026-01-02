@@ -133,7 +133,6 @@ class VoicemailManager:
             raise RuntimeError(msg)
 
         wav_path = os.path.join(self.greetings_dir, "greeting.wav")
-        opus_path = os.path.join(self.greetings_dir, "greeting.opus")
 
         try:
             # espeak-ng to WAV
