@@ -6,10 +6,7 @@ screenshots/
 docs/
 
 # Development files
-.github/
-electron/
 android/
-scripts/
 Makefile
 *.apk
 *.aab
@@ -17,9 +14,10 @@ Makefile
 # Build artifacts and cache
 build/
 dist/
-public/
-meshchatx/public/
+build-dir/
+python-dist/
 node_modules/
+meshchatx/public/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -27,7 +25,6 @@ __pycache__/
 .Python
 *.egg-info/
 *.egg
-python-dist/
 
 # Virtual environments
 env/
