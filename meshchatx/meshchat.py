@@ -6991,7 +6991,9 @@ class ReticulumMeshChat:
                         lxmf_destination_hash = lxmf_a["destination_hash"]
                         # Also update display name if telephony one was empty
                         if not display_name or display_name == "Anonymous Peer":
-                            display_name = self.parse_lxmf_display_name(lxmf_a["app_data"])
+                            display_name = self.parse_lxmf_display_name(
+                                lxmf_a["app_data"]
+                            )
                         break
 
             # 2. If not found in announces, try to recall identity and calculate LXMF hash

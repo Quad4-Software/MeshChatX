@@ -543,7 +543,10 @@
                                                         title="Message via LXMF"
                                                         @click.stop
                                                     >
-                                                        <MaterialDesignIcon icon-name="message-text-outline" class="size-4" />
+                                                        <MaterialDesignIcon
+                                                            icon-name="message-text-outline"
+                                                            class="size-4"
+                                                        />
                                                     </a>
                                                 </div>
                                                 <span
