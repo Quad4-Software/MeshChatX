@@ -263,3 +263,29 @@ class MiscDAO:
             "SELECT COUNT(*) as count FROM notifications WHERE is_viewed = 0",
         )
         return row["count"] if row else 0
+
+    # Keyboard Shortcuts
+    def get_keyboard_shortcuts(self, identity_hash):
+        return self.provider.fetchall(
+            "SELECT * FROM keyboard_shortcuts WHERE identity_hash = ?",
+            (identity_hash,),
+        )
+
+    def upsert_keyboard_shortcut(self, identity_hash, action, keys):
+        now = datetime.now(UTC)
+        self.provider.execute(
+            """
+            INSERT INTO keyboard_shortcuts (identity_hash, action, keys, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(identity_hash, action) DO UPDATE SET 
+                keys = EXCLUDED.keys, 
+                updated_at = EXCLUDED.updated_at
+        """,
+            (identity_hash, action, keys, now, now),
+        )
+
+    def delete_keyboard_shortcut(self, identity_hash, action):
+        self.provider.execute(
+            "DELETE FROM keyboard_shortcuts WHERE identity_hash = ? AND action = ?",
+            (identity_hash, action),
+        )
