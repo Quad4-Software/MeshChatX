@@ -3010,12 +3010,21 @@ class ReticulumMeshChat:
                 # get remote identity hash
                 remote_identity_hash = None
                 remote_identity_name = None
+                remote_icon = None
                 remote_identity = telephone_active_call.get_remote_identity()
                 if remote_identity is not None:
                     remote_identity_hash = remote_identity.hash.hex()
                     remote_identity_name = self.get_name_for_identity_hash(
                         remote_identity_hash,
                     )
+
+                    # get lxmf destination hash to look up icon
+                    lxmf_destination_hash = RNS.Destination.hash(
+                        remote_identity,
+                        "lxmf",
+                        "delivery",
+                    ).hex()
+                    remote_icon = self.database.misc.get_user_icon(lxmf_destination_hash)
 
                 active_call = {
                     "hash": telephone_active_call.hash.hex(),
@@ -3024,6 +3033,7 @@ class ReticulumMeshChat:
                     "is_outgoing": telephone_active_call.is_outgoing,
                     "remote_identity_hash": remote_identity_hash,
                     "remote_identity_name": remote_identity_name,
+                    "remote_icon": dict(remote_icon) if remote_icon else None,
                     "audio_profile_id": self.telephone_manager.telephone.transmit_codec.profile
                     if hasattr(
                         self.telephone_manager.telephone.transmit_codec,
@@ -3086,6 +3096,29 @@ class ReticulumMeshChat:
                 },
             )
 
+        # send active call to voicemail
+        @routes.get("/api/v1/telephone/send-to-voicemail")
+        async def telephone_send_to_voicemail(request):
+            active_call = self.telephone_manager.telephone.active_call
+            if not active_call:
+                return web.json_response({"message": "No active call"}, status=404)
+
+            caller_identity = active_call.get_remote_identity()
+            if not caller_identity:
+                return web.json_response({"message": "No remote identity"}, status=400)
+
+            # trigger voicemail session
+            await asyncio.to_thread(
+                self.voicemail_manager.start_voicemail_session,
+                caller_identity,
+            )
+
+            return web.json_response(
+                {
+                    "message": "Call sent to voicemail",
+                },
+            )
+
         # mute/unmute transmit
         @routes.get("/api/v1/telephone/mute-transmit")
         async def telephone_mute_transmit(request):
@@ -3113,9 +3146,22 @@ class ReticulumMeshChat:
         async def telephone_history(request):
             limit = int(request.query.get("limit", 10))
             history = self.database.telephone.get_call_history(limit=limit)
+            
+            call_history = []
+            for row in history:
+                d = dict(row)
+                remote_identity_hash = d.get("remote_identity_hash")
+                if remote_identity_hash:
+                    lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(remote_identity_hash)
+                    if lxmf_hash:
+                        icon = self.database.misc.get_user_icon(lxmf_hash)
+                        if icon:
+                            d["remote_icon"] = dict(icon)
+                call_history.append(d)
+
             return web.json_response(
                 {
-                    "call_history": [dict(row) for row in history],
+                    "call_history": call_history,
                 },
             )
 
@@ -3267,13 +3313,26 @@ class ReticulumMeshChat:
         async def telephone_voicemails(request):
             limit = int(request.query.get("limit", 50))
             offset = int(request.query.get("offset", 0))
-            voicemails = self.database.voicemails.get_voicemails(
+            voicemails_rows = self.database.voicemails.get_voicemails(
                 limit=limit,
                 offset=offset,
             )
+
+            voicemails = []
+            for row in voicemails_rows:
+                d = dict(row)
+                remote_identity_hash = d.get("remote_identity_hash")
+                if remote_identity_hash:
+                    lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(remote_identity_hash)
+                    if lxmf_hash:
+                        icon = self.database.misc.get_user_icon(lxmf_hash)
+                        if icon:
+                            d["remote_icon"] = dict(icon)
+                voicemails.append(d)
+
             return web.json_response(
                 {
-                    "voicemails": [dict(row) for row in voicemails],
+                    "voicemails": voicemails,
                     "unread_count": self.database.voicemails.get_unread_count(),
                 },
             )
@@ -6433,6 +6492,22 @@ class ReticulumMeshChat:
         return None
 
     # recall identity from reticulum or database
+    def get_lxmf_destination_hash_for_identity_hash(self, identity_hash: str):
+        identity = self.recall_identity(identity_hash)
+        if identity is not None:
+            return RNS.Destination.hash(identity, "lxmf", "delivery").hex()
+
+        # fallback to announces
+        announces = self.database.announces.get_filtered_announces(
+            aspect="lxmf.delivery",
+            search_term=identity_hash,
+        )
+        if announces:
+            for announce in announces:
+                if announce["identity_hash"] == identity_hash:
+                    return announce["destination_hash"]
+        return None
+
     def recall_identity(self, hash_hex: str) -> RNS.Identity | None:
         try:
             # 1. try reticulum recall (works for both identity and destination hashes)
