@@ -632,6 +632,7 @@
         "do_not_disturb": "Не беспокоить",
         "load_more": "Загрузить еще",
         "search_history": "Поиск по истории...",
+        "allow_calls_from_contacts_only": "Разрешить звонки только от контактов",
         "settings_saved": "Настройки сохранены",
         "greeting_generated_successfully": "Приветствие успешно создано",
         "failed_to_generate_greeting": "Не удалось создать приветствие",

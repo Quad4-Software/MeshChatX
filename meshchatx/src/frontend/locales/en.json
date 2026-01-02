@@ -632,6 +632,7 @@
         "do_not_disturb": "Do Not Disturb",
         "load_more": "Load More",
         "search_history": "Search history...",
+        "allow_calls_from_contacts_only": "Only allow calls from contacts",
         "settings_saved": "Settings saved",
         "greeting_generated_successfully": "Greeting generated successfully",
         "failed_to_generate_greeting": "Failed to generate greeting",

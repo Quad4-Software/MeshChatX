@@ -632,6 +632,7 @@
         "do_not_disturb": "Nicht stören",
         "load_more": "Mehr laden",
         "search_history": "Verlauf durchsuchen...",
+        "allow_calls_from_contacts_only": "Nur Anrufe von Kontakten zulassen",
         "settings_saved": "Einstellungen gespeichert",
         "greeting_generated_successfully": "Begrüßung erfolgreich generiert",
         "failed_to_generate_greeting": "Begrüßung konnte nicht generiert werden",
