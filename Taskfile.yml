@@ -257,3 +257,19 @@ tasks:
         cmds:
             - cd "{{.ANDROID_DIR}}" && ./gradlew clean
             - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
+
+    build-flatpak:
+        desc: Build Flatpak package
+        cmds:
+            - flatpak-builder --force-clean build-dir flatpak.json
+
+    install-flatpak:
+        desc: Install Flatpak package locally
+        deps: [build-flatpak]
+        cmds:
+            - flatpak-builder --install --user --force-clean build-dir flatpak.json
+
+    run-flatpak:
+        desc: Run Flatpak application
+        cmds:
+            - flatpak run com.sudoivan.reticulummeshchat
