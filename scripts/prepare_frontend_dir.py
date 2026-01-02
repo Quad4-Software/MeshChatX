@@ -14,3 +14,15 @@ if TARGET.exists():
     shutil.rmtree(TARGET)
 
 TARGET.mkdir(parents=True, exist_ok=True)
+
+# Copy built assets from root public/ to meshchatx/public/
+SOURCE = Path("public")
+if SOURCE.exists():
+    print(f"Copying assets from {SOURCE} to {TARGET}...")
+    for item in SOURCE.iterdir():
+        if item.is_dir():
+            shutil.copytree(item, TARGET / item.name, dirs_exist_ok=True)
+        else:
+            shutil.copy2(item, TARGET / item.name)
+else:
+    print(f"Warning: Source directory {SOURCE} not found!")
