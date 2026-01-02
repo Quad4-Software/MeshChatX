@@ -14,7 +14,7 @@
             <span class="my-auto shrink-0">
                 <slot name="icon"></slot>
             </span>
-            <span v-if="!isCollapsed" class="my-auto flex w-full truncate">
+            <span v-if="!isCollapsed" class="my-auto flex w-full truncate transition-all duration-300">
                 <slot name="text"></slot>
             </span>
         </a>
