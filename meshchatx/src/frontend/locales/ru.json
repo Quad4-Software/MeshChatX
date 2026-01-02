@@ -411,6 +411,16 @@
         "rnode_flasher": {
             "title": "RNode Flasher",
             "description": "Прошивка и обновление адаптеров RNode без использования командной строки."
+        },
+        "micron_editor": {
+            "title": "Редактор Micron",
+            "description": "Редактирование и предпросмотр разметки Micron с живым рендерингом.",
+            "editor": "Редактор",
+            "preview": "Предпросмотр",
+            "download": "Скачать",
+            "edit": "Редактировать",
+            "view_preview": "Просмотр",
+            "placeholder": "Введите разметку Micron здесь..."
         }
     },
     "ping": {

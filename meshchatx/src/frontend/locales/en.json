@@ -411,6 +411,16 @@
         "rnode_flasher": {
             "title": "RNode Flasher",
             "description": "Flash and update RNode adapters without touching the command line."
+        },
+        "micron_editor": {
+            "title": "Micron Editor",
+            "description": "Edit and preview Micron markup with live rendering.",
+            "editor": "Editor",
+            "preview": "Preview",
+            "download": "Download",
+            "edit": "Edit",
+            "view_preview": "View Preview",
+            "placeholder": "Enter your Micron markup here..."
         }
     },
     "ping": {

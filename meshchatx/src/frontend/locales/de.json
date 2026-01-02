@@ -411,6 +411,16 @@
         "rnode_flasher": {
             "title": "RNode Flasher",
             "description": "RNode-Adapter flashen und aktualisieren, ohne die Kommandozeile zu berühren."
+        },
+        "micron_editor": {
+            "title": "Micron Editor",
+            "description": "Micron-Markup bearbeiten und mit Live-Rendering anzeigen.",
+            "editor": "Editor",
+            "preview": "Vorschau",
+            "download": "Herunterladen",
+            "edit": "Bearbeiten",
+            "view_preview": "Vorschau anzeigen",
+            "placeholder": "Geben Sie hier Ihr Micron-Markup ein..."
         }
     },
     "ping": {
