@@ -5,8 +5,8 @@ from .messages import MessageDAO
 from .misc import MiscDAO
 from .provider import DatabaseProvider
 from .schema import DatabaseSchema
-from .telephone import TelephoneDAO
 from .telemetry import TelemetryDAO
+from .telephone import TelephoneDAO
 from .voicemails import VoicemailDAO
 
 
@@ -27,7 +27,9 @@ class Database:
 
     def migrate_from_legacy(self, reticulum_config_dir, identity_hash_hex):
         migrator = LegacyMigrator(
-            self.provider, reticulum_config_dir, identity_hash_hex
+            self.provider,
+            reticulum_config_dir,
+            identity_hash_hex,
         )
         if migrator.should_migrate():
             return migrator.migrate()

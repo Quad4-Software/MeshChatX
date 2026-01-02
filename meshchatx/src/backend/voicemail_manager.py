@@ -2,6 +2,7 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 import threading
 import time
 
@@ -53,9 +54,34 @@ class VoicemailManager:
 
     def get_name_for_identity_hash(self, identity_hash):
         """Default implementation, should be patched by ReticulumMeshChat"""
+        return
+
+    def _find_bundled_binary(self, name):
+        if getattr(sys, "frozen", False):
+            exe_dir = os.path.dirname(sys.executable)
+            # Try in bin/ subdirectory of the executable
+            local_bin = os.path.join(exe_dir, "bin", name)
+            if platform.system() == "Windows":
+                local_bin += ".exe"
+            if os.path.exists(local_bin):
+                return local_bin
+            # Try in executable directory itself
+            local_bin = os.path.join(exe_dir, name)
+            if platform.system() == "Windows":
+                local_bin += ".exe"
+            if os.path.exists(local_bin):
+                return local_bin
         return None
 
     def _find_espeak(self):
+        # Try bundled first
+        bundled = self._find_bundled_binary("espeak-ng")
+        if bundled:
+            return bundled
+        bundled = self._find_bundled_binary("espeak")
+        if bundled:
+            return bundled
+
         # Try standard name first
         path = shutil.which("espeak-ng")
         if path:
@@ -80,6 +106,11 @@ class VoicemailManager:
         return None
 
     def _find_ffmpeg(self):
+        # Try bundled first
+        bundled = self._find_bundled_binary("ffmpeg")
+        if bundled:
+            return bundled
+
         path = shutil.which("ffmpeg")
         if path:
             return path
@@ -149,7 +180,10 @@ class VoicemailManager:
         return True
 
     def handle_incoming_call(self, caller_identity):
-        RNS.log(f"Voicemail: handle_incoming_call from {RNS.prettyhexrep(caller_identity.hash)}", RNS.LOG_DEBUG)
+        RNS.log(
+            f"Voicemail: handle_incoming_call from {RNS.prettyhexrep(caller_identity.hash)}",
+            RNS.LOG_DEBUG,
+        )
         if not self.config.voicemail_enabled.get():
             RNS.log("Voicemail: Voicemail is disabled", RNS.LOG_DEBUG)
             return
@@ -158,7 +192,10 @@ class VoicemailManager:
         RNS.log(f"Voicemail: Will auto-answer in {delay} seconds", RNS.LOG_DEBUG)
 
         def voicemail_job():
-            RNS.log(f"Voicemail: Auto-answer timer started for {RNS.prettyhexrep(caller_identity.hash)}", RNS.LOG_DEBUG)
+            RNS.log(
+                f"Voicemail: Auto-answer timer started for {RNS.prettyhexrep(caller_identity.hash)}",
+                RNS.LOG_DEBUG,
+            )
             time.sleep(delay)
 
             # Check if still ringing and no other active call
@@ -167,12 +204,16 @@ class VoicemailManager:
                 RNS.log("Voicemail: No telephone object", RNS.LOG_ERROR)
                 return
 
-            RNS.log(f"Voicemail: Checking status. Call status: {telephone.call_status}, Active call: {telephone.active_call}", RNS.LOG_DEBUG)
-            
+            RNS.log(
+                f"Voicemail: Checking status. Call status: {telephone.call_status}, Active call: {telephone.active_call}",
+                RNS.LOG_DEBUG,
+            )
+
             if (
                 telephone
                 and telephone.active_call
-                and telephone.active_call.get_remote_identity().hash == caller_identity.hash
+                and telephone.active_call.get_remote_identity().hash
+                == caller_identity.hash
                 and telephone.call_status == LXST.Signalling.STATUS_RINGING
             ):
                 RNS.log(
@@ -181,9 +222,15 @@ class VoicemailManager:
                 )
                 self.start_voicemail_session(caller_identity)
             else:
-                RNS.log("Voicemail: Auto-answer conditions not met after delay", RNS.LOG_DEBUG)
+                RNS.log(
+                    "Voicemail: Auto-answer conditions not met after delay",
+                    RNS.LOG_DEBUG,
+                )
                 if telephone.active_call:
-                    RNS.log(f"Voicemail: Active call remote: {RNS.prettyhexrep(telephone.active_call.get_remote_identity().hash)}", RNS.LOG_DEBUG)
+                    RNS.log(
+                        f"Voicemail: Active call remote: {RNS.prettyhexrep(telephone.active_call.get_remote_identity().hash)}",
+                        RNS.LOG_DEBUG,
+                    )
 
         threading.Thread(target=voicemail_job, daemon=True).start()
 
@@ -209,20 +256,28 @@ class VoicemailManager:
         def session_job():
             try:
                 # 1. Play greeting
-                greeting_source = OpusFileSource(greeting_path, target_frame_ms=60)
-                # Attach to transmit mixer
-                greeting_pipeline = Pipeline(
-                    source=greeting_source, codec=Null(), sink=telephone.transmit_mixer
-                )
-                greeting_pipeline.start()
+                try:
+                    greeting_source = OpusFileSource(greeting_path, target_frame_ms=60)
+                    # Attach to transmit mixer
+                    greeting_pipeline = Pipeline(
+                        source=greeting_source,
+                        codec=Null(),
+                        sink=telephone.transmit_mixer,
+                    )
+                    greeting_pipeline.start()
 
-                # Wait for greeting to finish
-                while greeting_source.running:
-                    time.sleep(0.1)
-                    if not telephone.active_call:
-                        return
+                    # Wait for greeting to finish
+                    while greeting_source.running:
+                        time.sleep(0.1)
+                        if not telephone.active_call:
+                            return
 
-                greeting_pipeline.stop()
+                    greeting_pipeline.stop()
+                except Exception as e:
+                    RNS.log(
+                        f"Voicemail: Could not play greeting (libs missing?): {e}",
+                        RNS.LOG_ERROR,
+                    )
 
                 # 2. Play beep
                 beep_source = LXST.ToneSource(
@@ -306,7 +361,7 @@ class VoicemailManager:
             # Save to database if long enough
             if duration >= 1:
                 remote_name = self.get_name_for_identity_hash(
-                    self.recording_remote_identity.hash.hex()
+                    self.recording_remote_identity.hash.hex(),
                 )
                 self.db.voicemails.add_voicemail(
                     remote_identity_hash=self.recording_remote_identity.hash.hex(),

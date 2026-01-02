@@ -17,9 +17,16 @@ class ConfigDAO:
         if value is None:
             self.provider.execute("DELETE FROM config WHERE key = ?", (key,))
         else:
+            now = datetime.now(UTC)
             self.provider.execute(
-                "INSERT OR REPLACE INTO config (key, value, updated_at) VALUES (?, ?, ?)",
-                (key, str(value), datetime.now(UTC)),
+                """
+                INSERT INTO config (key, value, created_at, updated_at) 
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET 
+                    value = EXCLUDED.value,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (key, str(value), now, now),
             )
 
     def delete(self, key):

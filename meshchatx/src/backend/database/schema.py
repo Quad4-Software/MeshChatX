@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 15
+    LATEST_VERSION = 16
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -17,7 +17,8 @@ class DatabaseSchema:
 
     def _get_current_version(self):
         row = self.provider.fetchone(
-            "SELECT value FROM config WHERE key = ?", ("database_version",)
+            "SELECT value FROM config WHERE key = ?",
+            ("database_version",),
         )
         if row:
             return int(row["value"])
@@ -160,6 +161,7 @@ class DatabaseSchema:
             "lxmf_forwarding_rules": """
                 CREATE TABLE IF NOT EXISTS lxmf_forwarding_rules (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
                     identity_hash TEXT,
                     forward_to_hash TEXT,
                     source_filter_hash TEXT,
@@ -232,42 +234,42 @@ class DatabaseSchema:
             # Create indexes that were present
             if table_name == "announces":
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)"
+                    "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)",
                 )
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_announces_identity_hash ON announces(identity_hash)"
+                    "CREATE INDEX IF NOT EXISTS idx_announces_identity_hash ON announces(identity_hash)",
                 )
             elif table_name == "lxmf_messages":
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_source_hash ON lxmf_messages(source_hash)"
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_source_hash ON lxmf_messages(source_hash)",
                 )
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_destination_hash ON lxmf_messages(destination_hash)"
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_destination_hash ON lxmf_messages(destination_hash)",
                 )
             elif table_name == "blocked_destinations":
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_blocked_destinations_hash ON blocked_destinations(destination_hash)"
+                    "CREATE INDEX IF NOT EXISTS idx_blocked_destinations_hash ON blocked_destinations(destination_hash)",
                 )
             elif table_name == "spam_keywords":
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_spam_keywords_keyword ON spam_keywords(keyword)"
+                    "CREATE INDEX IF NOT EXISTS idx_spam_keywords_keyword ON spam_keywords(keyword)",
                 )
             elif table_name == "notification_viewed_state":
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)"
+                    "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)",
                 )
                 self.provider.execute(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)"
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)",
                 )
             elif table_name == "lxmf_telemetry":
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)"
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)",
                 )
                 self.provider.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)"
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)",
                 )
                 self.provider.execute(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)"
+                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)",
                 )
 
     def migrate(self, current_version):
@@ -283,13 +285,13 @@ class DatabaseSchema:
                 )
             """)
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_archived_pages_destination_hash ON archived_pages(destination_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_destination_hash ON archived_pages(destination_hash)",
             )
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_archived_pages_page_path ON archived_pages(page_path)"
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_page_path ON archived_pages(page_path)",
             )
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_archived_pages_hash ON archived_pages(hash)"
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_hash ON archived_pages(hash)",
             )
 
         if current_version < 8:
@@ -306,16 +308,17 @@ class DatabaseSchema:
                 )
             """)
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_destination_hash ON crawl_tasks(destination_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_destination_hash ON crawl_tasks(destination_hash)",
             )
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_page_path ON crawl_tasks(page_path)"
+                "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_page_path ON crawl_tasks(page_path)",
             )
 
         if current_version < 9:
             self.provider.execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_forwarding_rules (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
                     identity_hash TEXT,
                     forward_to_hash TEXT,
                     source_filter_hash TEXT,
@@ -325,7 +328,7 @@ class DatabaseSchema:
                 )
             """)
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_rules_identity_hash ON lxmf_forwarding_rules(identity_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_rules_identity_hash ON lxmf_forwarding_rules(identity_hash)",
             )
 
             self.provider.execute("""
@@ -340,13 +343,13 @@ class DatabaseSchema:
                 )
             """)
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_alias_hash ON lxmf_forwarding_mappings(alias_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_alias_hash ON lxmf_forwarding_mappings(alias_hash)",
             )
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_sender_hash ON lxmf_forwarding_mappings(original_sender_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_sender_hash ON lxmf_forwarding_mappings(original_sender_hash)",
             )
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_recipient_hash ON lxmf_forwarding_mappings(final_recipient_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_recipient_hash ON lxmf_forwarding_mappings(final_recipient_hash)",
             )
 
         if current_version < 10:
@@ -356,54 +359,54 @@ class DatabaseSchema:
 
             # Clean up duplicates before adding unique indexes
             self.provider.execute(
-                "DELETE FROM announces WHERE id NOT IN (SELECT MAX(id) FROM announces GROUP BY destination_hash)"
+                "DELETE FROM announces WHERE id NOT IN (SELECT MAX(id) FROM announces GROUP BY destination_hash)",
             )
             self.provider.execute(
-                "DELETE FROM crawl_tasks WHERE id NOT IN (SELECT MAX(id) FROM crawl_tasks GROUP BY destination_hash, page_path)"
+                "DELETE FROM crawl_tasks WHERE id NOT IN (SELECT MAX(id) FROM crawl_tasks GROUP BY destination_hash, page_path)",
             )
             self.provider.execute(
-                "DELETE FROM custom_destination_display_names WHERE id NOT IN (SELECT MAX(id) FROM custom_destination_display_names GROUP BY destination_hash)"
+                "DELETE FROM custom_destination_display_names WHERE id NOT IN (SELECT MAX(id) FROM custom_destination_display_names GROUP BY destination_hash)",
             )
             self.provider.execute(
-                "DELETE FROM favourite_destinations WHERE id NOT IN (SELECT MAX(id) FROM favourite_destinations GROUP BY destination_hash)"
+                "DELETE FROM favourite_destinations WHERE id NOT IN (SELECT MAX(id) FROM favourite_destinations GROUP BY destination_hash)",
             )
             self.provider.execute(
-                "DELETE FROM lxmf_user_icons WHERE id NOT IN (SELECT MAX(id) FROM lxmf_user_icons GROUP BY destination_hash)"
+                "DELETE FROM lxmf_user_icons WHERE id NOT IN (SELECT MAX(id) FROM lxmf_user_icons GROUP BY destination_hash)",
             )
             self.provider.execute(
-                "DELETE FROM lxmf_conversation_read_state WHERE id NOT IN (SELECT MAX(id) FROM lxmf_conversation_read_state GROUP BY destination_hash)"
+                "DELETE FROM lxmf_conversation_read_state WHERE id NOT IN (SELECT MAX(id) FROM lxmf_conversation_read_state GROUP BY destination_hash)",
             )
             self.provider.execute(
-                "DELETE FROM lxmf_messages WHERE id NOT IN (SELECT MAX(id) FROM lxmf_messages GROUP BY hash)"
+                "DELETE FROM lxmf_messages WHERE id NOT IN (SELECT MAX(id) FROM lxmf_messages GROUP BY hash)",
             )
 
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_announces_destination_hash_unique ON announces(destination_hash)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_announces_destination_hash_unique ON announces(destination_hash)",
             )
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_crawl_tasks_destination_path_unique ON crawl_tasks(destination_hash, page_path)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_crawl_tasks_destination_path_unique ON crawl_tasks(destination_hash, page_path)",
             )
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_display_names_dest_hash_unique ON custom_destination_display_names(destination_hash)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_display_names_dest_hash_unique ON custom_destination_display_names(destination_hash)",
             )
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_favourite_destinations_dest_hash_unique ON favourite_destinations(destination_hash)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_favourite_destinations_dest_hash_unique ON favourite_destinations(destination_hash)",
             )
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_messages_hash_unique ON lxmf_messages(hash)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_messages_hash_unique ON lxmf_messages(hash)",
             )
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_user_icons_dest_hash_unique ON lxmf_user_icons(destination_hash)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_user_icons_dest_hash_unique ON lxmf_user_icons(destination_hash)",
             )
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_conversation_read_state_dest_hash_unique ON lxmf_conversation_read_state(destination_hash)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_conversation_read_state_dest_hash_unique ON lxmf_conversation_read_state(destination_hash)",
             )
 
         if current_version < 11:
             # Add is_spam column to lxmf_messages if it doesn't exist
             try:
                 self.provider.execute(
-                    "ALTER TABLE lxmf_messages ADD COLUMN is_spam INTEGER DEFAULT 0"
+                    "ALTER TABLE lxmf_messages ADD COLUMN is_spam INTEGER DEFAULT 0",
                 )
             except Exception:
                 # Column might already exist if table was created with newest schema
@@ -423,10 +426,10 @@ class DatabaseSchema:
                 )
             """)
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_call_history_remote_hash ON call_history(remote_identity_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_call_history_remote_hash ON call_history(remote_identity_hash)",
             )
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_call_history_timestamp ON call_history(timestamp)"
+                "CREATE INDEX IF NOT EXISTS idx_call_history_timestamp ON call_history(timestamp)",
             )
 
         if current_version < 13:
@@ -443,10 +446,10 @@ class DatabaseSchema:
                 )
             """)
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_voicemails_remote_hash ON voicemails(remote_identity_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_voicemails_remote_hash ON voicemails(remote_identity_hash)",
             )
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_voicemails_timestamp ON voicemails(timestamp)"
+                "CREATE INDEX IF NOT EXISTS idx_voicemails_timestamp ON voicemails(timestamp)",
             )
 
         if current_version < 14:
@@ -460,10 +463,10 @@ class DatabaseSchema:
                 )
             """)
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)",
             )
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)",
             )
 
         if current_version < 15:
@@ -481,17 +484,31 @@ class DatabaseSchema:
                 )
             """)
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)"
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)",
             )
             self.provider.execute(
-                "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)"
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)",
             )
             self.provider.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)",
             )
+
+        if current_version < 16:
+            try:
+                self.provider.execute(
+                    "ALTER TABLE lxmf_forwarding_rules ADD COLUMN name TEXT",
+                )
+            except Exception:
+                pass
 
         # Update version in config
         self.provider.execute(
-            "INSERT OR REPLACE INTO config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+            """
+            INSERT INTO config (key, value, created_at, updated_at) 
+            VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET 
+                value = EXCLUDED.value,
+                updated_at = EXCLUDED.updated_at
+            """,
             ("database_version", str(self.LATEST_VERSION)),
         )

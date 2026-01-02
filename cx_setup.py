@@ -13,6 +13,9 @@ include_files = [
     ("logo", "logo"),
 ]
 
+if (ROOT / "bin").exists():
+    include_files.append(("bin", "bin"))
+
 packages = [
     "RNS",
     "RNS.Interfaces",

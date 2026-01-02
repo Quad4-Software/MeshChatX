@@ -6,10 +6,14 @@ class ConfigManager:
         self.database_version = self.IntConfig(self, "database_version", None)
         self.display_name = self.StringConfig(self, "display_name", "Anonymous Peer")
         self.auto_announce_enabled = self.BoolConfig(
-            self, "auto_announce_enabled", False
+            self,
+            "auto_announce_enabled",
+            False,
         )
         self.auto_announce_interval_seconds = self.IntConfig(
-            self, "auto_announce_interval_seconds", 0
+            self,
+            "auto_announce_interval_seconds",
+            0,
         )
         self.last_announced_at = self.IntConfig(self, "last_announced_at", None)
         self.theme = self.StringConfig(self, "theme", "light")
@@ -83,18 +87,26 @@ class ConfigManager:
             16,
         )  # for propagation node messages
         self.page_archiver_enabled = self.BoolConfig(
-            self, "page_archiver_enabled", True
+            self,
+            "page_archiver_enabled",
+            True,
         )
         self.page_archiver_max_versions = self.IntConfig(
-            self, "page_archiver_max_versions", 5
+            self,
+            "page_archiver_max_versions",
+            5,
         )
         self.archives_max_storage_gb = self.IntConfig(
-            self, "archives_max_storage_gb", 1
+            self,
+            "archives_max_storage_gb",
+            1,
         )
         self.crawler_enabled = self.BoolConfig(self, "crawler_enabled", False)
         self.crawler_max_retries = self.IntConfig(self, "crawler_max_retries", 3)
         self.crawler_retry_delay_seconds = self.IntConfig(
-            self, "crawler_retry_delay_seconds", 3600
+            self,
+            "crawler_retry_delay_seconds",
+            3600,
         )
         self.crawler_max_concurrent = self.IntConfig(self, "crawler_max_concurrent", 1)
         self.auth_enabled = self.BoolConfig(self, "auth_enabled", False)
@@ -124,7 +136,9 @@ class ConfigManager:
         self.map_offline_path = self.StringConfig(self, "map_offline_path", None)
         self.map_mbtiles_dir = self.StringConfig(self, "map_mbtiles_dir", None)
         self.map_tile_cache_enabled = self.BoolConfig(
-            self, "map_tile_cache_enabled", True
+            self,
+            "map_tile_cache_enabled",
+            True,
         )
         self.map_default_lat = self.StringConfig(self, "map_default_lat", "0.0")
         self.map_default_lon = self.StringConfig(self, "map_default_lon", "0.0")

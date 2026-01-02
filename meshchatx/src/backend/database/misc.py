@@ -9,9 +9,10 @@ class MiscDAO:
 
     # Blocked Destinations
     def add_blocked_destination(self, destination_hash):
+        now = datetime.now(UTC)
         self.provider.execute(
-            "INSERT OR IGNORE INTO blocked_destinations (destination_hash, updated_at) VALUES (?, ?)",
-            (destination_hash, datetime.now(UTC)),
+            "INSERT OR IGNORE INTO blocked_destinations (destination_hash, created_at, updated_at) VALUES (?, ?, ?)",
+            (destination_hash, now, now),
         )
 
     def is_destination_blocked(self, destination_hash):
@@ -34,9 +35,10 @@ class MiscDAO:
 
     # Spam Keywords
     def add_spam_keyword(self, keyword):
+        now = datetime.now(UTC)
         self.provider.execute(
-            "INSERT OR IGNORE INTO spam_keywords (keyword, updated_at) VALUES (?, ?)",
-            (keyword, datetime.now(UTC)),
+            "INSERT OR IGNORE INTO spam_keywords (keyword, created_at, updated_at) VALUES (?, ?, ?)",
+            (keyword, now, now),
         )
 
     def get_spam_keywords(self):
@@ -55,20 +57,31 @@ class MiscDAO:
 
     # User Icons
     def update_lxmf_user_icon(
-        self, destination_hash, icon_name, foreground_colour, background_colour
+        self,
+        destination_hash,
+        icon_name,
+        foreground_colour,
+        background_colour,
     ):
         now = datetime.now(UTC)
         self.provider.execute(
             """
-            INSERT INTO lxmf_user_icons (destination_hash, icon_name, foreground_colour, background_colour, updated_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO lxmf_user_icons (destination_hash, icon_name, foreground_colour, background_colour, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(destination_hash) DO UPDATE SET 
                 icon_name = EXCLUDED.icon_name, 
                 foreground_colour = EXCLUDED.foreground_colour, 
                 background_colour = EXCLUDED.background_colour, 
                 updated_at = EXCLUDED.updated_at
         """,
-            (destination_hash, icon_name, foreground_colour, background_colour, now),
+            (
+                destination_hash,
+                icon_name,
+                foreground_colour,
+                background_colour,
+                now,
+                now,
+            ),
         )
 
     def get_user_icon(self, destination_hash):
@@ -89,23 +102,31 @@ class MiscDAO:
         return self.provider.fetchall(query, params)
 
     def create_forwarding_rule(
-        self, identity_hash, forward_to_hash, source_filter_hash, is_active=True
+        self,
+        identity_hash,
+        forward_to_hash,
+        source_filter_hash,
+        is_active=True,
+        name=None,
     ):
         now = datetime.now(UTC)
         self.provider.execute(
-            "INSERT INTO lxmf_forwarding_rules (identity_hash, forward_to_hash, source_filter_hash, is_active, updated_at) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO lxmf_forwarding_rules (identity_hash, forward_to_hash, source_filter_hash, is_active, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 identity_hash,
                 forward_to_hash,
                 source_filter_hash,
                 1 if is_active else 0,
+                name,
+                now,
                 now,
             ),
         )
 
     def delete_forwarding_rule(self, rule_id):
         self.provider.execute(
-            "DELETE FROM lxmf_forwarding_rules WHERE id = ?", (rule_id,)
+            "DELETE FROM lxmf_forwarding_rules WHERE id = ?",
+            (rule_id,),
         )
 
     def toggle_forwarding_rule(self, rule_id):
@@ -116,9 +137,10 @@ class MiscDAO:
 
     # Archived Pages
     def archive_page(self, destination_hash, page_path, content, page_hash):
+        now = datetime.now(UTC)
         self.provider.execute(
-            "INSERT INTO archived_pages (destination_hash, page_path, content, hash) VALUES (?, ?, ?, ?)",
-            (destination_hash, page_path, content, page_hash),
+            "INSERT INTO archived_pages (destination_hash, page_path, content, hash, created_at) VALUES (?, ?, ?, ?, ?)",
+            (destination_hash, page_path, content, page_hash, now),
         )
 
     def get_archived_page_versions(self, destination_hash, page_path):
@@ -154,22 +176,27 @@ class MiscDAO:
 
     # Crawl Tasks
     def upsert_crawl_task(
-        self, destination_hash, page_path, status="pending", retry_count=0
+        self,
+        destination_hash,
+        page_path,
+        status="pending",
+        retry_count=0,
     ):
+        now = datetime.now(UTC)
         self.provider.execute(
             """
-            INSERT INTO crawl_tasks (destination_hash, page_path, status, retry_count)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO crawl_tasks (destination_hash, page_path, status, retry_count, created_at)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(destination_hash, page_path) DO UPDATE SET 
                 status = EXCLUDED.status, 
                 retry_count = EXCLUDED.retry_count
         """,
-            (destination_hash, page_path, status, retry_count),
+            (destination_hash, page_path, status, retry_count, now),
         )
 
     def get_pending_crawl_tasks(self):
         return self.provider.fetchall(
-            "SELECT * FROM crawl_tasks WHERE status = 'pending'"
+            "SELECT * FROM crawl_tasks WHERE status = 'pending'",
         )
 
     def update_crawl_task(self, task_id, **kwargs):
@@ -199,5 +226,6 @@ class MiscDAO:
 
     def get_archived_page_by_id(self, archive_id):
         return self.provider.fetchone(
-            "SELECT * FROM archived_pages WHERE id = ?", (archive_id,)
+            "SELECT * FROM archived_pages WHERE id = ?",
+            (archive_id,),
         )

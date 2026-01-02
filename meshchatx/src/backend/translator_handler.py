@@ -66,7 +66,8 @@ LANGUAGE_CODE_TO_NAME = {
 class TranslatorHandler:
     def __init__(self, libretranslate_url: str | None = None):
         self.libretranslate_url = libretranslate_url or os.getenv(
-            "LIBRETRANSLATE_URL", "http://localhost:5000"
+            "LIBRETRANSLATE_URL",
+            "http://localhost:5000",
         )
         self.has_argos = HAS_ARGOS
         self.has_argos_lib = HAS_ARGOS_LIB
@@ -188,14 +189,18 @@ class TranslatorHandler:
         return {
             "translated_text": result.get("translatedText", ""),
             "source_lang": result.get("detectedLanguage", {}).get(
-                "language", source_lang
+                "language",
+                source_lang,
             ),
             "target_lang": target_lang,
             "source": "libretranslate",
         }
 
     def _translate_argos(
-        self, text: str, source_lang: str, target_lang: str
+        self,
+        text: str,
+        source_lang: str,
+        target_lang: str,
     ) -> dict[str, Any]:
         if source_lang == "auto":
             if self.has_argos_lib:
@@ -220,7 +225,10 @@ class TranslatorHandler:
         raise RuntimeError(msg)
 
     def _translate_argos_lib(
-        self, text: str, source_lang: str, target_lang: str
+        self,
+        text: str,
+        source_lang: str,
+        target_lang: str,
     ) -> dict[str, Any]:
         try:
             installed_packages = package.get_installed_packages()
@@ -250,7 +258,10 @@ class TranslatorHandler:
             raise RuntimeError(msg)
 
     def _translate_argos_cli(
-        self, text: str, source_lang: str, target_lang: str
+        self,
+        text: str,
+        source_lang: str,
+        target_lang: str,
     ) -> dict[str, Any]:
         if source_lang == "auto" or not source_lang:
             msg = "Auto-detection is not supported with CLI. Please select a source language manually."
@@ -368,7 +379,8 @@ class TranslatorHandler:
         return languages
 
     def install_language_package(
-        self, package_name: str = "translate"
+        self,
+        package_name: str = "translate",
     ) -> dict[str, Any]:
         argospm = shutil.which("argospm")
         if not argospm:

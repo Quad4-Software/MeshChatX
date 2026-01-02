@@ -21,7 +21,10 @@ class LegacyMigrator:
         # Check each directory
         for config_dir in possible_dirs:
             legacy_path = os.path.join(
-                config_dir, "identities", self.identity_hash_hex, "database.db"
+                config_dir,
+                "identities",
+                self.identity_hash_hex,
+                "database.db",
             )
             if os.path.exists(legacy_path):
                 # Ensure it's not the same as our current DB path
@@ -103,13 +106,13 @@ class LegacyMigrator:
                         legacy_columns = [
                             row["name"]
                             for row in self.provider.fetchall(
-                                f"PRAGMA {alias}.table_info({table})"
+                                f"PRAGMA {alias}.table_info({table})",
                             )
                         ]
                         current_columns = [
                             row["name"]
                             for row in self.provider.fetchall(
-                                f"PRAGMA table_info({table})"
+                                f"PRAGMA table_info({table})",
                             )
                         ]
 
@@ -125,11 +128,11 @@ class LegacyMigrator:
                             migrate_query = f"INSERT OR IGNORE INTO {table} ({cols_str}) SELECT {cols_str} FROM {alias}.{table}"  # noqa: S608
                             self.provider.execute(migrate_query)
                             print(
-                                f"  - Migrated table: {table} ({len(common_columns)} columns)"
+                                f"  - Migrated table: {table} ({len(common_columns)} columns)",
                             )
                         else:
                             print(
-                                f"  - Skipping table {table}: No common columns found"
+                                f"  - Skipping table {table}: No common columns found",
                             )
                 except Exception as e:
                     print(f"  - Failed to migrate table {table}: {e}")

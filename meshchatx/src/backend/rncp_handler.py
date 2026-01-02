@@ -53,7 +53,7 @@ class RNCPHandler:
         )
 
         self.receive_destination.set_link_established_callback(
-            self._client_link_established
+            self._client_link_established,
         )
 
         if fetch_allowed:
@@ -97,7 +97,7 @@ class RNCPHandler:
             if resource.metadata:
                 try:
                     filename = os.path.basename(
-                        resource.metadata["name"].decode("utf-8")
+                        resource.metadata["name"].decode("utf-8"),
                     )
                     save_dir = os.path.join(self.storage_dir, "rncp_received")
                     os.makedirs(save_dir, exist_ok=True)
@@ -118,7 +118,8 @@ class RNCPHandler:
                         counter += 1
                         base, ext = os.path.splitext(filename)
                         saved_filename = os.path.join(
-                            save_dir, f"{base}.{counter}{ext}"
+                            save_dir,
+                            f"{base}.{counter}{ext}",
                         )
 
                     shutil.move(resource.data.name, saved_filename)
@@ -137,7 +138,13 @@ class RNCPHandler:
             self.active_transfers[transfer_id]["status"] = "failed"
 
     def _fetch_request(
-        self, path, data, request_id, link_id, remote_identity, requested_at
+        self,
+        path,
+        data,
+        request_id,
+        link_id,
+        remote_identity,
+        requested_at,
     ):
         if self.fetch_jail:
             if data.startswith(self.fetch_jail + "/"):
@@ -349,7 +356,7 @@ class RNCPHandler:
                 if resource.metadata:
                     try:
                         filename = os.path.basename(
-                            resource.metadata["name"].decode("utf-8")
+                            resource.metadata["name"].decode("utf-8"),
                         )
                         if save_path:
                             save_dir = os.path.abspath(os.path.expanduser(save_path))

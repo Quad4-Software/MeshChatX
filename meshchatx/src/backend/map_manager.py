@@ -62,7 +62,7 @@ class MapManager:
                             "size": stats.st_size,
                             "mtime": stats.st_mtime,
                             "is_active": full_path == self.get_offline_path(),
-                        }
+                        },
                     )
         return sorted(files, key=lambda x: x["mtime"], reverse=True)
 
@@ -182,10 +182,10 @@ class MapManager:
             # create schema
             cursor.execute("CREATE TABLE metadata (name text, value text)")
             cursor.execute(
-                "CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)"
+                "CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)",
             )
             cursor.execute(
-                "CREATE UNIQUE INDEX tile_index on tiles (zoom_level, tile_column, tile_row)"
+                "CREATE UNIQUE INDEX tile_index on tiles (zoom_level, tile_column, tile_row)",
             )
 
             # insert metadata
@@ -235,7 +235,7 @@ class MapManager:
                         current_count += 1
                         self._export_progress[export_id]["current"] = current_count
                         self._export_progress[export_id]["progress"] = int(
-                            (current_count / total_tiles) * 100
+                            (current_count / total_tiles) * 100,
                         )
 
                 # commit after each zoom level
@@ -259,7 +259,7 @@ class MapManager:
         y = int(
             (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi)
             / 2.0
-            * n
+            * n,
         )
         return x, y
 

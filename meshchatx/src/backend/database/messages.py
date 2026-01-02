@@ -39,9 +39,9 @@ class MessageDAO:
         update_set = ", ".join([f"{f} = EXCLUDED.{f}" for f in fields if f != "hash"])
 
         query = (
-            f"INSERT INTO lxmf_messages ({columns}, updated_at) VALUES ({placeholders}, ?) "
+            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
             f"ON CONFLICT(hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"
-        )  # noqa: S608
+        )
 
         params = []
         for f in fields:
@@ -49,18 +49,23 @@ class MessageDAO:
             if f == "fields" and isinstance(val, dict):
                 val = json.dumps(val)
             params.append(val)
-        params.append(datetime.now(UTC).isoformat())
+
+        now = datetime.now(UTC).isoformat()
+        params.append(now)
+        params.append(now)
 
         self.provider.execute(query, params)
 
     def get_lxmf_message_by_hash(self, message_hash):
         return self.provider.fetchone(
-            "SELECT * FROM lxmf_messages WHERE hash = ?", (message_hash,)
+            "SELECT * FROM lxmf_messages WHERE hash = ?",
+            (message_hash,),
         )
 
     def delete_lxmf_message_by_hash(self, message_hash):
         self.provider.execute(
-            "DELETE FROM lxmf_messages WHERE hash = ?", (message_hash,)
+            "DELETE FROM lxmf_messages WHERE hash = ?",
+            (message_hash,),
         )
 
     def get_conversation_messages(self, destination_hash, limit=100, offset=0):
@@ -88,8 +93,14 @@ class MessageDAO:
     def mark_conversation_as_read(self, destination_hash):
         now = datetime.now(UTC).isoformat()
         self.provider.execute(
-            "INSERT OR REPLACE INTO lxmf_conversation_read_state (destination_hash, last_read_at, updated_at) VALUES (?, ?, ?)",
-            (destination_hash, now, now),
+            """
+            INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at) 
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(destination_hash) DO UPDATE SET 
+                last_read_at = EXCLUDED.last_read_at,
+                updated_at = EXCLUDED.updated_at
+            """,
+            (destination_hash, now, now, now),
         )
 
     def is_conversation_unread(self, destination_hash):
@@ -142,7 +153,10 @@ class MessageDAO:
 
     # Forwarding Mappings
     def get_forwarding_mapping(
-        self, alias_hash=None, original_sender_hash=None, final_recipient_hash=None
+        self,
+        alias_hash=None,
+        original_sender_hash=None,
+        final_recipient_hash=None,
     ):
         if alias_hash:
             return self.provider.fetchone(
@@ -181,16 +195,28 @@ class MessageDAO:
     def mark_notification_as_viewed(self, destination_hash):
         now = datetime.now(UTC).isoformat()
         self.provider.execute(
-            "INSERT OR REPLACE INTO notification_viewed_state (destination_hash, last_viewed_at, updated_at) VALUES (?, ?, ?)",
-            (destination_hash, now, now),
+            """
+            INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at) 
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(destination_hash) DO UPDATE SET 
+                last_viewed_at = EXCLUDED.last_viewed_at,
+                updated_at = EXCLUDED.updated_at
+            """,
+            (destination_hash, now, now, now),
         )
 
     def mark_all_notifications_as_viewed(self, destination_hashes):
         now = datetime.now(UTC).isoformat()
         for destination_hash in destination_hashes:
             self.provider.execute(
-                "INSERT OR REPLACE INTO notification_viewed_state (destination_hash, last_viewed_at, updated_at) VALUES (?, ?, ?)",
-                (destination_hash, now, now),
+                """
+                INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at) 
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(destination_hash) DO UPDATE SET 
+                    last_viewed_at = EXCLUDED.last_viewed_at,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (destination_hash, now, now, now),
             )
 
     def is_notification_viewed(self, destination_hash, message_timestamp):

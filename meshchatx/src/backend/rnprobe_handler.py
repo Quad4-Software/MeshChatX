@@ -109,13 +109,13 @@ class RNProbeHandler:
                 reception_stats = {}
                 if self.reticulum.is_connected_to_shared_instance:
                     reception_rssi = self.reticulum.get_packet_rssi(
-                        receipt.proof_packet.packet_hash
+                        receipt.proof_packet.packet_hash,
                     )
                     reception_snr = self.reticulum.get_packet_snr(
-                        receipt.proof_packet.packet_hash
+                        receipt.proof_packet.packet_hash,
                     )
                     reception_q = self.reticulum.get_packet_q(
-                        receipt.proof_packet.packet_hash
+                        receipt.proof_packet.packet_hash,
                     )
 
                     if reception_rssi is not None:

@@ -77,7 +77,7 @@ class TelephoneManager:
         if destination_identity is None:
             # If not found by identity hash, try as destination hash
             destination_identity = RNS.Identity.recall(
-                destination_hash
+                destination_hash,
             )  # Identity.recall takes identity hash
 
         if destination_identity is None:

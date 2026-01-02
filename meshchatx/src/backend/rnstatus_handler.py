@@ -59,23 +59,28 @@ class RNStatusHandler:
             sorting = sorting.lower()
             if sorting in ("rate", "bitrate"):
                 interfaces.sort(
-                    key=lambda i: i.get("bitrate", 0) or 0, reverse=sort_reverse
+                    key=lambda i: i.get("bitrate", 0) or 0,
+                    reverse=sort_reverse,
                 )
             elif sorting == "rx":
                 interfaces.sort(
-                    key=lambda i: i.get("rxb", 0) or 0, reverse=sort_reverse
+                    key=lambda i: i.get("rxb", 0) or 0,
+                    reverse=sort_reverse,
                 )
             elif sorting == "tx":
                 interfaces.sort(
-                    key=lambda i: i.get("txb", 0) or 0, reverse=sort_reverse
+                    key=lambda i: i.get("txb", 0) or 0,
+                    reverse=sort_reverse,
                 )
             elif sorting == "rxs":
                 interfaces.sort(
-                    key=lambda i: i.get("rxs", 0) or 0, reverse=sort_reverse
+                    key=lambda i: i.get("rxs", 0) or 0,
+                    reverse=sort_reverse,
                 )
             elif sorting == "txs":
                 interfaces.sort(
-                    key=lambda i: i.get("txs", 0) or 0, reverse=sort_reverse
+                    key=lambda i: i.get("txs", 0) or 0,
+                    reverse=sort_reverse,
                 )
             elif sorting == "traffic":
                 interfaces.sort(
@@ -100,7 +105,8 @@ class RNStatusHandler:
                 )
             elif sorting == "held":
                 interfaces.sort(
-                    key=lambda i: i.get("held_announces", 0) or 0, reverse=sort_reverse
+                    key=lambda i: i.get("held_announces", 0) or 0,
+                    reverse=sort_reverse,
                 )
 
         formatted_interfaces = []

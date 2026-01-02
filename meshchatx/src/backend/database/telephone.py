@@ -14,6 +14,9 @@ class TelephoneDAO:
         duration_seconds,
         timestamp,
     ):
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
         self.provider.execute(
             """
             INSERT INTO call_history (
@@ -22,8 +25,9 @@ class TelephoneDAO:
                 is_incoming,
                 status,
                 duration_seconds,
-                timestamp
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                timestamp,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 remote_identity_hash,
@@ -32,6 +36,7 @@ class TelephoneDAO:
                 status,
                 duration_seconds,
                 timestamp,
+                now,
             ),
         )
 

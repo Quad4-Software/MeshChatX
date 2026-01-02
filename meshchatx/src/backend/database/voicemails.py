@@ -13,6 +13,9 @@ class VoicemailDAO:
         duration_seconds,
         timestamp,
     ):
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC)
         self.provider.execute(
             """
             INSERT INTO voicemails (
@@ -20,8 +23,9 @@ class VoicemailDAO:
                 remote_identity_name,
                 filename,
                 duration_seconds,
-                timestamp
-            ) VALUES (?, ?, ?, ?, ?)
+                timestamp,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 remote_identity_hash,
@@ -29,6 +33,7 @@ class VoicemailDAO:
                 filename,
                 duration_seconds,
                 timestamp,
+                now,
             ),
         )
 
@@ -58,6 +63,6 @@ class VoicemailDAO:
 
     def get_unread_count(self):
         row = self.provider.fetchone(
-            "SELECT COUNT(*) as count FROM voicemails WHERE is_read = 0"
+            "SELECT COUNT(*) as count FROM voicemails WHERE is_read = 0",
         )
         return row["count"] if row else 0

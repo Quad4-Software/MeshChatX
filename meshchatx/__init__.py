@@ -1,3 +1,3 @@
 """Reticulum MeshChatX - A mesh network communications app."""
 
-__version__ = "2.50.0"
+__version__ = "3.0.0"

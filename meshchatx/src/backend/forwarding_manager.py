@@ -21,19 +21,22 @@ class ForwardingManager:
         for mapping in mappings:
             try:
                 private_key_bytes = base64.b64decode(
-                    mapping["alias_identity_private_key"]
+                    mapping["alias_identity_private_key"],
                 )
                 alias_identity = RNS.Identity.from_bytes(private_key_bytes)
                 alias_hash = mapping["alias_hash"]
 
                 # create temp router for this alias
                 router_storage_path = os.path.join(
-                    self.storage_path, "forwarding", alias_hash
+                    self.storage_path,
+                    "forwarding",
+                    alias_hash,
                 )
                 os.makedirs(router_storage_path, exist_ok=True)
 
                 router = LXMF.LXMRouter(
-                    identity=alias_identity, storagepath=router_storage_path
+                    identity=alias_identity,
+                    storagepath=router_storage_path,
                 )
                 router.PROCESSING_INTERVAL = 1
                 if self.config:
@@ -44,7 +47,7 @@ class ForwardingManager:
                 router.register_delivery_callback(self.delivery_callback)
 
                 alias_destination = router.register_delivery_identity(
-                    identity=alias_identity
+                    identity=alias_identity,
                 )
 
                 self.forwarding_destinations[alias_hash] = alias_destination
@@ -54,7 +57,10 @@ class ForwardingManager:
                 print(f"Failed to load forwarding alias {mapping['alias_hash']}: {e}")
 
     def get_or_create_mapping(
-        self, source_hash, final_recipient_hash, original_destination_hash
+        self,
+        source_hash,
+        final_recipient_hash,
+        original_destination_hash,
     ):
         mapping = self.db.messages.get_forwarding_mapping(
             original_sender_hash=source_hash,
@@ -67,12 +73,15 @@ class ForwardingManager:
 
             # create temp router for this alias
             router_storage_path = os.path.join(
-                self.storage_path, "forwarding", alias_hash
+                self.storage_path,
+                "forwarding",
+                alias_hash,
             )
             os.makedirs(router_storage_path, exist_ok=True)
 
             router = LXMF.LXMRouter(
-                identity=alias_identity, storagepath=router_storage_path
+                identity=alias_identity,
+                storagepath=router_storage_path,
             )
             router.PROCESSING_INTERVAL = 1
             if self.config:
@@ -83,7 +92,7 @@ class ForwardingManager:
             router.register_delivery_callback(self.delivery_callback)
 
             alias_destination = router.register_delivery_identity(
-                identity=alias_identity
+                identity=alias_identity,
             )
 
             self.forwarding_destinations[alias_hash] = alias_destination
@@ -91,7 +100,7 @@ class ForwardingManager:
 
             data = {
                 "alias_identity_private_key": base64.b64encode(
-                    alias_identity.get_private_key()
+                    alias_identity.get_private_key(),
                 ).decode(),
                 "alias_hash": alias_hash,
                 "original_sender_hash": source_hash,

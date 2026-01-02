@@ -40,7 +40,8 @@ class MessageHandler:
                OR (destination_hash = ? AND source_hash = ?))
         """
         self.db.provider.execute(
-            query, [local_hash, destination_hash, local_hash, destination_hash]
+            query,
+            [local_hash, destination_hash, local_hash, destination_hash],
         )
 
     def search_messages(self, local_hash, search_term):

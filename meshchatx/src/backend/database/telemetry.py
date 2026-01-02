@@ -8,24 +8,26 @@ class TelemetryDAO:
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
 
-    def upsert_telemetry(self, destination_hash, timestamp, data, received_from=None, physical_link=None):
+    def upsert_telemetry(
+        self, destination_hash, timestamp, data, received_from=None, physical_link=None
+    ):
         now = datetime.now(UTC).isoformat()
-        
+
         # If physical_link is a dict, convert to json
         if isinstance(physical_link, dict):
             physical_link = json.dumps(physical_link)
 
         self.provider.execute(
             """
-            INSERT INTO lxmf_telemetry (destination_hash, timestamp, data, received_from, physical_link, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO lxmf_telemetry (destination_hash, timestamp, data, received_from, physical_link, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(destination_hash, timestamp) DO UPDATE SET 
                 data = EXCLUDED.data, 
                 received_from = EXCLUDED.received_from,
                 physical_link = EXCLUDED.physical_link,
                 updated_at = EXCLUDED.updated_at
         """,
-            (destination_hash, timestamp, data, received_from, physical_link, now),
+            (destination_hash, timestamp, data, received_from, physical_link, now, now),
         )
 
     def get_latest_telemetry(self, destination_hash):
@@ -58,4 +60,3 @@ class TelemetryDAO:
             "DELETE FROM lxmf_telemetry WHERE destination_hash = ?",
             (destination_hash,),
         )
-

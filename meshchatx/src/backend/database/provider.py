@@ -24,7 +24,8 @@ class DatabaseProvider:
     def connection(self):
         if not hasattr(self._local, "connection"):
             self._local.connection = sqlite3.connect(
-                self.db_path, check_same_thread=False
+                self.db_path,
+                check_same_thread=False,
             )
             self._local.connection.row_factory = sqlite3.Row
             # Enable WAL mode for better concurrency
