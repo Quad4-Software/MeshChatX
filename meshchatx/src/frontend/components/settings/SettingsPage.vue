@@ -565,6 +565,46 @@
                             </div>
                         </div>
                     </section>
+
+                    <!-- Keyboard Shortcuts -->
+                    <section class="glass-card lg:col-span-2">
+                        <div class="glass-card__header">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl"
+                                >
+                                    <MaterialDesignIcon icon-name="keyboard-outline" class="size-6" />
+                                </div>
+                                <div>
+                                    <h2>Keyboard Shortcuts</h2>
+                                    <p>Customize your workflow with quick keyboard actions</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="glass-card__body">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div
+                                    v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
+                                    :key="shortcut.action"
+                                    class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800"
+                                >
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span
+                                            class="text-sm font-bold text-gray-900 dark:text-zinc-100 uppercase tracking-wide"
+                                        >
+                                            {{ shortcut.description }}
+                                        </span>
+                                    </div>
+                                    <ShortcutRecorder
+                                        :model-value="getShortcutKeys(shortcut.action)"
+                                        :action="shortcut.action"
+                                        @save="(keys) => saveShortcut(shortcut.action, keys)"
+                                        @delete="() => deleteShortcut(shortcut.action)"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -578,15 +618,19 @@ import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
+import ShortcutRecorder from "./ShortcutRecorder.vue";
+import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 
 export default {
     name: "SettingsPage",
     components: {
         MaterialDesignIcon,
         Toggle,
+        ShortcutRecorder,
     },
     data() {
         return {
+            KeyboardShortcuts,
             config: {
                 auto_resend_failed_messages_when_announce_received: null,
                 allow_auto_resending_failed_messages_with_attachments: null,
@@ -596,6 +640,8 @@ export default {
                 lxmf_preferred_propagation_node_destination_hash: null,
                 archives_max_storage_gb: 1,
             },
+            saveTimeouts: {},
+            shortcuts: [],
         };
     },
     beforeUnmount() {
@@ -616,21 +662,52 @@ export default {
                     this.config = json.config;
                     break;
                 }
+                case "keyboard_shortcuts": {
+                    this.shortcuts = json.shortcuts;
+                    break;
+                }
             }
         },
         async getConfig() {
             try {
                 const response = await window.axios.get("/api/v1/config");
                 this.config = response.data.config;
+                this.getKeyboardShortcuts();
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);
             }
         },
-        async updateConfig(config) {
+        getKeyboardShortcuts() {
+            WebSocketConnection.send(
+                JSON.stringify({
+                    type: "keyboard_shortcuts.get",
+                })
+            );
+        },
+        getShortcutKeys(action) {
+            const shortcut = this.shortcuts.find((s) => s.action === action);
+            if (shortcut) return shortcut.keys;
+
+            // Fallback to default
+            const def = KeyboardShortcuts.getDefaultShortcuts().find((s) => s.action === action);
+            return def ? def.keys : [];
+        },
+        async saveShortcut(action, keys) {
+            await KeyboardShortcuts.saveShortcut(action, keys);
+            ToastUtils.success("Shortcut saved");
+        },
+        async deleteShortcut(action) {
+            await KeyboardShortcuts.deleteShortcut(action);
+            ToastUtils.success("Shortcut deleted");
+        },
+        async updateConfig(config, label = null) {
             try {
                 const response = await window.axios.patch("/api/v1/config", config);
                 this.config = response.data.config;
+                if (label) {
+                    ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
+                }
             } catch (e) {
                 ToastUtils.error("Failed to save config!");
                 console.log(e);
@@ -649,113 +726,176 @@ export default {
             }
         },
         async onThemeChange() {
-            await this.updateConfig({
-                theme: this.config.theme,
-            });
+            await this.updateConfig(
+                {
+                    theme: this.config.theme,
+                },
+                "theme"
+            );
         },
         async onLanguageChange() {
-            await this.updateConfig({
-                language: this.config.language,
-            });
+            await this.updateConfig(
+                {
+                    language: this.config.language,
+                },
+                "language"
+            );
         },
         async onAutoResendFailedMessagesWhenAnnounceReceivedChangeWrapper(value) {
             this.config.auto_resend_failed_messages_when_announce_received = value;
             await this.onAutoResendFailedMessagesWhenAnnounceReceivedChange();
         },
         async onAutoResendFailedMessagesWhenAnnounceReceivedChange() {
-            await this.updateConfig({
-                auto_resend_failed_messages_when_announce_received:
-                    this.config.auto_resend_failed_messages_when_announce_received,
-            });
+            await this.updateConfig(
+                {
+                    auto_resend_failed_messages_when_announce_received:
+                        this.config.auto_resend_failed_messages_when_announce_received,
+                },
+                "auto_resend"
+            );
         },
         async onAllowAutoResendingFailedMessagesWithAttachmentsChangeWrapper(value) {
             this.config.allow_auto_resending_failed_messages_with_attachments = value;
             await this.onAllowAutoResendingFailedMessagesWithAttachmentsChange();
         },
         async onAllowAutoResendingFailedMessagesWithAttachmentsChange() {
-            await this.updateConfig({
-                allow_auto_resending_failed_messages_with_attachments:
-                    this.config.allow_auto_resending_failed_messages_with_attachments,
-            });
+            await this.updateConfig(
+                {
+                    allow_auto_resending_failed_messages_with_attachments:
+                        this.config.allow_auto_resending_failed_messages_with_attachments,
+                },
+                "retry_attachments"
+            );
         },
         async onAutoSendFailedMessagesToPropagationNodeChangeWrapper(value) {
             this.config.auto_send_failed_messages_to_propagation_node = value;
             await this.onAutoSendFailedMessagesToPropagationNodeChange();
         },
         async onAutoSendFailedMessagesToPropagationNodeChange() {
-            await this.updateConfig({
-                auto_send_failed_messages_to_propagation_node:
-                    this.config.auto_send_failed_messages_to_propagation_node,
-            });
+            await this.updateConfig(
+                {
+                    auto_send_failed_messages_to_propagation_node:
+                        this.config.auto_send_failed_messages_to_propagation_node,
+                },
+                "auto_fallback"
+            );
         },
         async onShowSuggestedCommunityInterfacesChangeWrapper(value) {
             this.config.show_suggested_community_interfaces = value;
             await this.onShowSuggestedCommunityInterfacesChange();
         },
         async onShowSuggestedCommunityInterfacesChange() {
-            await this.updateConfig({
-                show_suggested_community_interfaces: this.config.show_suggested_community_interfaces,
-            });
+            await this.updateConfig(
+                {
+                    show_suggested_community_interfaces: this.config.show_suggested_community_interfaces,
+                },
+                "community_interfaces"
+            );
         },
         async onLxmfPreferredPropagationNodeDestinationHashChange() {
-            await this.updateConfig({
-                lxmf_preferred_propagation_node_destination_hash:
-                    this.config.lxmf_preferred_propagation_node_destination_hash,
-            });
+            if (this.saveTimeouts.preferred_node) clearTimeout(this.saveTimeouts.preferred_node);
+            this.saveTimeouts.preferred_node = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        lxmf_preferred_propagation_node_destination_hash:
+                            this.config.lxmf_preferred_propagation_node_destination_hash,
+                    },
+                    "preferred_node"
+                );
+            }, 1000);
         },
         async onLxmfLocalPropagationNodeEnabledChangeWrapper(value) {
             this.config.lxmf_local_propagation_node_enabled = value;
             await this.onLxmfLocalPropagationNodeEnabledChange();
         },
         async onLxmfLocalPropagationNodeEnabledChange() {
-            await this.updateConfig({
-                lxmf_local_propagation_node_enabled: this.config.lxmf_local_propagation_node_enabled,
-            });
+            await this.updateConfig(
+                {
+                    lxmf_local_propagation_node_enabled: this.config.lxmf_local_propagation_node_enabled,
+                },
+                "local_node"
+            );
         },
         async onLxmfPreferredPropagationNodeAutoSyncIntervalSecondsChange() {
-            await this.updateConfig({
-                lxmf_preferred_propagation_node_auto_sync_interval_seconds:
-                    this.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds,
-            });
+            await this.updateConfig(
+                {
+                    lxmf_preferred_propagation_node_auto_sync_interval_seconds:
+                        this.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds,
+                },
+                "auto_sync"
+            );
         },
         async onLxmfInboundStampCostChange() {
-            await this.updateConfig({
-                lxmf_inbound_stamp_cost: this.config.lxmf_inbound_stamp_cost,
-            });
+            if (this.saveTimeouts.inbound_stamp) clearTimeout(this.saveTimeouts.inbound_stamp);
+            this.saveTimeouts.inbound_stamp = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        lxmf_inbound_stamp_cost: this.config.lxmf_inbound_stamp_cost,
+                    },
+                    "inbound_stamp_cost_label"
+                );
+            }, 1000);
         },
         async onLxmfPropagationNodeStampCostChange() {
-            await this.updateConfig({
-                lxmf_propagation_node_stamp_cost: this.config.lxmf_propagation_node_stamp_cost,
-            });
+            if (this.saveTimeouts.propagation_stamp) clearTimeout(this.saveTimeouts.propagation_stamp);
+            this.saveTimeouts.propagation_stamp = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        lxmf_propagation_node_stamp_cost: this.config.lxmf_propagation_node_stamp_cost,
+                    },
+                    "propagation_stamp_cost_label"
+                );
+            }, 1000);
         },
         async onPageArchiverEnabledChangeWrapper(value) {
             this.config.page_archiver_enabled = value;
-            await this.updateConfig({
-                page_archiver_enabled: this.config.page_archiver_enabled,
-            });
+            await this.updateConfig(
+                {
+                    page_archiver_enabled: this.config.page_archiver_enabled,
+                },
+                "page_archiver"
+            );
         },
         async onPageArchiverConfigChange() {
-            await this.updateConfig({
-                page_archiver_max_versions: this.config.page_archiver_max_versions,
-                archives_max_storage_gb: this.config.archives_max_storage_gb,
-            });
+            if (this.saveTimeouts.page_archiver) clearTimeout(this.saveTimeouts.page_archiver);
+            this.saveTimeouts.page_archiver = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        page_archiver_max_versions: this.config.page_archiver_max_versions,
+                        archives_max_storage_gb: this.config.archives_max_storage_gb,
+                    },
+                    "page_archiver"
+                );
+            }, 1000);
         },
         async onCrawlerEnabledChange(value) {
-            await this.updateConfig({
-                crawler_enabled: value,
-            });
+            await this.updateConfig(
+                {
+                    crawler_enabled: value,
+                },
+                "smart_crawler"
+            );
         },
         async onCrawlerConfigChange() {
-            await this.updateConfig({
-                crawler_max_retries: this.config.crawler_max_retries,
-                crawler_retry_delay_seconds: this.config.crawler_retry_delay_seconds,
-                crawler_max_concurrent: this.config.crawler_max_concurrent,
-            });
+            if (this.saveTimeouts.crawler) clearTimeout(this.saveTimeouts.crawler);
+            this.saveTimeouts.crawler = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        crawler_max_retries: this.config.crawler_max_retries,
+                        crawler_retry_delay_seconds: this.config.crawler_retry_delay_seconds,
+                        crawler_max_concurrent: this.config.crawler_max_concurrent,
+                    },
+                    "smart_crawler"
+                );
+            }, 1000);
         },
         async onAuthEnabledChange(value) {
-            await this.updateConfig({
-                auth_enabled: value,
-            });
+            await this.updateConfig(
+                {
+                    auth_enabled: value,
+                },
+                "authentication"
+            );
 
             if (value) {
                 // if enabled, redirect to setup page if password not set
