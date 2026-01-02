@@ -54,6 +54,7 @@ chaquopy {
             install "requests>=2.32.5,<3.0.0"
             install "numpy==1.26.2"
             install "ply>=3.11,<4.0"
+            install "pycodec2-3.0.1-cp311-cp311-linux_aarch64.whl"
         }
     }
 }
