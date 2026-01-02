@@ -479,14 +479,14 @@
                     </div>
                 </div>
 
-                <!-- Discovery Tab -->
-                <div v-if="activeTab === 'discovery'" class="flex-1 flex flex-col">
+                <!-- Phonebook Tab -->
+                <div v-if="activeTab === 'phonebook'" class="flex-1 flex flex-col">
                     <div class="mb-4">
                         <div class="relative">
                             <input
                                 v-model="discoverySearch"
                                 type="text"
-                                placeholder="Search discovery..."
+                                placeholder="Search phonebook..."
                                 class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                 @input="onDiscoverySearchInput"
                             />
@@ -532,9 +532,20 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center justify-between">
-                                                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                    {{ announce.display_name || "Anonymous Peer" }}
-                                                </p>
+                                                <div class="flex items-center min-w-0">
+                                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                        {{ announce.display_name || "Anonymous Peer" }}
+                                                    </p>
+                                                    <a
+                                                        v-if="announce.lxmf_destination_hash"
+                                                        :href="`/messages?destination_hash=${announce.lxmf_destination_hash}`"
+                                                        class="ml-2 p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                                                        title="Message via LXMF"
+                                                        @click.stop
+                                                    >
+                                                        <MaterialDesignIcon icon-name="message-text-outline" class="size-4" />
+                                                    </a>
+                                                </div>
                                                 <span
                                                     class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono ml-2 shrink-0"
                                                 >
