@@ -56,7 +56,13 @@
                 <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                     <!-- destination hash -->
                     <div class="inline-block mr-1">
-                        <div>&lt;{{ selectedPeer.destination_hash }}&gt;</div>
+                        <div
+                            class="cursor-pointer hover:text-blue-500 transition-colors"
+                            :title="selectedPeer.destination_hash"
+                            @click="copyHash(selectedPeer.destination_hash)"
+                        >
+                            {{ formatDestinationHash(selectedPeer.destination_hash) }}
+                        </div>
                     </div>
 
                     <div class="inline-block">
@@ -757,7 +763,7 @@
                     <div class="flex flex-wrap gap-2 items-center mt-2">
                         <button type="button" class="attachment-action-button" @click="addFilesToMessage">
                             <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
-                            <span>{{ $t("messages.add_files") }}</span>
+                            <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
                         </button>
                         <AddImageButton @add-image="onImageSelected" />
                         <AddAudioButton
@@ -774,7 +780,7 @@
                             @click="shareLocation"
                         >
                             <MaterialDesignIcon icon-name="map-marker" class="w-4 h-4" />
-                            <span>{{ $t("messages.location") }}</span>
+                            <span class="hidden sm:inline">{{ $t("messages.location") }}</span>
                         </button>
                         <button
                             type="button"
@@ -783,7 +789,7 @@
                             @click="requestLocation"
                         >
                             <MaterialDesignIcon icon-name="crosshairs-question" class="w-4 h-4" />
-                            <span>{{ $t("messages.request") }}</span>
+                            <span class="hidden sm:inline">{{ $t("messages.request") }}</span>
                         </button>
                         <div class="ml-auto my-auto">
                             <SendMessageButton
@@ -1950,6 +1956,18 @@ export default {
         },
         formatTimeAgo: function (datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
+        },
+        formatDestinationHash(hash) {
+            return Utils.formatDestinationHash(hash);
+        },
+        async copyHash(hash) {
+            try {
+                await navigator.clipboard.writeText(hash);
+                ToastUtils.success("Hash copied to clipboard");
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error("Failed to copy hash");
+            }
         },
         formatBytes: function (bytes) {
             return Utils.formatBytes(bytes);

@@ -116,22 +116,39 @@
 
                     <!-- sidebar -->
                     <div
-                        class="fixed inset-y-0 left-0 z-[70] w-72 transform transition-transform duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
-                        :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+                        class="fixed inset-y-0 left-0 z-[70] transform transition-all duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
+                        :class="[
+                            isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+                            isSidebarCollapsed ? 'w-20' : 'w-72',
+                        ]"
                     >
                         <div
                             class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200/70 bg-white dark:border-zinc-800 dark:bg-zinc-900 backdrop-blur"
                         >
+                            <!-- toggle button for desktop -->
+                            <div class="hidden sm:flex justify-end p-2 border-b border-gray-100 dark:border-zinc-800">
+                                <button
+                                    type="button"
+                                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                                    @click="isSidebarCollapsed = !isSidebarCollapsed"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="isSidebarCollapsed ? 'chevron-right' : 'chevron-left'"
+                                        class="size-5"
+                                    />
+                                </button>
+                            </div>
+
                             <!-- navigation -->
                             <div class="flex-1">
                                 <ul class="py-3 pr-2 space-y-1">
                                     <!-- messages -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'messages' }">
+                                        <SidebarLink :to="{ name: 'messages' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
                                                     icon-name="message-text"
-                                                    class="w-6 h-6 dark:text-white"
+                                                    class="w-6 h-6 text-gray-700 dark:text-white"
                                                 />
                                             </template>
                                             <template #text>
@@ -145,9 +162,12 @@
 
                                     <!-- nomad network -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'nomadnetwork' }">
+                                        <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="earth" class="w-6 h-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="earth"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.nomad_network") }}</template>
                                         </SidebarLink>
@@ -155,9 +175,12 @@
 
                                     <!-- map -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'map' }">
+                                        <SidebarLink :to="{ name: 'map' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="map" class="w-6 h-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="map"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.map") }}</template>
                                         </SidebarLink>
@@ -165,9 +188,12 @@
 
                                     <!-- archives -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'archives' }">
+                                        <SidebarLink :to="{ name: 'archives' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="archive" class="w-6 h-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="archive"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.archives") }}</template>
                                         </SidebarLink>
@@ -175,9 +201,12 @@
 
                                     <!-- telephone -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'call' }">
+                                        <SidebarLink :to="{ name: 'call' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="phone" class="w-6 h-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="phone"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.audio_calls") }}</template>
                                         </SidebarLink>
@@ -185,9 +214,12 @@
 
                                     <!-- interfaces -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'interfaces' }">
+                                        <SidebarLink :to="{ name: 'interfaces' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="router" class="w-6 h-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="router"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.interfaces") }}</template>
                                         </SidebarLink>
@@ -195,9 +227,15 @@
 
                                     <!-- network visualiser -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'network-visualiser' }">
+                                        <SidebarLink
+                                            :to="{ name: 'network-visualiser' }"
+                                            :is-collapsed="isSidebarCollapsed"
+                                        >
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="diagram-projector" class="w-6 h-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="diagram-projector"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.network_visualiser") }}</template>
                                         </SidebarLink>
@@ -205,9 +243,12 @@
 
                                     <!-- tools -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'tools' }">
+                                        <SidebarLink :to="{ name: 'tools' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="wrench" class="size-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="wrench"
+                                                    class="size-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.tools") }}</template>
                                         </SidebarLink>
@@ -215,9 +256,12 @@
 
                                     <!-- settings -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'settings' }">
+                                        <SidebarLink :to="{ name: 'settings' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="cog" class="size-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="cog"
+                                                    class="size-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.settings") }}</template>
                                         </SidebarLink>
@@ -225,9 +269,12 @@
 
                                     <!-- identities -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'identities' }">
+                                        <SidebarLink :to="{ name: 'identities' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="account-multiple" class="size-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="account-multiple"
+                                                    class="size-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.identities") }}</template>
                                         </SidebarLink>
@@ -235,9 +282,12 @@
 
                                     <!-- info -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'about' }">
+                                        <SidebarLink :to="{ name: 'about' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon icon-name="information" class="size-6" />
+                                                <MaterialDesignIcon
+                                                    icon-name="information"
+                                                    class="size-6 text-gray-700 dark:text-gray-200"
+                                                />
                                             </template>
                                             <template #text>{{ $t("app.about") }}</template>
                                         </SidebarLink>
@@ -255,7 +305,7 @@
                                         class="flex text-gray-700 p-3 cursor-pointer"
                                         @click="isShowingMyIdentitySection = !isShowingMyIdentitySection"
                                     >
-                                        <div class="my-auto mr-2">
+                                        <div class="my-auto mr-2 shrink-0">
                                             <RouterLink :to="{ name: 'profile.icon' }" @click.stop>
                                                 <LxmfUserIcon
                                                     :icon-name="config?.lxmf_user_icon_name"
@@ -264,8 +314,10 @@
                                                 />
                                             </RouterLink>
                                         </div>
-                                        <div class="my-auto dark:text-white">{{ $t("app.my_identity") }}</div>
-                                        <div class="my-auto ml-auto">
+                                        <div v-if="!isSidebarCollapsed" class="my-auto dark:text-white truncate">
+                                            {{ $t("app.my_identity") }}
+                                        </div>
+                                        <div v-if="!isSidebarCollapsed" class="my-auto ml-auto shrink-0">
                                             <button
                                                 type="button"
                                                 class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
@@ -276,7 +328,7 @@
                                         </div>
                                     </div>
                                     <div
-                                        v-if="isShowingMyIdentitySection"
+                                        v-if="isShowingMyIdentitySection && !isSidebarCollapsed"
                                         class="divide-y text-gray-900 border-t border-gray-200 dark:text-zinc-200 dark:border-zinc-800"
                                     >
                                         <div class="p-2">
@@ -287,19 +339,19 @@
                                                 class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-200 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                                             />
                                         </div>
-                                        <div class="p-2 dark:border-zinc-900 overflow-hidden">
+                                        <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
                                             <div>{{ $t("app.identity_hash") }}</div>
                                             <div
-                                                class="text-sm text-gray-700 dark:text-zinc-400 truncate font-mono"
+                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono"
                                                 :title="config.identity_hash"
                                             >
                                                 {{ config.identity_hash }}
                                             </div>
                                         </div>
-                                        <div class="p-2 dark:border-zinc-900 overflow-hidden">
+                                        <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
                                             <div>{{ $t("app.lxmf_address") }}</div>
                                             <div
-                                                class="text-sm text-gray-700 dark:text-zinc-400 truncate font-mono"
+                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono"
                                                 :title="config.lxmf_address_hash"
                                             >
                                                 {{ config.lxmf_address_hash }}
@@ -317,11 +369,13 @@
                                         class="flex text-gray-700 p-3 cursor-pointer dark:text-white"
                                         @click="isShowingAnnounceSection = !isShowingAnnounceSection"
                                     >
-                                        <div class="my-auto mr-2">
+                                        <div class="my-auto mr-2 shrink-0">
                                             <MaterialDesignIcon icon-name="radio" class="size-6" />
                                         </div>
-                                        <div class="my-auto">{{ $t("app.announce") }}</div>
-                                        <div class="ml-auto">
+                                        <div v-if="!isSidebarCollapsed" class="my-auto truncate">
+                                            {{ $t("app.announce") }}
+                                        </div>
+                                        <div v-if="!isSidebarCollapsed" class="ml-auto shrink-0">
                                             <button
                                                 type="button"
                                                 class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
@@ -332,7 +386,7 @@
                                         </div>
                                     </div>
                                     <div
-                                        v-if="isShowingAnnounceSection"
+                                        v-if="isShowingAnnounceSection && !isSidebarCollapsed"
                                         class="divide-y text-gray-900 border-t border-gray-200 dark:text-zinc-200 dark:border-zinc-800"
                                     >
                                         <div class="p-2 dark:border-zinc-800">
@@ -350,7 +404,7 @@
                                                 <option value="43200">Every 12 Hours</option>
                                                 <option value="86400">Every 24 Hours</option>
                                             </select>
-                                            <div class="text-sm text-gray-700 dark:text-zinc-100">
+                                            <div class="text-[10px] text-gray-700 dark:text-zinc-100 mt-1">
                                                 <span v-if="config.last_announced_at">{{
                                                     $t("app.last_announced", {
                                                         time: formatSecondsAgo(config.last_announced_at),
@@ -365,14 +419,14 @@
                         </div>
                     </div>
 
-                    <div v-if="!isPopoutMode" class="flex flex-1 min-w-0 overflow-hidden">
+                    <div class="flex flex-1 min-w-0 overflow-hidden">
                         <RouterView class="flex-1 min-w-0 h-full" />
                     </div>
                 </div>
             </template>
         </template>
         <CallOverlay
-            v-if="activeCall || isCallEnded || wasDeclined"
+            v-if="(activeCall || isCallEnded || wasDeclined) && $route.name !== 'call'"
             :active-call="activeCall || lastCall"
             :is-ended="isCallEnded"
             :was-declined="wasDeclined"
@@ -443,6 +497,7 @@ export default {
             isShowingAnnounceSection: true,
 
             isSidebarOpen: false,
+            isSidebarCollapsed: false,
 
             isSwitchingIdentity: false,
 
@@ -495,6 +550,13 @@ export default {
                 }
                 if (newConfig && newConfig.custom_ringtone_enabled !== undefined) {
                     this.updateRingtonePlayer();
+                }
+                if (newConfig && newConfig.theme) {
+                    if (newConfig.theme === "dark") {
+                        document.documentElement.classList.add("dark");
+                    } else {
+                        document.documentElement.classList.remove("dark");
+                    }
                 }
             },
             deep: true,
@@ -551,6 +613,13 @@ export default {
                 case "config": {
                     this.config = json.config;
                     this.displayName = json.config.display_name;
+                    if (this.config?.theme) {
+                        if (this.config.theme === "dark") {
+                            document.documentElement.classList.add("dark");
+                        } else {
+                            document.documentElement.classList.remove("dark");
+                        }
+                    }
                     break;
                 }
                 case "announced": {
@@ -559,6 +628,9 @@ export default {
                     break;
                 }
                 case "telephone_ringing": {
+                    if (this.config?.do_not_disturb_enabled) {
+                        break;
+                    }
                     NotificationUtils.showIncomingCallNotification();
                     this.updateTelephoneStatus();
                     this.playRingtone();
@@ -616,6 +688,13 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/config`);
                 this.config = response.data.config;
+                if (this.config?.theme) {
+                    if (this.config.theme === "dark") {
+                        document.documentElement.classList.add("dark");
+                    } else {
+                        document.documentElement.classList.remove("dark");
+                    }
+                }
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);
@@ -817,6 +896,11 @@ export default {
                     this.wasDeclined = false;
                     this.lastCall = null;
                     if (this.endedTimeout) clearTimeout(this.endedTimeout);
+                } else if (!this.endedTimeout) {
+                    // If no call and no ended state timeout active, ensure everything is reset
+                    this.isCallEnded = false;
+                    this.wasDeclined = false;
+                    this.lastCall = null;
                 }
             } catch {
                 // do nothing on error

@@ -3,33 +3,35 @@
     <div class="flex flex-col flex-1 h-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <!-- header -->
         <div
-            class="flex items-center px-4 py-4 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 shadow-sm"
+            class="flex flex-col sm:flex-row sm:items-center px-4 py-4 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 shadow-sm gap-4"
         >
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
                     <MaterialDesignIcon icon-name="archive" class="size-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div>
-                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ $t("app.archives") }}</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t("archives.description") }}</p>
+                <div class="min-w-0">
+                    <h1 class="text-xl font-bold text-gray-900 dark:text-white truncate">{{ $t("app.archives") }}</h1>
+                    <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {{ $t("archives.description") }}
+                    </p>
                 </div>
             </div>
 
-            <div class="ml-auto flex items-center gap-2 sm:gap-4">
-                <div class="relative w-32 sm:w-64 md:w-80">
+            <div class="flex items-center gap-2 sm:ml-auto">
+                <div class="relative flex-1 sm:w-64 md:w-80">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
                     </div>
                     <input
                         v-model="searchQuery"
                         type="text"
-                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                         :placeholder="$t('archives.search_placeholder')"
                         @input="onSearchInput"
                     />
                 </div>
                 <button
-                    class="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                    class="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors shrink-0"
                     :title="$t('common.refresh')"
                     @click="getArchives"
                 >

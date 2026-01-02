@@ -98,6 +98,19 @@
                     <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
                 </RouterLink>
 
+                <RouterLink :to="{ name: 'micron-editor' }" class="tool-card glass-card">
+                    <div class="tool-card__icon bg-teal-50 text-teal-500 dark:bg-teal-900/30 dark:text-teal-200">
+                        <MaterialDesignIcon icon-name="code-tags" class="w-6 h-6" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="tool-card__title">{{ $t("tools.micron_editor.title") }}</div>
+                        <div class="tool-card__description">
+                            {{ $t("tools.micron_editor.description") }}
+                        </div>
+                    </div>
+                    <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                </RouterLink>
+
                 <a target="_blank" href="/rnode-flasher/index.html" class="tool-card glass-card">
                     <div
                         class="tool-card__icon bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-200"
