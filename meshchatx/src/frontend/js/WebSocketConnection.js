@@ -19,7 +19,7 @@ class WebSocketConnection {
         try {
             const response = await window.axios.get("/api/v1/app/info");
             this.isDemoMode = response.data.app_info?.is_demo === true;
-        } catch (e) {
+        } catch {
             // If we can't check, assume not demo mode and try to connect
         }
 

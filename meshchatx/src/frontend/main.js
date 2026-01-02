@@ -31,6 +31,20 @@ const vuetify = createVuetify();
 // provide axios globally
 window.axios = axios;
 
+// setup global axios interceptor for auth errors
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+            // only redirect if we're not already on the auth page
+            if (router.currentRoute.value.name !== "auth") {
+                router.push("/auth");
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 const router = createRouter({
     history: createWebHashHistory(),
     routes: [
@@ -151,6 +165,11 @@ const router = createRouter({
             name: "settings",
             path: "/settings",
             component: defineAsyncComponent(() => import("./components/settings/SettingsPage.vue")),
+        },
+        {
+            name: "identities",
+            path: "/identities",
+            component: defineAsyncComponent(() => import("./components/settings/IdentitiesPage.vue")),
         },
         {
             name: "blocked",
