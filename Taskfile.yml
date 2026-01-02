@@ -50,6 +50,32 @@ tasks:
         cmds:
             - task --list
 
+    setup-uv:
+        desc: Install uv
+        cmds:
+            - curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    setup-python-env:
+        desc: Setup Python environment using uv
+        cmds:
+            - uv venv
+            - uv pip install ruff poetry
+
+    lint-python:
+        desc: Lint Python code using ruff
+        cmds:
+            - uv run ruff check .
+            - uv run ruff format --check .
+
+    lint-frontend:
+        desc: Lint frontend code
+        cmds:
+            - "{{.NPM}} run lint"
+
+    lint:
+        desc: Run all linters
+        deps: [lint-frontend, lint-python]
+
     install:
         desc: Install all dependencies (installs node modules and python deps)
         deps: [node_modules, python]
@@ -109,6 +135,24 @@ tasks:
             - "{{.NPM}} run electron-postinstall"
             - "{{.NPM}} run dist -- --win portable"
 
+    build-electron-linux:
+        desc: Build Linux Electron app with prebuilt backend
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run electron-postinstall"
+            - "{{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --linux AppImage"
+            - "{{.NPM}} run dist -- --linux deb"
+
+    build-electron-windows:
+        desc: Build Windows Electron apps (portable and installer)
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run electron-postinstall"
+            - "{{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --win portable"
+            - "{{.NPM}} run dist -- --win nsis"
+
     dist:
         desc: Build distribution (defaults to AppImage)
         cmds:
@@ -149,8 +193,8 @@ tasks:
     fix:
         desc: Format and fix linting issues (Python and frontend)
         cmds:
-            - "{{.PYTHON}} -m poetry run ruff format ./"
-            - "{{.PYTHON}} -m poetry run ruff check --fix ./"
+            - uv run ruff format ./
+            - uv run ruff check --fix ./
             - "{{.NPM}} run format"
             - "{{.NPM}} run lint:fix"
 
