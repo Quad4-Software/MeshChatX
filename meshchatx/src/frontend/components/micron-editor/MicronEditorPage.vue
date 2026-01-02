@@ -44,16 +44,16 @@
                 ></textarea>
             </div>
 
-            <!-- Preview Pane -->
+            <!-- Preview Pane (Always dark to match NomadNet browser vibe) -->
             <div
                 :class="[
-                    'flex-1 overflow-hidden flex flex-col bg-slate-100 dark:bg-black',
+                    'flex-1 overflow-hidden flex flex-col bg-zinc-950',
                     isMobileView && showEditor ? 'hidden' : '',
                 ]"
             >
                 <div
                     ref="previewRef"
-                    class="flex-1 overflow-auto text-gray-900 dark:text-white p-4 font-mono text-sm whitespace-pre-wrap break-words nodeContainer"
+                    class="flex-1 overflow-auto text-zinc-100 p-4 font-mono text-sm whitespace-pre-wrap break-words nodeContainer"
                     v-html="renderedContent"
                 ></div>
             </div>
@@ -83,28 +83,12 @@ export default {
         this.loadContent();
         this.handleResize();
         window.addEventListener("resize", this.handleResize);
-
-        // Listen for theme changes to re-render micron
-        this.themeObserver = new MutationObserver(() => {
-            this.handleInput();
-        });
-        this.themeObserver.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-
         this.handleInput();
     },
     beforeUnmount() {
         window.removeEventListener("resize", this.handleResize);
-        if (this.themeObserver) {
-            this.themeObserver.disconnect();
-        }
     },
     methods: {
-        isDarkMode() {
-            return document.documentElement.classList.contains("dark");
-        },
         handleResize() {
             this.isMobileView = window.innerWidth < 1024;
             if (!this.isMobileView) {
@@ -113,7 +97,9 @@ export default {
         },
         handleInput() {
             try {
-                const parser = new MicronParser(this.isDarkMode());
+                // Always use dark mode for parser since preview pane is now always dark
+                // to match the NomadNet browser's classic appearance.
+                const parser = new MicronParser(true);
                 this.renderedContent = parser.convertMicronToHtml(this.content);
             } catch (error) {
                 console.error("Error rendering micron:", error);
