@@ -10,6 +10,28 @@ class NotificationUtils {
         });
     }
 
+    static showMissedCallNotification(from) {
+        Notification.requestPermission().then((result) => {
+            if (result === "granted") {
+                new window.Notification("Missed Call", {
+                    body: `You missed a call from ${from}.`,
+                    tag: "missed_call",
+                });
+            }
+        });
+    }
+
+    static showNewVoicemailNotification(from) {
+        Notification.requestPermission().then((result) => {
+            if (result === "granted") {
+                new window.Notification("New Voicemail", {
+                    body: `You have a new voicemail from ${from}.`,
+                    tag: "new_voicemail",
+                });
+            }
+        });
+    }
+
     static showNewMessageNotification() {
         Notification.requestPermission().then((result) => {
             if (result === "granted") {
