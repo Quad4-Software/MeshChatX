@@ -215,7 +215,7 @@ class VoicemailManager:
                 and telephone.active_call
                 and telephone.active_call.get_remote_identity().hash
                 == caller_identity.hash
-                and telephone.call_status == 4 # Ringing
+                and telephone.call_status == 4  # Ringing
             ):
                 RNS.log(
                     f"Auto-answering call from {RNS.prettyhexrep(caller_identity.hash)} for voicemail",
@@ -256,16 +256,24 @@ class VoicemailManager:
                 try:
                     self.generate_greeting(self.config.voicemail_greeting.get())
                 except Exception as e:
-                    RNS.log(f"Voicemail: Could not generate initial greeting: {e}", RNS.LOG_ERROR)
+                    RNS.log(
+                        f"Voicemail: Could not generate initial greeting: {e}",
+                        RNS.LOG_ERROR,
+                    )
             else:
-                RNS.log("Voicemail: espeak-ng or ffmpeg missing, cannot generate greeting", RNS.LOG_WARNING)
+                RNS.log(
+                    "Voicemail: espeak-ng or ffmpeg missing, cannot generate greeting",
+                    RNS.LOG_WARNING,
+                )
 
         def session_job():
             try:
                 # 1. Play greeting
                 if os.path.exists(greeting_path):
                     try:
-                        greeting_source = OpusFileSource(greeting_path, target_frame_ms=60)
+                        greeting_source = OpusFileSource(
+                            greeting_path, target_frame_ms=60
+                        )
                         # Attach to transmit mixer
                         greeting_pipeline = Pipeline(
                             source=greeting_source,

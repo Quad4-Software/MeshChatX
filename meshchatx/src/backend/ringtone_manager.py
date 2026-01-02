@@ -34,6 +34,7 @@ class RingtoneManager:
             raise RuntimeError(msg)
 
         import secrets
+
         filename = f"ringtone_{secrets.token_hex(8)}.opus"
         opus_path = os.path.join(self.storage_dir, filename)
 
@@ -63,4 +64,3 @@ class RingtoneManager:
 
     def get_ringtone_path(self, filename):
         return os.path.join(self.storage_dir, filename)
-

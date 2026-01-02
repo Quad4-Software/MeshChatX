@@ -63,4 +63,3 @@ class ContactsDAO:
             "SELECT * FROM contacts WHERE remote_identity_hash = ?",
             (remote_identity_hash,),
         )
-

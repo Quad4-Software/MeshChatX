@@ -8,10 +8,14 @@ class RingtoneDAO:
         self.provider = provider
 
     def get_all(self):
-        return self.provider.fetchall("SELECT * FROM ringtones ORDER BY created_at DESC")
+        return self.provider.fetchall(
+            "SELECT * FROM ringtones ORDER BY created_at DESC"
+        )
 
     def get_by_id(self, ringtone_id):
-        return self.provider.fetchone("SELECT * FROM ringtones WHERE id = ?", (ringtone_id,))
+        return self.provider.fetchone(
+            "SELECT * FROM ringtones WHERE id = ?", (ringtone_id,)
+        )
 
     def get_primary(self):
         return self.provider.fetchone("SELECT * FROM ringtones WHERE is_primary = 1")
@@ -22,7 +26,9 @@ class RingtoneDAO:
             display_name = filename
 
         # check if this is the first ringtone, if so make it primary
-        count = self.provider.fetchone("SELECT COUNT(*) as count FROM ringtones")["count"]
+        count = self.provider.fetchone("SELECT COUNT(*) as count FROM ringtones")[
+            "count"
+        ]
         is_primary = 1 if count == 0 else 0
 
         cursor = self.provider.execute(
@@ -35,7 +41,9 @@ class RingtoneDAO:
         now = datetime.now(UTC)
         if is_primary == 1:
             # reset others
-            self.provider.execute("UPDATE ringtones SET is_primary = 0, updated_at = ?", (now,))
+            self.provider.execute(
+                "UPDATE ringtones SET is_primary = 0, updated_at = ?", (now,)
+            )
 
         if display_name is not None and is_primary is not None:
             self.provider.execute(
@@ -63,4 +71,3 @@ class RingtoneDAO:
                 self.update(next_ringtone["id"], is_primary=1)
         else:
             self.provider.execute("DELETE FROM ringtones WHERE id = ?", (ringtone_id,))
-

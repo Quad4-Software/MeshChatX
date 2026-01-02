@@ -9,7 +9,12 @@ class TelemetryDAO:
         self.provider = provider
 
     def upsert_telemetry(
-        self, destination_hash, timestamp, data, received_from=None, physical_link=None,
+        self,
+        destination_hash,
+        timestamp,
+        data,
+        received_from=None,
+        physical_link=None,
     ):
         now = datetime.now(UTC).isoformat()
 
