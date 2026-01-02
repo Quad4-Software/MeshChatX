@@ -40,9 +40,14 @@ android/local.properties
 android/build/
 android/app/build/
 android/app/src/main/python/meshchatx/
+android/app/src/main/python/RNS/
+android/app/src/main/python/LXMF/
+android/app/src/main/python/LXST/
 android/app/src/main/python/meshchat_wrapper.py.bak
 android/*.iml
 android/.idea/
+*.apk
+*.aab
 
 
 # Local storage and runtime data

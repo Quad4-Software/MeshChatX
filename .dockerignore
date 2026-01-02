@@ -11,6 +11,8 @@ electron/
 android/
 scripts/
 Makefile
+*.apk
+*.aab
 
 # Build artifacts and cache
 build/
