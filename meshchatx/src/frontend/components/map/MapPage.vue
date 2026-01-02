@@ -321,6 +321,13 @@
                     >
                         <MaterialDesignIcon icon-name="close" class="size-4" />
                     </button>
+                    <button
+                        v-else
+                        class="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-tighter"
+                        @click="cancelActiveExport"
+                    >
+                        {{ $t("common.cancel") }}
+                    </button>
                 </div>
 
                 <div v-if="exportStatus.status !== 'completed' && exportStatus.status !== 'failed'">
@@ -1123,6 +1130,20 @@ export default {
         cancelExport() {
             this.selectedBbox = null;
             this.isExportMode = false;
+        },
+        async cancelActiveExport() {
+            if (!this.exportId) {
+                this.exportStatus = null;
+                return;
+            }
+            try {
+                await window.axios.delete(`/api/v1/map/export/${this.exportId}`);
+                this.exportStatus = null;
+                this.exportId = null;
+                ToastUtils.success("Export cancelled");
+            } catch {
+                ToastUtils.error("Failed to cancel export");
+            }
         },
         async startExport() {
             if (!this.selectedBbox) return;
