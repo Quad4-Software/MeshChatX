@@ -3,34 +3,23 @@ import mitt from "mitt";
 class WebSocketConnection {
     constructor() {
         this.emitter = mitt();
-        this.isDemoMode = false;
         this.ws = null;
         this.pingInterval = null;
         this.initialized = false;
-        this.checkDemoModeAndConnect();
+        this.connect();
     }
 
-    async checkDemoModeAndConnect() {
+    async connect() {
         if (typeof window === "undefined" || !window.axios) {
-            setTimeout(() => this.checkDemoModeAndConnect(), 100);
+            setTimeout(() => this.connect(), 100);
             return;
         }
 
-        try {
-            const response = await window.axios.get("/api/v1/app/info");
-            this.isDemoMode = response.data.app_info?.is_demo === true;
-        } catch {
-            // If we can't check, assume not demo mode and try to connect
-        }
-
         this.initialized = true;
-
-        if (!this.isDemoMode) {
-            this.reconnect();
-            this.pingInterval = setInterval(() => {
-                this.ping();
-            }, 30000);
-        }
+        this.reconnect();
+        this.pingInterval = setInterval(() => {
+            this.ping();
+        }, 30000);
     }
 
     // add event listener
@@ -49,7 +38,7 @@ class WebSocketConnection {
     }
 
     reconnect() {
-        if (!this.initialized || this.isDemoMode) {
+        if (!this.initialized) {
             return;
         }
 
@@ -59,11 +48,9 @@ class WebSocketConnection {
 
         // auto reconnect when websocket closes
         this.ws.addEventListener("close", () => {
-            if (!this.isDemoMode) {
-                setTimeout(() => {
-                    this.reconnect();
-                }, 1000);
-            }
+            setTimeout(() => {
+                this.reconnect();
+            }, 1000);
         });
 
         // emit data received from websocket
@@ -79,9 +66,6 @@ class WebSocketConnection {
     }
 
     ping() {
-        if (this.isDemoMode) {
-            return;
-        }
         try {
             this.send(
                 JSON.stringify({
