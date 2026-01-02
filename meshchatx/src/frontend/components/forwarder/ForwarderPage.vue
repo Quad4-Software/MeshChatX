@@ -16,7 +16,18 @@
             <!-- Add New Rule -->
             <div class="glass-card space-y-4">
                 <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ $t("forwarder.add_rule") }}</div>
-                <div class="grid gap-4 md:grid-cols-2">
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div class="space-y-1">
+                        <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{
+                            $t("forwarder.name")
+                        }}</label>
+                        <input
+                            v-model="newRule.name"
+                            type="text"
+                            :placeholder="$t('forwarder.name_placeholder')"
+                            class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                        />
+                    </div>
                     <div class="space-y-1">
                         <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{
                             $t("forwarder.forward_to_hash")
@@ -73,6 +84,9 @@
                                 {{ rule.is_active ? $t("forwarder.active") : $t("forwarder.disabled") }}
                             </div>
                             <span class="text-xs text-gray-500 dark:text-zinc-400">ID: {{ rule.id }}</span>
+                        </div>
+                        <div v-if="rule.name" class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                            {{ rule.name }}
                         </div>
                         <div class="space-y-1">
                             <div class="flex items-center gap-2">
@@ -131,6 +145,7 @@ export default {
         return {
             rules: [],
             newRule: {
+                name: "",
                 forward_to_hash: "",
                 source_filter_hash: "",
                 is_active: true,
@@ -170,6 +185,7 @@ export default {
                     rule: { ...this.newRule },
                 })
             );
+            this.newRule.name = "";
             this.newRule.forward_to_hash = "";
             this.newRule.source_filter_hash = "";
         },
