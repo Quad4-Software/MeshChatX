@@ -34,6 +34,17 @@ public/
 /electron/build/exe/
 python-dist/
 
+# Android
+android/.gradle/
+android/local.properties
+android/build/
+android/app/build/
+android/app/src/main/python/meshchatx/
+android/app/src/main/python/meshchat_wrapper.py.bak
+android/*.iml
+android/.idea/
+
+
 # Local storage and runtime data
 storage/
 testing/
