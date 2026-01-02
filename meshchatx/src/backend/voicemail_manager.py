@@ -252,33 +252,42 @@ class VoicemailManager:
         greeting_path = os.path.join(self.greetings_dir, "greeting.opus")
         if not os.path.exists(greeting_path):
             # Fallback if no greeting generated yet
-            self.generate_greeting(self.config.voicemail_greeting.get())
+            if self.has_espeak and self.has_ffmpeg:
+                try:
+                    self.generate_greeting(self.config.voicemail_greeting.get())
+                except Exception as e:
+                    RNS.log(f"Voicemail: Could not generate initial greeting: {e}", RNS.LOG_ERROR)
+            else:
+                RNS.log("Voicemail: espeak-ng or ffmpeg missing, cannot generate greeting", RNS.LOG_WARNING)
 
         def session_job():
             try:
                 # 1. Play greeting
-                try:
-                    greeting_source = OpusFileSource(greeting_path, target_frame_ms=60)
-                    # Attach to transmit mixer
-                    greeting_pipeline = Pipeline(
-                        source=greeting_source,
-                        codec=Null(),
-                        sink=telephone.transmit_mixer,
-                    )
-                    greeting_pipeline.start()
+                if os.path.exists(greeting_path):
+                    try:
+                        greeting_source = OpusFileSource(greeting_path, target_frame_ms=60)
+                        # Attach to transmit mixer
+                        greeting_pipeline = Pipeline(
+                            source=greeting_source,
+                            codec=Null(),
+                            sink=telephone.transmit_mixer,
+                        )
+                        greeting_pipeline.start()
 
-                    # Wait for greeting to finish
-                    while greeting_source.running:
-                        time.sleep(0.1)
-                        if not telephone.active_call:
-                            return
+                        # Wait for greeting to finish
+                        while greeting_source.running:
+                            time.sleep(0.1)
+                            if not telephone.active_call:
+                                return
 
-                    greeting_pipeline.stop()
-                except Exception as e:
-                    RNS.log(
-                        f"Voicemail: Could not play greeting (libs missing?): {e}",
-                        RNS.LOG_ERROR,
-                    )
+                        greeting_pipeline.stop()
+                    except Exception as e:
+                        RNS.log(
+                            f"Voicemail: Could not play greeting (libs missing?): {e}",
+                            RNS.LOG_ERROR,
+                        )
+                else:
+                    RNS.log("Voicemail: No greeting available to play", RNS.LOG_WARNING)
 
                 # 2. Play beep
                 beep_source = LXST.ToneSource(
