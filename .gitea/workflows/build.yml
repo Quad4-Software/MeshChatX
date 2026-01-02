@@ -36,7 +36,15 @@ jobs:
                 if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
                   echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
                 elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
-                  echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+                  VERSION="${GITHUB_REF#refs/tags/}"
+                  if [ -z "${VERSION}" ]; then
+                    VERSION="${{ github.ref_name }}"
+                  fi
+                  if [ "${VERSION}" = "master" ] || [ "${VERSION}" = "main" ]; then
+                    echo "Error: Invalid tag name '${VERSION}'. Tag name cannot be a branch name." >&2
+                    exit 1
+                  fi
+                  echo "version=${VERSION}" >> $GITHUB_OUTPUT
                 else
                   SHORT_SHA=$(git rev-parse --short HEAD)
                   echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
@@ -103,6 +111,19 @@ jobs:
                       echo "\`$(cat "${file}.sha256")\`" >> release-body.md
                     fi
                   done
+
+            - name: Validate version
+              run: |
+                VERSION="${{ steps.version.outputs.version }}"
+                if [ -z "${VERSION}" ]; then
+                  echo "Error: Version is empty" >&2
+                  exit 1
+                fi
+                if [ "${VERSION}" = "master" ] || [ "${VERSION}" = "main" ]; then
+                  echo "Error: Invalid version '${VERSION}'. Version cannot be a branch name." >&2
+                  exit 1
+                fi
+                echo "Using version: ${VERSION}"
 
             - name: Create Release
               if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
