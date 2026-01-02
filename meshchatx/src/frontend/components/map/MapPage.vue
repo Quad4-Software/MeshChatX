@@ -638,7 +638,7 @@ import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
-import { Style, Icon, Text, Fill, Stroke, Circle as CircleStyle } from "ol/style";
+import { Style, Text, Fill, Stroke, Circle as CircleStyle } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
 import DragBox from "ol/interaction/DragBox";

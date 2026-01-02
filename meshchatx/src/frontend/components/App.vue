@@ -66,6 +66,14 @@
                             </button>
                             <LanguageSelector @language-change="onLanguageChange" />
                             <NotificationBell />
+                            <button
+                                type="button"
+                                class="rounded-full p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                :title="$t('app.audio_calls')"
+                                @click="$router.push({ name: 'call' })"
+                            >
+                                <MaterialDesignIcon icon-name="phone" class="w-6 h-6" />
+                            </button>
                             <button type="button" class="rounded-full" @click="syncPropagationNode">
                                 <span
                                     class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-sm transition"
@@ -165,6 +173,16 @@
                                         </SidebarLink>
                                     </li>
 
+                                    <!-- telephone -->
+                                    <li>
+                                        <SidebarLink :to="{ name: 'call' }">
+                                            <template #icon>
+                                                <MaterialDesignIcon icon-name="phone" class="w-6 h-6" />
+                                            </template>
+                                            <template #text>{{ $t("app.audio_calls") }}</template>
+                                        </SidebarLink>
+                                    </li>
+
                                     <!-- interfaces -->
                                     <li>
                                         <SidebarLink :to="{ name: 'interfaces' }">
@@ -202,6 +220,16 @@
                                                 <MaterialDesignIcon icon-name="cog" class="size-6" />
                                             </template>
                                             <template #text>{{ $t("app.settings") }}</template>
+                                        </SidebarLink>
+                                    </li>
+
+                                    <!-- identities -->
+                                    <li>
+                                        <SidebarLink :to="{ name: 'identities' }">
+                                            <template #icon>
+                                                <MaterialDesignIcon icon-name="account-multiple" class="size-6" />
+                                            </template>
+                                            <template #text>{{ $t("app.identities") }}</template>
                                         </SidebarLink>
                                     </li>
 
@@ -396,6 +424,29 @@
         </template>
         <CallOverlay v-if="activeCall || isCallEnded" :active-call="activeCall || lastCall" :is-ended="isCallEnded" />
         <Toast />
+
+        <!-- identity switching overlay -->
+        <transition name="fade-blur">
+            <div
+                v-if="isSwitchingIdentity"
+                class="fixed inset-0 z-[200] flex items-center justify-center bg-white/10 dark:bg-black/10 backdrop-blur-md"
+            >
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <div
+                            class="w-20 h-20 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                        ></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <MaterialDesignIcon icon-name="account-sync" class="w-8 h-8 text-blue-500 animate-pulse" />
+                        </div>
+                    </div>
+                    <div class="mt-6 text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                        Switching Identity...
+                    </div>
+                    <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading your identity</div>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 
@@ -439,6 +490,8 @@ export default {
 
             isSidebarOpen: false,
 
+            isSwitchingIdentity: false,
+
             displayName: "Anonymous Peer",
             config: null,
             appInfo: null,
@@ -449,6 +502,7 @@ export default {
             isCallEnded: false,
             lastCall: null,
             endedTimeout: null,
+            ringtonePlayer: null,
         };
     },
     computed: {
@@ -485,6 +539,9 @@ export default {
                 if (newConfig && newConfig.language) {
                     this.$i18n.locale = newConfig.language;
                 }
+                if (newConfig && newConfig.custom_ringtone_enabled !== undefined) {
+                    this.updateRingtonePlayer();
+                }
             },
             deep: true,
         },
@@ -493,6 +550,7 @@ export default {
         clearInterval(this.reloadInterval);
         clearInterval(this.appInfoInterval);
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
+        this.stopRingtone();
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -501,8 +559,20 @@ export default {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
+        // listen for identity switching events
+        GlobalEmitter.on("identity-switching-start", () => {
+            this.isSwitchingIdentity = true;
+            // safety timeout to hide overlay if something goes wrong
+            setTimeout(() => {
+                if (this.isSwitchingIdentity) {
+                    this.isSwitchingIdentity = false;
+                }
+            }, 10000);
+        });
+
         this.getAppInfo();
         this.getConfig();
+        this.updateRingtonePlayer();
         this.updateTelephoneStatus();
         this.updatePropagationNodeStatus();
 
@@ -537,6 +607,31 @@ export default {
                 case "telephone_ringing": {
                     NotificationUtils.showIncomingCallNotification();
                     this.updateTelephoneStatus();
+                    this.playRingtone();
+                    break;
+                }
+                case "telephone_call_established":
+                case "telephone_call_ended": {
+                    this.stopRingtone();
+                    this.updateTelephoneStatus();
+                    break;
+                }
+                case "identity_switched": {
+                    ToastUtils.success(`Switched to identity: ${json.display_name}`);
+
+                    // reset global state
+                    GlobalState.unreadConversationsCount = 0;
+
+                    // update local state
+                    await this.getConfig();
+                    await this.updateRingtonePlayer();
+                    await this.getAppInfo();
+
+                    // hide loading overlay
+                    this.isSwitchingIdentity = false;
+
+                    // if we are on identities page, we might want to refresh it
+                    GlobalEmitter.emit("identity-switched", json);
                     break;
                 }
             }
@@ -686,6 +781,39 @@ export default {
         formatSecondsAgo: function (seconds) {
             return Utils.formatSecondsAgo(seconds);
         },
+        async updateRingtonePlayer() {
+            // Stop current player if any
+            if (this.ringtonePlayer) {
+                this.ringtonePlayer.pause();
+                this.ringtonePlayer = null;
+            }
+
+            if (this.config?.custom_ringtone_enabled) {
+                try {
+                    const response = await window.axios.get("/api/v1/telephone/ringtones/status");
+                    const status = response.data;
+                    if (status.has_custom_ringtone && status.id) {
+                        this.ringtonePlayer = new Audio(`/api/v1/telephone/ringtones/${status.id}/audio`);
+                        this.ringtonePlayer.loop = true;
+                    }
+                } catch (e) {
+                    console.error("Failed to update ringtone player:", e);
+                }
+            }
+        },
+        playRingtone() {
+            if (this.ringtonePlayer) {
+                this.ringtonePlayer.play().catch((e) => {
+                    console.log("Failed to play custom ringtone:", e);
+                });
+            }
+        },
+        stopRingtone() {
+            if (this.ringtonePlayer) {
+                this.ringtonePlayer.pause();
+                this.ringtonePlayer.currentTime = 0;
+            }
+        },
         async updateTelephoneStatus() {
             try {
                 // fetch status
@@ -695,6 +823,11 @@ export default {
                 // update ui
                 this.activeCall = response.data.active_call;
                 this.isTelephoneCallActive = this.activeCall != null;
+
+                // Stop ringtone if not ringing anymore
+                if (this.activeCall?.status !== 4) {
+                    this.stopRingtone();
+                }
 
                 // If call just ended, show ended state for a few seconds
                 if (oldCall != null && this.activeCall == null) {
@@ -743,3 +876,16 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+.fade-blur-enter-active,
+.fade-blur-leave-active {
+    transition: all 0.5s ease;
+}
+
+.fade-blur-enter-from,
+.fade-blur-leave-to {
+    opacity: 0;
+    backdrop-filter: blur(0);
+}
+</style>

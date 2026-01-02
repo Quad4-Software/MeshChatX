@@ -33,6 +33,17 @@
                     </button>
                     <button
                         :class="[
+                            activeTab === 'ringtone'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:border-gray-300',
+                        ]"
+                        class="py-2 px-4 border-b-2 font-medium text-sm transition-all"
+                        @click="activeTab = 'ringtone'"
+                    >
+                        {{ $t("call.ringtone") }}
+                    </button>
+                    <button
+                        :class="[
                             activeTab === 'settings'
                                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:border-gray-300',
@@ -264,7 +275,16 @@
                                 <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
                                     Call History
                                 </h3>
-                                <MaterialDesignIcon icon-name="history" class="size-4 text-gray-400" />
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        class="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase tracking-tighter transition-colors"
+                                        @click="clearHistory"
+                                    >
+                                        {{ $t("app.clear_history") }}
+                                    </button>
+                                    <MaterialDesignIcon icon-name="history" class="size-4 text-gray-400" />
+                                </div>
                             </div>
                             <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
                                 <li
@@ -429,6 +449,145 @@
                                     </div>
                                 </li>
                             </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ringtone Tab -->
+                <div v-if="activeTab === 'ringtone' && config" class="flex-1 space-y-6">
+                    <div
+                        class="bg-white dark:bg-zinc-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-800"
+                    >
+                        <h3
+                            class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-6 flex items-center gap-2"
+                        >
+                            <MaterialDesignIcon icon-name="music" class="size-5 text-blue-500" />
+                            {{ $t("call.ringtone_settings") }}
+                        </h3>
+
+                        <div class="space-y-6">
+                            <!-- Enabled Toggle -->
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {{ $t("call.enable_custom_ringtone") }}
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-zinc-400">
+                                        {{ $t("call.enable_custom_ringtone_description") }}
+                                    </div>
+                                </div>
+                                <button
+                                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                    :class="config.custom_ringtone_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-zinc-700'"
+                                    @click="
+                                        config.custom_ringtone_enabled = !config.custom_ringtone_enabled;
+                                        updateConfig({ custom_ringtone_enabled: config.custom_ringtone_enabled });
+                                    "
+                                >
+                                    <span
+                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                        :class="config.custom_ringtone_enabled ? 'translate-x-5' : 'translate-x-0'"
+                                    ></span>
+                                </button>
+                            </div>
+
+                            <!-- Ringtone List -->
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <label class="text-sm font-semibold text-gray-700 dark:text-zinc-300">
+                                        My Ringtones
+                                    </label>
+                                    <button
+                                        type="button"
+                                        class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                        @click="$refs.ringtoneUpload.click()"
+                                    >
+                                        <MaterialDesignIcon icon-name="plus" class="size-4" />
+                                        Upload New
+                                    </button>
+                                    <input
+                                        ref="ringtoneUpload"
+                                        type="file"
+                                        class="hidden"
+                                        accept="audio/*"
+                                        @change="uploadRingtone"
+                                    />
+                                </div>
+
+                                <div v-if="ringtones.length > 0" class="grid gap-3">
+                                    <div
+                                        v-for="ringtone in ringtones"
+                                        :key="ringtone.id"
+                                        class="group p-4 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30 flex items-center gap-4 transition-all hover:shadow-md"
+                                        :class="{ 'ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-900/10': ringtone.is_primary }"
+                                    >
+                                        <div class="flex-1 min-w-0">
+                                            <div v-if="editingRingtoneId === ringtone.id" class="flex items-center gap-2">
+                                                <input
+                                                    v-model="editingRingtoneName"
+                                                    class="text-sm bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded px-2 py-1 flex-1"
+                                                    @keyup.enter="saveRingtoneName"
+                                                    @blur="saveRingtoneName"
+                                                />
+                                            </div>
+                                            <div v-else class="flex items-center gap-2">
+                                                <span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                    {{ ringtone.display_name }}
+                                                </span>
+                                                <span
+                                                    v-if="ringtone.is_primary"
+                                                    class="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded"
+                                                >
+                                                    Primary
+                                                </span>
+                                                <button
+                                                    class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-500 transition-opacity"
+                                                    @click="startEditingRingtone(ringtone)"
+                                                >
+                                                    <MaterialDesignIcon icon-name="pencil" class="size-3" />
+                                                </button>
+                                            </div>
+                                            <div class="text-[10px] text-gray-500 dark:text-zinc-500 truncate">
+                                                {{ ringtone.filename }}
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center gap-1">
+                                            <button
+                                                class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 transition-colors"
+                                                :title="isPlayingRingtone && playingRingtoneId === ringtone.id ? 'Stop' : 'Preview'"
+                                                @click="playRingtonePreview(ringtone)"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="isPlayingRingtone && playingRingtoneId === ringtone.id ? 'stop' : 'play'"
+                                                    class="size-5"
+                                                />
+                                            </button>
+                                            <button
+                                                v-if="!ringtone.is_primary"
+                                                class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors"
+                                                title="Set as Primary"
+                                                @click="setPrimaryRingtone(ringtone)"
+                                            >
+                                                <MaterialDesignIcon icon-name="star-outline" class="size-5" />
+                                            </button>
+                                            <button
+                                                class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
+                                                title="Delete"
+                                                @click="deleteRingtone(ringtone)"
+                                            >
+                                                <MaterialDesignIcon icon-name="delete-outline" class="size-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-2xl bg-gray-50/30 dark:bg-zinc-900/20">
+                                    <MaterialDesignIcon icon-name="music-off" class="size-8 text-gray-300 dark:text-zinc-700 mb-2" />
+                                    <div class="text-xs text-gray-500 dark:text-zinc-500">
+                                        {{ $t("call.no_custom_ringtone_uploaded") }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -658,9 +817,18 @@ export default {
             },
             isGeneratingGreeting: false,
             isUploadingGreeting: false,
+            isUploadingRingtone: false,
             playingVoicemailId: null,
             audioPlayer: null,
             isPlayingGreeting: false,
+            isPlayingRingtone: false,
+            ringtoneStatus: {
+                has_custom_ringtone: false,
+                enabled: false,
+            },
+            ringtones: [],
+            editingRingtoneId: null,
+            editingRingtoneName: "",
         };
     },
     computed: {
@@ -671,19 +839,22 @@ export default {
             return this.activeCall?.is_speaker_muted ?? false;
         },
     },
-    mounted() {
-        this.getConfig();
-        this.getAudioProfiles();
-        this.getStatus();
-        this.getHistory();
-        this.getVoicemails();
-        this.getVoicemailStatus();
-
-        // poll for status
-        this.statusInterval = setInterval(() => {
+        mounted() {
+            this.getConfig();
+            this.getAudioProfiles();
             this.getStatus();
+            this.getHistory();
+            this.getVoicemails();
             this.getVoicemailStatus();
-        }, 1000);
+            this.getRingtones();
+            this.getRingtoneStatus();
+
+            // poll for status
+            this.statusInterval = setInterval(() => {
+                this.getStatus();
+                this.getVoicemailStatus();
+                this.getRingtoneStatus();
+            }, 1000);
 
         // poll for history/voicemails less frequently
         this.historyInterval = setInterval(() => {
@@ -786,12 +957,132 @@ export default {
                 console.log(e);
             }
         },
+        async clearHistory() {
+            if (!confirm(this.$t("common.delete_confirm"))) return;
+            try {
+                await window.axios.delete("/api/v1/telephone/history");
+                this.callHistory = [];
+                ToastUtils.success("Call history cleared");
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error("Failed to clear call history");
+            }
+        },
         async getVoicemailStatus() {
             try {
                 const response = await window.axios.get("/api/v1/telephone/voicemail/status");
                 this.voicemailStatus = response.data;
             } catch (e) {
                 console.log(e);
+            }
+        },
+        async getRingtoneStatus() {
+            try {
+                const response = await window.axios.get("/api/v1/telephone/ringtones/status");
+                this.ringtoneStatus = response.data;
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async getRingtones() {
+            try {
+                const response = await window.axios.get("/api/v1/telephone/ringtones");
+                this.ringtones = response.data;
+            } catch (e) {
+                console.error("Failed to get ringtones:", e);
+            }
+        },
+        async deleteRingtone(ringtone) {
+            if (!confirm(this.$t("common.delete_confirm"))) return;
+            try {
+                await window.axios.delete(`/api/v1/telephone/ringtones/${ringtone.id}`);
+                ToastUtils.success(this.$t("call.ringtone_deleted"));
+                await this.getRingtones();
+                await this.getRingtoneStatus();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("call.failed_to_delete_ringtone"));
+            }
+        },
+        async setPrimaryRingtone(ringtone) {
+            try {
+                await window.axios.patch(`/api/v1/telephone/ringtones/${ringtone.id}`, {
+                    is_primary: true,
+                });
+                ToastUtils.success(this.$t("call.primary_ringtone_set"));
+                await this.getRingtones();
+                await this.getRingtoneStatus();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("call.failed_to_set_primary_ringtone"));
+            }
+        },
+        startEditingRingtone(ringtone) {
+            this.editingRingtoneId = ringtone.id;
+            this.editingRingtoneName = ringtone.display_name;
+        },
+        async saveRingtoneName() {
+            try {
+                await window.axios.patch(`/api/v1/telephone/ringtones/${this.editingRingtoneId}`, {
+                    display_name: this.editingRingtoneName,
+                });
+                this.editingRingtoneId = null;
+                await this.getRingtones();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("call.failed_to_update_ringtone_name"));
+            }
+        },
+        async uploadRingtone(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            this.isUploadingRingtone = true;
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                await window.axios.post("/api/v1/telephone/ringtones/upload", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+                ToastUtils.success(this.$t("call.ringtone_uploaded_successfully"));
+                await this.getRingtones();
+                await this.getRingtoneStatus();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(e.response?.data?.message || this.$t("call.failed_to_upload_ringtone"));
+            } finally {
+                this.isUploadingRingtone = false;
+                event.target.value = "";
+            }
+        },
+        async playRingtonePreview(ringtone) {
+            if (this.isPlayingRingtone && this.playingRingtoneId === ringtone.id) {
+                this.audioPlayer.pause();
+                this.isPlayingRingtone = false;
+                this.playingRingtoneId = null;
+                return;
+            }
+
+            if (this.audioPlayer) {
+                this.audioPlayer.pause();
+            }
+
+            this.playingRingtoneId = ringtone.id;
+            this.audioPlayer = new Audio(`/api/v1/telephone/ringtones/${ringtone.id}/audio`);
+            this.audioPlayer.onended = () => {
+                this.isPlayingRingtone = false;
+                this.playingRingtoneId = null;
+            };
+
+            try {
+                await this.audioPlayer.play();
+                this.isPlayingRingtone = true;
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("call.failed_to_play_ringtone"));
             }
         },
         async getVoicemails() {
@@ -845,7 +1136,7 @@ export default {
                 await window.axios.delete("/api/v1/telephone/voicemail/greeting");
                 ToastUtils.success("Greeting deleted");
                 await this.getVoicemailStatus();
-            } catch (e) {
+            } catch {
                 ToastUtils.error("Failed to delete greeting");
             }
         },
@@ -901,7 +1192,7 @@ export default {
             this.isPlayingGreeting = true;
             this.audioPlayer = new Audio("/api/v1/telephone/voicemail/greeting/audio");
             this.audioPlayer.play().catch(() => {
-                ToastUtils.error("No greeting audio found. Please generate one first.");
+                ToastUtils.error(this.$t("call.no_greeting_audio_found"));
                 this.isPlayingGreeting = false;
             });
             this.audioPlayer.onended = () => {
