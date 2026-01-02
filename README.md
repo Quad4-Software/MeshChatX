@@ -2,11 +2,12 @@
 
 A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork from the future.
 
-This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project. 
+<video src="https://strg.0rbitzer0.net/u/62926a2a-0a9a-4f44-a5f6-000dd60deac1.mp4" controls="controls" style="max-width: 100%;"></video>
+
+This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project.
 
 > [!WARNING]  
 > Backup your reticulum-meshchat folder before using, even though MeshChatX will attempt to auto-migrate whatever it can from the old database without breaking things. Its best to keep backups.
-
 
 ## Major Features
 
@@ -22,7 +23,7 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 - Toast system for notifications
 - i18n support (En, De, Ru)
 - Raw SQLite database backend (replaced Peewee ORM)
-- LXMF Telemetry (WIP)
+- LXMF Telemetry support (WIP)
 
 ## TODO
 
@@ -34,7 +35,7 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 - [ ] RNS Tunnel - tunnel your regular services over RNS to another MeshchatX user.
 - [ ] RNS Filesync - P2P file sync
 - [ ] RNS Page Node
-- [ ] Micron Editor 
+- [x] Micron Editor (w/ [micron-parser](https://github.com/RFnexus/micron-parser) by [RFnexus](https://github.com/RFnexus))
 
 ## Usage
 
