@@ -1,31 +1,83 @@
-# MeshChat on Android
+# MeshChatX on Android
 
-It's possible to run on Android from source, using [Termux](https://termux.dev/).
+It's possible to run MeshChatX on Android using [Termux](https://termux.dev/). Installation is now much simpler since the wheel package includes both the server and pre-built web assets.
 
-You will need to install a few extra dependencies and make a change to `requirements.txt`.
+## Method 1: Install from Wheel (Recommended)
+
+This is the easiest method - the wheel includes everything you need.
+
+### Install System Dependencies
 
 ```
 pkg upgrade
-pkg install git
-pkg install nodejs-lts
-pkg install python-pip
+pkg install python
 pkg install rust
 pkg install binutils
 pkg install build-essential
 ```
 
-You should now be able to follow the [how to use it](../README.md#how-to-use-it) instructions above.
+> Note: Python 3.11 or higher is required. Check with `python --version`.
 
-Before running `pip install -r requirements.txt`, you will need to comment out the `cx_freeze` dependency. It failed to build on my Android tablet, and is not actually required for running from source.
+### Download and Install Wheel
+
+Download the latest wheel from the [releases page](https://git.quad4.io/Ivan/MeshChatX/releases), then:
 
 ```
-nano requirements.txt
+pip install reticulum_meshchatx-*-py3-none-any.whl
 ```
 
-Ensure the `cx_freeze` line is updated to `#cx_freeze`
+The wheel will automatically install all Python dependencies. Building `cryptography` may take a while on Android.
 
-> Note: Building wheel for cryptography may take a while on Android.
+### Run MeshChatX
 
-Once MeshChat is running via Termux, open your favourite Android web browser, and navigate to http://localhost:8000
+```
+meshchat
+```
 
-> Note: The default `AutoInterface` may not work on your Android device. You will need to configure another interface such as `TCPClientInterface`.
+Then open your Android web browser and navigate to `http://localhost:8000`
+
+## Method 2: Install from Source
+
+If you need to build from source (for development or if no wheel is available for your architecture):
+
+### Install System Dependencies
+
+```
+pkg upgrade
+pkg install git
+pkg install nodejs-lts
+pkg install python
+pkg install rust
+pkg install binutils
+pkg install build-essential
+```
+
+### Install pnpm
+
+```
+corepack enable
+corepack prepare pnpm@latest --activate
+```
+
+### Clone and Build
+
+```
+git clone https://git.quad4.io/Ivan/MeshChatX.git
+cd MeshChatX
+pip install poetry
+poetry install
+pnpm install
+pnpm run build-frontend
+poetry build -f wheel
+pip install dist/*.whl
+```
+
+### Run MeshChatX
+
+```
+meshchat
+```
+
+## Configuration Notes
+
+> Note: The default `AutoInterface` may not work on your Android device. You will need to configure another interface such as `TCPClientInterface` in the settings.
