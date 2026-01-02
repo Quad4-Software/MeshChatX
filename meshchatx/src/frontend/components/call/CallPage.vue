@@ -68,12 +68,18 @@
 
                 <!-- Phone Tab -->
                 <div v-if="activeTab === 'phone'" class="flex-1 flex flex-col">
-                    <div class="flex items-center justify-between mb-4 px-1">
+                    <div class="flex flex-col gap-2 mb-4 px-1">
                         <Toggle
                             id="dnd-toggle"
                             :model-value="config?.do_not_disturb_enabled"
                             :label="$t('call.do_not_disturb')"
                             @update:model-value="toggleDoNotDisturb"
+                        />
+                        <Toggle
+                            id="contacts-only-toggle"
+                            :model-value="config?.telephone_allow_calls_from_contacts_only"
+                            :label="$t('call.allow_calls_from_contacts_only')"
+                            @update:model-value="toggleAllowCallsFromContactsOnly"
                         />
                     </div>
 
@@ -538,7 +544,7 @@
                                                     </p>
                                                     <a
                                                         v-if="announce.lxmf_destination_hash"
-                                                        :href="`/messages?destination_hash=${announce.lxmf_destination_hash}`"
+                                                        :href="`/#/messages/${announce.lxmf_destination_hash}`"
                                                         class="ml-2 p-1 text-gray-400 hover:text-blue-500 transition-colors"
                                                         title="Message via LXMF"
                                                         @click.stop
@@ -743,13 +749,39 @@
                                         @change="uploadGreeting"
                                     />
                                     <button
-                                        :disabled="!voicemailStatus.has_ffmpeg || isUploadingGreeting"
+                                        :disabled="
+                                            !voicemailStatus.has_ffmpeg ||
+                                            isUploadingGreeting ||
+                                            voicemailStatus.is_greeting_recording
+                                        "
                                         class="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                                         @click="$refs.greetingUpload.click()"
                                     >
                                         <MaterialDesignIcon icon-name="upload" class="size-4" />
                                         {{ isUploadingGreeting ? "Uploading..." : "Upload Audio File" }}
                                     </button>
+                                    <button
+                                        class="text-xs px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2"
+                                        :class="
+                                            voicemailStatus.is_greeting_recording
+                                                ? 'bg-red-500 text-white animate-pulse'
+                                                : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                                        "
+                                        @click="
+                                            voicemailStatus.is_greeting_recording
+                                                ? stopRecordingGreetingMic()
+                                                : startRecordingGreetingMic()
+                                        "
+                                    >
+                                        <MaterialDesignIcon
+                                            :icon-name="voicemailStatus.is_greeting_recording ? 'stop' : 'microphone'"
+                                            class="size-4"
+                                        />
+                                        {{
+                                            voicemailStatus.is_greeting_recording ? "Stop Recording" : "Record from Mic"
+                                        }}
+                                    </button>
+
                                     <div v-if="voicemailStatus.has_greeting" class="flex items-center gap-2">
                                         <button
                                             class="text-xs bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center gap-2"
@@ -1261,6 +1293,7 @@ export default {
                 has_espeak: false,
                 has_ffmpeg: false,
                 is_recording: false,
+                is_greeting_recording: false,
                 has_greeting: false,
             },
             isGeneratingGreeting: false,
@@ -1531,7 +1564,7 @@ export default {
         },
         async toggleDoNotDisturb(value) {
             try {
-                await window.axios.post("/api/v1/config", {
+                await window.axios.patch("/api/v1/config", {
                     key: "do_not_disturb_enabled",
                     value: value ? "true" : "false",
                 });
@@ -1541,6 +1574,20 @@ export default {
                 ToastUtils.success(value ? "Do Not Disturb enabled" : "Do Not Disturb disabled");
             } catch {
                 ToastUtils.error("Failed to update Do Not Disturb status");
+            }
+        },
+        async toggleAllowCallsFromContactsOnly(value) {
+            try {
+                await window.axios.patch("/api/v1/config", {
+                    key: "telephone_allow_calls_from_contacts_only",
+                    value: value ? "true" : "false",
+                });
+                if (this.config) {
+                    this.config.telephone_allow_calls_from_contacts_only = value;
+                }
+                ToastUtils.success(value ? "Calls limited to contacts" : "Calls allowed from everyone");
+            } catch {
+                ToastUtils.error("Failed to update call settings");
             }
         },
         async clearHistory() {
@@ -1801,6 +1848,23 @@ export default {
                 await this.getVoicemailStatus();
             } catch {
                 ToastUtils.error("Failed to delete greeting");
+            }
+        },
+        async startRecordingGreetingMic() {
+            try {
+                await window.axios.post("/api/v1/telephone/voicemail/greeting/record/start");
+                await this.getVoicemailStatus();
+            } catch {
+                ToastUtils.error("Failed to start recording greeting");
+            }
+        },
+        async stopRecordingGreetingMic() {
+            try {
+                await window.axios.post("/api/v1/telephone/voicemail/greeting/record/stop");
+                await this.getVoicemailStatus();
+                ToastUtils.success("Greeting recorded from mic");
+            } catch {
+                ToastUtils.error("Failed to stop recording greeting");
             }
         },
         async playVoicemail(voicemail) {
