@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 20
+    LATEST_VERSION = 23
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -257,6 +257,17 @@ class DatabaseSchema:
                     is_viewed INTEGER DEFAULT 0,
                     timestamp REAL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "keyboard_shortcuts": """
+                CREATE TABLE IF NOT EXISTS keyboard_shortcuts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT,
+                    action TEXT,
+                    keys TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, action)
                 )
             """,
         }
@@ -586,6 +597,48 @@ class DatabaseSchema:
             )
             self.provider.execute(
                 "CREATE INDEX IF NOT EXISTS idx_notifications_timestamp ON notifications(timestamp)",
+            )
+
+        if current_version < 21:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS keyboard_shortcuts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT,
+                    action TEXT,
+                    keys TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, action)
+                )
+            """)
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_keyboard_shortcuts_identity_hash ON keyboard_shortcuts(identity_hash)",
+            )
+
+        if current_version < 22:
+            # Optimize fetching conversations and favorites
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_favourite_destinations_aspect ON favourite_destinations(aspect)",
+            )
+            # Add index for faster searching in announces
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
+            )
+
+        if current_version < 23:
+            # Further optimize conversation fetching
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_conv_optim ON lxmf_messages(source_hash, destination_hash, timestamp DESC)",
+            )
+            # Add index for unread message filtering
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_state_incoming ON lxmf_messages(state, is_incoming)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)",
             )
 
         # Update version in config
