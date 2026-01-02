@@ -5242,6 +5242,35 @@ class ReticulumMeshChat:
 
             return web.json_response({"message": "Attachment not found"}, status=404)
 
+        @routes.get("/api/v1/lxmf-messages/{message_hash}/uri")
+        async def lxmf_message_uri(request):
+            message_hash = request.match_info.get("message_hash")
+
+            # check if message exists in router's internal storage first
+            # as it might still be in outbound queue or recent received cache
+            lxm = self.message_router.get_message(bytes.fromhex(message_hash))
+
+            if not lxm:
+                # if not in router, we can't easily recreate it with same signatures
+                # unless we stored the raw bytes. MeshChatX seems to store fields.
+                return web.json_response(
+                    {
+                        "message": "Original message bytes not available for URI generation"
+                    },
+                    status=404,
+                )
+
+            try:
+                # change delivery method to paper so as_uri works
+                original_method = lxm.method
+                lxm.method = LXMF.LXMessage.PAPER
+                uri = lxm.as_uri()
+                lxm.method = original_method  # restore
+
+                return web.json_response({"uri": uri})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
         # delete lxmf messages for conversation
         @routes.delete("/api/v1/lxmf-messages/conversation/{destination_hash}")
         async def lxmf_messages_conversation_delete(request):
@@ -6872,6 +6901,180 @@ class ReticulumMeshChat:
                 self.on_websocket_data_received(
                     client,
                     {"type": "lxmf.forwarding.rules.get"},
+                ),
+            )
+
+        # handle ingesting an lxmf uri (paper message)
+        elif _type == "lxm.ingest_uri":
+            uri = data["uri"]
+            local_delivery_signal = "local_delivery_occurred"
+            duplicate_signal = "duplicate_lxm"
+
+            try:
+                # ensure uri starts with lxmf:// or lxm://
+                if not uri.lower().startswith(
+                    LXMF.LXMessage.URI_SCHEMA + "://"
+                ) and not uri.lower().startswith("lxm://"):
+                    if ":" in uri and "//" not in uri:
+                        uri = LXMF.LXMessage.URI_SCHEMA + "://" + uri
+                    else:
+                        uri = LXMF.LXMessage.URI_SCHEMA + "://" + uri
+
+                ingest_result = self.message_router.ingest_lxm_uri(
+                    uri,
+                    signal_local_delivery=local_delivery_signal,
+                    signal_duplicate=duplicate_signal,
+                )
+
+                if ingest_result is False:
+                    response = "The URI contained no decodable messages"
+                    status = "error"
+                elif ingest_result == local_delivery_signal:
+                    response = "Message was decoded, decrypted successfully, and added to your conversation list."
+                    status = "success"
+                elif ingest_result == duplicate_signal:
+                    response = "The decoded message has already been processed by the LXMF Router, and will not be ingested again."
+                    status = "info"
+                else:
+                    response = "The decoded message was not addressed to your LXMF address, and has been discarded."
+                    status = "warning"
+
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "lxm.ingest_uri.result",
+                                "status": status,
+                                "message": response,
+                            },
+                        ),
+                    ),
+                )
+            except Exception as e:
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "lxm.ingest_uri.result",
+                                "status": "error",
+                                "message": f"Error ingesting message from URI: {e!s}",
+                            },
+                        ),
+                    ),
+                )
+
+        # handle generating a paper message uri
+        elif _type == "lxm.generate_paper_uri":
+            destination_hash = data["destination_hash"]
+            content = data["content"]
+            title = data.get("title", "")
+
+            try:
+                destination_hash_bytes = bytes.fromhex(destination_hash)
+                destination_identity = RNS.Identity.recall(destination_hash_bytes)
+
+                if destination_identity is None:
+                    # try to find in database
+                    announce = self.database.announces.get_announce_by_hash(
+                        destination_hash
+                    )
+                    if announce and announce.get("identity_public_key"):
+                        destination_identity = RNS.Identity.from_bytes(
+                            base64.b64decode(announce["identity_public_key"])
+                        )
+
+                if destination_identity is None:
+                    raise Exception(
+                        "Recipient identity not found. Please wait for an announce or add them as a contact."
+                    )
+
+                lxmf_destination = RNS.Destination(
+                    destination_identity,
+                    RNS.Destination.OUT,
+                    RNS.Destination.SINGLE,
+                    "lxmf",
+                    "delivery",
+                )
+
+                lxm = LXMF.LXMessage(
+                    lxmf_destination,
+                    self.local_lxmf_destination,
+                    content,
+                    title=title,
+                    desired_method=LXMF.LXMessage.PAPER,
+                )
+
+                # generate uri
+                uri = lxm.as_uri()
+
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "lxm.generate_paper_uri.result",
+                                "status": "success",
+                                "uri": uri,
+                            },
+                        ),
+                    ),
+                )
+            except Exception as e:
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "lxm.generate_paper_uri.result",
+                                "status": "error",
+                                "message": f"Error generating paper message: {e!s}",
+                            },
+                        ),
+                    ),
+                )
+
+        # handle getting keyboard shortcuts
+        elif _type == "keyboard_shortcuts.get":
+            shortcuts = self.database.misc.get_keyboard_shortcuts(self.identity.hexhash)
+            AsyncUtils.run_async(
+                client.send_str(
+                    json.dumps(
+                        {
+                            "type": "keyboard_shortcuts",
+                            "shortcuts": [
+                                {
+                                    "action": s["action"],
+                                    "keys": json.loads(s["keys"]),
+                                }
+                                for s in shortcuts
+                            ],
+                        },
+                    ),
+                ),
+            )
+
+        # handle updating/upserting a keyboard shortcut
+        elif _type == "keyboard_shortcuts.set":
+            action = data["action"]
+            keys = json.dumps(data["keys"])
+            self.database.misc.upsert_keyboard_shortcut(
+                self.identity.hexhash, action, keys
+            )
+            # notify updated
+            AsyncUtils.run_async(
+                self.on_websocket_data_received(
+                    client,
+                    {"type": "keyboard_shortcuts.get"},
+                ),
+            )
+
+        # handle deleting a keyboard shortcut
+        elif _type == "keyboard_shortcuts.delete":
+            action = data["action"]
+            self.database.misc.delete_keyboard_shortcut(self.identity.hexhash, action)
+            # notify updated
+            AsyncUtils.run_async(
+                self.on_websocket_data_received(
+                    client,
+                    {"type": "keyboard_shortcuts.get"},
                 ),
             )
 
