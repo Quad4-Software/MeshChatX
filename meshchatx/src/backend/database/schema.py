@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 17
+    LATEST_VERSION = 18
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -234,6 +234,15 @@ class DatabaseSchema:
                     display_name TEXT,
                     storage_filename TEXT,
                     is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "contacts": """
+                CREATE TABLE IF NOT EXISTS contacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    remote_identity_hash TEXT UNIQUE,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
@@ -524,6 +533,23 @@ class DatabaseSchema:
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+        if current_version < 18:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS contacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT,
+                    remote_identity_hash TEXT UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(name)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_contacts_remote_identity_hash ON contacts(remote_identity_hash)",
+            )
 
         # Update version in config
         self.provider.execute(

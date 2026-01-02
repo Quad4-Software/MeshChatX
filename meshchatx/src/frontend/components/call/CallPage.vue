@@ -33,6 +33,17 @@
                     </button>
                     <button
                         :class="[
+                            activeTab === 'contacts'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:border-gray-300',
+                        ]"
+                        class="py-2 px-4 border-b-2 font-medium text-sm transition-all"
+                        @click="activeTab = 'contacts'"
+                    >
+                        Contacts
+                    </button>
+                    <button
+                        :class="[
                             activeTab === 'ringtone'
                                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:border-gray-300',
@@ -215,16 +226,16 @@
                                 </div>
 
                                 <!-- actions -->
-                                <div v-if="activeCall" class="flex flex-wrap justify-center gap-4 mt-6">
+                                <div v-if="activeCall" class="flex flex-wrap justify-center gap-4 mt-8 mb-4">
                                     <!-- answer call -->
                                     <button
                                         v-if="activeCall.is_incoming && activeCall.status === 4"
                                         :title="$t('call.answer_call')"
                                         type="button"
-                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-green-600 px-5 py-3 text-base font-bold text-white shadow-xl hover:bg-green-500 transition-all duration-200 animate-bounce"
+                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-green-600 px-4 py-2 text-sm font-bold text-white shadow-xl hover:bg-green-500 transition-all duration-200 animate-bounce"
                                         @click="answerCall"
                                     >
-                                        <MaterialDesignIcon icon-name="phone" class="size-5" />
+                                        <MaterialDesignIcon icon-name="phone" class="size-4" />
                                         <span>{{ $t("call.accept") }}</span>
                                     </button>
 
@@ -233,10 +244,10 @@
                                         v-if="activeCall.is_incoming && activeCall.status === 4"
                                         :title="$t('call.send_to_voicemail')"
                                         type="button"
-                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-blue-600 px-5 py-3 text-base font-bold text-white shadow-xl hover:bg-blue-500 transition-all duration-200"
+                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-xl hover:bg-blue-500 transition-all duration-200"
                                         @click="sendToVoicemail"
                                     >
-                                        <MaterialDesignIcon icon-name="voicemail" class="size-5" />
+                                        <MaterialDesignIcon icon-name="voicemail" class="size-4" />
                                         <span>{{ $t("call.send_to_voicemail") }}</span>
                                     </button>
 
@@ -248,10 +259,10 @@
                                                 : $t('call.hangup_call')
                                         "
                                         type="button"
-                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-red-600 px-5 py-3 text-base font-bold text-white shadow-xl hover:bg-red-500 transition-all duration-200"
+                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-xl hover:bg-red-500 transition-all duration-200"
                                         @click="hangupCall"
                                     >
-                                        <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-[135deg]" />
+                                        <MaterialDesignIcon icon-name="phone-hangup" class="size-4 rotate-[135deg]" />
                                         <span>{{
                                             activeCall.is_incoming && activeCall.status === 4
                                                 ? $t("call.decline")
@@ -403,6 +414,21 @@
 
                 <!-- Voicemail Tab -->
                 <div v-if="activeTab === 'voicemail'" class="flex-1 flex flex-col">
+                    <div class="mb-4">
+                        <div class="relative">
+                            <input
+                                v-model="voicemailSearch"
+                                type="text"
+                                placeholder="Search voicemails..."
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                @input="onVoicemailSearchInput"
+                            />
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                            </div>
+                        </div>
+                    </div>
+
                     <div v-if="voicemails.length === 0" class="my-auto text-center">
                         <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
                             <MaterialDesignIcon icon-name="voicemail" class="size-12 text-gray-400" />
@@ -520,6 +546,114 @@
                                                 >
                                                     <MaterialDesignIcon icon-name="delete" class="size-3" />
                                                     Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contacts Tab -->
+                <div v-if="activeTab === 'contacts'" class="flex-1 flex flex-col">
+                    <div class="mb-4 flex gap-2">
+                        <div class="relative flex-1">
+                            <input
+                                v-model="contactsSearch"
+                                type="text"
+                                placeholder="Search contacts..."
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                @input="onContactsSearchInput"
+                            />
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-colors flex items-center gap-2"
+                            @click="openAddContactModal"
+                        >
+                            <MaterialDesignIcon icon-name="plus" class="size-5" />
+                            Add
+                        </button>
+                    </div>
+
+                    <div v-if="contacts.length === 0" class="my-auto text-center">
+                        <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
+                            <MaterialDesignIcon icon-name="account-multiple" class="size-12 text-gray-400" />
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">No Contacts</h3>
+                        <p class="text-gray-500 dark:text-zinc-400">Add contacts to quickly call them.</p>
+                    </div>
+
+                    <div v-else class="space-y-4">
+                        <div
+                            class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                        >
+                            <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
+                                <li
+                                    v-for="contact in contacts"
+                                    :key="contact.id"
+                                    class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                >
+                                    <div class="flex items-center space-x-3">
+                                        <div class="shrink-0">
+                                            <LxmfUserIcon
+                                                v-if="contact.remote_icon"
+                                                :icon-name="contact.remote_icon.icon_name"
+                                                :icon-foreground-colour="contact.remote_icon.foreground_colour"
+                                                :icon-background-colour="contact.remote_icon.background_colour"
+                                                class="size-10"
+                                            />
+                                            <div
+                                                v-else
+                                                class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center"
+                                            >
+                                                <MaterialDesignIcon icon-name="account" class="size-6" />
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between">
+                                                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                    {{ contact.name }}
+                                                </p>
+                                                <div class="flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        class="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                                        @click="openEditContactModal(contact)"
+                                                    >
+                                                        <MaterialDesignIcon icon-name="pencil" class="size-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                                                        @click="deleteContact(contact.id)"
+                                                    >
+                                                        <MaterialDesignIcon icon-name="delete" class="size-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center justify-between mt-1">
+                                                <span
+                                                    class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate"
+                                                    :title="contact.remote_identity_hash"
+                                                >
+                                                    {{ formatDestinationHash(contact.remote_identity_hash) }}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                                                    @click="
+                                                        destinationHash = contact.remote_identity_hash;
+                                                        activeTab = 'phone';
+                                                        call(destinationHash);
+                                                    "
+                                                >
+                                                    Call
                                                 </button>
                                             </div>
                                         </div>
@@ -933,6 +1067,16 @@ export default {
             editingRingtoneId: null,
             editingRingtoneName: "",
             elapsedTimeInterval: null,
+            voicemailSearch: "",
+            contactsSearch: "",
+            contacts: [],
+            isContactModalOpen: false,
+            editingContact: null,
+            contactForm: {
+                name: "",
+                remote_identity_hash: "",
+            },
+            searchDebounceTimeout: null,
         };
     },
     computed: {
@@ -956,6 +1100,7 @@ export default {
         this.getStatus();
         this.getHistory();
         this.getVoicemails();
+        this.getContacts();
         this.getVoicemailStatus();
         this.getRingtones();
         this.getRingtoneStatus();
@@ -971,6 +1116,7 @@ export default {
         this.historyInterval = setInterval(() => {
             this.getHistory();
             this.getVoicemails();
+            this.getContacts();
         }, 10000);
 
         // update elapsed time every second
@@ -1204,11 +1350,76 @@ export default {
         },
         async getVoicemails() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/voicemails");
+                const response = await window.axios.get("/api/v1/telephone/voicemails", {
+                    params: { search: this.voicemailSearch },
+                });
                 this.voicemails = response.data.voicemails;
                 this.unreadVoicemailsCount = response.data.unread_count;
             } catch (e) {
                 console.log(e);
+            }
+        },
+        onVoicemailSearchInput() {
+            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
+            this.searchDebounceTimeout = setTimeout(() => {
+                this.getVoicemails();
+            }, 300);
+        },
+        async getContacts() {
+            try {
+                const response = await window.axios.get("/api/v1/telephone/contacts", {
+                    params: { search: this.contactsSearch },
+                });
+                this.contacts = response.data;
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        onContactsSearchInput() {
+            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
+            this.searchDebounceTimeout = setTimeout(() => {
+                this.getContacts();
+            }, 300);
+        },
+        openAddContactModal() {
+            this.editingContact = null;
+            this.contactForm = { name: "", remote_identity_hash: "" };
+            const name = prompt("Enter contact name:");
+            if (!name) return;
+            const hash = prompt("Enter identity hash:");
+            if (!hash) return;
+            this.saveContact({ name, remote_identity_hash: hash });
+        },
+        openEditContactModal(contact) {
+            this.editingContact = contact;
+            const name = prompt("Edit contact name:", contact.name);
+            if (!name) return;
+            const hash = prompt("Edit identity hash:", contact.remote_identity_hash);
+            if (!hash) return;
+            this.saveContact({ id: contact.id, name, remote_identity_hash: hash });
+        },
+        async saveContact(contact) {
+            try {
+                if (contact.id) {
+                    await window.axios.patch(`/api/v1/telephone/contacts/${contact.id}`, contact);
+                    ToastUtils.success("Contact updated");
+                } else {
+                    await window.axios.post("/api/v1/telephone/contacts", contact);
+                    ToastUtils.success("Contact added");
+                }
+                this.getContacts();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || "Failed to save contact");
+            }
+        },
+        async deleteContact(contactId) {
+            if (!confirm("Are you sure you want to delete this contact?")) return;
+            try {
+                await window.axios.delete(`/api/v1/telephone/contacts/${contactId}`);
+                ToastUtils.success("Contact deleted");
+                this.getContacts();
+            } catch {
+                ToastUtils.error("Failed to delete contact");
             }
         },
         async generateGreeting() {
@@ -1259,7 +1470,9 @@ export default {
         },
         async playVoicemail(voicemail) {
             if (this.playingVoicemailId === voicemail.id) {
-                this.audioPlayer.pause();
+                if (this.audioPlayer) {
+                    this.audioPlayer.pause();
+                }
                 this.playingVoicemailId = null;
                 return;
             }
@@ -1270,10 +1483,24 @@ export default {
 
             this.playingVoicemailId = voicemail.id;
             this.audioPlayer = new Audio(`/api/v1/telephone/voicemails/${voicemail.id}/audio`);
-            this.audioPlayer.play();
+
+            this.audioPlayer.addEventListener("error", (e) => {
+                console.error("Audio player error:", e);
+                ToastUtils.error(this.$t("call.failed_to_play_voicemail") || "Failed to load voicemail audio");
+                this.playingVoicemailId = null;
+                this.audioPlayer = null;
+            });
+
             this.audioPlayer.onended = () => {
                 this.playingVoicemailId = null;
             };
+
+            try {
+                await this.audioPlayer.play();
+            } catch (e) {
+                console.error("Audio play failed:", e);
+                this.playingVoicemailId = null;
+            }
 
             // Mark as read
             if (!voicemail.is_read) {

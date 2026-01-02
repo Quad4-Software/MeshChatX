@@ -18,13 +18,13 @@ class ConfigDAO:
             self.provider.execute("DELETE FROM config WHERE key = ?", (key,))
         else:
             now = datetime.now(UTC)
-            
+
             # handle booleans specifically to ensure they are stored as "true"/"false"
             if isinstance(value, bool):
                 value_str = "true" if value else "false"
             else:
                 value_str = str(value)
-                
+
             self.provider.execute(
                 """
                 INSERT INTO config (key, value, created_at, updated_at) 

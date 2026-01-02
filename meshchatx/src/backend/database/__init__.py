@@ -1,14 +1,15 @@
 from .announces import AnnounceDAO
 from .config import ConfigDAO
+from .contacts import ContactsDAO
 from .legacy_migrator import LegacyMigrator
 from .messages import MessageDAO
 from .misc import MiscDAO
 from .provider import DatabaseProvider
+from .ringtones import RingtoneDAO
 from .schema import DatabaseSchema
 from .telemetry import TelemetryDAO
 from .telephone import TelephoneDAO
 from .voicemails import VoicemailDAO
-from .ringtones import RingtoneDAO
 
 
 class Database:
@@ -23,6 +24,7 @@ class Database:
         self.telemetry = TelemetryDAO(self.provider)
         self.voicemails = VoicemailDAO(self.provider)
         self.ringtones = RingtoneDAO(self.provider)
+        self.contacts = ContactsDAO(self.provider)
 
     def initialize(self):
         self.schema.initialize()

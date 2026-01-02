@@ -129,12 +129,12 @@
             </div>
 
             <!-- Controls -->
-            <div v-if="!isEnded && !wasDeclined" class="flex flex-wrap justify-center gap-3">
+            <div v-if="!isEnded && !wasDeclined" class="flex flex-wrap justify-center gap-2 px-2">
                 <!-- Mute Mic -->
                 <button
                     type="button"
                     :title="isMicMuted ? $t('call.unmute_mic') : $t('call.mute_mic')"
-                    class="p-3 rounded-full transition-all duration-200"
+                    class="p-2.5 rounded-full transition-all duration-200"
                     :class="
                         isMicMuted
                             ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
@@ -142,14 +142,14 @@
                     "
                     @click="toggleMicrophone"
                 >
-                    <MaterialDesignIcon :icon-name="isMicMuted ? 'microphone-off' : 'microphone'" class="size-6" />
+                    <MaterialDesignIcon :icon-name="isMicMuted ? 'microphone-off' : 'microphone'" class="size-5" />
                 </button>
 
                 <!-- Mute Speaker -->
                 <button
                     type="button"
                     :title="isSpeakerMuted ? $t('call.unmute_speaker') : $t('call.mute_speaker')"
-                    class="p-3 rounded-full transition-all duration-200"
+                    class="p-2.5 rounded-full transition-all duration-200"
                     :class="
                         isSpeakerMuted
                             ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
@@ -157,7 +157,7 @@
                     "
                     @click="toggleSpeaker"
                 >
-                    <MaterialDesignIcon :icon-name="isSpeakerMuted ? 'volume-off' : 'volume-high'" class="size-6" />
+                    <MaterialDesignIcon :icon-name="isSpeakerMuted ? 'volume-off' : 'volume-high'" class="size-5" />
                 </button>
 
                 <!-- Hangup -->
@@ -168,10 +168,10 @@
                             ? $t('call.decline_call')
                             : $t('call.hangup_call')
                     "
-                    class="p-3 rounded-full bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all duration-200"
+                    class="p-2.5 rounded-full bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all duration-200"
                     @click="hangupCall"
                 >
-                    <MaterialDesignIcon icon-name="phone-hangup" class="size-6 rotate-[135deg]" />
+                    <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-[135deg]" />
                 </button>
 
                 <!-- Send to Voicemail (if incoming) -->
@@ -179,10 +179,10 @@
                     v-if="activeCall.is_incoming && activeCall.status === 4"
                     type="button"
                     :title="$t('call.send_to_voicemail')"
-                    class="p-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition-all duration-200"
+                    class="p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition-all duration-200"
                     @click="sendToVoicemail"
                 >
-                    <MaterialDesignIcon icon-name="voicemail" class="size-6" />
+                    <MaterialDesignIcon icon-name="voicemail" class="size-5" />
                 </button>
 
                 <!-- Answer (if incoming) -->
@@ -190,10 +190,10 @@
                     v-if="activeCall.is_incoming && activeCall.status === 4"
                     type="button"
                     :title="$t('call.answer_call')"
-                    class="p-3 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-600/30 animate-bounce"
+                    class="p-2.5 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-600/30 animate-bounce"
                     @click="answerCall"
                 >
-                    <MaterialDesignIcon icon-name="phone" class="size-6" />
+                    <MaterialDesignIcon icon-name="phone" class="size-5" />
                 </button>
             </div>
         </div>
@@ -271,6 +271,7 @@ export default {
             default: false,
         },
     },
+    emits: ["hangup"],
     data() {
         return {
             isMinimized: false,

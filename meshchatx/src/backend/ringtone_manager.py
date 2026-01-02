@@ -1,20 +1,22 @@
 import os
 import shutil
 import subprocess
+
 import RNS
+
 
 class RingtoneManager:
     def __init__(self, config, storage_dir):
         self.config = config
         self.storage_dir = os.path.join(storage_dir, "ringtones")
-        
+
         # Ensure directory exists
         os.makedirs(self.storage_dir, exist_ok=True)
-        
+
         # Paths to executables
         self.ffmpeg_path = self._find_ffmpeg()
         self.has_ffmpeg = self.ffmpeg_path is not None
-        
+
         if self.has_ffmpeg:
             RNS.log(f"Ringtone: Found ffmpeg at {self.ffmpeg_path}", RNS.LOG_DEBUG)
         else:

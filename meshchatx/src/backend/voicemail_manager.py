@@ -325,6 +325,10 @@ class VoicemailManager:
 
         try:
             self.recording_sink = OpusFileSink(filepath)
+            # Ensure samplerate is set to avoid TypeError in LXST Opus codec
+            # which expects sink to have a valid samplerate attribute
+            self.recording_sink.samplerate = 48000
+
             # Connect the caller's audio source to our sink
             # active_call.audio_source is a LinkSource that feeds into receive_mixer
             # We want to record what we receive.

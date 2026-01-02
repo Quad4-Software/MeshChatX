@@ -108,6 +108,11 @@
                     <MaterialDesignIcon icon-name="open-in-new" class="w-4 h-4" />
                 </IconButton>
 
+                <!-- share contact button -->
+                <IconButton title="Share Contact" @click="openShareContactModal">
+                    <MaterialDesignIcon icon-name="notebook-outline" class="w-4 h-4" />
+                </IconButton>
+
                 <!-- close button -->
                 <IconButton title="Close" @click="close">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
@@ -116,6 +121,64 @@
                         />
                     </svg>
                 </IconButton>
+            </div>
+        </div>
+
+        <!-- Share Contact Modal -->
+        <div
+            v-if="isShareContactModalOpen"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            @click.self="isShareContactModalOpen = false"
+        >
+            <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Share Contact</h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        @click="isShareContactModalOpen = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4">
+                        <div class="relative">
+                            <input
+                                v-model="contactsSearch"
+                                type="text"
+                                placeholder="Search contacts..."
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            />
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="max-h-64 overflow-y-auto space-y-2">
+                        <button
+                            v-for="contact in filteredContacts"
+                            :key="contact.id"
+                            type="button"
+                            class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left"
+                            @click="shareContact(contact)"
+                        >
+                            <div
+                                class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center shrink-0"
+                            >
+                                <MaterialDesignIcon icon-name="account" class="size-6" />
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-gray-900 dark:text-white truncate">
+                                    {{ contact.name }}
+                                </div>
+                                <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate">
+                                    {{ contact.remote_identity_hash }}
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -885,6 +948,10 @@ export default {
             autoScrollOnNewMessage: true,
             composeAddress: "",
 
+            isShareContactModalOpen: false,
+            contacts: [],
+            contactsSearch: "",
+
             isRecordingAudioAttachment: false,
             audioAttachmentMicrophoneRecorder: null,
             audioAttachmentMicrophoneRecorderCodec: null,
@@ -912,6 +979,13 @@ export default {
         };
     },
     computed: {
+        filteredContacts() {
+            if (!this.contactsSearch) return this.contacts;
+            const s = this.contactsSearch.toLowerCase();
+            return this.contacts.filter(
+                (c) => c.name.toLowerCase().includes(s) || c.remote_identity_hash.toLowerCase().includes(s)
+            );
+        },
         isMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         },
@@ -1611,6 +1685,27 @@ export default {
             } catch {
                 // do nothing if failed to delete message
             }
+        },
+        async openShareContactModal() {
+            try {
+                const response = await window.axios.get("/api/v1/telephone/contacts");
+                this.contacts = response.data;
+
+                if (this.contacts.length === 0) {
+                    ToastUtils.info("No contacts found in telephone");
+                    return;
+                }
+
+                this.isShareContactModalOpen = true;
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error("Failed to load contacts");
+            }
+        },
+        async shareContact(contact) {
+            this.newMessageText = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
+            this.isShareContactModalOpen = false;
+            await this.sendMessage();
         },
         async sendMessage() {
             // do nothing if can't send message

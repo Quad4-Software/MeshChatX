@@ -37,7 +37,16 @@ class VoicemailDAO:
             ),
         )
 
-    def get_voicemails(self, limit=50, offset=0):
+    def get_voicemails(self, search=None, limit=50, offset=0):
+        if search:
+            return self.provider.fetchall(
+                """
+                SELECT * FROM voicemails 
+                WHERE remote_identity_name LIKE ? OR remote_identity_hash LIKE ? 
+                ORDER BY timestamp DESC LIMIT ? OFFSET ?
+                """,
+                (f"%{search}%", f"%{search}%", limit, offset),
+            )
         return self.provider.fetchall(
             "SELECT * FROM voicemails ORDER BY timestamp DESC LIMIT ? OFFSET ?",
             (limit, offset),

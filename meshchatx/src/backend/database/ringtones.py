@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
+
 from .provider import DatabaseProvider
+
 
 class RingtoneDAO:
     def __init__(self, provider: DatabaseProvider):
@@ -18,14 +20,14 @@ class RingtoneDAO:
         now = datetime.now(UTC)
         if display_name is None:
             display_name = filename
-            
+
         # check if this is the first ringtone, if so make it primary
         count = self.provider.fetchone("SELECT COUNT(*) as count FROM ringtones")["count"]
         is_primary = 1 if count == 0 else 0
-        
+
         cursor = self.provider.execute(
             "INSERT INTO ringtones (filename, display_name, storage_filename, is_primary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (filename, display_name, storage_filename, is_primary, now, now)
+            (filename, display_name, storage_filename, is_primary, now, now),
         )
         return cursor.lastrowid
 
@@ -34,21 +36,21 @@ class RingtoneDAO:
         if is_primary == 1:
             # reset others
             self.provider.execute("UPDATE ringtones SET is_primary = 0, updated_at = ?", (now,))
-            
+
         if display_name is not None and is_primary is not None:
             self.provider.execute(
                 "UPDATE ringtones SET display_name = ?, is_primary = ?, updated_at = ? WHERE id = ?",
-                (display_name, is_primary, now, ringtone_id)
+                (display_name, is_primary, now, ringtone_id),
             )
         elif display_name is not None:
             self.provider.execute(
                 "UPDATE ringtones SET display_name = ?, updated_at = ? WHERE id = ?",
-                (display_name, now, ringtone_id)
+                (display_name, now, ringtone_id),
             )
         elif is_primary is not None:
             self.provider.execute(
                 "UPDATE ringtones SET is_primary = ?, updated_at = ? WHERE id = ?",
-                (is_primary, now, ringtone_id)
+                (is_primary, now, ringtone_id),
             )
 
     def delete(self, ringtone_id):
