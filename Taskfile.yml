@@ -141,8 +141,7 @@ tasks:
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "{{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --linux AppImage"
-            - "{{.NPM}} run dist -- --linux deb"
+            - "{{.NPM}} run dist -- --linux AppImage deb"
 
     build-electron-windows:
         desc: Build Windows Electron apps (portable and installer)
@@ -150,8 +149,15 @@ tasks:
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "{{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --win portable"
-            - "{{.NPM}} run dist -- --win nsis"
+            - "{{.NPM}} run dist -- --win portable nsis"
+
+    build-electron-all:
+        desc: Build all Electron apps (Linux and Windows)
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run electron-postinstall"
+            - "{{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
 
     dist:
         desc: Build distribution (defaults to AppImage)
