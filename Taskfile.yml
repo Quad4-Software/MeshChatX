@@ -124,6 +124,7 @@ tasks:
             - rm -rf dist
             - rm -rf python-dist
             - rm -rf meshchatx/public
+            - task: android-clean
 
     sync-version:
         desc: Sync version numbers across project files
@@ -164,3 +165,48 @@ tasks:
         desc: Run Frontend-only Demo Docker container
         cmds:
             - 'MESHCHAT_DEMO_IMAGE="reticulum-meshchatx-demo:local" {{.DOCKER_COMPOSE_CMD}} -f docker-compose.demo.yml up --remove-orphans'
+
+    android-init:
+        desc: Initialize Gradle wrapper for Android project
+        cmds:
+            - |
+                if [ ! -f android/gradle/wrapper/gradle-wrapper.jar ]; then
+                    echo "Downloading Gradle wrapper jar..."
+                    mkdir -p android/gradle/wrapper
+                    curl -L -o android/gradle/wrapper/gradle-wrapper.jar \
+                        https://raw.githubusercontent.com/gradle/gradle/v8.12.1/gradle/wrapper/gradle-wrapper.jar || \
+                        echo "Failed to download. Please run: cd android && gradle wrapper --gradle-version 8.12.1"
+                else
+                    echo "Gradle wrapper already initialized."
+                fi
+
+    android-prepare:
+        desc: Prepare Android build (copy meshchatx package and assets)
+        deps: [build, android-init]
+        cmds:
+            - |
+                echo "Copying meshchatx package to Android project..."
+                mkdir -p android/app/src/main/python
+                cp -r meshchatx android/app/src/main/python/
+            - |
+                echo "Android build prepared. Don't forget to:"
+                echo "1. Add Chaquopy license to android/local.properties"
+                echo "2. Open android/ in Android Studio or run: task android-build"
+
+    android-build:
+        desc: Build Android APK (requires Android SDK and Chaquopy license)
+        deps: [android-prepare]
+        cmds:
+            - cd android && ./gradlew assembleDebug
+
+    android-build-release:
+        desc: Build Android APK (release, requires signing config)
+        deps: [android-prepare]
+        cmds:
+            - cd android && ./gradlew assembleRelease
+
+    android-clean:
+        desc: Clean Android build artifacts
+        cmds:
+            - cd android && ./gradlew clean
+            - rm -rf android/app/src/main/python/meshchatx
