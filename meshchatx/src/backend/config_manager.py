@@ -131,6 +131,10 @@ class ConfigManager:
             60,
         )
 
+        # ringtone config
+        self.custom_ringtone_enabled = self.BoolConfig(self, "custom_ringtone_enabled", False)
+        self.ringtone_filename = self.StringConfig(self, "ringtone_filename", None)
+
         # map config
         self.map_offline_enabled = self.BoolConfig(self, "map_offline_enabled", False)
         self.map_offline_path = self.StringConfig(self, "map_offline_path", None)
@@ -183,7 +187,7 @@ class ConfigManager:
             config_value = self.manager.get(self.key, default_value=None)
             if config_value is None:
                 return self.default_value
-            return config_value == "true"
+            return str(config_value).lower() == "true"
 
         def set(self, value: bool):
             self.manager.set(self.key, "true" if value else "false")

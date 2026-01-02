@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 16
+    LATEST_VERSION = 17
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -225,6 +225,17 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(destination_hash, timestamp)
+                )
+            """,
+            "ringtones": """
+                CREATE TABLE IF NOT EXISTS ringtones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    display_name TEXT,
+                    storage_filename TEXT,
+                    is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """,
         }
@@ -500,6 +511,19 @@ class DatabaseSchema:
                 )
             except Exception:
                 pass
+
+        if current_version < 17:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS ringtones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    display_name TEXT,
+                    storage_filename TEXT,
+                    is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
 
         # Update version in config
         self.provider.execute(

@@ -18,6 +18,10 @@ class DatabaseProvider:
                     msg = "Database path must be provided for the first initialization"
                     raise ValueError(msg)
                 cls._instance = cls(db_path)
+            elif db_path is not None and cls._instance.db_path != db_path:
+                # If a different path is provided, close the old one and create new
+                cls._instance.close()
+                cls._instance = cls(db_path)
             return cls._instance
 
     @property

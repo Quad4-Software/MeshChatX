@@ -63,6 +63,7 @@ from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.telemetry_utils import Telemeter
 from meshchatx.src.backend.telephone_manager import TelephoneManager
+from meshchatx.src.backend.ringtone_manager import RingtoneManager
 from meshchatx.src.backend.translator_handler import TranslatorHandler
 from meshchatx.src.backend.voicemail_manager import VoicemailManager
 from meshchatx.src.version import __version__ as app_version
@@ -167,6 +168,8 @@ class ReticulumMeshChat:
         identity_file_path: str | None = None,
         auth_enabled: bool = False,
     ):
+        self.running = True
+        self.reticulum_config_dir = reticulum_config_dir
         # when providing a custom storage_dir, files will be saved as
         # <storage_dir>/identities/<identity_hex>/
         # <storage_dir>/identities/<identity_hex>/database.db
@@ -176,22 +179,56 @@ class ReticulumMeshChat:
         # ./storage/identities/<identity_hex>/database.db
 
         # ensure a storage path exists for the loaded identity
+        self.running = True
+        self.reticulum_config_dir = reticulum_config_dir
         self.storage_dir = storage_dir or os.path.join("storage")
+        self.identity_file_path = identity_file_path
+        self.auto_recover = auto_recover
+        self.auth_enabled_initial = auth_enabled
+        self.websocket_clients: list[web.WebSocketResponse] = []
+        
+        # track announce timestamps for rate calculation
+        self.announce_timestamps = []
+        
+        # track download speeds for nomadnetwork files
+        self.download_speeds = []
+        
+        # track active downloads
+        self.active_downloads = {}
+        self.download_id_counter = 0
+
+        self.setup_identity(identity)
+
+    def setup_identity(self, identity: RNS.Identity):
+        # assign a unique session ID to this identity instance to help background threads exit
+        if not hasattr(self, '_identity_session_id'):
+            self._identity_session_id = 0
+        self._identity_session_id += 1
+        session_id = self._identity_session_id
+
+        # ensure a storage path exists for the loaded identity
         self.storage_path = os.path.join(
             self.storage_dir,
             "identities",
             identity.hash.hex(),
         )
-        self.identity_file_path = identity_file_path
         print(f"Using Storage Path: {self.storage_path}")
         os.makedirs(self.storage_path, exist_ok=True)
+
+        # Safety: Before setting up a new identity, ensure no destinations for this identity 
+        # are currently registered in Transport. This prevents the "Attempt to register 
+        # an already registered destination" error during hotswap.
+        self.cleanup_rns_state_for_identity(identity.hash)
+
+        # ensure identity is saved in its specific directory for multi-identity support
+        identity_backup_file = os.path.join(self.storage_path, "identity")
+        if not os.path.exists(identity_backup_file):
+            with open(identity_backup_file, "wb") as f:
+                f.write(identity.get_private_key())
 
         # define path to files based on storage path
         self.database_path = os.path.join(self.storage_path, "database.db")
         lxmf_router_path = os.path.join(self.storage_path, "lxmf_router")
-
-        # remember preference for automatic recovery
-        self.auto_recover = auto_recover
 
         # init database
         self.database = Database(self.database_path)
@@ -202,7 +239,7 @@ class ReticulumMeshChat:
         try:
             self.database.initialize()
             # Try to auto-migrate from legacy database if this is a fresh start
-            self.database.migrate_from_legacy(reticulum_config_dir, identity.hash.hex())
+            self.database.migrate_from_legacy(self.reticulum_config_dir, identity.hash.hex())
             self._tune_sqlite_pragmas()
         except Exception as exc:
             if not self.auto_recover:
@@ -225,7 +262,7 @@ class ReticulumMeshChat:
         self.forwarding_manager = None  # will init after lxmf router
 
         # remember if authentication is enabled
-        self.auth_enabled = auth_enabled or self.config.auth_enabled.get()
+        self.auth_enabled = self.auth_enabled_initial or self.config.auth_enabled.get()
 
         # migrate database
         # The new initialize() handles migrations automatically, but we still update the config if needed
@@ -238,7 +275,8 @@ class ReticulumMeshChat:
         self.database.messages.mark_stuck_messages_as_failed()
 
         # init reticulum
-        self.reticulum = RNS.Reticulum(reticulum_config_dir)
+        if not hasattr(self, 'reticulum'):
+            self.reticulum = RNS.Reticulum(self.reticulum_config_dir)
         self.identity = identity
 
         # init lxmf router
@@ -306,19 +344,6 @@ class ReticulumMeshChat:
             ),
         )
 
-        # remember websocket clients
-        self.websocket_clients: list[web.WebSocketResponse] = []
-
-        # track announce timestamps for rate calculation
-        self.announce_timestamps = []
-
-        # track download speeds for nomadnetwork files (list of tuples: (file_size_bytes, duration_seconds))
-        self.download_speeds = []
-
-        # track active downloads (download_id -> downloader instance)
-        self.active_downloads = {}
-        self.download_id_counter = 0
-
         # register audio call identity
         # init telephone manager
         self.telephone_manager = TelephoneManager(
@@ -348,6 +373,12 @@ class ReticulumMeshChat:
             self.get_name_for_identity_hash
         )
 
+        # init Ringtone Manager
+        self.ringtone_manager = RingtoneManager(
+            config=self.config,
+            storage_dir=self.storage_path,
+        )
+
         # init RNCP handler
         self.rncp_handler = RNCPHandler(
             reticulum_instance=self.reticulum,
@@ -371,14 +402,14 @@ class ReticulumMeshChat:
         )
 
         # start background thread for auto announce loop
-        thread = threading.Thread(target=asyncio.run, args=(self.announce_loop(),))
+        thread = threading.Thread(target=asyncio.run, args=(self.announce_loop(session_id),))
         thread.daemon = True
         thread.start()
 
         # start background thread for auto syncing propagation nodes
         thread = threading.Thread(
             target=asyncio.run,
-            args=(self.announce_sync_propagation_nodes(),),
+            args=(self.announce_sync_propagation_nodes(session_id),),
         )
         thread.daemon = True
         thread.start()
@@ -386,7 +417,7 @@ class ReticulumMeshChat:
         # start background thread for crawler loop
         thread = threading.Thread(
             target=asyncio.run,
-            args=(self.crawler_loop(),),
+            args=(self.crawler_loop(session_id),),
         )
         thread.daemon = True
         thread.start()
@@ -572,6 +603,184 @@ class ReticulumMeshChat:
     def _get_identity_bytes(self) -> bytes:
         return self.identity.get_private_key()
 
+    def cleanup_rns_state_for_identity(self, identity_hash):
+        if not identity_hash:
+            return
+            
+        if isinstance(identity_hash, str):
+            identity_hash_bytes = bytes.fromhex(identity_hash)
+            identity_hash_hex = identity_hash
+        else:
+            identity_hash_bytes = identity_hash
+            identity_hash_hex = identity_hash.hex()
+
+        print(f"Aggressively cleaning up RNS state for identity {identity_hash_hex}")
+
+        # 1. Deregister destinations
+        try:
+            # We iterate over a copy of the list because we are modifying it
+            for destination in list(RNS.Transport.destinations):
+                match = False
+                # check identity hash
+                if hasattr(destination, 'identity') and destination.identity:
+                    if destination.identity.hash == identity_hash_bytes:
+                        match = True
+                
+                if match:
+                    print(f"Deregistering RNS destination {destination} ({RNS.prettyhexrep(destination.hash)})")
+                    RNS.Transport.deregister_destination(destination)
+        except Exception as e:
+            print(f"Error while cleaning up RNS destinations: {e}")
+
+        # 2. Teardown active links
+        try:
+            for link in list(RNS.Transport.active_links):
+                match = False
+                # check if local identity or destination matches
+                if hasattr(link, 'destination') and link.destination:
+                    if hasattr(link.destination, 'identity') and link.destination.identity:
+                        if link.destination.identity.hash == identity_hash_bytes:
+                            match = True
+                
+                if match:
+                    print(f"Tearing down RNS link {link}")
+                    try:
+                        link.teardown()
+                    except Exception:
+                        pass
+        except Exception as e:
+            print(f"Error while cleaning up RNS links: {e}")
+
+    def teardown_identity(self):
+        print("Tearing down current identity instance...")
+        self.running = False
+        
+        # 1. Deregister destinations and links from RNS Transport
+        try:
+            # Get current identity hash for matching
+            current_identity_hash = self.identity.hash if hasattr(self, 'identity') and self.identity else None
+            
+            # Explicitly deregister known destinations from managers first
+            if hasattr(self, 'message_router') and self.message_router:
+                # Deregister delivery destinations
+                if hasattr(self.message_router, 'delivery_destinations'):
+                    for dest_hash in list(self.message_router.delivery_destinations.keys()):
+                        dest = self.message_router.delivery_destinations[dest_hash]
+                        RNS.Transport.deregister_destination(dest)
+                
+                # Deregister propagation destination
+                if hasattr(self.message_router, 'propagation_destination') and self.message_router.propagation_destination:
+                    RNS.Transport.deregister_destination(self.message_router.propagation_destination)
+
+            if hasattr(self, 'telephone_manager') and self.telephone_manager:
+                if hasattr(self.telephone_manager, 'telephone') and self.telephone_manager.telephone:
+                    if hasattr(self.telephone_manager.telephone, 'destination') and self.telephone_manager.telephone.destination:
+                        RNS.Transport.deregister_destination(self.telephone_manager.telephone.destination)
+
+            # Use the global helper for thorough cleanup
+            if current_identity_hash:
+                self.cleanup_rns_state_for_identity(current_identity_hash)
+
+        except Exception as e:
+            print(f"Error while deregistering destinations or links: {e}")
+
+        # 2. Unregister all announce handlers from Transport
+        try:
+            for handler in list(RNS.Transport.announce_handlers):
+                should_deregister = False
+                
+                # check if it's one of our AnnounceHandler instances
+                if hasattr(handler, 'aspect_filter') and hasattr(handler, 'received_announce_callback'):
+                    should_deregister = True
+                # LXMF handlers - they usually have a reference to the router
+                elif hasattr(handler, 'router') and hasattr(self, 'message_router') and handler.router == self.message_router:
+                    should_deregister = True
+                # generic check for LXMF handlers if the above fails
+                elif "LXMFDeliveryAnnounceHandler" in str(type(handler)) or "LXMFPropagationAnnounceHandler" in str(type(handler)):
+                    should_deregister = True
+                
+                if should_deregister:
+                    RNS.Transport.deregister_announce_handler(handler)
+        except Exception as e:
+            print(f"Error while deregistering announce handlers: {e}")
+
+        # 3. Stop the LXMRouter job loop (hacking it to stop)
+        if hasattr(self, 'message_router') and self.message_router:
+            try:
+                # Replacing jobs with a no-op so the thread just sleeps
+                self.message_router.jobs = lambda: None
+                
+                # Try to call exit_handler to persist state
+                if hasattr(self.message_router, 'exit_handler'):
+                    self.message_router.exit_handler()
+            except Exception as e:
+                print(f"Error while tearing down LXMRouter: {e}")
+
+        # 4. Stop telephone and voicemail
+        if hasattr(self, 'telephone_manager') and self.telephone_manager:
+            try:
+                # use teardown instead of shutdown
+                if hasattr(self.telephone_manager, 'teardown'):
+                    self.telephone_manager.teardown()
+                elif hasattr(self.telephone_manager, 'shutdown'):
+                    self.telephone_manager.shutdown()
+            except Exception as e:
+                print(f"Error while tearing down telephone: {e}")
+        
+        if hasattr(self, 'voicemail_manager') and self.voicemail_manager:
+            try:
+                self.voicemail_manager.stop_recording()
+            except Exception:
+                pass
+
+        # 5. Close database
+        if hasattr(self, 'database') and self.database:
+            try:
+                self.database.close()
+            except Exception:
+                pass
+
+    async def hotswap_identity(self, identity_hash):
+        try:
+            # load the new identity
+            identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
+            identity_file = os.path.join(identity_dir, "identity")
+            if not os.path.exists(identity_file):
+                raise ValueError("Identity file not found")
+            
+            new_identity = RNS.Identity.from_file(identity_file)
+            
+            # 1. teardown old identity
+            self.teardown_identity()
+            
+            # Wait a moment for threads to notice self.running=False and destinations to clear
+            await asyncio.sleep(3)
+            
+            # 2. update main identity file
+            main_identity_file = self.identity_file_path or os.path.join(self.storage_dir, "identity")
+            import shutil
+            shutil.copy2(identity_file, main_identity_file)
+            
+            # 3. reset state and setup new identity
+            self.running = True
+            self.setup_identity(new_identity)
+            
+            # 4. broadcast update to clients
+            await self.websocket_broadcast(
+                json.dumps({
+                    "type": "identity_switched",
+                    "identity_hash": identity_hash,
+                    "display_name": self.config.display_name.get()
+                })
+            )
+            
+            return True
+        except Exception as e:
+            print(f"Hotswap failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def backup_identity(self):
         identity_bytes = self._get_identity_bytes()
         target_path = self.identity_file_path or os.path.join(
@@ -588,6 +797,98 @@ class ReticulumMeshChat:
 
     def backup_identity_base32(self) -> str:
         return base64.b32encode(self._get_identity_bytes()).decode("utf-8")
+
+    def list_identities(self):
+        identities = []
+        identities_base_dir = os.path.join(self.storage_dir, "identities")
+        if not os.path.exists(identities_base_dir):
+            return identities
+
+        for identity_hash in os.listdir(identities_base_dir):
+            identity_path = os.path.join(identities_base_dir, identity_hash)
+            if not os.path.isdir(identity_path):
+                continue
+
+            db_path = os.path.join(identity_path, "database.db")
+            if not os.path.exists(db_path):
+                continue
+
+            # try to get config from database
+            display_name = "Anonymous Peer"
+            icon_name = None
+            icon_foreground_colour = None
+            icon_background_colour = None
+            
+            try:
+                # use a temporary provider to avoid messing with current DB
+                from meshchatx.src.backend.database.provider import DatabaseProvider
+                from meshchatx.src.backend.database.config import ConfigDAO
+                
+                temp_provider = DatabaseProvider(db_path)
+                temp_config_dao = ConfigDAO(temp_provider)
+                display_name = temp_config_dao.get("display_name", "Anonymous Peer")
+                icon_name = temp_config_dao.get("lxmf_user_icon_name")
+                icon_foreground_colour = temp_config_dao.get("lxmf_user_icon_foreground_colour")
+                icon_background_colour = temp_config_dao.get("lxmf_user_icon_background_colour")
+                temp_provider.close()
+            except Exception as e:
+                print(f"Error reading config for {identity_hash}: {e}")
+
+            identities.append({
+                "hash": identity_hash,
+                "display_name": display_name,
+                "icon_name": icon_name,
+                "icon_foreground_colour": icon_foreground_colour,
+                "icon_background_colour": icon_background_colour,
+                "is_current": identity_hash == self.identity.hash.hex()
+            })
+        return identities
+
+    def create_identity(self, display_name=None):
+        new_identity = RNS.Identity(create_keys=True)
+        identity_hash = new_identity.hash.hex()
+        
+        identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
+        os.makedirs(identity_dir, exist_ok=True)
+        
+        # save identity file in its own directory
+        identity_file = os.path.join(identity_dir, "identity")
+        with open(identity_file, "wb") as f:
+            f.write(new_identity.get_private_key())
+            
+        # initialize its database and set display name
+        db_path = os.path.join(identity_dir, "database.db")
+        
+        # Avoid using the Database class singleton behavior
+        from meshchatx.src.backend.database.provider import DatabaseProvider
+        from meshchatx.src.backend.database.schema import DatabaseSchema
+        from meshchatx.src.backend.database.config import ConfigDAO
+        
+        new_provider = DatabaseProvider(db_path)
+        new_schema = DatabaseSchema(new_provider)
+        new_schema.initialize()
+        
+        if display_name:
+            new_config_dao = ConfigDAO(new_provider)
+            new_config_dao.set("display_name", display_name)
+            
+        new_provider.close()
+        
+        return {
+            "hash": identity_hash,
+            "display_name": display_name or "Anonymous Peer"
+        }
+
+    def delete_identity(self, identity_hash):
+        if identity_hash == self.identity.hash.hex():
+            raise ValueError("Cannot delete the current active identity")
+            
+        identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
+        if os.path.exists(identity_dir):
+            import shutil
+            shutil.rmtree(identity_dir)
+            return True
+        return False
 
     def restore_identity_from_bytes(self, identity_bytes: bytes):
         target_path = self.identity_file_path or os.path.join(
@@ -646,8 +947,8 @@ class ReticulumMeshChat:
         return app_version
 
     # automatically announces based on user config
-    async def announce_loop(self):
-        while True:
+    async def announce_loop(self, session_id):
+        while self.running and self._identity_session_id == session_id:
             should_announce = False
 
             # check if auto announce is enabled
@@ -683,8 +984,8 @@ class ReticulumMeshChat:
             await asyncio.sleep(1)
 
     # automatically syncs propagation nodes based on user config
-    async def announce_sync_propagation_nodes(self):
-        while True:
+    async def announce_sync_propagation_nodes(self, session_id):
+        while self.running and self._identity_session_id == session_id:
             should_sync = False
 
             # check if auto sync is enabled
@@ -713,8 +1014,8 @@ class ReticulumMeshChat:
             # wait 1 second before next loop
             await asyncio.sleep(1)
 
-    async def crawler_loop(self):
-        while True:
+    async def crawler_loop(self, session_id):
+        while self.running and self._identity_session_id == session_id:
             try:
                 if self.config.crawler_enabled.get():
                     # Proactively queue any known nodes from the database that haven't been queued yet
@@ -723,6 +1024,8 @@ class ReticulumMeshChat:
                         aspect="nomadnetwork.node",
                     )
                     for node in known_nodes:
+                        if not self.running or self._identity_session_id != session_id:
+                            break
                         self.queue_crawler_task(
                             node["destination_hash"],
                             "/page/index.mu",
@@ -736,15 +1039,19 @@ class ReticulumMeshChat:
                     )
 
                     # process tasks concurrently up to the limit
-                    await asyncio.gather(
-                        *[self.process_crawler_task(task) for task in tasks],
-                    )
+                    if tasks and self.running:
+                        await asyncio.gather(
+                            *[self.process_crawler_task(task) for task in tasks],
+                        )
 
             except Exception as e:
                 print(f"Error in crawler loop: {e}")
 
             # wait 30 seconds before checking again
-            await asyncio.sleep(30)
+            for _ in range(30):
+                if not self.running or self._identity_session_id != session_id:
+                    return
+                await asyncio.sleep(1)
 
     async def process_crawler_task(self, task):
         # mark as crawling
@@ -1144,11 +1451,31 @@ class ReticulumMeshChat:
                 print("Falling back to HTTP")
                 use_https = False
 
-        # session secret for encrypted cookies (generate once and store in config)
-        session_secret_key = self.config.auth_session_secret.get()
-        if not session_secret_key:
-            session_secret_key = secrets.token_urlsafe(32)
-            self.config.auth_session_secret.set(session_secret_key)
+        # session secret for encrypted cookies (generate once and store in shared storage)
+        session_secret_path = os.path.join(self.storage_dir, "session_secret")
+        self.session_secret_key = None
+        
+        if os.path.exists(session_secret_path):
+            try:
+                with open(session_secret_path, "r") as f:
+                    self.session_secret_key = f.read().strip()
+            except Exception as e:
+                print(f"Failed to read session secret from {session_secret_path}: {e}")
+
+        if not self.session_secret_key:
+            # try to migrate from current identity config if available
+            self.session_secret_key = self.config.auth_session_secret.get()
+            if not self.session_secret_key:
+                self.session_secret_key = secrets.token_urlsafe(32)
+            
+            try:
+                with open(session_secret_path, "w") as f:
+                    f.write(self.session_secret_key)
+            except Exception as e:
+                print(f"Failed to write session secret to {session_secret_path}: {e}")
+
+        # ensure it's also in the current config for consistency
+        self.config.auth_session_secret.set(self.session_secret_key)
 
         # authentication middleware
         @web.middleware
@@ -1184,8 +1511,27 @@ class ReticulumMeshChat:
                 return await handler(request)
 
             # check authentication
-            session = await get_session(request)
-            if not session.get("authenticated", False):
+            try:
+                session = await get_session(request)
+            except Exception as e:
+                print(f"Session decryption failed: {e}")
+                # If decryption fails, we must treat as unauthenticated
+                if path.startswith("/api/"):
+                    return web.json_response(
+                        {"error": "Session expired or invalid. Please login again."},
+                        status=401,
+                    )
+                return web.Response(
+                    text="Authentication required",
+                    status=401,
+                    headers={"Content-Type": "text/html"},
+                )
+
+            is_authenticated = session.get("authenticated", False)
+            session_identity = session.get("identity_hash")
+            
+            # Check if authenticated AND matches current identity
+            if not is_authenticated or session_identity != self.identity.hash.hex():
                 if path.startswith("/api/"):
                     return web.json_response(
                         {"error": "Authentication required"},
@@ -1222,14 +1568,31 @@ class ReticulumMeshChat:
         # auth status
         @routes.get("/api/v1/auth/status")
         async def auth_status(request):
-            session = await get_session(request)
-            return web.json_response(
-                {
-                    "auth_enabled": self.auth_enabled,
-                    "password_set": self.config.auth_password_hash.get() is not None,
-                    "authenticated": session.get("authenticated", False),
-                },
-            )
+            try:
+                session = await get_session(request)
+                is_authenticated = session.get("authenticated", False)
+                session_identity = session.get("identity_hash")
+                
+                # Verify that authentication is for the CURRENT active identity
+                actually_authenticated = is_authenticated and (session_identity == self.identity.hash.hex())
+                
+                return web.json_response(
+                    {
+                        "auth_enabled": self.auth_enabled,
+                        "password_set": self.config.auth_password_hash.get() is not None,
+                        "authenticated": actually_authenticated,
+                    },
+                )
+            except Exception as e:
+                # Handle decryption failure gracefully by reporting as unauthenticated
+                return web.json_response(
+                    {
+                        "auth_enabled": self.auth_enabled,
+                        "password_set": self.config.auth_password_hash.get() is not None,
+                        "authenticated": False,
+                        "error": str(e),
+                    },
+                )
 
         # auth setup
         @routes.post("/api/v1/auth/setup")
@@ -1259,9 +1622,10 @@ class ReticulumMeshChat:
             # save to config
             self.config.auth_password_hash.set(password_hash)
 
-            # set authenticated in session
+            # set authenticated in session for THIS identity
             session = await get_session(request)
             session["authenticated"] = True
+            session["identity_hash"] = self.identity.hash.hex()
 
             return web.json_response({"message": "Setup completed successfully"})
 
@@ -1289,9 +1653,10 @@ class ReticulumMeshChat:
                 password.encode("utf-8"),
                 password_hash.encode("utf-8"),
             ):
-                # set authenticated in session
+                # set authenticated in session for THIS identity
                 session = await get_session(request)
                 session["authenticated"] = True
+                session["identity_hash"] = self.identity.hash.hex()
                 return web.json_response({"message": "Login successful"})
 
             return web.json_response(
@@ -2447,6 +2812,121 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
+        @routes.get("/api/v1/identities")
+        async def identities_list(request):
+            try:
+                return web.json_response(
+                    {
+                        "identities": self.list_identities(),
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {
+                        "message": f"Failed to list identities: {e!s}",
+                    },
+                    status=500,
+                )
+
+        @routes.post("/api/v1/identities/create")
+        async def identities_create(request):
+            try:
+                data = await request.json()
+                display_name = data.get("display_name")
+                result = self.create_identity(display_name)
+                return web.json_response(
+                    {
+                        "message": "Identity created successfully",
+                        "identity": result,
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {
+                        "message": f"Failed to create identity: {e!s}",
+                    },
+                    status=500,
+                )
+
+        @routes.delete("/api/v1/identities/{identity_hash}")
+        async def identities_delete(request):
+            try:
+                identity_hash = request.match_info.get("identity_hash")
+                if self.delete_identity(identity_hash):
+                    return web.json_response(
+                        {
+                            "message": "Identity deleted successfully",
+                        },
+                    )
+                else:
+                    return web.json_response(
+                        {
+                            "message": "Identity not found",
+                        },
+                        status=404,
+                    )
+            except Exception as e:
+                return web.json_response(
+                    {
+                        "message": f"Failed to delete identity: {e!s}",
+                    },
+                    status=500,
+                )
+
+        @routes.post("/api/v1/identities/switch")
+        async def identities_switch(request):
+            try:
+                data = await request.json()
+                identity_hash = data.get("identity_hash")
+                
+                # attempt hotswap first
+                success = await self.hotswap_identity(identity_hash)
+                
+                if success:
+                    return web.json_response(
+                        {
+                            "message": "Identity switched successfully.",
+                            "hotswapped": True,
+                        },
+                    )
+                else:
+                    # fallback to restart if hotswap failed
+                    # (this part should probably be unreachable if hotswap is reliable)
+                    main_identity_file = self.identity_file_path or os.path.join(self.storage_dir, "identity")
+                    identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
+                    identity_file = os.path.join(identity_dir, "identity")
+                    import shutil
+                    shutil.copy2(identity_file, main_identity_file)
+                    
+                    def restart():
+                        import sys
+                        import time
+                        import os
+                        time.sleep(1)
+                        try:
+                            os.execv(sys.executable, [sys.executable] + sys.argv)
+                        except Exception as e:
+                            print(f"Failed to restart: {e}")
+                            os._exit(0)
+                    
+                    import threading
+                    threading.Thread(target=restart).start()
+
+                    return web.json_response(
+                        {
+                            "message": "Identity switch scheduled. Application will restart.",
+                            "hotswapped": False,
+                            "should_restart": True,
+                        },
+                    )
+            except Exception as e:
+                return web.json_response(
+                    {
+                        "message": f"Failed to switch identity: {e!s}",
+                    },
+                    status=500,
+                )
+
         # get config
         @routes.get("/api/v1/config")
         async def config_get(request):
@@ -2638,6 +3118,12 @@ class ReticulumMeshChat:
                     "call_history": [dict(row) for row in history],
                 },
             )
+
+        # clear call history
+        @routes.delete("/api/v1/telephone/history")
+        async def telephone_history_clear(request):
+            self.database.telephone.clear_call_history()
+            return web.json_response({"message": "ok"})
 
         # switch audio profile
         @routes.get("/api/v1/telephone/switch-audio-profile/{profile_id}")
@@ -2909,6 +3395,130 @@ class ReticulumMeshChat:
             try:
                 self.voicemail_manager.remove_greeting()
                 return web.json_response({"message": "Greeting deleted"})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        # ringtone routes
+        @routes.get("/api/v1/telephone/ringtones")
+        async def telephone_ringtones_get(request):
+            ringtones = self.database.ringtones.get_all()
+            return web.json_response(
+                [
+                    {
+                        "id": r["id"],
+                        "filename": r["filename"],
+                        "display_name": r["display_name"],
+                        "is_primary": bool(r["is_primary"]),
+                        "created_at": r["created_at"],
+                    }
+                    for r in ringtones
+                ]
+            )
+
+        @routes.get("/api/v1/telephone/ringtones/status")
+        async def telephone_ringtone_status(request):
+            primary = self.database.ringtones.get_primary()
+            return web.json_response(
+                {
+                    "has_custom_ringtone": primary is not None,
+                    "enabled": self.config.custom_ringtone_enabled.get(),
+                    "filename": primary["filename"] if primary else None,
+                    "id": primary["id"] if primary else None,
+                }
+            )
+
+        @routes.get("/api/v1/telephone/ringtones/{id}/audio")
+        async def telephone_ringtone_audio(request):
+            ringtone_id = int(request.match_info["id"])
+            ringtone = self.database.ringtones.get_by_id(ringtone_id)
+            if not ringtone:
+                return web.json_response({"message": "Ringtone not found"}, status=404)
+                
+            filepath = self.ringtone_manager.get_ringtone_path(ringtone["storage_filename"])
+            if os.path.exists(filepath):
+                return web.FileResponse(filepath)
+            return web.json_response({"message": "Ringtone audio file not found"}, status=404)
+
+        @routes.post("/api/v1/telephone/ringtones/upload")
+        async def telephone_ringtone_upload(request):
+            try:
+                reader = await request.multipart()
+                field = await reader.next()
+                if field.name != "file":
+                    return web.json_response({"message": "File field required"}, status=400)
+
+                filename = field.filename
+                extension = os.path.splitext(filename)[1].lower()
+                if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
+                    return web.json_response(
+                        {"message": f"Unsupported file type: {extension}"}, status=400
+                    )
+
+                # Save temp file
+                with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
+                    temp_path = f.name
+                    while True:
+                        chunk = await field.read_chunk()
+                        if not chunk:
+                            break
+                        f.write(chunk)
+
+                try:
+                    # Convert to ringtone
+                    storage_filename = await asyncio.to_thread(
+                        self.ringtone_manager.convert_to_ringtone,
+                        temp_path,
+                    )
+                    
+                    # Add to database
+                    ringtone_id = self.database.ringtones.add(
+                        filename=filename,
+                        storage_filename=storage_filename
+                    )
+                    
+                    return web.json_response(
+                        {
+                            "message": "Ringtone uploaded and converted", 
+                            "id": ringtone_id,
+                            "filename": filename,
+                            "storage_filename": storage_filename
+                        }
+                    )
+                finally:
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.patch("/api/v1/telephone/ringtones/{id}")
+        async def telephone_ringtone_patch(request):
+            try:
+                ringtone_id = int(request.match_info["id"])
+                data = await request.json()
+                
+                display_name = data.get("display_name")
+                is_primary = 1 if data.get("is_primary") else None
+                
+                self.database.ringtones.update(
+                    ringtone_id,
+                    display_name=display_name,
+                    is_primary=is_primary
+                )
+                
+                return web.json_response({"message": "Ringtone updated"})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.delete("/api/v1/telephone/ringtones/{id}")
+        async def telephone_ringtone_delete(request):
+            try:
+                ringtone_id = int(request.match_info["id"])
+                ringtone = self.database.ringtones.get_by_id(ringtone_id)
+                if ringtone:
+                    self.ringtone_manager.remove_ringtone(ringtone["storage_filename"])
+                    self.database.ringtones.delete(ringtone_id)
+                return web.json_response({"message": "Ringtone deleted"})
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
 
@@ -4872,12 +5482,25 @@ class ReticulumMeshChat:
 
         # setup session storage
         # aiohttp_session.setup must be called before other middlewares that use sessions
-        secret_key = base64.urlsafe_b64decode(
-            session_secret_key.encode("utf-8").ljust(44, b"=")[:44],
-        )
+        
+        # Ensure we have a valid 32-byte key for Fernet
+        try:
+            # First try decoding as base64 (since secrets.token_urlsafe produces base64)
+            secret_key_bytes = base64.urlsafe_b64decode(self.session_secret_key + "===")
+            if len(secret_key_bytes) < 32:
+                # If too short, pad it
+                secret_key_bytes = secret_key_bytes.ljust(32, b"\0")
+            elif len(secret_key_bytes) > 32:
+                # If too long, truncate it
+                secret_key_bytes = secret_key_bytes[:32]
+        except Exception:
+            # Fallback to direct encoding and hashing to get exactly 32 bytes
+            import hashlib
+            secret_key_bytes = hashlib.sha256(self.session_secret_key.encode("utf-8")).digest()
+
         setup_session(
             app,
-            EncryptedCookieStorage(secret_key),
+            EncryptedCookieStorage(secret_key_bytes),
         )
 
         # add other middlewares
@@ -4932,6 +5555,15 @@ class ReticulumMeshChat:
         # send config to websocket clients (used to tell ui last synced at)
         await self.send_config_to_websocket_clients()
 
+    # helper to parse boolean from possible string or bool
+    @staticmethod
+    def _parse_bool(value):
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return value.lower() == "true"
+        return bool(value)
+
     async def update_config(self, data):
         # update display name in config
         if "display_name" in data and data["display_name"] != "":
@@ -4960,19 +5592,19 @@ class ReticulumMeshChat:
                 self.config.auto_announce_enabled.set(False)
 
         if "auto_resend_failed_messages_when_announce_received" in data:
-            value = bool(data["auto_resend_failed_messages_when_announce_received"])
+            value = self._parse_bool(data["auto_resend_failed_messages_when_announce_received"])
             self.config.auto_resend_failed_messages_when_announce_received.set(value)
 
         if "allow_auto_resending_failed_messages_with_attachments" in data:
-            value = bool(data["allow_auto_resending_failed_messages_with_attachments"])
+            value = self._parse_bool(data["allow_auto_resending_failed_messages_with_attachments"])
             self.config.allow_auto_resending_failed_messages_with_attachments.set(value)
 
         if "auto_send_failed_messages_to_propagation_node" in data:
-            value = bool(data["auto_send_failed_messages_to_propagation_node"])
+            value = self._parse_bool(data["auto_send_failed_messages_to_propagation_node"])
             self.config.auto_send_failed_messages_to_propagation_node.set(value)
 
         if "show_suggested_community_interfaces" in data:
-            value = bool(data["show_suggested_community_interfaces"])
+            value = self._parse_bool(data["show_suggested_community_interfaces"])
             self.config.show_suggested_community_interfaces.set(value)
 
         if "lxmf_preferred_propagation_node_destination_hash" in data:
@@ -5029,7 +5661,7 @@ class ReticulumMeshChat:
 
         if "lxmf_local_propagation_node_enabled" in data:
             # update config value
-            value = bool(data["lxmf_local_propagation_node_enabled"])
+            value = self._parse_bool(data["lxmf_local_propagation_node_enabled"])
             self.config.lxmf_local_propagation_node_enabled.set(value)
 
             # enable or disable local propagation node
@@ -5053,7 +5685,7 @@ class ReticulumMeshChat:
 
         # update archiver settings
         if "page_archiver_enabled" in data:
-            self.config.page_archiver_enabled.set(bool(data["page_archiver_enabled"]))
+            self.config.page_archiver_enabled.set(self._parse_bool(data["page_archiver_enabled"]))
 
         if "page_archiver_max_versions" in data:
             self.config.page_archiver_max_versions.set(
@@ -5067,7 +5699,7 @@ class ReticulumMeshChat:
 
         # update crawler settings
         if "crawler_enabled" in data:
-            self.config.crawler_enabled.set(bool(data["crawler_enabled"]))
+            self.config.crawler_enabled.set(self._parse_bool(data["crawler_enabled"]))
 
         if "crawler_max_retries" in data:
             self.config.crawler_max_retries.set(int(data["crawler_max_retries"]))
@@ -5081,7 +5713,7 @@ class ReticulumMeshChat:
             self.config.crawler_max_concurrent.set(int(data["crawler_max_concurrent"]))
 
         if "auth_enabled" in data:
-            value = bool(data["auth_enabled"])
+            value = self._parse_bool(data["auth_enabled"])
             self.config.auth_enabled.set(value)
             self.auth_enabled = value
 
@@ -5091,7 +5723,7 @@ class ReticulumMeshChat:
 
         # update map settings
         if "map_offline_enabled" in data:
-            self.config.map_offline_enabled.set(bool(data["map_offline_enabled"]))
+            self.config.map_offline_enabled.set(self._parse_bool(data["map_offline_enabled"]))
 
         if "map_default_lat" in data:
             self.config.map_default_lat.set(str(data["map_default_lat"]))
@@ -5106,7 +5738,7 @@ class ReticulumMeshChat:
             self.config.map_mbtiles_dir.set(data["map_mbtiles_dir"])
 
         if "map_tile_cache_enabled" in data:
-            self.config.map_tile_cache_enabled.set(bool(data["map_tile_cache_enabled"]))
+            self.config.map_tile_cache_enabled.set(self._parse_bool(data["map_tile_cache_enabled"]))
 
         if "map_tile_server_url" in data:
             self.config.map_tile_server_url.set(data["map_tile_server_url"])
@@ -5116,7 +5748,7 @@ class ReticulumMeshChat:
 
         # update voicemail settings
         if "voicemail_enabled" in data:
-            self.config.voicemail_enabled.set(bool(data["voicemail_enabled"]))
+            self.config.voicemail_enabled.set(self._parse_bool(data["voicemail_enabled"]))
 
         if "voicemail_greeting" in data:
             self.config.voicemail_greeting.set(data["voicemail_greeting"])
@@ -5130,6 +5762,10 @@ class ReticulumMeshChat:
             self.config.voicemail_max_recording_seconds.set(
                 int(data["voicemail_max_recording_seconds"]),
             )
+
+        # update ringtone settings
+        if "custom_ringtone_enabled" in data:
+            self.config.custom_ringtone_enabled.set(self._parse_bool(data["custom_ringtone_enabled"]))
 
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
@@ -5725,6 +6361,16 @@ class ReticulumMeshChat:
             "voicemail_greeting": self.config.voicemail_greeting.get(),
             "voicemail_auto_answer_delay_seconds": self.config.voicemail_auto_answer_delay_seconds.get(),
             "voicemail_max_recording_seconds": self.config.voicemail_max_recording_seconds.get(),
+            "custom_ringtone_enabled": self.config.custom_ringtone_enabled.get(),
+            "ringtone_filename": self.config.ringtone_filename.get(),
+            "map_offline_enabled": self.config.map_offline_enabled.get(),
+            "map_mbtiles_dir": self.config.map_mbtiles_dir.get(),
+            "map_tile_cache_enabled": self.config.map_tile_cache_enabled.get(),
+            "map_default_lat": self.config.map_default_lat.get(),
+            "map_default_lon": self.config.map_default_lon.get(),
+            "map_default_zoom": self.config.map_default_zoom.get(),
+            "map_tile_server_url": self.config.map_tile_server_url.get(),
+            "map_nominatim_api_url": self.config.map_nominatim_api_url.get(),
         }
 
     # try and get a name for the provided identity hash

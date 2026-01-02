@@ -8,6 +8,7 @@ from .schema import DatabaseSchema
 from .telemetry import TelemetryDAO
 from .telephone import TelephoneDAO
 from .voicemails import VoicemailDAO
+from .ringtones import RingtoneDAO
 
 
 class Database:
@@ -21,6 +22,7 @@ class Database:
         self.telephone = TelephoneDAO(self.provider)
         self.telemetry = TelemetryDAO(self.provider)
         self.voicemails = VoicemailDAO(self.provider)
+        self.ringtones = RingtoneDAO(self.provider)
 
     def initialize(self):
         self.schema.initialize()

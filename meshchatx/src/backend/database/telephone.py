@@ -45,3 +45,6 @@ class TelephoneDAO:
             "SELECT * FROM call_history ORDER BY timestamp DESC LIMIT ?",
             (limit,),
         )
+
+    def clear_call_history(self):
+        self.provider.execute("DELETE FROM call_history")
