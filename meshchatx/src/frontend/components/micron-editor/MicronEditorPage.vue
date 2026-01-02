@@ -51,11 +51,13 @@
                     isMobileView && showEditor ? 'hidden' : '',
                 ]"
             >
+                <!-- eslint-disable vue/no-v-html -->
                 <div
                     ref="previewRef"
                     class="flex-1 overflow-auto text-zinc-100 p-4 font-mono text-sm whitespace-pre-wrap break-words nodeContainer"
                     v-html="renderedContent"
                 ></div>
+                <!-- eslint-enable vue/no-v-html -->
             </div>
         </div>
     </div>
