@@ -147,3 +147,8 @@ Currently supported languages:
 - English (Primary)
 - Russian
 - German
+
+## Credits
+
+- [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
+- [micron-parser-js](https://github.com/RFnexus/micron-parser-js) by [RFnexus](https://github.com/RFnexus)
