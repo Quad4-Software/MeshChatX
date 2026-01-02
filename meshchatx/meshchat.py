@@ -1160,6 +1160,7 @@ class ReticulumMeshChat:
 
             # allow access to auth endpoints and setup page
             public_paths = [
+                "/api/v1/status",
                 "/api/v1/auth/setup",
                 "/api/v1/auth/login",
                 "/api/v1/auth/status",
