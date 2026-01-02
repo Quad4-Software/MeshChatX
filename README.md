@@ -88,7 +88,6 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 - [ ] RNS Tunnel - tunnel your regular services over RNS to another MeshchatX user.
 - [ ] RNS Filesync - P2P file sync
 - [ ] RNS Page Node
-- [x] Micron Editor (w/ [micron-parser](https://github.com/RFnexus/micron-parser) by [RFnexus](https://github.com/RFnexus))
 
 ## Usage
 
@@ -135,7 +134,7 @@ All tasks support environment variable overrides. For example:
 
 ### Python Packaging
 
-The backend uses Poetry with `pyproject.toml` for dependency management and packaging. Before building, run `python3 scripts/sync_version.py` (or `task sync-version`) to ensure the generated `src/version.py` reflects the version from `package.json` that the Electron artifacts use. This keeps the CLI release metadata, wheel packages, and other bundles aligned.
+The backend uses Poetry with `pyproject.toml` for dependency management and packaging. `package.json` is the source of truth for the project version. When you run `task install` (or any task that builds/runs the app), the version is automatically synced to `pyproject.toml` and `src/version.py`. This keeps the CLI release metadata, wheel packages, and other bundles aligned with the Electron build.
 
 #### Build Artifact Locations
 
