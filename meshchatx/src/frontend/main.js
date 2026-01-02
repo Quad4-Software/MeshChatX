@@ -157,6 +157,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/forwarder/ForwarderPage.vue")),
         },
         {
+            name: "micron-editor",
+            path: "/micron-editor",
+            component: defineAsyncComponent(() => import("./components/micron-editor/MicronEditorPage.vue")),
+        },
+        {
             name: "profile.icon",
             path: "/profile/icon",
             component: defineAsyncComponent(() => import("./components/profile/ProfileIconPage.vue")),
