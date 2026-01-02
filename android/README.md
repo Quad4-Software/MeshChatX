@@ -71,7 +71,7 @@ Or open the `android` directory in Android Studio and build from there.
 The server is configured to:
 
 - Run on `127.0.0.1:8000` (localhost only)
-- Use HTTP (not HTTPS) for local WebView access
+- Use HTTPS for local WebView access
 - Run in headless mode (no browser launch)
 
 ## Notes
