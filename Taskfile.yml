@@ -70,8 +70,9 @@ tasks:
         cmds:
             - "{{.PYTHON}} -m poetry run meshchat"
 
-    develop:
+    dev:
         desc: Run the application in development mode
+        deps: [build-frontend]
         cmds:
             - task: run
 
@@ -148,6 +149,14 @@ tasks:
         desc: Sync version numbers across project files
         cmds:
             - "{{.PYTHON}} scripts/sync_version.py"
+
+    fix:
+        desc: Format and fix linting issues (Python and frontend)
+        cmds:
+            - "{{.PYTHON}} -m poetry run ruff format ./"
+            - "{{.PYTHON}} -m poetry run ruff check --fix ./"
+            - "{{.NPM}} run format"
+            - "{{.NPM}} run lint:fix"
 
     build-docker:
         desc: Build Docker image using buildx
