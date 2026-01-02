@@ -1,8 +1,8 @@
 <template>
     <div
         v-if="activeCall"
-        class="fixed bottom-4 right-4 z-[100] w-72 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-all duration-300"
-        :class="{ 'ring-2 ring-red-500 ring-opacity-50': isEnded }"
+        class="fixed bottom-4 right-4 z-[100] w-80 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-all duration-300"
+        :class="{ 'ring-2 ring-red-500 ring-opacity-50': isEnded || wasDeclined }"
     >
         <!-- Header -->
         <div class="p-3 flex items-center bg-gray-50 dark:bg-zinc-800/50 border-b border-gray-100 dark:border-zinc-800">
@@ -105,6 +105,12 @@
                     <span v-else-if="activeCall.status === 6">{{ $t("call.connected") }}</span>
                     <span v-else>{{ $t("call.status") }}: {{ activeCall.status }}</span>
                 </div>
+                <div
+                    v-if="activeCall.status === 6 && !isEnded && elapsedTime"
+                    class="text-xs text-gray-500 dark:text-zinc-400 mt-1 font-mono"
+                >
+                    {{ elapsedTime }}
+                </div>
             </div>
 
             <!-- Stats (only when connected and not minimized) -->
@@ -123,11 +129,11 @@
             </div>
 
             <!-- Controls -->
-            <div v-if="!isEnded" class="flex justify-center space-x-3">
+            <div v-if="!isEnded && !wasDeclined" class="flex flex-wrap justify-center gap-3">
                 <!-- Mute Mic -->
                 <button
                     type="button"
-                    :title="isMicMuted ? 'Unmute Mic' : 'Mute Mic'"
+                    :title="isMicMuted ? $t('call.unmute_mic') : $t('call.mute_mic')"
                     class="p-3 rounded-full transition-all duration-200"
                     :class="
                         isMicMuted
@@ -142,7 +148,7 @@
                 <!-- Mute Speaker -->
                 <button
                     type="button"
-                    :title="isSpeakerMuted ? 'Unmute Speaker' : 'Mute Speaker'"
+                    :title="isSpeakerMuted ? $t('call.unmute_speaker') : $t('call.mute_speaker')"
                     class="p-3 rounded-full transition-all duration-200"
                     :class="
                         isSpeakerMuted
@@ -206,9 +212,17 @@
                     class="size-5 shrink-0"
                 />
                 <MaterialDesignIcon v-else icon-name="account" class="size-5 text-blue-500 shrink-0" />
-                <span class="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate block">
-                    {{ activeCall.remote_identity_name || $t("call.unknown") }}
-                </span>
+                <div class="flex flex-col min-w-0">
+                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate block">
+                        {{ activeCall.remote_identity_name || $t("call.unknown") }}
+                    </span>
+                    <span
+                        v-if="activeCall.status === 6 && elapsedTime"
+                        class="text-[10px] text-gray-500 dark:text-zinc-400 font-mono"
+                    >
+                        {{ elapsedTime }}
+                    </span>
+                </div>
             </div>
             <div class="flex items-center space-x-1">
                 <button
@@ -260,6 +274,7 @@ export default {
     data() {
         return {
             isMinimized: false,
+            elapsedTimeInterval: null,
         };
     },
     computed: {
@@ -269,6 +284,23 @@ export default {
         isSpeakerMuted() {
             return this.activeCall?.is_speaker_muted ?? false;
         },
+        elapsedTime() {
+            if (!this.activeCall?.call_start_time) {
+                return null;
+            }
+            const elapsed = Math.floor(Date.now() / 1000 - this.activeCall.call_start_time);
+            return Utils.formatMinutesSeconds(elapsed);
+        },
+    },
+    mounted() {
+        this.elapsedTimeInterval = setInterval(() => {
+            this.$forceUpdate();
+        }, 1000);
+    },
+    beforeUnmount() {
+        if (this.elapsedTimeInterval) {
+            clearInterval(this.elapsedTimeInterval);
+        }
     },
     methods: {
         formatDestinationHash(hash) {

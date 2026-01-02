@@ -135,6 +135,12 @@
                                         </span>
                                     </template>
                                 </div>
+                                <div
+                                    v-if="activeCall && activeCall.status === 6 && !isCallEnded && elapsedTime"
+                                    class="text-gray-500 dark:text-zinc-400 mb-4 text-center font-mono text-lg"
+                                >
+                                    {{ elapsedTime }}
+                                </div>
 
                                 <!-- settings during connected call -->
                                 <div v-if="activeCall && activeCall.status === 6" class="mb-4">
@@ -209,16 +215,16 @@
                                 </div>
 
                                 <!-- actions -->
-                                <div v-if="activeCall" class="mx-auto space-x-4">
+                                <div v-if="activeCall" class="flex flex-wrap justify-center gap-4 mt-6">
                                     <!-- answer call -->
                                     <button
                                         v-if="activeCall.is_incoming && activeCall.status === 4"
                                         :title="$t('call.answer_call')"
                                         type="button"
-                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-green-600 px-6 py-4 text-lg font-bold text-white shadow-xl hover:bg-green-500 transition-all duration-200 animate-bounce"
+                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-green-600 px-5 py-3 text-base font-bold text-white shadow-xl hover:bg-green-500 transition-all duration-200 animate-bounce"
                                         @click="answerCall"
                                     >
-                                        <MaterialDesignIcon icon-name="phone" class="size-6" />
+                                        <MaterialDesignIcon icon-name="phone" class="size-5" />
                                         <span>{{ $t("call.accept") }}</span>
                                     </button>
 
@@ -227,10 +233,10 @@
                                         v-if="activeCall.is_incoming && activeCall.status === 4"
                                         :title="$t('call.send_to_voicemail')"
                                         type="button"
-                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-blue-600 px-6 py-4 text-lg font-bold text-white shadow-xl hover:bg-blue-500 transition-all duration-200"
+                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-blue-600 px-5 py-3 text-base font-bold text-white shadow-xl hover:bg-blue-500 transition-all duration-200"
                                         @click="sendToVoicemail"
                                     >
-                                        <MaterialDesignIcon icon-name="voicemail" class="size-6" />
+                                        <MaterialDesignIcon icon-name="voicemail" class="size-5" />
                                         <span>{{ $t("call.send_to_voicemail") }}</span>
                                     </button>
 
@@ -242,10 +248,10 @@
                                                 : $t('call.hangup_call')
                                         "
                                         type="button"
-                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-red-600 px-6 py-4 text-lg font-bold text-white shadow-xl hover:bg-red-500 transition-all duration-200"
+                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-red-600 px-5 py-3 text-base font-bold text-white shadow-xl hover:bg-red-500 transition-all duration-200"
                                         @click="hangupCall"
                                     >
-                                        <MaterialDesignIcon icon-name="phone-hangup" class="size-6 rotate-[135deg]" />
+                                        <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-[135deg]" />
                                         <span>{{
                                             activeCall.is_incoming && activeCall.status === 4
                                                 ? $t("call.decline")
@@ -926,6 +932,7 @@ export default {
             ringtones: [],
             editingRingtoneId: null,
             editingRingtoneName: "",
+            elapsedTimeInterval: null,
         };
     },
     computed: {
@@ -934,6 +941,13 @@ export default {
         },
         isSpeakerMuted() {
             return this.activeCall?.is_speaker_muted ?? false;
+        },
+        elapsedTime() {
+            if (!this.activeCall?.call_start_time) {
+                return null;
+            }
+            const elapsed = Math.floor(Date.now() / 1000 - this.activeCall.call_start_time);
+            return Utils.formatMinutesSeconds(elapsed);
         },
     },
     mounted() {
@@ -959,6 +973,11 @@ export default {
             this.getVoicemails();
         }, 10000);
 
+        // update elapsed time every second
+        this.elapsedTimeInterval = setInterval(() => {
+            this.$forceUpdate();
+        }, 1000);
+
         // autofill destination hash from query string
         const urlParams = new URLSearchParams(window.location.search);
         const destinationHash = urlParams.get("destination_hash");
@@ -969,6 +988,7 @@ export default {
     beforeUnmount() {
         if (this.statusInterval) clearInterval(this.statusInterval);
         if (this.historyInterval) clearInterval(this.historyInterval);
+        if (this.elapsedTimeInterval) clearInterval(this.elapsedTimeInterval);
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
         if (this.audioPlayer) {
             this.audioPlayer.pause();
