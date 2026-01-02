@@ -1,0 +1,118 @@
+name: Build Android APK
+
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Release version (e.g., v1.0.0)"
+                required: false
+                type: string
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+    build-android:
+        name: Build Android APK
+        runs-on: ubuntu-latest
+        steps:
+            - name: Clone Repo
+              uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  fetch-depth: 0
+
+            - name: Determine version
+              id: version
+              run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+                    echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+                  elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+                    VERSION="${GITHUB_REF#refs/tags/}"
+                    echo "version=${VERSION}" >> $GITHUB_OUTPUT
+                  else
+                    SHORT_SHA=$(git rev-parse --short HEAD)
+                    echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
+                  fi
+
+            - name: Set up JDK 17
+              uses: https://git.quad4.io/actions/setup-java@f905b4359421f885fd1d195484604c02d27cefed # v5.1.0
+              with:
+                  distribution: "zulu"
+                  java-version: "17"
+
+            - name: Install NodeJS
+              uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+              with:
+                  node-version: 22
+
+            - name: Install Python
+              uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+              with:
+                  python-version: "3.13"
+
+            - name: Install Poetry
+              run: python -m pip install --upgrade pip poetry>=2.0.0
+
+            - name: Install pnpm
+              uses: https://git.quad4.io/actions/setup-pnpm@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+              with:
+                  version: 10.0.0
+
+            - name: Install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng cmake ninja-build clang pkg-config
+
+            - name: Setup Task
+              uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
+              with:
+                  version: "3.46.3"
+
+            - name: Sync versions
+              run: python scripts/sync_version.py
+
+            - name: Install dependencies
+              run: task install
+
+            - name: Build Frontend and Prepare Android
+              run: task android-prepare
+
+            - name: Build Android APK
+              run: |
+                  cd android
+                  ./gradlew assembleDebug
+              env:
+                  JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+
+            - name: Prepare release assets
+              run: |
+                  mkdir -p release-assets
+                  # Collect APK
+                  find android/app/build/outputs/apk/debug -name "*.apk" -exec cp {} release-assets/MeshChatX-${{ steps.version.outputs.version }}-debug.apk \;
+
+                  # Generate checksums
+                  cd release-assets
+                  for file in *; do
+                    if [ -f "$file" ]; then
+                      sha256sum "$file" | tee "${file}.sha256"
+                    fi
+                  done
+
+            - name: Upload APK artifact
+              uses: https://git.quad4.io/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+              with:
+                  name: meshchatx-android-apk
+                  path: release-assets/*
+
+            - name: Create Release
+              if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+              uses: https://git.quad4.io/actions/gitea-release-action@4875285c0950474efb7ca2df55233c51333eeb74 # v1
+              with:
+                  api_url: ${{ secrets.GITEA_API_URL }}
+                  gitea_token: ${{ secrets.GITEA_TOKEN }}
+                  title: Android Build ${{ steps.version.outputs.version }}
+                  tag: ${{ steps.version.outputs.version }}-android
+                  files: "release-assets/*"
+                  draft: false
+                  prerelease: false
