@@ -51,8 +51,8 @@ tasks:
             - task --list
 
     install:
-        desc: Install all dependencies (syncs version, installs node modules and python deps)
-        deps: [sync-version, node_modules, python]
+        desc: Install all dependencies (installs node modules and python deps)
+        deps: [node_modules, python]
 
     node_modules:
         desc: Install Node.js dependencies
@@ -143,12 +143,8 @@ tasks:
             - rm -rf dist
             - rm -rf python-dist
             - rm -rf meshchatx/public
+            - rm -rf build-dir
             - task: android-clean
-
-    sync-version:
-        desc: Sync version numbers across project files
-        cmds:
-            - "{{.PYTHON}} scripts/sync_version.py"
 
     fix:
         desc: Format and fix linting issues (Python and frontend)
