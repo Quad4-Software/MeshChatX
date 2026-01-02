@@ -140,6 +140,13 @@
 
             <div ref="mapContainer" class="absolute inset-0" :class="{ 'cursor-crosshair': isExportMode }"></div>
 
+            <!-- loading skeleton for map -->
+            <div v-if="!isMapLoaded" class="absolute inset-0 z-0 bg-slate-100 dark:bg-zinc-900 animate-pulse">
+                <div class="grid grid-cols-4 grid-rows-4 h-full w-full gap-1 p-1 opacity-20">
+                    <div v-for="i in 16" :key="i" class="bg-slate-300 dark:bg-zinc-700 rounded-lg"></div>
+                </div>
+            </div>
+
             <!-- telemetry marker overlay -->
             <div
                 v-if="selectedMarker"
@@ -718,6 +725,7 @@ export default {
             // MBTiles management
             mbtilesList: [],
             mbtilesDir: "",
+            isMapLoaded: false,
         };
     },
     computed: {
@@ -909,6 +917,7 @@ export default {
             });
 
             this.map.addInteraction(this.dragBox);
+            this.isMapLoaded = true;
         },
         isLocalUrl(url) {
             if (!url) return false;
