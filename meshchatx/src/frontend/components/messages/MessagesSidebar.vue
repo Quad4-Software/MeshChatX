@@ -35,13 +35,23 @@
         >
             <!-- search + filters -->
             <div v-if="conversations.length > 0" class="p-1 border-b border-gray-300 dark:border-zinc-700 space-y-2">
-                <input
-                    :value="conversationSearchTerm"
-                    type="text"
-                    :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
-                    class="input-field"
-                    @input="onConversationSearchInput"
-                />
+                <div class="flex gap-1">
+                    <input
+                        :value="conversationSearchTerm"
+                        type="text"
+                        :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
+                        class="input-field flex-1"
+                        @input="onConversationSearchInput"
+                    />
+                    <button
+                        type="button"
+                        class="p-2 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                        title="Ingest Paper Message"
+                        @click="openIngestPaperMessageModal"
+                    >
+                        <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
+                    </button>
+                </div>
                 <div class="flex flex-wrap gap-1">
                     <button type="button" :class="filterChipClasses(filterUnreadOnly)" @click="toggleFilter('unread')">
                         {{ $t("messages.unread") }}
@@ -61,7 +71,18 @@
 
             <!-- conversations -->
             <div class="flex h-full overflow-y-auto">
-                <div v-if="displayedConversations.length > 0" class="w-full">
+                <div v-if="isLoading" class="w-full divide-y divide-gray-100 dark:divide-zinc-800">
+                    <div v-for="i in 6" :key="i" class="p-3 animate-pulse">
+                        <div class="flex gap-3">
+                            <div class="size-10 rounded bg-gray-200 dark:bg-zinc-800"></div>
+                            <div class="flex-1 space-y-2 py-1">
+                                <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded w-3/4"></div>
+                                <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-else-if="displayedConversations.length > 0" class="w-full">
                     <div
                         v-for="conversation of displayedConversations"
                         :key="conversation.destination_hash"
@@ -149,7 +170,7 @@
                                 />
                             </svg>
                         </div>
-                        <div class="font-semibold">Loading conversations…</div>
+                        <div class="font-semibold">{{ $t("messages.loading_conversations") }}</div>
                     </div>
 
                     <!-- no conversations at all -->
@@ -375,7 +396,13 @@ export default {
             default: false,
         },
     },
-    emits: ["conversation-click", "peer-click", "conversation-search-changed", "conversation-filter-changed"],
+    emits: [
+        "conversation-click",
+        "peer-click",
+        "conversation-search-changed",
+        "conversation-filter-changed",
+        "ingest-paper-message",
+    ],
     data() {
         return {
             tab: "conversations",
@@ -409,6 +436,9 @@ export default {
         },
     },
     methods: {
+        openIngestPaperMessageModal() {
+            this.$emit("ingest-paper-message");
+        },
         onConversationClick(conversation) {
             this.$emit("conversation-click", conversation);
         },
