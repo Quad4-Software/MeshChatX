@@ -8,7 +8,9 @@ FROM node:${NODE_VERSION}-alpine@${NODE_ALPINE_SHA256} AS build-frontend
 WORKDIR /src
 
 COPY package.json vite.config.js pnpm-lock.yaml tailwind.config.js postcss.config.js ./
-COPY meshchatx ./meshchatx
+# Copy only the frontend source and version info to speed up builds and reduce image size
+COPY meshchatx/src/frontend ./meshchatx/src/frontend
+COPY meshchatx/src/version.py ./meshchatx/src/version.py
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
