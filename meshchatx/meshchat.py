@@ -3040,6 +3040,7 @@ class ReticulumMeshChat:
                     "is_speaker_muted": self.telephone_manager.telephone.receive_muted,
                     "is_voicemail": self.voicemail_manager.is_recording,
                     "call_start_time": self.telephone_manager.call_start_time,
+                    "is_contact": bool(self.database.contacts.get_contact_by_identity_hash(remote_identity_hash)) if remote_identity_hash else False,
                 }
 
             return web.json_response(
@@ -3150,6 +3151,7 @@ class ReticulumMeshChat:
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
                             d["remote_icon"] = dict(icon)
+                    d["is_contact"] = bool(self.database.contacts.get_contact_by_identity_hash(remote_identity_hash))
                 call_history.append(d)
 
             return web.json_response(
@@ -3630,6 +3632,12 @@ class ReticulumMeshChat:
             contact_id = int(request.match_info["id"])
             self.database.contacts.delete_contact(contact_id)
             return web.json_response({"message": "Contact deleted"})
+
+        @routes.get("/api/v1/telephone/contacts/check/{identity_hash}")
+        async def telephone_contacts_check(request):
+            identity_hash = request.match_info["identity_hash"]
+            contact = self.database.contacts.get_contact_by_identity_hash(identity_hash)
+            return web.json_response({"is_contact": contact is not None, "contact": dict(contact) if contact else None})
 
         # announce
         @routes.get("/api/v1/announce")

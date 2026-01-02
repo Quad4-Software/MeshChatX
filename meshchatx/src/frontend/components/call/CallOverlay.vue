@@ -69,6 +69,12 @@
                     <div class="font-bold text-gray-900 dark:text-white truncate px-2">
                         {{ activeCall.remote_identity_name || $t("call.unknown") }}
                     </div>
+                    <div
+                        v-if="activeCall.is_contact"
+                        class="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5"
+                    >
+                        In contacts
+                    </div>
                     <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate px-4">
                         {{
                             activeCall.remote_identity_hash

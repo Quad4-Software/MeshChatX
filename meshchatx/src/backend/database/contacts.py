@@ -58,3 +58,9 @@ class ContactsDAO:
     def delete_contact(self, contact_id):
         self.provider.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
 
+    def get_contact_by_identity_hash(self, remote_identity_hash):
+        return self.provider.fetchone(
+            "SELECT * FROM contacts WHERE remote_identity_hash = ?",
+            (remote_identity_hash,),
+        )
+

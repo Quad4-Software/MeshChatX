@@ -100,6 +100,12 @@
                                         }}</span>
                                         <span v-else>{{ $t("call.unknown") }}</span>
                                     </div>
+                                    <div
+                                        v-if="(activeCall || lastCall)?.is_contact"
+                                        class="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1"
+                                    >
+                                        In contacts
+                                    </div>
 
                                     <!-- identity hash -->
                                     <div
@@ -393,16 +399,27 @@
                                                         {{ entry.remote_identity_hash }}
                                                     </div>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    class="text-[10px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-tighter ml-4"
-                                                    @click="
-                                                        destinationHash = entry.remote_identity_hash;
-                                                        call(destinationHash);
-                                                    "
-                                                >
-                                                    Call Back
-                                                </button>
+                                                <div class="flex items-center gap-1">
+                                                    <button
+                                                        v-if="!entry.is_contact"
+                                                        type="button"
+                                                        class="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"
+                                                        :title="'Add to contacts'"
+                                                        @click="addContactFromHistory(entry)"
+                                                    >
+                                                        <MaterialDesignIcon icon-name="account-plus" class="size-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="text-[10px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-tighter"
+                                                        @click="
+                                                            destinationHash = entry.remote_identity_hash;
+                                                            call(destinationHash);
+                                                        "
+                                                    >
+                                                        Call Back
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1210,6 +1227,21 @@ export default {
                 }
             } catch (e) {
                 console.log(e);
+            }
+        },
+        async addContactFromHistory(entry) {
+            const name = prompt("Enter contact name:", entry.remote_identity_name || "");
+            if (!name) return;
+            try {
+                await window.axios.post("/api/v1/telephone/contacts", {
+                    name: name,
+                    remote_identity_hash: entry.remote_identity_hash,
+                });
+                ToastUtils.success("Contact added");
+                this.getHistory();
+                this.getContacts();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || "Failed to add contact");
             }
         },
         async getHistory() {
