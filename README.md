@@ -76,9 +76,6 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 ### Identity Management
 ![Identities](screenshots/identities.png)
 
-### Overview
-![Overview](screenshots/screenshot.png)
-
 </details>
 
 ## TODO
