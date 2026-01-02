@@ -229,3 +229,37 @@ class MiscDAO:
             "SELECT * FROM archived_pages WHERE id = ?",
             (archive_id,),
         )
+
+    # Notifications
+    def add_notification(self, type, remote_hash, title, content):
+        now = datetime.now(UTC)
+        timestamp = datetime.now(UTC).timestamp()
+        self.provider.execute(
+            "INSERT INTO notifications (type, remote_hash, title, content, timestamp, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (type, remote_hash, title, content, timestamp, now),
+        )
+
+    def get_notifications(self, filter_unread=False, limit=50):
+        query = "SELECT * FROM notifications"
+        params = []
+        if filter_unread:
+            query += " WHERE is_viewed = 0"
+        query += " ORDER BY timestamp DESC LIMIT ?"
+        params.append(limit)
+        return self.provider.fetchall(query, params)
+
+    def mark_notifications_as_viewed(self, notification_ids=None):
+        if notification_ids:
+            placeholders = ", ".join(["?"] * len(notification_ids))
+            self.provider.execute(
+                f"UPDATE notifications SET is_viewed = 1 WHERE id IN ({placeholders})",
+                notification_ids,
+            )
+        else:
+            self.provider.execute("UPDATE notifications SET is_viewed = 1")
+
+    def get_unread_notification_count(self):
+        row = self.provider.fetchone(
+            "SELECT COUNT(*) as count FROM notifications WHERE is_viewed = 0",
+        )
+        return row["count"] if row else 0
