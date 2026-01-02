@@ -6980,6 +6980,7 @@ class ReticulumMeshChat:
         # Try to find associated LXMF destination hash if this is a telephony announce
         lxmf_destination_hash = None
         if announce["aspect"] == "lxst.telephony" and announce.get("identity_hash"):
+            # 1. Check if we already have an LXMF announce for this identity
             lxmf_announces = self.database.announces.get_filtered_announces(
                 aspect="lxmf.delivery",
                 search_term=announce["identity_hash"],
@@ -6992,6 +6993,20 @@ class ReticulumMeshChat:
                         if not display_name or display_name == "Anonymous Peer":
                             display_name = self.parse_lxmf_display_name(lxmf_a["app_data"])
                         break
+
+            # 2. If not found in announces, try to recall identity and calculate LXMF hash
+            if not lxmf_destination_hash:
+                try:
+                    identity_hash_bytes = bytes.fromhex(announce["identity_hash"])
+                    identity = RNS.Identity.recall(identity_hash_bytes)
+                    if identity:
+                        lxmf_destination_hash = RNS.Destination.hash(
+                            identity,
+                            "lxmf",
+                            "delivery",
+                        ).hex()
+                except Exception:
+                    pass
 
         # find lxmf user icon from database
         lxmf_user_icon = None
