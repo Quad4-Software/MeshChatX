@@ -47,10 +47,10 @@
                         @drop.prevent="onFavouriteDrop($event, favourite)"
                         @dragend="onFavouriteDragEnd"
                     >
-                        <div class="favourite-card__icon">
+                        <div class="favourite-card__icon flex-shrink-0">
                             <MaterialDesignIcon icon-name="server-network" class="w-5 h-5" />
                         </div>
-                        <div class="flex-1">
+                        <div class="min-w-0 flex-1">
                             <div
                                 class="text-sm font-semibold text-gray-900 dark:text-white truncate"
                                 :title="favourite.display_name"
