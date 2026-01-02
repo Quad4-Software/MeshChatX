@@ -3,15 +3,34 @@ import mitt from "mitt";
 class WebSocketConnection {
     constructor() {
         this.emitter = mitt();
-        this.reconnect();
+        this.isDemoMode = false;
+        this.ws = null;
+        this.pingInterval = null;
+        this.initialized = false;
+        this.checkDemoModeAndConnect();
+    }
 
-        /**
-         * ping websocket server every 30 seconds
-         * this helps to prevent the underlying tcp connection from going stale when there's no traffic for a long time
-         */
-        setInterval(() => {
-            this.ping();
-        }, 30000);
+    async checkDemoModeAndConnect() {
+        if (typeof window === "undefined" || !window.axios) {
+            setTimeout(() => this.checkDemoModeAndConnect(), 100);
+            return;
+        }
+
+        try {
+            const response = await window.axios.get("/api/v1/app/info");
+            this.isDemoMode = response.data.app_info?.is_demo === true;
+        } catch (e) {
+            // If we can't check, assume not demo mode and try to connect
+        }
+
+        this.initialized = true;
+
+        if (!this.isDemoMode) {
+            this.reconnect();
+            this.pingInterval = setInterval(() => {
+                this.ping();
+            }, 30000);
+        }
     }
 
     // add event listener
@@ -30,15 +49,21 @@ class WebSocketConnection {
     }
 
     reconnect() {
+        if (!this.initialized || this.isDemoMode) {
+            return;
+        }
+
         // connect to websocket
         const wsUrl = location.origin.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
         this.ws = new WebSocket(wsUrl);
 
         // auto reconnect when websocket closes
         this.ws.addEventListener("close", () => {
-            setTimeout(() => {
-                this.reconnect();
-            }, 1000);
+            if (!this.isDemoMode) {
+                setTimeout(() => {
+                    this.reconnect();
+                }, 1000);
+            }
         });
 
         // emit data received from websocket
@@ -54,6 +79,9 @@ class WebSocketConnection {
     }
 
     ping() {
+        if (this.isDemoMode) {
+            return;
+        }
         try {
             this.send(
                 JSON.stringify({
