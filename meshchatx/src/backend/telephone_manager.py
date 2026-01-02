@@ -6,6 +6,15 @@ from LXST import Telephone
 
 
 class TelephoneManager:
+    # LXST Status Constants for reference:
+    # 0: STATUS_BUSY
+    # 1: STATUS_REJECTED
+    # 2: STATUS_CALLING
+    # 3: STATUS_AVAILABLE
+    # 4: STATUS_RINGING
+    # 5: STATUS_CONNECTING
+    # 6: STATUS_ESTABLISHED
+
     def __init__(self, identity: RNS.Identity, config_manager=None):
         self.identity = identity
         self.config_manager = config_manager

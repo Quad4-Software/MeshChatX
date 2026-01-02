@@ -213,7 +213,7 @@ class VoicemailManager:
                 and telephone.active_call
                 and telephone.active_call.get_remote_identity().hash
                 == caller_identity.hash
-                and telephone.call_status == LXST.Signalling.STATUS_RINGING
+                and telephone.call_status == 4 # Ringing
             ):
                 RNS.log(
                     f"Auto-answering call from {RNS.prettyhexrep(caller_identity.hash)} for voicemail",

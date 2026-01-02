@@ -3047,6 +3047,7 @@ class ReticulumMeshChat:
                     "is_mic_muted": self.telephone_manager.telephone.transmit_muted,
                     "is_speaker_muted": self.telephone_manager.telephone.receive_muted,
                     "is_voicemail": self.voicemail_manager.is_recording,
+                    "call_start_time": self.telephone_manager.call_start_time,
                 }
 
             return web.json_response(
