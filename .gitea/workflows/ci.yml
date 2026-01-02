@@ -6,9 +6,6 @@ on:
             - "*"
     workflow_dispatch:
 
-env:
-    UV_LINK_MODE: copy
-
 jobs:
     lint:
         runs-on: ubuntu-latest
@@ -28,10 +25,8 @@ jobs:
               uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
               with:
                   version: "3.46.3"
-            - name: Setup uv
-              run: |
-                  task setup-uv
-                  echo "$HOME/.local/bin" >> $GITHUB_PATH
+            - name: Setup Poetry
+              run: pip install poetry
             - name: Setup Python environment
               run: task setup-python-env
             - name: Install Node dependencies
