@@ -4029,7 +4029,7 @@ class ReticulumMeshChat:
                                 new_cmd[int(k, 16)] = v
                             else:
                                 new_cmd[int(k)] = v
-                        except:
+                        except (ValueError, TypeError):
                             new_cmd[k] = v
                     commands.append(new_cmd)
 
