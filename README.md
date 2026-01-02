@@ -1,34 +1,40 @@
 # Reticulum MeshChatX
 
-A heavily customized and updated fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat).
+A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork from the future.
 
-This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project. It has been completely reworked, but I try to maintain a migrator to auto-migrate from old database to new one.
+This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project. 
+
+> [!WARNING]  
+> Backup your reticulum-meshchat folder before using, even though MeshChatX will attempt to auto-migrate whatever it can from the old database without breaking things. Its best to keep backups.
+
 
 ## Major Features
 
-- Full LXST support w/ custom voicemail support (espeak-ng and ffmpeg required).
-- Map (w/ MBTiles support for offline)
-- Security improvements
-- Custom UI/UX
-- More Tools
-- Built-in page archiving and automatic crawler (no multi-page support yet).
-- Block LXMF users and NomadNet Nodes
+- Full LXST support w/ custom voicemail, phonebook, contacts, contact sharing and ringtone support.
+- Multi-identity support.
+- Authentication
+- Map (OpenLayers w/ MBTiles upload and exporter for offline maps)
+- Security improvements (automatic HTTPS, CORS, and much more)
+- Modern Custom UI/UX
+- More Tools (RNStatus, RNProbe, RNCP and Translator)
+- Built-in page archiving and automatic crawler.
+- Block LXMF users, Telephony and NomadNet Nodes
 - Toast system for notifications
 - i18n support (En, De, Ru)
 - Raw SQLite database backend (replaced Peewee ORM)
+- LXMF Telemetry (WIP)
 
 ## TODO
 
 - [ ] Tests and proper CI/CD pipeline.
 - [ ] RNS hot reload fix
-- [ ] Backup/Import identities, messages and interfaces.
 - [ ] Offline Reticulum documentation tool
-- [ ] LXMF Telemtry for map
 - [ ] Spam filter (based on keywords)
-- [ ] Multi-identity support.
 - [ ] TAK tool/integration
 - [ ] RNS Tunnel - tunnel your regular services over RNS to another MeshchatX user.
 - [ ] RNS Filesync - P2P file sync
+- [ ] RNS Page Node
+- [ ] Micron Editor 
 
 ## Usage
 
