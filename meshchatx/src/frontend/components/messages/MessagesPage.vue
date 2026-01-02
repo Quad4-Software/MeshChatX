@@ -15,6 +15,7 @@
             @peer-click="onPeerClick"
             @conversation-search-changed="onConversationSearchChanged"
             @conversation-filter-changed="onConversationFilterChanged"
+            @ingest-paper-message="openIngestPaperMessageModal"
         />
 
         <div
@@ -31,6 +32,66 @@
                 @reload-conversations="getConversations"
             />
         </div>
+
+        <!-- Ingest Paper Message Modal -->
+        <div
+            v-if="isIngestModalOpen"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            @click.self="isIngestModalOpen = false"
+        >
+            <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Ingest Paper Message</h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        @click="isIngestModalOpen = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-600 dark:text-zinc-400 mb-4">
+                        You can read LXMF paper messages by scanning a QR code or pasting an <strong>lxmf://</strong> or
+                        <strong>lxm://</strong> link.
+                    </p>
+                    <div class="space-y-4">
+                        <div>
+                            <label
+                                class="block text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
+                            >
+                                LXMF URI
+                            </label>
+                            <div class="flex gap-2">
+                                <input
+                                    v-model="ingestUri"
+                                    type="text"
+                                    placeholder="lxmf://..."
+                                    class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                    @keydown.enter="ingestPaperMessage"
+                                />
+                                <button
+                                    type="button"
+                                    class="px-3 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                    title="Paste from Clipboard"
+                                    @click="pasteFromClipboard"
+                                >
+                                    <MaterialDesignIcon icon-name="clipboard-text-outline" class="size-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
+                            :disabled="!ingestUri"
+                            @click="ingestPaperMessage"
+                        >
+                            Read LXM
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -41,6 +102,7 @@ import ConversationViewer from "./ConversationViewer.vue";
 import GlobalState from "../../js/GlobalState";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "MessagesPage",
@@ -72,6 +134,9 @@ export default {
             filterFailedOnly: false,
             filterHasAttachmentsOnly: false,
             isLoadingConversations: false,
+
+            isIngestModalOpen: false,
+            ingestUri: "",
         };
     },
     computed: {
@@ -188,6 +253,19 @@ export default {
                 case "lxmf.delivery": {
                     // reload conversations when a new message is received
                     await this.getConversations();
+                    break;
+                }
+                case "lxm.ingest_uri.result": {
+                    if (json.status === "success") {
+                        ToastUtils.success(json.message);
+                        await this.getConversations();
+                    } else if (json.status === "error") {
+                        ToastUtils.error(json.message);
+                    } else if (json.status === "warning") {
+                        ToastUtils.warning(json.message);
+                    } else {
+                        ToastUtils.info(json.message);
+                    }
                     break;
                 }
             }
@@ -327,6 +405,32 @@ export default {
                 this.filterHasAttachmentsOnly = !this.filterHasAttachmentsOnly;
             }
             this.requestConversationsRefresh();
+        },
+        openIngestPaperMessageModal() {
+            this.ingestUri = "";
+            this.isIngestModalOpen = true;
+        },
+        async pasteFromClipboard() {
+            try {
+                this.ingestUri = await navigator.clipboard.readText();
+            } catch {
+                ToastUtils.error("Failed to read from clipboard");
+            }
+        },
+        async ingestPaperMessage() {
+            if (!this.ingestUri) return;
+
+            try {
+                WebSocketConnection.send(
+                    JSON.stringify({
+                        type: "lxm.ingest_uri",
+                        uri: this.ingestUri,
+                    })
+                );
+                this.isIngestModalOpen = false;
+            } catch {
+                ToastUtils.error("Failed to send ingest request");
+            }
         },
         getHashPopoutValue() {
             const hash = window.location.hash || "";
