@@ -118,7 +118,8 @@
         "reveal": "Anzeigen",
         "refresh": "Aktualisieren",
         "vacuum": "Vakuumieren",
-        "auto_recover": "Automatisch wiederherstellen"
+        "auto_recover": "Automatisch wiederherstellen",
+        "delete_confirm": "Sind Sie sicher, dass Sie dies löschen möchten? Dies kann nicht rückgängig gemacht werden."
     },
     "about": {
         "title": "Über",
@@ -606,6 +607,21 @@
         "failed_to_generate_greeting": "Begrüßung konnte nicht generiert werden",
         "no_greeting_audio_found": "Keine Begrüßungs-Audio gefunden. Bitte generieren Sie zuerst eine.",
         "voicemail_deleted": "Sprachnachricht gelöscht",
-        "failed_to_delete_voicemail": "Sprachnachricht konnte nicht gelöscht werden"
+        "failed_to_delete_voicemail": "Sprachnachricht konnte nicht gelöscht werden",
+        "ringtone": "Klingelton",
+        "ringtone_settings": "Klingelton-Einstellungen",
+        "enable_custom_ringtone": "Benutzerdefinierten Klingelton aktivieren",
+        "enable_custom_ringtone_description": "Eine benutzerdefinierte Audiodatei für alle eingehenden Anrufe abspielen",
+        "upload_ringtone": "Klingelton hochladen",
+        "uploading_ringtone": "Klingelton wird hochgeladen...",
+        "no_custom_ringtone_uploaded": "Kein benutzerdefinierter Klingelton hochgeladen",
+        "supports_audio_formats": "Unterstützt MP3, OGG, WAV, M4A, FLAC. Wird in Opus konvertiert.",
+        "preview_ringtone": "Klingelton-Vorschau",
+        "remove_ringtone": "Klingelton entfernen",
+        "ringtone_uploaded_successfully": "Klingelton erfolgreich hochgeladen",
+        "failed_to_upload_ringtone": "Klingelton konnte nicht hochgeladen werden",
+        "ringtone_deleted": "Klingelton gelöscht",
+        "failed_to_delete_ringtone": "Klingelton konnte nicht gelöscht werden",
+        "no_ringtone_audio_found": "Keine Klingelton-Audio gefunden. Bitte laden Sie zuerst eine hoch."
     }
 }

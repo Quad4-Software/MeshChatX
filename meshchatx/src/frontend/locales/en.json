@@ -12,6 +12,7 @@
         "interfaces": "Interfaces",
         "tools": "Tools",
         "settings": "Settings",
+        "identities": "Identities",
         "about": "About",
         "my_identity": "My Identity",
         "identity_hash": "Identity Hash",
@@ -118,7 +119,26 @@
         "reveal": "Reveal",
         "refresh": "Refresh",
         "vacuum": "Vacuum",
-        "auto_recover": "Auto Recover"
+        "auto_recover": "Auto Recover",
+        "delete_confirm": "Are you sure you want to delete this? This cannot be undone."
+    },
+    "identities": {
+        "title": "Identities",
+        "manage": "Manage and switch between multiple Reticulum identities.",
+        "new_identity": "New Identity",
+        "generate_fresh": "Generate a fresh Reticulum identity.",
+        "display_name": "Display Name",
+        "display_name_hint": "e.g. Secret Agent",
+        "current": "Current",
+        "switch": "Switch to this identity",
+        "delete": "Delete identity",
+        "no_identities": "No identities found",
+        "create_first": "Create a new identity to get started.",
+        "switch_confirm": "Switch to identity \"{name}\"? The application will need to restart.",
+        "delete_confirm": "Are you sure you want to delete identity \"{name}\"? This cannot be undone.",
+        "switched": "Identity switched. The application will now restart to apply changes.",
+        "created": "Identity created successfully",
+        "deleted": "Identity deleted"
     },
     "about": {
         "title": "About",
@@ -611,6 +631,21 @@
         "failed_to_generate_greeting": "Failed to generate greeting",
         "no_greeting_audio_found": "No greeting audio found. Please generate one first.",
         "voicemail_deleted": "Voicemail deleted",
-        "failed_to_delete_voicemail": "Failed to delete voicemail"
+        "failed_to_delete_voicemail": "Failed to delete voicemail",
+        "ringtone": "Ringtone",
+        "ringtone_settings": "Ringtone Settings",
+        "enable_custom_ringtone": "Enable Custom Ringtone",
+        "enable_custom_ringtone_description": "Play a custom audio file for all incoming calls",
+        "upload_ringtone": "Upload Ringtone",
+        "uploading_ringtone": "Uploading Ringtone...",
+        "no_custom_ringtone_uploaded": "No custom ringtone uploaded",
+        "supports_audio_formats": "Supports MP3, OGG, WAV, M4A, FLAC. Will be converted to Opus.",
+        "preview_ringtone": "Preview Ringtone",
+        "remove_ringtone": "Remove Ringtone",
+        "ringtone_uploaded_successfully": "Ringtone uploaded successfully",
+        "failed_to_upload_ringtone": "Failed to upload ringtone",
+        "ringtone_deleted": "Ringtone deleted",
+        "failed_to_delete_ringtone": "Failed to delete ringtone",
+        "no_ringtone_audio_found": "No ringtone audio found. Please upload one first."
     }
 }

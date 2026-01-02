@@ -118,7 +118,8 @@
         "reveal": "Показать",
         "refresh": "Обновить",
         "vacuum": "Сжать базу",
-        "auto_recover": "Автовосстановление"
+        "auto_recover": "Автовосстановление",
+        "delete_confirm": "Вы уверены, что хотите удалить это? Это действие нельзя отменить."
     },
     "about": {
         "title": "О программе",
@@ -606,6 +607,21 @@
         "failed_to_generate_greeting": "Не удалось создать приветствие",
         "no_greeting_audio_found": "Аудио приветствия не найдено. Пожалуйста, создайте его сначала.",
         "voicemail_deleted": "Голосовое сообщение удалено",
-        "failed_to_delete_voicemail": "Не удалось удалить голосовое сообщение"
+        "failed_to_delete_voicemail": "Не удалось удалить голосовое сообщение",
+        "ringtone": "Рингтон",
+        "ringtone_settings": "Настройки рингтона",
+        "enable_custom_ringtone": "Включить свой рингтон",
+        "enable_custom_ringtone_description": "Воспроизводить свой аудиофайл при всех входящих звонках",
+        "upload_ringtone": "Загрузить рингтон",
+        "uploading_ringtone": "Загрузка рингтона...",
+        "no_custom_ringtone_uploaded": "Свой рингтон не загружен",
+        "supports_audio_formats": "Поддерживаются MP3, OGG, WAV, M4A, FLAC. Будет конвертирован в Opus.",
+        "preview_ringtone": "Прослушать рингтон",
+        "remove_ringtone": "Удалить рингтон",
+        "ringtone_uploaded_successfully": "Рингтон успешно загружен",
+        "failed_to_upload_ringtone": "Не удалось загрузить рингтон",
+        "ringtone_deleted": "Рингтон удален",
+        "failed_to_delete_ringtone": "Не удалось удалить рингтон",
+        "no_ringtone_audio_found": "Аудио рингтона не найдено. Пожалуйста, сначала загрузите его."
     }
 }
