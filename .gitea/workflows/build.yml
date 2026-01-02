@@ -87,19 +87,19 @@ jobs:
             - name: Build Python wheel
               run: task wheel
 
-            - name: Build Electron App (Linux)
-              run: task build-electron-linux
-
-            - name: Build Electron App (Windows)
-              run: task build-electron-windows
+            - name: Build Electron Apps (Linux and Windows)
+              run: task build-electron-all
 
             - name: Prepare release assets
               run: |
                   mkdir -p release-assets
-                  # Collect artifacts
-                  find dist -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" \) -exec cp {} release-assets/ \;
-                  find dist -type f \( -name "*-win*.exe" -o -name "*-win-portable*.exe" \) -exec cp {} release-assets/ \;
-                  find python-dist -type f -name "*.whl" -exec cp {} release-assets/ \;
+                  # Collect artifacts from dist/
+                  # Linux artifacts
+                  find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" \) -exec cp {} release-assets/ \;
+                  # Windows artifacts
+                  find dist -maxdepth 1 -type f \( -name "*-win*.exe" \) -exec cp {} release-assets/ \;
+                  # Python artifacts
+                  find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp {} release-assets/ \;
 
                   # Generate checksums
                   cd release-assets
@@ -117,6 +117,7 @@ jobs:
                     if [ -f "$file" ] && [[ "$file" != *.sha256 ]] && [[ "$file" != *release-body.md* ]]; then
                       filename=$(basename "$file")
                       if [ -f "release-assets/${filename}.sha256" ]; then
+                        # Extract just the filename and its sha256 (format: <sha256> <filename>)
                         echo "\`$(cat "release-assets/${filename}.sha256")\`" >> release-body.md
                       fi
                     fi
