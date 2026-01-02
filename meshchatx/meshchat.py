@@ -7931,7 +7931,7 @@ class ReticulumMeshChat:
             destination_hash,
         )
         if db_destination_display_name is not None:
-            return db_destination_display_name.display_name
+            return db_destination_display_name
 
         return None
 
