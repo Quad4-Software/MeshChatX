@@ -26,6 +26,23 @@ import LXMF
 import LXST
 import psutil
 import RNS
+
+# Patch LXST LinkSource to have a samplerate attribute if missing
+# This avoids AttributeError in sinks that expect it
+try:
+    import LXST.Network
+
+    if hasattr(LXST.Network, "LinkSource"):
+        original_init = LXST.Network.LinkSource.__init__
+
+        def patched_init(self, *args, **kwargs):
+            self.samplerate = 48000  # Default fallback
+            original_init(self, *args, **kwargs)
+
+        LXST.Network.LinkSource.__init__ = patched_init
+except Exception as e:
+    print(f"Failed to patch LXST LinkSource: {e}")
+
 import RNS.vendor.umsgpack as msgpack
 from aiohttp import WSCloseCode, WSMessage, WSMsgType, web
 from aiohttp_session import get_session
@@ -1421,8 +1438,22 @@ class ReticulumMeshChat:
         if self.config.do_not_disturb_enabled.get():
             print(f"Rejecting incoming call due to Do Not Disturb: {caller_hash}")
             if self.telephone_manager.telephone:
-                self.telephone_manager.telephone.hangup()
+                # Use a small delay to ensure LXST state is ready for hangup
+                threading.Timer(
+                    0.5, lambda: self.telephone_manager.telephone.hangup()
+                ).start()
             return
+
+        # Check if only allowing calls from contacts
+        if self.config.telephone_allow_calls_from_contacts_only.get():
+            contact = self.database.contacts.get_contact_by_identity_hash(caller_hash)
+            if not contact:
+                print(f"Rejecting incoming call from non-contact: {caller_hash}")
+                if self.telephone_manager.telephone:
+                    threading.Timer(
+                        0.5, lambda: self.telephone_manager.telephone.hangup()
+                    ).start()
+                return
 
         # Trigger voicemail handling
         self.voicemail_manager.handle_incoming_call(caller_identity)
@@ -1492,18 +1523,41 @@ class ReticulumMeshChat:
 
             # Trigger missed call notification if it was an incoming call that ended while ringing
             if is_incoming and status_code == 4:
-                AsyncUtils.run_async(
-                    self.websocket_broadcast(
-                        json.dumps(
-                            {
-                                "type": "telephone_missed_call",
-                                "remote_identity_hash": remote_identity_hash,
-                                "remote_identity_name": remote_identity_name,
-                                "timestamp": time.time(),
-                            },
-                        ),
-                    ),
+                # Check if we should suppress the notification/websocket message
+                # If DND was on, we still record it but maybe skip the noisy websocket?
+                # Actually, persistent notification is good.
+
+                self.database.misc.add_notification(
+                    type="telephone_missed_call",
+                    remote_hash=remote_identity_hash,
+                    title="Missed Call",
+                    content=f"You missed a call from {remote_identity_name or remote_identity_hash}",
                 )
+
+                # Skip websocket broadcast if DND or contacts-only was likely the reason
+                is_filtered = False
+                if self.config.do_not_disturb_enabled.get():
+                    is_filtered = True
+                elif self.config.telephone_allow_calls_from_contacts_only.get():
+                    contact = self.database.contacts.get_contact_by_identity_hash(
+                        remote_identity_hash
+                    )
+                    if not contact:
+                        is_filtered = True
+
+                if not is_filtered:
+                    AsyncUtils.run_async(
+                        self.websocket_broadcast(
+                            json.dumps(
+                                {
+                                    "type": "telephone_missed_call",
+                                    "remote_identity_hash": remote_identity_hash,
+                                    "remote_identity_name": remote_identity_name,
+                                    "timestamp": time.time(),
+                                },
+                            ),
+                        ),
+                    )
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
@@ -3112,6 +3166,24 @@ class ReticulumMeshChat:
             active_call = None
             telephone_active_call = self.telephone_manager.telephone.active_call
             if telephone_active_call is not None:
+                # Filter out incoming calls if DND or contacts-only is active and call is ringing
+                is_ringing = self.telephone_manager.telephone.call_status == 4
+                if telephone_active_call.is_incoming and is_ringing:
+                    if self.config.do_not_disturb_enabled.get():
+                        # Don't report active call if DND is on and it's ringing
+                        telephone_active_call = None
+                    elif self.config.telephone_allow_calls_from_contacts_only.get():
+                        caller_hash = (
+                            telephone_active_call.get_remote_identity().hash.hex()
+                        )
+                        contact = self.database.contacts.get_contact_by_identity_hash(
+                            caller_hash
+                        )
+                        if not contact:
+                            # Don't report active call if contacts-only is on and caller is not a contact
+                            telephone_active_call = None
+
+            if telephone_active_call is not None:
                 # get remote identity hash
                 remote_identity_hash = None
                 remote_identity_name = None
@@ -3432,9 +3504,22 @@ class ReticulumMeshChat:
                     "has_espeak": self.voicemail_manager.has_espeak,
                     "has_ffmpeg": self.voicemail_manager.has_ffmpeg,
                     "is_recording": self.voicemail_manager.is_recording,
+                    "is_greeting_recording": self.voicemail_manager.is_greeting_recording,
                     "has_greeting": os.path.exists(greeting_path),
                 },
             )
+
+        # start recording greeting from mic
+        @routes.post("/api/v1/telephone/voicemail/greeting/record/start")
+        async def telephone_voicemail_greeting_record_start(request):
+            self.voicemail_manager.start_greeting_recording()
+            return web.json_response({"message": "Started recording greeting"})
+
+        # stop recording greeting from mic
+        @routes.post("/api/v1/telephone/voicemail/greeting/record/stop")
+        async def telephone_voicemail_greeting_record_stop(request):
+            self.voicemail_manager.stop_greeting_recording()
+            return web.json_response({"message": "Stopped recording greeting"})
 
         # list voicemails
         @routes.get("/api/v1/telephone/voicemails")
@@ -3833,28 +3918,47 @@ class ReticulumMeshChat:
                 aspect=aspect,
                 identity_hash=identity_hash,
                 destination_hash=destination_hash,
-                query=search_query,
+                query=None,  # We filter in Python to support name search
                 blocked_identity_hashes=blocked_identity_hashes,
             )
 
+            # process all announces to get display names and associated LXMF hashes
+            all_announces = [
+                self.convert_db_announce_to_dict(announce) for announce in results
+            ]
+
+            # apply search query filter if provided
+            if search_query:
+                q = search_query.lower()
+                filtered = []
+                for a in all_announces:
+                    if (
+                        (a.get("display_name") and q in a["display_name"].lower())
+                        or (
+                            a.get("destination_hash")
+                            and q in a["destination_hash"].lower()
+                        )
+                        or (a.get("identity_hash") and q in a["identity_hash"].lower())
+                        or (
+                            a.get("lxmf_destination_hash")
+                            and q in a["lxmf_destination_hash"].lower()
+                        )
+                    ):
+                        filtered.append(a)
+                all_announces = filtered
+
             # apply pagination
-            total_count = len(results)
+            total_count = len(all_announces)
             if offset is not None or limit is not None:
                 start = int(offset) if offset else 0
                 end = start + int(limit) if limit else total_count
-                paginated_results = results[start:end]
+                paginated_results = all_announces[start:end]
             else:
-                paginated_results = results
-
-            # process announces
-            announces = [
-                self.convert_db_announce_to_dict(announce)
-                for announce in paginated_results
-            ]
+                paginated_results = all_announces
 
             return web.json_response(
                 {
-                    "announces": announces,
+                    "announces": paginated_results,
                     "total_count": total_count,
                 },
             )
@@ -5314,21 +5418,165 @@ class ReticulumMeshChat:
         async def notifications_mark_as_viewed(request):
             data = await request.json()
             destination_hashes = data.get("destination_hashes", [])
+            notification_ids = data.get("notification_ids", [])
 
-            if not destination_hashes:
-                return web.json_response(
-                    {"error": "destination_hashes is required"},
-                    status=400,
+            if destination_hashes:
+                # mark LXMF conversations as viewed
+                self.database.messages.mark_all_notifications_as_viewed(
+                    destination_hashes
                 )
 
-            # mark all notifications as viewed
-            self.database.messages.mark_all_notifications_as_viewed(destination_hashes)
+            if notification_ids:
+                # mark system notifications as viewed
+                self.database.misc.mark_notifications_as_viewed(notification_ids)
 
             return web.json_response(
                 {
                     "message": "ok",
                 },
             )
+
+        @routes.get("/api/v1/notifications")
+        async def notifications_get(request):
+            try:
+                filter_unread = ReticulumMeshChat.parse_bool_query_param(
+                    request.query.get("unread", "false")
+                )
+                limit = int(request.query.get("limit", 50))
+
+                # 1. Fetch system notifications
+                system_notifications = self.database.misc.get_notifications(
+                    filter_unread=filter_unread, limit=limit
+                )
+
+                # 2. Fetch unread LXMF conversations if requested
+                conversations = []
+                if filter_unread:
+                    local_hash = self.local_lxmf_destination.hexhash
+                    db_conversations = self.message_handler.get_conversations(
+                        local_hash, filter_unread=True
+                    )
+                    for db_message in db_conversations:
+                        # Convert to dict if needed
+                        if not isinstance(db_message, dict):
+                            db_message = dict(db_message)
+
+                        # determine other user hash
+                        if db_message["source_hash"] == local_hash:
+                            other_user_hash = db_message["destination_hash"]
+                        else:
+                            other_user_hash = db_message["source_hash"]
+
+                        # Determine display name
+                        display_name = self.get_name_for_lxmf_destination_hash(
+                            other_user_hash
+                        )
+                        custom_display_name = (
+                            self.database.announces.get_custom_display_name(
+                                other_user_hash
+                            )
+                        )
+
+                        # Determine latest message data
+                        latest_message_data = {
+                            "content": db_message.get("content", ""),
+                            "timestamp": db_message.get("timestamp", 0),
+                            "is_incoming": db_message.get("is_incoming") == 1,
+                        }
+
+                        icon = self.database.misc.get_user_icon(other_user_hash)
+
+                        conversations.append(
+                            {
+                                "type": "lxmf_message",
+                                "destination_hash": other_user_hash,
+                                "display_name": display_name,
+                                "custom_display_name": custom_display_name,
+                                "lxmf_user_icon": dict(icon) if icon else None,
+                                "latest_message_preview": latest_message_data[
+                                    "content"
+                                ][:100],
+                                "updated_at": datetime.fromtimestamp(
+                                    latest_message_data["timestamp"] or 0, UTC
+                                ).isoformat(),
+                            }
+                        )
+
+                # Combine and sort by timestamp
+                all_notifications = []
+
+                for n in system_notifications:
+                    # Convert to dict if needed
+                    if not isinstance(n, dict):
+                        n = dict(n)
+
+                    # Get remote user info if possible
+                    display_name = "Unknown"
+                    icon = None
+                    if n["remote_hash"]:
+                        # Try to find associated LXMF hash for telephony identity hash
+                        lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
+                            n["remote_hash"]
+                        )
+                        if not lxmf_hash:
+                            # Fallback to direct name lookup by identity hash
+                            display_name = (
+                                self.get_name_for_identity_hash(n["remote_hash"])
+                                or n["remote_hash"]
+                            )
+                        else:
+                            display_name = self.get_name_for_lxmf_destination_hash(
+                                lxmf_hash
+                            )
+                            icon = self.database.misc.get_user_icon(lxmf_hash)
+
+                    all_notifications.append(
+                        {
+                            "id": n["id"],
+                            "type": n["type"],
+                            "destination_hash": n["remote_hash"],
+                            "display_name": display_name,
+                            "lxmf_user_icon": dict(icon) if icon else None,
+                            "title": n["title"],
+                            "content": n["content"],
+                            "is_viewed": n["is_viewed"] == 1,
+                            "updated_at": datetime.fromtimestamp(
+                                n["timestamp"] or 0, UTC
+                            ).isoformat(),
+                        }
+                    )
+
+                all_notifications.extend(conversations)
+
+                # Sort by updated_at descending
+                all_notifications.sort(key=lambda x: x["updated_at"], reverse=True)
+
+                # Calculate actual unread count
+                unread_count = self.database.misc.get_unread_notification_count()
+
+                # Add LXMF unread count
+                lxmf_unread_count = 0
+                local_hash = self.local_lxmf_destination.hexhash
+                unread_conversations = self.message_handler.get_conversations(
+                    local_hash, filter_unread=True
+                )
+                if unread_conversations:
+                    lxmf_unread_count = len(unread_conversations)
+
+                total_unread_count = unread_count + lxmf_unread_count
+
+                return web.json_response(
+                    {
+                        "notifications": all_notifications[:limit],
+                        "unread_count": total_unread_count,
+                    }
+                )
+            except Exception as e:
+                RNS.log(f"Error in notifications_get: {e}", RNS.LOG_ERROR)
+                import traceback
+
+                traceback.print_exc()
+                return web.json_response({"error": str(e)}, status=500)
 
         # get blocked destinations
         @routes.get("/api/v1/blocked-destinations")
@@ -6966,6 +7214,10 @@ class ReticulumMeshChat:
 
     # convert database announce to a dictionary
     def convert_db_announce_to_dict(self, announce):
+        # convert to dict if it's a sqlite3.Row
+        if not isinstance(announce, dict):
+            announce = dict(announce)
+
         # parse display name from announce
         display_name = None
         if announce["aspect"] == "lxmf.delivery":
@@ -7001,6 +7253,13 @@ class ReticulumMeshChat:
                 try:
                     identity_hash_bytes = bytes.fromhex(announce["identity_hash"])
                     identity = RNS.Identity.recall(identity_hash_bytes)
+                    if not identity and announce.get("identity_public_key"):
+                        # Try to load from public key if recall failed
+                        public_key = base64.b64decode(announce["identity_public_key"])
+                        identity = RNS.Identity(create_keys=False)
+                        if not identity.load_public_key(public_key):
+                            identity = None
+
                     if identity:
                         lxmf_destination_hash = RNS.Destination.hash(
                             identity,
@@ -7012,10 +7271,18 @@ class ReticulumMeshChat:
 
         # find lxmf user icon from database
         lxmf_user_icon = None
-        user_icon_target_hash = lxmf_destination_hash or announce["destination_hash"]
-        db_lxmf_user_icon = self.database.misc.get_user_icon(
-            user_icon_target_hash,
-        )
+        # Try multiple potential hashes for the icon
+        icon_hashes_to_check = []
+        if lxmf_destination_hash:
+            icon_hashes_to_check.append(lxmf_destination_hash)
+        icon_hashes_to_check.append(announce["destination_hash"])
+
+        db_lxmf_user_icon = None
+        for icon_hash in icon_hashes_to_check:
+            db_lxmf_user_icon = self.database.misc.get_user_icon(icon_hash)
+            if db_lxmf_user_icon:
+                break
+
         if db_lxmf_user_icon:
             lxmf_user_icon = {
                 "icon_name": db_lxmf_user_icon["icon_name"],
