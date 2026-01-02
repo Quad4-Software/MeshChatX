@@ -94,17 +94,9 @@
                                 </div>
                                 <div
                                     class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
-                                    :title="
-                                        notification.latest_message_preview ??
-                                        notification.latest_message_title ??
-                                        'No message preview'
-                                    "
+                                    :title="notification.latest_message_preview ?? notification.content ?? 'No preview'"
                                 >
-                                    {{
-                                        notification.latest_message_preview ??
-                                        notification.latest_message_title ??
-                                        "No message preview"
-                                    }}
+                                    {{ notification.latest_message_preview ?? notification.content ?? "No preview" }}
                                 </div>
                             </div>
                         </div>
@@ -145,14 +137,11 @@ export default {
             isDropdownOpen: false,
             isLoading: false,
             notifications: [],
+            unreadCount: 0,
             reloadInterval: null,
         };
     },
-    computed: {
-        unreadCount() {
-            return this.notifications.length;
-        },
-    },
+    computed: {},
     beforeUnmount() {
         if (this.reloadInterval) {
             clearInterval(this.reloadInterval);
@@ -182,15 +171,16 @@ export default {
         async loadNotifications() {
             this.isLoading = true;
             try {
-                const response = await window.axios.get(`/api/v1/lxmf/conversations`, {
+                const response = await window.axios.get(`/api/v1/notifications`, {
                     params: {
-                        filter_unread: true,
+                        unread: true,
                         limit: 10,
                     },
                 });
-                const newNotifications = response.data.conversations || [];
+                const newNotifications = response.data.notifications || [];
 
                 this.notifications = newNotifications;
+                this.unreadCount = response.data.unread_count || 0;
             } catch (e) {
                 console.error("Failed to load notifications", e);
                 this.notifications = [];
@@ -203,9 +193,14 @@ export default {
                 return;
             }
             try {
-                const destination_hashes = this.notifications.map((n) => n.destination_hash);
+                const destination_hashes = this.notifications
+                    .filter((n) => n.type === "lxmf_message")
+                    .map((n) => n.destination_hash);
+                const notification_ids = this.notifications.filter((n) => n.type !== "lxmf_message").map((n) => n.id);
+
                 await window.axios.post("/api/v1/notifications/mark-as-viewed", {
                     destination_hashes: destination_hashes,
+                    notification_ids: notification_ids,
                 });
             } catch (e) {
                 console.error("Failed to mark notifications as viewed", e);
@@ -213,10 +208,17 @@ export default {
         },
         onNotificationClick(notification) {
             this.closeDropdown();
-            this.$router.push({
-                name: "messages",
-                params: { destinationHash: notification.destination_hash },
-            });
+            if (notification.type === "lxmf_message") {
+                this.$router.push({
+                    name: "messages",
+                    params: { destinationHash: notification.destination_hash },
+                });
+            } else if (notification.type === "telephone_missed_call") {
+                this.$router.push({
+                    name: "call",
+                    query: { tab: "history" },
+                });
+            }
         },
         formatTimeAgo(datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
