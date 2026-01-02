@@ -547,6 +547,8 @@
         "settings": "Настройки",
         "unknown": "Неизвестно",
         "call_ended": "Звонок завершен",
+        "call_declined": "Звонок отклонен",
+        "send_to_voicemail": "На голосовую почту",
         "incoming_call": "Входящий звонок...",
         "busy": "Занято...",
         "rejected": "Отклонено...",

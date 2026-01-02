@@ -571,6 +571,8 @@
         "settings": "Settings",
         "unknown": "Unknown",
         "call_ended": "Call Ended",
+        "call_declined": "Call Declined",
+        "send_to_voicemail": "Send to Voicemail",
         "incoming_call": "Incoming Call...",
         "busy": "Busy...",
         "rejected": "Rejected...",

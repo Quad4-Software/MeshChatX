@@ -287,15 +287,21 @@
                                                 class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-200 dark:focus:ring-blue-400 dark:focus:border-blue-400"
                                             />
                                         </div>
-                                        <div class="p-2 dark:border-zinc-900">
+                                        <div class="p-2 dark:border-zinc-900 overflow-hidden">
                                             <div>{{ $t("app.identity_hash") }}</div>
-                                            <div class="text-sm text-gray-700 dark:text-zinc-400">
+                                            <div
+                                                class="text-sm text-gray-700 dark:text-zinc-400 truncate font-mono"
+                                                :title="config.identity_hash"
+                                            >
                                                 {{ config.identity_hash }}
                                             </div>
                                         </div>
-                                        <div class="p-2 dark:border-zinc-900">
+                                        <div class="p-2 dark:border-zinc-900 overflow-hidden">
                                             <div>{{ $t("app.lxmf_address") }}</div>
-                                            <div class="text-sm text-gray-700 dark:text-zinc-400">
+                                            <div
+                                                class="text-sm text-gray-700 dark:text-zinc-400 truncate font-mono"
+                                                :title="config.lxmf_address_hash"
+                                            >
                                                 {{ config.lxmf_address_hash }}
                                             </div>
                                         </div>
@@ -365,7 +371,13 @@
                 </div>
             </template>
         </template>
-        <CallOverlay v-if="activeCall || isCallEnded" :active-call="activeCall || lastCall" :is-ended="isCallEnded" />
+        <CallOverlay
+            v-if="activeCall || isCallEnded || wasDeclined"
+            :active-call="activeCall || lastCall"
+            :is-ended="isCallEnded"
+            :was-declined="wasDeclined"
+            @hangup="onOverlayHangup"
+        />
         <Toast />
 
         <!-- identity switching overlay -->
@@ -429,7 +441,6 @@ export default {
 
             isShowingMyIdentitySection: true,
             isShowingAnnounceSection: true,
-            isShowingCallsSection: true,
 
             isSidebarOpen: false,
 
@@ -439,10 +450,10 @@ export default {
             config: null,
             appInfo: null,
 
-            isTelephoneCallActive: false,
             activeCall: null,
             propagationNodeStatus: null,
             isCallEnded: false,
+            wasDeclined: false,
             lastCall: null,
             endedTimeout: null,
             ringtonePlayer: null,
@@ -765,7 +776,6 @@ export default {
 
                 // update ui
                 this.activeCall = response.data.active_call;
-                this.isTelephoneCallActive = this.activeCall != null;
 
                 // Stop ringtone if not ringing anymore
                 if (this.activeCall?.status !== 4) {
@@ -775,16 +785,23 @@ export default {
                 // If call just ended, show ended state for a few seconds
                 if (oldCall != null && this.activeCall == null) {
                     this.lastCall = oldCall;
-                    this.isCallEnded = true;
+
+                    if (this.wasDeclined) {
+                        // Already set by hangupCall
+                    } else {
+                        this.isCallEnded = true;
+                    }
 
                     if (this.endedTimeout) clearTimeout(this.endedTimeout);
                     this.endedTimeout = setTimeout(() => {
                         this.isCallEnded = false;
+                        this.wasDeclined = false;
                         this.lastCall = null;
                     }, 5000);
                 } else if (this.activeCall != null) {
                     // if a new call starts, clear ended state
                     this.isCallEnded = false;
+                    this.wasDeclined = false;
                     this.lastCall = null;
                     if (this.endedTimeout) clearTimeout(this.endedTimeout);
                 }
@@ -792,20 +809,9 @@ export default {
                 // do nothing on error
             }
         },
-        async hangupTelephoneCall() {
-            // confirm user wants to hang up call
-            if (!(await DialogUtils.confirm("Are you sure you want to hang up the current telephone call?"))) {
-                return;
-            }
-
-            try {
-                // hangup call
-                await axios.get(`/api/v1/telephone/hangup`);
-
-                // reload status
-                await this.updateTelephoneStatus();
-            } catch {
-                // ignore error hanging up call
+        onOverlayHangup() {
+            if (this.activeCall && this.activeCall.is_incoming && this.activeCall.status === 4) {
+                this.wasDeclined = true;
             }
         },
         onAppNameClick() {

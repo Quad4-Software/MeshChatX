@@ -547,6 +547,8 @@
         "settings": "Einstellungen",
         "unknown": "Unbekannt",
         "call_ended": "Anruf beendet",
+        "call_declined": "Anruf abgelehnt",
+        "send_to_voicemail": "An Sprachnachricht senden",
         "incoming_call": "Eingehender Anruf...",
         "busy": "Besetzt...",
         "rejected": "Abgelehnt...",

@@ -67,22 +67,33 @@
                                             class="mx-auto bg-gray-300 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-4 rounded-full"
                                             :class="{ 'animate-pulse': activeCall && activeCall.status === 4 }"
                                         >
-                                            <MaterialDesignIcon icon-name="account" class="size-12" />
+                                            <LxmfUserIcon
+                                                v-if="(activeCall || lastCall)?.remote_icon"
+                                                :icon-name="(activeCall || lastCall).remote_icon.icon_name"
+                                                :icon-foreground-colour="
+                                                    (activeCall || lastCall).remote_icon.foreground_colour
+                                                "
+                                                :icon-background-colour="
+                                                    (activeCall || lastCall).remote_icon.background_colour
+                                                "
+                                                class="size-12"
+                                            />
+                                            <MaterialDesignIcon v-else icon-name="account" class="size-12" />
                                         </div>
                                     </div>
 
                                     <!-- name -->
-                                    <div class="text-xl font-semibold text-gray-500 dark:text-zinc-100">
+                                    <div class="text-xl font-semibold text-gray-500 dark:text-zinc-100 truncate px-4">
                                         <span v-if="(activeCall || lastCall)?.remote_identity_name != null">{{
                                             (activeCall || lastCall).remote_identity_name
                                         }}</span>
-                                        <span v-else>Unknown</span>
+                                        <span v-else>{{ $t("call.unknown") }}</span>
                                     </div>
 
                                     <!-- identity hash -->
                                     <div
                                         v-if="(activeCall || lastCall)?.remote_identity_hash != null"
-                                        class="text-gray-500 dark:text-zinc-100 opacity-60 text-sm"
+                                        class="text-gray-500 dark:text-zinc-100 opacity-60 text-sm truncate px-8 font-mono"
                                     >
                                         {{
                                             (activeCall || lastCall).remote_identity_hash
@@ -94,14 +105,21 @@
 
                                 <!-- call status -->
                                 <div class="text-gray-500 dark:text-zinc-100 mb-4 mt-2">
-                                    <template v-if="isCallEnded">
-                                        <span class="text-red-500 font-bold animate-pulse">Call Ended</span>
+                                    <template v-if="wasDeclined">
+                                        <span class="text-red-500 font-bold animate-pulse">{{
+                                            $t("call.call_declined")
+                                        }}</span>
+                                    </template>
+                                    <template v-else-if="isCallEnded">
+                                        <span class="text-red-500 font-bold animate-pulse">{{
+                                            $t("call.call_ended")
+                                        }}</span>
                                     </template>
                                     <template v-else-if="activeCall">
                                         <span
                                             v-if="activeCall.is_incoming && activeCall.status === 4"
                                             class="animate-bounce inline-block"
-                                            >Incoming Call...</span
+                                            >{{ $t("call.incoming_call") }}</span
                                         >
                                         <span v-else>
                                             <span v-if="activeCall.status === 0">Busy...</span>
@@ -195,21 +213,33 @@
                                     <!-- answer call -->
                                     <button
                                         v-if="activeCall.is_incoming && activeCall.status === 4"
-                                        title="Answer Call"
+                                        :title="$t('call.answer_call')"
                                         type="button"
                                         class="inline-flex items-center gap-x-2 rounded-2xl bg-green-600 px-6 py-4 text-lg font-bold text-white shadow-xl hover:bg-green-500 transition-all duration-200 animate-bounce"
                                         @click="answerCall"
                                     >
                                         <MaterialDesignIcon icon-name="phone" class="size-6" />
-                                        <span>Accept</span>
+                                        <span>{{ $t("call.accept") }}</span>
+                                    </button>
+
+                                    <!-- send to voicemail -->
+                                    <button
+                                        v-if="activeCall.is_incoming && activeCall.status === 4"
+                                        :title="$t('call.send_to_voicemail')"
+                                        type="button"
+                                        class="inline-flex items-center gap-x-2 rounded-2xl bg-blue-600 px-6 py-4 text-lg font-bold text-white shadow-xl hover:bg-blue-500 transition-all duration-200"
+                                        @click="sendToVoicemail"
+                                    >
+                                        <MaterialDesignIcon icon-name="voicemail" class="size-6" />
+                                        <span>{{ $t("call.send_to_voicemail") }}</span>
                                     </button>
 
                                     <!-- hangup/decline call -->
                                     <button
                                         :title="
                                             activeCall.is_incoming && activeCall.status === 4
-                                                ? 'Decline Call'
-                                                : 'Hangup Call'
+                                                ? $t('call.decline_call')
+                                                : $t('call.hangup_call')
                                         "
                                         type="button"
                                         class="inline-flex items-center gap-x-2 rounded-2xl bg-red-600 px-6 py-4 text-lg font-bold text-white shadow-xl hover:bg-red-500 transition-all duration-200"
@@ -217,7 +247,9 @@
                                     >
                                         <MaterialDesignIcon icon-name="phone-hangup" class="size-6 rotate-[135deg]" />
                                         <span>{{
-                                            activeCall.is_incoming && activeCall.status === 4 ? "Decline" : "Hangup"
+                                            activeCall.is_incoming && activeCall.status === 4
+                                                ? $t("call.decline")
+                                                : $t("call.hangup")
                                         }}</span>
                                     </button>
                                 </div>
@@ -293,19 +325,36 @@
                                     class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
                                 >
                                     <div class="flex items-center space-x-3">
-                                        <div :class="entry.is_incoming ? 'text-blue-500' : 'text-green-500'">
-                                            <MaterialDesignIcon
-                                                :icon-name="entry.is_incoming ? 'phone-incoming' : 'phone-outgoing'"
-                                                class="size-5"
+                                        <div class="shrink-0">
+                                            <LxmfUserIcon
+                                                v-if="entry.remote_icon"
+                                                :icon-name="entry.remote_icon.icon_name"
+                                                :icon-foreground-colour="entry.remote_icon.foreground_colour"
+                                                :icon-background-colour="entry.remote_icon.background_colour"
+                                                class="size-8"
                                             />
+                                            <div
+                                                v-else
+                                                :class="
+                                                    entry.is_incoming
+                                                        ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                        : 'text-green-500 bg-green-50 dark:bg-green-900/20'
+                                                "
+                                                class="size-8 rounded-full flex items-center justify-center"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="entry.is_incoming ? 'phone-incoming' : 'phone-outgoing'"
+                                                    class="size-5"
+                                                />
+                                            </div>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center justify-between">
                                                 <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                                    {{ entry.remote_identity_name || "Unknown" }}
+                                                    {{ entry.remote_identity_name || $t("call.unknown") }}
                                                 </p>
                                                 <span
-                                                    class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono ml-2"
+                                                    class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono ml-2 shrink-0"
                                                 >
                                                     {{ entry.timestamp ? formatDateTime(entry.timestamp * 1000) : "" }}
                                                 </span>
@@ -322,6 +371,7 @@
                                                     </div>
                                                     <div
                                                         class="text-[10px] text-gray-400 dark:text-zinc-600 font-mono truncate mt-0.5"
+                                                        :title="entry.remote_identity_hash"
                                                     >
                                                         {{ entry.remote_identity_hash }}
                                                     </div>
@@ -381,32 +431,51 @@
                                     :class="{ 'bg-blue-50/50 dark:bg-blue-900/10': !voicemail.is_read }"
                                 >
                                     <div class="flex items-start space-x-4">
-                                        <!-- Play/Pause Button -->
-                                        <button
-                                            class="shrink-0 size-10 rounded-full flex items-center justify-center transition-all"
-                                            :class="
-                                                playingVoicemailId === voicemail.id
-                                                    ? 'bg-red-500 text-white animate-pulse'
-                                                    : 'bg-blue-500 text-white hover:bg-blue-600'
-                                            "
-                                            @click="playVoicemail(voicemail)"
-                                        >
-                                            <MaterialDesignIcon
-                                                :icon-name="playingVoicemailId === voicemail.id ? 'stop' : 'play'"
-                                                class="size-6"
+                                        <!-- Icon / Play/Pause Button -->
+                                        <div class="relative shrink-0">
+                                            <LxmfUserIcon
+                                                v-if="voicemail.remote_icon"
+                                                :icon-name="voicemail.remote_icon.icon_name"
+                                                :icon-foreground-colour="voicemail.remote_icon.foreground_colour"
+                                                :icon-background-colour="voicemail.remote_icon.background_colour"
+                                                class="size-10"
                                             />
-                                        </button>
+                                            <div
+                                                v-else
+                                                class="size-10 rounded-full bg-gray-200 dark:bg-zinc-800 flex items-center justify-center text-gray-400"
+                                            >
+                                                <MaterialDesignIcon icon-name="account" class="size-6" />
+                                            </div>
+
+                                            <button
+                                                class="absolute inset-0 size-10 rounded-full flex items-center justify-center transition-all opacity-0 hover:opacity-100 bg-black/20 text-white"
+                                                :class="{
+                                                    'opacity-100 bg-red-500/80 animate-pulse':
+                                                        playingVoicemailId === voicemail.id,
+                                                }"
+                                                @click="playVoicemail(voicemail)"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="playingVoicemailId === voicemail.id ? 'stop' : 'play'"
+                                                    class="size-6"
+                                                />
+                                            </button>
+                                        </div>
 
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center justify-between mb-1">
-                                                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                    {{ voicemail.remote_identity_name || "Unknown" }}
+                                                <div class="flex items-center min-w-0 mr-2">
+                                                    <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                        {{ voicemail.remote_identity_name || $t("call.unknown") }}
+                                                    </p>
                                                     <span
                                                         v-if="!voicemail.is_read"
-                                                        class="ml-2 size-2 inline-block rounded-full bg-blue-500"
+                                                        class="ml-2 shrink-0 size-2 inline-block rounded-full bg-blue-500"
                                                     ></span>
-                                                </p>
-                                                <span class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono">
+                                                </div>
+                                                <span
+                                                    class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono shrink-0"
+                                                >
                                                     {{ formatDateTime(voicemail.timestamp * 1000) }}
                                                 </span>
                                             </div>
@@ -418,9 +487,11 @@
                                                     <MaterialDesignIcon icon-name="clock-outline" class="size-3" />
                                                     {{ formatDuration(voicemail.duration_seconds) }}
                                                 </span>
-                                                <span class="opacity-60 font-mono text-[10px]">{{
-                                                    formatDestinationHash(voicemail.remote_identity_hash)
-                                                }}</span>
+                                                <span
+                                                    class="opacity-60 font-mono text-[10px] truncate"
+                                                    :title="voicemail.remote_identity_hash"
+                                                    >{{ formatDestinationHash(voicemail.remote_identity_hash) }}</span
+                                                >
                                             </div>
 
                                             <div class="flex items-center gap-4">
@@ -478,7 +549,9 @@
                                 </div>
                                 <button
                                     class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                                    :class="config.custom_ringtone_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-zinc-700'"
+                                    :class="
+                                        config.custom_ringtone_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-zinc-700'
+                                    "
                                     @click="
                                         config.custom_ringtone_enabled = !config.custom_ringtone_enabled;
                                         updateConfig({ custom_ringtone_enabled: config.custom_ringtone_enabled });
@@ -519,29 +592,37 @@
                                         v-for="ringtone in ringtones"
                                         :key="ringtone.id"
                                         class="group p-4 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/30 flex items-center gap-4 transition-all hover:shadow-md"
-                                        :class="{ 'ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-900/10': ringtone.is_primary }"
+                                        :class="{
+                                            'ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-900/10':
+                                                ringtone.is_primary,
+                                        }"
                                     >
                                         <div class="flex-1 min-w-0">
-                                            <div v-if="editingRingtoneId === ringtone.id" class="flex items-center gap-2">
+                                            <div
+                                                v-if="editingRingtoneId === ringtone.id"
+                                                class="flex items-center gap-2"
+                                            >
                                                 <input
                                                     v-model="editingRingtoneName"
-                                                    class="text-sm bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded px-2 py-1 flex-1"
+                                                    class="text-sm bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded px-2 py-1 flex-1 min-w-0"
                                                     @keyup.enter="saveRingtoneName"
                                                     @blur="saveRingtoneName"
                                                 />
                                             </div>
-                                            <div v-else class="flex items-center gap-2">
-                                                <span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                            <div v-else class="flex items-center gap-2 min-w-0">
+                                                <span
+                                                    class="text-sm font-medium text-gray-900 dark:text-white truncate"
+                                                >
                                                     {{ ringtone.display_name }}
                                                 </span>
                                                 <span
                                                     v-if="ringtone.is_primary"
-                                                    class="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded"
+                                                    class="shrink-0 text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded"
                                                 >
                                                     Primary
                                                 </span>
                                                 <button
-                                                    class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-500 transition-opacity"
+                                                    class="shrink-0 opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-500 transition-opacity"
                                                     @click="startEditingRingtone(ringtone)"
                                                 >
                                                     <MaterialDesignIcon icon-name="pencil" class="size-3" />
@@ -555,11 +636,19 @@
                                         <div class="flex items-center gap-1">
                                             <button
                                                 class="p-2 rounded-lg hover:bg-white dark:hover:bg-zinc-800 text-gray-500 dark:text-gray-400 transition-colors"
-                                                :title="isPlayingRingtone && playingRingtoneId === ringtone.id ? 'Stop' : 'Preview'"
+                                                :title="
+                                                    isPlayingRingtone && playingRingtoneId === ringtone.id
+                                                        ? 'Stop'
+                                                        : 'Preview'
+                                                "
                                                 @click="playRingtonePreview(ringtone)"
                                             >
                                                 <MaterialDesignIcon
-                                                    :icon-name="isPlayingRingtone && playingRingtoneId === ringtone.id ? 'stop' : 'play'"
+                                                    :icon-name="
+                                                        isPlayingRingtone && playingRingtoneId === ringtone.id
+                                                            ? 'stop'
+                                                            : 'play'
+                                                    "
                                                     class="size-5"
                                                 />
                                             </button>
@@ -581,8 +670,14 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div v-else class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-2xl bg-gray-50/30 dark:bg-zinc-900/20">
-                                    <MaterialDesignIcon icon-name="music-off" class="size-8 text-gray-300 dark:text-zinc-700 mb-2" />
+                                <div
+                                    v-else
+                                    class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-2xl bg-gray-50/30 dark:bg-zinc-900/20"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="music-off"
+                                        class="size-8 text-gray-300 dark:text-zinc-700 mb-2"
+                                    />
                                     <div class="text-xs text-gray-500 dark:text-zinc-500">
                                         {{ $t("call.no_custom_ringtone_uploaded") }}
                                     </div>
@@ -789,11 +884,12 @@
 <script>
 import Utils from "../../js/Utils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "CallPage",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, LxmfUserIcon },
     data() {
         return {
             config: null,
@@ -804,6 +900,7 @@ export default {
             isShowingStats: false,
             callHistory: [],
             isCallEnded: false,
+            wasDeclined: false,
             lastCall: null,
             endedTimeout: null,
             activeTab: "phone",
@@ -839,22 +936,22 @@ export default {
             return this.activeCall?.is_speaker_muted ?? false;
         },
     },
-        mounted() {
-            this.getConfig();
-            this.getAudioProfiles();
-            this.getStatus();
-            this.getHistory();
-            this.getVoicemails();
-            this.getVoicemailStatus();
-            this.getRingtones();
-            this.getRingtoneStatus();
+    mounted() {
+        this.getConfig();
+        this.getAudioProfiles();
+        this.getStatus();
+        this.getHistory();
+        this.getVoicemails();
+        this.getVoicemailStatus();
+        this.getRingtones();
+        this.getRingtoneStatus();
 
-            // poll for status
-            this.statusInterval = setInterval(() => {
-                this.getStatus();
-                this.getVoicemailStatus();
-                this.getRingtoneStatus();
-            }, 1000);
+        // poll for status
+        this.statusInterval = setInterval(() => {
+            this.getStatus();
+            this.getVoicemailStatus();
+            this.getRingtoneStatus();
+        }, 1000);
 
         // poll for history/voicemails less frequently
         this.historyInterval = setInterval(() => {
@@ -1219,9 +1316,20 @@ export default {
         },
         async hangupCall() {
             try {
+                if (this.activeCall && this.activeCall.is_incoming && this.activeCall.status === 4) {
+                    this.wasDeclined = true;
+                }
                 await window.axios.get("/api/v1/telephone/hangup");
             } catch {
                 ToastUtils.error("Failed to hangup call");
+            }
+        },
+        async sendToVoicemail() {
+            try {
+                await window.axios.get("/api/v1/telephone/send-to-voicemail");
+                ToastUtils.success("Call sent to voicemail");
+            } catch {
+                ToastUtils.error("Failed to send call to voicemail");
             }
         },
         async switchAudioProfile(audioProfileId) {
