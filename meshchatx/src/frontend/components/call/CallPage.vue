@@ -17,6 +17,17 @@
                     </button>
                     <button
                         :class="[
+                            activeTab === 'discovery'
+                                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:border-gray-300',
+                        ]"
+                        class="py-2 px-4 border-b-2 font-medium text-sm transition-all"
+                        @click="activeTab = 'discovery'"
+                    >
+                        Discovery
+                    </button>
+                    <button
+                        :class="[
                             activeTab === 'voicemail'
                                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:border-gray-300',
@@ -460,6 +471,115 @@
                                     type="button"
                                     class="text-xs text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest"
                                     @click="loadMoreCallHistory"
+                                >
+                                    {{ $t("call.load_more") }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discovery Tab -->
+                <div v-if="activeTab === 'discovery'" class="flex-1 flex flex-col">
+                    <div class="mb-4">
+                        <div class="relative">
+                            <input
+                                v-model="discoverySearch"
+                                type="text"
+                                placeholder="Search discovery..."
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                @input="onDiscoverySearchInput"
+                            />
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="discoveryAnnounces.length === 0" class="my-auto text-center">
+                        <div class="bg-gray-200 dark:bg-zinc-800 p-6 rounded-full inline-block mb-4">
+                            <MaterialDesignIcon icon-name="satellite-uplink" class="size-12 text-gray-400" />
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">No Telephony Peers</h3>
+                        <p class="text-gray-500 dark:text-zinc-400">Waiting for announces on the mesh.</p>
+                    </div>
+
+                    <div v-else class="space-y-4">
+                        <div
+                            class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                        >
+                            <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
+                                <li
+                                    v-for="announce in discoveryAnnounces"
+                                    :key="announce.destination_hash"
+                                    class="px-4 py-4 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                >
+                                    <div class="flex items-center space-x-4">
+                                        <div class="shrink-0">
+                                            <LxmfUserIcon
+                                                v-if="announce.lxmf_user_icon"
+                                                :icon-name="announce.lxmf_user_icon.icon_name"
+                                                :icon-foreground-colour="announce.lxmf_user_icon.foreground_colour"
+                                                :icon-background-colour="announce.lxmf_user_icon.background_colour"
+                                                class="size-10"
+                                            />
+                                            <div
+                                                v-else
+                                                class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center font-bold"
+                                            >
+                                                {{ (announce.display_name || "A")[0].toUpperCase() }}
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between">
+                                                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                    {{ announce.display_name || "Anonymous Peer" }}
+                                                </p>
+                                                <span
+                                                    class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono ml-2 shrink-0"
+                                                >
+                                                    {{ formatTimeAgo(announce.updated_at) }} ago
+                                                </span>
+                                            </div>
+                                            <div class="flex items-center justify-between mt-1">
+                                                <div class="flex items-center space-x-2 min-w-0">
+                                                    <span
+                                                        class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate"
+                                                        :title="announce.destination_hash"
+                                                    >
+                                                        {{ formatDestinationHash(announce.destination_hash) }}
+                                                    </span>
+                                                    <span
+                                                        v-if="announce.hops != null"
+                                                        class="text-[10px] text-gray-400 dark:text-zinc-600"
+                                                    >
+                                                        • {{ announce.hops }} hops
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors shrink-0"
+                                                    @click="
+                                                        destinationHash = announce.destination_hash;
+                                                        activeTab = 'phone';
+                                                        call(destinationHash);
+                                                    "
+                                                >
+                                                    Call
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                            <div
+                                v-if="hasMoreDiscovery"
+                                class="p-3 border-t border-gray-100 dark:border-zinc-800 text-center"
+                            >
+                                <button
+                                    type="button"
+                                    class="text-xs text-blue-500 hover:text-blue-600 font-bold uppercase tracking-widest"
+                                    @click="loadMoreDiscovery"
                                 >
                                     {{ $t("call.load_more") }}
                                 </button>
@@ -1145,6 +1265,11 @@ export default {
             editingRingtoneName: "",
             elapsedTimeInterval: null,
             voicemailSearch: "",
+            discoverySearch: "",
+            discoveryAnnounces: [],
+            discoveryLimit: 10,
+            discoveryOffset: 0,
+            hasMoreDiscovery: true,
             contactsSearch: "",
             contacts: [],
             isContactModalOpen: false,
@@ -1186,6 +1311,7 @@ export default {
         this.getHistory();
         this.getVoicemails();
         this.getContacts();
+        this.getDiscovery();
         this.getVoicemailStatus();
         this.getRingtones();
         this.getRingtoneStatus();
@@ -1202,6 +1328,7 @@ export default {
             this.getHistory();
             this.getVoicemails();
             this.getContacts();
+            this.getDiscovery();
         }, 10000);
 
         // update elapsed time every second
@@ -1235,6 +1362,9 @@ export default {
         },
         formatDateTime(timestamp) {
             return Utils.convertUnixMillisToLocalDateTimeString(timestamp);
+        },
+        formatTimeAgo(datetimeString) {
+            return Utils.formatTimeAgo(datetimeString);
         },
         formatDuration(seconds) {
             return Utils.formatMinutesSeconds(seconds);
@@ -1345,6 +1475,44 @@ export default {
             if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
             this.searchDebounceTimeout = setTimeout(() => {
                 this.getHistory();
+            }, 500);
+        },
+        async getDiscovery(loadMore = false) {
+            try {
+                if (!loadMore) {
+                    this.discoveryOffset = 0;
+                    this.hasMoreDiscovery = true;
+                }
+
+                const response = await window.axios.get("/api/v1/announces", {
+                    params: {
+                        aspect: "lxst.telephony",
+                        limit: this.discoveryLimit,
+                        offset: this.discoveryOffset,
+                        search: this.discoverySearch,
+                    },
+                });
+
+                const newItems = response.data.announces;
+                if (loadMore) {
+                    this.discoveryAnnounces = [...this.discoveryAnnounces, ...newItems];
+                } else {
+                    this.discoveryAnnounces = newItems;
+                }
+
+                this.hasMoreDiscovery = newItems.length === this.discoveryLimit;
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async loadMoreDiscovery() {
+            this.discoveryOffset += this.discoveryLimit;
+            await this.getDiscovery(true);
+        },
+        onDiscoverySearchInput() {
+            if (this.searchDebounceTimeout) clearTimeout(this.searchDebounceTimeout);
+            this.searchDebounceTimeout = setTimeout(() => {
+                this.getDiscovery();
             }, 500);
         },
         async toggleDoNotDisturb(value) {
