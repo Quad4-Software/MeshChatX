@@ -8,6 +8,7 @@ docs/
 # Development files
 .github/
 electron/
+android/
 scripts/
 Makefile
 
