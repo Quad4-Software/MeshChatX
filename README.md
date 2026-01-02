@@ -31,18 +31,23 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 <summary>Telephony & Calling</summary>
 
 ### Phone
+
 ![Phone](screenshots/phone.png)
 
 ### Active Call
+
 ![Calling](screenshots/calling.png)
 
 ### Call Ended
+
 ![Call Ended](screenshots/calling-end.png)
 
 ### Voicemail
+
 ![Voicemail](screenshots/voicemail.png)
 
 ### Ringtone Settings
+
 ![Ringtone](screenshots/ringtone.png)
 
 </details>
@@ -51,6 +56,7 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 <summary>Networking & Visualization</summary>
 
 ### Network Visualiser
+
 ![Network Visualiser](screenshots/network-visualiser.png)
 ![Network Visualiser 2](screenshots/network-visualiser2.png)
 
@@ -60,9 +66,11 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 <summary>Page Archives</summary>
 
 ### Archives Browser
+
 ![Archives](screenshots/archives.png)
 
 ### Viewing Archived Page
+
 ![Archive View](screenshots/archive-view.png)
 
 </details>
@@ -71,9 +79,11 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 <summary>Tools & Identities</summary>
 
 ### Tools
+
 ![Tools](screenshots/tools.png)
 
 ### Identity Management
+
 ![Identities](screenshots/identities.png)
 
 </details>
