@@ -141,6 +141,9 @@ class ConfigManager:
         self.do_not_disturb_enabled = self.BoolConfig(
             self, "do_not_disturb_enabled", False
         )
+        self.telephone_allow_calls_from_contacts_only = self.BoolConfig(
+            self, "telephone_allow_calls_from_contacts_only", False
+        )
 
         # map config
         self.map_offline_enabled = self.BoolConfig(self, "map_offline_enabled", False)
