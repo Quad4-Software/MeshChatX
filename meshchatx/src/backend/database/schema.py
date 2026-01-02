@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 19
+    LATEST_VERSION = 20
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -245,6 +245,18 @@ class DatabaseSchema:
                     remote_identity_hash TEXT UNIQUE,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "notifications": """
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type TEXT,
+                    remote_hash TEXT,
+                    title TEXT,
+                    content TEXT,
+                    is_viewed INTEGER DEFAULT 0,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """,
         }
@@ -554,6 +566,26 @@ class DatabaseSchema:
         if current_version < 19:
             self.provider.execute(
                 "CREATE INDEX IF NOT EXISTS idx_call_history_remote_name ON call_history(remote_identity_name)",
+            )
+
+        if current_version < 20:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type TEXT,
+                    remote_hash TEXT,
+                    title TEXT,
+                    content TEXT,
+                    is_viewed INTEGER DEFAULT 0,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_remote_hash ON notifications(remote_hash)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_timestamp ON notifications(timestamp)",
             )
 
         # Update version in config
