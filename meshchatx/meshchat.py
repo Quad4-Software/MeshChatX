@@ -239,7 +239,9 @@ class ReticulumMeshChat:
         try:
             self.database.initialize()
             # Try to auto-migrate from legacy database if this is a fresh start
-            self.database.migrate_from_legacy(self.reticulum_config_dir, identity.hash.hex())
+            self.database.migrate_from_legacy(
+                self.reticulum_config_dir, identity.hash.hex()
+            )
             self._tune_sqlite_pragmas()
         except Exception as exc:
             if not self.auto_recover:
@@ -372,7 +374,9 @@ class ReticulumMeshChat:
         self.voicemail_manager.get_name_for_identity_hash = (
             self.get_name_for_identity_hash
         )
-        self.voicemail_manager.on_new_voicemail_callback = self.on_new_voicemail_received
+        self.voicemail_manager.on_new_voicemail_callback = (
+            self.on_new_voicemail_received
+        )
 
         # init Ringtone Manager
         self.ringtone_manager = RingtoneManager(
@@ -403,7 +407,9 @@ class ReticulumMeshChat:
         )
 
         # start background thread for auto announce loop
-        thread = threading.Thread(target=asyncio.run, args=(self.announce_loop(session_id),))
+        thread = threading.Thread(
+            target=asyncio.run, args=(self.announce_loop(session_id),)
+        )
         thread.daemon = True
         thread.start()
 
@@ -628,7 +634,9 @@ class ReticulumMeshChat:
                         match = True
 
                 if match:
-                    print(f"Deregistering RNS destination {destination} ({RNS.prettyhexrep(destination.hash)})")
+                    print(
+                        f"Deregistering RNS destination {destination} ({RNS.prettyhexrep(destination.hash)})"
+                    )
                     RNS.Transport.deregister_destination(destination)
         except Exception as e:
             print(f"Error while cleaning up RNS destinations: {e}")
@@ -639,7 +647,10 @@ class ReticulumMeshChat:
                 match = False
                 # check if local identity or destination matches
                 if hasattr(link, "destination") and link.destination:
-                    if hasattr(link.destination, "identity") and link.destination.identity:
+                    if (
+                        hasattr(link.destination, "identity")
+                        and link.destination.identity
+                    ):
                         if link.destination.identity.hash == identity_hash_bytes:
                             match = True
 
@@ -659,24 +670,43 @@ class ReticulumMeshChat:
         # 1. Deregister destinations and links from RNS Transport
         try:
             # Get current identity hash for matching
-            current_identity_hash = self.identity.hash if hasattr(self, "identity") and self.identity else None
+            current_identity_hash = (
+                self.identity.hash
+                if hasattr(self, "identity") and self.identity
+                else None
+            )
 
             # Explicitly deregister known destinations from managers first
             if hasattr(self, "message_router") and self.message_router:
                 # Deregister delivery destinations
                 if hasattr(self.message_router, "delivery_destinations"):
-                    for dest_hash in list(self.message_router.delivery_destinations.keys()):
+                    for dest_hash in list(
+                        self.message_router.delivery_destinations.keys()
+                    ):
                         dest = self.message_router.delivery_destinations[dest_hash]
                         RNS.Transport.deregister_destination(dest)
 
                 # Deregister propagation destination
-                if hasattr(self.message_router, "propagation_destination") and self.message_router.propagation_destination:
-                    RNS.Transport.deregister_destination(self.message_router.propagation_destination)
+                if (
+                    hasattr(self.message_router, "propagation_destination")
+                    and self.message_router.propagation_destination
+                ):
+                    RNS.Transport.deregister_destination(
+                        self.message_router.propagation_destination
+                    )
 
             if hasattr(self, "telephone_manager") and self.telephone_manager:
-                if hasattr(self.telephone_manager, "telephone") and self.telephone_manager.telephone:
-                    if hasattr(self.telephone_manager.telephone, "destination") and self.telephone_manager.telephone.destination:
-                        RNS.Transport.deregister_destination(self.telephone_manager.telephone.destination)
+                if (
+                    hasattr(self.telephone_manager, "telephone")
+                    and self.telephone_manager.telephone
+                ):
+                    if (
+                        hasattr(self.telephone_manager.telephone, "destination")
+                        and self.telephone_manager.telephone.destination
+                    ):
+                        RNS.Transport.deregister_destination(
+                            self.telephone_manager.telephone.destination
+                        )
 
             # Use the global helper for thorough cleanup
             if current_identity_hash:
@@ -691,7 +721,19 @@ class ReticulumMeshChat:
                 should_deregister = False
 
                 # check if it's one of our AnnounceHandler instances
-                if (hasattr(handler, "aspect_filter") and hasattr(handler, "received_announce_callback")) or (hasattr(handler, "router") and hasattr(self, "message_router") and handler.router == self.message_router) or "LXMFDeliveryAnnounceHandler" in str(type(handler)) or "LXMFPropagationAnnounceHandler" in str(type(handler)):
+                if (
+                    (
+                        hasattr(handler, "aspect_filter")
+                        and hasattr(handler, "received_announce_callback")
+                    )
+                    or (
+                        hasattr(handler, "router")
+                        and hasattr(self, "message_router")
+                        and handler.router == self.message_router
+                    )
+                    or "LXMFDeliveryAnnounceHandler" in str(type(handler))
+                    or "LXMFPropagationAnnounceHandler" in str(type(handler))
+                ):
                     should_deregister = True
 
                 if should_deregister:
@@ -752,8 +794,11 @@ class ReticulumMeshChat:
             await asyncio.sleep(3)
 
             # 2. update main identity file
-            main_identity_file = self.identity_file_path or os.path.join(self.storage_dir, "identity")
+            main_identity_file = self.identity_file_path or os.path.join(
+                self.storage_dir, "identity"
+            )
             import shutil
+
             shutil.copy2(identity_file, main_identity_file)
 
             # 3. reset state and setup new identity
@@ -762,17 +807,20 @@ class ReticulumMeshChat:
 
             # 4. broadcast update to clients
             await self.websocket_broadcast(
-                json.dumps({
-                    "type": "identity_switched",
-                    "identity_hash": identity_hash,
-                    "display_name": self.config.display_name.get(),
-                }),
+                json.dumps(
+                    {
+                        "type": "identity_switched",
+                        "identity_hash": identity_hash,
+                        "display_name": self.config.display_name.get(),
+                    }
+                ),
             )
 
             return True
         except Exception as e:
             print(f"Hotswap failed: {e}")
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -823,20 +871,26 @@ class ReticulumMeshChat:
                 temp_config_dao = ConfigDAO(temp_provider)
                 display_name = temp_config_dao.get("display_name", "Anonymous Peer")
                 icon_name = temp_config_dao.get("lxmf_user_icon_name")
-                icon_foreground_colour = temp_config_dao.get("lxmf_user_icon_foreground_colour")
-                icon_background_colour = temp_config_dao.get("lxmf_user_icon_background_colour")
+                icon_foreground_colour = temp_config_dao.get(
+                    "lxmf_user_icon_foreground_colour"
+                )
+                icon_background_colour = temp_config_dao.get(
+                    "lxmf_user_icon_background_colour"
+                )
                 temp_provider.close()
             except Exception as e:
                 print(f"Error reading config for {identity_hash}: {e}")
 
-            identities.append({
-                "hash": identity_hash,
-                "display_name": display_name,
-                "icon_name": icon_name,
-                "icon_foreground_colour": icon_foreground_colour,
-                "icon_background_colour": icon_background_colour,
-                "is_current": identity_hash == self.identity.hash.hex(),
-            })
+            identities.append(
+                {
+                    "hash": identity_hash,
+                    "display_name": display_name,
+                    "icon_name": icon_name,
+                    "icon_foreground_colour": icon_foreground_colour,
+                    "icon_background_colour": icon_background_colour,
+                    "is_current": identity_hash == self.identity.hash.hex(),
+                }
+            )
         return identities
 
     def create_identity(self, display_name=None):
@@ -881,6 +935,7 @@ class ReticulumMeshChat:
         identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
         if os.path.exists(identity_dir):
             import shutil
+
             shutil.rmtree(identity_dir)
             return True
         return False
@@ -1615,12 +1670,15 @@ class ReticulumMeshChat:
                 session_identity = session.get("identity_hash")
 
                 # Verify that authentication is for the CURRENT active identity
-                actually_authenticated = is_authenticated and (session_identity == self.identity.hash.hex())
+                actually_authenticated = is_authenticated and (
+                    session_identity == self.identity.hash.hex()
+                )
 
                 return web.json_response(
                     {
                         "auth_enabled": self.auth_enabled,
-                        "password_set": self.config.auth_password_hash.get() is not None,
+                        "password_set": self.config.auth_password_hash.get()
+                        is not None,
                         "authenticated": actually_authenticated,
                     },
                 )
@@ -1629,7 +1687,8 @@ class ReticulumMeshChat:
                 return web.json_response(
                     {
                         "auth_enabled": self.auth_enabled,
-                        "password_set": self.config.auth_password_hash.get() is not None,
+                        "password_set": self.config.auth_password_hash.get()
+                        is not None,
                         "authenticated": False,
                         "error": str(e),
                     },
@@ -2931,16 +2990,22 @@ class ReticulumMeshChat:
                     )
                 # fallback to restart if hotswap failed
                 # (this part should probably be unreachable if hotswap is reliable)
-                main_identity_file = self.identity_file_path or os.path.join(self.storage_dir, "identity")
-                identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
+                main_identity_file = self.identity_file_path or os.path.join(
+                    self.storage_dir, "identity"
+                )
+                identity_dir = os.path.join(
+                    self.storage_dir, "identities", identity_hash
+                )
                 identity_file = os.path.join(identity_dir, "identity")
                 import shutil
+
                 shutil.copy2(identity_file, main_identity_file)
 
                 def restart():
                     import os
                     import sys
                     import time
+
                     time.sleep(1)
                     try:
                         os.execv(sys.executable, [sys.executable] + sys.argv)
@@ -2949,6 +3014,7 @@ class ReticulumMeshChat:
                         os._exit(0)
 
                 import threading
+
                 threading.Thread(target=restart).start()
 
                 return web.json_response(
@@ -3063,7 +3129,9 @@ class ReticulumMeshChat:
                         "lxmf",
                         "delivery",
                     ).hex()
-                    remote_icon = self.database.misc.get_user_icon(lxmf_destination_hash)
+                    remote_icon = self.database.misc.get_user_icon(
+                        lxmf_destination_hash
+                    )
 
                 active_call = {
                     "hash": telephone_active_call.hash.hex(),
@@ -3087,7 +3155,13 @@ class ReticulumMeshChat:
                     "is_speaker_muted": self.telephone_manager.telephone.receive_muted,
                     "is_voicemail": self.voicemail_manager.is_recording,
                     "call_start_time": self.telephone_manager.call_start_time,
-                    "is_contact": bool(self.database.contacts.get_contact_by_identity_hash(remote_identity_hash)) if remote_identity_hash else False,
+                    "is_contact": bool(
+                        self.database.contacts.get_contact_by_identity_hash(
+                            remote_identity_hash
+                        )
+                    )
+                    if remote_identity_hash
+                    else False,
                 }
 
             return web.json_response(
@@ -3199,12 +3273,18 @@ class ReticulumMeshChat:
                 d = dict(row)
                 remote_identity_hash = d.get("remote_identity_hash")
                 if remote_identity_hash:
-                    lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(remote_identity_hash)
+                    lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
+                        remote_identity_hash
+                    )
                     if lxmf_hash:
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
                             d["remote_icon"] = dict(icon)
-                    d["is_contact"] = bool(self.database.contacts.get_contact_by_identity_hash(remote_identity_hash))
+                    d["is_contact"] = bool(
+                        self.database.contacts.get_contact_by_identity_hash(
+                            remote_identity_hash
+                        )
+                    )
                 call_history.append(d)
 
             return web.json_response(
@@ -3373,7 +3453,9 @@ class ReticulumMeshChat:
                 d = dict(row)
                 remote_identity_hash = d.get("remote_identity_hash")
                 if remote_identity_hash:
-                    lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(remote_identity_hash)
+                    lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
+                        remote_identity_hash
+                    )
                     if lxmf_hash:
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
@@ -3414,12 +3496,14 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/telephone/voicemail/greeting/audio")
         async def telephone_voicemail_greeting_audio(request):
             filepath = os.path.join(
-                self.voicemail_manager.greetings_dir, "greeting.opus",
+                self.voicemail_manager.greetings_dir,
+                "greeting.opus",
             )
             if os.path.exists(filepath):
                 return web.FileResponse(filepath)
             return web.json_response(
-                {"message": "Greeting audio not found"}, status=404,
+                {"message": "Greeting audio not found"},
+                status=404,
             )
 
         # serve voicemail audio
@@ -3434,7 +3518,10 @@ class ReticulumMeshChat:
                 )
                 if os.path.exists(filepath):
                     return web.FileResponse(filepath)
-                RNS.log(f"Voicemail: Recording file missing for ID {voicemail_id}: {filepath}", RNS.LOG_ERROR)
+                RNS.log(
+                    f"Voicemail: Recording file missing for ID {voicemail_id}: {filepath}",
+                    RNS.LOG_ERROR,
+                )
             return web.json_response(
                 {"message": "Voicemail audio not found"},
                 status=404,
@@ -3463,7 +3550,8 @@ class ReticulumMeshChat:
                 field = await reader.next()
                 if field.name != "file":
                     return web.json_response(
-                        {"message": "File field required"}, status=400,
+                        {"message": "File field required"},
+                        status=400,
                     )
 
                 filename = field.filename
@@ -3544,10 +3632,14 @@ class ReticulumMeshChat:
             if not ringtone:
                 return web.json_response({"message": "Ringtone not found"}, status=404)
 
-            filepath = self.ringtone_manager.get_ringtone_path(ringtone["storage_filename"])
+            filepath = self.ringtone_manager.get_ringtone_path(
+                ringtone["storage_filename"]
+            )
             if os.path.exists(filepath):
                 return web.FileResponse(filepath)
-            return web.json_response({"message": "Ringtone audio file not found"}, status=404)
+            return web.json_response(
+                {"message": "Ringtone audio file not found"}, status=404
+            )
 
         @routes.post("/api/v1/telephone/ringtones/upload")
         async def telephone_ringtone_upload(request):
@@ -3555,13 +3647,16 @@ class ReticulumMeshChat:
                 reader = await request.multipart()
                 field = await reader.next()
                 if field.name != "file":
-                    return web.json_response({"message": "File field required"}, status=400)
+                    return web.json_response(
+                        {"message": "File field required"}, status=400
+                    )
 
                 filename = field.filename
                 extension = os.path.splitext(filename)[1].lower()
                 if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
                     return web.json_response(
-                        {"message": f"Unsupported file type: {extension}"}, status=400,
+                        {"message": f"Unsupported file type: {extension}"},
+                        status=400,
                     )
 
                 # Save temp file
@@ -3649,7 +3744,9 @@ class ReticulumMeshChat:
                 d = dict(row)
                 remote_identity_hash = d.get("remote_identity_hash")
                 if remote_identity_hash:
-                    lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(remote_identity_hash)
+                    lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
+                        remote_identity_hash
+                    )
                     if lxmf_hash:
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
@@ -3665,7 +3762,9 @@ class ReticulumMeshChat:
             remote_identity_hash = data.get("remote_identity_hash")
 
             if not name or not remote_identity_hash:
-                return web.json_response({"message": "Name and identity hash required"}, status=400)
+                return web.json_response(
+                    {"message": "Name and identity hash required"}, status=400
+                )
 
             self.database.contacts.add_contact(name, remote_identity_hash)
             return web.json_response({"message": "Contact added"})
@@ -3677,7 +3776,9 @@ class ReticulumMeshChat:
             name = data.get("name")
             remote_identity_hash = data.get("remote_identity_hash")
 
-            self.database.contacts.update_contact(contact_id, name, remote_identity_hash)
+            self.database.contacts.update_contact(
+                contact_id, name, remote_identity_hash
+            )
             return web.json_response({"message": "Contact updated"})
 
         @routes.delete("/api/v1/telephone/contacts/{id}")
@@ -3690,7 +3791,12 @@ class ReticulumMeshChat:
         async def telephone_contacts_check(request):
             identity_hash = request.match_info["identity_hash"]
             contact = self.database.contacts.get_contact_by_identity_hash(identity_hash)
-            return web.json_response({"is_contact": contact is not None, "contact": dict(contact) if contact else None})
+            return web.json_response(
+                {
+                    "is_contact": contact is not None,
+                    "contact": dict(contact) if contact else None,
+                }
+            )
 
         # announce
         @routes.get("/api/v1/announce")
@@ -5031,12 +5137,14 @@ class ReticulumMeshChat:
             search_query = request.query.get("q", None)
             filter_unread = ReticulumMeshChat.parse_bool_query_param(
                 request.query.get(
-                    "unread", request.query.get("filter_unread", "false"),
+                    "unread",
+                    request.query.get("filter_unread", "false"),
                 ),
             )
             filter_failed = ReticulumMeshChat.parse_bool_query_param(
                 request.query.get(
-                    "failed", request.query.get("filter_failed", "false"),
+                    "failed",
+                    request.query.get("filter_failed", "false"),
                 ),
             )
             filter_has_attachments = ReticulumMeshChat.parse_bool_query_param(
@@ -5439,7 +5547,9 @@ class ReticulumMeshChat:
             offset = int(request.query.get("offset", 0))
 
             results = self.database.telemetry.get_telemetry_history(
-                destination_hash, limit, offset,
+                destination_hash,
+                limit,
+                offset,
             )
             telemetry_list = []
             for r in results:
@@ -5590,6 +5700,14 @@ class ReticulumMeshChat:
                 status=404,
             )
 
+        # cancel/delete map export
+        @routes.delete("/api/v1/map/export/{export_id}")
+        async def delete_map_export(request):
+            export_id = request.match_info.get("export_id")
+            if self.map_manager.cancel_export(export_id):
+                return web.json_response({"message": "Export cancelled/deleted"})
+            return web.json_response({"error": "Export not found"}, status=404)
+
         # MIME type fix middleware - ensures JavaScript files have correct Content-Type
         @web.middleware
         async def mime_type_middleware(request, handler):
@@ -5666,7 +5784,10 @@ class ReticulumMeshChat:
         except Exception:
             # Fallback to direct encoding and hashing to get exactly 32 bytes
             import hashlib
-            secret_key_bytes = hashlib.sha256(self.session_secret_key.encode("utf-8")).digest()
+
+            secret_key_bytes = hashlib.sha256(
+                self.session_secret_key.encode("utf-8")
+            ).digest()
 
         setup_session(
             app,
@@ -5762,15 +5883,21 @@ class ReticulumMeshChat:
                 self.config.auto_announce_enabled.set(False)
 
         if "auto_resend_failed_messages_when_announce_received" in data:
-            value = self._parse_bool(data["auto_resend_failed_messages_when_announce_received"])
+            value = self._parse_bool(
+                data["auto_resend_failed_messages_when_announce_received"]
+            )
             self.config.auto_resend_failed_messages_when_announce_received.set(value)
 
         if "allow_auto_resending_failed_messages_with_attachments" in data:
-            value = self._parse_bool(data["allow_auto_resending_failed_messages_with_attachments"])
+            value = self._parse_bool(
+                data["allow_auto_resending_failed_messages_with_attachments"]
+            )
             self.config.allow_auto_resending_failed_messages_with_attachments.set(value)
 
         if "auto_send_failed_messages_to_propagation_node" in data:
-            value = self._parse_bool(data["auto_send_failed_messages_to_propagation_node"])
+            value = self._parse_bool(
+                data["auto_send_failed_messages_to_propagation_node"]
+            )
             self.config.auto_send_failed_messages_to_propagation_node.set(value)
 
         if "show_suggested_community_interfaces" in data:
@@ -5855,7 +5982,9 @@ class ReticulumMeshChat:
 
         # update archiver settings
         if "page_archiver_enabled" in data:
-            self.config.page_archiver_enabled.set(self._parse_bool(data["page_archiver_enabled"]))
+            self.config.page_archiver_enabled.set(
+                self._parse_bool(data["page_archiver_enabled"])
+            )
 
         if "page_archiver_max_versions" in data:
             self.config.page_archiver_max_versions.set(
@@ -5893,7 +6022,9 @@ class ReticulumMeshChat:
 
         # update map settings
         if "map_offline_enabled" in data:
-            self.config.map_offline_enabled.set(self._parse_bool(data["map_offline_enabled"]))
+            self.config.map_offline_enabled.set(
+                self._parse_bool(data["map_offline_enabled"])
+            )
 
         if "map_default_lat" in data:
             self.config.map_default_lat.set(str(data["map_default_lat"]))
@@ -5908,7 +6039,9 @@ class ReticulumMeshChat:
             self.config.map_mbtiles_dir.set(data["map_mbtiles_dir"])
 
         if "map_tile_cache_enabled" in data:
-            self.config.map_tile_cache_enabled.set(self._parse_bool(data["map_tile_cache_enabled"]))
+            self.config.map_tile_cache_enabled.set(
+                self._parse_bool(data["map_tile_cache_enabled"])
+            )
 
         if "map_tile_server_url" in data:
             self.config.map_tile_server_url.set(data["map_tile_server_url"])
@@ -5918,7 +6051,9 @@ class ReticulumMeshChat:
 
         # update voicemail settings
         if "voicemail_enabled" in data:
-            self.config.voicemail_enabled.set(self._parse_bool(data["voicemail_enabled"]))
+            self.config.voicemail_enabled.set(
+                self._parse_bool(data["voicemail_enabled"])
+            )
 
         if "voicemail_greeting" in data:
             self.config.voicemail_greeting.set(data["voicemail_greeting"])
@@ -5935,7 +6070,9 @@ class ReticulumMeshChat:
 
         # update ringtone settings
         if "custom_ringtone_enabled" in data:
-            self.config.custom_ringtone_enabled.set(self._parse_bool(data["custom_ringtone_enabled"]))
+            self.config.custom_ringtone_enabled.set(
+                self._parse_bool(data["custom_ringtone_enabled"])
+            )
 
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
@@ -6837,11 +6974,30 @@ class ReticulumMeshChat:
             display_name = ReticulumMeshChat.parse_nomadnetwork_node_display_name(
                 announce["app_data"],
             )
+        elif announce["aspect"] == "lxst.telephony":
+            display_name = announce.get("display_name") or "Anonymous Peer"
+
+        # Try to find associated LXMF destination hash if this is a telephony announce
+        lxmf_destination_hash = None
+        if announce["aspect"] == "lxst.telephony" and announce.get("identity_hash"):
+            lxmf_announces = self.database.announces.get_filtered_announces(
+                aspect="lxmf.delivery",
+                search_term=announce["identity_hash"],
+            )
+            if lxmf_announces:
+                for lxmf_a in lxmf_announces:
+                    if lxmf_a["identity_hash"] == announce["identity_hash"]:
+                        lxmf_destination_hash = lxmf_a["destination_hash"]
+                        # Also update display name if telephony one was empty
+                        if not display_name or display_name == "Anonymous Peer":
+                            display_name = self.parse_lxmf_display_name(lxmf_a["app_data"])
+                        break
 
         # find lxmf user icon from database
         lxmf_user_icon = None
+        user_icon_target_hash = lxmf_destination_hash or announce["destination_hash"]
         db_lxmf_user_icon = self.database.misc.get_user_icon(
-            announce["destination_hash"],
+            user_icon_target_hash,
         )
         if db_lxmf_user_icon:
             lxmf_user_icon = {
@@ -6874,6 +7030,7 @@ class ReticulumMeshChat:
             "snr": announce["snr"],
             "quality": announce["quality"],
             "display_name": display_name,
+            "lxmf_destination_hash": lxmf_destination_hash,
             "custom_display_name": self.get_custom_destination_display_name(
                 announce["destination_hash"],
             ),
