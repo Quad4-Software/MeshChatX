@@ -17,14 +17,14 @@
                     </button>
                     <button
                         :class="[
-                            activeTab === 'discovery'
+                            activeTab === 'phonebook'
                                 ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:border-gray-300',
                         ]"
                         class="py-2 px-4 border-b-2 font-medium text-sm transition-all"
-                        @click="activeTab = 'discovery'"
+                        @click="activeTab = 'phonebook'"
                     >
-                        Discovery
+                        Phonebook
                     </button>
                     <button
                         :class="[
