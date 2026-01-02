@@ -182,12 +182,29 @@ tasks:
 
     android-prepare:
         desc: Prepare Android build (copy meshchatx package and assets)
-        deps: [build, android-init]
+        deps: [build-frontend, android-init]
         cmds:
             - |
-                echo "Copying meshchatx package to Android project..."
+                echo "Copying meshchatx package and dependencies to Android project..."
                 mkdir -p android/app/src/main/python
+                # Remove old copies to ensure fresh build
+                rm -rf android/app/src/main/python/meshchatx
+                rm -rf android/app/src/main/python/RNS
+                rm -rf android/app/src/main/python/LXMF
+                rm -rf android/app/src/main/python/LXST
+                
+                # Copy MeshChatX
                 cp -r meshchatx android/app/src/main/python/
+                
+                # Vendor RNS, LXMF, and LXST from local source (like Sideband does)
+                cp -r /mnt/projects/Reticulum/Reticulum/RNS android/app/src/main/python/
+                cp -r /mnt/projects/Reticulum/LXMF/LXMF android/app/src/main/python/
+                cp -r /mnt/projects/Reticulum/LXST/LXST android/app/src/main/python/
+                
+                # Cleanup vendored packages (remove utilities/tests etc if needed, similar to Sideband)
+                rm -rf android/app/src/main/python/RNS/Utilities/RNS
+                rm -rf android/app/src/main/python/LXMF/Utilities/LXMF
+                rm -rf android/app/src/main/python/LXST/Utilities/LXST
             - |
                 echo "Android build prepared. Don't forget to:"
                 echo "1. Add Chaquopy license to android/local.properties"
