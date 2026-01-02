@@ -28,6 +28,7 @@ class VoicemailManager:
         os.makedirs(self.recordings_dir, exist_ok=True)
 
         self.is_recording = False
+        self.is_greeting_recording = False
         self.recording_pipeline = None
         self.recording_sink = None
         self.recording_start_time = None
@@ -35,6 +36,9 @@ class VoicemailManager:
         self.recording_filename = None
 
         self.on_new_voicemail_callback = None
+
+        # stabilization delay for voicemail greeting
+        self.STABILIZATION_DELAY = 2.5
 
         # Paths to executables
         self.espeak_path = self._find_espeak()
@@ -268,6 +272,20 @@ class VoicemailManager:
 
         def session_job():
             try:
+                # Wait for link to stabilize
+                RNS.log(
+                    f"Voicemail: Waiting {self.STABILIZATION_DELAY}s for link stabilization...",
+                    RNS.LOG_DEBUG,
+                )
+                time.sleep(self.STABILIZATION_DELAY)
+
+                if not telephone.active_call:
+                    RNS.log(
+                        "Voicemail: Call ended during stabilization delay",
+                        RNS.LOG_DEBUG,
+                    )
+                    return
+
                 # 1. Play greeting
                 if os.path.exists(greeting_path):
                     try:
@@ -286,6 +304,7 @@ class VoicemailManager:
                         while greeting_source.running:
                             time.sleep(0.1)
                             if not telephone.active_call:
+                                greeting_pipeline.stop()
                                 return
 
                         greeting_pipeline.stop()
@@ -296,6 +315,9 @@ class VoicemailManager:
                         )
                 else:
                     RNS.log("Voicemail: No greeting available to play", RNS.LOG_WARNING)
+
+                if not telephone.active_call:
+                    return
 
                 # 2. Play beep
                 beep_source = LXST.ToneSource(
@@ -308,6 +330,9 @@ class VoicemailManager:
                 beep_source.start()
                 time.sleep(0.5)
                 beep_source.stop()
+
+                if not telephone.active_call:
+                    return
 
                 # 3. Start recording
                 self.start_recording(caller_identity)
@@ -410,6 +435,7 @@ class VoicemailManager:
                     os.remove(filepath)
 
             self.is_recording = False
+            self.is_greeting_recording = False
             self.recording_start_time = None
             self.recording_remote_identity = None
             self.recording_filename = None
@@ -417,3 +443,53 @@ class VoicemailManager:
         except Exception as e:
             RNS.log(f"Error stopping recording: {e}", RNS.LOG_ERROR)
             self.is_recording = False
+
+    def start_greeting_recording(self):
+        telephone = self.telephone_manager.telephone
+        if not telephone:
+            return
+
+        # Ensure we have audio input
+        if not telephone.audio_input:
+            RNS.log(
+                "Voicemail: No audio input available for recording greeting",
+                RNS.LOG_ERROR,
+            )
+            return
+
+        temp_wav = os.path.join(self.greetings_dir, "temp_greeting.wav")
+        if os.path.exists(temp_wav):
+            os.remove(temp_wav)
+
+        try:
+            self.greeting_recording_sink = OpusFileSink(
+                os.path.join(self.greetings_dir, "greeting.opus")
+            )
+            self.greeting_recording_sink.samplerate = 48000
+
+            self.greeting_recording_pipeline = Pipeline(
+                source=telephone.audio_input,
+                codec=Null(),
+                sink=self.greeting_recording_sink,
+            )
+            self.greeting_recording_pipeline.start()
+            self.is_greeting_recording = True
+            RNS.log("Voicemail: Started recording greeting from mic", RNS.LOG_DEBUG)
+        except Exception as e:
+            RNS.log(
+                f"Voicemail: Failed to start greeting recording: {e}", RNS.LOG_ERROR
+            )
+
+    def stop_greeting_recording(self):
+        if not self.is_greeting_recording:
+            return
+
+        try:
+            self.greeting_recording_pipeline.stop()
+            self.greeting_recording_sink = None
+            self.greeting_recording_pipeline = None
+            self.is_greeting_recording = False
+            RNS.log("Voicemail: Stopped recording greeting from mic", RNS.LOG_DEBUG)
+        except Exception as e:
+            RNS.log(f"Voicemail: Error stopping greeting recording: {e}", RNS.LOG_ERROR)
+            self.is_greeting_recording = False
