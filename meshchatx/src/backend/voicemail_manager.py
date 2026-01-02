@@ -34,6 +34,8 @@ class VoicemailManager:
         self.recording_remote_identity = None
         self.recording_filename = None
 
+        self.on_new_voicemail_callback = None
+
         # Paths to executables
         self.espeak_path = self._find_espeak()
         self.ffmpeg_path = self._find_ffmpeg()
@@ -377,6 +379,13 @@ class VoicemailManager:
                     f"Saved voicemail from {RNS.prettyhexrep(self.recording_remote_identity.hash)} ({duration}s)",
                     RNS.LOG_DEBUG,
                 )
+
+                if self.on_new_voicemail_callback:
+                    self.on_new_voicemail_callback(
+                        self.recording_remote_identity.hash.hex(),
+                        remote_name,
+                        duration,
+                    )
             else:
                 # Delete short/empty recording
                 filepath = os.path.join(self.recordings_dir, self.recording_filename)

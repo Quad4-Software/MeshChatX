@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 18
+    LATEST_VERSION = 19
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -549,6 +549,11 @@ class DatabaseSchema:
             )
             self.provider.execute(
                 "CREATE INDEX IF NOT EXISTS idx_contacts_remote_identity_hash ON contacts(remote_identity_hash)",
+            )
+
+        if current_version < 19:
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_call_history_remote_name ON call_history(remote_identity_name)",
             )
 
         # Update version in config

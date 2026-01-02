@@ -135,6 +135,9 @@ class ConfigManager:
         self.custom_ringtone_enabled = self.BoolConfig(self, "custom_ringtone_enabled", False)
         self.ringtone_filename = self.StringConfig(self, "ringtone_filename", None)
 
+        # telephony config
+        self.do_not_disturb_enabled = self.BoolConfig(self, "do_not_disturb_enabled", False)
+
         # map config
         self.map_offline_enabled = self.BoolConfig(self, "map_offline_enabled", False)
         self.map_offline_path = self.StringConfig(self, "map_offline_path", None)

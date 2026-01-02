@@ -40,10 +40,19 @@ class TelephoneDAO:
             ),
         )
 
-    def get_call_history(self, limit=10):
+    def get_call_history(self, search=None, limit=10, offset=0):
+        if search:
+            return self.provider.fetchall(
+                """
+                SELECT * FROM call_history 
+                WHERE remote_identity_name LIKE ? OR remote_identity_hash LIKE ? 
+                ORDER BY timestamp DESC LIMIT ? OFFSET ?
+                """,
+                (f"%{search}%", f"%{search}%", limit, offset),
+            )
         return self.provider.fetchall(
-            "SELECT * FROM call_history ORDER BY timestamp DESC LIMIT ?",
-            (limit,),
+            "SELECT * FROM call_history ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+            (limit, offset),
         )
 
     def clear_call_history(self):

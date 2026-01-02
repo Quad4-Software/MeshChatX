@@ -372,6 +372,7 @@ class ReticulumMeshChat:
         self.voicemail_manager.get_name_for_identity_hash = (
             self.get_name_for_identity_hash
         )
+        self.voicemail_manager.on_new_voicemail_callback = self.on_new_voicemail_received
 
         # init Ringtone Manager
         self.ringtone_manager = RingtoneManager(
@@ -1335,8 +1336,39 @@ class ReticulumMeshChat:
         value = value.lower()
         return value in {"1", "true", "yes", "on"}
 
+    def on_new_voicemail_received(self, remote_hash, remote_name, duration):
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "new_voicemail",
+                        "remote_identity_hash": remote_hash,
+                        "remote_identity_name": remote_name,
+                        "duration": duration,
+                        "timestamp": time.time(),
+                    },
+                ),
+            ),
+        )
+
     # handle receiving a new audio call
     def on_incoming_telephone_call(self, caller_identity: RNS.Identity):
+        caller_hash = caller_identity.hash.hex()
+
+        # Check if caller is blocked
+        if self.is_destination_blocked(caller_hash):
+            print(f"Rejecting incoming call from blocked source: {caller_hash}")
+            if self.telephone_manager.telephone:
+                self.telephone_manager.telephone.hangup()
+            return
+
+        # Check for Do Not Disturb
+        if self.config.do_not_disturb_enabled.get():
+            print(f"Rejecting incoming call due to Do Not Disturb: {caller_hash}")
+            if self.telephone_manager.telephone:
+                self.telephone_manager.telephone.hangup()
+            return
+
         # Trigger voicemail handling
         self.voicemail_manager.handle_incoming_call(caller_identity)
 
@@ -1402,6 +1434,21 @@ class ReticulumMeshChat:
                 duration_seconds=duration,
                 timestamp=time.time(),
             )
+
+            # Trigger missed call notification if it was an incoming call that ended while ringing
+            if is_incoming and status_code == 4:
+                AsyncUtils.run_async(
+                    self.websocket_broadcast(
+                        json.dumps(
+                            {
+                                "type": "telephone_missed_call",
+                                "remote_identity_hash": remote_identity_hash,
+                                "remote_identity_name": remote_identity_name,
+                                "timestamp": time.time(),
+                            },
+                        ),
+                    ),
+                )
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
@@ -3139,7 +3186,13 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/telephone/history")
         async def telephone_history(request):
             limit = int(request.query.get("limit", 10))
-            history = self.database.telephone.get_call_history(limit=limit)
+            offset = int(request.query.get("offset", 0))
+            search = request.query.get("search", None)
+            history = self.database.telephone.get_call_history(
+                search=search,
+                limit=limit,
+                offset=offset,
+            )
 
             call_history = []
             for row in history:
