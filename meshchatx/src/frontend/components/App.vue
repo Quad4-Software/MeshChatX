@@ -3,13 +3,6 @@
         :class="{ dark: config?.theme === 'dark' }"
         class="h-screen w-full flex flex-col bg-slate-50 dark:bg-zinc-950 transition-colors"
     >
-        <div
-            v-if="appInfo?.is_demo"
-            class="relative z-[100] bg-blue-600/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-[0.2em] py-1 text-center select-none border-b border-white/10 shadow-sm"
-        >
-            Demo Mode &bull; Read Only
-        </div>
-
         <RouterView v-if="$route.name === 'auth'" />
 
         <template v-else>
@@ -119,7 +112,7 @@
                         class="fixed inset-y-0 left-0 z-[70] transform transition-all duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
                         :class="[
                             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-                            isSidebarCollapsed ? 'w-20' : 'w-72',
+                            isSidebarCollapsed ? 'w-16' : 'w-72',
                         ]"
                     >
                         <div
@@ -233,7 +226,7 @@
                                         >
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="diagram-projector"
+                                                    icon-name="hub"
                                                     class="w-6 h-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
@@ -433,6 +426,7 @@
             @hangup="onOverlayHangup"
         />
         <Toast />
+        <CommandPalette />
 
         <!-- identity switching overlay -->
         <transition name="fade-blur">
@@ -450,9 +444,9 @@
                         </div>
                     </div>
                     <div class="mt-6 text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                        Switching Identity...
+                        {{ $t("app.switching_identity") }}
                     </div>
-                    <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading your identity</div>
+                    <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $t("app.loading_identity") }}</div>
                 </div>
             </div>
         </transition>
@@ -474,6 +468,8 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import NotificationBell from "./NotificationBell.vue";
 import LanguageSelector from "./LanguageSelector.vue";
 import CallOverlay from "./call/CallOverlay.vue";
+import CommandPalette from "./CommandPalette.vue";
+import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import logoUrl from "../assets/images/logo.png";
 
 export default {
@@ -486,6 +482,7 @@ export default {
         NotificationBell,
         LanguageSelector,
         CallOverlay,
+        CommandPalette,
     },
     data() {
         return {
@@ -586,8 +583,17 @@ export default {
             }, 10000);
         });
 
+        GlobalEmitter.on("sync-propagation-node", () => {
+            this.syncPropagationNode();
+        });
+
+        GlobalEmitter.on("keyboard-shortcut", (action) => {
+            this.handleKeyboardShortcut(action);
+        });
+
         this.getAppInfo();
         this.getConfig();
+        this.getKeyboardShortcuts();
         this.updateRingtonePlayer();
         this.updateTelephoneStatus();
         this.updatePropagationNodeStatus();
@@ -620,6 +626,10 @@ export default {
                             document.documentElement.classList.remove("dark");
                         }
                     }
+                    break;
+                }
+                case "keyboard_shortcuts": {
+                    KeyboardShortcuts.setShortcuts(json.shortcuts);
                     break;
                 }
                 case "announced": {
@@ -700,6 +710,13 @@ export default {
                 console.log(e);
             }
         },
+        async getKeyboardShortcuts() {
+            WebSocketConnection.send(
+                JSON.stringify({
+                    type: "keyboard_shortcuts.get",
+                })
+            );
+        },
         async sendAnnounce() {
             try {
                 await window.axios.get(`/api/v1/announce`);
@@ -711,16 +728,7 @@ export default {
             // fetch config so it updates last announced timestamp
             await this.getConfig();
         },
-        async updateConfig(config) {
-            // update local state immediately if in demo mode, as websocket is not available
-            if (this.appInfo?.is_demo) {
-                this.config = {
-                    ...this.config,
-                    ...config,
-                };
-                return;
-            }
-
+        async updateConfig(config, label = null) {
             try {
                 WebSocketConnection.send(
                     JSON.stringify({
@@ -728,6 +736,13 @@ export default {
                         config: config,
                     })
                 );
+                if (label) {
+                    ToastUtils.success(
+                        this.$t("app.setting_auto_saved", {
+                            label: this.$t(`app.${label.toLowerCase().replace(/ /g, "_")}`),
+                        })
+                    );
+                }
             } catch (e) {
                 console.error(e);
             }
@@ -738,23 +753,32 @@ export default {
             });
         },
         async onAnnounceIntervalSecondsChange() {
-            await this.updateConfig({
-                auto_announce_interval_seconds: this.config.auto_announce_interval_seconds,
-            });
+            await this.updateConfig(
+                {
+                    auto_announce_interval_seconds: this.config.auto_announce_interval_seconds,
+                },
+                "announce_interval"
+            );
         },
         async toggleTheme() {
             if (!this.config) {
                 return;
             }
             const newTheme = this.config.theme === "dark" ? "light" : "dark";
-            await this.updateConfig({
-                theme: newTheme,
-            });
+            await this.updateConfig(
+                {
+                    theme: newTheme,
+                },
+                "theme"
+            );
         },
         async onLanguageChange(langCode) {
-            await this.updateConfig({
-                language: langCode,
-            });
+            await this.updateConfig(
+                {
+                    language: langCode,
+                },
+                "language"
+            );
             this.$i18n.locale = langCode;
         },
         async composeNewMessage() {
@@ -767,7 +791,7 @@ export default {
         async syncPropagationNode() {
             // ask to stop syncing if already syncing
             if (this.isSyncingPropagationNode) {
-                if (await DialogUtils.confirm("Are you sure you want to stop syncing?")) {
+                if (await DialogUtils.confirm(this.$t("app.stop_sync_confirm"))) {
                     await this.stopSyncingPropagationNode();
                 }
                 return;
@@ -777,7 +801,7 @@ export default {
             try {
                 await axios.get("/api/v1/lxmf/propagation-node/sync");
             } catch (e) {
-                const errorMessage = e.response?.data?.message ?? "Something went wrong. Try again later.";
+                const errorMessage = e.response?.data?.message ?? this.$t("app.sync_error_generic");
                 ToastUtils.error(errorMessage);
                 return;
             }
@@ -799,9 +823,9 @@ export default {
                 const status = this.propagationNodeStatus?.state;
                 const messagesReceived = this.propagationNodeStatus?.messages_received ?? 0;
                 if (status === "complete" || status === "idle") {
-                    ToastUtils.success(`Sync complete. ${messagesReceived} messages received.`);
+                    ToastUtils.success(this.$t("app.sync_complete", { count: messagesReceived }));
                 } else {
-                    ToastUtils.error(`Sync error: ${status}`);
+                    ToastUtils.error(this.$t("app.sync_error", { status: status }));
                 }
             }, 500);
         },
@@ -918,6 +942,43 @@ export default {
                 left: 0,
                 behavior: "smooth",
             });
+        },
+        handleKeyboardShortcut(action) {
+            switch (action) {
+                case "nav_messages":
+                    this.$router.push({ name: "messages" });
+                    break;
+                case "nav_nomad":
+                    this.$router.push({ name: "nomadnetwork" });
+                    break;
+                case "nav_map":
+                    this.$router.push({ name: "map" });
+                    break;
+                case "nav_paper":
+                    this.$router.push({ name: "paper-message" });
+                    break;
+                case "nav_archives":
+                    this.$router.push({ name: "archives" });
+                    break;
+                case "nav_calls":
+                    this.$router.push({ name: "call" });
+                    break;
+                case "nav_settings":
+                    this.$router.push({ name: "settings" });
+                    break;
+                case "compose_message":
+                    this.composeNewMessage();
+                    break;
+                case "sync_messages":
+                    this.syncPropagationNode();
+                    break;
+                case "command_palette":
+                    // Command palette handles its own shortcut but we emit it just in case
+                    break;
+                case "toggle_sidebar":
+                    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+                    break;
+            }
         },
     },
 };
