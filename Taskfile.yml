@@ -25,6 +25,24 @@ vars:
         sh: echo "${DOCKER_CONTEXT:-.}"
     DOCKERFILE:
         sh: echo "${DOCKERFILE:-Dockerfile}"
+    ANDROID_DIR:
+        sh: echo "${ANDROID_DIR:-android}"
+    PYTHON_SRC_DIR:
+        sh: echo "${PYTHON_SRC_DIR:-${ANDROID_DIR}/app/src/main/python}"
+    JNI_LIBS_DIR:
+        sh: echo "${JNI_LIBS_DIR:-${ANDROID_DIR}/app/src/main/jniLibs}"
+    RETICULUM_RNS_SRC:
+        sh: echo "${RETICULUM_RNS_SRC:-./misc/RNS}"
+    RETICULUM_LXMF_SRC:
+        sh: echo "${RETICULUM_LXMF_SRC:-./misc/LXMF}"
+    RETICULUM_LXST_SRC:
+        sh: echo "${RETICULUM_LXST_SRC:-./misc/LXST}"
+    SIDEBAND_CODEC2_WHL:
+        sh: echo "${SIDEBAND_CODEC2_WHL:-./misc/pycodec2-3.0.1-cp311-cp311-linux_aarch64.whl}"
+    SIDEBAND_LIB_ARM64:
+        sh: echo "${SIDEBAND_LIB_ARM64:-./misc/libcodec2-arm64-v8a.so}"
+    SIDEBAND_LIB_ARMEABI:
+        sh: echo "${SIDEBAND_LIB_ARMEABI:-./misc/libcodec2-armeabi-v7a.so}"
 
 tasks:
     default:
@@ -170,12 +188,12 @@ tasks:
         desc: Initialize Gradle wrapper for Android project
         cmds:
             - |
-                if [ ! -f android/gradle/wrapper/gradle-wrapper.jar ]; then
+                if [ ! -f "{{.ANDROID_DIR}}/gradle/wrapper/gradle-wrapper.jar" ]; then
                     echo "Downloading Gradle wrapper jar..."
-                    mkdir -p android/gradle/wrapper
-                    curl -L -o android/gradle/wrapper/gradle-wrapper.jar \
+                    mkdir -p "{{.ANDROID_DIR}}/gradle/wrapper"
+                    curl -L -o "{{.ANDROID_DIR}}/gradle/wrapper/gradle-wrapper.jar" \
                         https://raw.githubusercontent.com/gradle/gradle/v8.12.1/gradle/wrapper/gradle-wrapper.jar || \
-                        echo "Failed to download. Please run: cd android && gradle wrapper --gradle-version 8.12.1"
+                        echo "Failed to download. Please run: cd {{.ANDROID_DIR}} && gradle wrapper --gradle-version 8.12.1"
                 else
                     echo "Gradle wrapper already initialized."
                 fi
@@ -186,44 +204,56 @@ tasks:
         cmds:
             - |
                 echo "Copying meshchatx package and dependencies to Android project..."
-                mkdir -p android/app/src/main/python
+                mkdir -p "{{.PYTHON_SRC_DIR}}"
                 # Remove old copies to ensure fresh build
-                rm -rf android/app/src/main/python/meshchatx
-                rm -rf android/app/src/main/python/RNS
-                rm -rf android/app/src/main/python/LXMF
-                rm -rf android/app/src/main/python/LXST
-                
+                rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
+                rm -rf "{{.PYTHON_SRC_DIR}}/RNS"
+                rm -rf "{{.PYTHON_SRC_DIR}}/LXMF"
+                rm -rf "{{.PYTHON_SRC_DIR}}/LXST"
+
                 # Copy MeshChatX
-                cp -r meshchatx android/app/src/main/python/
-                
-                # Vendor RNS, LXMF, and LXST from local source (like Sideband does)
-                cp -r /mnt/projects/Reticulum/Reticulum/RNS android/app/src/main/python/
-                cp -r /mnt/projects/Reticulum/LXMF/LXMF android/app/src/main/python/
-                cp -r /mnt/projects/Reticulum/LXST/LXST android/app/src/main/python/
-                
+                cp -r meshchatx "{{.PYTHON_SRC_DIR}}/"
+
+                # Vendor RNS, LXMF, and LXST from ./misc/ and ./src/
+                cp -r ./misc/RNS "{{.PYTHON_SRC_DIR}}/"
+                cp -r ./misc/LXMF "{{.PYTHON_SRC_DIR}}/"
+                cp -r ./misc/LXST "{{.PYTHON_SRC_DIR}}/"
+                cp -r ./src/RNS "{{.PYTHON_SRC_DIR}}/" || true
+                cp -r ./src/LXMF "{{.PYTHON_SRC_DIR}}/" || true
+                cp -r ./src/LXST "{{.PYTHON_SRC_DIR}}/" || true
+
+                # Copy pycodec2 wheel from ./misc
+                cp "./misc/pycodec2-3.0.1-cp311-cp311-linux_aarch64.whl" "{{.PYTHON_SRC_DIR}}/" || true
+
+                # Copy native libraries from ./misc
+                mkdir -p "{{.JNI_LIBS_DIR}}/arm64-v8a"
+                mkdir -p "{{.JNI_LIBS_DIR}}/armeabi-v7a"
+                cp "./misc/libcodec2-arm64-v8a.so" "{{.JNI_LIBS_DIR}}/arm64-v8a/" || true
+                cp "./misc/libcodec2-armeabi-v7a.so" "{{.JNI_LIBS_DIR}}/armeabi-v7a/" || true
+
                 # Cleanup vendored packages (remove utilities/tests etc if needed, similar to Sideband)
-                rm -rf android/app/src/main/python/RNS/Utilities/RNS
-                rm -rf android/app/src/main/python/LXMF/Utilities/LXMF
-                rm -rf android/app/src/main/python/LXST/Utilities/LXST
+                rm -rf "{{.PYTHON_SRC_DIR}}/RNS/Utilities/RNS"
+                rm -rf "{{.PYTHON_SRC_DIR}}/LXMF/Utilities/LXMF"
+                rm -rf "{{.PYTHON_SRC_DIR}}/LXST/Utilities/LXST"
             - |
                 echo "Android build prepared. Don't forget to:"
-                echo "1. Add Chaquopy license to android/local.properties"
-                echo "2. Open android/ in Android Studio or run: task android-build"
+                echo "1. Add Chaquopy license to {{.ANDROID_DIR}}/local.properties"
+                echo "2. Open {{.ANDROID_DIR}}/ in Android Studio or run: task android-build"
 
     android-build:
         desc: Build Android APK (requires Android SDK and Chaquopy license)
         deps: [android-prepare]
         cmds:
-            - cd android && ./gradlew assembleDebug
+            - cd "{{.ANDROID_DIR}}" && ./gradlew assembleDebug
 
     android-build-release:
         desc: Build Android APK (release, requires signing config)
         deps: [android-prepare]
         cmds:
-            - cd android && ./gradlew assembleRelease
+            - cd "{{.ANDROID_DIR}}" && ./gradlew assembleRelease
 
     android-clean:
         desc: Clean Android build artifacts
         cmds:
-            - cd android && ./gradlew clean
-            - rm -rf android/app/src/main/python/meshchatx
+            - cd "{{.ANDROID_DIR}}" && ./gradlew clean
+            - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
