@@ -6,21 +6,10 @@ on:
             - "*"
     workflow_dispatch:
         inputs:
-            # build_windows:
-            #     description: "Build Windows"
-            #     required: false
-            #     default: "true"
-            #     type: boolean
-            # build_mac:
-            #     description: "Build macOS"
-            #     required: false
-            #     default: "true"
-            #     type: boolean
-            build_linux:
-                description: "Build Linux"
+            version:
+                description: "Release version (e.g., v1.0.0)"
                 required: false
-                default: "true"
-                type: boolean
+                type: string
             build_docker:
                 description: "Build Docker"
                 required: false
@@ -28,16 +17,30 @@ on:
                 type: boolean
 
 permissions:
-    contents: read
+    contents: write
+    packages: write
 
 jobs:
-    build_frontend:
+    build:
+        name: Build and Release
         runs-on: ubuntu-latest
-        permissions:
-            contents: read
         steps:
             - name: Clone Repo
               uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  fetch-depth: 0
+
+            - name: Determine version
+              id: version
+              run: |
+                if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+                  echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+                elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+                  echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+                else
+                  SHORT_SHA=$(git rev-parse --short HEAD)
+                  echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
+                fi
 
             - name: Install NodeJS
               uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
@@ -45,191 +48,74 @@ jobs:
                   node-version: 22
 
             - name: Install Python
-              uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
-              with:
-                  python-version: "3.13"
-
-            - name: Sync versions
-              run: python scripts/sync_version.py
-
-            - name: Install pnpm
-              uses: https://git.quad4.io/actions/setup-pnpm@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
-              with:
-                  version: 10.0.0
-
-            - name: Install NodeJS Deps
-              run: pnpm install
-
-            - name: Build Frontend
-              run: pnpm run build-frontend
-
-            - name: Upload frontend artifact
-              uses: https://git.quad4.io/actions/upload-artifact@c24449f33cd45d4826c6702db7e49f7cdb9b551d # v3-node20
-              with:
-                  name: frontend-build
-                  path: meshchatx/public
-                  if-no-files-found: error
-
-    build_desktop:
-        name: Build Desktop (linux)
-        needs: build_frontend
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-        steps:
-            - name: Clone Repo
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-            - name: Install NodeJS
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
-              with:
-                  node-version: 22
-
-            - name: Install Python
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
               uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
               with:
                   python-version: "3.13"
 
             - name: Install Poetry
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
               run: python -m pip install --upgrade pip poetry>=2.0.0
 
-            - name: Sync versions
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              run: python scripts/sync_version.py
-
-            - name: Install Python Deps
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              run: python -m poetry install
-
             - name: Install pnpm
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
               uses: https://git.quad4.io/actions/setup-pnpm@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
               with:
                   version: 10.0.0
 
-            - name: Install NodeJS Deps
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              run: pnpm install
-
-            - name: Prepare frontend directory
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              run: python scripts/prepare_frontend_dir.py
-
-            - name: Download frontend artifact
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              uses: https://git.quad4.io/actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-              with:
-                  name: frontend-build
-                  path: meshchatx/public
-
             - name: Install system dependencies
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
               run: sudo apt-get update && sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng
 
+            - name: Setup Task
+              uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
+              with:
+                version: '3.46.3'
+
+            - name: Sync versions
+              run: python scripts/sync_version.py
+
+            - name: Install dependencies
+              run: task install
+
+            - name: Build Frontend
+              run: task build-frontend
+
+            - name: Prepare frontend directory
+              run: python scripts/prepare_frontend_dir.py
+
             - name: Build Python wheel
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              run: |
-                  python -m poetry build -f wheel
-                  mkdir -p python-dist
-                  mv dist/*.whl python-dist/
-                  rm -rf dist
+              run: task wheel
 
             - name: Build Electron App (Universal)
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
               run: pnpm run dist-prebuilt
-
-            - name: Upload build artifacts
-              if: |
-                  github.event_name == 'push' ||
-                  (github.event_name == 'workflow_dispatch' && inputs.build_linux == true)
-              uses: https://git.quad4.io/actions/upload-artifact@c24449f33cd45d4826c6702db7e49f7cdb9b551d # v3-node20
-              with:
-                  name: build-linux
-                  path: |
-                      dist/*-linux*.AppImage
-                      dist/*-linux*.deb
-                      python-dist/*.whl
-                  if-no-files-found: ignore
-
-    create_release:
-        name: Create Release
-        needs: build_desktop
-        runs-on: ubuntu-latest
-        if: github.event_name == 'push'
-        permissions:
-            contents: write
-        steps:
-            - name: Download all artifacts
-              uses: https://git.quad4.io/actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
-              with:
-                  path: artifacts
-
-            - name: Display structure of downloaded files
-              run: ls -R artifacts
 
             - name: Prepare release assets
               run: |
                   mkdir -p release-assets
-                  find artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.whl" \) -exec cp {} release-assets/ \;
-                  ls -lh release-assets/
-
-            - name: Generate SHA256 checksums
-              run: |
+                  # Collect artifacts
+                  find dist -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" \) -exec cp {} release-assets/ \;
+                  find python-dist -type f -name "*.whl" -exec cp {} release-assets/ \;
+                  
+                  # Generate checksums
                   cd release-assets
                   echo "## SHA256 Checksums" > release-body.md
                   echo "" >> release-body.md
-
-                  for file in *.exe *.dmg *.AppImage *.deb *.whl; do
-                    if [ -f "$file" ]; then
+                  for file in *; do
+                    if [ -f "$file" ] && [ "$file" != "release-body.md" ]; then
                       sha256sum "$file" | tee "${file}.sha256"
                       echo "\`$(cat "${file}.sha256")\`" >> release-body.md
                     fi
                   done
 
-                  echo "" >> release-body.md
-                  echo "Individual \`.sha256\` files are included for each artifact." >> release-body.md
-
-                  cat release-body.md
-                  echo ""
-                  echo "Generated .sha256 files:"
-                  ls -1 *.sha256 2>/dev/null || echo "No .sha256 files found"
-
             - name: Create Release
-              uses: https://git.quad4.io/actions/gitea-release-action@fe8e0322804b48e34e3bddbbf6335bd2b1046eb7 # v1
+              if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+              uses: https://git.quad4.io/actions/gitea-release-action@4875285c0950474efb7ca2df55233c51333eeb74 # v1
               with:
-                  draft: true
-                  artifacts: "release-assets/*"
+                  api_url: ${{ secrets.GITEA_API_URL }}
+                  gitea_token: ${{ secrets.GITEA_TOKEN }}
+                  title: ${{ steps.version.outputs.version }}
+                  tag: ${{ steps.version.outputs.version }}
+                  files: "release-assets/*"
                   bodyFile: "release-assets/release-body.md"
+                  draft: false
+                  prerelease: false
 
     build_docker:
         runs-on: ubuntu-latest
