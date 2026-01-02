@@ -187,6 +187,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/tools/ToolsPage.vue")),
         },
         {
+            name: "paper-message",
+            path: "/tools/paper-message",
+            component: defineAsyncComponent(() => import("./components/tools/PaperMessagePage.vue")),
+        },
+        {
             name: "call",
             path: "/call",
             component: defineAsyncComponent(() => import("./components/call/CallPage.vue")),
