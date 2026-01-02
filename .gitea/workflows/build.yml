@@ -69,7 +69,9 @@ jobs:
                   version: 10.0.0
 
             - name: Install system dependencies
-              run: sudo apt-get update && sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng
 
             - name: Setup Task
               uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
@@ -84,9 +86,6 @@ jobs:
 
             - name: Build Frontend
               run: task build-frontend
-
-            - name: Prepare frontend directory
-              run: python scripts/prepare_frontend_dir.py
 
             - name: Build Python wheel
               run: task wheel
@@ -106,7 +105,7 @@ jobs:
                   echo "## SHA256 Checksums" > release-body.md
                   echo "" >> release-body.md
                   for file in *; do
-                    if [ -f "$file" ] && [ "$file" != "release-body.md" ]; then
+                    if [ -f "$file" ] && [ "$file" != "release-body.md" ] && [[ "$file" != *.sha256 ]]; then
                       sha256sum "$file" | tee "${file}.sha256"
                       echo "\`$(cat "${file}.sha256")\`" >> release-body.md
                     fi
