@@ -2,7 +2,7 @@
 
 A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork from the future.
 
-<video src="showcase/showcase-video-call.mp4" controls="controls" style="max-width: 100%;"></video>
+<video src="https://strg.0rbitzer0.net/view/62926a2a-0a9a-4f44-a5f6-000dd60deac1.mp4" controls="controls" style="max-width: 100%;"></video>
 
 This project is seperate from the original Reticulum MeshChat project, and is not affiliated with the original project.
 
