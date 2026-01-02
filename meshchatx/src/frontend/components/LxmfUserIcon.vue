@@ -1,12 +1,12 @@
 <template>
     <div
         v-if="iconName"
-        class="p-2 rounded"
+        class="p-2 rounded-full"
         :style="{ color: iconForegroundColour, 'background-color': iconBackgroundColour }"
     >
         <MaterialDesignIcon :icon-name="iconName" :class="iconClass" />
     </div>
-    <div v-else class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded">
+    <div v-else class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded-full">
         <MaterialDesignIcon icon-name="account-outline" :class="iconClass" />
     </div>
 </template>
