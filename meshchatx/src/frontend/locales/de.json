@@ -105,7 +105,27 @@
         "call_active": "Aktiv",
         "call_ended": "Beendet",
         "propagation_node": "Propagationsknoten",
-        "sync_now": "Jetzt synchronisieren"
+        "sync_now": "Jetzt synchronisieren",
+        "setting_auto_saved": "Einstellung {label} automatisch gespeichert",
+        "auto_resend": "Automatisch erneut senden",
+        "retry_attachments": "Anhänge wiederholen",
+        "auto_fallback": "Automatisches Fallback",
+        "community_interfaces": "Community-Schnittstellen",
+        "preferred_node": "Bevorzugter Knoten",
+        "local_node": "Lokaler Knoten",
+        "auto_sync": "Automatischer Sync",
+        "inbound_stamp_cost_label": "Kosten für eingehende Stempel",
+        "propagation_stamp_cost_label": "Kosten für Propagationsstempel",
+        "page_archiver": "Seitenarchivierer",
+        "smart_crawler": "Smart Crawler",
+        "authentication": "Authentifizierung",
+        "announce_interval": "Ankündigungsintervall",
+        "stop_sync_confirm": "Sind Sie sicher, dass Sie die Synchronisierung beenden möchten?",
+        "sync_error_generic": "Etwas ist schief gelaufen. Bitte versuchen Sie es später erneut.",
+        "sync_complete": "Synchronisierung abgeschlossen. {count} Nachrichten empfangen.",
+        "sync_error": "Synchronisierungsfehler: {status}",
+        "switching_identity": "Identität wird gewechselt...",
+        "loading_identity": "Ihre Identität wird geladen"
     },
     "common": {
         "open": "Öffnen",
@@ -421,6 +441,10 @@
             "edit": "Bearbeiten",
             "view_preview": "Vorschau anzeigen",
             "placeholder": "Geben Sie hier Ihr Micron-Markup ein..."
+        },
+        "paper_message": {
+            "title": "Papiernachricht",
+            "description": "Erstellen und lesen Sie LXMF-signierte Papiernachrichten über QR-Codes."
         }
     },
     "ping": {
@@ -664,5 +688,28 @@
         "ringtone_deleted": "Klingelton gelöscht",
         "failed_to_delete_ringtone": "Klingelton konnte nicht gelöscht werden",
         "no_ringtone_audio_found": "Keine Klingelton-Audio gefunden. Bitte laden Sie zuerst eine hoch."
+    },
+    "command_palette": {
+        "search_placeholder": "Suchen oder Befehl eingeben...",
+        "no_results": "Keine Ergebnisse gefunden für \"{query}\"",
+        "nav_messages": "Zu Nachrichten gehen",
+        "nav_messages_desc": "Öffnen Sie Ihre aktuellen Gespräche",
+        "nav_nomad": "Zu Nomad Network gehen",
+        "nav_nomad_desc": "Durchsuchen Sie das verteilte Web",
+        "nav_map": "Zur Karte gehen",
+        "nav_map_desc": "Peer-Standorte und Telemetrie anzeigen",
+        "nav_call": "Zu Anrufen gehen",
+        "nav_call_desc": "Sprachanrufe und Voicemails",
+        "nav_settings": "Zu Einstellungen gehen",
+        "nav_settings_desc": "App-Konfiguration und Einstellungen",
+        "action_sync": "Nachrichten synchronisieren",
+        "action_sync_desc": "Nachrichten vom Propagationsknoten anfordern",
+        "action_compose": "Neue Nachricht verfassen",
+        "action_compose_desc": "Starten Sie einen neuen Chat per Adresse",
+        "group_recent": "Aktuelle Gespräche",
+        "group_contacts": "Kontakte",
+        "group_actions": "Schnellaktionen",
+        "footer_navigate": "Navigieren",
+        "footer_select": "Auswählen"
     }
 }

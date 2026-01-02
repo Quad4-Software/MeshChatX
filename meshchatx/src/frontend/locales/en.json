@@ -105,7 +105,27 @@
         "call_active": "Active",
         "call_ended": "Ended",
         "propagation_node": "Propagation Node",
-        "sync_now": "Sync Now"
+        "sync_now": "Sync Now",
+        "setting_auto_saved": "Setting {label} auto-saved",
+        "auto_resend": "Auto Resend",
+        "retry_attachments": "Retry Attachments",
+        "auto_fallback": "Auto Fallback",
+        "community_interfaces": "Community Interfaces",
+        "preferred_node": "Preferred Node",
+        "local_node": "Local Node",
+        "auto_sync": "Auto Sync",
+        "inbound_stamp_cost_label": "Inbound Stamp Cost",
+        "propagation_stamp_cost_label": "Propagation Stamp Cost",
+        "page_archiver": "Page Archiver",
+        "smart_crawler": "Smart Crawler",
+        "authentication": "Authentication",
+        "announce_interval": "Announce Interval",
+        "stop_sync_confirm": "Are you sure you want to stop syncing?",
+        "sync_error_generic": "Something went wrong. Try again later.",
+        "sync_complete": "Sync complete. {count} messages received.",
+        "sync_error": "Sync error: {status}",
+        "switching_identity": "Switching Identity...",
+        "loading_identity": "Loading your identity"
     },
     "common": {
         "open": "Open",
@@ -421,6 +441,10 @@
             "edit": "Edit",
             "view_preview": "View Preview",
             "placeholder": "Enter your Micron markup here..."
+        },
+        "paper_message": {
+            "title": "Paper Message",
+            "description": "Generate and read LXMF signed paper messages via QR codes."
         }
     },
     "ping": {
@@ -664,5 +688,30 @@
         "ringtone_deleted": "Ringtone deleted",
         "failed_to_delete_ringtone": "Failed to delete ringtone",
         "no_ringtone_audio_found": "No ringtone audio found. Please upload one first."
+    },
+    "command_palette": {
+        "search_placeholder": "Search or type a command...",
+        "no_results": "No results found for \"{query}\"",
+        "nav_messages": "Go to Messages",
+        "nav_messages_desc": "Open your recent conversations",
+        "nav_nomad": "Go to Nomad Network",
+        "nav_nomad_desc": "Browse the distributed web",
+        "nav_map": "Go to Map",
+        "nav_map_desc": "View peer locations and telemetry",
+        "nav_paper": "Paper Message Generator",
+        "nav_paper_desc": "Generate signed QR code messages",
+        "nav_call": "Go to Calls",
+        "nav_call_desc": "Voice calls and voicemails",
+        "nav_settings": "Go to Settings",
+        "nav_settings_desc": "App configuration and preferences",
+        "action_sync": "Sync Messages",
+        "action_sync_desc": "Request messages from propagation node",
+        "action_compose": "Compose New Message",
+        "action_compose_desc": "Start a new chat by address",
+        "group_recent": "Recent Conversations",
+        "group_contacts": "Contacts",
+        "group_actions": "Quick Actions",
+        "footer_navigate": "Navigate",
+        "footer_select": "Select"
     }
 }

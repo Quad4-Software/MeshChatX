@@ -105,7 +105,27 @@
         "call_active": "Активен",
         "call_ended": "Завершен",
         "propagation_node": "Узел ретрансляции",
-        "sync_now": "Синхронизировать сейчас"
+        "sync_now": "Синхронизировать сейчас",
+        "setting_auto_saved": "Настройка {label} сохранена",
+        "auto_resend": "Авто-пересылка",
+        "retry_attachments": "Повтор вложений",
+        "auto_fallback": "Авто-откат",
+        "community_interfaces": "Сообщества",
+        "preferred_node": "Предпочитаемый узел",
+        "local_node": "Локальный узел",
+        "auto_sync": "Авто-синхронизация",
+        "inbound_stamp_cost_label": "Стоимость входящих марок",
+        "propagation_stamp_cost_label": "Стоимость марок узла",
+        "page_archiver": "Архиватор страниц",
+        "smart_crawler": "Умный краулер",
+        "authentication": "Аутентификация",
+        "announce_interval": "Интервал анонсов",
+        "stop_sync_confirm": "Вы уверены, что хотите остановить синхронизацию?",
+        "sync_error_generic": "Что-то пошло не так. Попробуйте позже.",
+        "sync_complete": "Синхронизация завершена. Получено сообщений: {count}.",
+        "sync_error": "Ошибка синхронизации: {status}",
+        "switching_identity": "Переключение личности...",
+        "loading_identity": "Загрузка вашей личности"
     },
     "common": {
         "open": "Открыть",
@@ -421,6 +441,10 @@
             "edit": "Редактировать",
             "view_preview": "Просмотр",
             "placeholder": "Введите разметку Micron здесь..."
+        },
+        "paper_message": {
+            "title": "Бумажное сообщение",
+            "description": "Создание и чтение подписанных бумажных сообщений LXMF через QR-коды."
         }
     },
     "ping": {
@@ -664,5 +688,28 @@
         "ringtone_deleted": "Рингтон удален",
         "failed_to_delete_ringtone": "Не удалось удалить рингтон",
         "no_ringtone_audio_found": "Аудио рингтона не найдено. Пожалуйста, сначала загрузите его."
+    },
+    "command_palette": {
+        "search_placeholder": "Поиск или ввод команды...",
+        "no_results": "Ничего не найдено по запросу \"{query}\"",
+        "nav_messages": "Перейти к сообщениям",
+        "nav_messages_desc": "Открыть недавние разговоры",
+        "nav_nomad": "Перейти в Nomad Network",
+        "nav_nomad_desc": "Просмотр распределенной сети",
+        "nav_map": "Перейти к карте",
+        "nav_map_desc": "Просмотр местоположения и телеметрии",
+        "nav_call": "Перейти к звонкам",
+        "nav_call_desc": "Голосовые звонки и голосовая почта",
+        "nav_settings": "Перейти к настройкам",
+        "nav_settings_desc": "Конфигурация и настройки приложения",
+        "action_sync": "Синхронизировать сообщения",
+        "action_sync_desc": "Запросить сообщения с узла",
+        "action_compose": "Написать новое сообщение",
+        "action_compose_desc": "Начать новый чат по адресу",
+        "group_recent": "Недавние разговоры",
+        "group_contacts": "Контакты",
+        "group_actions": "Быстрые действия",
+        "footer_navigate": "Навигация",
+        "footer_select": "Выбрать"
     }
 }
