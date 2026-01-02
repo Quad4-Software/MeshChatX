@@ -25,6 +25,10 @@ vars:
         sh: echo "${DOCKER_CONTEXT:-.}"
     DOCKERFILE:
         sh: echo "${DOCKERFILE:-Dockerfile}"
+    DOCKER_BUILD_IMAGE:
+        sh: echo "${DOCKER_BUILD_IMAGE:-reticulum-meshchatx-build:local}"
+    DOCKER_BUILD_FILE:
+        sh: echo "${DOCKER_BUILD_FILE:-Dockerfile.build}"
     ANDROID_DIR:
         sh: echo "${ANDROID_DIR:-android}"
     PYTHON_SRC_DIR:
@@ -50,22 +54,17 @@ tasks:
         cmds:
             - task --list
 
-    setup-uv:
-        desc: Install uv
-        cmds:
-            - curl -LsSf https://astral.sh/uv/install.sh | sh
-
     setup-python-env:
-        desc: Setup Python environment using uv
+        desc: Setup Python environment using Poetry
         cmds:
-            - uv venv
-            - uv pip install ruff poetry
+            - poetry install
+            - poetry run pip install ruff
 
     lint-python:
         desc: Lint Python code using ruff
         cmds:
-            - uv run ruff check .
-            - uv run ruff format --check .
+            - poetry run ruff check .
+            - poetry run ruff format --check .
 
     lint-frontend:
         desc: Lint frontend code
@@ -199,8 +198,8 @@ tasks:
     fix:
         desc: Format and fix linting issues (Python and frontend)
         cmds:
-            - uv run ruff format ./
-            - uv run ruff check --fix ./
+            - poetry run ruff format ./
+            - poetry run ruff check --fix ./
             - "{{.NPM}} run format"
             - "{{.NPM}} run lint:fix"
 
@@ -238,6 +237,21 @@ tasks:
         desc: Run Frontend-only Demo Docker container
         cmds:
             - 'MESHCHAT_DEMO_IMAGE="reticulum-meshchatx-demo:local" {{.DOCKER_COMPOSE_CMD}} -f docker-compose.demo.yml up --remove-orphans'
+
+    docker-build-env:
+        desc: Build the Docker image for containerized builds
+        cmds:
+            - docker build -t {{.DOCKER_BUILD_IMAGE}} -f {{.DOCKER_BUILD_FILE}} .
+
+    docker-build-artifacts:
+        desc: Build whls and electron artifacts inside a container and export them
+        cmds:
+            - docker rm -f meshchat-build-temp || true
+            - docker run --name meshchat-build-temp {{.DOCKER_BUILD_IMAGE}}
+            - mkdir -p dist python-dist
+            - docker cp meshchat-build-temp:/app/dist/. ./dist/
+            - docker cp meshchat-build-temp:/app/python-dist/. ./python-dist/
+            - docker rm meshchat-build-temp
 
     android-init:
         desc: Initialize Gradle wrapper for Android project
