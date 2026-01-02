@@ -326,6 +326,8 @@
         "title": "LXMF-Weiterleiter",
         "description": "Nachrichten von einer Adresse zu einer anderen weiterleiten, mit transparenter Rückleitung.",
         "add_rule": "Weiterleitungsregel hinzufügen",
+        "name": "Name",
+        "name_placeholder": "Regelname (z.B. Heimknoten)...",
         "forward_to_hash": "Weiterleiten an Hash",
         "destination_placeholder": "Ziel-LXMF-Hash...",
         "source_filter": "Quellfilter (Optional)",

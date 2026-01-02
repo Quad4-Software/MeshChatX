@@ -331,6 +331,8 @@
         "title": "LXMF Forwarder",
         "description": "Forward messages from one address to another, with transparent return routing.",
         "add_rule": "Add Forwarding Rule",
+        "name": "Name",
+        "name_placeholder": "Rule name (e.g. Home Node)...",
         "forward_to_hash": "Forward to Hash",
         "destination_placeholder": "Destination LXMF hash...",
         "source_filter": "Source Filter (Optional)",
