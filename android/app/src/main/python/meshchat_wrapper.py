@@ -8,8 +8,7 @@ def start_server(port=8000):
             'meshchat',
             '--headless',
             '--host', '127.0.0.1',
-            '--port', str(port),
-            '--no-https'
+            '--port', str(port)
         ]
         
         main()

@@ -6,15 +6,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.7.3'
-        classpath "com.chaquo.python:gradle:15.0.1"
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url "https://chaquo.com/maven" }
+        classpath "com.chaquo.python:gradle:16.1.0"
     }
 }
 

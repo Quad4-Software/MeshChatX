@@ -13,7 +13,7 @@ import com.chaquo.python.android.AndroidPlatform;
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ProgressBar progressBar;
-    private static final String SERVER_URL = "http://127.0.0.1:8000";
+    private static final String SERVER_URL = "https://127.0.0.1:8000";
     private static final int SERVER_PORT = 8000;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -48,6 +48,13 @@ public class MainActivity extends AppCompatActivity {
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 progressBar.setVisibility(android.view.View.VISIBLE);
+            }
+
+            @SuppressLint("WebViewClientOnReceivedSslError")
+            @Override
+            public void onReceivedSslError(WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+                // Ignore SSL certificate errors for localhost
+                handler.proceed();
             }
         });
 
