@@ -93,7 +93,7 @@ from meshchatx.src.version import __version__ as app_version
 def get_file_path(filename):
     # Remove trailing slashes for path joining consistency
     filename = filename.rstrip("/\\")
-    
+
     if getattr(sys, "frozen", False):
         datadir = os.path.dirname(sys.executable)
         return os.path.join(datadir, filename)
@@ -1651,7 +1651,7 @@ class ReticulumMeshChat:
 
             # check if path is public
             is_public = any(path.startswith(public) for public in public_paths)
-            
+
             # Allow WebSocket connections without auth if it's the handshake/upgrade request
             # Real auth for WS happens inside the connection if needed, or by cookie
             if path == "/ws":
@@ -6076,7 +6076,7 @@ class ReticulumMeshChat:
         )
 
         app.add_routes(routes)
-        
+
         # serve anything else from public folder
         # we use add_static here as it's more robust for serving directories
         public_dir = get_file_path("public")
