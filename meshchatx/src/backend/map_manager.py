@@ -15,6 +15,7 @@ class MapManager:
         self._local = threading.local()
         self._metadata_cache = None
         self._export_progress = {}
+        self._export_cancelled = set()
 
     def get_connection(self, path):
         if not hasattr(self._local, "connections"):
@@ -158,6 +159,21 @@ class MapManager:
     def get_export_status(self, export_id):
         return self._export_progress.get(export_id)
 
+    def cancel_export(self, export_id):
+        if export_id in self._export_progress:
+            self._export_cancelled.add(export_id)
+            # If it's already failed or completed, just clean up
+            status = self._export_progress[export_id].get("status")
+            if status in ["completed", "failed"]:
+                file_path = self._export_progress[export_id].get("file_path")
+                if file_path and os.path.exists(file_path):
+                    os.remove(file_path)
+                del self._export_progress[export_id]
+                if export_id in self._export_cancelled:
+                    self._export_cancelled.remove(export_id)
+            return True
+        return False
+
     def _run_export(self, export_id, bbox, min_zoom, max_zoom, name):
         # bbox: [min_lon, min_lat, max_lon, max_lat]
         min_lon, min_lat, max_lon, max_lat = bbox
@@ -206,7 +222,15 @@ class MapManager:
 
                 for x in range(x1, x2 + 1):
                     for y in range(y1, y2 + 1):
-                        # check if we should stop (if we add a cancel mechanism)
+                        # check if we should stop
+                        if export_id in self._export_cancelled:
+                            conn.close()
+                            if os.path.exists(dest_path):
+                                os.remove(dest_path)
+                            if export_id in self._export_progress:
+                                del self._export_progress[export_id]
+                            self._export_cancelled.remove(export_id)
+                            return
 
                         # download tile
                         tile_url = f"https://tile.openstreetmap.org/{z}/{x}/{y}.png"
