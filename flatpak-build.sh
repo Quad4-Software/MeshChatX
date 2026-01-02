@@ -40,7 +40,17 @@ fi
 echo "Using Node.js: $NODE_BIN"
 echo "Using npm: $NPM_BIN"
 
-$NPM_BIN install -g pnpm@10.0.0
+PNPM_VERSION="10.0.0"
+NPM_PREFIX="$HOME/.local"
+mkdir -p "$NPM_PREFIX"
+
+export npm_config_prefix="$NPM_PREFIX"
+$NPM_BIN config set prefix "$NPM_PREFIX"
+
+echo "Installing pnpm via npm to $NPM_PREFIX..."
+$NPM_BIN install -g pnpm@${PNPM_VERSION} || exit 1
+
+export PATH="$NPM_PREFIX/bin:$PATH"
 
 python3 scripts/sync_version.py
 
