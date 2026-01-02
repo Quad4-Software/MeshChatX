@@ -12,6 +12,7 @@
         "interfaces": "Schnittstellen",
         "tools": "Werkzeuge",
         "settings": "Einstellungen",
+        "identities": "Identitäten",
         "about": "Über",
         "my_identity": "Meine Identität",
         "identity_hash": "Identitäts-Hash",
@@ -110,6 +111,7 @@
         "open": "Öffnen",
         "cancel": "Abbrechen",
         "save": "Speichern",
+        "block": "Blockieren",
         "delete": "Löschen",
         "edit": "Bearbeiten",
         "add": "Hinzufügen",
@@ -120,6 +122,24 @@
         "vacuum": "Vakuumieren",
         "auto_recover": "Automatisch wiederherstellen",
         "delete_confirm": "Sind Sie sicher, dass Sie dies löschen möchten? Dies kann nicht rückgängig gemacht werden."
+    },
+    "identities": {
+        "title": "Identitäten",
+        "manage": "Verwalten und wechseln Sie zwischen mehreren Reticulum-Identitäten.",
+        "new_identity": "Neue Identität",
+        "generate_fresh": "Eine neue Reticulum-Identität generieren.",
+        "display_name": "Anzeigename",
+        "display_name_hint": "z.B. Geheimagent",
+        "current": "Aktuell",
+        "switch": "Zu dieser Identität wechseln",
+        "delete": "Identität löschen",
+        "no_identities": "Keine Identitäten gefunden",
+        "create_first": "Erstellen Sie eine neue Identität, um zu beginnen.",
+        "switch_confirm": "Zu Identität \"{name}\" wechseln? Die Anwendung muss neu gestartet werden.",
+        "delete_confirm": "Sind Sie sicher, dass Sie die Identität \"{name}\" löschen möchten? Dies kann nicht rückgängig gemacht werden.",
+        "switched": "Identität gewechselt. Die Anwendung wird jetzt neu gestartet, um die Änderungen zu übernehmen.",
+        "created": "Identität erfolgreich erstellt",
+        "deleted": "Identität gelöscht"
     },
     "about": {
         "title": "Über",
@@ -280,6 +300,11 @@
         "no_active_chat": "Kein aktiver Chat",
         "select_peer_or_enter_address": "Wählen Sie einen Peer aus der Seitenleiste oder geben Sie unten eine Adresse ein",
         "add_files": "Dateien hinzufügen",
+        "location": "Standort",
+        "share_location": "Standort teilen",
+        "request_location": "Standort anfordern",
+        "view_on_map": "Auf Karte anzeigen",
+        "request": "Anfordern",
         "recording": "Aufnahme: {duration}",
         "nomad_network_node": "Nomad Network Knoten",
         "toggle_source": "Quellcode umschalten"
@@ -381,7 +406,7 @@
         },
         "forwarder": {
             "title": "Weiterleiter",
-            "description": "LXMF-Weiterleitung im SimpleLogin-Stil mit Rückpfad-Routing."
+            "description": "LXMF-Weiterleitung mit Rückpfad-Routing."
         },
         "rnode_flasher": {
             "title": "RNode Flasher",
@@ -604,6 +629,9 @@
         "failed_to_initiate_call": "Anruf konnte nicht initiiert werden",
         "enter_identity_hash_to_call_error": "Geben Sie einen Identitäts-Hash ein, um anzurufen",
         "failed_to_save_settings": "Einstellungen konnten nicht gespeichert werden",
+        "do_not_disturb": "Nicht stören",
+        "load_more": "Mehr laden",
+        "search_history": "Verlauf durchsuchen...",
         "settings_saved": "Einstellungen gespeichert",
         "greeting_generated_successfully": "Begrüßung erfolgreich generiert",
         "failed_to_generate_greeting": "Begrüßung konnte nicht generiert werden",

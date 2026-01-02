@@ -406,7 +406,7 @@
         },
         "forwarder": {
             "title": "Forwarder",
-            "description": "SimpleLogin-style LXMF forwarding with return path routing."
+            "description": "LXMF forwarding with return path routing."
         },
         "rnode_flasher": {
             "title": "RNode Flasher",
