@@ -1459,11 +1459,6 @@ export default {
             isCallInputFocused: false,
         };
     },
-    watch: {
-        destinationHash() {
-            this.selectedSuggestionIndex = -1;
-        },
-    },
     computed: {
         isMicMuted() {
             return this.activeCall?.is_mic_muted ?? false;
@@ -1531,6 +1526,11 @@ export default {
             });
 
             return suggestions.slice(0, 8);
+        },
+    },
+    watch: {
+        destinationHash() {
+            this.selectedSuggestionIndex = -1;
         },
     },
     mounted() {
