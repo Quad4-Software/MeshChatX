@@ -1,7 +1,8 @@
 {
     "name": "reticulum-meshchatx",
-    "version": "2.50.0",
+    "version": "3.0.0",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
+    "homepage": "https://git.quad4.io/RNS-Things/MeshChatX",
     "author": "Sudo-Ivan",
     "main": "electron/main.js",
     "scripts": {
