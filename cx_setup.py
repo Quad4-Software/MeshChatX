@@ -8,12 +8,17 @@ from meshchatx.src.version import __version__
 ROOT = Path(__file__).resolve().parent
 PUBLIC_DIR = ROOT / "meshchatx" / "public"
 
-include_files = [
-    (str(PUBLIC_DIR), "public"),
-    ("logo", "logo"),
-]
+include_files = []
 
-if (ROOT / "bin").exists():
+if PUBLIC_DIR.exists() and PUBLIC_DIR.is_dir():
+    include_files.append((str(PUBLIC_DIR), "public"))
+
+logo_dir = ROOT / "logo"
+if logo_dir.exists() and logo_dir.is_dir():
+    include_files.append(("logo", "logo"))
+
+bin_dir = ROOT / "bin"
+if bin_dir.exists() and bin_dir.is_dir():
     include_files.append(("bin", "bin"))
 
 packages = [
