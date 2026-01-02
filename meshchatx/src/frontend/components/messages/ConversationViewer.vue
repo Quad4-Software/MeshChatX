@@ -463,6 +463,15 @@
                             >
                                 Delete
                             </button>
+
+                            <!-- share as paper message -->
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ml-2"
+                                @click.stop="shareAsPaperMessage(chatItem)"
+                            >
+                                Paper Message
+                            </button>
                         </div>
                     </div>
 
@@ -752,8 +761,9 @@
                         ref="message-input"
                         v-model="newMessageText"
                         :readonly="isSendingMessage"
-                        class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full px-3 sm:px-4 py-2 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
-                        rows="2"
+                        class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full px-3 sm:px-4 py-2 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[40px] max-h-[200px] overflow-y-auto"
+                        rows="1"
+                        spellcheck="true"
                         :placeholder="$t('messages.send_placeholder')"
                         @keydown.enter.exact.prevent="onEnterPressed"
                         @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
@@ -790,6 +800,16 @@
                         >
                             <MaterialDesignIcon icon-name="crosshairs-question" class="w-4 h-4" />
                             <span class="hidden sm:inline">{{ $t("messages.request") }}</span>
+                        </button>
+                        <button
+                            v-if="hasTranslator && newMessageText"
+                            type="button"
+                            class="attachment-action-button"
+                            :title="$t('translator.translate')"
+                            @click="translateMessage"
+                        >
+                            <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
+                            <span class="hidden sm:inline">{{ $t("translator.translate") }}</span>
                         </button>
                         <div class="ml-auto my-auto">
                             <SendMessageButton
@@ -885,6 +905,12 @@
             </div>
         </div>
     </Transition>
+
+    <PaperMessageModal
+        v-if="isPaperMessageModalOpen"
+        :message-hash="paperMessageHash"
+        @close="isPaperMessageModalOpen = false"
+    />
 </template>
 
 <script>
@@ -905,6 +931,7 @@ import AddImageButton from "./AddImageButton.vue";
 import IconButton from "../IconButton.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import PaperMessageModal from "./PaperMessageModal.vue";
 
 export default {
     name: "ConversationViewer",
@@ -915,6 +942,7 @@ export default {
         MaterialDesignIcon,
         SendMessageButton,
         AddAudioButton,
+        PaperMessageModal,
     },
     props: {
         myLxmfAddressHash: {
@@ -982,6 +1010,10 @@ export default {
                 0x08: "2400", // AM_CODEC2_2400
                 0x09: "3200", // AM_CODEC2_3200
             },
+            isPaperMessageModalOpen: false,
+            paperMessageHash: null,
+            hasTranslator: false,
+            translatorLanguages: [],
         };
     },
     computed: {
@@ -1042,15 +1074,26 @@ export default {
     },
     watch: {
         selectedPeer: {
-            handler() {
+            handler(newPeer, oldPeer) {
+                if (oldPeer) {
+                    this.saveDraft(oldPeer.destination_hash);
+                }
                 this.checkIfSelectedPeerBlocked();
                 this.initialLoad();
+                if (newPeer) {
+                    this.loadDraft(newPeer.destination_hash);
+                }
             },
             immediate: true,
         },
         async selectedPeerChatItems() {
             // chat items for selected peer changed, so lets process any available audio
             await this.processAudioForSelectedPeerChatItems();
+        },
+        newMessageText() {
+            this.$nextTick(() => {
+                this.adjustTextareaHeight();
+            });
         },
     },
     beforeUnmount() {
@@ -1067,6 +1110,9 @@ export default {
 
         // load blocked destinations
         this.loadBlockedDestinations();
+
+        // check translator
+        this.checkTranslator();
     },
     methods: {
         async loadBlockedDestinations() {
@@ -1078,6 +1124,48 @@ export default {
                 console.log(e);
             }
         },
+        async checkTranslator() {
+            try {
+                const response = await window.axios.get("/api/v1/translator/languages");
+                this.translatorLanguages = response.data.languages || [];
+                this.hasTranslator = this.translatorLanguages.length > 0;
+            } catch (e) {
+                console.log("Failed to check translator:", e);
+                this.hasTranslator = false;
+            }
+        },
+        async translateMessage() {
+            if (!this.newMessageText || this.isSendingMessage) return;
+
+            try {
+                this.isSendingMessage = true;
+                const targetLang = this.$i18n.locale || "en";
+                const response = await window.axios.post("/api/v1/translator/translate", {
+                    text: this.newMessageText,
+                    source_lang: "auto",
+                    target_lang: targetLang,
+                });
+
+                if (response.data.translated_text) {
+                    this.newMessageText = response.data.translated_text;
+                    this.$nextTick(() => {
+                        this.adjustTextareaHeight();
+                    });
+                }
+            } catch (e) {
+                console.error("Translation failed:", e);
+                ToastUtils.error("Translation failed");
+            } finally {
+                this.isSendingMessage = false;
+            }
+        },
+        adjustTextareaHeight() {
+            const textarea = this.$refs["message-input"];
+            if (textarea) {
+                textarea.style.height = "auto";
+                textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
+            }
+        },
         checkIfSelectedPeerBlocked() {
             if (!this.selectedPeer) {
                 this.isSelectedPeerBlocked = false;
@@ -1086,6 +1174,30 @@ export default {
             this.isSelectedPeerBlocked = this.blockedDestinations.some(
                 (b) => b.destination_hash === this.selectedPeer.destination_hash
             );
+        },
+        loadDraft(destinationHash) {
+            try {
+                const drafts = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
+                this.newMessageText = drafts[destinationHash] || "";
+                this.$nextTick(() => {
+                    this.adjustTextareaHeight();
+                });
+            } catch (e) {
+                console.error("Failed to load draft:", e);
+            }
+        },
+        saveDraft(destinationHash) {
+            try {
+                const drafts = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
+                if (this.newMessageText) {
+                    drafts[destinationHash] = this.newMessageText;
+                } else {
+                    delete drafts[destinationHash];
+                }
+                localStorage.setItem("meshchat.drafts", JSON.stringify(drafts));
+            } catch (e) {
+                console.error("Failed to save draft:", e);
+            }
         },
         close() {
             this.$emit("close");
@@ -1713,6 +1825,10 @@ export default {
             this.isShareContactModalOpen = false;
             await this.sendMessage();
         },
+        shareAsPaperMessage(chatItem) {
+            this.paperMessageHash = chatItem.lxmf_message.hash;
+            this.isPaperMessageModalOpen = true;
+        },
         async sendMessage() {
             // do nothing if can't send message
             if (!this.canSendMessage) {
@@ -1814,6 +1930,7 @@ export default {
 
                 // clear message inputs
                 this.newMessageText = "";
+                this.saveDraft(this.selectedPeer.destination_hash);
                 this.newMessageImage = null;
                 this.newMessageImageUrl = null;
                 this.newMessageAudio = null;
