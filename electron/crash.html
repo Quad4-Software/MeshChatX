@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <title>MeshChatX - Crash Report</title>
+        <script src="./assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
+    </head>
+    <body class="min-h-screen bg-slate-100 text-gray-900 antialiased dark:bg-zinc-950 dark:text-zinc-50 transition-colors">
+        <div class="absolute inset-0 -z-10 overflow-hidden">
+            <div class="absolute -left-32 -top-40 h-80 w-80 rounded-full bg-gradient-to-br from-red-500/30 via-orange-500/20 to-rose-500/30 blur-3xl dark:from-red-600/25 dark:via-orange-600/25 dark:to-rose-600/25"></div>
+            <div class="absolute -right-24 top-20 h-64 w-64 rounded-full bg-gradient-to-br from-orange-400/30 via-red-500/20 to-rose-500/30 blur-3xl dark:from-orange-500/25 dark:via-red-500/25 dark:to-rose-500/25"></div>
+        </div>
+
+        <main class="relative flex min-h-screen items-center justify-center px-4 py-6 sm:px-6">
+            <div class="w-full max-w-5xl">
+                <div class="rounded-2xl border border-slate-200/80 bg-white/80 shadow-2xl backdrop-blur-xl ring-1 ring-white/60 dark:border-zinc-800/70 dark:bg-zinc-900/70 dark:ring-zinc-800/70 transition-colors overflow-hidden">
+                    <div class="p-4 sm:p-6 space-y-4">
+                        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left">
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 via-orange-500 to-rose-500 shadow-lg ring-4 ring-white/60 dark:ring-zinc-800/70">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div class="space-y-0.5">
+                                <div class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                                    MeshChatX Crashed
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-300">Critical error detected in backend service.</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div class="rounded-xl border border-red-200/90 bg-red-50/70 p-3 dark:border-red-900/40 dark:bg-red-900/20 transition-colors">
+                                <div class="text-[10px] uppercase tracking-wide text-red-600 dark:text-red-400 font-semibold">Exit Code</div>
+                                <div class="mt-0.5 text-base font-mono font-bold text-red-700 dark:text-red-300" id="exit-code">--</div>
+                            </div>
+                            <div class="rounded-xl border border-slate-200/90 bg-white/70 p-3 text-center sm:text-right dark:border-zinc-800/80 dark:bg-zinc-900/70 transition-colors">
+                                <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</div>
+                                <div class="mt-0.5 text-base font-semibold text-red-600 dark:text-red-400">Offline</div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-2 px-1">
+                                <h3 class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Diagnostic Logs</h3>
+                                <button onclick="copyLogs()" class="w-full sm:w-auto text-[10px] font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-lg transition-colors">
+                                    Copy all logs
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-1">
+                                <div class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1">Standard Output (stdout)</div>
+                                <div class="relative group">
+                                    <pre id="stdout" class="h-52 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-[10px] text-slate-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 select-text scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-zinc-800"></pre>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="text-[10px] font-medium text-gray-500 dark:text-gray-400 px-1">Standard Error (stderr)</div>
+                                <div class="relative group">
+                                    <pre id="stderr" class="h-64 overflow-auto rounded-xl border border-red-100 bg-red-50/50 p-3 font-mono text-[10px] text-red-700 dark:border-red-900/20 dark:bg-zinc-950 dark:text-red-400 select-text scrollbar-thin scrollbar-thumb-red-200 dark:scrollbar-thumb-zinc-800"></pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
+                            <button onclick="window.electron.relaunch()" class="w-full sm:w-40 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-blue-500/25 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900 transition-all active:scale-[0.98]">
+                                Relaunch
+                            </button>
+                            <button onclick="window.electron.relaunchEmergency()" class="w-full sm:w-48 rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-orange-500/25 hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900 transition-all active:scale-[0.98]">
+                                Engage Emergency Mode
+                            </button>
+                            <button onclick="window.electron.shutdown()" class="w-full sm:w-24 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-all active:scale-[0.98]">
+                                Exit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            // Get data from URL parameters
+            const params = new URLSearchParams(window.location.search);
+            document.getElementById('exit-code').innerText = params.get('code') || 'Unknown';
+            
+            // Decoded from base64 to handle complex characters safely
+            try {
+                const stdoutBase64 = params.get('stdout') || '';
+                const stderrBase64 = params.get('stderr') || '';
+                
+                document.getElementById('stdout').innerText = stdoutBase64 ? atob(stdoutBase64) : 'No output recorded.';
+                document.getElementById('stderr').innerText = stderrBase64 ? atob(stderrBase64) : 'No error output recorded.';
+            } catch (e) {
+                document.getElementById('stdout').innerText = 'Error decoding logs.';
+                document.getElementById('stderr').innerText = 'Error decoding logs.';
+            }
+
+            function copyLogs() {
+                const stdout = document.getElementById('stdout').innerText;
+                const stderr = document.getElementById('stderr').innerText;
+                const exitCode = document.getElementById('exit-code').innerText;
+                
+                const fullReport = `MeshChatX Crash Report\nExit Code: ${exitCode}\n\n--- STDOUT ---\n${stdout}\n\n--- STDERR ---\n${stderr}`;
+                
+                navigator.clipboard.writeText(fullReport).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.innerText;
+                    btn.innerText = 'Copied!';
+                    btn.classList.replace('text-blue-600', 'text-emerald-600');
+                    btn.classList.replace('dark:text-blue-400', 'dark:text-emerald-400');
+                    
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.classList.replace('text-emerald-600', 'text-blue-600');
+                        btn.classList.replace('dark:text-emerald-400', 'dark:text-blue-400');
+                    }, 2000);
+                });
+            }
+
+            function detectPreferredTheme() {
+                try {
+                    const storedTheme =
+                        localStorage.getItem("meshchat.theme") || localStorage.getItem("meshchatx.theme");
+                    if (storedTheme === "dark" || storedTheme === "light") {
+                        return storedTheme;
+                    }
+                } catch (e) {}
+                return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "dark"
+                    : "light";
+            }
+
+            function applyTheme(theme) {
+                const isDark = theme === "dark";
+                document.documentElement.classList.toggle("dark", isDark);
+            }
+
+            // Apply theme
+            applyTheme(detectPreferredTheme());
+        </script>
+    </body>
+</html>

@@ -1,138 +1,14 @@
-const {
-    app,
-    BrowserWindow,
-    dialog,
-    ipcMain,
-    shell,
-    systemPreferences,
-    Tray,
-    Menu,
-    Notification,
-    powerSaveBlocker,
-    session,
-} = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, systemPreferences } = require("electron");
 const electronPrompt = require("electron-prompt");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("node:path");
 
-const crypto = require("crypto");
-
 // remember main window
 var mainWindow = null;
 
-// tray instance
-var tray = null;
-
-// power save blocker id
-var activePowerSaveBlockerId = null;
-
-// track if we are actually quiting
-var isQuiting = false;
-
 // remember child process for exe so we can kill it when app exits
 var exeChildProcess = null;
-
-// store integrity status
-var integrityStatus = {
-    backend: { ok: true, issues: [] },
-    data: { ok: true, issues: [] },
-};
-
-// Check for hardware acceleration preference in storage dir
-try {
-    const storageDir = getDefaultStorageDir();
-    const disableGpuFile = path.join(storageDir, "disable-gpu");
-    if (fs.existsSync(disableGpuFile)) {
-        app.disableHardwareAcceleration();
-        console.log("Hardware acceleration disabled via storage flag.");
-    }
-} catch {
-    // ignore errors reading storage dir this early
-}
-
-// Handle hardware acceleration disabling via CLI
-if (process.argv.includes("--disable-gpu") || process.argv.includes("--disable-software-rasterizer")) {
-    app.disableHardwareAcceleration();
-}
-
-// Protocol registration
-if (process.defaultApp) {
-    if (process.argv.length >= 2) {
-        app.setAsDefaultProtocolClient("lxmf", process.execPath, [path.resolve(process.argv[1])]);
-        app.setAsDefaultProtocolClient("rns", process.execPath, [path.resolve(process.argv[1])]);
-    }
-} else {
-    app.setAsDefaultProtocolClient("lxmf");
-    app.setAsDefaultProtocolClient("rns");
-}
-
-// Single instance lock
-const gotTheLock = app.requestSingleInstanceLock();
-if (!gotTheLock) {
-    app.quit();
-} else {
-    app.on("second-instance", (event, commandLine) => {
-        // Someone tried to run a second instance, we should focus our window.
-        if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.show();
-            mainWindow.focus();
-
-            // Handle protocol links from second instance
-            const url = commandLine.pop();
-            if (url && (url.startsWith("lxmf://") || url.startsWith("rns://"))) {
-                mainWindow.webContents.send("open-protocol-link", url);
-            }
-        }
-    });
-}
-
-// Handle protocol links on macOS
-app.on("open-url", (event, url) => {
-    event.preventDefault();
-    if (mainWindow) {
-        mainWindow.show();
-        mainWindow.webContents.send("open-protocol-link", url);
-    }
-});
-
-function verifyBackendIntegrity(exeDir) {
-    const manifestPath = path.join(__dirname, "backend-manifest.json");
-    if (!fs.existsSync(manifestPath)) {
-        log("Backend integrity manifest missing, skipping check.");
-        return { ok: true, issues: ["Manifest missing"] };
-    }
-
-    try {
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-        const issues = [];
-
-        // The exeDir is build/exe when running or unpacked
-        // we only care about files in the manifest
-        for (const [relPath, expectedHash] of Object.entries(manifest)) {
-            const fullPath = path.join(exeDir, relPath);
-            if (!fs.existsSync(fullPath)) {
-                issues.push(`Missing: ${relPath}`);
-                continue;
-            }
-
-            const fileBuffer = fs.readFileSync(fullPath);
-            const actualHash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
-            if (actualHash !== expectedHash) {
-                issues.push(`Modified: ${relPath}`);
-            }
-        }
-
-        return {
-            ok: issues.length === 0,
-            issues: issues,
-        };
-    } catch (error) {
-        log(`Backend integrity check failed: ${error.message}`);
-        return { ok: false, issues: [error.message] };
-    }
-}
 
 // allow fetching app version via ipc
 ipcMain.handle("app-version", () => {
@@ -141,46 +17,19 @@ ipcMain.handle("app-version", () => {
 
 // allow fetching hardware acceleration status via ipc
 ipcMain.handle("is-hardware-acceleration-enabled", () => {
-    return app.isHardwareAccelerationEnabled();
-});
-
-// allow fetching integrity status
-ipcMain.handle("get-integrity-status", () => {
-    return integrityStatus;
-});
-
-// Native Notification IPC
-ipcMain.handle("show-notification", (event, { title, body, silent }) => {
-    const notification = new Notification({
-        title: title,
-        body: body,
-        silent: silent,
-    });
-    notification.show();
-
-    notification.on("click", () => {
-        if (mainWindow) {
-            mainWindow.show();
-            mainWindow.focus();
-        }
-    });
-});
-
-// Power Management IPC
-ipcMain.handle("set-power-save-blocker", (event, enabled) => {
-    if (enabled) {
-        if (activePowerSaveBlockerId === null) {
-            activePowerSaveBlockerId = powerSaveBlocker.start("prevent-app-suspension");
-            log("Power save blocker started.");
-        }
-    } else {
-        if (activePowerSaveBlockerId !== null) {
-            powerSaveBlocker.stop(activePowerSaveBlockerId);
-            activePowerSaveBlockerId = null;
-            log("Power save blocker stopped.");
-        }
+    // New in Electron 39, fallback for legacy
+    if (typeof app.isHardwareAccelerationEnabled === "function") {
+        return app.isHardwareAccelerationEnabled();
     }
-    return activePowerSaveBlockerId !== null;
+    return true; // Assume true for older versions
+});
+
+// allow fetching integrity status (Stub for legacy)
+ipcMain.handle("get-integrity-status", () => {
+    return {
+        backend: { ok: true, issues: ["Not supported in legacy mode"] },
+        data: { ok: true, issues: ["Not supported in legacy mode"] },
+    };
 });
 
 // ignore ssl errors
@@ -229,19 +78,6 @@ ipcMain.handle("prompt", async (event, message) => {
 ipcMain.handle("relaunch", () => {
     app.relaunch();
     app.exit();
-});
-
-ipcMain.handle("relaunch-emergency", () => {
-    app.relaunch({ args: process.argv.slice(1).concat(["--emergency"]) });
-    app.exit();
-});
-
-ipcMain.handle("shutdown", () => {
-    quit();
-});
-
-ipcMain.handle("get-memory-usage", async () => {
-    return process.getProcessMemoryInfo();
 });
 
 // allow showing a file path in os file manager
@@ -293,79 +129,7 @@ function getDefaultReticulumConfigDir() {
     return path.join(app.getPath("home"), ".reticulum");
 }
 
-function createTray() {
-    const iconPath = path.join(__dirname, "build", "icon.png");
-    const fallbackIconPath = path.join(__dirname, "assets", "images", "logo.png");
-    const trayIcon = fs.existsSync(iconPath) ? iconPath : fallbackIconPath;
-
-    tray = new Tray(trayIcon);
-    const contextMenu = Menu.buildFromTemplate([
-        {
-            label: "Show App",
-            click: function () {
-                if (mainWindow) {
-                    mainWindow.show();
-                }
-            },
-        },
-        {
-            label: "Quit",
-            click: function () {
-                isQuiting = true;
-                quit();
-            },
-        },
-    ]);
-
-    tray.setToolTip("Reticulum MeshChatX");
-    tray.setContextMenu(contextMenu);
-
-    tray.on("click", () => {
-        if (mainWindow) {
-            if (mainWindow.isVisible()) {
-                mainWindow.hide();
-            } else {
-                mainWindow.show();
-            }
-        }
-    });
-}
-
 app.whenReady().then(async () => {
-    // Security: Enforce CSP for all requests as a shell-level fallback
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-        const responseHeaders = { ...details.responseHeaders };
-
-        // Define a robust fallback CSP that matches our backend's policy
-        const fallbackCsp = [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org",
-            "font-src 'self' data:",
-            "connect-src 'self' http://localhost:9337 https://localhost:9337 ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org",
-            "media-src 'self' blob:",
-            "worker-src 'self' blob:",
-            "frame-src 'self'",
-            "object-src 'none'",
-            "base-uri 'self'",
-        ].join("; ");
-
-        // If the response doesn't already have a CSP, apply our fallback
-        if (!responseHeaders["Content-Security-Policy"] && !responseHeaders["content-security-policy"]) {
-            responseHeaders["Content-Security-Policy"] = [fallbackCsp];
-        }
-
-        callback({ responseHeaders });
-    });
-
-    // Log Hardware Acceleration status (New in Electron 39)
-    const isHardwareAccelerationEnabled = app.isHardwareAccelerationEnabled();
-    log(`Hardware Acceleration Enabled: ${isHardwareAccelerationEnabled}`);
-
-    // Create system tray
-    createTray();
-
     // get arguments passed to application, and remove the provided application path
     const ignoredArguments = ["--no-sandbox", "--ozone-platform-hint=auto"];
     const userProvidedArguments = process.argv.slice(1).filter((arg) => !ignoredArguments.includes(arg));
@@ -388,15 +152,6 @@ app.whenReady().then(async () => {
                 // Security: disable remote module (deprecated but explicit)
                 enableRemoteModule: false,
             },
-        });
-
-        // minimize to tray behavior
-        mainWindow.on("close", (event) => {
-            if (!isQuiting) {
-                event.preventDefault();
-                mainWindow.hide();
-                return false;
-            }
         });
 
         // open external links in default web browser instead of electron
@@ -422,16 +177,6 @@ app.whenReady().then(async () => {
             if (shouldShowInNewElectronWindow) {
                 return {
                     action: "allow",
-                    overrideBrowserWindowOptions: {
-                        autoHideMenuBar: true,
-                        webPreferences: {
-                            preload: path.join(__dirname, "preload.js"),
-                            nodeIntegration: false,
-                            contextIsolation: true,
-                            sandbox: true,
-                            enableRemoteModule: false,
-                        },
-                    },
                 };
             }
 
@@ -500,13 +245,6 @@ app.whenReady().then(async () => {
 
     log(`Found executable at: ${exe}`);
 
-    // Verify backend integrity before spawning
-    const exeDir = path.dirname(exe);
-    integrityStatus.backend = verifyBackendIntegrity(exeDir);
-    if (!integrityStatus.backend.ok) {
-        log(`INTEGRITY WARNING: Backend tampering detected! Issues: ${integrityStatus.backend.issues.join(", ")}`);
-    }
-
     try {
         // arguments we always want to pass in
         const requiredArguments = [
@@ -539,9 +277,9 @@ app.whenReady().then(async () => {
             // log
             log(data.toString());
 
-            // keep track of last 100 stdout lines
+            // keep track of last 10 stdout lines
             stdoutLines.push(data.toString());
-            if (stdoutLines.length > 100) {
+            if (stdoutLines.length > 10) {
                 stdoutLines.shift();
             }
         });
@@ -553,9 +291,9 @@ app.whenReady().then(async () => {
             // log
             log(data.toString());
 
-            // keep track of last 100 stderr lines
+            // keep track of last 10 stderr lines
             stderrLines.push(data.toString());
-            if (stderrLines.length > 100) {
+            if (stderrLines.length > 10) {
                 stderrLines.shift();
             }
         });
@@ -572,34 +310,35 @@ app.whenReady().then(async () => {
                 return;
             }
 
+            // tell user that Visual C++ redistributable needs to be installed on Windows
+            if (code === 3221225781 && process.platform === "win32") {
+                await dialog.showMessageBox(mainWindow, {
+                    message: "Microsoft Visual C++ redistributable must be installed to run this application.",
+                });
+                app.quit();
+                return;
+            }
+
             // show crash log
             const stdout = stdoutLines.join("");
             const stderr = stderrLines.join("");
+            await dialog.showMessageBox(mainWindow, {
+                message: [
+                    "MeshChat Crashed!",
+                    "",
+                    `Exit Code: ${code}`,
+                    "",
+                    `----- stdout -----`,
+                    "",
+                    stdout,
+                    `----- stderr -----`,
+                    "",
+                    stderr,
+                ].join("\n"),
+            });
 
-            // Base64 encode for safe URL passing
-            const stdoutBase64 = Buffer.from(stdout).toString("base64");
-            const stderrBase64 = Buffer.from(stderr).toString("base64");
-
-            // Load crash page if main window exists
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.show(); // Ensure visible
-                mainWindow.focus();
-                await mainWindow.loadFile(path.join(__dirname, "crash.html"), {
-                    query: {
-                        code: code.toString(),
-                        stdout: stdoutBase64,
-                        stderr: stderrBase64,
-                    },
-                });
-            } else {
-                // Fallback for cases where window is gone
-                await dialog.showMessageBox({
-                    type: "error",
-                    title: "MeshChatX Crashed",
-                    message: `Backend exited with code: ${code}\n\nSTDOUT: ${stdout.slice(-500)}\n\nSTDERR: ${stderr.slice(-500)}`,
-                });
-                app.quit();
-            }
+            // quit after dismissing error dialog
+            app.quit();
         });
     } catch (e) {
         log(e);
