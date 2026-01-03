@@ -13,22 +13,21 @@ services:
         # Uncomment if you have a USB device connected, such as an RNode
         # devices:
         #   - /dev/ttyUSB0:/dev/ttyUSB0
-        # 
+        #
         # Host network for autointerface:
         # network_mode: host
 
-
 # LibreTranslate - optional
 
-    # libretranslate:
-    #     container_name: libretranslate
-    #     image: libretranslate/libretranslate:latest
-    #     ports:
-    #         - 127.0.0.1:5000:5000
-    #     restart: unless-stopped
-    #     healthcheck:
-    #         test: ["CMD", "curl", "-f", "http://localhost:5000/health"] 
-    #         interval: 10s
-    #         timeout: 4s
-    #         retries: 4
-    #         start_period: 5s
+# libretranslate:
+#     container_name: libretranslate
+#     image: libretranslate/libretranslate:latest
+#     ports:
+#         - 127.0.0.1:5000:5000
+#     restart: unless-stopped
+#     healthcheck:
+#         test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+#         interval: 10s
+#         timeout: 4s
+#         retries: 4
+#         start_period: 5s
