@@ -112,6 +112,24 @@ class ConfigManager:
         self.auth_enabled = self.BoolConfig(self, "auth_enabled", False)
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
+        self.docs_downloaded = self.BoolConfig(self, "docs_downloaded", False)
+        self.initial_docs_download_attempted = self.BoolConfig(
+            self,
+            "initial_docs_download_attempted",
+            False,
+        )
+
+        # desktop config
+        self.desktop_open_calls_in_separate_window = self.BoolConfig(
+            self,
+            "desktop_open_calls_in_separate_window",
+            False,
+        )
+        self.desktop_hardware_acceleration_enabled = self.BoolConfig(
+            self,
+            "desktop_hardware_acceleration_enabled",
+            True,
+        )
 
         # voicemail config
         self.voicemail_enabled = self.BoolConfig(self, "voicemail_enabled", False)
@@ -130,6 +148,12 @@ class ConfigManager:
             "voicemail_max_recording_seconds",
             60,
         )
+        self.voicemail_tts_speed = self.IntConfig(self, "voicemail_tts_speed", 130)
+        self.voicemail_tts_pitch = self.IntConfig(self, "voicemail_tts_pitch", 45)
+        self.voicemail_tts_voice = self.StringConfig(
+            self, "voicemail_tts_voice", "en-us+f3"
+        )
+        self.voicemail_tts_word_gap = self.IntConfig(self, "voicemail_tts_word_gap", 5)
 
         # ringtone config
         self.custom_ringtone_enabled = self.BoolConfig(
@@ -138,6 +162,8 @@ class ConfigManager:
             False,
         )
         self.ringtone_filename = self.StringConfig(self, "ringtone_filename", None)
+        self.ringtone_preferred_id = self.IntConfig(self, "ringtone_preferred_id", 0)
+        self.ringtone_volume = self.IntConfig(self, "ringtone_volume", 100)
 
         # telephony config
         self.do_not_disturb_enabled = self.BoolConfig(
@@ -148,6 +174,16 @@ class ConfigManager:
         self.telephone_allow_calls_from_contacts_only = self.BoolConfig(
             self,
             "telephone_allow_calls_from_contacts_only",
+            False,
+        )
+        self.telephone_audio_profile_id = self.IntConfig(
+            self,
+            "telephone_audio_profile_id",
+            2,  # Default to Voice (profile 2)
+        )
+        self.call_recording_enabled = self.BoolConfig(
+            self,
+            "call_recording_enabled",
             False,
         )
 
@@ -172,6 +208,31 @@ class ConfigManager:
             self,
             "map_nominatim_api_url",
             "https://nominatim.openstreetmap.org",
+        )
+
+        # translator config
+        self.translator_enabled = self.BoolConfig(self, "translator_enabled", False)
+        self.libretranslate_url = self.StringConfig(
+            self,
+            "libretranslate_url",
+            "http://localhost:5000",
+        )
+
+        # banishment config
+        self.banished_effect_enabled = self.BoolConfig(
+            self,
+            "banished_effect_enabled",
+            True,
+        )
+        self.banished_text = self.StringConfig(
+            self,
+            "banished_text",
+            "BANISHED",
+        )
+        self.banished_color = self.StringConfig(
+            self,
+            "banished_color",
+            "#dc2626",
         )
 
     def get(self, key: str, default_value=None) -> str | None:

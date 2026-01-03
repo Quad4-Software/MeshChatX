@@ -64,7 +64,8 @@ LANGUAGE_CODE_TO_NAME = {
 
 
 class TranslatorHandler:
-    def __init__(self, libretranslate_url: str | None = None):
+    def __init__(self, libretranslate_url: str | None = None, enabled: bool = False):
+        self.enabled = enabled
         self.libretranslate_url = libretranslate_url or os.getenv(
             "LIBRETRANSLATE_URL",
             "http://localhost:5000",
@@ -76,6 +77,9 @@ class TranslatorHandler:
 
     def get_supported_languages(self, libretranslate_url: str | None = None):
         languages = []
+        if not self.enabled:
+            return languages
+
         url = libretranslate_url or self.libretranslate_url
 
         if self.has_requests:
@@ -131,6 +135,10 @@ class TranslatorHandler:
         use_argos: bool = False,
         libretranslate_url: str | None = None,
     ) -> dict[str, Any]:
+        if not self.enabled:
+            msg = "Translator is disabled"
+            raise RuntimeError(msg)
+
         if not text:
             msg = "Text cannot be empty"
             raise ValueError(msg)

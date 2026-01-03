@@ -3,7 +3,9 @@ import time
 
 import RNS
 from RNS.Interfaces.Interface import Interface
-from src.backend.interfaces.WebsocketClientInterface import WebsocketClientInterface
+from meshchatx.src.backend.interfaces.WebsocketClientInterface import (
+    WebsocketClientInterface,
+)
 from websockets.sync.server import Server, ServerConnection, serve
 
 

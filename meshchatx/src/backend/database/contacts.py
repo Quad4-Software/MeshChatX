@@ -5,16 +5,20 @@ class ContactsDAO:
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
 
-    def add_contact(self, name, remote_identity_hash):
+    def add_contact(
+        self, name, remote_identity_hash, preferred_ringtone_id=None, custom_image=None
+    ):
         self.provider.execute(
             """
-            INSERT INTO contacts (name, remote_identity_hash)
-            VALUES (?, ?)
+            INSERT INTO contacts (name, remote_identity_hash, preferred_ringtone_id, custom_image)
+            VALUES (?, ?, ?, ?)
             ON CONFLICT(remote_identity_hash) DO UPDATE SET
                 name = EXCLUDED.name,
+                preferred_ringtone_id = EXCLUDED.preferred_ringtone_id,
+                custom_image = EXCLUDED.custom_image,
                 updated_at = CURRENT_TIMESTAMP
             """,
-            (name, remote_identity_hash),
+            (name, remote_identity_hash, preferred_ringtone_id, custom_image),
         )
 
     def get_contacts(self, search=None, limit=100, offset=0):
@@ -38,22 +42,40 @@ class ContactsDAO:
             (contact_id,),
         )
 
-    def update_contact(self, contact_id, name=None, remote_identity_hash=None):
-        if name and remote_identity_hash:
-            self.provider.execute(
-                "UPDATE contacts SET name = ?, remote_identity_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (name, remote_identity_hash, contact_id),
-            )
-        elif name:
-            self.provider.execute(
-                "UPDATE contacts SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (name, contact_id),
-            )
-        elif remote_identity_hash:
-            self.provider.execute(
-                "UPDATE contacts SET remote_identity_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                (remote_identity_hash, contact_id),
-            )
+    def update_contact(
+        self,
+        contact_id,
+        name=None,
+        remote_identity_hash=None,
+        preferred_ringtone_id=None,
+        custom_image=None,
+        clear_image=False,
+    ):
+        updates = []
+        params = []
+
+        if name is not None:
+            updates.append("name = ?")
+            params.append(name)
+        if remote_identity_hash is not None:
+            updates.append("remote_identity_hash = ?")
+            params.append(remote_identity_hash)
+        if preferred_ringtone_id is not None:
+            updates.append("preferred_ringtone_id = ?")
+            params.append(preferred_ringtone_id)
+        if clear_image:
+            updates.append("custom_image = NULL")
+        elif custom_image is not None:
+            updates.append("custom_image = ?")
+            params.append(custom_image)
+
+        if not updates:
+            return
+
+        updates.append("updated_at = CURRENT_TIMESTAMP")
+        query = f"UPDATE contacts SET {', '.join(updates)} WHERE id = ?"
+        params.append(contact_id)
+        self.provider.execute(query, tuple(params))
 
     def delete_contact(self, contact_id):
         self.provider.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))

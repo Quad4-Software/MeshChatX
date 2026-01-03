@@ -1,3 +1,4 @@
+import base64
 import math
 import os
 import sqlite3
@@ -6,6 +7,11 @@ import time
 
 import requests
 import RNS
+
+# 1x1 transparent PNG to return when a tile is not found in offline mode
+TRANSPARENT_TILE = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+)
 
 
 class MapManager:
@@ -233,7 +239,12 @@ class MapManager:
                             return
 
                         # download tile
-                        tile_url = f"https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        tile_server_url = self.config.map_tile_server_url.get()
+                        tile_url = (
+                            tile_server_url.replace("{z}", str(z))
+                            .replace("{x}", str(x))
+                            .replace("{y}", str(y))
+                        )
                         try:
                             # wait a bit to be nice to OSM
                             time.sleep(0.1)

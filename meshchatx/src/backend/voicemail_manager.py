@@ -141,8 +141,34 @@ class VoicemailManager:
         wav_path = os.path.join(self.greetings_dir, "greeting.wav")
 
         try:
-            # espeak-ng to WAV
-            subprocess.run([self.espeak_path, "-w", wav_path, text], check=True)
+            # espeak-ng to WAV with improved parameters
+            speed = str(self.config.voicemail_tts_speed.get())
+            pitch = str(self.config.voicemail_tts_pitch.get())
+            voice = self.config.voicemail_tts_voice.get()
+            gap = str(self.config.voicemail_tts_word_gap.get())
+
+            cmd = [
+                self.espeak_path,
+                "-s",
+                speed,
+                "-p",
+                pitch,
+                "-g",
+                gap,
+                "-k",
+                "10",
+                "-v",
+                voice,
+                "-w",
+                wav_path,
+                text,
+            ]
+
+            RNS.log(
+                f"Voicemail: Generating greeting with command: {' '.join(cmd)}",
+                RNS.LOG_DEBUG,
+            )
+            subprocess.run(cmd, check=True)  # noqa: S603
 
             # Convert WAV to Opus
             return self.convert_to_greeting(wav_path)
@@ -160,7 +186,7 @@ class VoicemailManager:
         if os.path.exists(opus_path):
             os.remove(opus_path)
 
-        subprocess.run(
+        subprocess.run(  # noqa: S603
             [
                 self.ffmpeg_path,
                 "-i",
@@ -169,6 +195,10 @@ class VoicemailManager:
                 "libopus",
                 "-b:a",
                 "16k",
+                "-ar",
+                "48000",
+                "-ac",
+                "1",
                 "-vbr",
                 "on",
                 opus_path,
@@ -214,11 +244,16 @@ class VoicemailManager:
                 RNS.LOG_DEBUG,
             )
 
+            active_call_remote_identity = (
+                telephone.active_call.get_remote_identity()
+                if (telephone and telephone.active_call)
+                else None
+            )
             if (
                 telephone
                 and telephone.active_call
-                and telephone.active_call.get_remote_identity().hash
-                == caller_identity.hash
+                and active_call_remote_identity
+                and active_call_remote_identity.hash == caller_identity.hash
                 and telephone.call_status == 4  # Ringing
             ):
                 RNS.log(
@@ -232,10 +267,17 @@ class VoicemailManager:
                     RNS.LOG_DEBUG,
                 )
                 if telephone.active_call:
-                    RNS.log(
-                        f"Voicemail: Active call remote: {RNS.prettyhexrep(telephone.active_call.get_remote_identity().hash)}",
-                        RNS.LOG_DEBUG,
-                    )
+                    remote_identity = telephone.active_call.get_remote_identity()
+                    if remote_identity:
+                        RNS.log(
+                            f"Voicemail: Active call remote: {RNS.prettyhexrep(remote_identity.hash)}",
+                            RNS.LOG_DEBUG,
+                        )
+                    else:
+                        RNS.log(
+                            "Voicemail: Active call remote identity not found",
+                            RNS.LOG_DEBUG,
+                        )
 
         threading.Thread(target=voicemail_job, daemon=True).start()
 
@@ -360,6 +402,9 @@ class VoicemailManager:
         threading.Thread(target=session_job, daemon=True).start()
 
     def start_recording(self, caller_identity):
+        # Disabled for now
+        return
+
         telephone = self.telephone_manager.telephone
         if not telephone or not telephone.active_call:
             return
@@ -370,17 +415,12 @@ class VoicemailManager:
 
         try:
             self.recording_sink = OpusFileSink(filepath)
-            # Ensure samplerate is set to avoid TypeError in LXST Opus codec
-            # which expects sink to have a valid samplerate attribute
             self.recording_sink.samplerate = 48000
 
-            # Connect the caller's audio source to our sink
-            # active_call.audio_source is a LinkSource that feeds into receive_mixer
-            # We want to record what we receive.
             self.recording_pipeline = Pipeline(
-                source=telephone.active_call.audio_source,
-                codec=Null(),
-                sink=self.recording_sink,
+                telephone.active_call.audio_source,
+                Null(),
+                self.recording_sink,
             )
             self.recording_pipeline.start()
 
@@ -402,7 +442,13 @@ class VoicemailManager:
 
         try:
             duration = int(time.time() - self.recording_start_time)
-            self.recording_pipeline.stop()
+
+            if self.recording_pipeline:
+                self.recording_pipeline.stop()
+
+            if self.recording_sink:
+                self.recording_sink.stop()
+
             self.recording_sink = None
             self.recording_pipeline = None
 
@@ -446,6 +492,9 @@ class VoicemailManager:
             self.is_recording = False
 
     def start_greeting_recording(self):
+        # Disabled for now
+        return
+
         telephone = self.telephone_manager.telephone
         if not telephone:
             return
@@ -469,11 +518,12 @@ class VoicemailManager:
             self.greeting_recording_sink.samplerate = 48000
 
             self.greeting_recording_pipeline = Pipeline(
-                source=telephone.audio_input,
-                codec=Null(),
-                sink=self.greeting_recording_sink,
+                telephone.audio_input,
+                Null(),
+                self.greeting_recording_sink,
             )
             self.greeting_recording_pipeline.start()
+
             self.is_greeting_recording = True
             RNS.log("Voicemail: Started recording greeting from mic", RNS.LOG_DEBUG)
         except Exception as e:
@@ -487,7 +537,12 @@ class VoicemailManager:
             return
 
         try:
-            self.greeting_recording_pipeline.stop()
+            if self.greeting_recording_pipeline:
+                self.greeting_recording_pipeline.stop()
+
+            if self.greeting_recording_sink:
+                self.greeting_recording_sink.stop()
+
             self.greeting_recording_sink = None
             self.greeting_recording_pipeline = None
             self.is_greeting_recording = False

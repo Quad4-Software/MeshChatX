@@ -49,6 +49,8 @@ class AnnounceManager:
         destination_hash=None,
         query=None,
         blocked_identity_hashes=None,
+        limit=None,
+        offset=0,
     ):
         sql = "SELECT * FROM announces WHERE 1=1"
         params = []
@@ -72,4 +74,9 @@ class AnnounceManager:
             params.extend(blocked_identity_hashes)
 
         sql += " ORDER BY updated_at DESC"
+
+        if limit is not None:
+            sql += " LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+
         return self.db.provider.fetchall(sql, params)

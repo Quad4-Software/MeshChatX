@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 23
+    LATEST_VERSION = 32
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -15,6 +15,101 @@ class DatabaseSchema:
         current_version = self._get_current_version()
         self.migrate(current_version)
 
+    def _ensure_column(self, table_name, column_name, column_type):
+        """Add a column to a table if it doesn't exist."""
+        # First check if it exists using PRAGMA
+        cursor = self.provider.connection.cursor()
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if column_name not in columns:
+            try:
+                # SQLite has limitations on ALTER TABLE ADD COLUMN:
+                # 1. Cannot add UNIQUE or PRIMARY KEY columns
+                # 2. Cannot add columns with non-constant defaults (like CURRENT_TIMESTAMP)
+
+                # Strip non-constant defaults if present for the ALTER TABLE statement
+                stmt_type = column_type
+                forbidden_defaults = [
+                    "CURRENT_TIMESTAMP",
+                    "CURRENT_TIME",
+                    "CURRENT_DATE",
+                ]
+                for forbidden in forbidden_defaults:
+                    if f"DEFAULT {forbidden}" in stmt_type.upper():
+                        # Remove the DEFAULT part for the ALTER statement
+                        import re
+
+                        stmt_type = re.sub(
+                            f"DEFAULT\\s+{forbidden}",
+                            "",
+                            stmt_type,
+                            flags=re.IGNORECASE,
+                        ).strip()
+
+                # Use the connection directly to avoid any middle-ware issues
+                self.provider.connection.execute(
+                    f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}"
+                )
+            except Exception as e:
+                # Log but don't crash, we might be able to continue
+                print(f"Failed to add column {column_name} to {table_name}: {e}")
+
+    def _sync_table_columns(self, table_name, create_sql):
+        """
+        Parses a CREATE TABLE statement and ensures all columns exist in the actual table.
+        This is a robust way to handle legacy tables that are missing columns.
+        """
+        # Find the first '(' and the last ')'
+        start_idx = create_sql.find("(")
+        end_idx = create_sql.rfind(")")
+
+        if start_idx == -1 or end_idx == -1:
+            return
+
+        inner_content = create_sql[start_idx + 1 : end_idx]
+
+        # Split by comma but ignore commas inside parentheses (e.g. DECIMAL(10,2))
+        definitions = []
+        depth = 0
+        current = ""
+        for char in inner_content:
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+
+            if char == "," and depth == 0:
+                definitions.append(current.strip())
+                current = ""
+            else:
+                current += char
+        if current.strip():
+            definitions.append(current.strip())
+
+        for definition in definitions:
+            definition = definition.strip()
+            # Skip table-level constraints
+            if not definition or definition.upper().startswith(
+                ("PRIMARY KEY", "FOREIGN KEY", "UNIQUE", "CHECK")
+            ):
+                continue
+
+            parts = definition.split(None, 1)
+            if not parts:
+                continue
+
+            column_name = parts[0].strip('"').strip("`").strip("[").strip("]")
+            column_type = parts[1] if len(parts) > 1 else "TEXT"
+
+            # Special case for column types that are already PRIMARY KEY
+            if "PRIMARY KEY" in column_type.upper() and column_name.upper() != "ID":
+                # We usually don't want to ALTER TABLE ADD COLUMN with PRIMARY KEY
+                # unless it's the main ID which should already exist
+                continue
+
+            self._ensure_column(table_name, column_name, column_type)
+
     def _get_current_version(self):
         row = self.provider.fetchone(
             "SELECT value FROM config WHERE key = ?",
@@ -26,7 +121,7 @@ class DatabaseSchema:
 
     def _create_initial_tables(self):
         # We create the config table first so we can track version
-        self.provider.execute("""
+        config_sql = """
             CREATE TABLE IF NOT EXISTS config (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 key TEXT UNIQUE,
@@ -34,7 +129,9 @@ class DatabaseSchema:
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        self.provider.execute(config_sql)
+        self._sync_table_columns("config", config_sql)
 
         # Other essential tables that were present from version 1
         # Peewee automatically creates tables if they don't exist.
@@ -81,6 +178,7 @@ class DatabaseSchema:
                     hash TEXT UNIQUE,
                     source_hash TEXT,
                     destination_hash TEXT,
+                    peer_hash TEXT,
                     state TEXT,
                     progress REAL,
                     is_incoming INTEGER,
@@ -270,10 +368,32 @@ class DatabaseSchema:
                     UNIQUE(identity_hash, action)
                 )
             """,
+            "map_drawings": """
+                CREATE TABLE IF NOT EXISTS map_drawings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT,
+                    name TEXT,
+                    data TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_last_sent_icon_hashes": """
+                CREATE TABLE IF NOT EXISTS lxmf_last_sent_icon_hashes (
+                    destination_hash TEXT PRIMARY KEY,
+                    icon_hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
         }
 
         for table_name, create_sql in tables.items():
             self.provider.execute(create_sql)
+
+            # Robust self-healing: Ensure existing tables have all modern columns
+            self._sync_table_columns(table_name, create_sql)
+
             # Create indexes that were present
             if table_name == "announces":
                 self.provider.execute(
@@ -282,12 +402,24 @@ class DatabaseSchema:
                 self.provider.execute(
                     "CREATE INDEX IF NOT EXISTS idx_announces_identity_hash ON announces(identity_hash)",
                 )
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
+                )
             elif table_name == "lxmf_messages":
                 self.provider.execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_source_hash ON lxmf_messages(source_hash)",
                 )
                 self.provider.execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_destination_hash ON lxmf_messages(destination_hash)",
+                )
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_hash ON lxmf_messages(peer_hash)",
+                )
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
+                )
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_ts ON lxmf_messages(peer_hash, timestamp)",
                 )
             elif table_name == "blocked_destinations":
                 self.provider.execute(
@@ -451,7 +583,7 @@ class DatabaseSchema:
                 self.provider.execute(
                     "ALTER TABLE lxmf_messages ADD COLUMN is_spam INTEGER DEFAULT 0",
                 )
-            except Exception:
+            except Exception:  # noqa: S110
                 # Column might already exist if table was created with newest schema
                 pass
 
@@ -541,7 +673,7 @@ class DatabaseSchema:
                 self.provider.execute(
                     "ALTER TABLE lxmf_forwarding_rules ADD COLUMN name TEXT",
                 )
-            except Exception:
+            except Exception:  # noqa: S110
                 pass
 
         if current_version < 17:
@@ -639,6 +771,94 @@ class DatabaseSchema:
             )
             self.provider.execute(
                 "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)",
+            )
+
+        if current_version < 24:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS call_recordings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    remote_identity_hash TEXT,
+                    remote_identity_name TEXT,
+                    filename_rx TEXT,
+                    filename_tx TEXT,
+                    duration_seconds INTEGER,
+                    timestamp REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_call_recordings_remote_hash ON call_recordings(remote_identity_hash)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_call_recordings_timestamp ON call_recordings(timestamp)",
+            )
+
+        if current_version < 25:
+            # Add docs_downloaded to config if not exists
+            self.provider.execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("docs_downloaded", "0"),
+            )
+
+        if current_version < 26:
+            # Add initial_docs_download_attempted to config if not exists
+            self.provider.execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("initial_docs_download_attempted", "0"),
+            )
+
+        if current_version < 28:
+            # Add preferred_ringtone_id to contacts
+            try:
+                self.provider.execute(
+                    "ALTER TABLE contacts ADD COLUMN preferred_ringtone_id INTEGER DEFAULT NULL",
+                )
+            except Exception:  # noqa: S110
+                pass
+
+        if current_version < 29:
+            # Performance optimization indexes
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_hash ON lxmf_messages(peer_hash)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_ts ON lxmf_messages(peer_hash, timestamp)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
+            )
+
+        if current_version < 30:
+            # Add custom_image to contacts
+            try:
+                self.provider.execute(
+                    "ALTER TABLE contacts ADD COLUMN custom_image TEXT DEFAULT NULL",
+                )
+            except Exception:  # noqa: S110
+                pass
+
+        if current_version < 31:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_last_sent_icon_hashes (
+                    destination_hash TEXT PRIMARY KEY,
+                    icon_hash TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+        if current_version < 32:
+            # Add tutorial_seen and changelog_seen_version to config
+            self.provider.execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("tutorial_seen", "false"),
+            )
+            self.provider.execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("changelog_seen_version", "0.0.0"),
             )
 
         # Update version in config

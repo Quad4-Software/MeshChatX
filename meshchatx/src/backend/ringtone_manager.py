@@ -38,7 +38,7 @@ class RingtoneManager:
         filename = f"ringtone_{secrets.token_hex(8)}.opus"
         opus_path = os.path.join(self.storage_dir, filename)
 
-        subprocess.run(
+        subprocess.run(  # noqa: S603
             [
                 self.ffmpeg_path,
                 "-i",
