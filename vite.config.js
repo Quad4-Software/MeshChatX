@@ -21,7 +21,7 @@ export default {
 
         // we want to compile vite app to meshchatx/public which is bundled and served by the python executable
         outDir: path.join(__dirname, "meshchatx", "public"),
-        emptyOutDir: true,
+        emptyOutDir: false,
 
         rollupOptions: {
             treeshake: {
