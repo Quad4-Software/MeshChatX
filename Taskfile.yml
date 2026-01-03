@@ -155,7 +155,6 @@ tasks:
         desc: Build only the frontend
         deps: [node_modules]
         cmds:
-            - rm -rf meshchatx/public/assets
             - "{{.NPM}} run build-frontend"
 
     wheel:
