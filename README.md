@@ -174,29 +174,6 @@ MeshChatX can be configured via command-line arguments or environment variables.
 | `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Data directory       |
 | `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | -           | Frontend files path  |
 
-## GPG Verification
-
-To ensure the security and authenticity of this project, all commits and releases are GPG signed. You can verify the signatures of the commits using the following steps:
-
-### 1. Import the Developer's Public Key
-
-Fetch the public key from the Gitea instance and import it into your GPG keyring:
-
-```bash
-# Replace YOUR_TOKEN if the instance requires authentication
-curl -s "https://git.quad4.io/api/v1/users/Ivan/gpg_keys" | jq -r '.[0].public_key' | gpg --import
-```
-
-### 2. Verify Commits
-
-Once the key is imported, you can verify the commits in your local clone:
-
-```bash
-# Show signatures for the last 10 commits
-git log --show-signature -n 10
-```
-
-You should see "Good signature from Ivan <ivan@quad4.io>" with the Key ID `1E0B37EE76428197`.
 
 ## Development
 
@@ -212,14 +189,6 @@ We use [Task](https://taskfile.dev/) for automation.
 | `task test:cov` | Run tests with coverage reports     |
 | `task build`    | Build frontend and backend          |
 
-## TODO
-
-- [ ] RNS hot reload fix
-- [ ] Offline Reticulum documentation tool
-- [ ] Spam filter (based on keywords)
-- [ ] TAK tool/integration
-- [ ] RNS Tunnel - tunnel regular services over RNS
-- [ ] RNS Filesync - P2P file sync
 
 ## Credits
 
