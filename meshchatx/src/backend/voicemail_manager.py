@@ -290,7 +290,8 @@ class VoicemailManager:
                 if os.path.exists(greeting_path):
                     try:
                         greeting_source = OpusFileSource(
-                            greeting_path, target_frame_ms=60
+                            greeting_path,
+                            target_frame_ms=60,
                         )
                         # Attach to transmit mixer
                         greeting_pipeline = Pipeline(
@@ -463,7 +464,7 @@ class VoicemailManager:
 
         try:
             self.greeting_recording_sink = OpusFileSink(
-                os.path.join(self.greetings_dir, "greeting.opus")
+                os.path.join(self.greetings_dir, "greeting.opus"),
             )
             self.greeting_recording_sink.samplerate = 48000
 
@@ -477,7 +478,8 @@ class VoicemailManager:
             RNS.log("Voicemail: Started recording greeting from mic", RNS.LOG_DEBUG)
         except Exception as e:
             RNS.log(
-                f"Voicemail: Failed to start greeting recording: {e}", RNS.LOG_ERROR
+                f"Voicemail: Failed to start greeting recording: {e}",
+                RNS.LOG_ERROR,
             )
 
     def stop_greeting_recording(self):
