@@ -133,16 +133,22 @@ class ConfigManager:
 
         # ringtone config
         self.custom_ringtone_enabled = self.BoolConfig(
-            self, "custom_ringtone_enabled", False
+            self,
+            "custom_ringtone_enabled",
+            False,
         )
         self.ringtone_filename = self.StringConfig(self, "ringtone_filename", None)
 
         # telephony config
         self.do_not_disturb_enabled = self.BoolConfig(
-            self, "do_not_disturb_enabled", False
+            self,
+            "do_not_disturb_enabled",
+            False,
         )
         self.telephone_allow_calls_from_contacts_only = self.BoolConfig(
-            self, "telephone_allow_calls_from_contacts_only", False
+            self,
+            "telephone_allow_calls_from_contacts_only",
+            False,
         )
 
         # map config
