@@ -406,17 +406,19 @@ class ReticulumMeshChat:
 
         # init RNCP handler
         self.rncp_handler = RNCPHandler(
-            reticulum_instance=self.reticulum,
+            reticulum_instance=getattr(self, "reticulum", None),
             identity=self.identity,
             storage_dir=self.storage_dir,
         )
 
         # init RNStatus handler
-        self.rnstatus_handler = RNStatusHandler(reticulum_instance=self.reticulum)
+        self.rnstatus_handler = RNStatusHandler(
+            reticulum_instance=getattr(self, "reticulum", None)
+        )
 
         # init RNProbe handler
         self.rnprobe_handler = RNProbeHandler(
-            reticulum_instance=self.reticulum,
+            reticulum_instance=getattr(self, "reticulum", None),
             identity=self.identity,
         )
 
@@ -797,6 +799,181 @@ class ReticulumMeshChat:
             except Exception:
                 pass
 
+    async def reload_reticulum(self):
+        print("Hot reloading Reticulum stack...")
+        # Keep reference to old reticulum instance for cleanup
+        old_reticulum = getattr(self, "reticulum", None)
+
+        try:
+            # Signal background loops to exit
+            self._identity_session_id += 1
+
+            # Teardown current identity state and managers
+            # This also calls cleanup_rns_state_for_identity
+            self.teardown_identity()
+
+            # Give loops a moment to finish
+            await asyncio.sleep(2)
+
+            # Aggressively close RNS interfaces to release sockets
+            try:
+                interfaces = []
+                if hasattr(RNS.Transport, "interfaces"):
+                    interfaces.extend(RNS.Transport.interfaces)
+                if hasattr(RNS.Transport, "local_client_interfaces"):
+                    interfaces.extend(RNS.Transport.local_client_interfaces)
+
+                for interface in interfaces:
+                    try:
+                        # Generic socketserver shutdown
+                        if hasattr(interface, "server") and interface.server:
+                            try:
+                                interface.server.shutdown()
+                                interface.server.server_close()
+                            except Exception:
+                                pass
+
+                        # AutoInterface specific
+                        if hasattr(interface, "interface_servers"):
+                            for server in interface.interface_servers.values():
+                                try:
+                                    server.shutdown()
+                                    server.server_close()
+                                except Exception:
+                                    pass
+
+                        # TCPClientInterface/etc
+                        if hasattr(interface, "socket") and interface.socket:
+                            try:
+                                import socket
+
+                                # Check if socket is still valid before shutdown
+                                if interface.socket.fileno() != -1:
+                                    try:
+                                        interface.socket.shutdown(socket.SHUT_RDWR)
+                                    except Exception:
+                                        pass
+                                interface.socket.close()
+                            except Exception:
+                                pass
+
+                        interface.detach()
+                        interface.detached = True
+                    except Exception as e:
+                        print(f"Warning closing interface during reload: {e}")
+            except Exception as e:
+                print(f"Warning during aggressive interface cleanup: {e}")
+
+            # Close RPC listener if it exists on the instance
+            if old_reticulum:
+                if (
+                    hasattr(old_reticulum, "rpc_listener")
+                    and old_reticulum.rpc_listener
+                ):
+                    try:
+                        # Listener.close() should close the underlying socket/pipe
+                        old_reticulum.rpc_listener.close()
+                        # Clear it to be sure
+                        old_reticulum.rpc_listener = None
+                    except Exception as e:
+                        print(f"Warning closing RPC listener: {e}")
+
+            # Persist and close RNS instance
+            try:
+                # Use class method to ensure all instances are cleaned up if any
+                RNS.Reticulum.exit_handler()
+            except Exception as e:
+                print(f"Warning during RNS exit: {e}")
+
+            # Clear RNS singleton and internal state to allow re-initialization
+            try:
+                # Reticulum uses private variables for singleton and state control
+                # We need to clear them so we can create a new instance
+                if hasattr(RNS.Reticulum, "_Reticulum__instance"):
+                    RNS.Reticulum._Reticulum__instance = None
+                if hasattr(RNS.Reticulum, "_Reticulum__exit_handler_ran"):
+                    RNS.Reticulum._Reticulum__exit_handler_ran = False
+                if hasattr(RNS.Reticulum, "_Reticulum__interface_detach_ran"):
+                    RNS.Reticulum._Reticulum__interface_detach_ran = False
+
+                # Also clear Transport caches and globals
+                RNS.Transport.interfaces = []
+                RNS.Transport.local_client_interfaces = []
+                RNS.Transport.destinations = []
+                RNS.Transport.active_links = []
+                RNS.Transport.pending_links = []
+                RNS.Transport.announce_handlers = []
+                RNS.Transport.jobs_running = False
+
+                # Clear Identity globals
+                RNS.Identity.known_destinations = {}
+                RNS.Identity.known_ratchets = {}
+
+                # Unregister old exit handlers from atexit if possible
+                try:
+                    import atexit
+
+                    # Reticulum uses a staticmethod exit_handler
+                    atexit.unregister(RNS.Reticulum.exit_handler)
+                except Exception:
+                    pass
+
+            except Exception as e:
+                print(f"Warning clearing RNS state: {e}")
+
+            # Remove reticulum instance from self
+            if hasattr(self, "reticulum"):
+                del self.reticulum
+
+            # Wait another moment for sockets to definitely be released by OS
+            # Also give some time for the RPC listener port to settle
+            print("Waiting for ports to settle...")
+            for i in range(10):
+                await asyncio.sleep(1)
+                # If we're using AF_INET for RPC, we can check the port
+                # RNS uses 127.0.0.1:37429 by default
+                try:
+                    import socket
+
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(0.5)
+                    # Try to bind to the port. If it fails, it's still in use.
+                    # RNS uses this for the shared instance listener.
+                    # We use a high port number that is unlikely to be used by anything else
+                    # but RNS.
+                    try:
+                        # RNS local_control_port is 37429
+                        s.bind(("127.0.0.1", 37429))
+                        s.close()
+                        print("RPC port 37429 is free.")
+                        break
+                    except OSError:
+                        print(f"RPC port 37429 still in use... (attempt {i + 1}/10)")
+                        s.close()
+                except Exception as e:
+                    print(f"Error checking RPC port: {e}")
+                    break
+
+            # Re-setup identity (this starts background loops again)
+            self.running = True
+            self.setup_identity(self.identity)
+
+            return True
+        except Exception as e:
+            print(f"Hot reload failed: {e}")
+            import traceback
+
+            traceback.print_exc()
+
+            # Try to recover if possible
+            if not hasattr(self, "reticulum"):
+                try:
+                    self.setup_identity(self.identity)
+                except Exception:
+                    pass
+
+            return False
+
     async def hotswap_identity(self, identity_hash):
         try:
             # load the new identity
@@ -805,7 +982,8 @@ class ReticulumMeshChat:
             if not os.path.exists(identity_file):
                 raise ValueError("Identity file not found")
 
-            new_identity = RNS.Identity.from_file(identity_file)
+            # Validate that the identity file can be loaded
+            RNS.Identity.from_file(identity_file)
 
             # 1. teardown old identity
             self.teardown_identity()
@@ -823,7 +1001,9 @@ class ReticulumMeshChat:
 
             # 3. reset state and setup new identity
             self.running = True
-            self.setup_identity(new_identity)
+            # Close old reticulum before setting up new one to avoid port conflicts
+            await self.reload_reticulum()
+            # Note: reload_reticulum already calls setup_identity
 
             # 4. broadcast update to clients
             await self.websocket_broadcast(
@@ -831,7 +1011,11 @@ class ReticulumMeshChat:
                     {
                         "type": "identity_switched",
                         "identity_hash": identity_hash,
-                        "display_name": self.config.display_name.get(),
+                        "display_name": (
+                            self.config.display_name.get()
+                            if hasattr(self, "config")
+                            else "Unknown"
+                        ),
                     }
                 ),
             )
@@ -1251,25 +1435,33 @@ class ReticulumMeshChat:
 
     def _get_reticulum_section(self):
         try:
-            reticulum_config = self.reticulum.config["reticulum"]
+            if hasattr(self, "reticulum") and self.reticulum:
+                reticulum_config = self.reticulum.config["reticulum"]
+            else:
+                return {}
         except Exception:
             reticulum_config = None
 
         if not isinstance(reticulum_config, dict):
             reticulum_config = {}
-            self.reticulum.config["reticulum"] = reticulum_config
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.config["reticulum"] = reticulum_config
 
         return reticulum_config
 
     def _get_interfaces_section(self):
         try:
-            interfaces = self.reticulum.config["interfaces"]
+            if hasattr(self, "reticulum") and self.reticulum:
+                interfaces = self.reticulum.config["interfaces"]
+            else:
+                return {}
         except Exception:
             interfaces = None
 
         if not isinstance(interfaces, dict):
             interfaces = {}
-            self.reticulum.config["interfaces"] = interfaces
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.config["interfaces"] = interfaces
 
         return interfaces
 
@@ -1288,8 +1480,10 @@ class ReticulumMeshChat:
 
     def _write_reticulum_config(self):
         try:
-            self.reticulum.config.write()
-            return True
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.config.write()
+                return True
+            return False
         except Exception as e:
             print(f"Failed to write Reticulum config: {e}")
             return False
@@ -1310,7 +1504,11 @@ class ReticulumMeshChat:
                 },
             )
 
-        if not self.reticulum.transport_enabled():
+        if (
+            hasattr(self, "reticulum")
+            and self.reticulum
+            and not self.reticulum.transport_enabled()
+        ):
             guidance.append(
                 {
                     "id": "transport_disabled",
@@ -1576,12 +1774,27 @@ class ReticulumMeshChat:
     async def shutdown(self, app):
         # force close websocket clients
         for websocket_client in self.websocket_clients:
-            await websocket_client.close(code=WSCloseCode.GOING_AWAY)
+            try:
+                await websocket_client.close(code=WSCloseCode.GOING_AWAY)
+            except Exception:
+                pass
 
         # stop reticulum
-        RNS.Transport.detach_interfaces()
-        self.reticulum.exit_handler()
-        RNS.exit()
+        try:
+            RNS.Transport.detach_interfaces()
+        except Exception:
+            pass
+
+        if hasattr(self, "reticulum") and self.reticulum:
+            try:
+                self.reticulum.exit_handler()
+            except Exception:
+                pass
+
+        try:
+            RNS.exit()
+        except Exception:
+            pass
 
     def run(self, host, port, launch_browser: bool, enable_https: bool = True):
         # create route table
@@ -2007,7 +2220,7 @@ class ReticulumMeshChat:
 
             return web.json_response(
                 {
-                    "message": "Interface is now disabled",
+                    "message": "Interface deleted",
                 },
             )
 
@@ -2488,7 +2701,7 @@ class ReticulumMeshChat:
             if allow_overwriting_interface:
                 return web.json_response(
                     {
-                        "message": "Interface has been saved. Please restart MeshChat for these changes to take effect.",
+                        "message": "Interface has been saved",
                     },
                 )
             return web.json_response(
@@ -2691,8 +2904,13 @@ class ReticulumMeshChat:
             net_io = psutil.net_io_counters()
 
             # Get total paths
-            path_table = self.reticulum.get_path_table()
-            total_paths = len(path_table)
+            total_paths = 0
+            if hasattr(self, "reticulum") and self.reticulum:
+                try:
+                    path_table = self.reticulum.get_path_table()
+                    total_paths = len(path_table)
+                except Exception:
+                    pass
 
             # Calculate announce rates
             current_time = time.time()
@@ -2750,9 +2968,23 @@ class ReticulumMeshChat:
                                 None,
                             ),
                         },
-                        "reticulum_config_path": self.reticulum.configpath,
-                        "is_connected_to_shared_instance": self.reticulum.is_connected_to_shared_instance,
-                        "is_transport_enabled": self.reticulum.transport_enabled(),
+                        "reticulum_config_path": (
+                            getattr(self.reticulum, "configpath", None)
+                            if hasattr(self, "reticulum") and self.reticulum
+                            else None
+                        ),
+                        "is_connected_to_shared_instance": (
+                            getattr(
+                                self.reticulum, "is_connected_to_shared_instance", False
+                            )
+                            if hasattr(self, "reticulum") and self.reticulum
+                            else False
+                        ),
+                        "is_transport_enabled": (
+                            self.reticulum.transport_enabled()
+                            if hasattr(self, "reticulum") and self.reticulum
+                            else False
+                        ),
                         "memory_usage": {
                             "rss": memory_info.rss,  # Resident Set Size (bytes)
                             "vms": memory_info.vms,  # Virtual Memory Size (bytes)
@@ -2769,6 +3001,8 @@ class ReticulumMeshChat:
                             "announces_per_minute": announces_per_minute,
                             "announces_per_hour": announces_per_hour,
                         },
+                        "is_reticulum_running": hasattr(self, "reticulum")
+                        and self.reticulum is not None,
                         "download_stats": {
                             "avg_download_speed_bps": avg_download_speed_bps,
                         },
@@ -3175,6 +3409,17 @@ class ReticulumMeshChat:
                     "message": "Transport has been disabled. MeshChat must be restarted for this change to take effect.",
                 },
             )
+
+        @routes.post("/api/v1/reticulum/reload")
+        async def reticulum_reload(request):
+            success = await self.reload_reticulum()
+            if success:
+                return web.json_response({"message": "Reticulum reloaded successfully"})
+            else:
+                return web.json_response(
+                    {"error": "Failed to reload Reticulum"},
+                    status=500,
+                )
 
         # serve telephone status
         @routes.get("/api/v1/telephone/status")
@@ -4327,7 +4572,13 @@ class ReticulumMeshChat:
 
             # determine next hop and hop count
             hops = RNS.Transport.hops_to(destination_hash)
-            next_hop_bytes = self.reticulum.get_next_hop(destination_hash)
+            next_hop_bytes = None
+            next_hop_interface = None
+            if hasattr(self, "reticulum") and self.reticulum:
+                next_hop_bytes = self.reticulum.get_next_hop(destination_hash)
+                next_hop_interface = self.reticulum.get_next_hop_if_name(
+                    destination_hash
+                )
 
             # ensure next hop provided
             if next_hop_bytes is None:
@@ -4338,7 +4589,11 @@ class ReticulumMeshChat:
                 )
 
             next_hop = next_hop_bytes.hex()
-            next_hop_interface = self.reticulum.get_next_hop_if_name(destination_hash)
+            next_hop_interface = (
+                self.reticulum.get_next_hop_if_name(destination_hash)
+                if hasattr(self, "reticulum") and self.reticulum
+                else None
+            )
 
             return web.json_response(
                 {
@@ -4360,7 +4615,8 @@ class ReticulumMeshChat:
             destination_hash = bytes.fromhex(destination_hash)
 
             # drop path
-            self.reticulum.drop_path(destination_hash)
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.drop_path(destination_hash)
 
             return web.json_response(
                 {
@@ -4519,17 +4775,17 @@ class ReticulumMeshChat:
 
             # get rssi
             rssi = receipt.proof_packet.rssi
-            if rssi is None:
+            if rssi is None and hasattr(self, "reticulum") and self.reticulum:
                 rssi = self.reticulum.get_packet_rssi(receipt.proof_packet.packet_hash)
 
             # get snr
             snr = receipt.proof_packet.snr
-            if snr is None:
+            if snr is None and hasattr(self, "reticulum") and self.reticulum:
                 snr = self.reticulum.get_packet_snr(receipt.proof_packet.packet_hash)
 
             # get signal quality
             quality = receipt.proof_packet.q
-            if quality is None:
+            if quality is None and hasattr(self, "reticulum") and self.reticulum:
                 quality = self.reticulum.get_packet_q(receipt.proof_packet.packet_hash)
 
             # get and format round trip time
@@ -4899,39 +5155,48 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/interface-stats")
         async def interface_stats(request):
             # get interface stats
-            interface_stats = self.reticulum.get_interface_stats()
+            interface_stats = {"interfaces": []}
+            if hasattr(self, "reticulum") and self.reticulum:
+                try:
+                    interface_stats = self.reticulum.get_interface_stats()
 
-            # ensure transport_id is hex as json_response can't serialize bytes
-            if "transport_id" in interface_stats:
-                interface_stats["transport_id"] = interface_stats["transport_id"].hex()
+                    # ensure transport_id is hex as json_response can't serialize bytes
+                    if "transport_id" in interface_stats:
+                        interface_stats["transport_id"] = interface_stats[
+                            "transport_id"
+                        ].hex()
 
-            # ensure probe_responder is hex as json_response can't serialize bytes
-            if (
-                "probe_responder" in interface_stats
-                and interface_stats["probe_responder"] is not None
-            ):
-                interface_stats["probe_responder"] = interface_stats[
-                    "probe_responder"
-                ].hex()
+                    # ensure probe_responder is hex as json_response can't serialize bytes
+                    if (
+                        "probe_responder" in interface_stats
+                        and interface_stats["probe_responder"] is not None
+                    ):
+                        interface_stats["probe_responder"] = interface_stats[
+                            "probe_responder"
+                        ].hex()
 
-            # ensure ifac_signature is hex as json_response can't serialize bytes
-            for interface in interface_stats["interfaces"]:
-                if "short_name" in interface:
-                    interface["interface_name"] = interface["short_name"]
+                    # ensure ifac_signature is hex as json_response can't serialize bytes
+                    for interface in interface_stats["interfaces"]:
+                        if "short_name" in interface:
+                            interface["interface_name"] = interface["short_name"]
 
-                if (
-                    "parent_interface_name" in interface
-                    and interface["parent_interface_name"] is not None
-                ):
-                    interface["parent_interface_hash"] = interface[
-                        "parent_interface_hash"
-                    ].hex()
+                        if (
+                            "parent_interface_name" in interface
+                            and interface["parent_interface_name"] is not None
+                        ):
+                            interface["parent_interface_hash"] = interface[
+                                "parent_interface_hash"
+                            ].hex()
 
-                if interface.get("ifac_signature"):
-                    interface["ifac_signature"] = interface["ifac_signature"].hex()
+                        if interface.get("ifac_signature"):
+                            interface["ifac_signature"] = interface[
+                                "ifac_signature"
+                            ].hex()
 
-                if interface.get("hash"):
-                    interface["hash"] = interface["hash"].hex()
+                        if interface.get("hash"):
+                            interface["hash"] = interface["hash"].hex()
+                except Exception:
+                    pass
 
             return web.json_response(
                 {
@@ -4946,7 +5211,13 @@ class ReticulumMeshChat:
             offset = request.query.get("offset", None)
 
             # get path table, making sure hash and via are in hex as json_response can't serialize bytes
-            all_paths = self.reticulum.get_path_table()
+            all_paths = []
+            if hasattr(self, "reticulum") and self.reticulum:
+                try:
+                    all_paths = self.reticulum.get_path_table()
+                except Exception:
+                    pass
+
             total_count = len(all_paths)
 
             # apply pagination if requested
@@ -5665,7 +5936,8 @@ class ReticulumMeshChat:
                 self.database.misc.add_blocked_destination(destination_hash)
                 # drop any existing paths to this destination
                 try:
-                    self.reticulum.drop_path(bytes.fromhex(destination_hash))
+                    if hasattr(self, "reticulum") and self.reticulum:
+                        self.reticulum.drop_path(bytes.fromhex(destination_hash))
                 except Exception as e:
                     print(f"Failed to drop path for blocked destination: {e}")
                 return web.json_response({"message": "ok"})
@@ -7121,7 +7393,11 @@ class ReticulumMeshChat:
             "telephone_address_hash": self.telephone_manager.telephone.destination.hexhash
             if self.telephone_manager.telephone
             else None,
-            "is_transport_enabled": self.reticulum.transport_enabled(),
+            "is_transport_enabled": (
+                self.reticulum.transport_enabled()
+                if hasattr(self, "reticulum") and self.reticulum
+                else False
+            ),
             "auto_announce_enabled": self.config.auto_announce_enabled.get(),
             "auto_announce_interval_seconds": self.config.auto_announce_interval_seconds.get(),
             "last_announced_at": self.config.last_announced_at.get(),
@@ -7346,17 +7622,17 @@ class ReticulumMeshChat:
 
         # get rssi
         rssi = lxmf_message.rssi
-        if rssi is None:
+        if rssi is None and hasattr(self, "reticulum") and self.reticulum:
             rssi = self.reticulum.get_packet_rssi(lxmf_message.hash)
 
         # get snr
         snr = lxmf_message.snr
-        if snr is None:
+        if snr is None and hasattr(self, "reticulum") and self.reticulum:
             snr = self.reticulum.get_packet_snr(lxmf_message.hash)
 
         # get quality
         quality = lxmf_message.q
-        if quality is None:
+        if quality is None and hasattr(self, "reticulum") and self.reticulum:
             quality = self.reticulum.get_packet_q(lxmf_message.hash)
 
         return {
@@ -7792,9 +8068,15 @@ class ReticulumMeshChat:
 
                         # physical link info
                         physical_link = {
-                            "rssi": self.reticulum.get_packet_rssi(lxmf_message.hash),
-                            "snr": self.reticulum.get_packet_snr(lxmf_message.hash),
-                            "q": self.reticulum.get_packet_q(lxmf_message.hash),
+                            "rssi": self.reticulum.get_packet_rssi(lxmf_message.hash)
+                            if hasattr(self, "reticulum") and self.reticulum
+                            else None,
+                            "snr": self.reticulum.get_packet_snr(lxmf_message.hash)
+                            if hasattr(self, "reticulum") and self.reticulum
+                            else None,
+                            "q": self.reticulum.get_packet_q(lxmf_message.hash)
+                            if hasattr(self, "reticulum") and self.reticulum
+                            else None,
                         }
 
                         self.database.telemetry.upsert_telemetry(
@@ -8315,7 +8597,8 @@ class ReticulumMeshChat:
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash):
             print(f"Dropping telephone announce from blocked source: {identity_hash}")
-            self.reticulum.drop_path(destination_hash)
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.drop_path(destination_hash)
             return
 
         # log received announce
@@ -8369,7 +8652,8 @@ class ReticulumMeshChat:
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash):
             print(f"Dropping announce from blocked source: {identity_hash}")
-            self.reticulum.drop_path(destination_hash)
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.drop_path(destination_hash)
             return
 
         # log received announce
@@ -8556,7 +8840,8 @@ class ReticulumMeshChat:
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash):
             print(f"Dropping announce from blocked source: {identity_hash}")
-            self.reticulum.drop_path(destination_hash)
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.drop_path(destination_hash)
             return
 
         # log received announce
@@ -8994,40 +9279,50 @@ class NomadnetFileDownloader(NomadnetDownloader):
 
 def main():
     # parse command line args
+    def env_bool(env_name, default=False):
+        val = os.environ.get(env_name)
+        if val is None:
+            return default
+        return val.lower() in ("true", "1", "yes", "on")
+
     parser = argparse.ArgumentParser(description="ReticulumMeshChat")
     parser.add_argument(
         "--host",
         nargs="?",
-        default="127.0.0.1",
+        default=os.environ.get("MESHCHAT_HOST", "127.0.0.1"),
         type=str,
-        help="The address the web server should listen on.",
+        help="The address the web server should listen on. Can also be set via MESHCHAT_HOST environment variable.",
     )
     parser.add_argument(
         "--port",
         nargs="?",
-        default="8000",
+        default=int(os.environ.get("MESHCHAT_PORT", "8000")),
         type=int,
-        help="The port the web server should listen on.",
+        help="The port the web server should listen on. Can also be set via MESHCHAT_PORT environment variable.",
     )
     parser.add_argument(
         "--headless",
         action="store_true",
-        help="Web browser will not automatically launch when this flag is passed.",
+        default=env_bool("MESHCHAT_HEADLESS", False),
+        help="Web browser will not automatically launch when this flag is passed. Can also be set via MESHCHAT_HEADLESS environment variable.",
     )
     parser.add_argument(
         "--identity-file",
         type=str,
-        help="Path to a Reticulum Identity file to use as your LXMF address.",
+        default=os.environ.get("MESHCHAT_IDENTITY_FILE"),
+        help="Path to a Reticulum Identity file to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_FILE environment variable.",
     )
     parser.add_argument(
         "--identity-base64",
         type=str,
-        help="A base64 encoded Reticulum Identity to use as your LXMF address.",
+        default=os.environ.get("MESHCHAT_IDENTITY_BASE64"),
+        help="A base64 encoded Reticulum Identity to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_BASE64 environment variable.",
     )
     parser.add_argument(
         "--identity-base32",
         type=str,
-        help="A base32 encoded Reticulum Identity to use as your LXMF address.",
+        default=os.environ.get("MESHCHAT_IDENTITY_BASE32"),
+        help="A base32 encoded Reticulum Identity to use as your LXMF address. Can also be set via MESHCHAT_IDENTITY_BASE32 environment variable.",
     )
     parser.add_argument(
         "--generate-identity-file",
@@ -9042,17 +9337,20 @@ def main():
     parser.add_argument(
         "--auto-recover",
         action="store_true",
-        help="Attempt to automatically recover the SQLite database on startup before serving the app.",
+        default=env_bool("MESHCHAT_AUTO_RECOVER", False),
+        help="Attempt to automatically recover the SQLite database on startup before serving the app. Can also be set via MESHCHAT_AUTO_RECOVER environment variable.",
     )
     parser.add_argument(
         "--auth",
         action="store_true",
-        help="Enable basic authentication for the web interface.",
+        default=env_bool("MESHCHAT_AUTH", False),
+        help="Enable basic authentication for the web interface. Can also be set via MESHCHAT_AUTH environment variable.",
     )
     parser.add_argument(
         "--no-https",
         action="store_true",
-        help="Disable HTTPS and use HTTP instead.",
+        default=env_bool("MESHCHAT_NO_HTTPS", False),
+        help="Disable HTTPS and use HTTP instead. Can also be set via MESHCHAT_NO_HTTPS environment variable.",
     )
     parser.add_argument(
         "--backup-db",
@@ -9067,12 +9365,14 @@ def main():
     parser.add_argument(
         "--reticulum-config-dir",
         type=str,
-        help="Path to a Reticulum config directory for the RNS stack to use (e.g: ~/.reticulum)",
+        default=os.environ.get("MESHCHAT_RETICULUM_CONFIG_DIR"),
+        help="Path to a Reticulum config directory for the RNS stack to use (e.g: ~/.reticulum). Can also be set via MESHCHAT_RETICULUM_CONFIG_DIR environment variable.",
     )
     parser.add_argument(
         "--storage-dir",
         type=str,
-        help="Path to a directory for storing databases and config files (default: ./storage)",
+        default=os.environ.get("MESHCHAT_STORAGE_DIR"),
+        help="Path to a directory for storing databases and config files (default: ./storage). Can also be set via MESHCHAT_STORAGE_DIR environment variable.",
     )
     parser.add_argument(
         "--test-exception-message",
