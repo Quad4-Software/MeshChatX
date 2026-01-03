@@ -1,0 +1,68 @@
+name: Build Test
+
+on:
+    push:
+        branches:
+            - "*"
+    pull_request:
+        branches:
+            - "*"
+
+jobs:
+    build-test:
+        name: Build and Test
+        runs-on: ubuntu-latest
+        steps:
+            - name: Clone Repo
+              uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  fetch-depth: 0
+
+            - name: Install NodeJS
+              uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+              with:
+                  node-version: 22
+
+            - name: Install Python
+              uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+              with:
+                  python-version: "3.13"
+
+            - name: Install Poetry
+              run: python -m pip install --upgrade pip poetry>=2.0.0
+
+            - name: Install pnpm
+              uses: https://git.quad4.io/actions/setup-pnpm@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+              with:
+                  version: 10.0.0
+
+            - name: Install system dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng zip
+
+            - name: Setup Task
+              uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
+              with:
+                  version: "3.46.3"
+
+            - name: Install dependencies
+              run: task install
+
+            - name: Build Frontend
+              run: task build-frontend
+
+            - name: Build Backend (Wheel)
+              run: task wheel
+
+            - name: Prepare Frontend Zip
+              run: |
+                  mkdir -p release-assets
+                  (cd meshchatx/public && zip -r ../../release-assets/meshchatx-frontend.zip .)
+
+            - name: Upload Frontend artifact
+              uses: https://git.quad4.io/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+              with:
+                  name: meshchatx-frontend
+                  path: release-assets/*
+
