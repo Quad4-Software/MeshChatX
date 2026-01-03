@@ -63,8 +63,8 @@ tasks:
     lint-python:
         desc: Lint Python code using ruff
         cmds:
-            - poetry run ruff check . --exclude tests
-            - poetry run ruff format --check . --exclude tests
+            - poetry run ruff check meshchatx tests scripts --exclude tests/frontend --exclude .pnpm-store
+            - poetry run ruff format --check meshchatx tests scripts --exclude tests/frontend --exclude .pnpm-store
 
     lint-frontend:
         desc: Lint frontend code

@@ -3,6 +3,7 @@
 > [!IMPORTANT]  
 > v4 coming soon with release builds for Linux and Windows. As well as updated container images and wheel packages.
 
+For issues contact me over LXMF: `73
 [![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
 [![Tests](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml)
 [![Build](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml)
@@ -218,8 +219,9 @@ We use [Task](https://taskfile.dev/) for automation.
 | `task android-prepare`  | Prepare Android build                          |
 | `task android-build`    | Build Android APK                              |
 | `task build-flatpak`    | Build Flatpak package                          |
+| `task forge-start`     | Run the application with Electron Forge        |
+| `task forge-make`      | Generate distributables with Electron Forge    |
 | `task clean`            | Clean build artifacts and dependencies         |
-
 
 ## Security
 

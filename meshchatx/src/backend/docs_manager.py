@@ -58,6 +58,9 @@ class DocsManager:
         if self.project_root:
             search_paths.append(os.path.join(self.project_root, "docs"))
 
+        # Also try in the public directory
+        search_paths.append(os.path.join(self.public_dir, "meshchatx-docs"))
+
         # Also try relative to this file
         # This file is in meshchatx/src/backend/docs_manager.py
         # Project root is 3 levels up
@@ -81,7 +84,13 @@ class DocsManager:
                 if file.endswith(".md") or file.endswith(".txt"):
                     src_path = os.path.join(src_docs, file)
                     dest_path = os.path.join(self.meshchatx_docs_dir, file)
-                    shutil.copy2(src_path, dest_path)
+
+                    # Only copy if source and destination are different
+                    if (
+                        os.path.abspath(src_path) != os.path.abspath(dest_path)
+                        and os.access(self.meshchatx_docs_dir, os.W_OK)
+                    ):
+                        shutil.copy2(src_path, dest_path)
 
                     # Also pre-render to HTML for easy sharing/viewing
                     try:

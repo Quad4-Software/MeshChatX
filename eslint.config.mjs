@@ -27,6 +27,7 @@ export default [
             "**/*.proto",
             "**/tests/**",
             "**/tests/frontend/**",
+            "**/.pnpm-store/**",
         ],
     },
     {
