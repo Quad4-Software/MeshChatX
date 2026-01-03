@@ -9,12 +9,13 @@ class RingtoneDAO:
 
     def get_all(self):
         return self.provider.fetchall(
-            "SELECT * FROM ringtones ORDER BY created_at DESC"
+            "SELECT * FROM ringtones ORDER BY created_at DESC",
         )
 
     def get_by_id(self, ringtone_id):
         return self.provider.fetchone(
-            "SELECT * FROM ringtones WHERE id = ?", (ringtone_id,)
+            "SELECT * FROM ringtones WHERE id = ?",
+            (ringtone_id,),
         )
 
     def get_primary(self):
@@ -42,7 +43,8 @@ class RingtoneDAO:
         if is_primary == 1:
             # reset others
             self.provider.execute(
-                "UPDATE ringtones SET is_primary = 0, updated_at = ?", (now,)
+                "UPDATE ringtones SET is_primary = 0, updated_at = ?",
+                (now,),
             )
 
         if display_name is not None and is_primary is not None:
