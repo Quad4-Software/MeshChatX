@@ -63,8 +63,8 @@ tasks:
     lint-python:
         desc: Lint Python code using ruff
         cmds:
-            - poetry run ruff check .
-            - poetry run ruff format --check .
+            - poetry run ruff check . --exclude tests
+            - poetry run ruff format --check . --exclude tests
 
     lint-frontend:
         desc: Lint frontend code
@@ -213,8 +213,8 @@ tasks:
     fix:
         desc: Format and fix linting issues (Python and frontend)
         cmds:
-            - poetry run ruff format ./
-            - poetry run ruff check --fix ./
+            - poetry run ruff format ./ --exclude tests
+            - poetry run ruff check --fix ./ --exclude tests
             - "{{.NPM}} run format"
             - "{{.NPM}} run lint:fix"
 
