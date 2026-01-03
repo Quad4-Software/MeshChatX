@@ -20,7 +20,7 @@ pkg install build-essential
 
 ### Download and Install Wheel
 
-Download the latest wheel from the [releases page](https://git.quad4.io/Ivan/MeshChatX/releases), then:
+Download the latest wheel from the [releases page](https://git.quad4.io/RNS-Things/MeshChatX/releases), then:
 
 ```
 pip install reticulum_meshchatx-*-py3-none-any.whl
@@ -62,7 +62,7 @@ corepack prepare pnpm@latest --activate
 ### Clone and Build
 
 ```
-git clone https://git.quad4.io/Ivan/MeshChatX.git
+git clone https://git.quad4.io/RNS-Things/MeshChatX.git
 cd MeshChatX
 pip install poetry
 poetry install
