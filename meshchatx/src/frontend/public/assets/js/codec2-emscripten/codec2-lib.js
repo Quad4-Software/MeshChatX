@@ -1,5 +1,4 @@
 class Codec2Lib {
-
     static arrayBufferToBase64(buffer) {
         let binary = "";
         let bytes = new Uint8Array(buffer);
@@ -97,19 +96,7 @@ class Codec2Lib {
     static audioFileToRaw(buffer, filename) {
         return new Promise((resolve, reject) => {
             const module = {
-                arguments: [
-                    filename,
-                    "-r",
-                    "8000",
-                    "-L",
-                    "-e",
-                    "signed-integer",
-                    "-b",
-                    "16",
-                    "-c",
-                    "1",
-                    "output.raw",
-                ],
+                arguments: [filename, "-r", "8000", "-L", "-e", "signed-integer", "-b", "16", "-c", "1", "output.raw"],
                 preRun: () => {
                     module.FS.writeFile(filename, new Uint8Array(buffer));
                 },
@@ -123,5 +110,4 @@ class Codec2Lib {
             SOXModule(module);
         });
     }
-
 }

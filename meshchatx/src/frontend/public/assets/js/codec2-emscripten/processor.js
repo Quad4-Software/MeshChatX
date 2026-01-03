@@ -1,5 +1,4 @@
 class AudioProcessor extends AudioWorkletProcessor {
-
     constructor() {
         super();
         this.bufferSize = 4096; // Adjust the buffer size as needed
@@ -52,4 +51,4 @@ class AudioProcessor extends AudioWorkletProcessor {
     }
 }
 
-registerProcessor('audio-processor', AudioProcessor);
+registerProcessor("audio-processor", AudioProcessor);

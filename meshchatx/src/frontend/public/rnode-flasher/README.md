@@ -53,11 +53,11 @@ Once the firmware is flashed to the device, you will need to provision the EEPRO
 
 - Set firmware hash in eeprom
 - Collect device info
-  - `product`
-  - `model`
-  - `hardware_revision`
-  - `serial_number`
-  - `made` (unix timestamp of device creation)
+    - `product`
+    - `model`
+    - `hardware_revision`
+    - `serial_number`
+    - `made` (unix timestamp of device creation)
 - Write device info to eeprom
 - Create an MD5 checksum of the device info
 - Write 16 byte device info checksum to eeprom
