@@ -1,6 +1,9 @@
 <template>
+    <div v-if="customImage" class="rounded-full overflow-hidden" :class="iconClass">
+        <img :src="customImage" class="w-full h-full object-cover" />
+    </div>
     <div
-        v-if="iconName"
+        v-else-if="iconName"
         class="p-2 rounded-full"
         :style="{ color: iconForegroundColour, 'background-color': iconBackgroundColour }"
     >
@@ -19,6 +22,10 @@ export default {
         MaterialDesignIcon,
     },
     props: {
+        customImage: {
+            type: String,
+            default: "",
+        },
         iconName: {
             type: String,
             default: "",

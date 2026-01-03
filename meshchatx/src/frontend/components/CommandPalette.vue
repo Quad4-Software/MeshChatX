@@ -63,6 +63,7 @@
                                 >
                                     <LxmfUserIcon
                                         v-if="result.type === 'contact' || result.type === 'peer'"
+                                        :custom-image="result.type === 'contact' ? result.contact.custom_image : ''"
                                         :icon-name="result.icon"
                                         :icon-foreground-colour="result.iconForeground"
                                         :icon-background-colour="result.iconBackground"
@@ -188,6 +189,14 @@ export default {
                     icon: "email-plus",
                     type: "action",
                     action: "compose",
+                },
+                {
+                    id: "action-orbit",
+                    title: "action_orbit",
+                    description: "action_orbit_desc",
+                    icon: "orbit",
+                    type: "action",
+                    action: "toggle-orbit",
                 },
             ],
         };
@@ -337,6 +346,8 @@ export default {
                         const input = document.getElementById("compose-input");
                         input?.focus();
                     });
+                } else if (result.action === "toggle-orbit") {
+                    GlobalEmitter.emit("toggle-orbit");
                 }
             }
         },

@@ -22,14 +22,20 @@
                     </div>
                 </div>
                 <div class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ loadingStatus }}</div>
-                <div
-                    v-if="totalNodesToLoad > 0"
-                    class="w-48 h-1.5 bg-gray-200 dark:bg-zinc-800 rounded-full overflow-hidden"
-                >
+                <div v-if="totalNodesToLoad > 0" class="w-48 space-y-2">
+                    <div class="h-1.5 bg-gray-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                        <div
+                            class="h-full bg-blue-500 transition-all duration-300 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                            :style="{ width: `${(loadedNodesCount / totalNodesToLoad) * 100}%` }"
+                        ></div>
+                    </div>
                     <div
-                        class="h-full bg-blue-500 transition-all duration-300"
-                        :style="{ width: `${(loadedNodesCount / totalNodesToLoad) * 100}%` }"
-                    ></div>
+                        v-if="totalBatches > 0"
+                        class="flex justify-between items-center text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider"
+                    >
+                        <span>Batch {{ currentBatch }} / {{ totalBatches }}</span>
+                        <span>{{ Math.round((loadedNodesCount / totalNodesToLoad) * 100) }}%</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -256,6 +262,7 @@ import { Network } from "vis-network";
 import { DataSet } from "vis-data";
 import * as mdi from "@mdi/js";
 import Utils from "../../js/Utils";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import Toggle from "../forms/Toggle.vue";
 
 export default {
@@ -273,9 +280,13 @@ export default {
             isUpdating: false,
             isLoading: false,
             enablePhysics: true,
+            enableOrbit: false,
+            orbitAnimationFrame: null,
             loadingStatus: "Initializing...",
             loadedNodesCount: 0,
             totalNodesToLoad: 0,
+            currentBatch: 0,
+            totalBatches: 0,
 
             interfaces: [],
             pathTable: [],
@@ -300,9 +311,21 @@ export default {
         },
     },
     watch: {
+        autoReload(val) {
+            if (val) {
+                this.manualUpdate();
+            }
+        },
         enablePhysics(val) {
             if (this.network) {
-                this.network.setOptions({ physics: { enabled: val } });
+                this.network.setOptions({ physics: { enabled: val && !this.enableOrbit } });
+            }
+        },
+        enableOrbit(val) {
+            if (val) {
+                this.startOrbit();
+            } else {
+                this.stopOrbit();
             }
         },
         searchQuery() {
@@ -311,16 +334,31 @@ export default {
         },
     },
     beforeUnmount() {
+        if (this._toggleOrbitHandler) {
+            GlobalEmitter.off("toggle-orbit", this._toggleOrbitHandler);
+        }
+        this.stopOrbit();
         clearInterval(this.reloadInterval);
         if (this.network) {
             this.network.destroy();
         }
+        // Clear icon cache to free memory
+        for (const key in this.iconCache) {
+            delete this.iconCache[key];
+        }
+        this.iconCache = {};
     },
     mounted() {
         const isMobile = window.innerWidth < 640;
         if (isMobile) {
             this.isShowingControls = false;
         }
+
+        this._toggleOrbitHandler = () => {
+            this.enableOrbit = !this.enableOrbit;
+        };
+        GlobalEmitter.on("toggle-orbit", this._toggleOrbitHandler);
+
         this.init();
     },
     methods: {
@@ -401,16 +439,22 @@ export default {
                 return this.iconCache[cacheKey];
             }
 
+            // Limit cache size to 500 icons (approx 15-20MB max)
+            const cacheKeys = Object.keys(this.iconCache);
+            if (cacheKeys.length >= 500) {
+                // simple FIFO eviction
+                delete this.iconCache[cacheKeys[0]];
+            }
+
             return new Promise((resolve) => {
                 const canvas = document.createElement("canvas");
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext("2d");
 
-                // draw background circle
+                // draw background circle with subtle gradient
                 const gradient = ctx.createLinearGradient(0, 0, 0, size);
                 gradient.addColorStop(0, backgroundColor);
-                // slightly darken the bottom for depth
                 gradient.addColorStop(1, backgroundColor);
 
                 ctx.fillStyle = gradient;
@@ -418,8 +462,31 @@ export default {
                 ctx.arc(size / 2, size / 2, size / 2 - 2, 0, 2 * Math.PI);
                 ctx.fill();
 
+                // Add subtle inner shadow for depth
+                const innerShadow = ctx.createRadialGradient(
+                    size / 2,
+                    size / 2,
+                    size / 2 - 10,
+                    size / 2,
+                    size / 2,
+                    size / 2
+                );
+                innerShadow.addColorStop(0, "rgba(0,0,0,0)");
+                innerShadow.addColorStop(1, "rgba(0,0,0,0.15)");
+                ctx.fillStyle = innerShadow;
+                ctx.fill();
+
+                // Add a glass highlight on top
+                const highlight = ctx.createLinearGradient(0, 0, 0, size);
+                highlight.addColorStop(0, "rgba(255,255,255,0.25)");
+                highlight.addColorStop(0.5, "rgba(255,255,255,0)");
+                ctx.fillStyle = highlight;
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size / 2 - 4, 0, 2 * Math.PI);
+                ctx.fill();
+
                 // stroke
-                ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                ctx.strokeStyle = "rgba(255,255,255,0.2)";
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
@@ -429,7 +496,20 @@ export default {
                 const svgBlob = new Blob([iconSvg], { type: "image/svg+xml" });
                 const url = URL.createObjectURL(svgBlob);
                 img.onload = () => {
-                    ctx.drawImage(img, size * 0.25, size * 0.25, size * 0.5, size * 0.5);
+                    // Draw a subtle shadow for the icon itself
+                    ctx.shadowColor = "rgba(0,0,0,0.2)";
+                    ctx.shadowBlur = 4;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 2;
+
+                    ctx.drawImage(img, size * 0.22, size * 0.22, size * 0.56, size * 0.56);
+
+                    // Reset shadow for next operations
+                    ctx.shadowColor = "transparent";
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+
                     URL.revokeObjectURL(url);
                     const dataUrl = canvas.toDataURL();
                     this.iconCache[cacheKey] = dataUrl;
@@ -457,6 +537,80 @@ export default {
             const iconPath = mdi[mdiIconName] || mdi["mdiAccountOutline"];
 
             return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${foregroundColor}" d="${iconPath}"/></svg>`;
+        },
+        startOrbit() {
+            if (!this.network) return;
+            this.stopOrbit();
+
+            // Disable physics while orbiting
+            this.network.setOptions({ physics: { enabled: false } });
+
+            // Hide edges
+            const edges = this.edges.get();
+            const updatedEdges = edges.map((edge) => ({ id: edge.id, hidden: true }));
+            this.edges.update(updatedEdges);
+
+            // Get current positions of nodes to start orbit from where they are
+            const nodeIds = this.nodes.getIds();
+            const positions = this.network.getPositions(nodeIds);
+            const mePos = positions["me"] || { x: 0, y: 0 };
+
+            this._orbitNodes = nodeIds
+                .filter((id) => id !== "me")
+                .map((id) => {
+                    const pos = positions[id] || {
+                        x: Math.random() * 1000 - 500,
+                        y: Math.random() * 1000 - 500,
+                    };
+                    const dx = pos.x - mePos.x;
+                    const dy = pos.y - mePos.y;
+                    const radius = Math.sqrt(dx * dx + dy * dy) || Math.random() * 500 + 100;
+                    return {
+                        id: id,
+                        radius: radius,
+                        angle: Math.atan2(dy, dx),
+                        // Random speed based on radius - further nodes move slower usually, but let's make it more dynamic
+                        speed: (0.002 + Math.random() * 0.005) * (Math.random() > 0.5 ? 1 : -1),
+                    };
+                });
+
+            const animate = () => {
+                if (!this.enableOrbit) return;
+
+                // Get current position of 'me' node in case it was dragged
+                const positions = this.network.getPositions(["me"]);
+                const mePos = positions["me"] || { x: 0, y: 0 };
+
+                const updates = this._orbitNodes.map((data) => {
+                    data.angle += data.speed;
+                    return {
+                        id: data.id,
+                        x: mePos.x + Math.cos(data.angle) * data.radius,
+                        y: mePos.y + Math.sin(data.angle) * data.radius,
+                    };
+                });
+
+                this.nodes.update(updates);
+                this.orbitAnimationFrame = requestAnimationFrame(animate);
+            };
+
+            this.orbitAnimationFrame = requestAnimationFrame(animate);
+        },
+        stopOrbit() {
+            if (this.orbitAnimationFrame) {
+                cancelAnimationFrame(this.orbitAnimationFrame);
+                this.orbitAnimationFrame = null;
+            }
+
+            // Restore edges visibility
+            const edges = this.edges.get();
+            const updatedEdges = edges.map((edge) => ({ id: edge.id, hidden: false }));
+            this.edges.update(updatedEdges);
+
+            // Re-enable physics if it was enabled
+            if (this.network) {
+                this.network.setOptions({ physics: { enabled: this.enablePhysics } });
+            }
         },
         async init() {
             const container = document.getElementById("network");
@@ -496,15 +650,19 @@ export default {
                         },
                     },
                     nodes: {
-                        borderWidth: 2,
-                        borderWidthSelected: 4,
+                        borderWidth: 3,
+                        borderWidthSelected: 6,
                         font: {
                             face: "Inter, system-ui, sans-serif",
                             strokeWidth: 4,
                             strokeColor: isDarkMode ? "rgba(9, 9, 11, 0.95)" : "rgba(255, 255, 255, 0.95)",
                         },
                         shadow: {
-                            enabled: false,
+                            enabled: true,
+                            color: "rgba(0,0,0,0.24)",
+                            size: 10,
+                            x: 0,
+                            y: 4,
                         },
                     },
                     edges: {
@@ -512,8 +670,9 @@ export default {
                             type: "continuous",
                             roundness: 0.5,
                         },
-                        selectionWidth: 4,
-                        hoverWidth: 3,
+                        selectionWidth: 3,
+                        hoverWidth: 2,
+                        opacity: 0.6,
                     },
                 }
             );
@@ -566,23 +725,21 @@ export default {
         },
         async update() {
             this.loadingStatus = "Fetching basic info...";
-            await this.getConfig();
-            await this.getInterfaceStats();
-            await this.getConversations();
+            this.currentBatch = 0;
+            this.totalBatches = 0;
 
-            this.loadingStatus = "Fetching network table...";
-            await this.getPathTableBatch();
+            await Promise.all([this.getConfig(), this.getInterfaceStats(), this.getConversations()]);
 
-            this.loadingStatus = "Fetching node data...";
-            await this.getAnnouncesBatch();
+            this.loadingStatus = "Fetching network data...";
+            await Promise.all([this.getPathTableBatch(), this.getAnnouncesBatch()]);
 
             await this.processVisualization();
         },
         async processVisualization() {
             this.loadingStatus = "Processing visualization...";
 
-            const newNodes = [];
-            const newEdges = [];
+            const processedNodeIds = new Set();
+            const processedEdgeIds = new Set();
 
             const isDarkMode = document.documentElement.classList.contains("dark");
             const fontColor = isDarkMode ? "#ffffff" : "#000000";
@@ -594,7 +751,7 @@ export default {
             // Add me
             const meLabel = this.config?.display_name ?? "Local Node";
             if (matchesSearch(meLabel) || matchesSearch(this.config?.identity_hash)) {
-                newNodes.push({
+                const meNode = {
                     id: "me",
                     group: "me",
                     size: 50,
@@ -602,12 +759,16 @@ export default {
                     image: this.reticulumLogoPath,
                     label: meLabel,
                     title: `Local Node: ${meLabel}\nIdentity: ${this.config?.identity_hash ?? "Unknown"}`,
-                    color: { border: "#3b82f6", background: isDarkMode ? "#1e3a8a" : "#dbeafe" },
+                    color: { border: "#3b82f6", background: isDarkMode ? "#1e40af" : "#eff6ff" },
                     font: { color: fontColor, size: 16, bold: true },
-                });
+                };
+                this.nodes.update([meNode]);
+                processedNodeIds.add("me");
             }
 
             // Add interfaces
+            const interfaceNodes = [];
+            const interfaceEdges = [];
             for (const entry of this.interfaces) {
                 let label = entry.interface_name ?? entry.name;
                 if (entry.type === "LocalServerInterface" || entry.parent_interface_name != null) {
@@ -615,7 +776,7 @@ export default {
                 }
 
                 if (matchesSearch(label) || matchesSearch(entry.name)) {
-                    newNodes.push({
+                    interfaceNodes.push({
                         id: entry.name,
                         group: "interface",
                         label: label,
@@ -625,21 +786,30 @@ export default {
                         image: entry.status
                             ? "/assets/images/network-visualiser/interface_connected.png"
                             : "/assets/images/network-visualiser/interface_disconnected.png",
-                        color: { border: entry.status ? "#10b981" : "#ef4444" },
-                        font: { color: fontColor, size: 12 },
+                        color: {
+                            border: entry.status ? "#10b981" : "#ef4444",
+                            background: isDarkMode ? "#064e3b" : "#ecfdf5",
+                        },
+                        font: { color: fontColor, size: 12, bold: true },
                     });
+                    processedNodeIds.add(entry.name);
 
-                    newEdges.push({
-                        id: `me~${entry.name}`,
+                    const edgeId = `me~${entry.name}`;
+                    interfaceEdges.push({
+                        id: edgeId,
                         from: "me",
                         to: entry.name,
                         color: entry.status ? (isDarkMode ? "#065f46" : "#10b981") : isDarkMode ? "#7f1d1d" : "#ef4444",
                         width: 3,
                         length: 200,
                         arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+                        hidden: this.enableOrbit,
                     });
+                    processedEdgeIds.add(edgeId);
                 }
             }
+            if (interfaceNodes.length > 0) this.nodes.update(interfaceNodes);
+            if (interfaceEdges.length > 0) this.edges.update(interfaceEdges);
 
             // Process path table in batches to prevent UI block
             this.totalNodesToLoad = this.pathTable.length;
@@ -647,10 +817,16 @@ export default {
 
             const aspectsToShow = ["lxmf.delivery", "nomadnetwork.node"];
 
-            // Process in chunks of 50
-            const chunkSize = 50;
+            // Process in chunks of 25 for smooth visual updates
+            const chunkSize = 25;
+            this.totalBatches = Math.ceil(this.pathTable.length / chunkSize);
+            this.currentBatch = 0;
+
             for (let i = 0; i < this.pathTable.length; i += chunkSize) {
+                this.currentBatch++;
                 const chunk = this.pathTable.slice(i, i + chunkSize);
+                const batchNodes = [];
+                const batchEdges = [];
 
                 for (const entry of chunk) {
                     this.loadedNodesCount++;
@@ -697,19 +873,42 @@ export default {
                                     ? "/assets/images/network-visualiser/user_1hop.png"
                                     : "/assets/images/network-visualiser/user.png";
                         }
-                        node.color = { border: entry.hops === 1 ? "#10b981" : "#3b82f6" };
+                        node.color = {
+                            border: entry.hops === 1 ? "#10b981" : "#3b82f6",
+                            background:
+                                entry.hops === 1
+                                    ? isDarkMode
+                                        ? "#064e3b"
+                                        : "#ecfdf5"
+                                    : isDarkMode
+                                      ? "#1e40af"
+                                      : "#eff6ff",
+                        };
                     } else if (announce.aspect === "nomadnetwork.node") {
                         node.shape = "circularImage";
                         node.image =
                             entry.hops === 1
                                 ? "/assets/images/network-visualiser/server_1hop.png"
                                 : "/assets/images/network-visualiser/server.png";
-                        node.color = { border: entry.hops === 1 ? "#10b981" : "#8b5cf6" };
+                        node.color = {
+                            border: entry.hops === 1 ? "#10b981" : "#8b5cf6",
+                            background:
+                                entry.hops === 1
+                                    ? isDarkMode
+                                        ? "#064e3b"
+                                        : "#ecfdf5"
+                                    : isDarkMode
+                                      ? "#4c1d95"
+                                      : "#f5f3ff",
+                        };
                     }
 
-                    newNodes.push(node);
-                    newEdges.push({
-                        id: `${entry.interface}~${entry.hash}`,
+                    batchNodes.push(node);
+                    processedNodeIds.add(node.id);
+
+                    const edgeId = `${entry.interface}~${entry.hash}`;
+                    batchEdges.push({
+                        id: edgeId,
                         from: entry.interface,
                         to: entry.hash,
                         color:
@@ -723,44 +922,41 @@ export default {
                         width: entry.hops === 1 ? 2 : 1,
                         dashes: entry.hops > 1,
                         opacity: entry.hops === 1 ? 1 : 0.5,
+                        hidden: this.enableOrbit,
                     });
+                    processedEdgeIds.add(edgeId);
                 }
 
-                // Allow UI to breathe
-                if (i % 100 === 0) {
-                    this.loadingStatus = `Processing Visualization (${this.loadedNodesCount} / ${this.totalNodesToLoad})...`;
-                    await new Promise((r) => setTimeout(r, 0));
+                // Update DataSet incrementally
+                if (batchNodes.length > 0) this.nodes.update(batchNodes);
+                if (batchEdges.length > 0) this.edges.update(batchEdges);
+
+                // Allow UI to breathe and show progress
+                this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
+                // Faster batching: only delay if there's many nodes, and use a shorter delay
+                if (this.pathTable.length > 100) {
+                    await new Promise((r) => setTimeout(r, 10));
+                } else {
+                    // Small networks update instantly
+                    await this.$nextTick();
                 }
             }
 
-            this.processNewNodes(newNodes);
-            this.processNewEdges(newEdges);
+            // Cleanup: remove nodes/edges that are no longer in the network
+            const nodesToRemove = this.nodes.getIds().filter((id) => !processedNodeIds.has(id));
+            if (nodesToRemove.length > 0) this.nodes.remove(nodesToRemove);
+
+            const edgesToRemove = this.edges.getIds().filter((id) => !processedEdgeIds.has(id));
+            if (edgesToRemove.length > 0) this.edges.remove(edgesToRemove);
+
             this.totalNodesToLoad = 0;
             this.loadedNodesCount = 0;
-        },
-        processNewNodes(newNodes) {
-            const oldNodeIds = this.nodes.getIds();
-            const newNodeIds = newNodes.map((n) => n.id);
-            const newNodeIdsSet = new Set(newNodeIds);
+            this.currentBatch = 0;
+            this.totalBatches = 0;
 
-            // remove old
-            const toRemove = oldNodeIds.filter((id) => !newNodeIdsSet.has(id));
-            if (toRemove.length > 0) this.nodes.remove(toRemove);
-
-            // update/add
-            this.nodes.update(newNodes);
-        },
-        processNewEdges(newEdges) {
-            const oldEdgeIds = this.edges.getIds();
-            const newEdgeIds = newEdges.map((e) => e.id);
-            const newEdgeIdsSet = new Set(newEdgeIds);
-
-            // remove old
-            const toRemove = oldEdgeIds.filter((id) => !newEdgeIdsSet.has(id));
-            if (toRemove.length > 0) this.edges.remove(toRemove);
-
-            // update/add
-            this.edges.update(newEdges);
+            if (this.enableOrbit) {
+                this.startOrbit();
+            }
         },
     },
 };

@@ -15,6 +15,14 @@
                 </h1>
             </div>
             <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    class="secondary-chip !py-1 !px-3 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+                    @click="resetAll"
+                >
+                    <MaterialDesignIcon icon-name="refresh" class="w-3.5 h-3.5" />
+                    <span class="hidden sm:inline">{{ $t("tools.micron_editor.reset") }}</span>
+                </button>
                 <button type="button" class="secondary-chip !py-1 !px-3" @click="downloadFile">
                     <MaterialDesignIcon icon-name="download" class="w-3.5 h-3.5" />
                     <span class="hidden sm:inline">{{ $t("tools.micron_editor.download") }}</span>
@@ -26,9 +34,51 @@
             </div>
         </div>
 
+        <!-- Tab Bar -->
+        <div
+            class="flex items-center px-4 py-1 gap-1 border-b border-gray-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 overflow-x-auto scrollbar-hide shrink-0"
+        >
+            <div
+                v-for="(tab, index) in tabs"
+                :key="tab.id"
+                class="group flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
+                :class="[
+                    activeTabIndex === index
+                        ? 'bg-white dark:bg-zinc-800 text-teal-600 dark:text-teal-400 shadow-sm'
+                        : 'text-gray-500 hover:bg-white/50 dark:hover:bg-zinc-800/50 hover:text-gray-700 dark:hover:text-zinc-300',
+                ]"
+                @click="activeTabIndex = index"
+            >
+                <span v-if="editingTabIndex !== index" @dblclick="startEditingTab(index)">{{ tab.name }}</span>
+                <input
+                    v-else
+                    ref="tabInput"
+                    v-model="editingTabName"
+                    class="bg-transparent border-none focus:ring-0 w-20 p-0 text-inherit"
+                    @blur="finishEditingTab"
+                    @keyup.enter="finishEditingTab"
+                    @click.stop
+                />
+                <button
+                    v-if="tabs.length > 1"
+                    class="ml-2 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity"
+                    @click.stop="removeTab(index)"
+                >
+                    <MaterialDesignIcon icon-name="close" class="size-3" />
+                </button>
+            </div>
+            <button
+                class="flex items-center justify-center size-8 text-gray-400 hover:text-teal-500 transition-colors"
+                @click="addTab"
+            >
+                <MaterialDesignIcon icon-name="plus" class="size-4" />
+            </button>
+        </div>
+
         <div class="flex-1 flex overflow-hidden">
             <!-- Editor Pane -->
             <div
+                v-if="tabs.length > 0"
                 :class="[
                     'flex-1 overflow-hidden flex flex-col',
                     isMobileView && !showEditor ? 'hidden' : '',
@@ -37,7 +87,7 @@
             >
                 <textarea
                     ref="editorRef"
-                    v-model="content"
+                    v-model="tabs[activeTabIndex].content"
                     class="flex-1 w-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-sm resize-none focus:outline-none"
                     :placeholder="$t('tools.micron_editor.placeholder')"
                     @input="handleInput"
@@ -66,6 +116,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MicronParser from "micron-parser";
+import { micronStorage } from "../../js/MicronStorage";
 
 export default {
     name: "MicronEditorPage",
@@ -74,18 +125,26 @@ export default {
     },
     data() {
         return {
-            content: "",
+            tabs: [],
+            activeTabIndex: 0,
             renderedContent: "",
             showEditor: true,
             isMobileView: false,
             storageKey: "micron_editor_content",
+            editingTabIndex: -1,
+            editingTabName: "",
         };
     },
-    mounted() {
-        this.loadContent();
+    watch: {
+        activeTabIndex() {
+            this.renderActiveTab();
+        },
+    },
+    async mounted() {
+        await this.loadContent();
         this.handleResize();
         window.addEventListener("resize", this.handleResize);
-        this.handleInput();
+        this.renderActiveTab();
     },
     beforeUnmount() {
         window.removeEventListener("resize", this.handleResize);
@@ -98,38 +157,112 @@ export default {
             }
         },
         handleInput() {
+            this.renderActiveTab();
+            this.saveContent();
+        },
+        renderActiveTab() {
+            if (this.tabs.length === 0 || !this.tabs[this.activeTabIndex]) {
+                this.renderedContent = "";
+                return;
+            }
             try {
-                // Always use dark mode for parser since preview pane is now always dark
-                // to match the NomadNet browser's classic appearance.
                 const parser = new MicronParser(true);
-                this.renderedContent = parser.convertMicronToHtml(this.content);
+                this.renderedContent = parser.convertMicronToHtml(this.tabs[this.activeTabIndex].content);
             } catch (error) {
                 console.error("Error rendering micron:", error);
                 this.renderedContent = `<p style="color: red;">Error rendering: ${error.message}</p>`;
             }
-            this.saveContent();
         },
         toggleView() {
             this.showEditor = !this.showEditor;
         },
-        saveContent() {
+        async saveContent() {
             try {
-                localStorage.setItem(this.storageKey, this.content);
+                await micronStorage.saveTabs(this.tabs);
             } catch (error) {
-                console.warn("Failed to save content to localStorage:", error);
+                console.warn("Failed to save content to IndexedDB:", error);
             }
         },
-        loadContent() {
+        async loadContent() {
             try {
-                const saved = localStorage.getItem(this.storageKey);
-                if (saved) {
-                    this.content = saved;
+                const savedTabs = await micronStorage.loadTabs();
+                if (savedTabs && savedTabs.length > 0) {
+                    this.tabs = savedTabs;
                 } else {
-                    this.content = this.getDefaultContent();
+                    // Try to migrate from localStorage
+                    const oldContent = localStorage.getItem(this.storageKey);
+                    if (oldContent) {
+                        this.tabs = [
+                            {
+                                id: Date.now(),
+                                name: this.$t("tools.micron_editor.main_tab"),
+                                content: oldContent,
+                            },
+                        ];
+                        localStorage.removeItem(this.storageKey);
+                        await micronStorage.saveTabs(this.tabs);
+                    } else {
+                        this.tabs = [this.createDefaultTab()];
+                        await micronStorage.saveTabs(this.tabs);
+                    }
                 }
             } catch (error) {
-                console.warn("Failed to load content from localStorage:", error);
-                this.content = this.getDefaultContent();
+                console.warn("Failed to load content from IndexedDB:", error);
+                this.tabs = [this.createDefaultTab()];
+            }
+            this.activeTabIndex = 0;
+        },
+        createDefaultTab() {
+            return {
+                id: Date.now(),
+                name: this.$t("tools.micron_editor.main_tab"),
+                content: this.getDefaultContent(),
+            };
+        },
+        addTab() {
+            const newTab = {
+                id: Date.now(),
+                name: `${this.$t("tools.micron_editor.new_tab")} ${this.tabs.length + 1}`,
+                content: "",
+            };
+            this.tabs.push(newTab);
+            this.activeTabIndex = this.tabs.length - 1;
+            this.saveContent();
+        },
+        removeTab(index) {
+            if (confirm(this.$t("tools.micron_editor.confirm_delete_tab"))) {
+                this.tabs.splice(index, 1);
+                if (this.activeTabIndex >= this.tabs.length) {
+                    this.activeTabIndex = Math.max(0, this.tabs.length - 1);
+                }
+                this.saveContent();
+            }
+        },
+        startEditingTab(index) {
+            this.editingTabIndex = index;
+            this.editingTabName = this.tabs[index].name;
+            this.$nextTick(() => {
+                if (this.$refs.tabInput && this.$refs.tabInput[0]) {
+                    this.$refs.tabInput[0].focus();
+                }
+            });
+        },
+        finishEditingTab() {
+            if (this.editingTabIndex !== -1) {
+                if (this.editingTabName.trim()) {
+                    this.tabs[this.editingTabIndex].name = this.editingTabName.trim();
+                }
+                this.editingTabIndex = -1;
+                this.saveContent();
+            }
+        },
+        async resetAll() {
+            if (confirm(this.$t("tools.micron_editor.confirm_reset"))) {
+                await micronStorage.clearAll();
+                this.tabs = [this.createDefaultTab()];
+                this.activeTabIndex = 0;
+                this.renderActiveTab();
+                await this.saveContent();
             }
         },
         getDefaultContent() {
@@ -190,11 +323,12 @@ ${b}=
 `;
         },
         downloadFile() {
-            const blob = new Blob([this.content], { type: "text/plain" });
+            const content = this.tabs[this.activeTabIndex].content;
+            const blob = new Blob([content], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "micron.mu";
+            a.download = `${this.tabs[this.activeTabIndex].name.replace(/\s+/g, "_")}.mu`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -229,5 +363,13 @@ ${b}=
 
 :deep(a:hover) {
     text-decoration: underline;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>

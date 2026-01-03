@@ -253,12 +253,14 @@ export default {
             }
         },
         async switchIdentity(identity) {
+            if (identity.is_current) return;
+
             if (!(await DialogUtils.confirm(this.$t("identities.switch_confirm", { name: identity.display_name })))) {
                 return;
             }
 
             try {
-                this.isCreating = true; // Use isCreating as a general loading state for now
+                this.isCreating = true;
                 GlobalEmitter.emit("identity-switching-start");
 
                 const response = await window.axios.post("/api/v1/identities/switch", {
@@ -266,22 +268,23 @@ export default {
                 });
 
                 if (response.data.hotswapped) {
-                    // ToastUtils.success(this.$t("identities.switched")); // Removed as App.vue handles this now
-                    // The App.vue will handle the event and we will refresh via GlobalEmitter
+                    // Success is handled by GlobalEmitter "identity-switched" which we listen to
+                    ToastUtils.success(this.$t("identities.switched") || "Identity switched successfully");
                 } else {
-                    ToastUtils.success("Switch scheduled. Reloading...");
+                    ToastUtils.info("Switch scheduled. Reloading application...");
                     setTimeout(() => {
                         window.location.reload();
                     }, 2000);
                 }
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to switch identity");
+                const errorMsg = e.response?.data?.message || "Failed to switch identity";
+                ToastUtils.error(errorMsg);
                 this.isCreating = false;
-                // Important: hide the global overlay if there was an error
-                // We'll emit an event for this or just hide it here if we had access,
-                // but since it's global, let's just refresh the whole state.
-                window.location.reload();
+
+                // If it was a partial failure, we might need to reload anyway to be safe,
+                // but let's try to stay on the page if hotswap just failed.
+                GlobalEmitter.emit("identity-switched"); // To clear any global loading overlays
             }
         },
         async deleteIdentity(identity) {

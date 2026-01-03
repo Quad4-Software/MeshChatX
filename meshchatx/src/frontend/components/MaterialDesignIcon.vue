@@ -5,7 +5,8 @@
         role="img"
         :aria-label="iconName"
         fill="currentColor"
-        style="display: inline-block; vertical-align: middle"
+        style="display: inline-block; vertical-align: middle; shape-rendering: inherit"
+        class="antialiased"
     >
         <path :d="iconPath" />
     </svg>

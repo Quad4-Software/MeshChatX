@@ -218,6 +218,11 @@ export default {
                     name: "call",
                     query: { tab: "history" },
                 });
+            } else if (notification.type === "telephone_voicemail") {
+                this.$router.push({
+                    name: "call",
+                    query: { tab: "voicemail" },
+                });
             }
         },
         formatTimeAgo(datetimeString) {

@@ -106,6 +106,117 @@
 
                 <!-- settings grid -->
                 <div class="columns-1 lg:columns-2 gap-4 space-y-4">
+                    <!-- Banishment -->
+                    <section class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Visuals</div>
+                                <h2>{{ $t("app.banishment") }}</h2>
+                                <p>{{ $t("app.banishment_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="banished-effect-enabled"
+                                    v-model="config.banished_effect_enabled"
+                                    @update:model-value="onBanishedEffectEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.banished_effect_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.banished_effect_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <div v-if="config.banished_effect_enabled" class="space-y-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.banished_text_label") }}
+                                    </div>
+                                    <input
+                                        v-model="config.banished_text"
+                                        type="text"
+                                        class="input-field"
+                                        @input="onBanishedConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.banished_text_description") }}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.banished_color_label") }}
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input
+                                            v-model="config.banished_color"
+                                            type="color"
+                                            class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                            @input="onBanishedConfigChange"
+                                        />
+                                        <input
+                                            v-model="config.banished_color"
+                                            type="text"
+                                            class="input-field monospace-field"
+                                            @input="onBanishedConfigChange"
+                                        />
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.banished_color_description") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Desktop / Electron Settings -->
+                    <section v-if="ElectronUtils.isElectron()" class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Desktop</div>
+                                <h2>App Behaviour</h2>
+                                <p>Control how MeshChat behaves on your desktop.</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="desktop-open-calls-in-separate-window"
+                                    v-model="config.desktop_open_calls_in_separate_window"
+                                    @update:model-value="onDesktopOpenCallsInSeparateWindowChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.desktop_open_calls_in_separate_window")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.desktop_open_calls_in_separate_window_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="desktop-hardware-acceleration-enabled"
+                                    v-model="config.desktop_hardware_acceleration_enabled"
+                                    @update:model-value="onDesktopHardwareAccelerationEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.desktop_hardware_acceleration_enabled")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.desktop_hardware_acceleration_enabled_description")
+                                    }}</span>
+                                    <span class="setting-toggle__hint">{{ $t("app.requires_restart") }}</span>
+                                </span>
+                            </label>
+                        </div>
+                    </section>
+
                     <!-- Page Archiver -->
                     <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
@@ -397,6 +508,48 @@
                         </div>
                     </section>
 
+                    <!-- Translator -->
+                    <section class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">i18n</div>
+                                <h2>{{ $t("app.translator") }}</h2>
+                                <p>{{ $t("translator.description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="translator-enabled"
+                                    v-model="config.translator_enabled"
+                                    @update:model-value="onTranslatorEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.translator_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.translator_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <div v-if="config.translator_enabled" class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.libretranslate_url") }}
+                                </div>
+                                <input
+                                    v-model="config.libretranslate_url"
+                                    type="text"
+                                    placeholder="http://localhost:5000"
+                                    class="input-field"
+                                    @input="onTranslatorConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.libretranslate_url_description") }}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Messages -->
                     <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
@@ -654,6 +807,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
+import ElectronUtils from "../../js/ElectronUtils";
 
 export default {
     name: "SettingsPage",
@@ -664,6 +818,7 @@ export default {
     },
     data() {
         return {
+            ElectronUtils,
             KeyboardShortcuts,
             config: {
                 auto_resend_failed_messages_when_announce_received: null,
@@ -673,6 +828,9 @@ export default {
                 lxmf_local_propagation_node_enabled: null,
                 lxmf_preferred_propagation_node_destination_hash: null,
                 archives_max_storage_gb: 1,
+                banished_effect_enabled: true,
+                banished_text: "BANISHED",
+                banished_color: "#dc2626",
             },
             saveTimeouts: {},
             shortcuts: [],
@@ -903,6 +1061,27 @@ export default {
                 );
             }, 1000);
         },
+        async onBanishedEffectEnabledChange(value) {
+            this.config.banished_effect_enabled = value;
+            await this.updateConfig(
+                {
+                    banished_effect_enabled: value,
+                },
+                "banishment"
+            );
+        },
+        async onBanishedConfigChange() {
+            if (this.saveTimeouts.banished) clearTimeout(this.saveTimeouts.banished);
+            this.saveTimeouts.banished = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        banished_text: this.config.banished_text,
+                        banished_color: this.config.banished_color,
+                    },
+                    "banishment"
+                );
+            }, 1000);
+        },
         async onCrawlerEnabledChange(value) {
             await this.updateConfig(
                 {
@@ -924,6 +1103,24 @@ export default {
                 );
             }, 1000);
         },
+        async onDesktopOpenCallsInSeparateWindowChange(value) {
+            this.config.desktop_open_calls_in_separate_window = value;
+            await this.updateConfig(
+                {
+                    desktop_open_calls_in_separate_window: value,
+                },
+                "desktop_open_calls_in_separate_window"
+            );
+        },
+        async onDesktopHardwareAccelerationEnabledChange(value) {
+            this.config.desktop_hardware_acceleration_enabled = value;
+            await this.updateConfig(
+                {
+                    desktop_hardware_acceleration_enabled: value,
+                },
+                "desktop_hardware_acceleration_enabled"
+            );
+        },
         async onAuthEnabledChange(value) {
             await this.updateConfig(
                 {
@@ -937,6 +1134,26 @@ export default {
                 // or just to auth page in general
                 this.$router.push({ name: "auth" });
             }
+        },
+        async onTranslatorEnabledChange(value) {
+            this.config.translator_enabled = value;
+            await this.updateConfig(
+                {
+                    translator_enabled: value,
+                },
+                "translator"
+            );
+        },
+        async onTranslatorConfigChange() {
+            if (this.saveTimeouts.translator) clearTimeout(this.saveTimeouts.translator);
+            this.saveTimeouts.translator = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        libretranslate_url: this.config.libretranslate_url,
+                    },
+                    "translator"
+                );
+            }, 1000);
         },
         async flushArchivedPages() {
             if (

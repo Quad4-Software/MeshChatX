@@ -2,14 +2,14 @@
     <DropDownMenu>
         <template #button>
             <IconButton>
-                <MaterialDesignIcon icon-name="dots-vertical" class="size-5" />
+                <MaterialDesignIcon icon-name="dots-vertical" class="size-6" />
             </IconButton>
         </template>
         <template #items>
-            <!-- call button -->
-            <DropDownMenuItem @click="onStartCall">
-                <MaterialDesignIcon icon-name="phone" class="w-4 h-4" />
-                <span>Start a Call</span>
+            <!-- popout button -->
+            <DropDownMenuItem @click="$emit('popout')">
+                <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
+                <span>Popout Chat</span>
             </DropDownMenuItem>
 
             <!-- ping button -->
@@ -53,6 +53,8 @@ import DropDownMenuItem from "../DropDownMenuItem.vue";
 import IconButton from "../IconButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
+import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 export default {
     name: "ConversationDropDownMenu",
@@ -68,41 +70,16 @@ export default {
             required: true,
         },
     },
-    emits: ["conversation-deleted", "set-custom-display-name", "block-status-changed"],
-    data() {
-        return {
-            isBlocked: false,
-            blockedDestinations: [],
-        };
-    },
-    watch: {
-        peer: {
-            handler() {
-                this.checkIfBlocked();
-            },
-            immediate: true,
+    emits: ["conversation-deleted", "set-custom-display-name", "block-status-changed", "popout"],
+    computed: {
+        isBlocked() {
+            if (!this.peer) {
+                return false;
+            }
+            return GlobalState.blockedDestinations.some((b) => b.destination_hash === this.peer.destination_hash);
         },
-    },
-    async mounted() {
-        await this.loadBlockedDestinations();
     },
     methods: {
-        async loadBlockedDestinations() {
-            try {
-                const response = await window.axios.get("/api/v1/blocked-destinations");
-                this.blockedDestinations = response.data.blocked_destinations || [];
-                this.checkIfBlocked();
-            } catch (e) {
-                console.log(e);
-            }
-        },
-        checkIfBlocked() {
-            if (!this.peer) {
-                this.isBlocked = false;
-                return;
-            }
-            this.isBlocked = this.blockedDestinations.some((b) => b.destination_hash === this.peer.destination_hash);
-        },
         async onBlockDestination() {
             if (
                 !(await DialogUtils.confirm(
@@ -116,7 +93,7 @@ export default {
                 await window.axios.post("/api/v1/blocked-destinations", {
                     destination_hash: this.peer.destination_hash,
                 });
-                await this.loadBlockedDestinations();
+                GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert("User blocked successfully");
                 this.$emit("block-status-changed");
             } catch (e) {
@@ -127,7 +104,7 @@ export default {
         async onUnblockDestination() {
             try {
                 await window.axios.delete(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
-                await this.loadBlockedDestinations();
+                GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert("User unblocked successfully");
                 this.$emit("block-status-changed");
             } catch (e) {
@@ -158,14 +135,6 @@ export default {
         },
         async onSetCustomDisplayName() {
             this.$emit("set-custom-display-name");
-        },
-        async onStartCall() {
-            try {
-                await window.axios.get(`/api/v1/telephone/call/${this.peer.destination_hash}`);
-            } catch (e) {
-                const message = e.response?.data?.message ?? "Failed to start call";
-                DialogUtils.alert(message);
-            }
         },
         async onPingDestination() {
             if (!this.peer || !this.peer.destination_hash) {

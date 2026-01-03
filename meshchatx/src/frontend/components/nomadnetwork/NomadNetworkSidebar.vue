@@ -35,7 +35,7 @@
                     <div
                         v-for="favourite of searchedFavourites"
                         :key="favourite.destination_hash"
-                        class="favourite-card"
+                        class="favourite-card relative"
                         :class="[
                             favourite.destination_hash === selectedDestinationHash ? 'favourite-card--active' : '',
                             draggingFavouriteHash === favourite.destination_hash ? 'favourite-card--dragging' : '',
@@ -47,6 +47,19 @@
                         @drop.prevent="onFavouriteDrop($event, favourite)"
                         @dragend="onFavouriteDragEnd"
                     >
+                        <!-- banished overlay -->
+                        <div
+                            v-if="GlobalState.config.banished_effect_enabled && isBlocked(favourite.destination_hash)"
+                            class="banished-overlay"
+                            :style="{ background: GlobalState.config.banished_color + '33' }"
+                        >
+                            <span
+                                class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                :style="{ 'background-color': GlobalState.config.banished_color }"
+                                >{{ GlobalState.config.banished_text }}</span
+                            >
+                        </div>
+
                         <div class="favourite-card__icon flex-shrink-0">
                             <MaterialDesignIcon icon-name="server-network" class="w-5 h-5" />
                         </div>
@@ -76,6 +89,12 @@
                                     <MaterialDesignIcon icon-name="trash-can" class="w-5 h-5 text-red-500" />
                                     <span class="text-red-500">{{ $t("nomadnet.remove") }}</span>
                                 </DropDownMenuItem>
+                                <div v-if="isBlocked(favourite.destination_hash)" class="border-t">
+                                    <DropDownMenuItem @click.stop="onUnblockNode(favourite.destination_hash)">
+                                        <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
+                                        <span class="text-green-500">Unblock Node</span>
+                                    </DropDownMenuItem>
+                                </div>
                             </template>
                         </DropDownMenu>
                     </div>
@@ -93,20 +112,34 @@
         <div v-else class="flex-1 flex flex-col min-h-0">
             <div class="p-3 border-b border-gray-200 dark:border-zinc-800">
                 <input
-                    v-model="nodesSearchTerm"
+                    :value="nodesSearchTerm"
                     type="text"
-                    :placeholder="$t('nomadnet.search_announces')"
+                    :placeholder="$t('nomadnet.search_placeholder_announces', { count: totalNodesCount })"
                     class="input-field"
+                    @input="onNodesSearchInput"
                 />
             </div>
-            <div class="flex-1 overflow-y-auto px-2 pb-4">
+            <div class="flex-1 overflow-y-auto px-2 pb-4" @scroll="onNodesScroll">
                 <div v-if="searchedNodes.length > 0" class="space-y-2 pt-2">
                     <div
                         v-for="node of searchedNodes"
                         :key="node.destination_hash"
-                        class="announce-card"
+                        class="announce-card relative"
                         :class="{ 'announce-card--active': node.destination_hash === selectedDestinationHash }"
                     >
+                        <!-- banished overlay -->
+                        <div
+                            v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
+                            class="banished-overlay"
+                            :style="{ background: GlobalState.config.banished_color + '33' }"
+                        >
+                            <span
+                                class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                :style="{ 'background-color': GlobalState.config.banished_color }"
+                                >{{ GlobalState.config.banished_text }}</span
+                            >
+                        </div>
+
                         <div class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" @click="onNodeClick(node)">
                             <div class="announce-card__icon flex-shrink-0">
                                 <MaterialDesignIcon icon-name="satellite-uplink" class="w-5 h-5" />
@@ -123,19 +156,28 @@
                                 </div>
                             </div>
                         </div>
-                        <DropDownMenu v-if="!isBlocked(node.identity_hash)">
+                        <DropDownMenu>
                             <template #button>
                                 <IconButton>
                                     <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
                                 </IconButton>
                             </template>
                             <template #items>
-                                <DropDownMenuItem @click.stop="onBlockNode(node)">
+                                <DropDownMenuItem v-if="!isBlocked(node.identity_hash)" @click.stop="onBlockNode(node)">
                                     <MaterialDesignIcon icon-name="block-helper" class="w-5 h-5 text-red-500" />
                                     <span class="text-red-500">{{ $t("nomadnet.block_node") }}</span>
                                 </DropDownMenuItem>
+                                <DropDownMenuItem v-else @click.stop="onUnblockNode(node.identity_hash)">
+                                    <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
+                                    <span class="text-green-500">Unblock Node</span>
+                                </DropDownMenuItem>
                             </template>
                         </DropDownMenu>
+                    </div>
+
+                    <!-- loading more spinner -->
+                    <div v-if="isLoadingMoreNodes" class="p-4 text-center">
+                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
                     </div>
                 </div>
                 <div v-else class="empty-state">
@@ -155,6 +197,8 @@ import DropDownMenu from "../DropDownMenu.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import DialogUtils from "../../js/DialogUtils";
+import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 export default {
     name: "NomadNetworkSidebar",
@@ -172,19 +216,37 @@ export default {
             type: String,
             required: true,
         },
+        nodesSearchTerm: {
+            type: String,
+            default: "",
+        },
+        totalNodesCount: {
+            type: Number,
+            default: 0,
+        },
+        isLoadingMoreNodes: {
+            type: Boolean,
+            default: false,
+        },
+        hasMoreNodes: {
+            type: Boolean,
+            default: false,
+        },
     },
-    emits: ["node-click", "rename-favourite", "remove-favourite"],
+    emits: ["node-click", "rename-favourite", "remove-favourite", "nodes-search-changed", "load-more-nodes"],
     data() {
         return {
+            GlobalState,
             tab: "favourites",
             favouritesSearchTerm: "",
-            nodesSearchTerm: "",
             favouritesOrder: [],
             draggingFavouriteHash: null,
-            blockedDestinations: [],
         };
     },
     computed: {
+        blockedDestinations() {
+            return GlobalState.blockedDestinations;
+        },
         nodesCount() {
             return Object.keys(this.nodes).length;
         },
@@ -234,17 +296,8 @@ export default {
     mounted() {
         this.loadFavouriteOrder();
         this.ensureFavouriteOrder();
-        this.loadBlockedDestinations();
     },
     methods: {
-        async loadBlockedDestinations() {
-            try {
-                const response = await window.axios.get("/api/v1/blocked-destinations");
-                this.blockedDestinations = response.data.blocked_destinations || [];
-            } catch (e) {
-                console.log(e);
-            }
-        },
         isBlocked(identityHash) {
             return this.blockedDestinations.some((b) => b.destination_hash === identityHash);
         },
@@ -257,17 +310,33 @@ export default {
                 await window.axios.post("/api/v1/blocked-destinations", {
                     destination_hash: node.identity_hash,
                 });
-                await this.loadBlockedDestinations();
+                GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert(this.$t("nomadnet.node_blocked_successfully"));
             } catch (e) {
                 DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
                 console.log(e);
             }
         },
+        async onUnblockNode(identityHash) {
+            try {
+                await window.axios.delete(`/api/v1/blocked-destinations/${identityHash}`);
+                GlobalEmitter.emit("block-status-changed");
+                DialogUtils.alert("Node unblocked successfully");
+            } catch (e) {
+                DialogUtils.alert("Failed to unblock node");
+                console.log(e);
+            }
+        },
         onNodeClick(node) {
+            if (this.isBlocked(node.identity_hash || node.destination_hash)) {
+                return;
+            }
             this.$emit("node-click", node);
         },
         onFavouriteClick(favourite) {
+            if (this.isBlocked(favourite.destination_hash)) {
+                return;
+            }
             this.onNodeClick(favourite);
         },
         onRenameFavourite(favourite) {
@@ -343,6 +412,18 @@ export default {
         formatDestinationHash: function (destinationHash) {
             return Utils.formatDestinationHash(destinationHash);
         },
+        onNodesSearchInput(event) {
+            this.$emit("nodes-search-changed", event.target.value);
+        },
+        onNodesScroll(event) {
+            const element = event.target;
+            // if scrolled near bottom (within 200px)
+            if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
+                if (this.hasMoreNodes && !this.isLoadingMoreNodes) {
+                    this.$emit("load-more-nodes");
+                }
+            }
+        },
     },
 };
 </script>
@@ -355,7 +436,7 @@ export default {
     @apply text-blue-600 border-blue-500 dark:text-blue-300 dark:border-blue-400;
 }
 .favourite-card {
-    @apply flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500;
+    @apply flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:z-10;
 }
 .favourite-card--active {
     @apply border-blue-500 dark:border-blue-400 bg-blue-50/60 dark:bg-blue-900/30;
@@ -368,7 +449,7 @@ export default {
     @apply opacity-60 ring-2 ring-blue-300 dark:ring-blue-600;
 }
 .announce-card {
-    @apply flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 hover:border-blue-400 dark:hover:border-blue-500;
+    @apply flex items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 px-3 py-2 hover:border-blue-400 dark:hover:border-blue-500 hover:z-10;
 }
 .announce-card--active {
     @apply border-blue-500 dark:border-blue-400 bg-blue-50/70 dark:bg-blue-900/30;

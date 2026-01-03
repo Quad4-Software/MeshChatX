@@ -37,36 +37,23 @@
                     </div>
                 </div>
                 <div class="divide-y divide-gray-200 dark:text-white">
-                    <div class="flex px-3 py-2 items-center">
+                    <div
+                        v-for="communityIface in communityInterfaces"
+                        :key="communityIface.name"
+                        class="flex px-3 py-2 items-center"
+                    >
                         <div class="my-auto mr-auto">
-                            <div class="font-semibold text-gray-900 dark:text-gray-100">RNS Testnet Amsterdam</div>
+                            <div class="font-semibold text-gray-900 dark:text-gray-100">{{ communityIface.name }}</div>
                             <div class="text-xs text-gray-600 dark:text-gray-300">
-                                amsterdam.connect.reticulum.network:4965
+                                {{ communityIface.target_host }}:{{ communityIface.target_port }}
+                                <span v-if="communityIface.online" class="ml-1 text-green-500 font-bold">Online</span>
+                                <span v-else class="ml-1 text-red-500">Offline</span>
                             </div>
-                        </div>
-                        <div class="ml-2 my-auto">
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-x-2 rounded-full bg-blue-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                @click="
-                                    newInterfaceName = 'RNS Testnet Amsterdam';
-                                    newInterfaceType = 'TCPClientInterface';
-                                    newInterfaceTargetHost = 'amsterdam.connect.reticulum.network';
-                                    newInterfaceTargetPort = '4965';
-                                "
+                            <div
+                                v-if="communityIface.description"
+                                class="text-xs text-gray-500 dark:text-gray-400 italic"
                             >
-                                <span>Use Interface</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex px-3 py-2 items-center">
-                        <div class="my-auto mr-auto">
-                            <div class="font-semibold text-gray-900 dark:text-gray-100">
-                                RNS Testnet BetweenTheBorders
-                            </div>
-                            <div class="text-xs text-gray-600 dark:text-gray-300">
-                                reticulum.betweentheborders.com:4242
+                                {{ communityIface.description }}
                             </div>
                         </div>
                         <div class="ml-2 my-auto">
@@ -74,10 +61,10 @@
                                 type="button"
                                 class="inline-flex items-center gap-x-2 rounded-full bg-blue-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                                 @click="
-                                    newInterfaceName = 'RNS Testnet BetweenTheBorders';
-                                    newInterfaceType = 'TCPClientInterface';
-                                    newInterfaceTargetHost = 'reticulum.betweentheborders.com';
-                                    newInterfaceTargetPort = '4242';
+                                    newInterfaceName = communityIface.name;
+                                    newInterfaceType = communityIface.type;
+                                    newInterfaceTargetHost = communityIface.target_host;
+                                    newInterfaceTargetPort = communityIface.target_port;
                                 "
                             >
                                 <span>Use Interface</span>
@@ -1097,6 +1084,8 @@ export default {
 
             config: null,
 
+            communityInterfaces: [],
+
             comports: [],
 
             newInterfaceName: null,
@@ -1228,6 +1217,7 @@ export default {
     mounted() {
         this.getConfig();
         this.loadComports();
+        this.loadCommunityInterfaces();
 
         // check if we are editing an interface
         const interfaceName = this.$route.query.interface_name;
@@ -1259,6 +1249,14 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/comports`);
                 this.comports = response.data.comports;
+            } catch {
+                // do nothing if failed to load interfaces
+            }
+        },
+        async loadCommunityInterfaces() {
+            try {
+                const response = await window.axios.get(`/api/v1/community-interfaces`);
+                this.communityInterfaces = response.data.interfaces;
             } catch {
                 // do nothing if failed to load interfaces
             }

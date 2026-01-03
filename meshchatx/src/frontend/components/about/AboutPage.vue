@@ -18,8 +18,33 @@
                                 {{ $t("about.python_version", { version: appInfo.python_version }) }}
                             </div>
                         </div>
-                        <div v-if="isElectron" class="flex flex-col sm:flex-row gap-2">
+                        <div class="flex flex-col sm:flex-row gap-2">
                             <button
+                                type="button"
+                                class="danger-chip px-4 py-2 text-sm justify-center"
+                                @click="shutdown"
+                            >
+                                <MaterialDesignIcon icon-name="power" class="w-4 h-4" />
+                                {{ $t("common.shutdown", "Shutdown") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary-chip px-4 py-2 text-sm justify-center"
+                                @click="showChangelog"
+                            >
+                                <MaterialDesignIcon icon-name="history" class="w-4 h-4" />
+                                {{ $t("app.changelog_title") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary-chip px-4 py-2 text-sm justify-center"
+                                @click="showTutorial"
+                            >
+                                <MaterialDesignIcon icon-name="help-circle" class="w-4 h-4" />
+                                {{ $t("app.tutorial_title") }}
+                            </button>
+                            <button
+                                v-if="isElectron"
                                 type="button"
                                 class="primary-chip px-4 py-2 text-sm justify-center"
                                 @click="relaunch"
@@ -70,6 +95,184 @@
                             <div v-if="appInfo.database_files" class="text-xs text-gray-500 dark:text-gray-400">
                                 Main {{ formatBytes(appInfo.database_files.main_bytes) }} • WAL
                                 {{ formatBytes(appInfo.database_files.wal_bytes) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="appInfo" class="glass-card">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                                {{ $t("about.security_integrity") }}
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-gray-400">
+                                {{ $t("about.security_integrity_description") }}
+                            </div>
+                        </div>
+                        <div v-if="appInfo.integrity_issues" class="flex flex-wrap gap-2">
+                            <span :class="statusPillClass(appInfo.integrity_issues.length === 0)">
+                                <MaterialDesignIcon
+                                    :icon-name="appInfo.integrity_issues.length === 0 ? 'shield-check' : 'shield-alert'"
+                                    class="w-4 h-4"
+                                />
+                                {{
+                                    appInfo.integrity_issues.length === 0
+                                        ? $t("about.secured")
+                                        : $t("about.tampering_detected")
+                                }}
+                            </span>
+                            <button
+                                v-if="appInfo.integrity_issues.length > 0"
+                                type="button"
+                                class="secondary-chip px-3 py-1 text-xs"
+                                @click="acknowledgeIntegrity"
+                            >
+                                <MaterialDesignIcon icon-name="check-circle-outline" class="w-4 h-4" />
+                                {{ $t("common.acknowledge_reset") }}
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        v-if="appInfo.integrity_issues && appInfo.integrity_issues.length > 0"
+                        class="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                    >
+                        <div class="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">
+                            {{ $t("about.technical_issues") }}
+                        </div>
+                        <ul class="text-xs text-red-600 dark:text-red-300 space-y-1 list-disc list-inside">
+                            <li v-for="(issue, index) in appInfo.integrity_issues" :key="index">{{ issue }}</li>
+                        </ul>
+                    </div>
+                    <div v-else class="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                        <MaterialDesignIcon icon-name="check-circle" class="w-4 h-4 text-emerald-500" />
+                        {{ $t("about.no_integrity_violations") }}
+                    </div>
+                </div>
+
+                <div v-if="appInfo" class="glass-card">
+                    <div class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        {{ $t("about.dependency_chain") }}
+                    </div>
+                    <div class="relative">
+                        <div class="flex flex-col space-y-4">
+                            <!-- MeshChatX -->
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20"
+                                >
+                                    <img
+                                        src="../../public/favicons/favicon-512x512.png"
+                                        class="w-6 h-6 object-contain"
+                                    />
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white">MeshChatX</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">v{{ appInfo.version }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Connector -->
+                            <div class="ml-5 border-l-2 border-gray-200 dark:border-zinc-800 h-4"></div>
+
+                            <!-- LXMF -->
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 font-black text-xs"
+                                >
+                                    LXMF
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white">
+                                        Lightweight Extensible Message Format
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        v{{ appInfo.lxmf_version }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Connector -->
+                            <div class="ml-5 border-l-2 border-gray-200 dark:border-zinc-800 h-4"></div>
+
+                            <!-- RNS -->
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 font-black text-xs"
+                                >
+                                    RNS
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white">
+                                        Reticulum Network Stack
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        v{{ appInfo.rns_version }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Side Dependencies -->
+                        <div class="mt-8 pt-6 border-t border-gray-100 dark:border-zinc-800">
+                            <div
+                                class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3"
+                            >
+                                {{ $t("about.other_core_components", "Other Core Components") }}
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div v-if="appInfo.lxst_version" class="flex flex-col">
+                                    <span class="text-[10px] font-black text-blue-500 uppercase">LXST</span>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                        >v{{ appInfo.lxst_version }}</span
+                                    >
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-black text-blue-500 uppercase">Python</span>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                        >v{{ appInfo.python_version }}</span
+                                    >
+                                </div>
+                                <div v-if="electronVersion" class="flex flex-col">
+                                    <span class="text-[10px] font-black text-blue-500 uppercase">Electron</span>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                        >v{{ electronVersion }}</span
+                                    >
+                                </div>
+                                <div v-if="chromeVersion" class="flex flex-col">
+                                    <span class="text-[10px] font-black text-blue-500 uppercase">Chrome</span>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                        >v{{ chromeVersion }}</span
+                                    >
+                                </div>
+                                <div v-if="nodeVersion" class="flex flex-col">
+                                    <span class="text-[10px] font-black text-blue-500 uppercase">Node</span>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                        >v{{ nodeVersion }}</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Python Dependencies -->
+                        <div
+                            v-if="appInfo.dependencies"
+                            class="mt-8 pt-6 border-t border-gray-100 dark:border-zinc-800"
+                        >
+                            <div
+                                class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3"
+                            >
+                                {{ $t("about.backend_dependencies") }}
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                <div v-for="(version, name) in appInfo.dependencies" :key="name" class="flex flex-col">
+                                    <span class="text-[10px] font-black text-blue-500/70 uppercase">{{
+                                        name.replace("_", " ")
+                                    }}</span>
+                                    <span class="text-xs font-medium text-gray-600 dark:text-zinc-400"
+                                        >v{{ version }}</span
+                                    >
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -187,6 +390,48 @@
                         </button>
                         <div v-if="backupMessage" class="text-xs text-emerald-600">{{ backupMessage }}</div>
                         <div v-if="backupError" class="text-xs text-red-600">{{ backupError }}</div>
+                        <div class="font-semibold text-gray-900 dark:text-white pt-2">Snapshots</div>
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                            <input
+                                v-model="snapshotName"
+                                type="text"
+                                placeholder="Snapshot name"
+                                class="input-field max-w-xs"
+                            />
+                            <button
+                                type="button"
+                                class="primary-chip px-3 py-2 text-xs"
+                                :disabled="snapshotInProgress"
+                                @click="createSnapshot"
+                            >
+                                <MaterialDesignIcon icon-name="camera" class="w-4 h-4" />
+                                Create Snapshot
+                            </button>
+                        </div>
+                        <div v-if="snapshots.length > 0" class="mt-3 space-y-2">
+                            <div
+                                v-for="snapshot in snapshots"
+                                :key="snapshot.path"
+                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 text-xs"
+                            >
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-900 dark:text-white">{{ snapshot.name }}</span>
+                                    <span class="text-gray-500"
+                                        >{{ formatBytes(snapshot.size) }} • {{ snapshot.created_at }}</span
+                                    >
+                                </div>
+                                <button
+                                    type="button"
+                                    class="secondary-chip px-2 py-1"
+                                    @click="restoreFromSnapshot(snapshot.path)"
+                                >
+                                    Restore
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="snapshotMessage" class="text-xs text-emerald-600">{{ snapshotMessage }}</div>
+                        <div v-if="snapshotError" class="text-xs text-red-600">{{ snapshotError }}</div>
+
                         <div class="font-semibold text-gray-900 dark:text-white pt-2">Restore</div>
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                             <input type="file" accept=".zip,.db" class="file-input" @change="onRestoreFileChange" />
@@ -300,6 +545,33 @@
                             <div>
                                 <div class="glass-label">{{ $t("about.virtual_memory") }}</div>
                                 <div class="metric-value">{{ formatBytes(appInfo.memory_usage.vms) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="electronMemoryUsage" class="glass-card space-y-3">
+                        <header class="flex items-center gap-2">
+                            <MaterialDesignIcon icon-name="electron-framework" class="w-5 h-5 text-blue-400" />
+                            <div>
+                                <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                                    Electron Resources
+                                </div>
+                                <div class="text-xs text-emerald-500 flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    {{ $t("about.live") }}
+                                </div>
+                            </div>
+                        </header>
+                        <div class="metric-row">
+                            <div>
+                                <div class="glass-label">Private Memory</div>
+                                <div class="metric-value">{{ formatBytes(electronMemoryUsage.private * 1024) }}</div>
+                            </div>
+                            <div>
+                                <div class="glass-label">Resident Set</div>
+                                <div class="metric-value">
+                                    {{ formatBytes(electronMemoryUsage.residentSet * 1024) }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -473,6 +745,7 @@
 <script>
 import Utils from "../../js/Utils";
 import ElectronUtils from "../../js/ElectronUtils";
+import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 export default {
@@ -492,6 +765,7 @@ export default {
             databaseActionError: "",
             databaseActionInProgress: false,
             healthLoading: false,
+            electronMemoryUsage: null,
             backupInProgress: false,
             backupMessage: "",
             backupError: "",
@@ -500,6 +774,11 @@ export default {
             restoreError: "",
             restoreFileName: "",
             restoreFile: null,
+            snapshotName: "",
+            snapshots: [],
+            snapshotInProgress: false,
+            snapshotMessage: "",
+            snapshotError: "",
             identityBackupMessage: "",
             identityBackupError: "",
             identityBase32: "",
@@ -511,6 +790,9 @@ export default {
             identityRestoreFileName: "",
             identityRestoreFile: null,
             identityRestoreBase32: "",
+            electronVersion: null,
+            chromeVersion: null,
+            nodeVersion: null,
         };
     },
     computed: {
@@ -522,6 +804,7 @@ export default {
         this.getAppInfo();
         this.getConfig();
         this.getDatabaseHealth();
+        this.listSnapshots();
         // Update stats every 5 seconds
         this.updateInterval = setInterval(() => {
             this.getAppInfo();
@@ -539,13 +822,84 @@ export default {
         }
     },
     methods: {
+        async listSnapshots() {
+            try {
+                const response = await window.axios.get("/api/v1/database/snapshots");
+                this.snapshots = response.data;
+            } catch (e) {
+                console.log("Failed to list snapshots", e);
+            }
+        },
+        async createSnapshot() {
+            if (this.snapshotInProgress) return;
+            this.snapshotInProgress = true;
+            this.snapshotMessage = "";
+            this.snapshotError = "";
+            try {
+                await window.axios.post("/api/v1/database/snapshot", {
+                    name: this.snapshotName || `snapshot-${Math.floor(Date.now() / 1000)}`,
+                });
+                this.snapshotMessage = "Snapshot created successfully";
+                this.snapshotName = "";
+                await this.listSnapshots();
+            } catch (e) {
+                this.snapshotError = "Failed to create snapshot";
+                console.log(e);
+            } finally {
+                this.snapshotInProgress = false;
+            }
+        },
+        async restoreFromSnapshot(path) {
+            if (
+                !(await DialogUtils.confirm(
+                    "Are you sure you want to restore this snapshot? This will overwrite the current database and require an app relaunch."
+                ))
+            ) {
+                return;
+            }
+            try {
+                const response = await window.axios.post("/api/v1/database/restore", { path });
+                if (response.data.status === "success") {
+                    ToastUtils.success("Database restored. Relaunching...");
+                    if (this.isElectron) {
+                        setTimeout(() => ElectronUtils.relaunch(), 2000);
+                    }
+                }
+            } catch (e) {
+                ToastUtils.error("Failed to restore snapshot");
+                console.log(e);
+            }
+        },
         async getAppInfo() {
             try {
                 const response = await window.axios.get("/api/v1/app/info");
                 this.appInfo = response.data.app_info;
+
+                if (this.isElectron) {
+                    this.electronMemoryUsage = await ElectronUtils.getMemoryUsage();
+                    this.electronVersion = window.electron.electronVersion();
+                    this.chromeVersion = window.electron.chromeVersion();
+                    this.nodeVersion = window.electron.nodeVersion();
+                }
             } catch (e) {
                 // do nothing if failed to load app info
                 console.log(e);
+            }
+        },
+        async acknowledgeIntegrity() {
+            if (
+                await DialogUtils.confirm(
+                    "Are you sure you want to acknowledge these integrity issues? This will update the security manifest to match the current state of your files."
+                )
+            ) {
+                try {
+                    await window.axios.post("/api/v1/app/integrity/acknowledge");
+                    ToastUtils.success("Integrity issues acknowledged");
+                    await this.getAppInfo();
+                } catch (e) {
+                    ToastUtils.error("Failed to acknowledge integrity issues");
+                    console.log(e);
+                }
             }
         },
         async getDatabaseHealth(showMessage = false) {
@@ -687,6 +1041,32 @@ export default {
         },
         relaunch() {
             ElectronUtils.relaunch();
+        },
+        async shutdown() {
+            if (
+                await DialogUtils.confirm(
+                    "Are you sure you want to shutdown the app? This will stop the server and close the application."
+                )
+            ) {
+                try {
+                    // try to notify backend first
+                    await window.axios.post("/api/v1/app/shutdown");
+                } catch {
+                    // ignore errors if backend is already stopping
+                }
+
+                if (this.isElectron) {
+                    ElectronUtils.shutdown();
+                } else {
+                    ToastUtils.success("Shutdown command sent to server.");
+                }
+            }
+        },
+        showChangelog() {
+            this.$router.push({ name: "changelog" });
+        },
+        showTutorial() {
+            this.$router.push({ name: "tutorial" });
         },
         showReticulumConfigFile() {
             const reticulumConfigPath = this.appInfo.reticulum_config_path;

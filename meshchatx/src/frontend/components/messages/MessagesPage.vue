@@ -11,11 +11,20 @@
             :filter-failed-only="filterFailedOnly"
             :filter-has-attachments-only="filterHasAttachmentsOnly"
             :is-loading="isLoadingConversations"
+            :is-loading-more="isLoadingMore"
+            :has-more-conversations="hasMoreConversations"
+            :is-loading-more-announces="isLoadingMoreAnnounces"
+            :has-more-announces="hasMoreAnnounces"
+            :peers-search-term="peersSearchTerm"
+            :total-peers-count="totalPeersCount"
             @conversation-click="onConversationClick"
             @peer-click="onPeerClick"
             @conversation-search-changed="onConversationSearchChanged"
             @conversation-filter-changed="onConversationFilterChanged"
+            @peers-search-changed="onPeersSearchChanged"
             @ingest-paper-message="openIngestPaperMessageModal"
+            @load-more="loadMoreConversations"
+            @load-more-announces="loadMoreAnnounces"
         />
 
         <div
@@ -25,6 +34,7 @@
             <!-- messages tab -->
             <ConversationViewer
                 ref="conversation-viewer"
+                :config="config"
                 :my-lxmf-address-hash="config?.lxmf_address_hash"
                 :selected-peer="selectedPeer"
                 :conversations="conversations"
@@ -103,12 +113,14 @@ import GlobalState from "../../js/GlobalState";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
     name: "MessagesPage",
     components: {
         ConversationViewer,
         MessagesSidebar,
+        MaterialDesignIcon,
     },
     props: {
         destinationHash: {
@@ -127,6 +139,14 @@ export default {
             selectedPeer: null,
 
             conversations: [],
+            pageSize: 50,
+            hasMoreConversations: true,
+            isLoadingMore: false,
+
+            hasMoreAnnounces: true,
+            isLoadingMoreAnnounces: false,
+            totalPeersCount: 0,
+            peersSearchTerm: "",
             lxmfDeliveryAnnounces: [],
 
             conversationSearchTerm: "",
@@ -270,25 +290,40 @@ export default {
                 }
             }
         },
-        async getLxmfDeliveryAnnounces() {
+        async getLxmfDeliveryAnnounces(append = false) {
             try {
-                // fetch announces for "lxmf.delivery" aspect
+                const offset = append ? Object.keys(this.peers).length : 0;
                 const response = await window.axios.get(`/api/v1/announces`, {
                     params: {
                         aspect: "lxmf.delivery",
-                        limit: 500, // limit ui to showing 500 latest announces
+                        limit: this.pageSize,
+                        offset: offset,
+                        search: this.peersSearchTerm,
                     },
                 });
 
-                // update ui
-                const lxmfDeliveryAnnounces = response.data.announces;
-                for (const lxmfDeliveryAnnounce of lxmfDeliveryAnnounces) {
-                    this.updatePeerFromAnnounce(lxmfDeliveryAnnounce);
+                const newAnnounces = response.data.announces;
+                if (!append) {
+                    this.peers = {};
                 }
+
+                this.totalPeersCount = response.data.total_count || 0;
+
+                for (const ann of newAnnounces) {
+                    this.updatePeerFromAnnounce(ann);
+                }
+
+                this.hasMoreAnnounces = newAnnounces.length === this.pageSize;
             } catch (e) {
-                // do nothing if failed to load announces
                 console.log(e);
+            } finally {
+                this.isLoadingMoreAnnounces = false;
             }
+        },
+        async loadMoreAnnounces() {
+            if (this.isLoadingMoreAnnounces || !this.hasMoreAnnounces) return;
+            this.isLoadingMoreAnnounces = true;
+            await this.getLxmfDeliveryAnnounces(true);
         },
         async getLxmfDeliveryAnnounce(destinationHash) {
             try {
@@ -310,19 +345,40 @@ export default {
                 console.log(e);
             }
         },
-        async getConversations() {
+        async getConversations(append = false) {
             try {
-                this.isLoadingConversations = true;
+                if (this.conversations.length === 0 && !append) {
+                    this.isLoadingConversations = true;
+                }
+
+                const offset = append ? this.conversations.length : 0;
                 const response = await window.axios.get(`/api/v1/lxmf/conversations`, {
-                    params: this.buildConversationQueryParams(),
+                    params: {
+                        ...this.buildConversationQueryParams(),
+                        limit: this.pageSize,
+                        offset: offset,
+                    },
                 });
-                this.conversations = response.data.conversations;
+
+                const newConversations = response.data.conversations;
+                if (append) {
+                    this.conversations = [...this.conversations, ...newConversations];
+                } else {
+                    this.conversations = newConversations;
+                }
+
+                this.hasMoreConversations = newConversations.length === this.pageSize;
             } catch (e) {
-                // do nothing if failed to load conversations
                 console.log(e);
             } finally {
                 this.isLoadingConversations = false;
+                this.isLoadingMore = false;
             }
+        },
+        async loadMoreConversations() {
+            if (this.isLoadingMore || !this.hasMoreConversations) return;
+            this.isLoadingMore = true;
+            await this.getConversations(true);
         },
         buildConversationQueryParams() {
             const params = {};
@@ -405,6 +461,15 @@ export default {
                 this.filterHasAttachmentsOnly = !this.filterHasAttachmentsOnly;
             }
             this.requestConversationsRefresh();
+        },
+        onPeersSearchChanged(term) {
+            this.peersSearchTerm = term;
+            if (this.peersRefreshTimeout) {
+                clearTimeout(this.peersRefreshTimeout);
+            }
+            this.peersRefreshTimeout = setTimeout(() => {
+                this.getLxmfDeliveryAnnounces();
+            }, 500);
         },
         openIngestPaperMessageModal() {
             this.ingestUri = "";

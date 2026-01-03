@@ -274,7 +274,7 @@ export default {
 
 <style scoped>
 .interface-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3;
+    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3 hover:z-10;
     overflow: visible;
 }
 .interface-card__icon {

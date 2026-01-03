@@ -75,20 +75,85 @@
 
         <!-- map container -->
         <div class="relative flex-1 min-h-0">
+            <!-- drawing toolbar -->
+            <div class="absolute top-14 left-1/2 -translate-x-1/2 sm:top-2 z-20 flex flex-col gap-2 transform-gpu">
+                <div
+                    class="bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden flex flex-row p-1 gap-1"
+                >
+                    <button
+                        v-for="tool in drawingTools"
+                        :key="tool.type"
+                        class="p-2 rounded-lg transition-all"
+                        :class="[
+                            drawType === tool.type && !isMeasuring
+                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                                : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400',
+                        ]"
+                        :title="$t(`map.tool_${tool.type.toLowerCase()}`)"
+                        @click="toggleDraw(tool.type)"
+                    >
+                        <MaterialDesignIcon :icon-name="tool.icon" class="size-6" />
+                    </button>
+                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
+                    <button
+                        class="p-2 rounded-lg transition-all"
+                        :class="[
+                            isMeasuring
+                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
+                                : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400',
+                        ]"
+                        :title="$t('map.tool_measure')"
+                        @click="toggleMeasure"
+                    >
+                        <MaterialDesignIcon icon-name="ruler" class="size-6" />
+                    </button>
+                    <button
+                        class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-all"
+                        :title="$t('map.tool_clear')"
+                        @click="clearDrawings"
+                    >
+                        <MaterialDesignIcon icon-name="trash-can-outline" class="size-6" />
+                    </button>
+                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
+                    <button
+                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all"
+                        :title="$t('map.save_drawing')"
+                        @click="showSaveDrawingModal = true"
+                    >
+                        <MaterialDesignIcon icon-name="content-save-outline" class="size-6" />
+                    </button>
+                    <button
+                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all"
+                        :title="$t('map.load_drawing')"
+                        @click="openLoadDrawingModal"
+                    >
+                        <MaterialDesignIcon icon-name="folder-open-outline" class="size-6" />
+                    </button>
+                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
+                    <button
+                        class="p-2 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 transition-all"
+                        :title="$t('map.go_to_my_location')"
+                        @click="goToMyLocation"
+                    >
+                        <MaterialDesignIcon icon-name="crosshairs-gps" class="size-6" />
+                    </button>
+                </div>
+            </div>
+
             <!-- search bar -->
             <div
                 v-if="!offlineEnabled"
                 ref="searchContainer"
-                class="absolute top-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-30"
+                class="absolute top-2 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-30"
             >
                 <div class="relative">
                     <div
-                        class="flex items-center bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-gray-200 dark:border-zinc-800"
+                        class="flex items-center bg-white/90 dark:bg-zinc-900/90 backdrop-blur rounded-lg shadow-lg border border-gray-200/50 dark:border-zinc-800/50"
                     >
                         <input
                             v-model="searchQuery"
                             type="text"
-                            class="flex-1 px-3 py-2 bg-transparent text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:outline-none text-sm"
+                            class="flex-1 px-3 py-2 bg-transparent text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:outline-none focus:ring-0 text-sm"
                             :placeholder="$t('map.search_placeholder')"
                             @input="onSearchInput"
                             @keydown.enter="performSearch"
@@ -436,7 +501,7 @@
             <!-- controls overlay -->
             <div
                 v-if="isSettingsOpen"
-                class="absolute top-4 right-4 z-20 w-64 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                class="absolute top-14 right-4 z-20 w-64 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden"
             >
                 <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
                     <h3 class="font-semibold text-gray-900 dark:text-zinc-100">{{ $t("app.settings") }}</h3>
@@ -460,6 +525,21 @@
 
                     <div v-if="!offlineEnabled" class="border-t border-gray-100 dark:border-zinc-800 pt-4 space-y-4">
                         <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Preset Servers</label>
+                            <div class="grid grid-cols-1 gap-2 mb-4">
+                                <button
+                                    class="px-3 py-2 text-xs font-semibold rounded-lg transition-all border"
+                                    :class="
+                                        tileServerUrl.includes('openstreetmap.org')
+                                            ? 'bg-blue-500 border-blue-600 text-white shadow-sm'
+                                            : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                                    "
+                                    @click="setTileServer('osm')"
+                                >
+                                    {{ $t("map.tile_server_openstreetmap") }}
+                                </button>
+                            </div>
+
                             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{
                                 $t("map.tile_server_url")
                             }}</label>
@@ -639,6 +719,131 @@
                 <MaterialDesignIcon icon-name="upload" class="size-6" />
             </button>
         </div>
+
+        <!-- save drawing modal -->
+        <div
+            v-if="showSaveDrawingModal"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+        >
+            <div
+                class="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+            >
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <MaterialDesignIcon icon-name="content-save-outline" class="size-6 text-blue-500" />
+                        {{ $t("map.save_drawing_title") }}
+                    </h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t("map.save_drawing_desc") }}</p>
+
+                    <div class="mt-6">
+                        <label
+                            class="block text-xs font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-widest mb-2"
+                        >
+                            {{ $t("map.drawing_name") }}
+                        </label>
+                        <input
+                            ref="newDrawingNameInput"
+                            v-model="newDrawingName"
+                            type="text"
+                            class="w-full px-4 py-3 bg-gray-50 dark:bg-zinc-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                            :placeholder="$t('map.drawing_name_placeholder')"
+                            @keyup.enter="saveDrawing"
+                        />
+                    </div>
+
+                    <div class="mt-8 flex gap-3">
+                        <button
+                            type="button"
+                            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition"
+                            @click="showSaveDrawingModal = false"
+                        >
+                            {{ $t("common.close") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-500 transition active:scale-95 disabled:opacity-50"
+                            :disabled="!newDrawingName.trim()"
+                            @click="saveDrawing"
+                        >
+                            {{ $t("common.save") }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- load drawing modal -->
+        <div
+            v-if="showLoadDrawingModal"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+        >
+            <div
+                class="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+            >
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <MaterialDesignIcon icon-name="folder-open-outline" class="size-6 text-blue-500" />
+                            {{ $t("map.load_drawing_title") }}
+                        </h2>
+                        <button class="text-gray-400 hover:text-gray-600" @click="showLoadDrawingModal = false">
+                            <MaterialDesignIcon icon-name="close" class="size-6" />
+                        </button>
+                    </div>
+
+                    <div v-if="isLoadingDrawings" class="py-12 flex flex-col items-center justify-center">
+                        <MaterialDesignIcon icon-name="loading" class="size-10 animate-spin text-blue-500 mb-4" />
+                        <span class="text-sm font-medium text-gray-500">{{ $t("map.loading_drawings") }}</span>
+                    </div>
+
+                    <div
+                        v-else-if="savedDrawings.length === 0"
+                        class="py-12 flex flex-col items-center justify-center text-center"
+                    >
+                        <div
+                            class="size-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4"
+                        >
+                            <MaterialDesignIcon icon-name="folder-outline" class="size-8 text-gray-400" />
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $t("map.no_drawings") }}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ $t("map.no_drawings_desc") }}</p>
+                    </div>
+
+                    <div v-else class="max-h-[400px] overflow-y-auto space-y-2 pr-2">
+                        <div
+                            v-for="drawing in savedDrawings"
+                            :key="drawing.id"
+                            class="group p-4 bg-gray-50 dark:bg-zinc-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-2xl border border-transparent hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer flex items-center justify-between"
+                            @click="loadDrawing(drawing)"
+                        >
+                            <div class="flex-1 min-w-0 mr-4">
+                                <div class="font-bold text-gray-900 dark:text-white truncate">{{ drawing.name }}</div>
+                                <div class="text-xs text-gray-500 dark:text-zinc-500 mt-0.5">
+                                    {{ $t("map.saved_on") }} {{ new Date(drawing.updated_at).toLocaleString() }}
+                                </div>
+                            </div>
+                            <button
+                                class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                :title="$t('common.delete')"
+                                @click.stop="deleteDrawing(drawing)"
+                            >
+                                <MaterialDesignIcon icon-name="trash-can-outline" class="size-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-end">
+                        <button
+                            type="button"
+                            class="px-6 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition"
+                            @click="showLoadDrawingModal = false"
+                        >
+                            {{ $t("common.close") }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -656,6 +861,14 @@ import { Style, Text, Fill, Stroke, Circle as CircleStyle } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
 import DragBox from "ol/interaction/DragBox";
+import Draw from "ol/interaction/Draw";
+import Modify from "ol/interaction/Modify";
+import Snap from "ol/interaction/Snap";
+import { getArea, getLength } from "ol/sphere";
+import { LineString, Polygon } from "ol/geom";
+import { unByKey } from "ol/Observable";
+import Overlay from "ol/Overlay";
+import GeoJSON from "ol/format/GeoJSON";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
@@ -726,6 +939,36 @@ export default {
             mbtilesList: [],
             mbtilesDir: "",
             isMapLoaded: false,
+
+            // drawing tools
+            draw: null,
+            modify: null,
+            snap: null,
+            drawSource: null,
+            drawLayer: null,
+            drawType: null, // 'Point', 'LineString', 'Polygon', 'Circle' or null
+            isDrawing: false,
+            drawingTools: [
+                { type: "Point", icon: "map-marker-plus" },
+                { type: "LineString", icon: "vector-line" },
+                { type: "Polygon", icon: "vector-polygon" },
+                { type: "Circle", icon: "circle-outline" },
+            ],
+
+            // measurement
+            isMeasuring: false,
+            sketch: null,
+            helpTooltipElement: null,
+            helpTooltip: null,
+            measureTooltipElement: null,
+            measureTooltip: null,
+
+            // drawing storage
+            savedDrawings: [],
+            showSaveDrawingModal: false,
+            newDrawingName: "",
+            isLoadingDrawings: false,
+            showLoadDrawingModal: false,
         };
     },
     computed: {
@@ -743,9 +986,55 @@ export default {
             return total;
         },
     },
+    watch: {
+        showSaveDrawingModal(val) {
+            if (val) {
+                this.$nextTick(() => {
+                    this.$refs.newDrawingNameInput?.focus();
+                });
+            }
+        },
+    },
     async mounted() {
         await this.getConfig();
+
+        // Load persisted map state
+        try {
+            const savedState = await TileCache.getMapState("last_view");
+            if (savedState) {
+                this.currentCenter = savedState.center || [0, 0];
+                this.currentZoom = savedState.zoom || 2;
+                if (savedState.offlineEnabled !== undefined) this.offlineEnabled = savedState.offlineEnabled;
+                if (savedState.tileServerUrl) this.tileServerUrl = savedState.tileServerUrl;
+                if (savedState.telemetry) this.telemetryList = savedState.telemetry;
+
+                // Temporarily store drawings to restore after map/source init
+                this._persistedDrawings = savedState.drawings;
+            }
+        } catch (e) {
+            console.warn("Failed to load map state from cache", e);
+        }
+
         this.initMap();
+
+        if (this.telemetryList.length > 0) {
+            this.updateMarkers();
+        }
+
+        // Restore drawings if any
+        if (this._persistedDrawings && this.drawSource) {
+            try {
+                const format = new GeoJSON();
+                const features = format.readFeatures(this._persistedDrawings, {
+                    dataProjection: "EPSG:4326",
+                    featureProjection: "EPSG:3857",
+                });
+                this.drawSource.addFeatures(features);
+            } catch (e) {
+                console.error("Failed to restore persisted drawings", e);
+            }
+            delete this._persistedDrawings;
+        }
         await this.checkOfflineMap();
         await this.loadMBTilesList();
 
@@ -755,7 +1044,7 @@ export default {
         // Listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
-        // Check for query params to center map
+        // Check for query params to center map (overrides saved state)
         if (this.$route.query.lat && this.$route.query.lon) {
             const lat = parseFloat(this.$route.query.lat);
             const lon = parseFloat(this.$route.query.lon);
@@ -767,12 +1056,13 @@ export default {
             }
         }
 
-        // Listen for moveend to update coordinates in UI
+        // Listen for moveend to update coordinates in UI and save state
         if (this.map) {
             this.map.on("moveend", () => {
                 const view = this.map.getView();
                 this.currentCenter = toLonLat(view.getCenter());
                 this.currentZoom = view.getZoom();
+                this.saveMapState();
             });
         }
 
@@ -800,6 +1090,32 @@ export default {
         WebSocketConnection.off("message", this.onWebsocketMessage);
     },
     methods: {
+        async saveMapState() {
+            try {
+                // Serialize drawings
+                let drawings = null;
+                if (this.drawSource) {
+                    const format = new GeoJSON();
+                    drawings = format.writeFeatures(this.drawSource.getFeatures());
+                }
+
+                // Use JSON.parse/stringify to strip Vue Proxies and ensure plain objects/arrays
+                // This prevents DataCloneError when saving to IndexedDB
+                const state = JSON.parse(
+                    JSON.stringify({
+                        center: this.currentCenter,
+                        zoom: this.currentZoom,
+                        offlineEnabled: this.offlineEnabled,
+                        tileServerUrl: this.tileServerUrl,
+                        drawings: drawings,
+                        telemetry: this.telemetryList,
+                    })
+                );
+                await TileCache.setMapState("last_view", state);
+            } catch (e) {
+                console.error("Failed to save map state", e);
+            }
+        },
         async getConfig() {
             try {
                 const response = await window.axios.get("/api/v1/config");
@@ -861,9 +1177,26 @@ export default {
             }
         },
         initMap() {
+            // Patch canvas getContext to address performance warning
+            const originalGetContext = HTMLCanvasElement.prototype.getContext;
+            HTMLCanvasElement.prototype.getContext = function (type, attributes) {
+                if (type === "2d") {
+                    attributes = attributes || {};
+                    attributes.willReadFrequently = true;
+                }
+                return originalGetContext.call(this, type, attributes);
+            };
+
             const defaultLat = parseFloat(this.config?.map_default_lat || 0);
             const defaultLon = parseFloat(this.config?.map_default_lon || 0);
             const defaultZoom = parseInt(this.config?.map_default_zoom || 2);
+
+            // Use saved state if available, otherwise use defaults
+            const startCenter =
+                this.currentCenter[0] !== 0 || this.currentCenter[1] !== 0
+                    ? fromLonLat(this.currentCenter)
+                    : fromLonLat([defaultLon, defaultLat]);
+            const startZoom = this.currentZoom !== 2 ? this.currentZoom : defaultZoom;
 
             this.map = new Map({
                 target: this.$refs.mapContainer,
@@ -873,14 +1206,44 @@ export default {
                     }),
                 ],
                 view: new View({
-                    center: fromLonLat([defaultLon, defaultLat]),
-                    zoom: defaultZoom,
+                    center: startCenter,
+                    zoom: startZoom,
                 }),
                 controls: defaultControls({
                     attribution: false,
                     rotate: false,
                 }),
             });
+
+            // setup drawing layer
+            this.drawSource = new VectorSource();
+            this.drawLayer = new VectorLayer({
+                source: this.drawSource,
+                style: new Style({
+                    fill: new Fill({
+                        color: "rgba(59, 130, 246, 0.2)",
+                    }),
+                    stroke: new Stroke({
+                        color: "#3b82f6",
+                        width: 3,
+                    }),
+                    image: new CircleStyle({
+                        radius: 7,
+                        fill: new Fill({
+                            color: "#3b82f6",
+                        }),
+                    }),
+                }),
+                zIndex: 50,
+            });
+            this.map.addLayer(this.drawLayer);
+
+            this.modify = new Modify({ source: this.drawSource });
+            this.modify.on("modifyend", () => this.saveMapState());
+            this.map.addInteraction(this.modify);
+
+            this.snap = new Snap({ source: this.drawSource });
+            this.map.addInteraction(this.snap);
 
             // setup telemetry markers
             this.markerSource = new VectorSource();
@@ -1044,11 +1407,20 @@ export default {
         async checkOfflineMap() {
             try {
                 const response = await window.axios.get("/api/v1/map/offline");
-                this.metadata = response.data;
-                this.hasOfflineMap = true;
+                if (response.data && response.data.loaded !== false && Object.keys(response.data).length > 0) {
+                    this.metadata = response.data;
+                    this.hasOfflineMap = true;
 
-                if (this.offlineEnabled) {
-                    this.updateMapSource();
+                    if (this.offlineEnabled) {
+                        this.updateMapSource();
+                    }
+                } else {
+                    this.hasOfflineMap = false;
+                    this.metadata = null;
+                    if (this.offlineEnabled) {
+                        this.offlineEnabled = false;
+                        this.updateMapSource();
+                    }
                 }
             } catch {
                 this.hasOfflineMap = false;
@@ -1110,6 +1482,7 @@ export default {
                 this.clearSearch();
             }
             this.updateMapSource();
+            await this.saveMapState();
 
             // Persist setting
             try {
@@ -1273,9 +1646,16 @@ export default {
                 });
                 this.updateMapSource();
                 ToastUtils.success(this.$t("map.tile_server_saved"));
+                await this.saveMapState();
             } catch {
                 ToastUtils.error("Failed to save tile server URL");
             }
+        },
+        setTileServer(type) {
+            if (type === "osm") {
+                this.tileServerUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+            }
+            this.saveTileServerUrl();
         },
         async saveNominatimApiUrl() {
             try {
@@ -1500,7 +1880,338 @@ export default {
                 console.error("Failed to fetch peers", e);
             }
         },
+
+        // Drawing methods
+        toggleDraw(type) {
+            if (!this.map) return;
+            if (this.drawType === type && !this.isMeasuring) {
+                this.stopDrawing();
+                return;
+            }
+
+            this.stopDrawing();
+            this.isMeasuring = false;
+            this.drawType = type;
+
+            this.draw = new Draw({
+                source: this.drawSource,
+                type: type,
+            });
+
+            this.draw.on("drawstart", () => {
+                this.isDrawing = true;
+            });
+
+            this.draw.on("drawend", () => {
+                this.isDrawing = false;
+                // Use setTimeout to ensure the feature is actually in the source before saving
+                setTimeout(() => this.saveMapState(), 100);
+            });
+
+            this.map.addInteraction(this.draw);
+        },
+
+        stopDrawing() {
+            if (this.draw) {
+                this.map.removeInteraction(this.draw);
+                this.draw = null;
+            }
+            this.drawType = null;
+            this.isDrawing = false;
+            this.stopMeasuring();
+        },
+
+        clearDrawings() {
+            if (confirm("Clear all drawings from the map?")) {
+                this.drawSource.clear();
+                // clear tooltips if any
+                const overlays = this.map.getOverlays().getArray();
+                for (let i = overlays.length - 1; i >= 0; i--) {
+                    const overlay = overlays[i];
+                    if (overlay.get("isMeasureTooltip")) {
+                        this.map.removeOverlay(overlay);
+                    }
+                }
+                this.saveMapState();
+            }
+        },
+
+        // Measurement methods
+        toggleMeasure() {
+            if (!this.map) return;
+            if (this.isMeasuring) {
+                this.stopMeasuring();
+                this.drawType = null;
+                return;
+            }
+
+            this.stopDrawing();
+            this.isMeasuring = true;
+            this.drawType = "LineString";
+
+            this.createMeasureTooltip();
+            this.createHelpTooltip();
+
+            this.draw = new Draw({
+                source: this.drawSource,
+                type: "LineString",
+                style: new Style({
+                    fill: new Fill({
+                        color: "rgba(255, 255, 255, 0.2)",
+                    }),
+                    stroke: new Stroke({
+                        color: "rgba(0, 0, 0, 0.5)",
+                        lineDash: [10, 10],
+                        width: 2,
+                    }),
+                    image: new CircleStyle({
+                        radius: 5,
+                        stroke: new Stroke({
+                            color: "rgba(0, 0, 0, 0.7)",
+                        }),
+                        fill: new Fill({
+                            color: "rgba(255, 255, 255, 0.2)",
+                        }),
+                    }),
+                }),
+            });
+            this.map.addInteraction(this.draw);
+
+            let listener;
+            this.draw.on("drawstart", (evt) => {
+                this.sketch = evt.feature;
+                let tooltipCoord = evt.coordinate;
+
+                listener = this.sketch.getGeometry().on("change", (evt) => {
+                    const geom = evt.target;
+                    let output;
+                    if (geom instanceof Polygon) {
+                        output = this.formatArea(geom);
+                        tooltipCoord = geom.getInteriorPoint().getCoordinates();
+                    } else if (geom instanceof LineString) {
+                        output = this.formatLength(geom);
+                        tooltipCoord = geom.getLastCoordinate();
+                    }
+                    this.measureTooltipElement.innerHTML = output;
+                    this.measureTooltip.setPosition(tooltipCoord);
+                });
+            });
+
+            this.draw.on("drawend", () => {
+                this.measureTooltipElement.className = "ol-tooltip ol-tooltip-static";
+                this.measureTooltip.setOffset([0, -7]);
+                this.sketch = null;
+                this.measureTooltipElement = null;
+                this.createMeasureTooltip();
+                unByKey(listener);
+            });
+
+            this.map.on("pointermove", this.pointerMoveHandler);
+        },
+
+        stopMeasuring() {
+            this.isMeasuring = false;
+            if (this.draw && this.map) {
+                this.map.removeInteraction(this.draw);
+                this.draw = null;
+            }
+            if (this.map) {
+                this.map.un("pointermove", this.pointerMoveHandler);
+            }
+            if (this.helpTooltip && this.map) {
+                this.map.removeOverlay(this.helpTooltip);
+                this.helpTooltip = null;
+            }
+            this.sketch = null;
+        },
+
+        pointerMoveHandler(evt) {
+            if (evt.dragging) return;
+            let helpMsg = "Click to start drawing";
+            if (this.sketch) {
+                helpMsg = "Click to continue drawing, double-click to finish";
+            }
+            this.helpTooltipElement.innerHTML = helpMsg;
+            this.helpTooltip.setPosition(evt.coordinate);
+            this.helpTooltipElement.classList.remove("hidden");
+        },
+
+        formatLength(line) {
+            const length = getLength(line);
+            let output;
+            let imperialOutput;
+
+            // Metric
+            if (length > 100) {
+                output = Math.round((length / 1000) * 100) / 100 + " km";
+            } else {
+                output = Math.round(length * 100) / 100 + " m";
+            }
+
+            // Imperial
+            const feet = length * 3.28084;
+            if (feet > 5280) {
+                const miles = length * 0.000621371;
+                imperialOutput = Math.round(miles * 100) / 100 + " mi";
+            } else {
+                imperialOutput = Math.round(feet * 100) / 100 + " ft";
+            }
+
+            return `${output}<br/><span class="text-[10px] opacity-80">${imperialOutput}</span>`;
+        },
+
+        formatArea(polygon) {
+            const area = getArea(polygon);
+            let output;
+            let imperialOutput;
+
+            // Metric
+            if (area > 10000) {
+                output = Math.round((area / 1000000) * 100) / 100 + " km²";
+            } else {
+                output = Math.round(area * 100) / 100 + " m²";
+            }
+
+            // Imperial
+            const sqFeet = area * 10.7639;
+            if (sqFeet > 27878400) {
+                // > 1 sq mile
+                const sqMiles = area * 0.000000386102;
+                imperialOutput = Math.round(sqMiles * 100) / 100 + " mi²";
+            } else {
+                imperialOutput = Math.round(sqFeet * 100) / 100 + " ft²";
+            }
+
+            return `${output}<br/><span class="text-[10px] opacity-80">${imperialOutput}</span>`;
+        },
+
+        createHelpTooltip() {
+            if (!this.map) return;
+            if (this.helpTooltipElement && this.helpTooltipElement.parentNode) {
+                this.helpTooltipElement.parentNode.removeChild(this.helpTooltipElement);
+            }
+            this.helpTooltipElement = document.createElement("div");
+            this.helpTooltipElement.className = "ol-tooltip hidden";
+            this.helpTooltip = new Overlay({
+                element: this.helpTooltipElement,
+                offset: [15, 0],
+                positioning: "center-left",
+            });
+            this.map.addOverlay(this.helpTooltip);
+        },
+
+        createMeasureTooltip() {
+            if (!this.map) return;
+            this.measureTooltipElement = document.createElement("div");
+            this.measureTooltipElement.className = "ol-tooltip ol-tooltip-measure";
+            this.measureTooltip = new Overlay({
+                element: this.measureTooltipElement,
+                offset: [0, -15],
+                positioning: "bottom-center",
+                stopEvent: false,
+                insertFirst: false,
+            });
+            this.measureTooltip.set("isMeasureTooltip", true);
+            this.map.addOverlay(this.measureTooltip);
+        },
+
+        // Drawing storage methods
+        async openLoadDrawingModal() {
+            this.showLoadDrawingModal = true;
+            this.isLoadingDrawings = true;
+            try {
+                const response = await window.axios.get("/api/v1/map/drawings");
+                this.savedDrawings = response.data.drawings;
+            } catch {
+                ToastUtils.error("Failed to load drawings");
+            } finally {
+                this.isLoadingDrawings = false;
+            }
+        },
+
+        async saveDrawing() {
+            if (!this.newDrawingName.trim()) return;
+            if (!this.drawSource) {
+                ToastUtils.error("Map not initialized");
+                return;
+            }
+
+            const format = new GeoJSON();
+            const features = this.drawSource.getFeatures();
+            const json = format.writeFeatures(features);
+
+            try {
+                await window.axios.post("/api/v1/map/drawings", {
+                    name: this.newDrawingName,
+                    data: json,
+                });
+                ToastUtils.success("Drawing saved");
+                this.showSaveDrawingModal = false;
+                this.newDrawingName = "";
+            } catch {
+                ToastUtils.error("Failed to save drawing");
+            }
+        },
+
+        async loadDrawing(drawing) {
+            const format = new GeoJSON();
+            const features = format.readFeatures(drawing.data, {
+                dataProjection: "EPSG:4326",
+                featureProjection: "EPSG:3857",
+            });
+            this.drawSource.clear();
+            this.drawSource.addFeatures(features);
+            this.showLoadDrawingModal = false;
+            ToastUtils.success(`Loaded "${drawing.name}"`);
+        },
+
+        async deleteDrawing(drawing) {
+            if (!confirm(`Delete drawing "${drawing.name}"?`)) return;
+            try {
+                await window.axios.delete(`/api/v1/map/drawings/${drawing.id}`);
+                this.savedDrawings = this.savedDrawings.filter((d) => d.id !== drawing.id);
+                ToastUtils.success("Deleted");
+            } catch {
+                ToastUtils.error("Failed to delete");
+            }
+        },
+
+        goToMyLocation() {
+            // Priority 1: Use telemetry data if available for our own hash
+            if (this.config && this.config.identity_hash) {
+                const myTelemetry = this.telemetryList.find((t) => t.destination_hash === this.config.identity_hash);
+                if (myTelemetry && myTelemetry.telemetry?.location) {
+                    const loc = myTelemetry.telemetry.location;
+                    this.map.getView().animate({
+                        center: fromLonLat([loc.longitude, loc.latitude]),
+                        zoom: 15,
+                        duration: 1000,
+                    });
+                    return;
+                }
+            }
+
+            // Priority 2: Use browser geolocation if online or available
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        this.map.getView().animate({
+                            center: fromLonLat([pos.coords.longitude, pos.coords.latitude]),
+                            zoom: 15,
+                            duration: 1000,
+                        });
+                    },
+                    (err) => {
+                        console.error("Geolocation failed", err);
+                        ToastUtils.warning("Could not determine your location");
+                    }
+                );
+            } else {
+                ToastUtils.warning("Geolocation is not supported by your browser");
+            }
+        },
         async fetchTelemetryMarkers() {
+            if (!window.axios) return;
             try {
                 const response = await window.axios.get("/api/v1/telemetry/peers");
                 this.telemetryList = response.data.telemetry;
@@ -1602,5 +2313,42 @@ export default {
 
 .cursor-crosshair {
     cursor: crosshair !important;
+}
+
+:deep(.ol-tooltip) {
+    position: relative;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 4px;
+    color: white;
+    padding: 4px 8px;
+    opacity: 0.7;
+    font-size: 12px;
+    cursor: default;
+    user-select: none;
+    text-align: center;
+    line-height: 1.2;
+}
+:deep(.ol-tooltip-measure) {
+    opacity: 1;
+    font-weight: bold;
+}
+:deep(.ol-tooltip-static) {
+    background-color: #3b82f6;
+    color: white;
+    border: 1px solid white;
+}
+:deep(.ol-tooltip-measure:before),
+:deep(.ol-tooltip-static:before) {
+    border-top: 6px solid rgba(0, 0, 0, 0.7);
+    border-right: 6px solid transparent;
+    border-left: 6px solid transparent;
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    margin-left: -7px;
+    left: 50%;
+}
+:deep(.ol-tooltip-static:before) {
+    border-top-color: #3b82f6;
 }
 </style>

@@ -25,70 +25,70 @@
                 </button>
             </div>
 
-            <div class="p-8 flex flex-col items-center">
-                <div v-if="isLoading" class="flex flex-col items-center py-12">
-                    <div class="size-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-                    <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 font-medium">Generating Paper Message...</p>
+            <div class="p-4 sm:p-6 flex flex-col items-center">
+                <div v-if="isLoading" class="flex flex-col items-center py-8">
+                    <div class="size-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                    <p class="mt-4 text-xs text-gray-500 dark:text-gray-400 font-medium">Generating Paper Message...</p>
                 </div>
                 <template v-else-if="uri">
                     <!-- QR code container -->
-                    <div class="p-6 bg-white rounded-3xl shadow-inner border border-gray-100 mb-8 relative group">
-                        <div ref="qrcode" class="size-64 sm:size-80 flex items-center justify-center overflow-hidden">
-                            <!-- qr code will be rendered here -->
+                    <div class="p-4 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6 relative group">
+                        <div class="size-48 sm:size-64 flex items-center justify-center overflow-hidden">
+                            <canvas ref="qrcode"></canvas>
                         </div>
                         <div
-                            class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 backdrop-blur-[2px] rounded-3xl pointer-events-none"
+                            class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 backdrop-blur-[2px] rounded-2xl pointer-events-none"
                         >
                             <div
-                                class="p-3 bg-white/90 dark:bg-zinc-900/90 rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-700"
+                                class="p-2 bg-white/90 dark:bg-zinc-900/90 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700"
                             >
-                                <MaterialDesignIcon icon-name="magnify-plus-outline" class="size-8 text-blue-500" />
+                                <MaterialDesignIcon icon-name="magnify-plus-outline" class="size-6 text-blue-500" />
                             </div>
                         </div>
                     </div>
 
-                    <div class="w-full space-y-4">
+                    <div class="w-full space-y-3">
                         <div
-                            class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-gray-100 dark:border-zinc-700/50"
+                            class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
                         >
                             <label
-                                class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2"
+                                class="block text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
                             >
                                 LXMF URI
                             </label>
-                            <div class="flex gap-3">
+                            <div class="flex gap-2">
                                 <div
-                                    class="flex-1 font-mono text-xs break-all text-gray-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-700 max-h-24 overflow-y-auto"
+                                    class="flex-1 font-mono text-[10px] break-all text-gray-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-2 rounded-lg border border-gray-200 dark:border-zinc-700 max-h-20 overflow-y-auto"
                                 >
                                     {{ uri }}
                                 </div>
                                 <button
                                     type="button"
-                                    class="size-10 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-xl border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                                    class="size-9 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
                                     title="Copy URI"
                                     @click="copyUri"
                                 >
-                                    <MaterialDesignIcon icon-name="content-copy" class="size-5" />
+                                    <MaterialDesignIcon icon-name="content-copy" class="size-4" />
                                 </button>
                             </div>
                         </div>
 
-                        <div class="flex gap-3 pt-2">
+                        <div class="flex gap-2 pt-1">
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-3.5 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
                                 @click="printQRCode"
                             >
-                                <MaterialDesignIcon icon-name="printer" class="size-5" />
-                                Print Message
+                                <MaterialDesignIcon icon-name="printer" class="size-4" />
+                                Print
                             </button>
                             <button
                                 type="button"
-                                class="flex-1 flex items-center justify-center gap-2 py-3.5 px-6 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 rounded-2xl font-bold transition-all active:scale-[0.98]"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 rounded-xl font-bold transition-all active:scale-[0.98] text-sm"
                                 @click="downloadQRCode"
                             >
-                                <MaterialDesignIcon icon-name="download" class="size-5" />
-                                Save Image
+                                <MaterialDesignIcon icon-name="download" class="size-4" />
+                                Save
                             </button>
                         </div>
                     </div>
@@ -116,6 +116,7 @@
 </template>
 
 <script>
+import QRCode from "qrcode";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 
@@ -133,31 +134,12 @@ export default {
         return {
             uri: null,
             isLoading: true,
-            qrCodeLibrary: null,
         };
     },
     async mounted() {
-        await this.loadQRCodeLibrary();
         await this.fetchUri();
     },
     methods: {
-        async loadQRCodeLibrary() {
-            // we will use a simple cdn script for qrcode
-            if (window.QRCode) {
-                this.qrCodeLibrary = window.QRCode;
-                return;
-            }
-
-            return new Promise((resolve) => {
-                const script = document.createElement("script");
-                script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-                script.onload = () => {
-                    this.qrCodeLibrary = window.QRCode;
-                    resolve();
-                };
-                document.head.appendChild(script);
-            });
-        },
         async fetchUri() {
             try {
                 this.isLoading = true;
@@ -174,27 +156,29 @@ export default {
                 this.isLoading = false;
             }
         },
-        renderQRCode() {
-            if (!this.qrCodeLibrary || !this.$refs.qrcode) return;
+        async renderQRCode() {
+            if (!this.uri || !this.$refs.qrcode) return;
 
-            // Clear previous content
-            this.$refs.qrcode.innerHTML = "";
+            try {
+                await QRCode.toCanvas(this.$refs.qrcode, this.uri, {
+                    width: 320,
+                    margin: 2,
+                    color: {
+                        dark: "#000000",
+                        light: "#ffffff",
+                    },
+                    errorCorrectionLevel: "L",
+                });
 
-            new this.qrCodeLibrary(this.$refs.qrcode, {
-                text: this.uri,
-                width: 320,
-                height: 320,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: this.qrCodeLibrary.CorrectLevel.L,
-            });
-
-            // Add custom styling to the generated img/canvas
-            const el = this.$refs.qrcode.querySelector("img") || this.$refs.qrcode.querySelector("canvas");
-            if (el) {
-                el.style.maxWidth = "100%";
-                el.style.height = "auto";
-                el.classList.add("rounded-lg");
+                const el = this.$refs.qrcode;
+                if (el) {
+                    el.style.maxWidth = "100%";
+                    el.style.height = "auto";
+                    el.classList.add("rounded-lg");
+                }
+            } catch (err) {
+                console.error("Failed to render QR code:", err);
+                ToastUtils.error("Failed to render QR code");
             }
         },
         close() {
@@ -209,16 +193,10 @@ export default {
             }
         },
         downloadQRCode() {
-            const canvas = this.$refs.qrcode.querySelector("canvas");
-            const img = this.$refs.qrcode.querySelector("img");
+            const canvas = this.$refs.qrcode;
+            if (!canvas) return;
 
-            let dataUrl = "";
-            if (img && img.src) {
-                dataUrl = img.src;
-            } else if (canvas) {
-                dataUrl = canvas.toDataURL("image/png");
-            }
-
+            const dataUrl = canvas.toDataURL("image/png");
             if (dataUrl) {
                 const link = document.createElement("a");
                 link.download = `lxmf-paper-message-${this.messageHash.substring(0, 8)}.png`;
@@ -227,9 +205,10 @@ export default {
             }
         },
         printQRCode() {
-            const dataUrl =
-                this.$refs.qrcode.querySelector("img")?.src ||
-                this.$refs.qrcode.querySelector("canvas")?.toDataURL("image/png");
+            const canvas = this.$refs.qrcode;
+            if (!canvas) return;
+
+            const dataUrl = canvas.toDataURL("image/png");
             if (!dataUrl) return;
 
             const printWindow = window.open("", "_blank");

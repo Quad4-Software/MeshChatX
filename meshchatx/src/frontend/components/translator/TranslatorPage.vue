@@ -15,6 +15,30 @@
                         </div>
                     </div>
 
+                    <div
+                        v-if="config && !config.translator_enabled"
+                        class="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30"
+                    >
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                                <MaterialDesignIcon
+                                    icon-name="alert-outline"
+                                    class="size-5 text-amber-600 dark:text-amber-400"
+                                />
+                            </div>
+                            <div class="flex-1 text-sm text-amber-800 dark:text-amber-200">
+                                <p class="font-bold mb-1">Translator is Disabled</p>
+                                <p class="opacity-90">
+                                    The translation service is currently disabled in your settings. You can enable it
+                                    under
+                                    <RouterLink :to="{ name: 'settings' }" class="font-bold underline"
+                                        >Settings</RouterLink
+                                    >.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="border-b border-gray-200 dark:border-zinc-700">
                         <div class="flex -mb-px">
                             <button
@@ -348,6 +372,7 @@ export default {
     },
     data() {
         return {
+            config: null,
             languages: [],
             sourceLang: "",
             targetLang: "",
@@ -363,7 +388,12 @@ export default {
     },
     computed: {
         canTranslate() {
-            return this.inputText.trim().length > 0 && this.targetLang && this.targetLang !== this.sourceLang;
+            return (
+                this.config?.translator_enabled &&
+                this.inputText.trim().length > 0 &&
+                this.targetLang &&
+                this.targetLang !== this.sourceLang
+            );
         },
         useArgos() {
             return this.translationMode === "argos";
@@ -395,10 +425,24 @@ export default {
         },
     },
     mounted() {
-        this.loadLanguages();
+        this.getConfig();
     },
     methods: {
+        async getConfig() {
+            try {
+                const response = await window.axios.get("/api/v1/config");
+                this.config = response.data.config;
+                if (this.config.translator_enabled) {
+                    this.loadLanguages();
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        },
         async loadLanguages() {
+            if (this.config && !this.config.translator_enabled) {
+                return;
+            }
             try {
                 const params = {};
                 if (this.translationMode === "libretranslate" && this.libretranslateUrl) {

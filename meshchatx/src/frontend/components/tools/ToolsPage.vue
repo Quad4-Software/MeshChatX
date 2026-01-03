@@ -98,6 +98,19 @@
                     <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
                 </RouterLink>
 
+                <RouterLink :to="{ name: 'documentation' }" class="tool-card glass-card">
+                    <div class="tool-card__icon bg-cyan-50 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-200">
+                        <MaterialDesignIcon icon-name="book-open-variant" class="w-6 h-6" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="tool-card__title">{{ $t("docs.title") }}</div>
+                        <div class="tool-card__description">
+                            {{ $t("docs.subtitle") }}
+                        </div>
+                    </div>
+                    <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                </RouterLink>
+
                 <RouterLink :to="{ name: 'micron-editor' }" class="tool-card glass-card">
                     <div class="tool-card__icon bg-teal-50 text-teal-500 dark:bg-teal-900/30 dark:text-teal-200">
                         <MaterialDesignIcon icon-name="code-tags" class="w-6 h-6" />
@@ -138,6 +151,19 @@
                     </div>
                     <MaterialDesignIcon icon-name="open-in-new" class="tool-card__chevron" />
                 </a>
+
+                <RouterLink :to="{ name: 'debug-logs' }" class="tool-card glass-card border-dashed border-2">
+                    <div class="tool-card__icon bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                        <MaterialDesignIcon icon-name="console" class="w-6 h-6" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="tool-card__title">Debug Logs</div>
+                        <div class="tool-card__description">
+                            View and export internal system logs for troubleshooting.
+                        </div>
+                    </div>
+                    <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                </RouterLink>
             </div>
         </div>
     </div>

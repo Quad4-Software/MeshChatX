@@ -107,7 +107,9 @@ export default {
                             quality: 0.2,
                             mimeType: "image/webp",
                             success: (result) => {
-                                this.$emit("add-image", result);
+                                // ensure result is a File with the same name as original
+                                const compressedFile = new File([result], file.name, { type: result.type });
+                                this.$emit("add-image", compressedFile);
                             },
                             error: (err) => {
                                 DialogUtils.alert(err.message);
@@ -122,7 +124,9 @@ export default {
                             quality: 0.6,
                             mimeType: "image/webp",
                             success: (result) => {
-                                this.$emit("add-image", result);
+                                // ensure result is a File with the same name as original
+                                const compressedFile = new File([result], file.name, { type: result.type });
+                                this.$emit("add-image", compressedFile);
                             },
                             error: (err) => {
                                 DialogUtils.alert(err.message);
@@ -137,7 +141,9 @@ export default {
                             quality: 0.75,
                             mimeType: "image/webp",
                             success: (result) => {
-                                this.$emit("add-image", result);
+                                // ensure result is a File with the same name as original
+                                const compressedFile = new File([result], file.name, { type: result.type });
+                                this.$emit("add-image", compressedFile);
                             },
                             error: (err) => {
                                 DialogUtils.alert(err.message);

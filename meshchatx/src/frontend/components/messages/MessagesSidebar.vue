@@ -70,7 +70,7 @@
             </div>
 
             <!-- conversations -->
-            <div class="flex h-full overflow-y-auto">
+            <div class="flex h-full overflow-y-auto" @scroll="onConversationsScroll">
                 <div v-if="isLoading" class="w-full divide-y divide-gray-100 dark:divide-zinc-800">
                     <div v-for="i in 6" :key="i" class="p-3 animate-pulse">
                         <div class="flex gap-3">
@@ -86,7 +86,15 @@
                     <div
                         v-for="conversation of displayedConversations"
                         :key="conversation.destination_hash"
-                        class="flex cursor-pointer p-2 border-l-2"
+                        v-memo="[
+                            conversation.destination_hash,
+                            conversation.updated_at,
+                            conversation.is_unread,
+                            conversation.failed_messages_count,
+                            selectedDestinationHash === conversation.destination_hash,
+                            GlobalState.config.banished_effect_enabled && isBlocked(conversation.destination_hash),
+                        ]"
+                        class="flex cursor-pointer p-2 border-l-2 relative"
                         :class="[
                             conversation.destination_hash === selectedDestinationHash
                                 ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
@@ -94,26 +102,33 @@
                         ]"
                         @click="onConversationClick(conversation)"
                     >
+                        <!-- banished overlay -->
+                        <div
+                            v-if="
+                                GlobalState.config.banished_effect_enabled && isBlocked(conversation.destination_hash)
+                            "
+                            class="banished-overlay"
+                            :style="{ background: GlobalState.config.banished_color + '33' }"
+                        >
+                            <span
+                                class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                :style="{ 'background-color': GlobalState.config.banished_color }"
+                                >{{ GlobalState.config.banished_text }}</span
+                            >
+                        </div>
+
                         <div class="my-auto mr-2">
-                            <div
-                                v-if="conversation.lxmf_user_icon"
-                                class="p-2 rounded"
-                                :style="{
-                                    color: conversation.lxmf_user_icon.foreground_colour,
-                                    'background-color': conversation.lxmf_user_icon.background_colour,
-                                }"
-                            >
-                                <MaterialDesignIcon
-                                    :icon-name="conversation.lxmf_user_icon.icon_name"
-                                    class="w-6 h-6"
-                                />
-                            </div>
-                            <div
-                                v-else
-                                class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded"
-                            >
-                                <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6" />
-                            </div>
+                            <LxmfUserIcon
+                                :custom-image="conversation.contact_image"
+                                :icon-name="conversation.lxmf_user_icon ? conversation.lxmf_user_icon.icon_name : ''"
+                                :icon-foreground-colour="
+                                    conversation.lxmf_user_icon ? conversation.lxmf_user_icon.foreground_colour : ''
+                                "
+                                :icon-background-colour="
+                                    conversation.lxmf_user_icon ? conversation.lxmf_user_icon.background_colour : ''
+                                "
+                                icon-class="w-6 h-6"
+                            />
                         </div>
                         <div class="mr-auto w-full pr-2 min-w-0">
                             <div class="flex justify-between gap-2 min-w-0">
@@ -122,7 +137,9 @@
                                     :title="conversation.custom_display_name ?? conversation.display_name"
                                     :class="{
                                         'font-semibold':
-                                            conversation.is_unread || conversation.failed_messages_count > 0,
+                                            (conversation.is_unread &&
+                                                conversation.destination_hash !== selectedDestinationHash) ||
+                                            conversation.failed_messages_count > 0,
                                     }"
                                 >
                                     {{ conversation.custom_display_name ?? conversation.display_name }}
@@ -143,7 +160,12 @@
                             <div v-if="conversation.has_attachments" class="text-gray-500 dark:text-gray-300">
                                 <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
                             </div>
-                            <div v-if="conversation.is_unread" class="my-auto ml-1">
+                            <div
+                                v-if="
+                                    conversation.is_unread && conversation.destination_hash !== selectedDestinationHash
+                                "
+                                class="my-auto ml-1"
+                            >
                                 <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
                             </div>
                             <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
@@ -151,45 +173,24 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- loading more spinner -->
+                    <div v-if="isLoadingMore" class="p-4 text-center">
+                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
+                    </div>
                 </div>
                 <div v-else class="mx-auto my-auto text-center leading-5">
                     <div v-if="isLoading" class="flex flex-col text-gray-900 dark:text-gray-100">
-                        <div class="mx-auto mb-1 animate-spin text-gray-500">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                                />
-                            </svg>
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin" />
                         </div>
                         <div class="font-semibold">{{ $t("messages.loading_conversations") }}</div>
                     </div>
 
                     <!-- no conversations at all -->
                     <div v-else-if="conversations.length === 0" class="flex flex-col text-gray-900 dark:text-gray-100">
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="size-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z"
-                                />
-                            </svg>
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="tray-remove" class="size-6" />
                         </div>
                         <div class="font-semibold">No Conversations</div>
                         <div>Discover peers on the Announces tab</div>
@@ -200,21 +201,8 @@
                         v-else-if="conversationSearchTerm !== ''"
                         class="flex flex-col text-gray-900 dark:text-gray-100"
                     >
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                                />
-                            </svg>
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="magnify-close" class="size-6" />
                         </div>
                         <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
                         <div>{{ $t("messages.no_search_results_conversations") }}</div>
@@ -229,22 +217,31 @@
             class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-700 overflow-hidden min-h-0"
         >
             <!-- search -->
-            <div v-if="peersCount > 0" class="p-1 border-b border-gray-300 dark:border-zinc-700">
+            <div class="p-1 border-b border-gray-300 dark:border-zinc-700">
                 <input
-                    v-model="peersSearchTerm"
+                    :value="peersSearchTerm"
                     type="text"
-                    :placeholder="$t('messages.search_placeholder_announces', { count: peersCount })"
+                    :placeholder="$t('messages.search_placeholder_announces', { count: totalPeersCount })"
                     class="input-field"
+                    @input="onPeersSearchInput"
                 />
             </div>
 
             <!-- peers -->
-            <div class="flex h-full overflow-y-auto">
+            <div class="flex h-full overflow-y-auto" @scroll="onPeersScroll">
                 <div v-if="searchedPeers.length > 0" class="w-full">
                     <div
                         v-for="peer of searchedPeers"
                         :key="peer.destination_hash"
-                        class="flex cursor-pointer p-2 border-l-2"
+                        v-memo="[
+                            peer.destination_hash,
+                            peer.updated_at,
+                            peer.hops,
+                            peer.snr,
+                            selectedDestinationHash === peer.destination_hash,
+                            GlobalState.config.banished_effect_enabled && isBlocked(peer.destination_hash),
+                        ]"
+                        class="flex cursor-pointer p-2 border-l-2 relative"
                         :class="[
                             peer.destination_hash === selectedDestinationHash
                                 ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
@@ -252,6 +249,19 @@
                         ]"
                         @click="onPeerClick(peer)"
                     >
+                        <!-- banished overlay -->
+                        <div
+                            v-if="GlobalState.config.banished_effect_enabled && isBlocked(peer.destination_hash)"
+                            class="banished-overlay"
+                            :style="{ background: GlobalState.config.banished_color + '33' }"
+                        >
+                            <span
+                                class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                :style="{ 'background-color': GlobalState.config.banished_color }"
+                                >{{ GlobalState.config.banished_text }}</span
+                            >
+                        </div>
+
                         <div class="my-auto mr-2">
                             <div
                                 v-if="peer.lxmf_user_icon"
@@ -301,25 +311,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- loading more spinner -->
+                    <div v-if="isLoadingMoreAnnounces" class="p-4 text-center">
+                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
+                    </div>
                 </div>
                 <div v-else class="mx-auto my-auto text-center leading-5">
                     <!-- no peers at all -->
                     <div v-if="peersCount === 0" class="flex flex-col text-gray-900 dark:text-gray-100">
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
-                                />
-                            </svg>
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="account-search-outline" class="size-6" />
                         </div>
                         <div class="font-semibold">{{ $t("messages.no_peers_discovered") }}</div>
                         <div>{{ $t("messages.waiting_for_announce") }}</div>
@@ -330,21 +332,8 @@
                         v-if="peersSearchTerm !== '' && peersCount > 0"
                         class="flex flex-col text-gray-900 dark:text-gray-100"
                     >
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                                />
-                            </svg>
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="account-off-outline" class="size-6" />
                         </div>
                         <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
                         <div>{{ $t("messages.no_search_results_peers") }}</div>
@@ -358,10 +347,12 @@
 <script>
 import Utils from "../../js/Utils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
+import GlobalState from "../../js/GlobalState";
 
 export default {
     name: "MessagesSidebar",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, LxmfUserIcon },
     props: {
         peers: {
             type: Object,
@@ -395,21 +386,51 @@ export default {
             type: Boolean,
             default: false,
         },
+        isLoadingMore: {
+            type: Boolean,
+            default: false,
+        },
+        hasMoreConversations: {
+            type: Boolean,
+            default: false,
+        },
+        isLoadingMoreAnnounces: {
+            type: Boolean,
+            default: false,
+        },
+        hasMoreAnnounces: {
+            type: Boolean,
+            default: false,
+        },
+        peersSearchTerm: {
+            type: String,
+            default: "",
+        },
+        totalPeersCount: {
+            type: Number,
+            default: 0,
+        },
     },
     emits: [
         "conversation-click",
         "peer-click",
         "conversation-search-changed",
         "conversation-filter-changed",
+        "peers-search-changed",
         "ingest-paper-message",
+        "load-more",
+        "load-more-announces",
     ],
     data() {
         return {
+            GlobalState,
             tab: "conversations",
-            peersSearchTerm: "",
         };
     },
     computed: {
+        blockedDestinations() {
+            return GlobalState.blockedDestinations;
+        },
         displayedConversations() {
             return this.conversations;
         },
@@ -418,12 +439,13 @@ export default {
         },
         peersOrderedByLatestAnnounce() {
             const peers = Object.values(this.peers);
-            return peers.sort(function (peerA, peerB) {
-                // order by updated_at desc
-                const peerAUpdatedAt = new Date(peerA.updated_at).getTime();
-                const peerBUpdatedAt = new Date(peerB.updated_at).getTime();
-                return peerBUpdatedAt - peerAUpdatedAt;
-            });
+            // Pre-parse timestamps for sorting performance
+            const timedPeers = peers.map((p) => ({
+                p,
+                t: p._updated_at_ts || (p._updated_at_ts = new Date(p.updated_at).getTime()),
+            }));
+            timedPeers.sort((a, b) => b.t - a.t);
+            return timedPeers.map((tp) => tp.p);
         },
         searchedPeers() {
             return this.peersOrderedByLatestAnnounce.filter((peer) => {
@@ -436,13 +458,22 @@ export default {
         },
     },
     methods: {
+        isBlocked(destinationHash) {
+            return this.blockedDestinations.some((b) => b.destination_hash === destinationHash);
+        },
         openIngestPaperMessageModal() {
             this.$emit("ingest-paper-message");
         },
         onConversationClick(conversation) {
+            if (this.isBlocked(conversation.destination_hash)) {
+                return;
+            }
             this.$emit("conversation-click", conversation);
         },
         onPeerClick(peer) {
+            if (this.isBlocked(peer.destination_hash)) {
+                return;
+            }
             this.$emit("peer-click", peer);
         },
         formatTimeAgo: function (datetimeString) {
@@ -453,6 +484,27 @@ export default {
         },
         toggleFilter(filterKey) {
             this.$emit("conversation-filter-changed", filterKey);
+        },
+        onConversationsScroll(event) {
+            const element = event.target;
+            // if scrolled near bottom (within 200px)
+            if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
+                if (this.hasMoreConversations && !this.isLoadingMore && !this.isLoading) {
+                    this.$emit("load-more");
+                }
+            }
+        },
+        onPeersScroll(event) {
+            const element = event.target;
+            // if scrolled near bottom (within 200px)
+            if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
+                if (this.hasMoreAnnounces && !this.isLoadingMoreAnnounces) {
+                    this.$emit("load-more-announces");
+                }
+            }
+        },
+        onPeersSearchInput(event) {
+            this.$emit("peers-search-changed", event.target.value);
         },
         filterChipClasses(isActive) {
             const base = "px-2 py-1 rounded-full text-xs font-semibold transition-colors";

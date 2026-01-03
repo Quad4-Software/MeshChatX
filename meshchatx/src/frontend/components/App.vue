@@ -419,14 +419,26 @@
             </template>
         </template>
         <CallOverlay
-            v-if="(activeCall || isCallEnded || wasDeclined) && $route.name !== 'call'"
+            v-if="
+                (activeCall || isCallEnded || wasDeclined || initiationStatus) &&
+                ($route.name !== 'call' || activeCallTab !== 'phone') &&
+                (!config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron() || $route.meta.isPopout)
+            "
             :active-call="activeCall || lastCall"
             :is-ended="isCallEnded"
             :was-declined="wasDeclined"
+            :voicemail-status="voicemailStatus"
+            :initiation-status="initiationStatus"
             @hangup="onOverlayHangup"
+            @toggle-mic="onToggleMic"
+            @toggle-speaker="onToggleSpeaker"
         />
         <Toast />
+        <ConfirmDialog />
         <CommandPalette />
+        <IntegrityWarningModal />
+        <ChangelogModal ref="changelogModal" />
+        <TutorialModal ref="tutorialModal" />
 
         <!-- identity switching overlay -->
         <transition name="fade-blur">
@@ -463,13 +475,18 @@ import GlobalEmitter from "../js/GlobalEmitter";
 import NotificationUtils from "../js/NotificationUtils";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 import Toast from "./Toast.vue";
+import ConfirmDialog from "./ConfirmDialog.vue";
 import ToastUtils from "../js/ToastUtils";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import NotificationBell from "./NotificationBell.vue";
 import LanguageSelector from "./LanguageSelector.vue";
 import CallOverlay from "./call/CallOverlay.vue";
 import CommandPalette from "./CommandPalette.vue";
+import IntegrityWarningModal from "./IntegrityWarningModal.vue";
+import ChangelogModal from "./ChangelogModal.vue";
+import TutorialModal from "./TutorialModal.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
+import ElectronUtils from "../js/ElectronUtils";
 import logoUrl from "../assets/images/logo.png";
 
 export default {
@@ -478,15 +495,20 @@ export default {
         LxmfUserIcon,
         SidebarLink,
         Toast,
+        ConfirmDialog,
         MaterialDesignIcon,
         NotificationBell,
         LanguageSelector,
         CallOverlay,
         CommandPalette,
+        IntegrityWarningModal,
+        ChangelogModal,
+        TutorialModal,
     },
     data() {
         return {
             logoUrl,
+            ElectronUtils,
             reloadInterval: null,
             appInfoInterval: null,
 
@@ -501,14 +523,22 @@ export default {
             displayName: "Anonymous Peer",
             config: null,
             appInfo: null,
+            hasCheckedForModals: false,
 
             activeCall: null,
             propagationNodeStatus: null,
             isCallEnded: false,
             wasDeclined: false,
             lastCall: null,
+            voicemailStatus: null,
+            isMicMuting: false,
+            isSpeakerMuting: false,
             endedTimeout: null,
             ringtonePlayer: null,
+            isFetchingRingtone: false,
+            initiationStatus: null,
+            initiationTargetHash: null,
+            isCallWindowOpen: false,
         };
     },
     computed: {
@@ -534,6 +564,9 @@ export default {
                 "response_received",
                 "complete",
             ].includes(this.propagationNodeStatus?.state);
+        },
+        activeCallTab() {
+            return GlobalState.activeCallTab;
         },
     },
     watch: {
@@ -591,12 +624,24 @@ export default {
             this.handleKeyboardShortcut(action);
         });
 
+        GlobalEmitter.on("block-status-changed", () => {
+            this.getBlockedDestinations();
+        });
+
         this.getAppInfo();
         this.getConfig();
+        this.getBlockedDestinations();
         this.getKeyboardShortcuts();
         this.updateRingtonePlayer();
         this.updateTelephoneStatus();
         this.updatePropagationNodeStatus();
+
+        // listen for protocol links in electron
+        if (ElectronUtils.isElectron()) {
+            window.electron.onProtocolLink((url) => {
+                this.handleProtocolLink(url);
+            });
+        }
 
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
@@ -618,6 +663,7 @@ export default {
             switch (json.type) {
                 case "config": {
                     this.config = json.config;
+                    GlobalState.config = json.config;
                     this.displayName = json.config.display_name;
                     if (this.config?.theme) {
                         if (this.config.theme === "dark") {
@@ -652,6 +698,11 @@ export default {
                     );
                     break;
                 }
+                case "telephone_initiation_status": {
+                    this.initiationStatus = json.status;
+                    this.initiationTargetHash = json.target_hash;
+                    break;
+                }
                 case "new_voicemail": {
                     NotificationUtils.showNewVoicemailNotification(
                         json.remote_identity_name || json.remote_identity_hash
@@ -662,7 +713,22 @@ export default {
                 case "telephone_call_established":
                 case "telephone_call_ended": {
                     this.stopRingtone();
+                    this.ringtonePlayer = null;
                     this.updateTelephoneStatus();
+                    break;
+                }
+                case "lxmf.delivery": {
+                    if (this.config?.do_not_disturb_enabled) {
+                        break;
+                    }
+
+                    // show notification for new messages if window is not focussed
+                    if (!document.hasFocus()) {
+                        NotificationUtils.showNewMessageNotification(
+                            json.remote_identity_name,
+                            json.lxmf_message?.content
+                        );
+                    }
                     break;
                 }
                 case "identity_switched": {
@@ -689,6 +755,17 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/app/info`);
                 this.appInfo = response.data.app_info;
+
+                // check if we should show tutorial or changelog (only on first load)
+                if (!this.hasCheckedForModals) {
+                    this.hasCheckedForModals = true;
+                    if (this.appInfo && !this.appInfo.tutorial_seen) {
+                        this.$refs.tutorialModal.show();
+                    } else if (this.appInfo && this.appInfo.changelog_seen_version !== this.appInfo.version) {
+                        // show changelog if version changed
+                        this.$refs.changelogModal.show();
+                    }
+                }
             } catch (e) {
                 // do nothing if failed to load app info
                 console.log(e);
@@ -698,6 +775,7 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/config`);
                 this.config = response.data.config;
+                GlobalState.config = response.data.config;
                 if (this.config?.theme) {
                     if (this.config.theme === "dark") {
                         document.documentElement.classList.add("dark");
@@ -708,6 +786,14 @@ export default {
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);
+            }
+        },
+        async getBlockedDestinations() {
+            try {
+                const response = await window.axios.get("/api/v1/blocked-destinations");
+                GlobalState.blockedDestinations = response.data.blocked_destinations || [];
+            } catch (e) {
+                console.log("Failed to load blocked destinations:", e);
             }
         },
         async getKeyboardShortcuts() {
@@ -865,6 +951,9 @@ export default {
                     if (status.has_custom_ringtone && status.id) {
                         this.ringtonePlayer = new Audio(`/api/v1/telephone/ringtones/${status.id}/audio`);
                         this.ringtonePlayer.loop = true;
+                        if (status.volume !== undefined) {
+                            this.ringtonePlayer.volume = status.volume;
+                        }
                     }
                 } catch (e) {
                     console.error("Failed to update ringtone player:", e);
@@ -873,15 +962,21 @@ export default {
         },
         playRingtone() {
             if (this.ringtonePlayer) {
-                this.ringtonePlayer.play().catch((e) => {
-                    console.log("Failed to play custom ringtone:", e);
-                });
+                if (this.ringtonePlayer.paused) {
+                    this.ringtonePlayer.play().catch((e) => {
+                        console.log("Failed to play custom ringtone:", e);
+                    });
+                }
             }
         },
         stopRingtone() {
             if (this.ringtonePlayer) {
-                this.ringtonePlayer.pause();
-                this.ringtonePlayer.currentTime = 0;
+                try {
+                    this.ringtonePlayer.pause();
+                    this.ringtonePlayer.currentTime = 0;
+                } catch {
+                    // ignore errors during pause
+                }
             }
         },
         async updateTelephoneStatus() {
@@ -889,13 +984,80 @@ export default {
                 // fetch status
                 const response = await axios.get("/api/v1/telephone/status");
                 const oldCall = this.activeCall;
+                const newCall = response.data.active_call;
 
                 // update ui
-                this.activeCall = response.data.active_call;
+                this.activeCall = newCall;
+                this.voicemailStatus = response.data.voicemail;
+                this.initiationStatus = response.data.initiation_status;
+                this.initiationTargetHash = response.data.initiation_target_hash;
 
-                // Stop ringtone if not ringing anymore
-                if (this.activeCall?.status !== 4) {
-                    this.stopRingtone();
+                // Handle power management for calls
+                if (ElectronUtils.isElectron()) {
+                    if (this.activeCall) {
+                        window.electron.setPowerSaveBlocker(true);
+                    } else if (!this.initiationStatus) {
+                        window.electron.setPowerSaveBlocker(false);
+                    }
+                }
+
+                // Handle opening call in separate window if enabled
+                if (
+                    (this.activeCall || this.initiationStatus) &&
+                    this.config?.desktop_open_calls_in_separate_window &&
+                    ElectronUtils.isElectron()
+                ) {
+                    if (!this.isCallWindowOpen && !this.$route.meta.isPopout) {
+                        this.isCallWindowOpen = true;
+                        window.open("/call.html", "_blank", "width=600,height=800");
+                    }
+                } else {
+                    this.isCallWindowOpen = false;
+                }
+
+                // Handle ringtone
+                if (this.activeCall?.status === 4) {
+                    // Call is ringing
+                    if (!this.ringtonePlayer && this.config?.custom_ringtone_enabled && !this.isFetchingRingtone) {
+                        this.isFetchingRingtone = true;
+                        try {
+                            const caller_hash = this.activeCall.remote_identity_hash;
+                            const ringResponse = await window.axios.get(
+                                `/api/v1/telephone/ringtones/status?caller_hash=${caller_hash}`
+                            );
+                            const status = ringResponse.data;
+                            if (status.has_custom_ringtone && status.id) {
+                                // Double check if we still need to play it (call might have ended during await)
+                                if (this.activeCall?.status === 4) {
+                                    // Stop any existing player just in case
+                                    this.stopRingtone();
+
+                                    this.ringtonePlayer = new Audio(`/api/v1/telephone/ringtones/${status.id}/audio`);
+                                    this.ringtonePlayer.loop = true;
+                                    if (status.volume !== undefined) {
+                                        this.ringtonePlayer.volume = status.volume;
+                                    }
+                                    this.playRingtone();
+                                }
+                            }
+                        } finally {
+                            this.isFetchingRingtone = false;
+                        }
+                    } else if (this.ringtonePlayer && this.activeCall?.status === 4) {
+                        this.playRingtone();
+                    }
+                } else {
+                    // Not ringing
+                    if (this.ringtonePlayer) {
+                        this.stopRingtone();
+                        this.ringtonePlayer = null;
+                    }
+                }
+
+                // Preserve local mute state if we're currently toggling
+                if (newCall && oldCall) {
+                    newCall.is_mic_muted = oldCall.is_mic_muted;
+                    newCall.is_speaker_muted = oldCall.is_speaker_muted;
                 }
 
                 // If call just ended, show ended state for a few seconds
@@ -935,6 +1097,24 @@ export default {
                 this.wasDeclined = true;
             }
         },
+        onToggleMic(isMuted) {
+            this.isMicMuting = true;
+            if (this.activeCall) {
+                this.activeCall.is_mic_muted = isMuted;
+            }
+            setTimeout(() => {
+                this.isMicMuting = false;
+            }, 2000);
+        },
+        onToggleSpeaker(isMuted) {
+            this.isSpeakerMuting = true;
+            if (this.activeCall) {
+                this.activeCall.is_speaker_muted = isMuted;
+            }
+            setTimeout(() => {
+                this.isSpeakerMuting = false;
+            }, 2000);
+        },
         onAppNameClick() {
             // user may be on mobile, and is unable to scroll back to sidebar, so let them tap app name to do it
             this.$refs["middle"].scrollTo({
@@ -942,6 +1122,20 @@ export default {
                 left: 0,
                 behavior: "smooth",
             });
+        },
+        handleProtocolLink(url) {
+            try {
+                // lxmf://<hash> or rns://<hash>
+                const hash = url.replace("lxmf://", "").replace("rns://", "").split("/")[0].replace("/", "");
+                if (hash && hash.length === 32) {
+                    this.$router.push({
+                        name: "messages",
+                        params: { destinationHash: hash },
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to handle protocol link:", e);
+            }
         },
         handleKeyboardShortcut(action) {
             switch (action) {
@@ -984,7 +1178,25 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
+.banished-overlay {
+    @apply absolute inset-0 z-[100] flex items-center justify-center overflow-hidden pointer-events-none rounded-[inherit];
+    background: rgba(220, 38, 38, 0.12);
+    backdrop-filter: blur(3px) saturate(180%);
+}
+
+.banished-text {
+    @apply font-black tracking-[0.3em] uppercase pointer-events-none opacity-40;
+    font-size: clamp(1.5rem, 8vw, 6rem);
+    color: #dc2626;
+    transform: rotate(-12deg);
+    text-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
+    border: 0.2em solid #dc2626;
+    padding: 0.15em 0.4em;
+    border-radius: 0.15em;
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .fade-blur-enter-active,
 .fade-blur-leave-active {
     transition: all 0.5s ease;

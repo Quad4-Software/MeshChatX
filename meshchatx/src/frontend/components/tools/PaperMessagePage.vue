@@ -2,27 +2,27 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="overflow-y-auto p-4 md:p-6 max-w-5xl mx-auto w-full">
+        <div class="overflow-y-auto p-3 md:p-4 max-w-5xl mx-auto w-full">
             <!-- header -->
-            <div class="glass-card mb-6">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl">
-                        <MaterialDesignIcon icon-name="qrcode" class="size-8" />
+            <div class="glass-card mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                        <MaterialDesignIcon icon-name="qrcode" class="size-6" />
                     </div>
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                             Paper Message Generator
                         </h2>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <p class="text-xs text-gray-600 dark:text-gray-400">
                             Generate signed LXMF messages for physical delivery or offline transfer.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <!-- composer -->
-                <div class="space-y-6">
+                <div class="space-y-4">
                     <section class="glass-card">
                         <div class="glass-card__header">
                             <h2 class="flex items-center gap-2">
@@ -30,10 +30,10 @@
                                 Compose Message
                             </h2>
                         </div>
-                        <div class="glass-card__body space-y-4">
+                        <div class="glass-card__body space-y-3">
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2"
+                                    class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
                                 >
                                     Recipient Address
                                 </label>
@@ -41,39 +41,45 @@
                                     v-model="destinationHash"
                                     type="text"
                                     placeholder="Destination hash (e.g. a39610...)"
-                                    class="input-field font-mono"
+                                    class="input-field font-mono text-sm"
+                                    maxlength="32"
                                 />
                             </div>
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2"
+                                    class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
                                 >
                                     Subject (Optional)
                                 </label>
-                                <input v-model="title" type="text" placeholder="Message title..." class="input-field" />
+                                <input
+                                    v-model="title"
+                                    type="text"
+                                    placeholder="Message title..."
+                                    class="input-field text-sm"
+                                />
                             </div>
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2"
+                                    class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
                                 >
                                     Message Content
                                 </label>
                                 <textarea
                                     v-model="content"
-                                    rows="6"
+                                    rows="4"
                                     placeholder="Type your message here..."
-                                    class="input-field resize-none"
+                                    class="input-field resize-none text-sm"
                                 ></textarea>
                             </div>
                             <button
                                 type="button"
-                                class="w-full flex items-center justify-center gap-2 py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                                class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none text-sm"
                                 :disabled="!canGenerate || isGenerating"
                                 @click="generatePaperMessage"
                             >
                                 <template v-if="isGenerating">
                                     <div
-                                        class="size-5 border-2 border-white/20 border-t-white rounded-full animate-spin"
+                                        class="size-4 border-2 border-white/20 border-t-white rounded-full animate-spin"
                                     ></div>
                                     Generating...
                                 </template>
@@ -93,8 +99,8 @@
                                 Ingest Paper Message
                             </h2>
                         </div>
-                        <div class="glass-card__body space-y-4">
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <div class="glass-card__body space-y-3">
+                            <p class="text-xs text-gray-600 dark:text-gray-400">
                                 Paste an LXMF URI to decode and add it to your conversations.
                             </p>
                             <div class="flex gap-2">
@@ -102,12 +108,12 @@
                                     v-model="ingestUri"
                                     type="text"
                                     placeholder="lxmf://..."
-                                    class="input-field flex-1 font-mono"
+                                    class="input-field flex-1 font-mono text-sm"
                                     @keydown.enter="ingestPaperMessage"
                                 />
                                 <button
                                     type="button"
-                                    class="px-4 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-xl hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                    class="px-3 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-xl hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
                                     @click="pasteFromClipboard"
                                 >
                                     <MaterialDesignIcon icon-name="content-paste" class="size-5" />
@@ -115,7 +121,7 @@
                             </div>
                             <button
                                 type="button"
-                                class="w-full py-3 px-6 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded-2xl font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all active:scale-[0.98]"
+                                class="w-full py-2.5 px-4 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] text-sm"
                                 :disabled="!ingestUri"
                                 @click="ingestPaperMessage"
                             >
@@ -126,62 +132,59 @@
                 </div>
 
                 <!-- preview / result -->
-                <div class="space-y-6">
+                <div class="space-y-4">
                     <section v-if="generatedUri" class="glass-card overflow-hidden">
                         <div class="glass-card__header bg-blue-50/50 dark:bg-blue-900/10">
                             <h2 class="text-blue-600 dark:text-blue-400">Generated QR Code</h2>
                         </div>
-                        <div class="glass-card__body flex flex-col items-center p-8">
-                            <div class="p-6 bg-white rounded-3xl shadow-inner border border-gray-100 mb-8">
-                                <div
-                                    ref="qrcode"
-                                    class="size-64 sm:size-80 flex items-center justify-center overflow-hidden"
-                                >
-                                    <!-- qr code will be rendered here -->
+                        <div class="glass-card__body flex flex-col items-center p-4 sm:p-6">
+                            <div class="p-4 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6">
+                                <div class="size-48 sm:size-64 flex items-center justify-center overflow-hidden">
+                                    <canvas ref="qrcode"></canvas>
                                 </div>
                             </div>
 
-                            <div class="w-full space-y-4">
+                            <div class="w-full space-y-3">
                                 <div
-                                    class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-gray-100 dark:border-zinc-700/50"
+                                    class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
                                 >
                                     <label
-                                        class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-2"
+                                        class="block text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
                                     >
                                         LXMF URI
                                     </label>
-                                    <div class="flex gap-3">
+                                    <div class="flex gap-2">
                                         <div
-                                            class="flex-1 font-mono text-xs break-all text-gray-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-3 rounded-xl border border-gray-200 dark:border-zinc-700 max-h-24 overflow-y-auto"
+                                            class="flex-1 font-mono text-[10px] break-all text-gray-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-2 rounded-lg border border-gray-200 dark:border-zinc-700 max-h-20 overflow-y-auto"
                                         >
                                             {{ generatedUri }}
                                         </div>
                                         <button
                                             type="button"
-                                            class="size-10 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-xl border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                                            class="size-9 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
                                             title="Copy URI"
                                             @click="copyUri"
                                         >
-                                            <MaterialDesignIcon icon-name="content-copy" class="size-5" />
+                                            <MaterialDesignIcon icon-name="content-copy" class="size-4" />
                                         </button>
                                     </div>
                                 </div>
 
-                                <div class="flex gap-3 pt-2">
+                                <div class="flex gap-2 pt-1">
                                     <button
                                         type="button"
-                                        class="flex-1 flex items-center justify-center gap-2 py-3.5 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]"
+                                        class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
                                         @click="printQRCode"
                                     >
-                                        <MaterialDesignIcon icon-name="printer" class="size-5" />
+                                        <MaterialDesignIcon icon-name="printer" class="size-4" />
                                         Print
                                     </button>
                                     <button
                                         type="button"
-                                        class="flex-1 flex items-center justify-center gap-2 py-3.5 px-6 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 rounded-2xl font-bold transition-all active:scale-[0.98]"
+                                        class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 rounded-xl font-bold transition-all active:scale-[0.98] text-sm"
                                         @click="downloadQRCode"
                                     >
-                                        <MaterialDesignIcon icon-name="download" class="size-5" />
+                                        <MaterialDesignIcon icon-name="download" class="size-4" />
                                         Save
                                     </button>
                                 </div>
@@ -191,13 +194,13 @@
 
                     <div
                         v-else
-                        class="glass-card flex flex-col items-center justify-center p-12 text-center h-[400px] border-dashed"
+                        class="glass-card flex flex-col items-center justify-center p-8 text-center h-[320px] border-dashed"
                     >
-                        <div class="p-4 bg-gray-100 dark:bg-zinc-800 text-gray-400 rounded-full mb-4">
-                            <MaterialDesignIcon icon-name="qrcode" class="size-12" />
+                        <div class="p-3 bg-gray-100 dark:bg-zinc-800 text-gray-400 rounded-full mb-3">
+                            <MaterialDesignIcon icon-name="qrcode" class="size-10" />
                         </div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">No QR Code Generated</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                        <h3 class="text-base font-bold text-gray-900 dark:text-white mb-1">No QR Code Generated</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 max-w-[200px]">
                             Fill out the message details and click generate to create a signed paper message.
                         </p>
                     </div>
@@ -208,6 +211,7 @@
 </template>
 
 <script>
+import QRCode from "qrcode";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
@@ -223,7 +227,6 @@ export default {
             isGenerating: false,
             generatedUri: null,
             ingestUri: "",
-            qrCodeLibrary: null,
         };
     },
     computed: {
@@ -233,28 +236,11 @@ export default {
     },
     mounted() {
         WebSocketConnection.on("message", this.onWebsocketMessage);
-        this.loadQRCodeLibrary();
     },
     beforeUnmount() {
         WebSocketConnection.off("message", this.onWebsocketMessage);
     },
     methods: {
-        async loadQRCodeLibrary() {
-            if (window.QRCode) {
-                this.qrCodeLibrary = window.QRCode;
-                return;
-            }
-
-            return new Promise((resolve) => {
-                const script = document.createElement("script");
-                script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-                script.onload = () => {
-                    this.qrCodeLibrary = window.QRCode;
-                    resolve();
-                };
-                document.head.appendChild(script);
-            });
-        },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
             if (json.type === "lxm.generate_paper_uri.result") {
@@ -293,25 +279,29 @@ export default {
                 })
             );
         },
-        renderQRCode() {
-            if (!this.qrCodeLibrary || !this.$refs.qrcode) return;
+        async renderQRCode() {
+            if (!this.generatedUri || !this.$refs.qrcode) return;
 
-            this.$refs.qrcode.innerHTML = "";
+            try {
+                await QRCode.toCanvas(this.$refs.qrcode, this.generatedUri, {
+                    width: 320,
+                    margin: 2,
+                    color: {
+                        dark: "#000000",
+                        light: "#ffffff",
+                    },
+                    errorCorrectionLevel: "L",
+                });
 
-            new this.qrCodeLibrary(this.$refs.qrcode, {
-                text: this.generatedUri,
-                width: 320,
-                height: 320,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: this.qrCodeLibrary.CorrectLevel.L,
-            });
-
-            const el = this.$refs.qrcode.querySelector("img") || this.$refs.qrcode.querySelector("canvas");
-            if (el) {
-                el.style.maxWidth = "100%";
-                el.style.height = "auto";
-                el.classList.add("rounded-lg");
+                const el = this.$refs.qrcode;
+                if (el) {
+                    el.style.maxWidth = "100%";
+                    el.style.height = "auto";
+                    el.classList.add("rounded-lg");
+                }
+            } catch (err) {
+                console.error("Failed to render QR code:", err);
+                ToastUtils.error("Failed to render QR code");
             }
         },
         async ingestPaperMessage() {
@@ -340,16 +330,10 @@ export default {
             }
         },
         downloadQRCode() {
-            const canvas = this.$refs.qrcode.querySelector("canvas");
-            const img = this.$refs.qrcode.querySelector("img");
+            const canvas = this.$refs.qrcode;
+            if (!canvas) return;
 
-            let dataUrl = "";
-            if (img && img.src) {
-                dataUrl = img.src;
-            } else if (canvas) {
-                dataUrl = canvas.toDataURL("image/png");
-            }
-
+            const dataUrl = canvas.toDataURL("image/png");
             if (dataUrl) {
                 const link = document.createElement("a");
                 link.download = `lxmf-paper-message-${Date.now()}.png`;
@@ -358,9 +342,10 @@ export default {
             }
         },
         printQRCode() {
-            const dataUrl =
-                this.$refs.qrcode.querySelector("img")?.src ||
-                this.$refs.qrcode.querySelector("canvas")?.toDataURL("image/png");
+            const canvas = this.$refs.qrcode;
+            if (!canvas) return;
+
+            const dataUrl = canvas.toDataURL("image/png");
             if (!dataUrl) return;
 
             const printWindow = window.open("", "_blank");

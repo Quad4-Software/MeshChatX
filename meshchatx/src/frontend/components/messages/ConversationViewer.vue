@@ -1,25 +1,42 @@
 <template>
     <!-- peer selected -->
-    <div v-if="selectedPeer" class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden transition-all">
+    <div
+        v-if="selectedPeer"
+        class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden transition-all relative"
+    >
+        <!-- banished overlay -->
+        <div
+            v-if="GlobalState.config.banished_effect_enabled && isSelectedPeerBlocked"
+            class="banished-overlay"
+            :style="{ background: GlobalState.config.banished_color + '33' }"
+        >
+            <span
+                class="banished-text !opacity-100 !text-white !shadow-lg !bg-red-600 !px-4 !py-2 !rounded-xl !border-2 !tracking-widest"
+                :style="{
+                    'background-color': GlobalState.config.banished_color,
+                    'border-color': GlobalState.config.banished_color,
+                }"
+                >{{ GlobalState.config.banished_text }}</span
+            >
+        </div>
+
         <!-- header -->
         <div
-            class="flex items-center px-4 py-3 border-b border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm"
+            class="relative z-20 flex items-center px-4 py-3 border-b border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm"
         >
             <!-- peer icon -->
             <div class="flex-shrink-0 mr-3">
-                <div
-                    v-if="selectedPeer.lxmf_user_icon"
-                    class="p-2 rounded shadow-sm"
-                    :style="{
-                        color: selectedPeer.lxmf_user_icon.foreground_colour,
-                        'background-color': selectedPeer.lxmf_user_icon.background_colour,
-                    }"
-                >
-                    <MaterialDesignIcon :icon-name="selectedPeer.lxmf_user_icon.icon_name" class="w-6 h-6" />
-                </div>
-                <div v-else class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded shadow-sm">
-                    <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6" />
-                </div>
+                <LxmfUserIcon
+                    :custom-image="selectedPeer.contact_image"
+                    :icon-name="selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.icon_name : ''"
+                    :icon-foreground-colour="
+                        selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.foreground_colour : ''
+                    "
+                    :icon-background-colour="
+                        selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.background_colour : ''
+                    "
+                    class="size-10"
+                />
             </div>
 
             <!-- peer info -->
@@ -30,21 +47,7 @@
                         class="mr-1.5 text-gray-500 dark:text-zinc-400 group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
                         :title="$t('messages.custom_display_name')"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-3.5 h-3.5"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z"
-                            />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />
-                        </svg>
+                        <MaterialDesignIcon icon-name="tag-outline" class="size-4" />
                     </div>
                     <div
                         class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-xs sm:max-w-sm text-base"
@@ -106,26 +109,22 @@
                     :peer="selectedPeer"
                     @conversation-deleted="onConversationDeleted"
                     @set-custom-display-name="updateCustomDisplayName"
-                    @block-status-changed="loadBlockedDestinations"
+                    @popout="openConversationPopout"
                 />
 
-                <!-- popout button -->
-                <IconButton :title="$t('messages.pop_out_chat')" @click="openConversationPopout">
-                    <MaterialDesignIcon icon-name="open-in-new" class="w-4 h-4" />
+                <!-- call button -->
+                <IconButton title="Start a Call" @click="onStartCall">
+                    <MaterialDesignIcon icon-name="phone" class="w-5 h-5" />
                 </IconButton>
 
                 <!-- share contact button -->
                 <IconButton title="Share Contact" @click="openShareContactModal">
-                    <MaterialDesignIcon icon-name="notebook-outline" class="w-4 h-4" />
+                    <MaterialDesignIcon icon-name="notebook-outline" class="w-5 h-5" />
                 </IconButton>
 
                 <!-- close button -->
                 <IconButton title="Close" @click="close">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                        <path
-                            d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
-                        />
-                    </svg>
+                    <MaterialDesignIcon icon-name="close" class="size-5" />
                 </IconButton>
             </div>
         </div>
@@ -275,82 +274,34 @@
                             <!-- audio field -->
                             <div v-if="chatItem.lxmf_message.fields?.audio" class="pb-1">
                                 <!-- audio is loaded -->
-                                <audio
+                                <AudioWaveformPlayer
                                     v-if="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
                                     :src="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
-                                    controls
-                                    class="w-full rounded-lg shadow-sm"
-                                    style="height: 54px"
-                                    :class="chatItem.is_outbound ? 'audio-controls-light' : 'audio-controls-dark'"
-                                ></audio>
+                                    :is-outbound="chatItem.is_outbound"
+                                />
 
                                 <!-- audio is not yet loaded -->
                                 <!-- min height to make sure audio player doesn't cause height increase after loading -->
-                                <div v-else style="min-height: 54px" class="flex">
-                                    <button
-                                        type="button"
-                                        class="my-auto flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                        :class="
-                                            chatItem.is_outbound
-                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
-                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                                        "
-                                        @click="downloadAndDecodeAudio(chatItem)"
-                                    >
-                                        <span class="my-auto">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke-width="1.5"
-                                                stroke="currentColor"
-                                                class="size-6"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z"
-                                                />
-                                            </svg>
-                                        </span>
-                                        <span class="my-auto w-full">
-                                            {{
-                                                isDownloadingAudio[chatItem.lxmf_message.hash]
-                                                    ? "Downloading..."
-                                                    : chatItem.lxmf_message.fields.audio.audio_mode === 0x10
-                                                      ? "Load Audio"
-                                                      : "Load Audio (Codec2)"
-                                            }}
-                                        </span>
-                                        <span class="my-auto">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke-width="1.5"
-                                                stroke="currentColor"
-                                                class="w-6 h-6"
-                                                :class="
-                                                    isDownloadingAudio[chatItem.lxmf_message.hash]
-                                                        ? 'animate-bounce'
-                                                        : ''
-                                                "
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
-                                                />
-                                            </svg>
-                                        </span>
-                                    </button>
+                                <div
+                                    v-else
+                                    style="min-height: 54px"
+                                    class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <div
+                                            class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                                        ></div>
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{
+                                            $t("messages.downloading")
+                                        }}</span>
+                                    </div>
                                 </div>
 
                                 <div
-                                    class="text-xs mt-1.5"
-                                    :class="chatItem.is_outbound ? 'text-white/70' : 'text-gray-500 dark:text-zinc-400'"
+                                    class="text-[10px] mt-1 text-right opacity-60"
+                                    :class="chatItem.is_outbound ? 'text-white' : 'text-gray-500 dark:text-zinc-400'"
                                 >
-                                    Audio • {{ formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
+                                    Voice Note • {{ formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
                                 </div>
                             </div>
 
@@ -690,39 +641,43 @@
 
                 <!-- message composer -->
                 <div>
-                    <div class="space-y-2">
-                        <!-- image attachment -->
-                        <div v-if="newMessageImage" class="attachment-card">
-                            <div class="attachment-card__preview" @click.stop="openImage(newMessageImageUrl)">
-                                <img
-                                    v-if="newMessageImageUrl"
-                                    :src="newMessageImageUrl"
-                                    class="w-full h-full object-cover rounded-lg"
-                                />
+                    <div class="space-y-2 mb-2">
+                        <!-- image attachments -->
+                        <div v-if="newMessageImages.length > 0" class="flex flex-wrap gap-2">
+                            <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
+                                <div
+                                    class="w-20 h-20 sm:w-24 sm:h-24 overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-800 cursor-pointer border border-gray-200 dark:border-zinc-800 shadow-sm"
+                                    @click.stop="openImage(newMessageImageUrls[index])"
+                                >
+                                    <img
+                                        v-if="newMessageImageUrls[index]"
+                                        :src="newMessageImageUrls[index]"
+                                        class="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    class="absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-sm transition-all opacity-100 sm:opacity-0 group-hover:opacity-100"
+                                    @click.stop="removeImageAttachment(index)"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="w-3 h-3" />
+                                </button>
+                                <div
+                                    class="absolute bottom-0 left-0 right-0 p-1 bg-black/40 text-white text-[9px] text-center rounded-b-xl backdrop-blur-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block"
+                                >
+                                    {{ formatBytes(image.size) }}
+                                </div>
                             </div>
-                            <div class="attachment-card__body">
-                                <div class="attachment-card__title">Image Attachment</div>
-                                <div class="attachment-card__meta">{{ formatBytes(newMessageImage.size) }}</div>
-                            </div>
-                            <button type="button" class="attachment-card__remove" @click.stop="removeImageAttachment">
-                                <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
-                            </button>
                         </div>
 
                         <!-- audio attachment -->
                         <div v-if="newMessageAudio" class="attachment-card">
                             <div class="attachment-card__body w-full">
                                 <div class="attachment-card__title">Voice Note</div>
-                                <div class="attachment-card__meta">
+                                <div class="attachment-card__meta mb-2">
                                     {{ formatBytes(newMessageAudio.audio_blob.size) }}
                                 </div>
-                                <audio
-                                    controls
-                                    class="w-full mt-2 rounded-lg shadow-sm audio-controls-dark"
-                                    style="height: 54px"
-                                >
-                                    <source :src="newMessageAudio.audio_preview_url" type="audio/wav" />
-                                </audio>
+                                <AudioWaveformPlayer :src="newMessageAudio.audio_preview_url" :is-outbound="true" />
                             </div>
                             <button type="button" class="attachment-card__remove" @click="removeAudioAttachment">
                                 <MaterialDesignIcon icon-name="delete" class="w-4 h-4" />
@@ -774,6 +729,15 @@
                         <button type="button" class="attachment-action-button" @click="addFilesToMessage">
                             <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
                             <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="attachment-action-button"
+                            :title="$t('messages.paste_from_clipboard')"
+                            @click="pasteFromClipboard"
+                        >
+                            <MaterialDesignIcon icon-name="content-paste" class="w-4 h-4" />
+                            <span class="hidden sm:inline">Paste</span>
                         </button>
                         <AddImageButton @add-image="onImageSelected" />
                         <AddAudioButton
@@ -895,11 +859,7 @@
                     class="absolute -top-12 right-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-zinc-900/10 hover:bg-white/20 dark:hover:bg-zinc-900/20 text-white transition-colors"
                     @click="closeImageModal"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                        <path
-                            d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
-                        />
-                    </svg>
+                    <MaterialDesignIcon icon-name="close" class="size-5" />
                 </button>
                 <img :src="imageModalUrl" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl" alt="Image preview" />
             </div>
@@ -917,7 +877,6 @@
 import Utils from "../../js/Utils";
 import DialogUtils from "../../js/DialogUtils";
 import MicrophoneRecorder from "../../js/MicrophoneRecorder";
-import NotificationUtils from "../../js/NotificationUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import AddAudioButton from "./AddAudioButton.vue";
 import dayjs from "dayjs";
@@ -928,10 +887,13 @@ import SendMessageButton from "./SendMessageButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
+import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
 import IconButton from "../IconButton.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
+import GlobalState from "../../js/GlobalState";
 
 export default {
     name: "ConversationViewer",
@@ -942,9 +904,16 @@ export default {
         MaterialDesignIcon,
         SendMessageButton,
         AddAudioButton,
+        AudioWaveformPlayer,
         PaperMessageModal,
+        LxmfUserIcon,
     },
     props: {
+        config: {
+            type: Object,
+            required: false,
+            default: null,
+        },
         myLxmfAddressHash: {
             type: String,
             required: true,
@@ -961,6 +930,7 @@ export default {
     emits: ["close", "reload-conversations", "update:selectedPeer"],
     data() {
         return {
+            GlobalState,
             selectedPeerPath: null,
             selectedPeerLxmfStampInfo: null,
             selectedPeerSignalMetrics: null,
@@ -973,8 +943,8 @@ export default {
 
             newMessageDeliveryMethod: null,
             newMessageText: "",
-            newMessageImage: null,
-            newMessageImageUrl: null,
+            newMessageImages: [],
+            newMessageImageUrls: [],
             newMessageAudio: null,
             newMessageTelemetry: null,
             newMessageFiles: [],
@@ -997,7 +967,6 @@ export default {
             expandedMessageInfo: null,
             imageModalUrl: null,
             isSelectedPeerBlocked: false,
-            blockedDestinations: [],
             lxmfAudioModeToCodec2ModeMap: {
                 // https://github.com/markqvist/LXMF/blob/master/LXMF/LXMF.py#L21
                 0x01: "450PWB", // AM_CODEC2_450PWB
@@ -1017,6 +986,9 @@ export default {
         };
     },
     computed: {
+        blockedDestinations() {
+            return GlobalState.blockedDestinations;
+        },
         filteredContacts() {
             if (!this.contactsSearch) return this.contacts;
             const s = this.contactsSearch.toLowerCase();
@@ -1028,9 +1000,18 @@ export default {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         },
         canSendMessage() {
-            // can't send if empty message
+            // can send if message text is present
             const messageText = this.newMessageText.trim();
-            if (messageText == null || messageText === "") {
+            const hasText = messageText != null && messageText !== "";
+
+            // or if any attachments are present
+            const hasAttachments =
+                this.newMessageImages.length > 0 ||
+                this.newMessageAudio != null ||
+                this.newMessageFiles.length > 0 ||
+                this.newMessageTelemetry != null;
+
+            if (!hasText && !hasAttachments) {
                 return false;
             }
 
@@ -1095,6 +1076,17 @@ export default {
                 this.adjustTextareaHeight();
             });
         },
+        "config.translator_enabled": {
+            handler() {
+                this.checkTranslator();
+            },
+        },
+        blockedDestinations: {
+            handler() {
+                this.checkIfSelectedPeerBlocked();
+            },
+            deep: true,
+        },
     },
     beforeUnmount() {
         // stop listening for websocket messages
@@ -1108,23 +1100,15 @@ export default {
         // listen for compose new message event
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessageEvent);
 
-        // load blocked destinations
-        this.loadBlockedDestinations();
-
         // check translator
         this.checkTranslator();
     },
     methods: {
-        async loadBlockedDestinations() {
-            try {
-                const response = await window.axios.get("/api/v1/blocked-destinations");
-                this.blockedDestinations = response.data.blocked_destinations || [];
-                this.checkIfSelectedPeerBlocked();
-            } catch (e) {
-                console.log(e);
-            }
-        },
         async checkTranslator() {
+            if (!this.config?.translator_enabled) {
+                this.hasTranslator = false;
+                return;
+            }
             try {
                 const response = await window.axios.get("/api/v1/translator/languages");
                 this.translatorLanguages = response.data.languages || [];
@@ -1171,7 +1155,7 @@ export default {
                 this.isSelectedPeerBlocked = false;
                 return;
             }
-            this.isSelectedPeerBlocked = this.blockedDestinations.some(
+            this.isSelectedPeerBlocked = GlobalState.blockedDestinations.some(
                 (b) => b.destination_hash === this.selectedPeer.destination_hash
             );
         },
@@ -1235,6 +1219,9 @@ export default {
 
             // scroll to bottom
             this.scrollMessagesToBottom();
+
+            // auto load audio
+            this.autoLoadAudioAttachments();
         },
         async loadPrevious() {
             // do nothing if already loading
@@ -1286,6 +1273,9 @@ export default {
                 if (chatItems.length < pageSize) {
                     this.hasMorePrevious = false;
                 }
+
+                // auto load audio
+                this.autoLoadAudioAttachments();
             } catch {
                 // do nothing
             } finally {
@@ -1377,15 +1367,13 @@ export default {
                 this.markConversationAsRead(conversation);
             }
 
-            // show notification for new messages if window is not focussed
-            if (!document.hasFocus()) {
-                NotificationUtils.showNewMessageNotification();
-            }
-
             // auto scroll to bottom if we want to
             if (this.autoScrollOnNewMessage) {
                 this.scrollMessagesToBottom();
             }
+
+            // auto load audio
+            this.autoLoadAudioAttachments();
         },
         onLxmfMessageCreated(lxmfMessage) {
             // only add if it's for the current conversation
@@ -1401,6 +1389,9 @@ export default {
                     is_outbound: true,
                 });
             }
+
+            // auto load audio
+            this.autoLoadAudioAttachments();
         },
         onLxmfMessageUpdated(lxmfMessage) {
             // find existing chat item by lxmf message hash
@@ -1639,6 +1630,17 @@ export default {
                 this.isDownloadingAudio[chatItem.lxmf_message.hash] = false;
             }
         },
+        autoLoadAudioAttachments() {
+            for (const chatItem of this.chatItems) {
+                if (
+                    chatItem.lxmf_message.fields?.audio &&
+                    !this.lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash] &&
+                    !this.isDownloadingAudio[chatItem.lxmf_message.hash]
+                ) {
+                    this.downloadAndDecodeAudio(chatItem);
+                }
+            }
+        },
         formatAttachmentSize(attachment, type) {
             if (attachment[`${type}_size`] !== undefined && attachment[`${type}_size`] !== null) {
                 return this.formatBytes(attachment[`${type}_size`]);
@@ -1867,17 +1869,16 @@ export default {
 
                 // add image attachment
                 var imageTotalSize = 0;
-                if (this.newMessageImage) {
-                    imageTotalSize = this.newMessageImage.size;
-                    fields["image"] = {
-                        // Reticulum sends image type as "jpg", "png", "webp" etc and not "image/jpg" or "image/png"
-                        // From memory, Sideband would not display images if the image type has the "image/" prefix
-                        // https://github.com/markqvist/Sideband/blob/354fb08297835eab04ac69d15081a18baf0583ac/docs/example_plugins/view.py#L78
-                        // https://github.com/markqvist/Sideband/blob/354fb08297835eab04ac69d15081a18baf0583ac/sbapp/main.py#L1900
-                        // https://github.com/markqvist/Sideband/blob/354fb08297835eab04ac69d15081a18baf0583ac/sbapp/ui/messages.py#L783
-                        image_type: this.newMessageImage.type.replace("image/", ""),
-                        image_bytes: Utils.arrayBufferToBase64(await this.newMessageImage.arrayBuffer()),
-                    };
+                var images = [];
+                if (this.newMessageImages.length > 0) {
+                    for (const image of this.newMessageImages) {
+                        imageTotalSize += image.size;
+                        images.push({
+                            image_type: image.type.replace("image/", ""),
+                            image_bytes: Utils.arrayBufferToBase64(await image.arrayBuffer()),
+                            name: image.name,
+                        });
+                    }
                 }
 
                 // add audio attachment
@@ -1906,23 +1907,81 @@ export default {
                     }
                 }
 
-                // send message to reticulum
-                const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
-                    delivery_method: this.newMessageDeliveryMethod,
-                    lxmf_message: {
-                        destination_hash: this.selectedPeer.destination_hash,
-                        content: this.newMessageText,
-                        fields: fields,
-                    },
-                });
-
-                // add outbound message to ui
-                if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
-                    this.chatItems.push({
-                        type: "lxmf_message",
-                        lxmf_message: response.data.lxmf_message,
-                        is_outbound: true,
+                // if no images, send message as usual
+                if (images.length === 0) {
+                    const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                        delivery_method: this.newMessageDeliveryMethod,
+                        lxmf_message: {
+                            destination_hash: this.selectedPeer.destination_hash,
+                            content: this.newMessageText,
+                            fields: fields,
+                        },
                     });
+
+                    // add outbound message to ui
+                    if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
+                        this.chatItems.push({
+                            type: "lxmf_message",
+                            lxmf_message: response.data.lxmf_message,
+                            is_outbound: true,
+                        });
+                    }
+                } else {
+                    // send first image with message text and other fields
+                    const firstImage = images[0];
+                    const firstFields = {
+                        ...fields,
+                        image: { image_type: firstImage.image_type, image_bytes: firstImage.image_bytes },
+                    };
+
+                    const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                        delivery_method: this.newMessageDeliveryMethod,
+                        lxmf_message: {
+                            destination_hash: this.selectedPeer.destination_hash,
+                            content: this.newMessageText,
+                            fields: firstFields,
+                        },
+                    });
+
+                    // add outbound message to ui
+                    if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
+                        this.chatItems.push({
+                            type: "lxmf_message",
+                            lxmf_message: response.data.lxmf_message,
+                            is_outbound: true,
+                        });
+                    }
+
+                    // send subsequent images as separate messages with image name as content
+                    for (let i = 1; i < images.length; i++) {
+                        const image = images[i];
+                        const subsequentFields = {
+                            image: { image_type: image.image_type, image_bytes: image.image_bytes },
+                        };
+
+                        try {
+                            const subResponse = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                                delivery_method: this.newMessageDeliveryMethod,
+                                lxmf_message: {
+                                    destination_hash: this.selectedPeer.destination_hash,
+                                    content: image.name,
+                                    fields: subsequentFields,
+                                },
+                            });
+
+                            // add outbound message to ui
+                            if (!this.isLxmfMessageInUi(subResponse.data.lxmf_message.hash)) {
+                                this.chatItems.push({
+                                    type: "lxmf_message",
+                                    lxmf_message: subResponse.data.lxmf_message,
+                                    is_outbound: true,
+                                });
+                            }
+                        } catch (subError) {
+                            console.error(`Failed to send image ${i + 1}:`, subError);
+                            // we continue sending other images even if one fails
+                        }
+                    }
                 }
 
                 // always scroll to bottom since we just sent a message
@@ -1931,8 +1990,8 @@ export default {
                 // clear message inputs
                 this.newMessageText = "";
                 this.saveDraft(this.selectedPeer.destination_hash);
-                this.newMessageImage = null;
-                this.newMessageImageUrl = null;
+                this.newMessageImages = [];
+                this.newMessageImageUrls = [];
                 this.newMessageAudio = null;
                 this.newMessageTelemetry = null;
                 this.newMessageFiles = [];
@@ -2106,6 +2165,38 @@ export default {
             const url = `${window.location.origin}${window.location.pathname}#/popout/messages/${encodedHash}`;
             window.open(url, "_blank", "width=960,height=720,noopener");
         },
+        async onStartCall() {
+            try {
+                await window.axios.get(`/api/v1/telephone/call/${this.selectedPeer.destination_hash}`);
+            } catch (e) {
+                const message = e.response?.data?.message ?? "Failed to start call";
+                DialogUtils.alert(message);
+            }
+        },
+        async pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    const input = this.$refs["message-input"];
+                    const start = input.selectionStart;
+                    const end = input.selectionEnd;
+                    const currentText = this.newMessageText || "";
+                    this.newMessageText = currentText.substring(0, start) + text + currentText.substring(end);
+
+                    this.$nextTick(() => {
+                        input.focus();
+                        const newCursorPos = start + text.length;
+                        input.setSelectionRange(newCursorPos, newCursorPos);
+                        // adjust height
+                        input.style.height = "auto";
+                        input.style.height = Math.min(input.scrollHeight, 200) + "px";
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to read clipboard contents: ", err);
+                ToastUtils.error("Failed to read from clipboard");
+            }
+        },
         onFileInputChange: function (event) {
             for (const file of event.target.files) {
                 this.newMessageFiles.push(file);
@@ -2114,28 +2205,29 @@ export default {
         clearFileInput: function () {
             this.$refs["file-input"].value = null;
         },
-        async removeImageAttachment() {
+        async removeImageAttachment(index) {
             // ask user to confirm removing image attachment
             if (!(await DialogUtils.confirm("Are you sure you want to remove this image attachment?"))) {
                 return;
             }
 
             // remove image
-            this.newMessageImage = null;
-            this.newMessageImageUrl = null;
+            this.newMessageImages.splice(index, 1);
+            this.newMessageImageUrls.splice(index, 1);
         },
         onImageSelected: function (imageBlob) {
             // update selected file
-            this.newMessageImage = imageBlob;
+            const index = this.newMessageImages.length;
+            this.newMessageImages.push(imageBlob);
 
             // update image url when file is read
             const fileReader = new FileReader();
             fileReader.onload = (event) => {
-                this.newMessageImageUrl = event.target.result;
+                this.newMessageImageUrls[index] = event.target.result;
             };
 
             // convert image to data url
-            fileReader.readAsDataURL(this.newMessageImage);
+            fileReader.readAsDataURL(imageBlob);
         },
         async startRecordingAudioAttachment(args) {
             // do nothing if already recording
