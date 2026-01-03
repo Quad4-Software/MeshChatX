@@ -74,3 +74,8 @@ telemetry_test_lxmf/
 .env
 .env.local
 .env.*.local
+
+.coverage
+
+.hypothesis
+.hypothesis/

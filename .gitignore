@@ -74,3 +74,6 @@ Thumbs.db
 .coverage
 
 meshchat-config/
+
+.hypothesis
+.hypothesis/
