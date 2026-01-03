@@ -25,6 +25,8 @@ export default [
             "**/*.asar.unpacked/**",
             "**/*.wasm",
             "**/*.proto",
+            "**/tests/**",
+            "**/tests/frontend/**",
         ],
     },
     {
