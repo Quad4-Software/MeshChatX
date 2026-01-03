@@ -1690,7 +1690,7 @@ export default {
                     }`
                 );
 
-                const newItems = response.data.call_history;
+                const newItems = response.data.call_history || [];
                 if (loadMore) {
                     this.callHistory = [...this.callHistory, ...newItems];
                 } else {
@@ -1728,7 +1728,7 @@ export default {
                     },
                 });
 
-                const newItems = response.data.announces;
+                const newItems = response.data.announces || [];
                 if (loadMore) {
                     this.discoveryAnnounces = [...this.discoveryAnnounces, ...newItems];
                 } else {
@@ -1923,8 +1923,8 @@ export default {
                 const response = await window.axios.get("/api/v1/telephone/voicemails", {
                     params: { search: this.voicemailSearch },
                 });
-                this.voicemails = response.data.voicemails;
-                this.unreadVoicemailsCount = response.data.unread_count;
+                this.voicemails = response.data.voicemails || [];
+                this.unreadVoicemailsCount = response.data.unread_count || 0;
             } catch (e) {
                 console.log(e);
             }
@@ -1940,7 +1940,7 @@ export default {
                 const response = await window.axios.get("/api/v1/telephone/contacts", {
                     params: { search: this.contactsSearch },
                 });
-                this.contacts = response.data;
+                this.contacts = response.data.contacts || (Array.isArray(response.data) ? response.data : []);
             } catch (e) {
                 console.log(e);
             }
