@@ -75,6 +75,11 @@ tasks:
         desc: Run all linters
         deps: [lint-frontend, lint-python]
 
+    compile:
+        desc: Compile Python code to check for syntax errors
+        cmds:
+            - "{{.PYTHON}} -m compileall meshchatx/"
+
     install:
         desc: Install all dependencies (installs node modules and python deps)
         deps: [node_modules, python]
