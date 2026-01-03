@@ -12,6 +12,7 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 ## Major Features
 
 - Full LXST support w/ custom voicemail, phonebook, contacts, contact sharing and ringtone support.
+- RNS Hot Restart: Reload the entire Reticulum stack from settings without restarting the app.
 - Multi-identity support.
 - Authentication
 - Map (OpenLayers w/ MBTiles upload and exporter for offline maps)
@@ -90,7 +91,6 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 
 ## TODO
 
-- [ ] Tests and proper CI/CD pipeline.
 - [ ] RNS hot reload fix
 - [ ] Offline Reticulum documentation tool
 - [ ] Spam filter (based on keywords)
@@ -108,33 +108,37 @@ Check [releases](https://git.quad4.io/Ivan/MeshChatX/releases) for pre-built bin
 If you prefer not to use Docker or pre-built binaries, you can install MeshChatX manually:
 
 1. **Clone the repository**:
-   ```bash
-   git clone https://git.quad4.io/RNS-Things/MeshChatX
-   cd MeshChatX
-   ```
+
+    ```bash
+    git clone https://git.quad4.io/RNS-Things/MeshChatX
+    cd MeshChatX
+    ```
 
 2. **Install Node.js dependencies**:
-   ```bash
-   corepack enable
-   pnpm install
-   ```
+
+    ```bash
+    corepack enable
+    pnpm install
+    ```
 
 3. **Install Python dependencies**:
-   ```bash
-   # It is recommended to use a virtual environment
-   pip install poetry
-   poetry install
-   ```
+
+    ```bash
+    # It is recommended to use a virtual environment
+    pip install poetry
+    poetry install
+    ```
 
 4. **Build the frontend**:
-   ```bash
-   pnpm run build-frontend
-   ```
+
+    ```bash
+    pnpm run build-frontend
+    ```
 
 5. **Run MeshChatX**:
-   ```bash
-   poetry run meshchat --headless --host 127.0.0.1
-   ```
+    ```bash
+    poetry run meshchat --headless --host 127.0.0.1
+    ```
 
 ## Architecture Support (ARM64, etc.)
 
@@ -157,6 +161,24 @@ If you are building your own multi-arch image:
 DOCKER_PLATFORMS=linux/amd64,linux/arm64 task build-docker
 ```
 
+## Configuration
+
+MeshChatX can be configured via command-line arguments or environment variables. Environment variables are particularly useful when running in Docker.
+
+| Argument                 | Environment Variable            | Default        | Description                                  |
+| :----------------------- | :------------------------------ | :------------- | :------------------------------------------- |
+| `--host`                 | `MESHCHAT_HOST`                 | `127.0.0.1`    | The address the web server should listen on. |
+| `--port`                 | `MESHCHAT_PORT`                 | `8000`         | The port the web server should listen on.    |
+| `--no-https`             | `MESHCHAT_NO_HTTPS`             | `false`        | Disable HTTPS and use HTTP instead.          |
+| `--headless`             | `MESHCHAT_HEADLESS`             | `false`        | Don't launch the web browser automatically.  |
+| `--auth`                 | `MESHCHAT_AUTH`                 | `false`        | Enable basic authentication.                 |
+| `--auto-recover`         | `MESHCHAT_AUTO_RECOVER`         | `false`        | Attempt auto-recovery of SQLite database.    |
+| `--storage-dir`          | `MESHCHAT_STORAGE_DIR`          | `./storage`    | Path for databases and config files.         |
+| `--reticulum-config-dir` | `MESHCHAT_RETICULUM_CONFIG_DIR` | `~/.reticulum` | Path to Reticulum config directory.          |
+| `--identity-file`        | `MESHCHAT_IDENTITY_FILE`        | -              | Path to a Reticulum Identity file.           |
+| `--identity-base64`      | `MESHCHAT_IDENTITY_BASE64`      | -              | Base64 encoded Reticulum Identity.           |
+| `--identity-base32`      | `MESHCHAT_IDENTITY_BASE32`      | -              | Base32 encoded Reticulum Identity.           |
+
 ## Building
 
 This project uses [Task](https://taskfile.dev/) for build automation. Install Task first, then:
@@ -166,30 +188,38 @@ task install   # installs Python deps via Poetry and Node deps via pnpm
 task build
 ```
 
+### Development with Nix
+
+If you use [Nix](https://nixos.org/), a `flake.nix` is provided for a complete development environment including Python, Node.js, and all packaging tools.
+
+```bash
+nix develop
+```
+
 You can run `task run` or `task develop` (a thin alias) to start the backend + frontend loop locally through `poetry run meshchat`.
 
 ### Available Tasks
 
-| Task                          | Description                                                                     |
-| ----------------------------- | ------------------------------------------------------------------------------- |
-| `task install`                | Install all dependencies (syncs version, installs node modules and python deps) |
-| `task node_modules`           | Install Node.js dependencies only                                               |
-| `task python`                 | Install Python dependencies using Poetry only                                   |
-| `task sync-version`           | Sync version numbers across project files                                       |
-| `task run`                    | Run the application                                                             |
-| `task develop`                | Run the application in development mode (alias for `run`)                       |
-| `task build`                  | Build the application (frontend and backend)                                    |
-| `task build-frontend`         | Build only the frontend                                                         |
-| `task clean`                  | Clean build artifacts and dependencies                                          |
-| `task wheel`                  | Build Python wheel package (outputs to `python-dist/`)                          |
-| `task build-appimage`         | Build Linux AppImage                                                            |
-| `task build-exe`              | Build Windows portable executable                                               |
-| `task dist`                   | Build distribution (defaults to AppImage)                                       |
-| `task electron-legacy`        | Install legacy Electron version                                                 |
-| `task build-appimage-legacy`  | Build Linux AppImage with legacy Electron version                               |
-| `task build-exe-legacy`       | Build Windows portable executable with legacy Electron version                  |
-| `task build-docker`           | Build Docker image using buildx                                                 |
-| `task run-docker`             | Run Docker container using docker-compose                                       |
+| Task                         | Description                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `task install`               | Install all dependencies (syncs version, installs node modules and python deps) |
+| `task node_modules`          | Install Node.js dependencies only                                               |
+| `task python`                | Install Python dependencies using Poetry only                                   |
+| `task sync-version`          | Sync version numbers across project files                                       |
+| `task run`                   | Run the application                                                             |
+| `task develop`               | Run the application in development mode (alias for `run`)                       |
+| `task build`                 | Build the application (frontend and backend)                                    |
+| `task build-frontend`        | Build only the frontend                                                         |
+| `task clean`                 | Clean build artifacts and dependencies                                          |
+| `task wheel`                 | Build Python wheel package (outputs to `python-dist/`)                          |
+| `task build-appimage`        | Build Linux AppImage                                                            |
+| `task build-exe`             | Build Windows portable executable                                               |
+| `task dist`                  | Build distribution (defaults to AppImage)                                       |
+| `task electron-legacy`       | Install legacy Electron version                                                 |
+| `task build-appimage-legacy` | Build Linux AppImage with legacy Electron version                               |
+| `task build-exe-legacy`      | Build Windows portable executable with legacy Electron version                  |
+| `task build-docker`          | Build Docker image using buildx                                                 |
+| `task run-docker`            | Run Docker container using docker-compose                                       |
 
 All tasks support environment variable overrides. For example:
 
