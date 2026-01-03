@@ -138,17 +138,13 @@ tasks:
         desc: Build Linux Electron app with prebuilt backend
         deps: [build-frontend]
         cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "{{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --linux AppImage deb"
+            - "{{.NPM}} run dist:linux"
 
     build-electron-windows:
         desc: Build Windows Electron apps (portable and installer)
         deps: [build-frontend]
         cmds:
-            - "{{.NPM}} run electron-postinstall"
-            - "{{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --win portable nsis"
+            - "{{.NPM}} run dist:windows"
 
     build-electron-all:
         desc: Build all Electron apps (Linux and Windows)

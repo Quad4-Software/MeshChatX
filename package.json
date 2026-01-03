@@ -17,6 +17,8 @@
         "electron-postinstall": "electron-builder install-app-deps",
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
+        "dist:linux": "pnpm run electron-postinstall && pnpm run build && electron-builder --linux AppImage deb --publish=never",
+        "dist:windows": "pnpm run electron-postinstall && pnpm run build && electron-builder --win portable nsis --publish=never",
         "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
         "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
         "dist:mac-universal": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --universal --publish=never"
@@ -62,7 +64,7 @@
                 ]
             },
             "identity": null,
-            "artifactName": "ReticulumMeshChat-v${version}-mac-${arch}.${ext}",
+            "artifactName": "ReticulumMeshChatX-v${version}-mac-${arch}.${ext}",
             "x64ArchFiles": "Contents/Resources/app/electron/build/exe/**",
             "extendInfo": {
                 "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
@@ -99,7 +101,7 @@
             ]
         },
         "linux": {
-            "artifactName": "ReticulumMeshChat-v${version}-${os}.${ext}",
+            "artifactName": "ReticulumMeshChatX-v${version}-${os}.${ext}",
             "target": [
                 "AppImage",
                 "deb"
@@ -120,10 +122,10 @@
             "writeUpdateInfo": false
         },
         "portable": {
-            "artifactName": "ReticulumMeshChat-v${version}-${os}-portable.${ext}"
+            "artifactName": "ReticulumMeshChatX-v${version}-${os}-portable.${ext}"
         },
         "nsis": {
-            "artifactName": "ReticulumMeshChat-v${version}-${os}-installer.${ext}",
+            "artifactName": "ReticulumMeshChatX-v${version}-${os}-installer.${ext}",
             "oneClick": false,
             "allowToChangeInstallationDirectory": true
         }
