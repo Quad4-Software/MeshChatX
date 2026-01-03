@@ -26,6 +26,9 @@ class Utils {
         if (num === 0) {
             return "0";
         }
+        if (num === null || num === undefined) {
+            return "0";
+        }
         return num.toLocaleString();
     }
 
