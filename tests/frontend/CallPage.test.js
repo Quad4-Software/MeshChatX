@@ -48,20 +48,52 @@ describe("CallPage.vue", () => {
         delete window.axios;
     });
 
-    const mountCallPage = () => {
+    const mountCallPage = (routeQuery = {}) => {
         return mount(CallPage, {
             global: {
                 mocks: {
                     $t: (key) => key,
+                    $route: {
+                        query: routeQuery,
+                    },
                 },
                 stubs: {
                     MaterialDesignIcon: true,
                     LoadingSpinner: true,
                     LxmfUserIcon: true,
+                    Toggle: true,
+                    AudioWaveformPlayer: true,
+                    RingtoneEditor: true,
                 },
             },
         });
     };
+
+    it("respects tab query parameter on mount", async () => {
+        const wrapper = mountCallPage({ tab: "voicemail" });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.activeTab).toBe("voicemail");
+    });
+
+    it("performs optimistic mute updates", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+
+        // Setup active call
+        wrapper.vm.activeCall = {
+            status: 6, // ESTABLISHED
+            is_mic_muted: false,
+            is_speaker_muted: false,
+        };
+        await wrapper.vm.$nextTick();
+
+        // Toggle mic
+        await wrapper.vm.toggleMicrophone();
+
+        // Should be muted immediately (optimistic)
+        expect(wrapper.vm.activeCall.is_mic_muted).toBe(true);
+        expect(axiosMock.get).toHaveBeenCalledWith(expect.stringContaining("/api/v1/telephone/mute-transmit"));
+    });
 
     it("renders tabs correctly", async () => {
         const wrapper = mountCallPage();

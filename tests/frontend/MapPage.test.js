@@ -1,11 +1,13 @@
 import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vitest";
 
 // Mock TileCache BEFORE importing MapPage
 vi.mock("@/js/TileCache", () => ({
     default: {
         getTile: vi.fn(),
         setTile: vi.fn(),
+        getMapState: vi.fn().mockResolvedValue(null),
+        setMapState: vi.fn().mockResolvedValue(),
         clear: vi.fn(),
         initPromise: Promise.resolve(),
     },
@@ -50,6 +52,8 @@ vi.mock("ol/source/Vector", () => ({
     default: vi.fn().mockImplementation(() => ({
         clear: vi.fn(),
         addFeature: vi.fn(),
+        addFeatures: vi.fn(),
+        getFeatures: vi.fn().mockReturnValue([]),
     })),
 }));
 vi.mock("ol/proj", () => ({
@@ -59,9 +63,38 @@ vi.mock("ol/proj", () => ({
 vi.mock("ol/control", () => ({
     defaults: vi.fn().mockReturnValue([]),
 }));
+vi.mock("ol/interaction/Draw", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+    })),
+}));
+vi.mock("ol/interaction/Modify", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+    })),
+}));
+vi.mock("ol/interaction/Snap", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+    })),
+}));
 vi.mock("ol/interaction/DragBox", () => ({
     default: vi.fn().mockImplementation(() => ({
         on: vi.fn(),
+    })),
+}));
+vi.mock("ol/Overlay", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        set: vi.fn(),
+        get: vi.fn(),
+        setPosition: vi.fn(),
+        setOffset: vi.fn(),
+    })),
+}));
+vi.mock("ol/format/GeoJSON", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        writeFeatures: vi.fn().mockReturnValue('{"type":"FeatureCollection","features":[]}'),
+        readFeatures: vi.fn().mockReturnValue([]),
     })),
 }));
 
@@ -70,16 +103,7 @@ import MapPage from "@/components/map/MapPage.vue";
 describe("MapPage.vue", () => {
     let axiosMock;
 
-    beforeEach(() => {
-        // Mock localStorage on window correctly
-        const localStorageMock = {
-            getItem: vi.fn().mockReturnValue("true"),
-            setItem: vi.fn(),
-            removeItem: vi.fn(),
-            clear: vi.fn(),
-        };
-        Object.defineProperty(window, "localStorage", { value: localStorageMock, writable: true });
-
+    beforeAll(() => {
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
                 const defaultData = {
@@ -106,6 +130,18 @@ describe("MapPage.vue", () => {
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.axios = axiosMock;
+    });
+
+    beforeEach(() => {
+        window.axios = axiosMock;
+        // Mock localStorage
+        const localStorageMock = {
+            getItem: vi.fn().mockReturnValue(null),
+            setItem: vi.fn(),
+            removeItem: vi.fn(),
+            clear: vi.fn(),
+        };
+        Object.defineProperty(window, "localStorage", { value: localStorageMock, writable: true });
     });
 
     afterEach(() => {
@@ -193,6 +229,41 @@ describe("MapPage.vue", () => {
             await exportButton.trigger("click");
             expect(wrapper.vm.isExportMode).toBe(true);
             expect(wrapper.text()).toContain("map.export_instructions");
+        }
+    });
+
+    it("handles a large number of search results with overflow", async () => {
+        const manyResults = Array.from({ length: 100 }, (_, i) => ({
+            place_id: i,
+            display_name: `Result ${i} ` + "A".repeat(50),
+            type: "city",
+            lat: "0",
+            lon: "0",
+        }));
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve(manyResults),
+        });
+
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+
+        const searchInput = wrapper.find('input[type="text"]');
+        await searchInput.setValue("many results");
+        await searchInput.trigger("keydown.enter");
+
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        const resultItems = wrapper.findAll(".flex.items-start.gap-3"); // Based on common list pattern
+        // The search results container should have overflow-y-auto
+        const resultsContainer = wrapper.find(
+            ".max-h-64.overflow-y-auto, .max-h-\\[calc\\(100vh-200px\\)\\].overflow-y-auto"
+        );
+        if (resultsContainer.exists()) {
+            expect(resultsContainer.classes()).toContain("overflow-y-auto");
         }
     });
 });

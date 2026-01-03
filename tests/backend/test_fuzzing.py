@@ -12,6 +12,14 @@ from hypothesis import strategies as st
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
+from meshchatx.src.backend.meshchat_utils import (
+    parse_lxmf_display_name,
+    parse_nomadnetwork_node_display_name,
+)
+from meshchatx.src.backend.nomadnet_utils import (
+    convert_nomadnet_field_data_to_map,
+    convert_nomadnet_string_data_to_map,
+)
 from meshchatx.src.backend.lxmf_message_fields import (
     LxmfAudioField,
     LxmfFileAttachment,
@@ -59,7 +67,7 @@ def test_identity_parsing_fuzzing(identity_bytes):
 def test_nomadnet_string_conversion_fuzzing(path_data):
     """Fuzz the nomadnet string to map conversion."""
     try:
-        ReticulumMeshChat.convert_nomadnet_string_data_to_map(path_data)
+        convert_nomadnet_string_data_to_map(path_data)
     except Exception as e:
         pytest.fail(
             f"convert_nomadnet_string_data_to_map crashed with data {path_data}: {e}",
@@ -69,13 +77,15 @@ def test_nomadnet_string_conversion_fuzzing(path_data):
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
     field_data=st.one_of(
-        st.none(), st.dictionaries(keys=st.text(), values=st.text()), st.text(),
+        st.none(),
+        st.dictionaries(keys=st.text(), values=st.text()),
+        st.text(),
     ),
 )
 def test_nomadnet_field_conversion_fuzzing(field_data):
     """Fuzz the nomadnet field data to map conversion."""
     try:
-        ReticulumMeshChat.convert_nomadnet_field_data_to_map(field_data)
+        convert_nomadnet_field_data_to_map(field_data)
     except Exception as e:
         pytest.fail(
             f"convert_nomadnet_field_data_to_map crashed with data {field_data}: {e}",
@@ -87,8 +97,8 @@ def test_nomadnet_field_conversion_fuzzing(field_data):
 def test_display_name_parsing_fuzzing(app_data_base64):
     """Fuzz the display name parsing methods."""
     try:
-        ReticulumMeshChat.parse_lxmf_display_name(app_data_base64)
-        ReticulumMeshChat.parse_nomadnetwork_node_display_name(app_data_base64)
+        parse_lxmf_display_name(app_data_base64)
+        parse_nomadnetwork_node_display_name(app_data_base64)
     except Exception as e:
         pytest.fail(f"Display name parsing crashed with data {app_data_base64}: {e}")
 
@@ -100,46 +110,103 @@ def temp_dir(tmp_path):
 
 @pytest.fixture
 def mock_app(temp_dir):
+    # Save real Identity class to use as base for our mock class
+    real_identity_class = RNS.Identity
+
+    class MockIdentityClass(real_identity_class):
+        def __init__(self, *args, **kwargs):
+            self.hash = b"test_hash_32_bytes_long_01234567"
+            self.hexhash = self.hash.hex()
+
     with ExitStack() as stack:
         # Mock database and other managers to avoid heavy initialization
-        stack.enter_context(patch("meshchatx.meshchat.Database"))
-        stack.enter_context(patch("meshchatx.meshchat.ConfigManager"))
-        stack.enter_context(patch("meshchatx.meshchat.MessageHandler"))
-        stack.enter_context(patch("meshchatx.meshchat.AnnounceManager"))
-        stack.enter_context(patch("meshchatx.meshchat.ArchiverManager"))
-        stack.enter_context(patch("meshchatx.meshchat.MapManager"))
-        stack.enter_context(patch("meshchatx.meshchat.TelephoneManager"))
-        stack.enter_context(patch("meshchatx.meshchat.VoicemailManager"))
-        stack.enter_context(patch("meshchatx.meshchat.RingtoneManager"))
-        stack.enter_context(patch("meshchatx.meshchat.RNCPHandler"))
-        stack.enter_context(patch("meshchatx.meshchat.RNStatusHandler"))
-        stack.enter_context(patch("meshchatx.meshchat.RNProbeHandler"))
-        stack.enter_context(patch("meshchatx.meshchat.TranslatorHandler"))
-        mock_async_utils = stack.enter_context(patch("meshchatx.meshchat.AsyncUtils"))
-        stack.enter_context(patch("LXMF.LXMRouter"))
-        mock_identity_class = stack.enter_context(patch("RNS.Identity"))
-        stack.enter_context(patch("RNS.Reticulum"))
-        stack.enter_context(patch("RNS.Transport"))
-        stack.enter_context(patch("threading.Thread"))
+        stack.enter_context(patch("meshchatx.src.backend.identity_context.Database"))
         stack.enter_context(
-            patch.object(ReticulumMeshChat, "announce_loop", return_value=None),
+            patch("meshchatx.src.backend.identity_context.ConfigManager")
         )
         stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.MessageHandler")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.AnnounceManager")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.ArchiverManager")
+        )
+        stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.TelephoneManager")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.VoicemailManager")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.RingtoneManager")
+        )
+        stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.RNStatusHandler")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.RNProbeHandler")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.TranslatorHandler")
+        )
+        stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager")
+        )
+        mock_async_utils = stack.enter_context(patch("meshchatx.meshchat.AsyncUtils"))
+        stack.enter_context(patch("LXMF.LXMRouter"))
+        stack.enter_context(patch("RNS.Identity", MockIdentityClass))
+        mock_reticulum_class = stack.enter_context(patch("RNS.Reticulum"))
+        mock_reticulum_class.MTU = 1200
+        mock_reticulum_class.return_value.MTU = 1200
+
+        mock_transport_class = stack.enter_context(patch("RNS.Transport"))
+        mock_transport_class.MTU = 1200
+        mock_transport_class.return_value.MTU = 1200
+
+        stack.enter_context(patch("threading.Thread"))
+        stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "announce_sync_propagation_nodes", return_value=None,
+                ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None)
             ),
         )
         stack.enter_context(
-            patch.object(ReticulumMeshChat, "crawler_loop", return_value=None),
+            patch.object(
+                ReticulumMeshChat,
+                "announce_sync_propagation_nodes",
+                new=MagicMock(return_value=None),
+            ),
+        )
+        stack.enter_context(
+            patch.object(
+                ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
+            ),
         )
 
-        mock_id = MagicMock()
-        mock_id.hash = b"test_hash_32_bytes_long_01234567"
-        mock_id.get_private_key.return_value = b"test_private_key"
-        mock_identity_class.return_value = mock_id
+        mock_id = MockIdentityClass()
+        mock_id.get_private_key = MagicMock(return_value=b"test_private_key")
+
+        stack.enter_context(
+            patch.object(MockIdentityClass, "from_file", return_value=mock_id)
+        )
+        stack.enter_context(
+            patch.object(MockIdentityClass, "recall", return_value=mock_id)
+        )
+        stack.enter_context(
+            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id)
+        )
 
         # Make run_async a no-op that doesn't trigger coroutine warnings
-        mock_async_utils.run_async = MagicMock(side_effect=lambda coroutine: None)
+        def mock_run_async(coro):
+            import asyncio
+
+            if asyncio.iscoroutine(coro):
+                coro.close()
+
+        mock_async_utils.run_async = MagicMock(side_effect=mock_run_async)
 
         app = ReticulumMeshChat(
             identity=mock_id,
@@ -229,7 +296,11 @@ def test_announce_overload(mock_app, num_announces):
         announce_packet_hash = os.urandom(16)
 
         mock_app.on_lxmf_announce_received(
-            aspect, destination_hash, announced_identity, app_data, announce_packet_hash,
+            aspect,
+            destination_hash,
+            announced_identity,
+            app_data,
+            announce_packet_hash,
         )
 
     # Verify that the database was called for each announce
@@ -303,6 +374,7 @@ def test_message_spamming_large_payloads(mock_app, num_messages, payload_size):
                 "lxm.ingest_uri",
                 "lxm.generate_paper_uri",
                 "keyboard_shortcuts.get",
+                "telephone.recordings.get",
             ],
         ).map(lambda t: {**d, "type": t}),
     ),
@@ -386,7 +458,11 @@ def test_malformed_announce_data(mock_app):
     announced_identity = MagicMock()
     announced_identity.hash = None
     mock_app.on_lxmf_announce_received(
-        aspect, destination_hash, announced_identity, None, b"",
+        aspect,
+        destination_hash,
+        announced_identity,
+        None,
+        b"",
     )
 
 
@@ -525,7 +601,11 @@ def test_telephone_announce_fuzzing(mock_app):
 
     try:
         mock_app.on_telephone_announce_received(
-            aspect, destination_hash, announced_identity, app_data, announce_packet_hash,
+            aspect,
+            destination_hash,
+            announced_identity,
+            app_data,
+            announce_packet_hash,
         )
     except Exception:
         pass

@@ -64,3 +64,22 @@ def test_config_manager_type_safety(db):
     assert config.auto_announce_enabled.get() is True
     config.auto_announce_enabled.set(False)
     assert config.auto_announce_enabled.get() is False
+
+
+def test_telephony_config(db):
+    config = ConfigManager(db)
+
+    # Test DND
+    assert config.do_not_disturb_enabled.get() is False
+    config.do_not_disturb_enabled.set(True)
+    assert config.do_not_disturb_enabled.get() is True
+
+    # Test Contacts Only
+    assert config.telephone_allow_calls_from_contacts_only.get() is False
+    config.telephone_allow_calls_from_contacts_only.set(True)
+    assert config.telephone_allow_calls_from_contacts_only.get() is True
+
+    # Test Call Recording
+    assert config.call_recording_enabled.get() is False
+    config.call_recording_enabled.set(True)
+    assert config.call_recording_enabled.get() is True

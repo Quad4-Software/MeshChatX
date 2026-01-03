@@ -1,6 +1,8 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AboutPage from "@/components/about/AboutPage.vue";
+import ElectronUtils from "@/js/ElectronUtils";
+import DialogUtils from "@/js/DialogUtils";
 
 describe("AboutPage.vue", () => {
     let axiosMock;
@@ -8,17 +10,27 @@ describe("AboutPage.vue", () => {
     beforeEach(() => {
         vi.useFakeTimers();
         axiosMock = {
-            get: vi.fn(),
-            post: vi.fn(),
+            get: vi.fn().mockImplementation(() => Promise.resolve({ data: {} })),
+            post: vi.fn().mockImplementation(() => Promise.resolve({ data: {} })),
         };
         window.axios = axiosMock;
         window.URL.createObjectURL = vi.fn();
         window.URL.revokeObjectURL = vi.fn();
+
+        // Default electron mock
+        window.electron = {
+            getMemoryUsage: vi.fn().mockResolvedValue(null),
+            electronVersion: vi.fn().mockReturnValue("1.0.0"),
+            chromeVersion: vi.fn().mockReturnValue("1.0.0"),
+            nodeVersion: vi.fn().mockReturnValue("1.0.0"),
+            appVersion: vi.fn().mockResolvedValue("1.0.0"),
+        };
     });
 
     afterEach(() => {
         vi.useRealTimers();
         delete window.axios;
+        delete window.electron;
     });
 
     const mountAboutPage = () => {
@@ -48,6 +60,10 @@ describe("AboutPage.vue", () => {
             reticulum_config_path: "/path/to/config",
             database_path: "/path/to/db",
             database_file_size: 1024,
+            dependencies: {
+                aiohttp: "3.8.1",
+                cryptography: "3.4.8",
+            },
         };
         const config = {
             identity_hash: "hash1",
@@ -70,6 +86,7 @@ describe("AboutPage.vue", () => {
                         },
                     },
                 });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
             return Promise.reject(new Error("Not found"));
         });
 
@@ -84,6 +101,63 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("Reticulum MeshChatX");
         expect(wrapper.text()).toContain("hash1");
         expect(wrapper.text()).toContain("hash2");
+
+        // Check for Dependency Chain section
+        expect(wrapper.text()).toContain("about.dependency_chain");
+        expect(wrapper.text()).toContain("Lightweight Extensible Message Format");
+        expect(wrapper.text()).toContain("Reticulum Network Stack");
+
+        // Check for dependencies
+        expect(wrapper.text()).toContain("about.backend_dependencies");
+        expect(wrapper.text()).toContain("aiohttp");
+        expect(wrapper.text()).toContain("3.8.1");
+    });
+
+    it("displays Electron memory usage when running in Electron", async () => {
+        vi.spyOn(ElectronUtils, "isElectron").mockReturnValue(true);
+        const getMemoryUsageSpy = vi.spyOn(ElectronUtils, "getMemoryUsage").mockResolvedValue({
+            private: 1000,
+            residentSet: 2000,
+        });
+
+        const appInfo = {
+            version: "1.0.0",
+        };
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info") return Promise.resolve({ data: { app_info: appInfo } });
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(getMemoryUsageSpy).toHaveBeenCalled();
+        expect(wrapper.vm.electronMemoryUsage).not.toBeNull();
+        expect(wrapper.text()).toContain("Electron Resources");
+    });
+
+    it("handles shutdown action", async () => {
+        const confirmSpy = vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        const axiosPostSpy = axiosMock.post.mockResolvedValue({ data: { message: "Shutting down..." } });
+        const shutdownSpy = vi.spyOn(ElectronUtils, "shutdown").mockImplementation(() => {});
+        vi.spyOn(ElectronUtils, "isElectron").mockReturnValue(true);
+
+        const wrapper = mountAboutPage();
+        wrapper.vm.appInfo = { version: "1.0.0" };
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.shutdown();
+
+        expect(confirmSpy).toHaveBeenCalled();
+        expect(axiosPostSpy).toHaveBeenCalledWith("/api/v1/app/shutdown");
+        expect(shutdownSpy).toHaveBeenCalled();
     });
 
     it("updates app info periodically", async () => {
@@ -103,13 +177,13 @@ describe("AboutPage.vue", () => {
         });
         mountAboutPage();
 
-        expect(axiosMock.get).toHaveBeenCalledTimes(3); // info, config, health
-
-        vi.advanceTimersByTime(5000);
-        expect(axiosMock.get).toHaveBeenCalledTimes(4);
+        expect(axiosMock.get).toHaveBeenCalledTimes(4); // info, config, health, snapshots
 
         vi.advanceTimersByTime(5000);
         expect(axiosMock.get).toHaveBeenCalledTimes(5);
+
+        vi.advanceTimersByTime(5000);
+        expect(axiosMock.get).toHaveBeenCalledTimes(6);
     });
 
     it("handles vacuum database action", async () => {
