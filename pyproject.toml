@@ -65,3 +65,13 @@ meshchatx = ["public/**/*", "public/*"]
 [build-system]
 requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+exclude = [
+    ".git",
+    ".pnpm-store",
+    "node_modules",
+    "venv",
+    ".venv",
+    "tests/frontend",
+]
