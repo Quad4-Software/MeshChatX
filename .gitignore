@@ -30,7 +30,6 @@ venv.bak/
 /build/
 /dist/
 /meshchatx/public/
-public/
 /electron/build/exe/
 python-dist/
 
