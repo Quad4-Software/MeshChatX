@@ -7,6 +7,7 @@ import base64
 import configparser
 import copy
 import gc
+import hashlib
 import io
 import ipaddress
 import json
@@ -25,7 +26,6 @@ import webbrowser
 import zipfile
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-import hashlib
 
 import bcrypt
 import LXMF
@@ -823,7 +823,14 @@ class ReticulumMeshChat:
             # Give loops a moment to finish
             await asyncio.sleep(2)
 
-            # Aggressively close RNS interfaces to release sockets
+            # Close RNS instance first to let it detach interfaces naturally
+            try:
+                # Use class method to ensure all instances are cleaned up if any
+                RNS.Reticulum.exit_handler()
+            except Exception as e:
+                print(f"Warning during RNS exit: {e}")
+
+            # Aggressively close RNS interfaces to release sockets if they didn't close
             try:
                 interfaces = []
                 if hasattr(RNS.Transport, "interfaces"):
@@ -883,24 +890,25 @@ class ReticulumMeshChat:
 
             # Close RPC listener if it exists on the instance
             if old_reticulum:
-                if (
-                    hasattr(old_reticulum, "rpc_listener")
-                    and old_reticulum.rpc_listener
-                ):
-                    try:
-                        # Listener.close() should close the underlying socket/pipe
-                        old_reticulum.rpc_listener.close()
-                        # Clear it to be sure
-                        old_reticulum.rpc_listener = None
-                    except Exception as e:
-                        print(f"Warning closing RPC listener: {e}")
-
-            # Persist and close RNS instance
-            try:
-                # Use class method to ensure all instances are cleaned up if any
-                RNS.Reticulum.exit_handler()
-            except Exception as e:
-                print(f"Warning during RNS exit: {e}")
+                # Reticulum uses private attributes for the listener
+                rpc_listener_names = [
+                    "rpc_listener",
+                    "_Reticulum__rpc_listener",
+                    "_rpc_listener",
+                ]
+                for attr_name in rpc_listener_names:
+                    if hasattr(old_reticulum, attr_name):
+                        listener = getattr(old_reticulum, attr_name)
+                        if listener:
+                            try:
+                                print(
+                                    f"Forcing closure of RPC listener in {attr_name}...",
+                                )
+                                if hasattr(listener, "close"):
+                                    listener.close()
+                                setattr(old_reticulum, attr_name, None)
+                            except Exception as e:
+                                print(f"Warning closing RPC listener {attr_name}: {e}")
 
             # Clear RNS singleton and internal state to allow re-initialization
             try:
@@ -943,6 +951,9 @@ class ReticulumMeshChat:
             # Wait another moment for sockets to definitely be released by OS
             # Also give some time for the RPC listener port to settle
             print("Waiting for ports to settle...")
+            # We add a settle time here similar to Sideband's logic
+            await asyncio.sleep(4)
+
             # Detect RPC type from reticulum instance if possible, otherwise default to both
             rpc_addrs = []
             if old_reticulum:
@@ -1001,7 +1012,6 @@ class ReticulumMeshChat:
                     rpc_addrs.append(("\0rns/default/rpc", "AF_UNIX"))
 
             for i in range(15):
-                await asyncio.sleep(1)
                 all_free = True
                 for addr, family_str in rpc_addrs:
                     try:
@@ -1019,14 +1029,22 @@ class ReticulumMeshChat:
                             s.bind(addr)
                             s.close()
                         except OSError:
+                            addr_display = addr
+                            if (
+                                family == socket.AF_UNIX
+                                and isinstance(addr, str)
+                                and addr.startswith("\0")
+                            ):
+                                addr_display = addr[1:] + " (abstract)"
+
                             print(
-                                f"RPC addr {addr} still in use... (attempt {i + 1}/15)",
+                                f"RPC addr {addr_display} still in use... (attempt {i + 1}/15)",
                             )
                             s.close()
                             all_free = False
 
                             # If we are stuck, try to force close the connection manually
-                            if i > 5:
+                            if i > 1:
                                 try:
                                     current_process = psutil.Process()
                                     # We use kind='all' to catch both TCP and UNIX sockets
@@ -1044,12 +1062,48 @@ class ReticulumMeshChat:
                                                         or addr[0] == "0.0.0.0"
                                                     ):
                                                         match = True
-                                                elif (
-                                                    family_str == "AF_UNIX"
-                                                    and conn.laddr == addr
-                                                ):
-                                                    # Match path for UNIX sockets
-                                                    match = True
+                                                elif family_str == "AF_UNIX":
+                                                    # Match path for UNIX sockets, including abstract
+                                                    # Psutil sometimes returns abstract addresses as strings or bytes,
+                                                    # with or without the leading null byte.
+                                                    laddr = conn.laddr
+
+                                                    # Normalize both to bytes for comparison
+                                                    target_addr = (
+                                                        addr
+                                                        if isinstance(addr, bytes)
+                                                        else addr.encode()
+                                                        if isinstance(addr, str)
+                                                        else b""
+                                                    )
+                                                    current_laddr = (
+                                                        laddr
+                                                        if isinstance(laddr, bytes)
+                                                        else laddr.encode()
+                                                        if isinstance(laddr, str)
+                                                        else b""
+                                                    )
+
+                                                    if current_laddr == target_addr or (
+                                                        target_addr.startswith(b"\0")
+                                                        and current_laddr
+                                                        == target_addr[1:]
+                                                    ) or (
+                                                        current_laddr.startswith(b"\0")
+                                                        and target_addr
+                                                        == current_laddr[1:]
+                                                    ):
+                                                        match = True
+                                                    elif (
+                                                        target_addr in current_laddr
+                                                        or current_laddr in target_addr
+                                                    ):
+                                                        # Last resort: partial match
+                                                        if (
+                                                            len(target_addr) > 5
+                                                            and len(current_laddr) > 5
+                                                        ):
+                                                            match = True
 
                                             if match:
                                                 # If we found a match, force close the file descriptor
@@ -1088,6 +1142,8 @@ class ReticulumMeshChat:
                     print("All RNS ports/sockets are free.")
                     break
 
+                await asyncio.sleep(1)
+
             if not all_free:
                 # One last attempt with a very short sleep before failing
                 await asyncio.sleep(2)
@@ -1115,8 +1171,7 @@ class ReticulumMeshChat:
                     raise OSError(
                         "Timeout waiting for RNS ports to be released. Cannot restart.",
                     )
-                else:
-                    print("RNS ports finally free after last-second check.")
+                print("RNS ports finally free after last-second check.")
 
             # Final GC to ensure everything is released
             gc.collect()
