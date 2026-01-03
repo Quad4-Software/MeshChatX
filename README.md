@@ -190,23 +190,43 @@ MeshChatX can be configured via command-line arguments or environment variables.
 
 We use [Task](https://taskfile.dev/) for automation.
 
-| Task            | Description                         |
-| :-------------- | :---------------------------------- |
-| `task install`  | Install all dependencies            |
-| `task run`      | Run the application                 |
-| `task lint`     | Run all linters (Python & Frontend) |
-| `task format`   | Format all code (Python & Frontend) |
-| `task test`     | Run all tests                       |
-| `task test:cov` | Run tests with coverage reports     |
-| `task build`    | Build frontend and backend          |
+| Task                    | Description                                    |
+| :---------------------- | :--------------------------------------------- |
+| `task install`          | Install all dependencies                       |
+| `task run`              | Run the application                            |
+| `task dev`              | Run the application in development mode        |
+| `task lint`             | Run all linters (Python & Frontend)            |
+| `task lint-python`      | Lint Python code only                          |
+| `task lint-frontend`    | Lint frontend code only                        |
+| `task format`           | Format all code (Python & Frontend)            |
+| `task format-python`    | Format Python code only                        |
+| `task format-frontend`  | Format frontend code only                      |
+| `task test`             | Run all tests                                  |
+| `task test:cov`         | Run tests with coverage reports                |
+| `task test-python`      | Run Python tests only                          |
+| `task test-frontend`    | Run frontend tests only                        |
+| `task build`            | Build frontend and backend                     |
+| `task build-frontend`   | Build only the frontend                        |
+| `task wheel`            | Build Python wheel package                     |
+| `task compile`          | Compile Python code to check for syntax errors |
+| `task build-docker`     | Build Docker image using buildx                |
+| `task run-docker`       | Run Docker container using docker-compose      |
+| `task build-appimage`   | Build Linux AppImage                           |
+| `task build-exe`        | Build Windows portable executable              |
+| `task build-electron-linux` | Build Linux Electron app                   |
+| `task build-electron-windows` | Build Windows Electron apps              |
+| `task android-prepare`  | Prepare Android build                          |
+| `task android-build`    | Build Android APK                              |
+| `task build-flatpak`    | Build Flatpak package                          |
+| `task clean`            | Clean build artifacts and dependencies         |
 
 
 ## Security
 
-- ASAR Integrity (Electron 39)
-- Integrity checks on all files (frontend and backend)
+- [ASAR Integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity) (Electron 39)
+- Built-in automatic integrity checks on all files (frontend and backend)
 - HTTPS by default (automated locally generated certs)
-- 3-layer CORS protection (loading.html, python backend server, electron main.js)
+- 3-layer redundant CORS protection (loading.html, python backend server, electron main.js)
 - Updated dependencies and daily scanning (OSV)
 - Container image scanning (Trivy)
 - SBOM for dependency observability and tracking (soon)
@@ -218,5 +238,5 @@ We use [Task](https://taskfile.dev/) for automation.
 
 - [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - [micron-parser-js](https://github.com/RFnexus/micron-parser-js)
-- [Marqvist](https://github.com/markqvist) - Reticulum
+- [Marqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
 
