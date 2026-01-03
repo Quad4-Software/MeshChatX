@@ -12,13 +12,12 @@ Makefile
 *.aab
 
 # Build artifacts and cache
-build/
-dist/
-build-dir/
-python-dist/
-node_modules/
-meshchatx/public/
-__pycache__/
+/build/
+/dist/
+/build-dir/
+/python-dist/
+/node_modules/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
