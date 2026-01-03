@@ -30,6 +30,12 @@ class InterfaceConfigParser:
         for interface_name in config_interfaces:
             # ensure interface has a name
             interface_config = config_interfaces[interface_name]
+            if not isinstance(interface_config, dict):
+                print(
+                    f"Skipping invalid interface configuration for {interface_name}: expected dict, got {type(interface_config)}",
+                )
+                continue
+
             interface_config["name"] = interface_name
             interfaces.append(interface_config)
 
