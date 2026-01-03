@@ -72,7 +72,7 @@ jobs:
             - name: Install system dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng wine nsis
+                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng wine nsis zip
 
             - name: Setup Task
               uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
@@ -104,6 +104,9 @@ jobs:
                   find dist -maxdepth 1 -type f \( -name "*-win*.exe" \) -exec cp {} release-assets/ \;
                   # Python artifacts
                   find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp {} release-assets/ \;
+
+                  # Create frontend zip
+                  (cd meshchatx/public && zip -r ../../release-assets/meshchatx-frontend.zip .)
 
                   # Generate checksums
                   cd release-assets
@@ -154,6 +157,7 @@ jobs:
                       release-assets/*.exe
                       release-assets/*.whl
                       release-assets/*.sha256
+                      release-assets/*.zip
                   body_path: "release-body.md"
                   draft: false
                   prerelease: false
