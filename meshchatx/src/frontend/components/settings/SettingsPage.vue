@@ -105,9 +105,9 @@
                 </div>
 
                 <!-- settings grid -->
-                <div class="grid gap-4 lg:grid-cols-2">
+                <div class="columns-1 lg:columns-2 gap-4 space-y-4">
                     <!-- Page Archiver -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Browsing</div>
@@ -174,7 +174,7 @@
                     </section>
 
                     <!-- Smart Crawler -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Discovery</div>
@@ -249,7 +249,7 @@
                     </section>
 
                     <!-- Appearance -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Personalise</div>
@@ -277,7 +277,7 @@
                     </section>
 
                     <!-- Language -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">i18n</div>
@@ -295,7 +295,7 @@
                     </section>
 
                     <!-- Transport -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Reticulum</div>
@@ -322,7 +322,7 @@
                     </section>
 
                     <!-- Interfaces -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Adapters</div>
@@ -348,7 +348,7 @@
                     </section>
 
                     <!-- Blocked -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Privacy</div>
@@ -366,7 +366,7 @@
                     </section>
 
                     <!-- Authentication -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Security</div>
@@ -398,7 +398,7 @@
                     </section>
 
                     <!-- Messages -->
-                    <section class="glass-card">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">{{ $t("app.reliability") }}</div>
@@ -467,7 +467,7 @@
                     </section>
 
                     <!-- Propagation nodes -->
-                    <section class="glass-card lg:col-span-2">
+                    <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">LXMF</div>
@@ -566,8 +566,40 @@
                         </div>
                     </section>
 
-                    <!-- Keyboard Shortcuts -->
-                    <section class="glass-card lg:col-span-2">
+                    <!-- System / RNS Reload -->
+                    <section class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">{{ $t("app.system") }}</div>
+                                <h2>{{ $t("app.reticulum_stack") }}</h2>
+                                <p>{{ $t("app.reticulum_stack_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="flex flex-col gap-3">
+                                <button
+                                    class="btn btn--secondary w-full justify-center gap-2 py-3"
+                                    :disabled="reloadingRns"
+                                    @click="reloadRns"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="reloadingRns ? 'refresh' : 'restart'"
+                                        class="w-5 h-5"
+                                        :class="{ 'animate-spin': reloadingRns }"
+                                    />
+                                    <span>{{ reloadingRns ? $t("app.reloading_rns") : $t("app.reload_rns") }}</span>
+                                </button>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $t("app.reload_rns_description") }}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Keyboard Shortcuts (Full width at bottom) -->
+                <div class="mt-4">
+                    <section class="glass-card">
                         <div class="glass-card__header">
                             <div class="flex items-center gap-3">
                                 <div
@@ -642,6 +674,7 @@ export default {
             },
             saveTimeouts: {},
             shortcuts: [],
+            reloadingRns: false,
         };
     },
     beforeUnmount() {
@@ -939,6 +972,20 @@ export default {
                     ToastUtils.error("Failed to disable transport mode!");
                     console.log(e);
                 }
+            }
+        },
+        async reloadRns() {
+            if (this.reloadingRns) return;
+
+            try {
+                this.reloadingRns = true;
+                const response = await window.axios.post("/api/v1/reticulum/reload");
+                ToastUtils.success(response.data.message);
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.error || "Failed to reload Reticulum!");
+                console.error(e);
+            } finally {
+                this.reloadingRns = false;
             }
         },
         formatSecondsAgo: function (seconds) {

@@ -49,6 +49,19 @@
                             <MaterialDesignIcon icon-name="export" class="w-4 h-4" />
                             {{ $t("interfaces.export_all") }}
                         </button>
+                        <button
+                            type="button"
+                            class="secondary-chip text-sm bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                            :disabled="reloadingRns"
+                            @click="reloadRns"
+                        >
+                            <MaterialDesignIcon
+                                :icon-name="reloadingRns ? 'refresh' : 'restart'"
+                                class="w-4 h-4"
+                                :class="{ 'animate-spin': reloadingRns }"
+                            />
+                            {{ reloadingRns ? $t("app.reloading_rns") : $t("app.reload_rns") }}
+                        </button>
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-3 items-center">
@@ -106,6 +119,7 @@
                     v-for="iface of filteredInterfaces"
                     :key="iface._name"
                     :iface="iface"
+                    :is-reticulum-running="isReticulumRunning"
                     @enable="enableInterface(iface._name)"
                     @disable="disableInterface(iface._name)"
                     @edit="editInterface(iface._name)"
@@ -127,6 +141,7 @@ import Utils from "../../js/Utils";
 import ImportInterfacesModal from "./ImportInterfacesModal.vue";
 import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "InterfacesPage",
@@ -144,6 +159,9 @@ export default {
             statusFilter: "all",
             typeFilter: "all",
             hasPendingInterfaceChanges: false,
+            reloadingRns: false,
+            modifiedInterfaceNames: new Set(),
+            isReticulumRunning: true,
         };
     },
     computed: {
@@ -158,6 +176,7 @@ export default {
             for (const [interfaceName, iface] of Object.entries(this.interfaces)) {
                 iface._name = interfaceName;
                 iface._stats = this.interfaceStats[interfaceName];
+                iface._restart_required = this.modifiedInterfaceNames.has(interfaceName);
                 results.push(iface);
             }
             return results;
@@ -216,6 +235,11 @@ export default {
         this.loadInterfaces();
         this.updateInterfaceStats();
 
+        // check if we have a restart required from adding an interface
+        if (this.$route.query.restart_required) {
+            this.trackInterfaceChange(this.$route.query.restart_required);
+        }
+
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
             this.updateInterfaceStats();
@@ -225,8 +249,11 @@ export default {
         relaunch() {
             ElectronUtils.relaunch();
         },
-        trackInterfaceChange() {
+        trackInterfaceChange(interfaceName = null) {
             this.hasPendingInterfaceChanges = true;
+            if (interfaceName) {
+                this.modifiedInterfaceNames.add(interfaceName);
+            }
         },
         isInterfaceEnabled: function (iface) {
             return Utils.isInterfaceEnabled(iface);
@@ -235,6 +262,10 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/reticulum/interfaces`);
                 this.interfaces = response.data.interfaces;
+
+                // also check app info for running state
+                const appInfoResponse = await window.axios.get(`/api/v1/app/info`);
+                this.isReticulumRunning = appInfoResponse.data.app_info.is_reticulum_running;
             } catch {
                 // do nothing if failed to load interfaces
             }
@@ -259,7 +290,7 @@ export default {
                 await window.axios.post(`/api/v1/reticulum/interfaces/enable`, {
                     name: interfaceName,
                 });
-                this.trackInterfaceChange();
+                this.trackInterfaceChange(interfaceName);
             } catch (e) {
                 DialogUtils.alert("failed to enable interface");
                 console.log(e);
@@ -274,7 +305,7 @@ export default {
                 await window.axios.post(`/api/v1/reticulum/interfaces/disable`, {
                     name: interfaceName,
                 });
-                this.trackInterfaceChange();
+                this.trackInterfaceChange(interfaceName);
             } catch (e) {
                 DialogUtils.alert("failed to disable interface");
                 console.log(e);
@@ -304,7 +335,7 @@ export default {
                 await window.axios.post(`/api/v1/reticulum/interfaces/delete`, {
                     name: interfaceName,
                 });
-                this.trackInterfaceChange();
+                this.trackInterfaceChange(interfaceName);
             } catch (e) {
                 DialogUtils.alert("failed to delete interface");
                 console.log(e);
@@ -356,6 +387,23 @@ export default {
         },
         filterChipClass(isActive) {
             return isActive ? "primary-chip text-xs" : "secondary-chip text-xs";
+        },
+        async reloadRns() {
+            if (this.reloadingRns) return;
+
+            try {
+                this.reloadingRns = true;
+                const response = await window.axios.post("/api/v1/reticulum/reload");
+                ToastUtils.success(response.data.message);
+                this.hasPendingInterfaceChanges = false;
+                this.modifiedInterfaceNames.clear();
+                await this.loadInterfaces();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.error || "Failed to reload Reticulum!");
+                console.error(e);
+            } finally {
+                this.reloadingRns = false;
+            }
         },
     },
 };

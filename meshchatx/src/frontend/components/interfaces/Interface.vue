@@ -1,6 +1,37 @@
 <template>
-    <div class="interface-card">
-        <div class="flex gap-4 items-start">
+    <div
+        class="interface-card transition-all duration-300"
+        :class="{
+            'opacity-60 grayscale-[0.5]': !isInterfaceEnabled(iface) || iface._restart_required || !isReticulumRunning,
+        }"
+    >
+        <div class="flex gap-4 items-start relative">
+            <!-- Offline Overlay -->
+            <div
+                v-if="!isReticulumRunning"
+                class="absolute inset-0 z-10 flex items-center justify-center bg-white/40 dark:bg-zinc-900/40 backdrop-blur-[1px] rounded-3xl"
+            >
+                <div
+                    class="bg-red-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-bold"
+                >
+                    <MaterialDesignIcon icon-name="lan-disconnect" class="w-4 h-4" />
+                    <span>Reticulum Offline</span>
+                </div>
+            </div>
+
+            <!-- Restart Required Overlay -->
+            <div
+                v-if="isReticulumRunning && iface._restart_required"
+                class="absolute inset-0 z-10 flex items-center justify-center bg-white/40 dark:bg-zinc-900/40 backdrop-blur-[1px] rounded-3xl"
+            >
+                <div
+                    class="bg-amber-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-bold animate-pulse"
+                >
+                    <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
+                    <span>{{ $t("interfaces.restart_required") }}</span>
+                </div>
+            </div>
+
             <div class="interface-card__icon">
                 <MaterialDesignIcon :icon-name="iconName" class="w-6 h-6" />
             </div>
@@ -147,6 +178,10 @@ export default {
         iface: {
             type: Object,
             required: true,
+        },
+        isReticulumRunning: {
+            type: Boolean,
+            default: true,
         },
     },
     emits: ["enable", "disable", "edit", "export", "delete"],

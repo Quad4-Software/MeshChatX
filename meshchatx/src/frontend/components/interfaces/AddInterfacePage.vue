@@ -1479,6 +1479,9 @@ export default {
                 // go to interfaces page
                 this.$router.push({
                     name: "interfaces",
+                    query: {
+                        restart_required: this.newInterfaceName,
+                    },
                 });
             } catch (e) {
                 const message = e.response?.data?.message ?? "failed to add interface";
