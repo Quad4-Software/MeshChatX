@@ -1,5 +1,8 @@
 # Reticulum MeshChatX
 
+> [!IMPORTANT]  
+> v4 coming soon with release builds for Linux and Windows. As well as updated container images and wheel packages.
+
 [![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
 [![Tests](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml)
 [![Build](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml)
@@ -18,9 +21,12 @@ This project is separate from the original Reticulum MeshChat project, and is no
 
 To provide everything you need for Reticulum, LXMF, and LXST in one beautiful and feature-rich application.
 
-- Desktop app
+- Desktop app (Linux, Windows, macOS)
 - Self-host on your server easily with or without containers
 - Mobile app (one can dream)
+- Reliable, "secure", fast and easy to use.
+
+Note on macOS: You will need to manually build or use containers since I do not have a macOS machine or runner. 
 
 ## Quick Start (Docker - Recommended)
 
@@ -43,7 +49,7 @@ docker run -d \
 docker compose up -d
 ```
 
-Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-built binaries (AppImage, DEB, EXE) if you prefer standalone apps.
+Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-built binaries (AppImage, DEB, EXE) if you prefer standalone apps. (coming soon)
 
 ## Major Features
 
@@ -51,11 +57,11 @@ Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-bui
 - **Multi-Identity**: Switch between multiple Reticulum identities seamlessly.
 - **Modern UI/UX**: A completely redesigned, intuitive interface.
 - **Integrated Maps**: OpenLayers with MBTiles support for offline maps.
-- **Security**: Built-in authentication, automatic HTTPS, and CORS protection.
+- **Security**: Read more about it in the [Security](#security) section.
 - **Offline Docs**: Access Reticulum documentation without an internet connection.
-- **Powerful Tools**: Includes RNStatus, RNProbe, RNCP, Micron Editor, Paper Message Generator and a Translator.
-- **Page Archiving**: Built-in crawler and browser for archived pages.
-- **Blocklist**: Block LXMF users, Telephony, and NomadNet Nodes.
+- **Expanded Tools**: Includes RNStatus, RNProbe, RNCP, Micron Editor, Paper Message Generator and a Translator.
+- **Page Archiving**: Built-in crawler and browser for archived pages offline.
+- **Banishment**: Banish LXMF users, Telephony, and NomadNet Nodes. (and unbanish them)
 - **i18n**: Support for English, German, and Russian.
 
 ## Screenshots
@@ -195,7 +201,22 @@ We use [Task](https://taskfile.dev/) for automation.
 | `task build`    | Build frontend and backend          |
 
 
+## Security
+
+- ASAR Integrity (Electron 39)
+- Integrity checks on all files (frontend and backend)
+- HTTPS by default (automated locally generated certs)
+- 3-layer CORS protection (loading.html, python backend server, electron main.js)
+- Updated dependencies and daily scanning (OSV)
+- Container image scanning (Trivy)
+- SBOM for dependency observability and tracking (soon)
+- Extensive testing and fuzzing. 
+- Rootless docker images (soon)
+- Pinned actions and container images (supply chain security and deterministic builds)
+
 ## Credits
 
 - [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - [micron-parser-js](https://github.com/RFnexus/micron-parser-js)
+- [Marqvist](https://github.com/markqvist) - Reticulum
+
