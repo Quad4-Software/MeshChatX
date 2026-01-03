@@ -1,0 +1,6 @@
+- [ ] RNS hot reload fix
+- [ ] Offline Reticulum documentation tool
+- [ ] Spam filter (based on keywords)
+- [ ] TAK tool/integration
+- [ ] RNS Tunnel - tunnel regular services over RNS
+- [ ] RNS Filesync - P2P file sync
