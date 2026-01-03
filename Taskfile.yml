@@ -72,13 +72,34 @@ tasks:
             - "{{.NPM}} run lint"
 
     lint:
-        desc: Run all linters
+        desc: Run all linters (frontend and Python)
         deps: [lint-frontend, lint-python]
+
+    format-python:
+        desc: Format Python code using ruff
+        cmds:
+            - poetry run ruff format ./ --exclude tests
+            - poetry run ruff check --fix ./ --exclude tests
+
+    format-frontend:
+        desc: Format frontend code using Prettier and ESLint
+        cmds:
+            - "{{.NPM}} run format"
+            - "{{.NPM}} run lint:fix"
+
+    format:
+        desc: Format all code (Python and frontend)
+        deps: [format-python, format-frontend]
 
     test-python:
         desc: Run Python tests using pytest
         cmds:
             - poetry run pytest tests/backend --cov=meshchatx/src/backend
+
+    test-python-cov:
+        desc: Run Python tests with detailed coverage report
+        cmds:
+            - poetry run pytest tests/backend --cov=meshchatx/src/backend --cov-report=term-missing
 
     test-frontend:
         desc: Run frontend tests using vitest
@@ -88,6 +109,10 @@ tasks:
     test:
         desc: Run all tests
         deps: [test-python, test-frontend]
+
+    test:cov:
+        desc: Run all tests with coverage reports
+        deps: [test-python-cov, test-frontend]
 
     compile:
         desc: Compile Python code to check for syntax errors
@@ -130,6 +155,7 @@ tasks:
         desc: Build only the frontend
         deps: [node_modules]
         cmds:
+            - rm -rf meshchatx/public/assets
             - "{{.NPM}} run build-frontend"
 
     wheel:
@@ -209,14 +235,6 @@ tasks:
             - rm -rf meshchatx/public
             - rm -rf build-dir
             - task: android-clean
-
-    fix:
-        desc: Format and fix linting issues (Python and frontend)
-        cmds:
-            - poetry run ruff format ./ --exclude tests
-            - poetry run ruff check --fix ./ --exclude tests
-            - "{{.NPM}} run format"
-            - "{{.NPM}} run lint:fix"
 
     build-docker:
         desc: Build Docker image using buildx
