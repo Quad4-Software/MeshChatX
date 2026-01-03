@@ -255,6 +255,21 @@ tasks:
             - "{{.NPM}} run dist -- --win portable -c.extraMetadata.main=electron/main-legacy.js"
             - "./scripts/rename_legacy_artifacts.sh"
 
+    forge-start:
+        desc: Run the application with Electron Forge
+        cmds:
+            - "{{.NPM}} run start"
+
+    forge-package:
+        desc: Package the application with Electron Forge
+        cmds:
+            - "{{.NPM}} run package"
+
+    forge-make:
+        desc: Generate distributables with Electron Forge
+        cmds:
+            - "{{.NPM}} run make"
+
     clean:
         desc: Clean build artifacts and dependencies
         cmds:
@@ -376,41 +391,3 @@ tasks:
         cmds:
             - cd "{{.ANDROID_DIR}}" && ./gradlew clean
             - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
-
-    flatpak-check-sdk:
-        desc: Check if required Flatpak SDK is installed
-        cmds:
-            - |
-                if ! flatpak info org.freedesktop.Sdk//24.08 >/dev/null 2>&1; then
-                    echo "Flatpak SDK 24.08 is not installed."
-                    echo "Install it with: flatpak install org.freedesktop.Sdk//24.08"
-                    exit 1
-                fi
-                if ! flatpak info org.freedesktop.Platform//24.08 >/dev/null 2>&1; then
-                    echo "Flatpak Platform runtime 24.08 is not installed."
-                    echo "Install it with: flatpak install org.freedesktop.Platform//24.08"
-                    exit 1
-                fi
-                if ! flatpak info org.freedesktop.Sdk.Extension.node20//24.08 >/dev/null 2>&1; then
-                    echo "Flatpak Node.js 20 extension is not installed."
-                    echo "Install it with: flatpak install org.freedesktop.Sdk.Extension.node20//24.08"
-                    exit 1
-                fi
-                echo "Required Flatpak SDK, Platform runtime, and Node.js extension are installed."
-
-    build-flatpak:
-        desc: Build Flatpak package
-        deps: [flatpak-check-sdk]
-        cmds:
-            - flatpak-builder --force-clean build-dir flatpak.json
-
-    install-flatpak:
-        desc: Install Flatpak package locally
-        deps: [build-flatpak]
-        cmds:
-            - flatpak-builder --install --user --force-clean build-dir flatpak.json
-
-    run-flatpak:
-        desc: Run Flatpak application
-        cmds:
-            - flatpak run com.sudoivan.reticulummeshchatx
