@@ -1,9 +1,10 @@
 services:
     reticulum-meshchatx:
         container_name: reticulum-meshchatx
-        image: ${MESHCHAT_IMAGE:-ghcr.io/sudo-ivan/reticulum-meshchatx:latest}
-        pull_policy: always
+        image: git.quad4.io/rns-things/meshchatx:latest
         restart: unless-stopped
+        security_opt:
+            - no-new-privileges:true
         # Make the meshchat web interface accessible from the host on port 8000
         ports:
             - 127.0.0.1:8000:8000
