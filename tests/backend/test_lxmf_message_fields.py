@@ -1,8 +1,8 @@
 from meshchatx.src.backend.lxmf_message_fields import (
     LxmfAudioField,
-    LxmfImageField,
     LxmfFileAttachment,
     LxmfFileAttachmentsField,
+    LxmfImageField,
 )
 
 

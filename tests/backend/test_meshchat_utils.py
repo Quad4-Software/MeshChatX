@@ -1,8 +1,10 @@
-import pytest
 import os
 import shutil
 import tempfile
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from meshchatx.meshchat import ReticulumMeshChat
 
 
@@ -36,7 +38,7 @@ def mock_app(temp_dir):
         patch("RNS.Transport"),
         patch("threading.Thread"),
         patch.object(
-            ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None)
+            ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None),
         ),
         patch.object(
             ReticulumMeshChat,
@@ -44,7 +46,7 @@ def mock_app(temp_dir):
             new=MagicMock(return_value=None),
         ),
         patch.object(
-            ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
+            ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None),
         ),
     ):
         mock_id = MagicMock()
@@ -68,7 +70,7 @@ def test_get_interfaces_snapshot(mock_app):
         "interfaces": {
             "Iface1": {"type": "TCP", "enabled": "yes"},
             "Iface2": {"type": "RNode", "enabled": "no"},
-        }
+        },
     }
     mock_app.reticulum = mock_reticulum
 

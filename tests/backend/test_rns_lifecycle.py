@@ -1,8 +1,10 @@
-import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
 import os
 import shutil
 import tempfile
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from meshchatx.meshchat import ReticulumMeshChat
 
 
@@ -14,7 +16,7 @@ def mock_rns():
         patch("RNS.Identity") as mock_identity,
         patch("threading.Thread"),
         patch.object(
-            ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None)
+            ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None),
         ),
         patch.object(
             ReticulumMeshChat,
@@ -22,7 +24,7 @@ def mock_rns():
             new=MagicMock(return_value=None),
         ),
         patch.object(
-            ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
+            ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None),
         ),
     ):
         # Setup mock identity
@@ -129,7 +131,7 @@ async def test_teardown_identity(mock_rns, temp_dir):
 
         assert app.running is False
         mock_rns["Transport"].deregister_announce_handler.assert_called_with(
-            mock_handler
+            mock_handler,
         )
         app.database.close.assert_called()
 
@@ -213,7 +215,7 @@ async def test_reload_reticulum_failure_recovery(mock_rns, temp_dir):
         # We need to make something else fail to reach the except block
         # or just mock a method inside the try block to raise.
         with patch.object(
-            app, "teardown_identity", side_effect=Exception("Reload failed")
+            app, "teardown_identity", side_effect=Exception("Reload failed"),
         ):
             result = await app.reload_reticulum()
 

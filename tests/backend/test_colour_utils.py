@@ -1,4 +1,5 @@
 import pytest
+
 from meshchatx.src.backend.colour_utils import ColourUtils
 
 

@@ -1,8 +1,10 @@
 import os
 import tempfile
+
 import pytest
-from meshchatx.src.backend.database import Database
+
 from meshchatx.src.backend.config_manager import ConfigManager
+from meshchatx.src.backend.database import Database
 
 
 @pytest.fixture
@@ -50,7 +52,7 @@ def test_config_manager_type_safety(db):
 
     # IntConfig
     config.lxmf_inbound_stamp_cost.set(
-        "15"
+        "15",
     )  # Should handle string to int if implementation allows or just store it
     # Looking at implementation might be better, but let's test basic set/get
     config.lxmf_inbound_stamp_cost.set(15)
