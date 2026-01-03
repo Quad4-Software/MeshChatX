@@ -162,6 +162,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/micron-editor/MicronEditorPage.vue")),
         },
         {
+            name: "documentation",
+            path: "/documentation",
+            component: defineAsyncComponent(() => import("./components/docs/DocsPage.vue")),
+        },
+        {
             name: "profile.icon",
             path: "/profile/icon",
             component: defineAsyncComponent(() => import("./components/profile/ProfileIconPage.vue")),
@@ -192,9 +197,32 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/tools/PaperMessagePage.vue")),
         },
         {
+            name: "debug-logs",
+            path: "/debug/logs",
+            component: defineAsyncComponent(() => import("./components/debug/DebugLogsPage.vue")),
+        },
+        {
             name: "call",
             path: "/call",
             component: defineAsyncComponent(() => import("./components/call/CallPage.vue")),
+        },
+        {
+            name: "call-popout",
+            path: "/popout/call",
+            meta: { isPopout: true },
+            component: defineAsyncComponent(() => import("./components/call/CallPage.vue")),
+        },
+        {
+            name: "changelog",
+            path: "/changelog",
+            component: defineAsyncComponent(() => import("./components/ChangelogModal.vue")),
+            meta: { isPage: true },
+        },
+        {
+            name: "tutorial",
+            path: "/tutorial",
+            component: defineAsyncComponent(() => import("./components/TutorialModal.vue")),
+            meta: { isPage: true },
         },
     ],
 });
