@@ -14,6 +14,8 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
+        "test": "vitest run",
+        "test:watch": "vitest",
         "electron-postinstall": "electron-builder install-app-deps",
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
@@ -32,6 +34,7 @@
         "@eslint/js": "^9.39.2",
         "@rushstack/eslint-patch": "^1.15.0",
         "@vue/eslint-config-prettier": "^10.2.0",
+        "@vue/test-utils": "^2.4.6",
         "electron": "^39.2.7",
         "electron-builder": "^24.13.3",
         "eslint": "^9.39.2",
@@ -40,8 +43,10 @@
         "eslint-plugin-security": "^3.0.1",
         "eslint-plugin-vue": "^10.6.2",
         "globals": "^16.5.0",
+        "jsdom": "^26.1.0",
         "prettier": "^3.7.4",
-        "terser": "^5.44.1"
+        "terser": "^5.44.1",
+        "vitest": "^3.2.4"
     },
     "build": {
         "appId": "com.sudoivan.reticulummeshchat",
