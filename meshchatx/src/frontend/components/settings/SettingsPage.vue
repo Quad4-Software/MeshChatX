@@ -567,6 +567,7 @@
                     </section>
 
                     <!-- System / RNS Reload -->
+                    <!--
                     <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
@@ -595,6 +596,7 @@
                             </div>
                         </div>
                     </section>
+                    -->
                 </div>
 
                 <!-- Keyboard Shortcuts (Full width at bottom) -->

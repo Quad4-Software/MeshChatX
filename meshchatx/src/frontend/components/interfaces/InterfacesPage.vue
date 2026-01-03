@@ -49,6 +49,7 @@
                             <MaterialDesignIcon icon-name="export" class="w-4 h-4" />
                             {{ $t("interfaces.export_all") }}
                         </button>
+                        <!--
                         <button
                             type="button"
                             class="secondary-chip text-sm bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30"
@@ -62,6 +63,7 @@
                             />
                             {{ reloadingRns ? $t("app.reloading_rns") : $t("app.reload_rns") }}
                         </button>
+                        -->
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-3 items-center">
