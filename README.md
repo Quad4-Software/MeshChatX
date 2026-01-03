@@ -1,5 +1,10 @@
 # Reticulum MeshChatX
 
+[![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
+[![Tests](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml)
+[![Build](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml)
+[![Docker](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/docker.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/docker.yml)
+
 A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork from the future.
 
 <video src="https://strg.0rbitzer0.net/raw/62926a2a-0a9a-4f44-a5f6-000dd60deac1.mp4" controls="controls" style="max-width: 100%;"></video>
