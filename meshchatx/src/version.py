@@ -1,5 +1,4 @@
-"""
-Auto-generated helper so Python tooling and the Electron build
+"""Auto-generated helper so Python tooling and the Electron build
 share the same version string.
 """
 
