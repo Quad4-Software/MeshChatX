@@ -38,7 +38,9 @@ def mock_app(temp_dir):
         patch("RNS.Transport"),
         patch("threading.Thread"),
         patch.object(
-            ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None),
+            ReticulumMeshChat,
+            "announce_loop",
+            new=MagicMock(return_value=None),
         ),
         patch.object(
             ReticulumMeshChat,
@@ -46,7 +48,9 @@ def mock_app(temp_dir):
             new=MagicMock(return_value=None),
         ),
         patch.object(
-            ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None),
+            ReticulumMeshChat,
+            "crawler_loop",
+            new=MagicMock(return_value=None),
         ),
     ):
         mock_id = MagicMock()
