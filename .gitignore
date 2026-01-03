@@ -79,3 +79,4 @@ meshchat-config/
 .hypothesis/
 
 MagicMock/
+out/
