@@ -158,7 +158,8 @@
         "sync_complete": "Sync complete. {count} messages received.",
         "sync_error": "Sync error: {status}",
         "switching_identity": "Switching Identity...",
-        "loading_identity": "Loading your identity"
+        "loading_identity": "Loading your identity",
+        "emergency_mode_active": "Emergency Mode Active - Using in-memory database and restricted services."
     },
     "common": {
         "open": "Open",
@@ -262,7 +263,7 @@
         "no_interfaces_found": "No interfaces found",
         "no_interfaces_description": "Adjust your search or add a new interface.",
         "restart_required": "Restart required",
-        "restart_description": "Reticulum MeshChat must be restarted for any interface changes to take effect.",
+        "restart_description": "Reticulum MeshChatX must be restarted for any interface changes to take effect.",
         "restart_now": "Restart now"
     },
     "map": {

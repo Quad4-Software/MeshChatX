@@ -262,7 +262,7 @@
         "no_interfaces_found": "Keine Schnittstellen gefunden",
         "no_interfaces_description": "Passen Sie Ihre Suche an oder fügen Sie eine neue Schnittstelle hinzu.",
         "restart_required": "Neustart erforderlich",
-        "restart_description": "Reticulum MeshChat muss neu gestartet werden, damit Schnittstellenänderungen wirksam werden.",
+        "restart_description": "Reticulum MeshChatX muss neu gestartet werden, damit Schnittstellenänderungen wirksam werden.",
         "restart_now": "Jetzt neu starten"
     },
     "map": {

@@ -262,7 +262,7 @@
         "no_interfaces_found": "Интерфейсы не найдены",
         "no_interfaces_description": "Измените параметры поиска или добавьте новый интерфейс.",
         "restart_required": "Требуется перезапуск",
-        "restart_description": "Reticulum MeshChat необходимо перезапустить, чтобы изменения вступили в силу.",
+        "restart_description": "Reticulum MeshChatX необходимо перезапустить, чтобы изменения вступили в силу.",
         "restart_now": "Перезапустить сейчас"
     },
     "map": {
