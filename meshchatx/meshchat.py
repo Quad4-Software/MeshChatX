@@ -928,31 +928,48 @@ class ReticulumMeshChat:
             # Wait another moment for sockets to definitely be released by OS
             # Also give some time for the RPC listener port to settle
             print("Waiting for ports to settle...")
+            # Detect RPC type from reticulum instance if possible, otherwise default to both
+            rpc_addrs = []
+            if old_reticulum:
+                if hasattr(old_reticulum, "rpc_addr") and old_reticulum.rpc_addr:
+                    rpc_addrs.append((old_reticulum.rpc_addr, getattr(old_reticulum, "rpc_type", "AF_INET")))
+            
+            if not rpc_addrs:
+                # Defaults
+                rpc_addrs.append((("127.0.0.1", 37429), "AF_INET"))
+                if platform.system() == "Linux":
+                    rpc_addrs.append(("\0rns/default/rpc", "AF_UNIX"))
+
             for i in range(10):
                 await asyncio.sleep(1)
-                # If we're using AF_INET for RPC, we can check the port
-                # RNS uses 127.0.0.1:37429 by default
-                try:
-                    import socket
-
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.settimeout(0.5)
-                    # Try to bind to the port. If it fails, it's still in use.
-                    # RNS uses this for the shared instance listener.
-                    # We use a high port number that is unlikely to be used by anything else
-                    # but RNS.
+                all_free = True
+                for addr, family_str in rpc_addrs:
                     try:
-                        # RNS local_control_port is 37429
-                        s.bind(("127.0.0.1", 37429))
-                        s.close()
-                        print("RPC port 37429 is free.")
-                        break
-                    except OSError:
-                        print(f"RPC port 37429 still in use... (attempt {i + 1}/10)")
-                        s.close()
-                except Exception as e:
-                    print(f"Error checking RPC port: {e}")
+                        import socket
+                        family = socket.AF_INET if family_str == "AF_INET" else socket.AF_UNIX
+                        s = socket.socket(family, socket.SOCK_STREAM)
+                        s.settimeout(0.5)
+                        try:
+                            s.bind(addr)
+                            s.close()
+                        except OSError:
+                            print(f"RPC addr {addr} still in use... (attempt {i+1}/10)")
+                            s.close()
+                            all_free = False
+                            break
+                    except Exception as e:
+                        print(f"Error checking RPC addr {addr}: {e}")
+                
+                if all_free:
+                    print("All RNS ports/sockets are free.")
                     break
+
+            if not all_free:
+                raise OSError("Timeout waiting for RNS ports to be released. Cannot restart.")
+
+            # Final GC to ensure everything is released
+            import gc
+            gc.collect()
 
             # Re-setup identity (this starts background loops again)
             self.running = True
@@ -7138,7 +7155,11 @@ class ReticulumMeshChat:
             )
 
         elif _type == "lxmf.forwarding.rule.add":
-            rule_data = data["rule"]
+            rule_data = data.get("rule")
+            if not rule_data or "forward_to_hash" not in rule_data:
+                print("Missing rule data or forward_to_hash in lxmf.forwarding.rule.add")
+                return
+
             self.database.misc.create_forwarding_rule(
                 identity_hash=rule_data.get("identity_hash"),
                 forward_to_hash=rule_data["forward_to_hash"],
@@ -7155,26 +7176,28 @@ class ReticulumMeshChat:
             )
 
         elif _type == "lxmf.forwarding.rule.delete":
-            rule_id = data["id"]
-            self.database.misc.delete_forwarding_rule(rule_id)
-            # notify updated
-            AsyncUtils.run_async(
-                self.on_websocket_data_received(
-                    client,
-                    {"type": "lxmf.forwarding.rules.get"},
-                ),
-            )
+            rule_id = data.get("id")
+            if rule_id is not None:
+                self.database.misc.delete_forwarding_rule(rule_id)
+                # notify updated
+                AsyncUtils.run_async(
+                    self.on_websocket_data_received(
+                        client,
+                        {"type": "lxmf.forwarding.rules.get"},
+                    ),
+                )
 
         elif _type == "lxmf.forwarding.rule.toggle":
-            rule_id = data["id"]
-            self.database.misc.toggle_forwarding_rule(rule_id)
-            # notify updated
-            AsyncUtils.run_async(
-                self.on_websocket_data_received(
-                    client,
-                    {"type": "lxmf.forwarding.rules.get"},
-                ),
-            )
+            rule_id = data.get("id")
+            if rule_id is not None:
+                self.database.misc.toggle_forwarding_rule(rule_id)
+                # notify updated
+                AsyncUtils.run_async(
+                    self.on_websocket_data_received(
+                        client,
+                        {"type": "lxmf.forwarding.rules.get"},
+                    ),
+                )
 
         # handle ingesting an lxmf uri (paper message)
         elif _type == "lxm.ingest_uri":
@@ -8648,6 +8671,11 @@ class ReticulumMeshChat:
         app_data,
         announce_packet_hash,
     ):
+        # check if announced identity or its hash is missing
+        if not announced_identity or not announced_identity.hash:
+            print(f"Dropping announce with missing identity or hash: {RNS.prettyhexrep(destination_hash)}")
+            return
+
         # check if source is blocked - drop announce and path if blocked
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash):
