@@ -103,6 +103,60 @@ This project is seperate from the original Reticulum MeshChat project, and is no
 
 Check [releases](https://git.quad4.io/Ivan/MeshChatX/releases) for pre-built binaries or appimages.
 
+### Manual Installation (Bare Metal)
+
+If you prefer not to use Docker or pre-built binaries, you can install MeshChatX manually:
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://git.quad4.io/RNS-Things/MeshChatX
+   cd MeshChatX
+   ```
+
+2. **Install Node.js dependencies**:
+   ```bash
+   corepack enable
+   pnpm install
+   ```
+
+3. **Install Python dependencies**:
+   ```bash
+   # It is recommended to use a virtual environment
+   pip install poetry
+   poetry install
+   ```
+
+4. **Build the frontend**:
+   ```bash
+   pnpm run build-frontend
+   ```
+
+5. **Run MeshChatX**:
+   ```bash
+   poetry run meshchat --headless --host 127.0.0.1
+   ```
+
+## Architecture Support (ARM64, etc.)
+
+MeshChatX fully supports **ARM64** (Raspberry Pi, Pine64, etc.) and other architectures via Docker or manual installation.
+
+### Docker (Recommended for ARM64)
+
+The official Docker image is multi-arch and supports `linux/amd64` and `linux/arm64`.
+
+```bash
+# On a Raspberry Pi, simply pull and run
+docker pull git.quad4.io/rns-things/meshchatx:latest
+```
+
+### Manual Build for ARM64
+
+If you are building your own multi-arch image:
+
+```bash
+DOCKER_PLATFORMS=linux/amd64,linux/arm64 task build-docker
+```
+
 ## Building
 
 This project uses [Task](https://taskfile.dev/) for build automation. Install Task first, then:
@@ -116,26 +170,26 @@ You can run `task run` or `task develop` (a thin alias) to start the backend + f
 
 ### Available Tasks
 
-| Task                         | Description                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------- |
-| `task install`               | Install all dependencies (syncs version, installs node modules and python deps) |
-| `task node_modules`          | Install Node.js dependencies only                                               |
-| `task python`                | Install Python dependencies using Poetry only                                   |
-| `task sync-version`          | Sync version numbers across project files                                       |
-| `task run`                   | Run the application                                                             |
-| `task develop`               | Run the application in development mode (alias for `run`)                       |
-| `task build`                 | Build the application (frontend and backend)                                    |
-| `task build-frontend`        | Build only the frontend                                                         |
-| `task clean`                 | Clean build artifacts and dependencies                                          |
-| `task wheel`                 | Build Python wheel package (outputs to `python-dist/`)                          |
-| `task build-appimage`        | Build Linux AppImage                                                            |
-| `task build-exe`             | Build Windows portable executable                                               |
-| `task dist`                  | Build distribution (defaults to AppImage)                                       |
-| `task electron-legacy`       | Install legacy Electron version                                                 |
-| `task build-appimage-legacy` | Build Linux AppImage with legacy Electron version                               |
-| `task build-exe-legacy`      | Build Windows portable executable with legacy Electron version                  |
-| `task build-docker`          | Build Docker image using buildx                                                 |
-| `task run-docker`            | Run Docker container using docker-compose                                       |
+| Task                          | Description                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| `task install`                | Install all dependencies (syncs version, installs node modules and python deps) |
+| `task node_modules`           | Install Node.js dependencies only                                               |
+| `task python`                 | Install Python dependencies using Poetry only                                   |
+| `task sync-version`           | Sync version numbers across project files                                       |
+| `task run`                    | Run the application                                                             |
+| `task develop`                | Run the application in development mode (alias for `run`)                       |
+| `task build`                  | Build the application (frontend and backend)                                    |
+| `task build-frontend`         | Build only the frontend                                                         |
+| `task clean`                  | Clean build artifacts and dependencies                                          |
+| `task wheel`                  | Build Python wheel package (outputs to `python-dist/`)                          |
+| `task build-appimage`         | Build Linux AppImage                                                            |
+| `task build-exe`              | Build Windows portable executable                                               |
+| `task dist`                   | Build distribution (defaults to AppImage)                                       |
+| `task electron-legacy`        | Install legacy Electron version                                                 |
+| `task build-appimage-legacy`  | Build Linux AppImage with legacy Electron version                               |
+| `task build-exe-legacy`       | Build Windows portable executable with legacy Electron version                  |
+| `task build-docker`           | Build Docker image using buildx                                                 |
+| `task run-docker`             | Run Docker container using docker-compose                                       |
 
 All tasks support environment variable overrides. For example:
 
