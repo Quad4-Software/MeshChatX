@@ -13,6 +13,17 @@ def mock_rns():
         patch("RNS.Transport") as mock_transport,
         patch("RNS.Identity") as mock_identity,
         patch("threading.Thread"),
+        patch.object(
+            ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None)
+        ),
+        patch.object(
+            ReticulumMeshChat,
+            "announce_sync_propagation_nodes",
+            new=MagicMock(return_value=None),
+        ),
+        patch.object(
+            ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
+        ),
     ):
         # Setup mock identity
         mock_id_instance = MagicMock()

@@ -56,7 +56,7 @@ describe("InterfacesPage.vue", () => {
                     $router: mockRouter,
                     $t: (msg) => msg,
                 },
-                stubs: ["MaterialDesignIcon", "IconButton", "Interface", "ImportInterfacesModal"],
+                stubs: ["RouterLink", "MaterialDesignIcon", "IconButton", "Interface", "ImportInterfacesModal"],
             },
         });
 
@@ -75,7 +75,7 @@ describe("InterfacesPage.vue", () => {
                     $router: mockRouter,
                     $t: (msg) => msg,
                 },
-                stubs: ["MaterialDesignIcon", "IconButton", "Interface", "ImportInterfacesModal"],
+                stubs: ["RouterLink", "MaterialDesignIcon", "IconButton", "Interface", "ImportInterfacesModal"],
             },
         });
 
@@ -94,7 +94,7 @@ describe("InterfacesPage.vue", () => {
                     $router: mockRouter,
                     $t: (msg) => msg,
                 },
-                stubs: ["MaterialDesignIcon", "IconButton", "Interface", "ImportInterfacesModal"],
+                stubs: ["RouterLink", "MaterialDesignIcon", "IconButton", "Interface", "ImportInterfacesModal"],
             },
         });
 

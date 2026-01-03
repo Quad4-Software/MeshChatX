@@ -35,6 +35,17 @@ def mock_app(temp_dir):
         patch("RNS.Reticulum"),
         patch("RNS.Transport"),
         patch("threading.Thread"),
+        patch.object(
+            ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None)
+        ),
+        patch.object(
+            ReticulumMeshChat,
+            "announce_sync_propagation_nodes",
+            new=MagicMock(return_value=None),
+        ),
+        patch.object(
+            ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
+        ),
     ):
         mock_id = MagicMock()
         # Use a real bytes object for hash so .hex() works naturally
