@@ -1,5 +1,13 @@
 # Reticulum MeshChatX
 
+> [!IMPORTANT]  
+> v4 coming soon with release builds for Linux and Windows. As well as updated container images and wheel packages.
+
+[![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
+[![Tests](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml)
+[![Build](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml)
+[![Docker](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/docker.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/docker.yml)
+
 A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork from the future.
 
 <video src="https://strg.0rbitzer0.net/raw/62926a2a-0a9a-4f44-a5f6-000dd60deac1.mp4" controls="controls" style="max-width: 100%;"></video>
@@ -13,9 +21,12 @@ This project is separate from the original Reticulum MeshChat project, and is no
 
 To provide everything you need for Reticulum, LXMF, and LXST in one beautiful and feature-rich application.
 
-- Desktop app
+- Desktop app (Linux, Windows, macOS)
 - Self-host on your server easily with or without containers
 - Mobile app (one can dream)
+- Reliable, "secure", fast and easy to use.
+
+Note on macOS: You will need to manually build or use containers since I do not have a macOS machine or runner. 
 
 ## Quick Start (Docker - Recommended)
 
@@ -38,7 +49,7 @@ docker run -d \
 docker compose up -d
 ```
 
-Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-built binaries (AppImage, DEB, EXE) if you prefer standalone apps.
+Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-built binaries (AppImage, DEB, EXE) if you prefer standalone apps. (coming soon)
 
 ## Major Features
 
@@ -46,11 +57,11 @@ Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-bui
 - **Multi-Identity**: Switch between multiple Reticulum identities seamlessly.
 - **Modern UI/UX**: A completely redesigned, intuitive interface.
 - **Integrated Maps**: OpenLayers with MBTiles support for offline maps.
-- **Security**: Built-in authentication, automatic HTTPS, and CORS protection.
+- **Security**: Read more about it in the [Security](#security) section.
 - **Offline Docs**: Access Reticulum documentation without an internet connection.
-- **Powerful Tools**: Includes RNStatus, RNProbe, RNCP, Micron Editor, Paper Message Generator and a Translator.
-- **Page Archiving**: Built-in crawler and browser for archived pages.
-- **Blocklist**: Block LXMF users, Telephony, and NomadNet Nodes.
+- **Expanded Tools**: Includes RNStatus, RNProbe, RNCP, Micron Editor, Paper Message Generator and a Translator.
+- **Page Archiving**: Built-in crawler and browser for archived pages offline.
+- **Banishment**: Banish LXMF users, Telephony, and NomadNet Nodes. (and unbanish them)
 - **i18n**: Support for English, German, and Russian.
 
 ## Screenshots
@@ -174,54 +185,58 @@ MeshChatX can be configured via command-line arguments or environment variables.
 | `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Data directory       |
 | `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | -           | Frontend files path  |
 
-## GPG Verification
-
-To ensure the security and authenticity of this project, all commits and releases are GPG signed. You can verify the signatures of the commits using the following steps:
-
-### 1. Import the Developer's Public Key
-
-Fetch the public key from the Gitea instance and import it into your GPG keyring:
-
-```bash
-# Replace YOUR_TOKEN if the instance requires authentication
-curl -s "https://git.quad4.io/api/v1/users/Ivan/gpg_keys" | jq -r '.[0].public_key' | gpg --import
-```
-
-### 2. Verify Commits
-
-Once the key is imported, you can verify the commits in your local clone:
-
-```bash
-# Show signatures for the last 10 commits
-git log --show-signature -n 10
-```
-
-You should see "Good signature from Ivan <ivan@quad4.io>" with the Key ID `1E0B37EE76428197`.
 
 ## Development
 
 We use [Task](https://taskfile.dev/) for automation.
 
-| Task            | Description                         |
-| :-------------- | :---------------------------------- |
-| `task install`  | Install all dependencies            |
-| `task run`      | Run the application                 |
-| `task lint`     | Run all linters (Python & Frontend) |
-| `task format`   | Format all code (Python & Frontend) |
-| `task test`     | Run all tests                       |
-| `task test:cov` | Run tests with coverage reports     |
-| `task build`    | Build frontend and backend          |
+| Task                    | Description                                    |
+| :---------------------- | :--------------------------------------------- |
+| `task install`          | Install all dependencies                       |
+| `task run`              | Run the application                            |
+| `task dev`              | Run the application in development mode        |
+| `task lint`             | Run all linters (Python & Frontend)            |
+| `task lint-python`      | Lint Python code only                          |
+| `task lint-frontend`    | Lint frontend code only                        |
+| `task format`           | Format all code (Python & Frontend)            |
+| `task format-python`    | Format Python code only                        |
+| `task format-frontend`  | Format frontend code only                      |
+| `task test`             | Run all tests                                  |
+| `task test:cov`         | Run tests with coverage reports                |
+| `task test-python`      | Run Python tests only                          |
+| `task test-frontend`    | Run frontend tests only                        |
+| `task build`            | Build frontend and backend                     |
+| `task build-frontend`   | Build only the frontend                        |
+| `task wheel`            | Build Python wheel package                     |
+| `task compile`          | Compile Python code to check for syntax errors |
+| `task build-docker`     | Build Docker image using buildx                |
+| `task run-docker`       | Run Docker container using docker-compose      |
+| `task build-appimage`   | Build Linux AppImage                           |
+| `task build-exe`        | Build Windows portable executable              |
+| `task build-electron-linux` | Build Linux Electron app                   |
+| `task build-electron-windows` | Build Windows Electron apps              |
+| `task android-prepare`  | Prepare Android build                          |
+| `task android-build`    | Build Android APK                              |
+| `task build-flatpak`    | Build Flatpak package                          |
+| `task clean`            | Clean build artifacts and dependencies         |
 
-## TODO
 
-- [ ] RNS hot reload fix
-- [ ] Offline Reticulum documentation tool
-- [ ] Spam filter (based on keywords)
-- [ ] TAK tool/integration
-- [ ] RNS Tunnel - tunnel regular services over RNS
-- [ ] RNS Filesync - P2P file sync
+## Security
+
+- [ASAR Integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity) (Electron 39)
+- Built-in automatic integrity checks on all files (frontend and backend)
+- HTTPS by default (automated locally generated certs)
+- 3-layer redundant CORS protection (loading.html, python backend server, electron main.js)
+- Updated dependencies and daily scanning (OSV)
+- Container image scanning (Trivy)
+- SBOM for dependency observability and tracking (soon)
+- Extensive testing and fuzzing. 
+- Rootless docker images (soon)
+- Pinned actions and container images (supply chain security and deterministic builds)
 
 ## Credits
 
 - [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - [micron-parser-js](https://github.com/RFnexus/micron-parser-js)
+- [Marqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
+
