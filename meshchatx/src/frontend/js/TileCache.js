@@ -1,6 +1,7 @@
 const DB_NAME = "meshchat_map_cache";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "tiles";
+const STATE_STORE = "map_state";
 
 class TileCache {
     constructor() {
@@ -10,7 +11,20 @@ class TileCache {
 
     async init() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            const idb =
+                window.indexedDB ||
+                window.mozIndexedDB ||
+                window.webkitIndexedDB ||
+                window.msIndexedDB ||
+                globalThis.indexedDB;
+
+            if (!idb) {
+                console.warn("IndexedDB not supported, map caching will be disabled");
+                reject("IndexedDB not supported");
+                return;
+            }
+
+            const request = idb.open(DB_NAME, DB_VERSION);
 
             request.onerror = (event) => reject("IndexedDB error: " + event.target.errorCode);
 
@@ -18,6 +32,9 @@ class TileCache {
                 const db = event.target.result;
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     db.createObjectStore(STORE_NAME);
+                }
+                if (!db.objectStoreNames.contains(STATE_STORE)) {
+                    db.createObjectStore(STATE_STORE);
                 }
             };
 
@@ -52,15 +69,39 @@ class TileCache {
         });
     }
 
-    async clear() {
+    async getMapState(key) {
         await this.initPromise;
         return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([STORE_NAME], "readwrite");
-            const store = transaction.objectStore(STORE_NAME);
-            const request = store.clear();
+            const transaction = this.db.transaction([STATE_STORE], "readonly");
+            const store = transaction.objectStore(STATE_STORE);
+            const request = store.get(key);
+
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async setMapState(key, data) {
+        await this.initPromise;
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([STATE_STORE], "readwrite");
+            const store = transaction.objectStore(STATE_STORE);
+            const request = store.put(data, key);
 
             request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
+        });
+    }
+
+    async clear() {
+        await this.initPromise;
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([STORE_NAME, STATE_STORE], "readwrite");
+            transaction.objectStore(STORE_NAME).clear();
+            transaction.objectStore(STATE_STORE).clear();
+
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
         });
     }
 }
