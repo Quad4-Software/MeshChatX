@@ -75,6 +75,20 @@ tasks:
         desc: Run all linters
         deps: [lint-frontend, lint-python]
 
+    test-python:
+        desc: Run Python tests using pytest
+        cmds:
+            - poetry run pytest tests/backend --cov=meshchatx/src/backend
+
+    test-frontend:
+        desc: Run frontend tests using vitest
+        cmds:
+            - "{{.NPM}} run test"
+
+    test:
+        desc: Run all tests
+        deps: [test-python, test-frontend]
+
     compile:
         desc: Compile Python code to check for syntax errors
         cmds:
