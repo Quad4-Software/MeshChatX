@@ -79,6 +79,7 @@ from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
     convert_nomadnet_string_data_to_map,
 )
+from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.recovery import CrashRecovery
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
@@ -89,31 +90,8 @@ import collections
 import logging
 
 
-class MemoryLogHandler(logging.Handler):
-    def __init__(self, capacity=5000):
-        super().__init__()
-        self.logs = collections.deque(maxlen=capacity)
-
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            self.logs.append(
-                {
-                    "timestamp": datetime.now(UTC).isoformat(),
-                    "level": record.levelname,
-                    "module": record.module,
-                    "message": msg,
-                }
-            )
-        except Exception:
-            self.handleError(record)
-
-    def get_logs(self):
-        return list(self.logs)
-
-
 # Global log handler
-memory_log_handler = MemoryLogHandler()
+memory_log_handler = PersistentLogHandler()
 logging.basicConfig(
     level=logging.INFO, handlers=[memory_log_handler, logging.StreamHandler(sys.stdout)]
 )
@@ -517,6 +495,9 @@ class ReticulumMeshChat:
         self.contexts[identity_hash] = context
         self.current_context = context
         context.setup()
+        
+        # Link database to memory log handler
+        memory_log_handler.set_database(context.database)
 
     def _checkpoint_and_close(self):
         # delegated to database instance
@@ -1989,10 +1970,39 @@ class ReticulumMeshChat:
         async def call_html_redirect(request):
             return web.HTTPFound("/#/popout/call")
 
-        # serve ping
+        # serve debug logs
         @routes.get("/api/v1/debug/logs")
         async def get_debug_logs(request):
-            return web.json_response(memory_log_handler.get_logs())
+            search = request.query.get("search")
+            level = request.query.get("level")
+            module = request.query.get("module")
+            is_anomaly = parse_bool_query_param(request.query.get("is_anomaly"))
+            limit = int(request.query.get("limit", 100))
+            offset = int(request.query.get("offset", 0))
+
+            logs = memory_log_handler.get_logs(
+                limit=limit,
+                offset=offset,
+                search=search,
+                level=level,
+                module=module,
+                is_anomaly=is_anomaly,
+            )
+            total = memory_log_handler.get_total_count(
+                search=search,
+                level=level,
+                module=module,
+                is_anomaly=is_anomaly,
+            )
+
+            return web.json_response(
+                {
+                    "logs": logs,
+                    "total": total,
+                    "limit": limit,
+                    "offset": offset,
+                }
+            )
 
         @routes.post("/api/v1/database/snapshot")
         async def create_db_snapshot(request):
@@ -3166,6 +3176,7 @@ class ReticulumMeshChat:
                         "download_stats": {
                             "avg_download_speed_bps": avg_download_speed_bps,
                         },
+                        "emergency": getattr(self, "emergency", False),
                         "integrity_issues": getattr(self, "integrity_issues", []),
                         "user_guidance": self.build_user_guidance_messages(),
                         "tutorial_seen": self.config.get("tutorial_seen", "false")
@@ -3913,6 +3924,12 @@ class ReticulumMeshChat:
                 d = dict(row)
                 remote_identity_hash = d.get("remote_identity_hash")
                 if remote_identity_hash:
+                    # try to resolve name if unknown or missing
+                    if not d.get("remote_identity_name") or d.get("remote_identity_name") == "Unknown":
+                        resolved_name = self.get_name_for_identity_hash(remote_identity_hash)
+                        if resolved_name:
+                            d["remote_identity_name"] = resolved_name
+
                     lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
                         remote_identity_hash,
                     )
@@ -4307,52 +4324,68 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/telephone/ringtones/status")
         async def telephone_ringtone_status(request):
-            caller_hash = request.query.get("caller_hash")
+            try:
+                caller_hash = request.query.get("caller_hash")
 
-            ringtone_id = None
+                ringtone_id = None
 
-            # 1. check contact preferred ringtone
-            if caller_hash:
-                contact = self.database.contacts.get_contact_by_identity_hash(
-                    caller_hash
+                # 1. check contact preferred ringtone
+                if caller_hash:
+                    contact = self.database.contacts.get_contact_by_identity_hash(
+                        caller_hash
+                    )
+                    if contact and contact.get("preferred_ringtone_id"):
+                        ringtone_id = contact["preferred_ringtone_id"]
+
+                # 2. check global preferred for non-contacts
+                if ringtone_id is None:
+                    preferred_id = self.config.ringtone_preferred_id.get()
+                    if preferred_id:
+                        ringtone_id = preferred_id
+
+                # 3. fallback to primary
+                if ringtone_id is None:
+                    primary = self.database.ringtones.get_primary()
+                    if primary:
+                        ringtone_id = primary["id"]
+
+                # 4. handle random if selected (-1)
+                if ringtone_id == -1:
+                    import random
+
+                    ringtones = self.database.ringtones.get_all()
+                    if ringtones:
+                        ringtone_id = random.choice(ringtones)["id"]  # noqa: S311
+                    else:
+                        ringtone_id = None
+
+                has_custom = ringtone_id is not None
+                ringtone = (
+                    self.database.ringtones.get_by_id(ringtone_id)
+                    if has_custom
+                    else None
                 )
-                if contact and contact.get("preferred_ringtone_id"):
-                    ringtone_id = contact["preferred_ringtone_id"]
 
-            # 2. check global preferred for non-contacts
-            if ringtone_id is None:
-                preferred_id = self.config.ringtone_preferred_id.get()
-                if preferred_id:
-                    ringtone_id = preferred_id
-
-            # 3. fallback to primary
-            if ringtone_id is None:
-                primary = self.database.ringtones.get_primary()
-                if primary:
-                    ringtone_id = primary["id"]
-
-            # 4. handle random if selected (-1)
-            if ringtone_id == -1:
-                import random
-
-                ringtones = self.database.ringtones.get_all()
-                if ringtones:
-                    ringtone_id = random.choice(ringtones)["id"]  # noqa: S311
-
-            has_custom = ringtone_id is not None
-            ringtone = (
-                self.database.ringtones.get_by_id(ringtone_id) if has_custom else None
-            )
-
-            return web.json_response(
-                {
-                    "has_custom_ringtone": has_custom,
-                    "enabled": self.config.custom_ringtone_enabled.get(),
-                    "filename": ringtone["filename"] if ringtone else None,
-                    "id": ringtone_id if ringtone_id != -1 else None,
-                    "volume": self.config.ringtone_volume.get() / 100.0,
-                },
-            )
+                return web.json_response(
+                    {
+                        "has_custom_ringtone": has_custom and ringtone is not None,
+                        "enabled": self.config.custom_ringtone_enabled.get(),
+                        "filename": ringtone["filename"] if ringtone else None,
+                        "id": ringtone_id if ringtone_id != -1 else None,
+                        "volume": self.config.ringtone_volume.get() / 100.0,
+                    },
+                )
+            except Exception as e:
+                logger.error(f"Error in telephone_ringtone_status: {e}")
+                return web.json_response(
+                    {
+                        "has_custom_ringtone": False,
+                        "enabled": self.config.custom_ringtone_enabled.get(),
+                        "filename": None,
+                        "id": None,
+                        "volume": self.config.ringtone_volume.get() / 100.0,
+                    },
+                )
 
         @routes.get("/api/v1/telephone/ringtones/{id}/audio")
         async def telephone_ringtone_audio(request):
@@ -7171,6 +7204,7 @@ class ReticulumMeshChat:
         # update lxmf user icon name in config
         if "lxmf_user_icon_name" in data:
             self.config.lxmf_user_icon_name.set(data["lxmf_user_icon_name"])
+            self.database.misc.clear_last_sent_icon_hashes()
             self.update_identity_metadata_cache()
 
         # update lxmf user icon foreground colour in config
@@ -7178,6 +7212,7 @@ class ReticulumMeshChat:
             self.config.lxmf_user_icon_foreground_colour.set(
                 data["lxmf_user_icon_foreground_colour"],
             )
+            self.database.misc.clear_last_sent_icon_hashes()
             self.update_identity_metadata_cache()
 
         # update lxmf user icon background colour in config
@@ -7185,6 +7220,7 @@ class ReticulumMeshChat:
             self.config.lxmf_user_icon_background_colour.set(
                 data["lxmf_user_icon_background_colour"],
             )
+            self.database.misc.clear_last_sent_icon_hashes()
             self.update_identity_metadata_cache()
 
         # update archiver settings

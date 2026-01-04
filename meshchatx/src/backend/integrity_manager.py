@@ -8,9 +8,10 @@ from datetime import UTC, datetime
 class IntegrityManager:
     """Manages the integrity of the database and identity files at rest."""
 
-    def __init__(self, storage_dir, database_path):
+    def __init__(self, storage_dir, database_path, identity_hash=None):
         self.storage_dir = Path(storage_dir)
         self.database_path = Path(database_path)
+        self.identity_hash = identity_hash
         self.manifest_path = self.storage_dir / "integrity-manifest.json"
         self.issues = []
 
@@ -64,6 +65,16 @@ class IntegrityManager:
                         # New files are also a concern for integrity
                         issues.append(f"New file detected: {rel_path}")
 
+            if issues:
+                m_date = manifest.get("date", "Unknown")
+                m_time = manifest.get("time", "Unknown")
+                m_id = manifest.get("identity", "Unknown")
+                issues.insert(0, f"Last integrity snapshot: {m_date} {m_time} (Identity: {m_id})")
+
+                # Check if identity matches
+                if self.identity_hash and m_id != "Unknown" and self.identity_hash != m_id:
+                    issues.append(f"Identity mismatch! Manifest belongs to: {m_id}")
+
             self.issues = issues
             return len(issues) == 0, issues
         except Exception as e:
@@ -89,9 +100,13 @@ class IntegrityManager:
                     rel_path = str(full_path.relative_to(self.storage_dir))
                     files[rel_path] = self._hash_file(full_path)
 
+            now = datetime.now(UTC)
             manifest = {
                 "version": 1,
-                "timestamp": datetime.now(UTC).timestamp(),
+                "timestamp": now.timestamp(),
+                "date": now.strftime("%Y-%m-%d"),
+                "time": now.strftime("%H:%M:%S"),
+                "identity": self.identity_hash,
                 "files": files,
             }
 

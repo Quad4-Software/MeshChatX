@@ -200,13 +200,14 @@ class MiscDAO:
         now = datetime.now(UTC)
         self.provider.execute(
             """
-            INSERT INTO crawl_tasks (destination_hash, page_path, status, retry_count, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO crawl_tasks (destination_hash, page_path, status, retry_count, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(destination_hash, page_path) DO UPDATE SET 
                 status = EXCLUDED.status, 
-                retry_count = EXCLUDED.retry_count
+                retry_count = EXCLUDED.retry_count,
+                updated_at = EXCLUDED.updated_at
         """,
-            (destination_hash, page_path, status, retry_count, now),
+            (destination_hash, page_path, status, retry_count, now, now),
         )
 
     def get_pending_crawl_tasks(self):
@@ -220,6 +221,8 @@ class MiscDAO:
             "page_path",
             "status",
             "retry_count",
+            "last_retry_at",
+            "next_retry_at",
             "updated_at",
         }
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
@@ -323,3 +326,6 @@ class MiscDAO:
         """,
             (destination_hash, icon_hash, now, now),
         )
+
+    def clear_last_sent_icon_hashes(self):
+        self.provider.execute("DELETE FROM lxmf_last_sent_icon_hashes")

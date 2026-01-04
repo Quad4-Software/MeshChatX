@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 32
+    LATEST_VERSION = 34
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -253,6 +253,7 @@ class DatabaseSchema:
                     next_retry_at DATETIME,
                     status TEXT DEFAULT 'pending',
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(destination_hash, page_path)
                 )
             """,
@@ -386,6 +387,18 @@ class DatabaseSchema:
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """,
+            "debug_logs": """
+                CREATE TABLE IF NOT EXISTS debug_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL,
+                    level TEXT,
+                    module TEXT,
+                    message TEXT,
+                    is_anomaly INTEGER DEFAULT 0,
+                    anomaly_type TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
         }
 
         for table_name, create_sql in tables.items():
@@ -445,6 +458,16 @@ class DatabaseSchema:
                 )
                 self.provider.execute(
                     "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)",
+                )
+            elif table_name == "debug_logs":
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_debug_logs_timestamp ON debug_logs(timestamp)",
+                )
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_debug_logs_level ON debug_logs(level)",
+                )
+                self.provider.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
                 )
 
     def migrate(self, current_version):
@@ -860,6 +883,38 @@ class DatabaseSchema:
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
                 ("changelog_seen_version", "0.0.0"),
             )
+
+        if current_version < 33:
+            self.provider.execute("""
+                CREATE TABLE IF NOT EXISTS debug_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL,
+                    level TEXT,
+                    module TEXT,
+                    message TEXT,
+                    is_anomaly INTEGER DEFAULT 0,
+                    anomaly_type TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_debug_logs_timestamp ON debug_logs(timestamp)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_debug_logs_level ON debug_logs(level)",
+            )
+            self.provider.execute(
+                "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
+            )
+
+        if current_version < 34:
+            # Add updated_at to crawl_tasks
+            try:
+                self.provider.execute(
+                    "ALTER TABLE crawl_tasks ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP",
+                )
+            except Exception:  # noqa: S110
+                pass
 
         # Update version in config
         self.provider.execute(

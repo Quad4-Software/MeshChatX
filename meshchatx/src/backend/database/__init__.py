@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from .announces import AnnounceDAO
 from .config import ConfigDAO
 from .contacts import ContactsDAO
+from .debug_logs import DebugLogsDAO
 from .legacy_migrator import LegacyMigrator
 from .map_drawings import MapDrawingsDAO
 from .messages import MessageDAO
@@ -32,6 +33,7 @@ class Database:
         self.ringtones = RingtoneDAO(self.provider)
         self.contacts = ContactsDAO(self.provider)
         self.map_drawings = MapDrawingsDAO(self.provider)
+        self.debug_logs = DebugLogsDAO(self.provider)
 
     def initialize(self):
         self.schema.initialize()

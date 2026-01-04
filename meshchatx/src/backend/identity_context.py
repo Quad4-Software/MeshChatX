@@ -74,7 +74,9 @@ class IdentityContext:
         self.community_interfaces_manager = None
         self.local_lxmf_destination = None
         self.announce_handlers = []
-        self.integrity_manager = IntegrityManager(self.storage_path, self.database_path)
+        self.integrity_manager = IntegrityManager(
+            self.storage_path, self.database_path, self.identity_hash
+        )
 
         self.running = False
 
@@ -134,7 +136,9 @@ class IdentityContext:
             self.config,
             self.app.get_public_path(),
             project_root=os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                )
             ),
             storage_dir=self.storage_path,
         )
