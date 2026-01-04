@@ -43,7 +43,7 @@
         "@electron-forge/plugin-auto-unpack-natives": "^7.10.2",
         "@electron-forge/plugin-fuses": "^7.10.2",
         "@electron-forge/plugin-vite": "^7.10.2",
-        "@electron/fuses": "^1.0.0",
+        "@electron/fuses": "^1.8.0",
         "@eslint/js": "^9.39.2",
         "@rushstack/eslint-patch": "^1.15.0",
         "@vue/eslint-config-prettier": "^10.2.0",
@@ -166,6 +166,7 @@
         }
     },
     "dependencies": {
+        "@mdi/font": "^7.4.47",
         "@mdi/js": "^7.4.47",
         "@tailwindcss/forms": "^0.5.11",
         "@vitejs/plugin-vue": "^5.2.4",
