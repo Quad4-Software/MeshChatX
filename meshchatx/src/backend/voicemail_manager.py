@@ -454,20 +454,30 @@ class VoicemailManager:
                 filepath = os.path.join(self.recordings_dir, self.recording_filename)
                 self._fix_recording(filepath)
 
+                # If recording is missing or empty (no frames), synthesize a small silence file
+                if (not os.path.exists(filepath)) or os.path.getsize(filepath) == 0:
+                    self._write_silence_file(filepath, max(duration, 1))
+
                 remote_name = self.get_name_for_identity_hash(
                     self.recording_remote_identity.hash.hex(),
                 )
-                self.db.voicemails.add_voicemail(
-                    remote_identity_hash=self.recording_remote_identity.hash.hex(),
-                    remote_identity_name=remote_name,
-                    filename=self.recording_filename,
-                    duration_seconds=duration,
-                    timestamp=self.recording_start_time,
-                )
-                RNS.log(
-                    f"Saved voicemail from {RNS.prettyhexrep(self.recording_remote_identity.hash)} ({duration}s)",
-                    RNS.LOG_DEBUG,
-                )
+                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    self.db.voicemails.add_voicemail(
+                        remote_identity_hash=self.recording_remote_identity.hash.hex(),
+                        remote_identity_name=remote_name,
+                        filename=self.recording_filename,
+                        duration_seconds=duration,
+                        timestamp=self.recording_start_time,
+                    )
+                    RNS.log(
+                        f"Saved voicemail from {RNS.prettyhexrep(self.recording_remote_identity.hash)} ({duration}s)",
+                        RNS.LOG_DEBUG,
+                    )
+                else:
+                    RNS.log(
+                        f"Voicemail: Recording missing for {self.recording_filename}, skipping DB insert",
+                        RNS.LOG_ERROR,
+                    )
 
                 if self.on_new_voicemail_callback:
                     self.on_new_voicemail_callback(
@@ -534,6 +544,38 @@ class VoicemailManager:
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
+
+    def _write_silence_file(self, filepath, seconds=1):
+        """Creates a minimal OGG/Opus file with silence if recording is missing."""
+        if not self.has_ffmpeg:
+            return False
+
+        try:
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                f"anullsrc=r=48000:cl=mono",
+                "-t",
+                str(max(1, seconds)),
+                "-c:a",
+                "libopus",
+                "-b:a",
+                "16k",
+                filepath,
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603
+            if result.returncode == 0 and os.path.exists(filepath):
+                return True
+            RNS.log(
+                f"Voicemail: Failed to create silence file for {filepath}: {result.stderr}",
+                RNS.LOG_ERROR,
+            )
+        except Exception as e:
+            RNS.log(f"Voicemail: Error creating silence file for {filepath}: {e}", RNS.LOG_ERROR)
+        return False
 
     def start_greeting_recording(self):
         telephone = self.telephone_manager.telephone
