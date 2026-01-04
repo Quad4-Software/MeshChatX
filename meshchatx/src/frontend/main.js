@@ -4,6 +4,7 @@ import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
 import vClickOutside from "click-outside-vue3";
 import "./style.css";
+import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
 import { ensureCodec2ScriptsLoaded } from "./js/Codec2Loader";
 
