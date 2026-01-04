@@ -395,6 +395,7 @@
         "request_location": "Запросить местоположение",
         "view_on_map": "Показать на карте",
         "request": "Запрос",
+        "generate_paper_message": "Создать бумажное сообщение (LXM)",
         "recording": "Запись: {duration}",
         "nomad_network_node": "Узел Nomad Network",
         "toggle_source": "Исходный код"

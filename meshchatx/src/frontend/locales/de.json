@@ -395,6 +395,7 @@
         "request_location": "Standort anfordern",
         "view_on_map": "Auf Karte anzeigen",
         "request": "Anfordern",
+        "generate_paper_message": "Papier-Nachricht erstellen (LXM)",
         "recording": "Aufnahme: {duration}",
         "nomad_network_node": "Nomad Network Knoten",
         "toggle_source": "Quellcode umschalten"

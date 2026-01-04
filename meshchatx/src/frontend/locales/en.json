@@ -395,6 +395,7 @@
         "request_location": "Request Location",
         "view_on_map": "View on Map",
         "request": "Request",
+        "generate_paper_message": "Generate Paper Message (LXM)",
         "recording": "Recording: {duration}",
         "nomad_network_node": "Nomad Network Node",
         "toggle_source": "Toggle Source Code"
