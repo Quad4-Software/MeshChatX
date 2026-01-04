@@ -198,6 +198,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/tools/PaperMessagePage.vue")),
         },
         {
+            name: "rnode-flasher",
+            path: "/tools/rnode-flasher",
+            component: defineAsyncComponent(() => import("./components/tools/RNodeFlasherPage.vue")),
+        },
+        {
             name: "debug-logs",
             path: "/debug/logs",
             component: defineAsyncComponent(() => import("./components/debug/DebugLogsPage.vue")),
