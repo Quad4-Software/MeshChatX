@@ -71,8 +71,9 @@ jobs:
 
             - name: Install system dependencies
               run: |
+                  sudo dpkg --add-architecture i386
                   sudo apt-get update
-                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng wine nsis zip rpm flatpak flatpak-builder elfutils
+                  sudo apt-get install -y wine32:i386 wine64 patchelf libopusfile0 ffmpeg espeak-ng nsis zip rpm flatpak flatpak-builder elfutils
                   flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
             - name: Setup Task
@@ -101,6 +102,8 @@ jobs:
               run: task build-flatpak
 
             - name: Build Electron App (Windows EXE and NSIS)
+              env:
+                  WINEDEBUG: -all
               run: pnpm run dist:windows
 
             - name: Build Electron App (ZIP)

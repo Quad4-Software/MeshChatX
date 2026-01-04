@@ -47,9 +47,3 @@ jobs:
               run: |
                   set -o pipefail
                   task test-integrity 2>&1 | tee -a bench_results.txt
-
-            - name: Post Results to PR
-              if: always() && github.event_name == 'pull_request'
-              env:
-                  GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
-              run: bash scripts/post_ci_results.sh bench bench_results.txt

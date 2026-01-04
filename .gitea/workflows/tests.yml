@@ -40,9 +40,3 @@ jobs:
               run: |
                   set -o pipefail
                   task test 2>&1 | tee test_results.txt
-
-            - name: Post Results to PR
-              if: always() && github.event_name == 'pull_request'
-              env:
-                  GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
-              run: bash scripts/post_ci_results.sh "Tests" test_results.txt
