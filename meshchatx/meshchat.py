@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import aiohttp
 import atexit
 import base64
 import configparser
@@ -1807,6 +1808,16 @@ class ReticulumMeshChat:
         ctx = context or self.current_context
         if not ctx:
             return
+
+        target_name = None
+        if target_hash:
+            try:
+                contact = ctx.database.contacts.get_contact_by_hash(target_hash)
+                if contact:
+                    target_name = contact.name
+            except Exception:  # noqa: S110
+                pass
+
         AsyncUtils.run_async(
             self.websocket_broadcast(
                 json.dumps(
@@ -1814,6 +1825,7 @@ class ReticulumMeshChat:
                         "type": "telephone_initiation_status",
                         "status": status,
                         "target_hash": target_hash,
+                        "target_name": target_name,
                     },
                 ),
             ),
@@ -2244,6 +2256,40 @@ class ReticulumMeshChat:
                     "comports": comports,
                 },
             )
+
+        @routes.get("/api/v1/tools/rnode/download_firmware")
+        async def tools_rnode_download_firmware(request):
+            url = request.query.get("url")
+            if not url:
+                return web.json_response({"error": "URL is required"}, status=400)
+
+            # Restrict to GitHub for safety
+            if not url.startswith("https://github.com/") and not url.startswith(
+                "https://objects.githubusercontent.com/"
+            ):
+                return web.json_response({"error": "Invalid download URL"}, status=403)
+
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, allow_redirects=True) as response:
+                        if response.status != 200:
+                            return web.json_response(
+                                {"error": f"Failed to download: {response.status}"},
+                                status=response.status,
+                            )
+
+                        data = await response.read()
+                        filename = url.split("/")[-1]
+
+                        return web.Response(
+                            body=data,
+                            content_type="application/zip",
+                            headers={
+                                "Content-Disposition": f'attachment; filename="{filename}"'
+                            },
+                        )
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
 
         # fetch reticulum interfaces
         @routes.get("/api/v1/reticulum/interfaces")
@@ -3825,6 +3871,18 @@ class ReticulumMeshChat:
                     "is_contact": contact is not None,
                 }
 
+            initiation_target_hash = self.telephone_manager.initiation_target_hash
+            initiation_target_name = None
+            if initiation_target_hash:
+                try:
+                    contact = self.database.contacts.get_contact_by_hash(
+                        initiation_target_hash
+                    )
+                    if contact:
+                        initiation_target_name = contact.name
+                except Exception:  # noqa: S110
+                    pass
+
             return web.json_response(
                 {
                     "enabled": True,
@@ -3839,7 +3897,8 @@ class ReticulumMeshChat:
                         "latest_id": self.database.voicemails.get_latest_voicemail_id(),
                     },
                     "initiation_status": self.telephone_manager.initiation_status,
-                    "initiation_target_hash": self.telephone_manager.initiation_target_hash,
+                    "initiation_target_hash": initiation_target_hash,
+                    "initiation_target_name": initiation_target_name,
                 },
             )
 
@@ -5541,9 +5600,26 @@ class ReticulumMeshChat:
             max_hops = request.query.get("max_hops")
             if max_hops:
                 max_hops = int(max_hops)
+
+            search = request.query.get("search")
+            interface = request.query.get("interface")
+            hops = request.query.get("hops")
+            if hops:
+                hops = int(hops)
+
+            page = int(request.query.get("page", 1))
+            limit = int(request.query.get("limit", 50))
+
             try:
-                table = self.rnpath_handler.get_path_table(max_hops=max_hops)
-                return web.json_response({"table": table})
+                result = self.rnpath_handler.get_path_table(
+                    max_hops=max_hops,
+                    search=search,
+                    interface=interface,
+                    hops=hops,
+                    page=page,
+                    limit=limit,
+                )
+                return web.json_response(result)
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
 
@@ -7014,6 +7090,8 @@ class ReticulumMeshChat:
         @web.middleware
         async def mime_type_middleware(request, handler):
             response = await handler(request)
+            if response is None:
+                return None
             path = request.path
             if path.endswith(".js") or path.endswith(".mjs"):
                 response.headers["Content-Type"] = (
@@ -7033,6 +7111,8 @@ class ReticulumMeshChat:
         @web.middleware
         async def security_middleware(request, handler):
             response = await handler(request)
+            if response is None:
+                return None
             # Add security headers to all responses
             response.headers["X-Content-Type-Options"] = "nosniff"
 
@@ -7055,7 +7135,7 @@ class ReticulumMeshChat:
                 "style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org; "
                 "font-src 'self' data:; "
-                "connect-src 'self' ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org; "
+                "connect-src 'self' ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://api.github.com https://objects.githubusercontent.com https://github.com; "
                 "media-src 'self' blob:; "
                 "worker-src 'self' blob:; "
                 "frame-src 'self'; "
@@ -7698,7 +7778,15 @@ class ReticulumMeshChat:
         elif _type == "nomadnet.page.archives.get":
             destination_hash = data["destination_hash"]
             page_path = data["page_path"]
+
+            # Try relative path first
             archives = self.get_archived_page_versions(destination_hash, page_path)
+
+            # If nothing found and path doesn't look like it's already absolute,
+            # try searching with the destination hash prefix (support for old buggy archives)
+            if not archives and not page_path.startswith(destination_hash):
+                buggy_path = f"{destination_hash}:{page_path}"
+                archives = self.get_archived_page_versions(destination_hash, buggy_path)
 
             AsyncUtils.run_async(
                 client.send_str(
@@ -7711,6 +7799,8 @@ class ReticulumMeshChat:
                                 {
                                     "id": archive.id,
                                     "hash": archive.hash,
+                                    "destination_hash": archive.destination_hash,
+                                    "page_path": archive.page_path,
                                     "created_at": archive.created_at.isoformat()
                                     if hasattr(archive.created_at, "isoformat")
                                     else str(archive.created_at),
