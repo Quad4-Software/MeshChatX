@@ -1,0 +1,140 @@
+import shutil
+import tempfile
+import pytest
+import json
+from unittest.mock import MagicMock, patch
+from meshchatx.meshchat import ReticulumMeshChat
+import RNS
+import LXMF
+
+# Store original constants
+PR_IDLE = LXMF.LXMRouter.PR_IDLE
+PR_COMPLETE = LXMF.LXMRouter.PR_COMPLETE
+
+
+@pytest.fixture
+def temp_dir():
+    dir_path = tempfile.mkdtemp()
+    yield dir_path
+    shutil.rmtree(dir_path)
+
+
+@pytest.fixture
+def mock_app(temp_dir):
+    with (
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter") as mock_router_class,
+        patch("meshchatx.meshchat.get_file_path", return_value="/tmp/mock_path"),
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+    ):
+        # Set up constants on the mock class
+        mock_router_class.PR_IDLE = PR_IDLE
+        mock_router_class.PR_COMPLETE = PR_COMPLETE
+
+        mock_router = mock_router_class.return_value
+        mock_router.PR_IDLE = PR_IDLE
+        mock_router.PR_COMPLETE = PR_COMPLETE
+
+        mock_router.propagation_transfer_state = PR_IDLE
+        mock_router.propagation_transfer_progress = 0
+        mock_router.propagation_transfer_last_result = 0
+
+        mock_dest = MagicMock()
+        mock_dest.hexhash = "mock_hash"
+        mock_router.register_delivery_identity.return_value = mock_dest
+
+        mock_rns_inst = mock_rns.return_value
+        mock_rns_inst.transport_enabled.return_value = False
+
+        with patch(
+            "meshchatx.src.backend.meshchat_utils.LXMRouter"
+        ) as mock_utils_router:
+            mock_utils_router.PR_IDLE = PR_IDLE
+            mock_utils_router.PR_COMPLETE = PR_COMPLETE
+
+            real_id = RNS.Identity()
+            app = ReticulumMeshChat(
+                identity=real_id,
+                storage_dir=temp_dir,
+                reticulum_config_dir=temp_dir,
+            )
+            app.current_context.message_router = mock_router
+
+            with patch.object(
+                app, "send_config_to_websocket_clients", return_value=None
+            ):
+                yield app
+
+
+@pytest.mark.asyncio
+async def test_lxmf_sync_endpoints(mock_app):
+    # 1. Test status endpoint initially idle
+    handler = None
+    for route in mock_app.get_routes():
+        if (
+            route.path == "/api/v1/lxmf/propagation-node/status"
+            and route.method == "GET"
+        ):
+            handler = route.handler
+            break
+
+    assert handler is not None
+    response = await handler(None)
+    data = json.loads(response.body)
+    assert data["propagation_node_status"]["state"] == "idle"
+
+    # 2. Test sync initiation
+    sync_handler = None
+    for route in mock_app.get_routes():
+        if route.path == "/api/v1/lxmf/propagation-node/sync" and route.method == "GET":
+            sync_handler = route.handler
+            break
+
+    assert sync_handler is not None
+
+    # Mock outbound propagation node configured
+    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = b"somehash"
+
+    response = await sync_handler(None)
+    assert response.status == 200
+    mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_once()
+
+    # 3. Test status change to complete
+    mock_app.current_context.message_router.propagation_transfer_state = (
+        LXMF.LXMRouter.PR_COMPLETE
+    )
+    response = await handler(None)
+    data = json.loads(response.body)
+    assert data["propagation_node_status"]["state"] == "complete"
+
+
+@pytest.mark.asyncio
+async def test_specific_node_hash_validation(mock_app):
+    node_hash_hex = "d81255ae2ff367d4883b16c9cc8c6178"
+
+    # Ensure update_config doesn't crash due to mock serialization
+    with patch.object(mock_app, "send_config_to_websocket_clients", return_value=None):
+        # Set the preferred propagation node
+        await mock_app.update_config(
+            {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex}
+        )
+
+    # Verify it was set on the router correctly as 16 bytes
+    expected_bytes = bytes.fromhex(node_hash_hex)
+    mock_app.current_context.message_router.set_outbound_propagation_node.assert_called_with(
+        expected_bytes
+    )
+
+    # Trigger sync
+    sync_handler = None
+    for route in mock_app.get_routes():
+        if route.path == "/api/v1/lxmf/propagation-node/sync" and route.method == "GET":
+            sync_handler = route.handler
+            break
+
+    # Ensure it's considered configured
+    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = expected_bytes
+
+    await sync_handler(None)
+    mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_once()
