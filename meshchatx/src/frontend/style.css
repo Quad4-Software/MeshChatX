@@ -48,15 +48,65 @@ select.input-field option {
 }
 
 .primary-chip {
-    @apply inline-flex items-center gap-x-2 rounded-full bg-blue-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 transition;
+    @apply inline-flex items-center justify-center gap-x-2 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all !important;
+}
+.primary-chip:hover {
+    @apply bg-blue-500 -translate-y-0.5 !important;
+}
+.primary-chip:active {
+    @apply scale-95 translate-y-0 !important;
 }
 
 .secondary-chip {
-    @apply inline-flex items-center gap-x-2 rounded-full border border-gray-300 dark:border-zinc-700 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/80 dark:bg-zinc-900/70 hover:border-blue-400 dark:hover:border-blue-500 transition;
+    @apply inline-flex items-center justify-center gap-x-2 rounded-full border border-gray-300 px-4 py-2 text-xs font-bold shadow-sm transition-all duration-200 !important;
+    background-color: white !important;
+    color: #374151 !important; /* text-gray-700 */
+}
+.secondary-chip:hover {
+    background-color: #f9fafb !important; /* bg-gray-50 */
+    color: #111827 !important; /* text-gray-900 */
+    border-color: #60a5fa !important; /* border-blue-400 */
+    @apply -translate-y-0.5 shadow-md !important;
+}
+.secondary-chip:active {
+    @apply scale-95 translate-y-0 shadow-sm !important;
+}
+
+.dark .secondary-chip {
+    background-color: #18181b !important; /* bg-zinc-900 */
+    color: #f4f4f5 !important; /* text-zinc-100 */
+    border-color: #3f3f46 !important; /* border-zinc-700 */
+}
+.dark .secondary-chip:hover {
+    background-color: #27272a !important; /* bg-zinc-800 */
+    color: #ffffff !important; /* text-white */
+    border-color: #3b82f6 !important; /* border-blue-500 */
+    @apply shadow-lg shadow-blue-500/10 !important;
 }
 
 .danger-chip {
-    @apply inline-flex items-center gap-x-2 rounded-full border border-red-300 dark:border-red-900 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-100 bg-red-50/50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition;
+    @apply inline-flex items-center justify-center gap-x-2 rounded-full border border-red-200 px-4 py-2 text-xs font-bold transition-all duration-200 !important;
+    background-color: #fef2f2 !important; /* bg-red-50 */
+    color: #b91c1c !important; /* text-red-700 */
+}
+.danger-chip:hover {
+    background-color: #fee2e2 !important; /* bg-red-100 */
+    color: #991b1b !important; /* text-red-800 */
+    @apply -translate-y-0.5 shadow-md !important;
+}
+.danger-chip:active {
+    @apply scale-95 translate-y-0 !important;
+}
+
+.dark .danger-chip {
+    background-color: rgba(69, 10, 10, 0.2) !important; /* bg-red-950/20 */
+    color: #f87171 !important; /* text-red-400 */
+    border-color: rgba(127, 29, 29, 0.5) !important; /* border-red-900/50 */
+}
+.dark .danger-chip:hover {
+    background-color: rgba(127, 29, 29, 0.4) !important; /* bg-red-900/40 */
+    color: #fca5a5 !important; /* text-red-300 */
+    @apply shadow-lg shadow-red-500/10 !important;
 }
 
 .glass-label {
@@ -85,7 +135,16 @@ select.input-field option {
     @apply text-sm text-gray-900 dark:text-white break-words pr-16;
 }
 .address-card__action {
-    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-zinc-700 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/70 dark:bg-zinc-900/60 hover:border-blue-400 dark:hover:border-blue-500 transition;
+    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1 text-[10px] font-bold text-gray-700 bg-white shadow-sm transition-all !important;
+}
+.address-card__action:hover {
+    @apply bg-gray-50 text-gray-900 border-blue-400 !important;
+}
+.dark .address-card__action {
+    @apply border-zinc-700 text-zinc-100 bg-zinc-900 !important;
+}
+.dark .address-card__action:hover {
+    @apply bg-zinc-800 text-white border-blue-500 !important;
 }
 
 .file-input {
