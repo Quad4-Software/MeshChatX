@@ -5004,7 +5004,10 @@ class ReticulumMeshChat:
 
             # limit results
             if limit is not None:
-                results = results[: int(limit)]
+                try:
+                    results = results[: int(limit)]
+                except (ValueError, TypeError):
+                    pass
 
             # process announces
             lxmf_propagation_nodes = []
@@ -5058,6 +5061,15 @@ class ReticulumMeshChat:
                     is_propagation_enabled = propagation_node_data["enabled"]
                     per_transfer_limit = propagation_node_data["per_transfer_limit"]
 
+                # ensure created_at and updated_at have Z suffix for UTC if they don't have a timezone
+                created_at = str(announce["created_at"])
+                if created_at and "+" not in created_at and "Z" not in created_at:
+                    created_at += "Z"
+
+                updated_at = str(announce["updated_at"])
+                if updated_at and "+" not in updated_at and "Z" not in updated_at:
+                    updated_at += "Z"
+
                 lxmf_propagation_nodes.append(
                     {
                         "destination_hash": announce["destination_hash"],
@@ -5065,8 +5077,8 @@ class ReticulumMeshChat:
                         "operator_display_name": operator_display_name,
                         "is_propagation_enabled": is_propagation_enabled,
                         "per_transfer_limit": per_transfer_limit,
-                        "created_at": announce["created_at"],
-                        "updated_at": announce["updated_at"],
+                        "created_at": created_at,
+                        "updated_at": updated_at,
                     },
                 )
 
@@ -7267,7 +7279,6 @@ class ReticulumMeshChat:
         if "auth_enabled" in data:
             value = self._parse_bool(data["auth_enabled"])
             self.config.auth_enabled.set(value)
-            self.auth_enabled = value
 
             # if disabling auth, also remove the password hash from config
             if not value:
@@ -7313,6 +7324,9 @@ class ReticulumMeshChat:
 
         if "banished_color" in data:
             self.config.banished_color.set(data["banished_color"])
+
+        if "message_font_size" in data:
+            self.config.message_font_size.set(int(data["message_font_size"]))
 
         # update desktop settings
         if "desktop_open_calls_in_separate_window" in data:
@@ -8210,6 +8224,9 @@ class ReticulumMeshChat:
             "banished_effect_enabled": ctx.config.banished_effect_enabled.get(),
             "banished_text": ctx.config.banished_text.get(),
             "banished_color": ctx.config.banished_color.get(),
+            "message_font_size": ctx.config.message_font_size.get(),
+            "translator_enabled": ctx.config.translator_enabled.get(),
+            "libretranslate_url": ctx.config.libretranslate_url.get(),
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
         }

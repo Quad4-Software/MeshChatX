@@ -24,7 +24,7 @@ class MarkdownRenderer:
             code = match.group(2)
             placeholder = f"[[CB{len(code_blocks)}]]"
             code_blocks.append(
-                f'<pre class="bg-gray-800 dark:bg-zinc-900 text-gray-100 p-4 rounded-lg my-4 overflow-x-auto border border-gray-700 dark:border-zinc-800 font-mono text-sm"><code class="language-{lang}">{code}</code></pre>'
+                f'<pre class="bg-gray-800 dark:bg-zinc-900 text-zinc-100 dark:text-zinc-100 p-4 rounded-lg my-4 overflow-x-auto border border-gray-700 dark:border-zinc-800 font-mono text-sm"><code class="language-{lang} text-inherit">{code}</code></pre>'
             )
             return placeholder
 

@@ -234,6 +234,7 @@ class ConfigManager:
             "banished_color",
             "#dc2626",
         )
+        self.message_font_size = self.IntConfig(self, "message_font_size", 14)
 
     def get(self, key: str, default_value=None) -> str | None:
         return self.db.config.get(key, default_value)

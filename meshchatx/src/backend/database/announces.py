@@ -58,6 +58,8 @@ class AnnounceDAO:
         self,
         aspect=None,
         search_term=None,
+        identity_hash=None,
+        destination_hash=None,
         limit=None,
         offset=0,
     ):
@@ -66,6 +68,12 @@ class AnnounceDAO:
         if aspect:
             query += " AND aspect = ?"
             params.append(aspect)
+        if identity_hash:
+            query += " AND identity_hash = ?"
+            params.append(identity_hash)
+        if destination_hash:
+            query += " AND destination_hash = ?"
+            params.append(destination_hash)
         if search_term:
             query += " AND (destination_hash LIKE ? OR identity_hash LIKE ?)"
             like_term = f"%{search_term}%"
