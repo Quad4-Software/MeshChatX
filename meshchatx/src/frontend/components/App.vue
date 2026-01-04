@@ -509,6 +509,7 @@ import ChangelogModal from "./ChangelogModal.vue";
 import TutorialModal from "./TutorialModal.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
+import ToneGenerator from "../js/ToneGenerator";
 import logoUrl from "../assets/images/logo.png";
 
 export default {
@@ -563,6 +564,7 @@ export default {
             isSpeakerMuting: false,
             endedTimeout: null,
             ringtonePlayer: null,
+            toneGenerator: new ToneGenerator(),
             isFetchingRingtone: false,
             initiationStatus: null,
             initiationTargetHash: null,
@@ -621,6 +623,7 @@ export default {
         clearInterval(this.appInfoInterval);
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
         this.stopRingtone();
+        this.toneGenerator.stop();
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -736,6 +739,12 @@ export default {
                     this.initiationStatus = json.status;
                     this.initiationTargetHash = json.target_hash;
                     this.initiationTargetName = json.target_name;
+
+                    if (this.initiationStatus === "Ringing...") {
+                        this.toneGenerator.playRingback();
+                    } else if (this.initiationStatus === null) {
+                        this.toneGenerator.stop();
+                    }
                     break;
                 }
                 case "new_voicemail": {
@@ -745,10 +754,17 @@ export default {
                     this.updateTelephoneStatus();
                     break;
                 }
-                case "telephone_call_established":
+                case "telephone_call_established": {
+                    this.stopRingtone();
+                    this.ringtonePlayer = null;
+                    this.toneGenerator.stop();
+                    this.updateTelephoneStatus();
+                    break;
+                }
                 case "telephone_call_ended": {
                     this.stopRingtone();
                     this.ringtonePlayer = null;
+                    this.toneGenerator.playBusyTone();
                     this.updateTelephoneStatus();
                     break;
                 }
@@ -1035,10 +1051,23 @@ export default {
 
                 // update ui
                 this.activeCall = newCall;
+                if (this.activeCall) {
+                    this.toneGenerator.stop();
+                }
                 this.voicemailStatus = response.data.voicemail;
                 this.initiationStatus = response.data.initiation_status;
                 this.initiationTargetHash = response.data.initiation_target_hash;
                 this.initiationTargetName = response.data.initiation_target_name;
+
+                // Handle outgoing ringback tone
+                if (this.initiationStatus === "Ringing...") {
+                    this.toneGenerator.playRingback();
+                } else if (!this.initiationStatus && !this.activeCall) {
+                    // Only stop if we're not ringing or in a call
+                    // This might be too aggressive if called during a transition, 
+                    // but toneGenerator.stop() is safe to call multiple times.
+                    this.toneGenerator.stop();
+                }
 
                 // Handle power management for calls
                 if (ElectronUtils.isElectron()) {
@@ -1111,6 +1140,7 @@ export default {
                 // If call just ended, show ended state for a few seconds
                 if (oldCall != null && this.activeCall == null) {
                     this.lastCall = oldCall;
+                    this.toneGenerator.playBusyTone();
 
                     // Trigger history refresh
                     GlobalEmitter.emit("telephone-history-updated");

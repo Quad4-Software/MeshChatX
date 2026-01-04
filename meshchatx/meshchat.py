@@ -3910,7 +3910,17 @@ class ReticulumMeshChat:
                     "is_voicemail": self.voicemail_manager.is_recording,
                     "call_start_time": self.telephone_manager.call_start_time,
                     "is_contact": contact is not None,
+                    "tx_bytes": 0,
+                    "rx_bytes": 0,
+                    "tx_packets": 0,
+                    "rx_packets": 0,
                 }
+                link = getattr(self.telephone_manager, "call_stats", {}).get("link")
+                if link:
+                    active_call["tx_bytes"] = getattr(link, "txbytes", 0)
+                    active_call["rx_bytes"] = getattr(link, "rxbytes", 0)
+                    active_call["tx_packets"] = getattr(link, "tx", 0)
+                    active_call["rx_packets"] = getattr(link, "rx", 0)
 
             initiation_target_hash = self.telephone_manager.initiation_target_hash
             initiation_target_name = None
@@ -3973,7 +3983,7 @@ class ReticulumMeshChat:
         # hangup active telephone call
         @routes.get("/api/v1/telephone/hangup")
         async def telephone_hangup(request):
-            await asyncio.to_thread(self.telephone_manager.telephone.hangup)
+            await asyncio.to_thread(self.telephone_manager.hangup)
 
             return web.json_response(
                 {

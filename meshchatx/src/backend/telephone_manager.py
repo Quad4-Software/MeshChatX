@@ -74,7 +74,10 @@ class TelephoneManager:
 
     @property
     def is_recording(self):
-        # Disabled for now
+        # Check if voicemail manager or this manager is recording
+        # This is a bit of a hack since we don't have a direct link to voicemail_manager here
+        # but we can check if our own recording is active if we had it.
+        # For now, we'll just return False and let meshchat.py handle the combined status.
         return False
 
     def init_telephone(self):
@@ -101,6 +104,16 @@ class TelephoneManager:
             self.telephone.teardown()
             self.telephone = None
 
+    def hangup(self):
+        if self.telephone:
+            try:
+                self.telephone.hangup()
+            except Exception as e:
+                RNS.log(f"TelephoneManager: Error during hangup: {e}", RNS.LOG_ERROR)
+        
+        # Always clear initiation status on hangup to prevent "Dialing..." hang
+        self._update_initiation_status(None, None)
+
     def register_ringing_callback(self, callback):
         self.on_ringing_callback = callback
 
@@ -111,6 +124,12 @@ class TelephoneManager:
         self.on_ended_callback = callback
 
     def on_telephone_ringing(self, caller_identity: RNS.Identity):
+        if self.initiation_status:
+            # This is an outgoing call where the remote side is now ringing.
+            # We update the initiation status to "Ringing..." for the UI.
+            self._update_initiation_status("Ringing...")
+            return
+
         self.call_start_time = time.time()
         self.call_is_incoming = True
         self.call_was_established = False
@@ -121,6 +140,15 @@ class TelephoneManager:
         # Update start time to when it was actually established for duration calculation
         self.call_start_time = time.time()
         self.call_was_established = True
+        
+        # Clear initiation status as soon as call is established
+        self._update_initiation_status(None, None)
+
+        # Track per-call stats from the active link (uses RNS Link counters)
+        link = getattr(self.telephone, "active_call", None)
+        self.call_stats = {
+            "link": link,
+        }
 
         # Recording disabled for now due to stability issues with LXST
         # if self.config_manager and self.config_manager.call_recording_enabled.get():
@@ -133,6 +161,9 @@ class TelephoneManager:
         # Capture status just before ending if possible, or use the last known status
         if self.telephone:
             self.call_status_at_end = self.telephone.call_status
+
+        # Ensure initiation status is cleared when call ends
+        self._update_initiation_status(None, None)
 
         if self.on_ended_callback:
             self.on_ended_callback(caller_identity)
@@ -189,30 +220,46 @@ class TelephoneManager:
         try:
 
             def resolve_identity(target_hash_hex):
+                """Resolve identity from multiple hints: direct recall, destination_hash announce, identity_hash announce, or public key."""
                 target_hash = bytes.fromhex(target_hash_hex)
-                # 1. Try RNS recall
+
+                # 1) Direct recall (identity hash)
                 ident = RNS.Identity.recall(target_hash)
                 if ident:
                     return ident
 
-                # 2. Check DB announces
-                if self.db:
-                    announce = self.db.announces.get_announce_by_hash(target_hash_hex)
-                    if announce:
-                        # Try recalling identity hash from announce
-                        identity_hash = bytes.fromhex(announce["identity_hash"])
-                        ident = RNS.Identity.recall(identity_hash)
-                        if ident:
-                            return ident
+                if not self.db:
+                    return None
 
-                        # Try reconstructing from public key if recall failed
-                        if announce.get("identity_public_key"):
-                            try:
-                                return RNS.Identity.from_bytes(
-                                    base64.b64decode(announce["identity_public_key"])
-                                )
-                            except Exception:
-                                pass
+                # 2) By destination_hash (could be lxst.telephony or lxmf.delivery hash)
+                announce = self.db.announces.get_announce_by_hash(target_hash_hex)
+                if not announce:
+                    # 3) By identity_hash field (if user entered identity hash but we missed recall, or other announce types)
+                    announces = self.db.announces.get_filtered_announces(
+                        identity_hash=target_hash_hex
+                    )
+                    if announces:
+                        announce = announces[0]
+
+                if not announce:
+                    return None
+
+                # Try identity_hash from announce
+                identity_hex = announce.get("identity_hash")
+                if identity_hex:
+                    ident = RNS.Identity.recall(bytes.fromhex(identity_hex))
+                    if ident:
+                        return ident
+
+                # Try reconstructing from public key
+                if announce.get("identity_public_key"):
+                    try:
+                        return RNS.Identity.from_bytes(
+                            base64.b64decode(announce["identity_public_key"])
+                        )
+                    except Exception:
+                        pass
+
                 return None
 
             # Find destination identity
@@ -249,9 +296,21 @@ class TelephoneManager:
             self._update_initiation_status("Dialing...")
             self.call_start_time = time.time()
             self.call_is_incoming = False
+            
+            # Use a thread for the blocking LXST call, but monitor status for early exit
+            # if established elsewhere or timed out/hung up
+            call_task = asyncio.create_task(asyncio.to_thread(self.telephone.call, destination_identity))
+            
+            start_wait = time.time()
+            # LXST telephone.call usually returns on establishment or timeout.
+            # We wait for it, but if status becomes established or ended, we can stop waiting.
+            while not call_task.done():
+                if self.telephone.call_status in [6, 0, 1]: # Established, Busy, Rejected
+                    break
+                if self.telephone.call_status == 3 and (time.time() - start_wait > 1.0): # Available (ended/timeout)
+                    break
+                await asyncio.sleep(0.5)
 
-            # Use a thread for the blocking LXST call
-            await asyncio.to_thread(self.telephone.call, destination_identity)
             return self.telephone.active_call
 
         except Exception as e:

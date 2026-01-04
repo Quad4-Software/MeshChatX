@@ -242,7 +242,7 @@
 
                             <!-- content -->
                             <div
-                                v-if="chatItem.lxmf_message.content"
+                                v-if="chatItem.lxmf_message.content && !getParsedItems(chatItem)?.isOnlyPaperMessage"
                                 class="leading-relaxed whitespace-pre-wrap break-words [word-break:break-word] min-w-0"
                                 :style="{
                                     'font-family': 'inherit',
@@ -475,13 +475,22 @@
                             "
                         >
                             <!-- delete message -->
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-                                @click.stop="deleteChatItem(chatItem)"
-                            >
-                                Delete
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                                    @click.stop="deleteChatItem(chatItem)"
+                                >
+                                    Delete
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600"
+                                    @click.stop="showRawMessage(chatItem)"
+                                >
+                                    Raw LXM
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -1058,6 +1067,47 @@
             generatedPaperMessageUri = null;
         "
     />
+
+    <!-- Raw Message Modal -->
+    <Transition
+        enter-active-class="transition ease-out duration-200"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition ease-in duration-150"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+    >
+        <div
+            v-if="isRawMessageModalOpen"
+            class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            @click.self="isRawMessageModalOpen = false"
+        >
+            <div class="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Raw LXMF Message</h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        @click="isRawMessageModalOpen = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto font-mono text-xs bg-gray-50 dark:bg-black/40">
+                    <pre class="whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300">{{ JSON.stringify(rawMessageData, null, 2) }}</pre>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 flex justify-end shrink-0">
+                    <button
+                        type="button"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors"
+                        @click="isRawMessageModalOpen = false"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Transition>
 </template>
 
 <script>
@@ -1173,6 +1223,8 @@ export default {
             },
             isPaperMessageModalOpen: false,
             paperMessageHash: null,
+            isRawMessageModalOpen: false,
+            rawMessageData: null,
             hasTranslator: false,
             translatorLanguages: [],
         };
@@ -1549,9 +1601,18 @@ export default {
             }
 
             // Parse paper message link
-            const paperMatch = content.match(/(lxm|lxmf):\/\/[a-zA-Z0-9+/=]+/i);
+            const paperMatch = content.match(/(lxm|lxmf):\/\/[a-zA-Z0-9+/=._-]+/i);
             if (paperMatch) {
                 items.paperMessage = paperMatch[0];
+                // if content is only the paper message, or it already contains the detected text,
+                // we'll hide the raw content div to avoid double rendering.
+                const trimmedContent = content.trim();
+                if (
+                    trimmedContent === items.paperMessage ||
+                    trimmedContent.includes("Paper Message detected")
+                ) {
+                    items.isOnlyPaperMessage = true;
+                }
             }
 
             return items;
@@ -1970,6 +2031,20 @@ export default {
             } else {
                 chatItem.is_actions_expanded = false;
             }
+        },
+        async showRawMessage(chatItem) {
+            try {
+                // we'll try to get the URI first as it contains the raw signed message
+                const response = await window.axios.get(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}/uri`);
+                this.rawMessageData = {
+                    ...chatItem.lxmf_message,
+                    raw_uri: response.data.uri,
+                };
+            } catch (e) {
+                // if URI is not available (message no longer in router), we show what we have
+                this.rawMessageData = { ...chatItem.lxmf_message };
+            }
+            this.isRawMessageModalOpen = true;
         },
         async downloadAndDecodeAudio(chatItem) {
             if (this.isDownloadingAudio[chatItem.lxmf_message.hash]) return;

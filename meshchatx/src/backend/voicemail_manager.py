@@ -38,7 +38,7 @@ class VoicemailManager:
         self.on_new_voicemail_callback = None
 
         # stabilization delay for voicemail greeting
-        self.STABILIZATION_DELAY = 2.5
+        self.STABILIZATION_DELAY = 1.0
 
         # Paths to executables
         self.espeak_path = self._find_espeak()
@@ -286,13 +286,24 @@ class VoicemailManager:
         if not telephone:
             return
 
-        # Answer the call
-        if not telephone.answer(caller_identity):
+        # Answer the call if it's still ringing
+        if telephone.call_status == 4:  # STATUS_RINGING
+            if not telephone.answer(caller_identity):
+                RNS.log("Voicemail: Failed to answer call", RNS.LOG_ERROR)
+                return
+        elif telephone.call_status != 6:  # STATUS_ESTABLISHED
+            RNS.log(
+                f"Voicemail: Cannot start session, call status is {telephone.call_status}",
+                RNS.LOG_DEBUG,
+            )
             return
 
         # Stop microphone if it's active to prevent local noise being sent or recorded
         if telephone.audio_input:
-            telephone.audio_input.stop()
+            try:
+                telephone.audio_input.stop()
+            except Exception:
+                pass
 
         # Play greeting
         greeting_path = os.path.join(self.greetings_dir, "greeting.opus")
@@ -313,6 +324,13 @@ class VoicemailManager:
                 )
 
         def session_job():
+            prev_receive_muted = self.telephone_manager.receive_muted
+            try:
+                # Prevent remote audio from playing locally while recording voicemail
+                self.telephone_manager.mute_receive()
+            except Exception:
+                pass
+
             try:
                 # Wait for link to stabilize
                 RNS.log(
@@ -398,6 +416,12 @@ class VoicemailManager:
                 RNS.log(f"Error during voicemail session: {e}", RNS.LOG_ERROR)
                 if self.is_recording:
                     self.stop_recording()
+            finally:
+                try:
+                    if not prev_receive_muted:
+                        self.telephone_manager.unmute_receive()
+                except Exception:
+                    pass
 
         threading.Thread(target=session_job, daemon=True).start()
 
