@@ -5,6 +5,15 @@ export default class ToneGenerator {
         this.gainNode = null;
         this.timeoutId = null;
         this.currentTone = null; // 'ringback', 'busy', or null
+        this.volume = 0.1; // Default volume (0.0 to 1.0 real gain)
+    }
+
+    setVolume(volumePercent) {
+        // volumePercent is 0-100
+        this.volume = (volumePercent / 100) * 0.2; // Cap at 0.2 real gain for safety
+        if (this.gainNode && this.audioCtx) {
+            this.gainNode.gain.setTargetAtTime(this.volume, this.audioCtx.currentTime, 0.1);
+        }
     }
 
     _initAudioContext() {
@@ -26,7 +35,7 @@ export default class ToneGenerator {
 
             osc1.frequency.value = 440;
             osc2.frequency.value = 480;
-            gain.gain.value = 0.1;
+            gain.gain.value = this.volume;
 
             osc1.connect(gain);
             osc2.connect(gain);
@@ -70,7 +79,7 @@ export default class ToneGenerator {
             const gain = this.audioCtx.createGain();
 
             osc.frequency.value = 480;
-            gain.gain.value = 0.1;
+            gain.gain.value = this.volume;
 
             osc.connect(gain);
             gain.connect(this.audioCtx.destination);

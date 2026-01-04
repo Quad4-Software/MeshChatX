@@ -3882,8 +3882,8 @@ class ReticulumMeshChat:
                 remote_destination_hash = RNS.Destination.hash(
                     remote_identity, "lxmf", "delivery"
                 ).hex()
-                remote_telephony_hash = (
-                    self.get_lxst_telephony_hash_for_identity_hash(remote_hash)
+                remote_telephony_hash = self.get_lxst_telephony_hash_for_identity_hash(
+                    remote_hash
                 )
                 remote_name = None
                 if self.telephone_manager.get_name_for_identity_hash:
@@ -3915,7 +3915,6 @@ class ReticulumMeshChat:
                     "custom_image": custom_image,
                     "is_incoming": telephone_active_call.is_incoming,
                     "status": self.telephone_manager.telephone.call_status,
-                    "remote_destination_hash": remote_destination_hash,
                     "remote_telephony_hash": remote_telephony_hash,
                     "audio_profile_id": self.telephone_manager.telephone.transmit_codec.profile
                     if hasattr(
@@ -4145,11 +4144,15 @@ class ReticulumMeshChat:
                     status=503,
                 )
 
-            # check if busy
-            if (
-                self.telephone_manager.telephone.busy
-                or self.telephone_manager.initiation_status
-            ):
+            # check if busy, but ignore stale busy when no active call
+            is_busy = self.telephone_manager.telephone.busy
+            if is_busy and not self.telephone_manager.telephone.active_call:
+                # If there's no active call and we're not currently initiating,
+                # we shouldn't be busy.
+                if not self.telephone_manager.initiation_status:
+                    is_busy = False
+
+            if is_busy or self.telephone_manager.initiation_status:
                 return web.json_response(
                     {
                         "message": "Telephone is busy",
@@ -4713,10 +4716,16 @@ class ReticulumMeshChat:
                     lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
                         remote_identity_hash,
                     )
+                    tele_hash = self.get_lxst_telephony_hash_for_identity_hash(
+                        remote_identity_hash
+                    )
                     if lxmf_hash:
+                        d["remote_destination_hash"] = lxmf_hash
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
                             d["remote_icon"] = dict(icon)
+                    if tele_hash:
+                        d["remote_telephony_hash"] = tele_hash
                 contacts.append(d)
 
             return web.json_response(contacts)
@@ -4844,6 +4853,7 @@ class ReticulumMeshChat:
 
             # fetch custom display names
             custom_names = {}
+            lxmf_names_for_telephony = {}
             if other_user_hashes:
                 db_custom_names = self.database.provider.fetchall(
                     f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",  # noqa: S608
@@ -4851,6 +4861,27 @@ class ReticulumMeshChat:
                 )
                 for row in db_custom_names:
                     custom_names[row["destination_hash"]] = row["display_name"]
+
+                # If we're looking for telephony announces, pre-fetch LXMF announces for the same identities
+                if aspect == "lxst.telephony":
+                    identity_hashes = list(
+                        set(
+                            [
+                                r["identity_hash"]
+                                for r in results
+                                if r.get("identity_hash")
+                            ]
+                        )
+                    )
+                    if identity_hashes:
+                        lxmf_results = self.database.announces.provider.fetchall(
+                            f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",  # noqa: S608
+                            identity_hashes,
+                        )
+                        for row in lxmf_results:
+                            lxmf_names_for_telephony[row["identity_hash"]] = (
+                                parse_lxmf_display_name(row["app_data"])
+                            )
 
             # process all announces
             all_announces = []
@@ -4861,6 +4892,11 @@ class ReticulumMeshChat:
 
                 # parse display name from announce
                 display_name = None
+                is_local = (
+                    self.current_context
+                    and announce["identity_hash"] == self.current_context.identity_hash
+                )
+
                 if announce["aspect"] == "lxmf.delivery":
                     display_name = parse_lxmf_display_name(announce["app_data"])
                 elif announce["aspect"] == "nomadnetwork.node":
@@ -4868,7 +4904,22 @@ class ReticulumMeshChat:
                         announce["app_data"]
                     )
                 elif announce["aspect"] == "lxst.telephony":
-                    display_name = announce.get("display_name") or "Anonymous Peer"
+                    display_name = parse_lxmf_display_name(announce["app_data"])
+                    if not display_name or display_name == "Anonymous Peer":
+                        # Try pre-fetched LXMF name
+                        display_name = lxmf_names_for_telephony.get(
+                            announce["identity_hash"]
+                        )
+
+                if not display_name or display_name == "Anonymous Peer":
+                    if is_local and self.current_context:
+                        display_name = self.current_context.config.display_name.get()
+                    else:
+                        # try to resolve name from identity hash (checks contacts too)
+                        display_name = (
+                            self.get_name_for_identity_hash(announce["identity_hash"])
+                            or "Anonymous Peer"
+                        )
 
                 # get current hops away
                 hops = RNS.Transport.hops_to(
@@ -7783,6 +7834,16 @@ class ReticulumMeshChat:
                 else:
                     self.telephone_manager.stop_recording()
 
+        if "telephone_tone_generator_enabled" in data:
+            self.config.telephone_tone_generator_enabled.set(
+                self._parse_bool(data["telephone_tone_generator_enabled"]),
+            )
+
+        if "telephone_tone_generator_volume" in data:
+            self.config.telephone_tone_generator_volume.set(
+                int(data["telephone_tone_generator_volume"]),
+            )
+
         if "telephone_audio_profile_id" in data:
             profile_id = int(data["telephone_audio_profile_id"])
             self.config.telephone_audio_profile_id.set(profile_id)
@@ -8609,6 +8670,8 @@ class ReticulumMeshChat:
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
             "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),
+            "telephone_tone_generator_enabled": ctx.config.telephone_tone_generator_enabled.get(),
+            "telephone_tone_generator_volume": ctx.config.telephone_tone_generator_volume.get(),
         }
 
     # try and get a name for the provided identity hash

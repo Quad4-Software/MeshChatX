@@ -120,9 +120,10 @@ def test_stop_recording(mock_deps, temp_dir):
     with open(recording_path, "wb") as f:
         f.write(b"fake opus data")
 
-    with patch("time.time", return_value=110), patch.object(
-        vm, "_fix_recording"
-    ) as mock_fix:
+    with (
+        patch("time.time", return_value=110),
+        patch.object(vm, "_fix_recording"),
+    ):
         vm.stop_recording()
 
     assert vm.is_recording is False

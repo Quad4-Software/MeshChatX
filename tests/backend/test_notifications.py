@@ -294,7 +294,9 @@ def test_voicemail_notification_fuzzing(mock_app, remote_hash, remote_name, dura
     status_code=st.integers(min_value=0, max_value=10),
     call_was_established=st.booleans(),
 )
-def test_missed_call_notification_fuzzing(mock_app, remote_hash, status_code, call_was_established):
+def test_missed_call_notification_fuzzing(
+    mock_app, remote_hash, status_code, call_was_established
+):
     """Fuzz missed call notification triggering."""
     mock_app.database.misc.provider.execute("DELETE FROM notifications")
 

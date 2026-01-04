@@ -661,10 +661,26 @@
                                                     </div>
                                                     <div
                                                         class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 cursor-pointer hover:text-blue-500 transition-colors"
-                                                        :title="entry.remote_telephony_hash || entry.remote_destination_hash || entry.remote_identity_hash"
-                                                        @click.stop="copyHash(entry.remote_telephony_hash || entry.remote_destination_hash || entry.remote_identity_hash)"
+                                                        :title="
+                                                            entry.remote_telephony_hash ||
+                                                            entry.remote_destination_hash ||
+                                                            entry.remote_identity_hash
+                                                        "
+                                                        @click.stop="
+                                                            copyHash(
+                                                                entry.remote_telephony_hash ||
+                                                                    entry.remote_destination_hash ||
+                                                                    entry.remote_identity_hash
+                                                            )
+                                                        "
                                                     >
-                                                        {{ formatDestinationHash(entry.remote_telephony_hash || entry.remote_destination_hash || entry.remote_identity_hash) }}
+                                                        {{
+                                                            formatDestinationHash(
+                                                                entry.remote_telephony_hash ||
+                                                                    entry.remote_destination_hash ||
+                                                                    entry.remote_identity_hash
+                                                            )
+                                                        }}
                                                     </div>
                                                 </div>
 
@@ -692,8 +708,12 @@
                                                         type="button"
                                                         class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-500 transition-all shadow-md shadow-blue-500/10 shrink-0"
                                                         @click="
-                                                            destinationHash = entry.remote_identity_hash;
-                                                            call(destinationHash);
+                                                            destinationHash =
+                                                                entry.remote_telephony_hash ||
+                                                                entry.remote_destination_hash ||
+                                                                entry.remote_identity_hash;
+                                                            activeTab = 'phone';
+                                                            $nextTick(() => call(destinationHash));
                                                         "
                                                     >
                                                         <MaterialDesignIcon icon-name="phone" class="size-3" />
@@ -819,7 +839,7 @@
                                                     @click="
                                                         destinationHash = announce.destination_hash;
                                                         activeTab = 'phone';
-                                                        call(destinationHash);
+                                                        $nextTick(() => call(destinationHash));
                                                     "
                                                 >
                                                     Call
@@ -1249,9 +1269,12 @@
                                                     type="button"
                                                     class="text-[10px] flex items-center gap-1 text-gray-500 hover:text-blue-500 font-bold uppercase tracking-wider transition-colors"
                                                     @click="
-                                                        destinationHash = voicemail.remote_telephony_hash || voicemail.remote_destination_hash || voicemail.remote_identity_hash;
+                                                        destinationHash =
+                                                            voicemail.remote_telephony_hash ||
+                                                            voicemail.remote_destination_hash ||
+                                                            voicemail.remote_identity_hash;
                                                         activeTab = 'phone';
-                                                        call(destinationHash);
+                                                        $nextTick(() => call(destinationHash));
                                                     "
                                                 >
                                                     <MaterialDesignIcon icon-name="phone" class="size-3" />
@@ -1383,9 +1406,12 @@
                                                     type="button"
                                                     class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                                                     @click="
-                                                        destinationHash = contact.remote_identity_hash;
+                                                        destinationHash =
+                                                            contact.remote_telephony_hash ||
+                                                            contact.remote_destination_hash ||
+                                                            contact.remote_identity_hash;
                                                         activeTab = 'phone';
-                                                        call(destinationHash);
+                                                        $nextTick(() => call(destinationHash));
                                                     "
                                                 >
                                                     Call
@@ -1474,6 +1500,73 @@
                                             max="100"
                                             class="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                             @change="updateConfig({ ringtone_volume: config.ringtone_volume })"
+                                        />
+                                    </div>
+                                </div>
+
+                                <!-- Tone Generator Settings -->
+                                <div
+                                    class="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-4 border-t border-gray-100 dark:border-zinc-800/50"
+                                >
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                Tone Generator
+                                            </div>
+                                            <button
+                                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                                :class="
+                                                    config.telephone_tone_generator_enabled
+                                                        ? 'bg-blue-600'
+                                                        : 'bg-gray-200 dark:bg-zinc-700'
+                                                "
+                                                @click="
+                                                    config.telephone_tone_generator_enabled =
+                                                        !config.telephone_tone_generator_enabled;
+                                                    updateConfig({
+                                                        telephone_tone_generator_enabled:
+                                                            config.telephone_tone_generator_enabled,
+                                                    });
+                                                "
+                                            >
+                                                <span
+                                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                                    :class="
+                                                        config.telephone_tone_generator_enabled
+                                                            ? 'translate-x-5'
+                                                            : 'translate-x-0'
+                                                    "
+                                                ></span>
+                                            </button>
+                                        </div>
+                                        <div class="text-xs text-gray-500 dark:text-zinc-400">
+                                            Play audio feedback during call dialing and disconnection.
+                                        </div>
+                                    </div>
+
+                                    <div v-if="config.telephone_tone_generator_enabled" class="flex-1 md:max-w-xs">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <label
+                                                class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider"
+                                            >
+                                                Tone Volume
+                                            </label>
+                                            <span class="text-xs font-mono text-gray-400"
+                                                >{{ config.telephone_tone_generator_volume }}%</span
+                                            >
+                                        </div>
+                                        <input
+                                            v-model.number="config.telephone_tone_generator_volume"
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            class="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            @change="
+                                                updateConfig({
+                                                    telephone_tone_generator_volume:
+                                                        config.telephone_tone_generator_volume,
+                                                })
+                                            "
                                         />
                                     </div>
                                 </div>
@@ -2188,8 +2281,10 @@ export default {
         },
         async updateConfig(config) {
             try {
-                await window.axios.patch("/api/v1/config", config);
-                await this.getConfig();
+                const response = await window.axios.patch("/api/v1/config", config);
+                if (response.data?.config) {
+                    this.config = response.data.config;
+                }
                 ToastUtils.success("Settings saved");
             } catch {
                 ToastUtils.error("Failed to save settings");

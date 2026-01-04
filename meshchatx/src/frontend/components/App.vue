@@ -745,7 +745,10 @@ export default {
                     this.initiationTargetName = json.target_name;
 
                     if (this.initiationStatus === "Ringing...") {
-                        this.toneGenerator.playRingback();
+                        if (this.config?.telephone_tone_generator_enabled) {
+                            this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                            this.toneGenerator.playRingback();
+                        }
                     } else if (this.initiationStatus === null) {
                         this.toneGenerator.stop();
                     }
@@ -768,7 +771,10 @@ export default {
                 case "telephone_call_ended": {
                     this.stopRingtone();
                     this.ringtonePlayer = null;
-                    this.toneGenerator.playBusyTone();
+                    if (this.config?.telephone_tone_generator_enabled) {
+                        this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                        this.toneGenerator.playBusyTone();
+                    }
                     this.updateTelephoneStatus();
                     break;
                 }
@@ -850,6 +856,7 @@ export default {
                 const response = await window.axios.get(`/api/v1/config`);
                 this.config = response.data.config;
                 GlobalState.config = response.data.config;
+                this.displayName = response.data.config.display_name;
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);
@@ -1067,7 +1074,10 @@ export default {
                 const justEnded = oldCall != null && this.activeCall == null;
                 if (justEnded) {
                     this.lastCall = oldCall;
-                    this.toneGenerator.playBusyTone();
+                    if (this.config?.telephone_tone_generator_enabled) {
+                        this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                        this.toneGenerator.playBusyTone();
+                    }
 
                     // Trigger history refresh
                     GlobalEmitter.emit("telephone-history-updated");
@@ -1086,7 +1096,10 @@ export default {
 
                 // Handle outgoing ringback tone
                 if (this.initiationStatus === "Ringing...") {
-                    this.toneGenerator.playRingback();
+                    if (this.config?.telephone_tone_generator_enabled) {
+                        this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                        this.toneGenerator.playRingback();
+                    }
                 } else if (!this.initiationStatus && !this.activeCall && !this.isCallEnded) {
                     // Only stop if we're not ringing, in a call, or just finished a call (busy tone playing)
                     this.toneGenerator.stop();

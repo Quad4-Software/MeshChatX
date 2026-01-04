@@ -186,6 +186,16 @@ class ConfigManager:
             "call_recording_enabled",
             False,
         )
+        self.telephone_tone_generator_enabled = self.BoolConfig(
+            self,
+            "telephone_tone_generator_enabled",
+            True,
+        )
+        self.telephone_tone_generator_volume = self.IntConfig(
+            self,
+            "telephone_tone_generator_volume",
+            50,
+        )
 
         # map config
         self.map_offline_enabled = self.BoolConfig(self, "map_offline_enabled", False)

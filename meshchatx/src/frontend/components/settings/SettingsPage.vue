@@ -902,6 +902,8 @@ export default {
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
                 blackhole_integration_enabled: true,
+                telephone_tone_generator_enabled: true,
+                telephone_tone_generator_volume: 50,
             },
             saveTimeouts: {},
             shortcuts: [],

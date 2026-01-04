@@ -272,6 +272,8 @@ class TelephoneManager:
                 # Wait for identity to appear
                 start_wait = time.time()
                 while time.time() - start_wait < timeout_seconds:
+                    if not self.initiation_status:  # Externally cancelled (hangup)
+                        return None
                     await asyncio.sleep(0.5)
                     destination_identity = resolve_identity(destination_hash_hex)
                     if destination_identity:
@@ -289,6 +291,8 @@ class TelephoneManager:
                 # Wait up to 10s for path discovery
                 path_wait_start = time.time()
                 while time.time() - path_wait_start < min(timeout_seconds, 10):
+                    if not self.initiation_status:  # Externally cancelled
+                        return None
                     if RNS.Transport.has_path(destination_hash):
                         break
                     await asyncio.sleep(0.5)
@@ -307,6 +311,8 @@ class TelephoneManager:
             # LXST telephone.call usually returns on establishment or timeout.
             # We wait for it, but if status becomes established or ended, we can stop waiting.
             while not call_task.done():
+                if not self.initiation_status:  # Externally cancelled
+                    break
                 if self.telephone.call_status in [
                     6,
                     0,
@@ -321,9 +327,14 @@ class TelephoneManager:
 
             # If the task finished but we're still ringing or connecting,
             # wait a bit more for establishment or definitive failure
-            if self.telephone.call_status in [4, 5]:  # Ringing, Connecting
+            if self.initiation_status and self.telephone.call_status in [
+                4,
+                5,
+            ]:  # Ringing, Connecting
                 wait_until = time.time() + timeout_seconds
                 while time.time() < wait_until:
+                    if not self.initiation_status:  # Externally cancelled
+                        break
                     if self.telephone.call_status in [
                         6,
                         0,
