@@ -6,6 +6,8 @@ services:
         container_name: reticulum-meshchatx
         image: reticulum-meshchatx:local
         restart: unless-stopped
+        # Permission handling is now automated in the Dockerfile via su-exec
+        # reticulum-meshchatx will run as user 'meshchat' (UID 1000)
         security_opt:
             - no-new-privileges:true
         # Make the meshchat web interface accessible from the host on port 8000
