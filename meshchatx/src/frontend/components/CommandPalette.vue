@@ -210,29 +210,33 @@ export default {
             }));
 
             // add peers
-            for (const peer of this.peers) {
-                results.push({
-                    id: `peer-${peer.destination_hash}`,
-                    title: peer.custom_display_name ?? peer.display_name,
-                    description: peer.destination_hash,
-                    icon: peer.lxmf_user_icon?.icon_name ?? "account",
-                    iconForeground: peer.lxmf_user_icon?.foreground_colour,
-                    iconBackground: peer.lxmf_user_icon?.background_colour,
-                    type: "peer",
-                    peer: peer,
-                });
+            if (Array.isArray(this.peers)) {
+                for (const peer of this.peers) {
+                    results.push({
+                        id: `peer-${peer.destination_hash}`,
+                        title: peer.custom_display_name ?? peer.display_name,
+                        description: peer.destination_hash,
+                        icon: peer.lxmf_user_icon?.icon_name ?? "account",
+                        iconForeground: peer.lxmf_user_icon?.foreground_colour,
+                        iconBackground: peer.lxmf_user_icon?.background_colour,
+                        type: "peer",
+                        peer: peer,
+                    });
+                }
             }
 
             // add contacts
-            for (const contact of this.contacts) {
-                results.push({
-                    id: `contact-${contact.id}`,
-                    title: contact.name,
-                    description: this.$t("app.call") + ` ${contact.remote_identity_hash}`,
-                    icon: "phone",
-                    type: "contact",
-                    contact: contact,
-                });
+            if (Array.isArray(this.contacts)) {
+                for (const contact of this.contacts) {
+                    results.push({
+                        id: `contact-${contact.id}`,
+                        title: contact.name,
+                        description: this.$t("app.call") + ` ${contact.remote_identity_hash}`,
+                        icon: "phone",
+                        type: "contact",
+                        contact: contact,
+                    });
+                }
             }
 
             return results;
@@ -313,7 +317,7 @@ export default {
 
                 // fetch telephone contacts
                 const contactResponse = await window.axios.get("/api/v1/telephone/contacts");
-                this.contacts = contactResponse.data;
+                this.contacts = Array.isArray(contactResponse.data) ? contactResponse.data : [];
             } catch (e) {
                 console.error("Failed to load command palette data:", e);
             }
