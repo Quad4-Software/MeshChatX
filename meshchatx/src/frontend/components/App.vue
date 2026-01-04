@@ -433,8 +433,9 @@
         <CallOverlay
             v-if="
                 (activeCall || isCallEnded || wasDeclined || initiationStatus) &&
-                ($route.name !== 'call' || activeCallTab !== 'phone') &&
-                (!config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron() || $route.meta.isPopout)
+                !$route.meta.isPopout &&
+                (!['call', 'call-popout'].includes($route.name) || activeCallTab !== 'phone') &&
+                (!config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron())
             "
             :active-call="activeCall || lastCall"
             :is-ended="isCallEnded"
@@ -1026,7 +1027,7 @@ export default {
                 ) {
                     if (!this.isCallWindowOpen && !this.$route.meta.isPopout) {
                         this.isCallWindowOpen = true;
-                        window.open("/call.html", "_blank", "width=600,height=800");
+                        window.open("/call.html", "MeshChatXCallWindow", "width=600,height=800");
                     }
                 } else {
                     this.isCallWindowOpen = false;
@@ -1080,6 +1081,9 @@ export default {
                 // If call just ended, show ended state for a few seconds
                 if (oldCall != null && this.activeCall == null) {
                     this.lastCall = oldCall;
+
+                    // Trigger history refresh
+                    GlobalEmitter.emit("telephone-history-updated");
 
                     if (this.wasDeclined) {
                         // Already set by hangupCall
