@@ -53,6 +53,24 @@ class TestIntegrityManager(unittest.TestCase):
         is_ok, issues = self.manager.check_integrity()
         self.assertFalse(is_ok)
         self.assertTrue(any("Database modified" in i for i in issues))
+        self.assertTrue(any("Last integrity snapshot" in i for i in issues))
+
+    def test_identity_mismatch(self):
+        """Test detection of identity mismatch in manifest."""
+        self.manager.identity_hash = "original_hash"
+        self.manager.save_manifest()
+
+        # Change identity hash
+        self.manager.identity_hash = "new_hash"
+
+        # Tamper a file to trigger issues list which includes the metadata check
+        with open(self.db_path, "a") as f:
+            f.write("tampered")
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(any("Identity mismatch" in i for i in issues))
+        self.assertTrue(any("Manifest belongs to: original_hash" in i for i in issues))
 
     def test_identity_tampered(self):
         """Test detection of identity file modification."""

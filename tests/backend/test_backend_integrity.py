@@ -31,14 +31,21 @@ class TestBackendIntegrity(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def generate_manifest(self):
-        manifest = {}
+        manifest = {
+            "_metadata": {
+                "version": 1,
+                "date": "2026-01-03",
+                "time": "12:00:00",
+            },
+            "files": {},
+        }
         for root, _, files in os.walk(self.build_dir):
             for file in files:
                 full_path = Path(root) / file
                 rel_path = str(full_path.relative_to(self.build_dir))
                 with open(full_path, "rb") as f:
                     hash = hashlib.sha256(f.read()).hexdigest()
-                manifest[rel_path] = hash
+                manifest["files"][rel_path] = hash
 
         manifest_path = self.electron_dir / "backend-manifest.json"
         with open(manifest_path, "w") as f:
@@ -51,9 +58,10 @@ class TestBackendIntegrity(unittest.TestCase):
         with open(manifest_path, "r") as f:
             manifest = json.load(f)
 
-        self.assertEqual(len(manifest), 2)
-        self.assertIn("ReticulumMeshChatX", manifest)
-        self.assertIn("lib/some_lib.so", manifest)
+        self.assertEqual(len(manifest["files"]), 2)
+        self.assertIn("ReticulumMeshChatX", manifest["files"])
+        self.assertIn("lib/some_lib.so", manifest["files"])
+        self.assertIn("_metadata", manifest)
 
     def test_tampering_detection_logic(self):
         """Test that modifying a file changes its hash (logic check)."""
@@ -61,7 +69,7 @@ class TestBackendIntegrity(unittest.TestCase):
         with open(manifest_path, "r") as f:
             manifest = json.load(f)
 
-        old_hash = manifest["ReticulumMeshChatX"]
+        old_hash = manifest["files"]["ReticulumMeshChatX"]
 
         # Tamper
         with open(self.build_dir / "ReticulumMeshChatX", "w") as f:
