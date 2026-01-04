@@ -80,3 +80,10 @@ meshchat-config/
 
 MagicMock/
 out/
+
+# Arch Linux packaging artifacts
+/packaging/arch/src/
+/packaging/arch/pkg/
+/packaging/arch/*.pkg.tar.zst
+/packaging/arch/MeshChatX/
+/packaging/arch/reticulum-meshchatx/
