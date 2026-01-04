@@ -99,3 +99,12 @@ select.input-field option {
 .dark .file-input::file-selector-button {
     @apply bg-blue-500 hover:bg-blue-400 text-white;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
