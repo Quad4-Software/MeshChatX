@@ -20,8 +20,8 @@ FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 
 WORKDIR /app
 
-RUN apk add --no-cache ffmpeg espeak-ng opusfile libffi-dev && \
-    addgroup -S meshchat && adduser -S meshchat -G meshchat && \
+RUN apk add --no-cache ffmpeg espeak-ng opusfile libffi-dev su-exec py3-setuptools && \
+    addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
     mkdir -p /config && chown meshchat:meshchat /config
 
 COPY pyproject.toml poetry.lock ./
@@ -30,16 +30,19 @@ RUN apk add --no-cache --virtual .build-deps \
         musl-dev \
         linux-headers \
         python3-dev && \
-    pip install --no-cache-dir poetry && \
+    pip install --no-cache-dir poetry setuptools && \
     poetry config virtualenvs.create false && \
     poetry install --no-root --only main && \
+    # Trigger LXST filter compilation while build tools are still present
+    # We use a more thorough approach to ensure compilation completes
+    python -c "import LXST; import LXST.Filters" || true && \
+    python -m compileall /usr/local/lib/python3.13/site-packages && \
     apk del .build-deps
 
 COPY --chown=meshchat:meshchat meshchatx ./meshchatx
 COPY --from=build-frontend --chown=meshchat:meshchat /src/meshchatx/public ./meshchatx/public
 
-USER meshchat
-
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
-CMD ["python", "-m", "meshchatx.meshchat", "--host=0.0.0.0", "--reticulum-config-dir=/config/.reticulum", "--storage-dir=/config/.meshchat", "--headless"]
+CMD ["sh", "-c", "chown -R meshchat:meshchat /config && exec su-exec meshchat python -m meshchatx.meshchat --host=0.0.0.0 --reticulum-config-dir=/config/.reticulum --storage-dir=/config/.meshchat --headless"]
