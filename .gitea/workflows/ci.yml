@@ -33,7 +33,15 @@ jobs:
             - name: Install Node dependencies
               run: task node_modules
             - name: Lint
-              run: task lint
+              run: |
+                  set -o pipefail
+                  task lint 2>&1 | tee lint_results.txt
+
+            - name: Post Results to PR
+              if: always() && github.event_name == 'pull_request'
+              env:
+                  GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+              run: bash scripts/post_ci_results.sh "Linting" lint_results.txt
 
     build-frontend:
         runs-on: ubuntu-latest
@@ -57,9 +65,17 @@ jobs:
                   SHORT_SHA=$(git rev-parse --short HEAD)
                   echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
             - name: Build frontend
-              run: task build-frontend
+              run: |
+                  set -o pipefail
+                  task build-frontend 2>&1 | tee build_results.txt
               env:
                   VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+
+            - name: Post Results to PR
+              if: always() && github.event_name == 'pull_request'
+              env:
+                  GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+              run: bash scripts/post_ci_results.sh "Frontend Build" build_results.txt
 
     test-backend:
         runs-on: ubuntu-latest
@@ -75,7 +91,15 @@ jobs:
               with:
                   version: "3.46.3"
             - name: Compile backend
-              run: task compile
+              run: |
+                  set -o pipefail
+                  task compile 2>&1 | tee compile_results.txt
+
+            - name: Post Results to PR
+              if: always() && github.event_name == 'pull_request'
+              env:
+                  GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+              run: bash scripts/post_ci_results.sh "Backend Compilation" compile_results.txt
 
     test-lang:
         runs-on: ubuntu-latest
@@ -100,4 +124,12 @@ jobs:
             - name: Install dependencies
               run: task install
             - name: Run language tests
-              run: task test-lang
+              run: |
+                  set -o pipefail
+                  task test-lang 2>&1 | tee lang_results.txt
+
+            - name: Post Results to PR
+              if: always() && github.event_name == 'pull_request'
+              env:
+                  GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+              run: bash scripts/post_ci_results.sh "Language Tests" lang_results.txt
