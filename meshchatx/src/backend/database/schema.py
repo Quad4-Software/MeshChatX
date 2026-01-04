@@ -7,6 +7,13 @@ class DatabaseSchema:
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
 
+    def _safe_execute(self, query, params=None):
+        try:
+            return self.provider.execute(query, params)
+        except Exception as e:
+            print(f"Database operation failed: {query[:100]}... Error: {e}")
+            return None
+
     def initialize(self):
         # Create core tables if they don't exist
         self._create_initial_tables()
@@ -51,12 +58,18 @@ class DatabaseSchema:
                         ).strip()
 
                 # Use the connection directly to avoid any middle-ware issues
-                self.provider.connection.execute(
+                res = self._safe_execute(
                     f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}"
                 )
+                return res is not None
             except Exception as e:
                 # Log but don't crash, we might be able to continue
-                print(f"Failed to add column {column_name} to {table_name}: {e}")
+                print(
+                    f"Unexpected error adding column {column_name} to {table_name}: {e}"
+                )
+                return False
+        return True
+        return True
 
     def _sync_table_columns(self, table_name, create_sql):
         """
@@ -114,12 +127,15 @@ class DatabaseSchema:
             self._ensure_column(table_name, column_name, column_type)
 
     def _get_current_version(self):
-        row = self.provider.fetchone(
-            "SELECT value FROM config WHERE key = ?",
-            ("database_version",),
-        )
-        if row:
-            return int(row["value"])
+        try:
+            row = self.provider.fetchone(
+                "SELECT value FROM config WHERE key = ?",
+                ("database_version",),
+            )
+            if row:
+                return int(row["value"])
+        except Exception as e:
+            print(f"Failed to get database version: {e}")
         return 0
 
     def _create_initial_tables(self):
@@ -133,7 +149,7 @@ class DatabaseSchema:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """
-        self.provider.execute(config_sql)
+        self._safe_execute(config_sql)
         self._sync_table_columns("config", config_sql)
 
         # Other essential tables that were present from version 1
@@ -405,77 +421,77 @@ class DatabaseSchema:
         }
 
         for table_name, create_sql in tables.items():
-            self.provider.execute(create_sql)
+            self._safe_execute(create_sql)
 
             # Robust self-healing: Ensure existing tables have all modern columns
             self._sync_table_columns(table_name, create_sql)
 
             # Create indexes that were present
             if table_name == "announces":
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_announces_identity_hash ON announces(identity_hash)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
                 )
             elif table_name == "lxmf_messages":
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_source_hash ON lxmf_messages(source_hash)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_destination_hash ON lxmf_messages(destination_hash)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_hash ON lxmf_messages(peer_hash)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_ts ON lxmf_messages(peer_hash, timestamp)",
                 )
             elif table_name == "blocked_destinations":
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_blocked_destinations_hash ON blocked_destinations(destination_hash)",
                 )
             elif table_name == "spam_keywords":
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_spam_keywords_keyword ON spam_keywords(keyword)",
                 )
             elif table_name == "notification_viewed_state":
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)",
                 )
             elif table_name == "lxmf_telemetry":
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)",
                 )
             elif table_name == "debug_logs":
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_debug_logs_timestamp ON debug_logs(timestamp)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_debug_logs_level ON debug_logs(level)",
                 )
-                self.provider.execute(
+                self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
                 )
 
     def migrate(self, current_version):
         if current_version < 7:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS archived_pages (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     destination_hash TEXT,
@@ -485,18 +501,18 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_archived_pages_destination_hash ON archived_pages(destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_archived_pages_page_path ON archived_pages(page_path)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_archived_pages_hash ON archived_pages(hash)",
             )
 
         if current_version < 8:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS crawl_tasks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     destination_hash TEXT,
@@ -508,15 +524,15 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_destination_hash ON crawl_tasks(destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_crawl_tasks_page_path ON crawl_tasks(page_path)",
             )
 
         if current_version < 9:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_forwarding_rules (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT,
@@ -528,11 +544,11 @@ class DatabaseSchema:
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_rules_identity_hash ON lxmf_forwarding_rules(identity_hash)",
             )
 
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_forwarding_mappings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     alias_identity_private_key TEXT,
@@ -543,13 +559,13 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_alias_hash ON lxmf_forwarding_mappings(alias_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_sender_hash ON lxmf_forwarding_mappings(original_sender_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_forwarding_mappings_recipient_hash ON lxmf_forwarding_mappings(final_recipient_hash)",
             )
 
@@ -559,62 +575,58 @@ class DatabaseSchema:
             # but a UNIQUE index works for ON CONFLICT.
 
             # Clean up duplicates before adding unique indexes
-            self.provider.execute(
+            self._safe_execute(
                 "DELETE FROM announces WHERE id NOT IN (SELECT MAX(id) FROM announces GROUP BY destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "DELETE FROM crawl_tasks WHERE id NOT IN (SELECT MAX(id) FROM crawl_tasks GROUP BY destination_hash, page_path)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "DELETE FROM custom_destination_display_names WHERE id NOT IN (SELECT MAX(id) FROM custom_destination_display_names GROUP BY destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "DELETE FROM favourite_destinations WHERE id NOT IN (SELECT MAX(id) FROM favourite_destinations GROUP BY destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "DELETE FROM lxmf_user_icons WHERE id NOT IN (SELECT MAX(id) FROM lxmf_user_icons GROUP BY destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "DELETE FROM lxmf_conversation_read_state WHERE id NOT IN (SELECT MAX(id) FROM lxmf_conversation_read_state GROUP BY destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "DELETE FROM lxmf_messages WHERE id NOT IN (SELECT MAX(id) FROM lxmf_messages GROUP BY hash)",
             )
 
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_announces_destination_hash_unique ON announces(destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_crawl_tasks_destination_path_unique ON crawl_tasks(destination_hash, page_path)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_custom_display_names_dest_hash_unique ON custom_destination_display_names(destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_favourite_destinations_dest_hash_unique ON favourite_destinations(destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_messages_hash_unique ON lxmf_messages(hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_user_icons_dest_hash_unique ON lxmf_user_icons(destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_conversation_read_state_dest_hash_unique ON lxmf_conversation_read_state(destination_hash)",
             )
 
         if current_version < 11:
             # Add is_spam column to lxmf_messages if it doesn't exist
-            try:
-                self.provider.execute(
-                    "ALTER TABLE lxmf_messages ADD COLUMN is_spam INTEGER DEFAULT 0",
-                )
-            except Exception:  # noqa: S110
-                # Column might already exist if table was created with newest schema
-                pass
+            self._safe_execute(
+                "ALTER TABLE lxmf_messages ADD COLUMN is_spam INTEGER DEFAULT 0",
+            )
 
         if current_version < 12:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS call_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     remote_identity_hash TEXT,
@@ -626,15 +638,15 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_call_history_remote_hash ON call_history(remote_identity_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_call_history_timestamp ON call_history(timestamp)",
             )
 
         if current_version < 13:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS voicemails (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     remote_identity_hash TEXT,
@@ -646,15 +658,15 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_voicemails_remote_hash ON voicemails(remote_identity_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_voicemails_timestamp ON voicemails(timestamp)",
             )
 
         if current_version < 14:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS notification_viewed_state (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     destination_hash TEXT UNIQUE,
@@ -663,15 +675,15 @@ class DatabaseSchema:
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_notification_viewed_state_destination_hash ON notification_viewed_state(destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_viewed_state_dest_hash_unique ON notification_viewed_state(destination_hash)",
             )
 
         if current_version < 15:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_telemetry (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     destination_hash TEXT,
@@ -684,26 +696,23 @@ class DatabaseSchema:
                     UNIQUE(destination_hash, timestamp)
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_destination_hash ON lxmf_telemetry(destination_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_telemetry_timestamp ON lxmf_telemetry(timestamp)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_lxmf_telemetry_dest_ts_unique ON lxmf_telemetry(destination_hash, timestamp)",
             )
 
         if current_version < 16:
-            try:
-                self.provider.execute(
-                    "ALTER TABLE lxmf_forwarding_rules ADD COLUMN name TEXT",
-                )
-            except Exception:  # noqa: S110
-                pass
+            self._safe_execute(
+                "ALTER TABLE lxmf_forwarding_rules ADD COLUMN name TEXT",
+            )
 
         if current_version < 17:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS ringtones (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     filename TEXT,
@@ -716,7 +725,7 @@ class DatabaseSchema:
             """)
 
         if current_version < 18:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS contacts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT,
@@ -725,20 +734,20 @@ class DatabaseSchema:
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(name)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_contacts_remote_identity_hash ON contacts(remote_identity_hash)",
             )
 
         if current_version < 19:
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_call_history_remote_name ON call_history(remote_identity_name)",
             )
 
         if current_version < 20:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS notifications (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     type TEXT,
@@ -750,15 +759,15 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_notifications_remote_hash ON notifications(remote_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_notifications_timestamp ON notifications(timestamp)",
             )
 
         if current_version < 21:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS keyboard_shortcuts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     identity_hash TEXT,
@@ -769,38 +778,38 @@ class DatabaseSchema:
                     UNIQUE(identity_hash, action)
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_keyboard_shortcuts_identity_hash ON keyboard_shortcuts(identity_hash)",
             )
 
         if current_version < 22:
             # Optimize fetching conversations and favorites
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_favourite_destinations_aspect ON favourite_destinations(aspect)",
             )
             # Add index for faster searching in announces
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
             )
 
         if current_version < 23:
             # Further optimize conversation fetching
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_conv_optim ON lxmf_messages(source_hash, destination_hash, timestamp DESC)",
             )
             # Add index for unread message filtering
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_state_incoming ON lxmf_messages(state, is_incoming)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_announces_aspect ON announces(aspect)",
             )
 
         if current_version < 24:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS call_recordings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     remote_identity_hash TEXT,
@@ -812,62 +821,56 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_call_recordings_remote_hash ON call_recordings(remote_identity_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_call_recordings_timestamp ON call_recordings(timestamp)",
             )
 
         if current_version < 25:
             # Add docs_downloaded to config if not exists
-            self.provider.execute(
+            self._safe_execute(
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
                 ("docs_downloaded", "0"),
             )
 
         if current_version < 26:
             # Add initial_docs_download_attempted to config if not exists
-            self.provider.execute(
+            self._safe_execute(
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
                 ("initial_docs_download_attempted", "0"),
             )
 
         if current_version < 28:
             # Add preferred_ringtone_id to contacts
-            try:
-                self.provider.execute(
-                    "ALTER TABLE contacts ADD COLUMN preferred_ringtone_id INTEGER DEFAULT NULL",
-                )
-            except Exception:  # noqa: S110
-                pass
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN preferred_ringtone_id INTEGER DEFAULT NULL",
+            )
 
         if current_version < 29:
             # Performance optimization indexes
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_hash ON lxmf_messages(peer_hash)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_timestamp ON lxmf_messages(timestamp)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_ts ON lxmf_messages(peer_hash, timestamp)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_announces_updated_at ON announces(updated_at)",
             )
 
         if current_version < 30:
             # Add custom_image to contacts
-            try:
-                self.provider.execute(
-                    "ALTER TABLE contacts ADD COLUMN custom_image TEXT DEFAULT NULL",
-                )
-            except Exception:  # noqa: S110
-                pass
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN custom_image TEXT DEFAULT NULL",
+            )
 
         if current_version < 31:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS lxmf_last_sent_icon_hashes (
                     destination_hash TEXT PRIMARY KEY,
                     icon_hash TEXT,
@@ -878,17 +881,17 @@ class DatabaseSchema:
 
         if current_version < 32:
             # Add tutorial_seen and changelog_seen_version to config
-            self.provider.execute(
+            self._safe_execute(
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
                 ("tutorial_seen", "false"),
             )
-            self.provider.execute(
+            self._safe_execute(
                 "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
                 ("changelog_seen_version", "0.0.0"),
             )
 
         if current_version < 33:
-            self.provider.execute("""
+            self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS debug_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp REAL,
@@ -900,27 +903,24 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_debug_logs_timestamp ON debug_logs(timestamp)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_debug_logs_level ON debug_logs(level)",
             )
-            self.provider.execute(
+            self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
             )
 
         if current_version < 34:
             # Add updated_at to crawl_tasks
-            try:
-                self.provider.execute(
-                    "ALTER TABLE crawl_tasks ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP",
-                )
-            except Exception:  # noqa: S110
-                pass
+            self._safe_execute(
+                "ALTER TABLE crawl_tasks ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP",
+            )
 
         # Update version in config
-        self.provider.execute(
+        self._safe_execute(
             """
             INSERT INTO config (key, value, created_at, updated_at) 
             VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
