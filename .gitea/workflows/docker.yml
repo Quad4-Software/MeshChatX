@@ -67,6 +67,17 @@ jobs:
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
 
+            - name: Download Trivy
+              run: |
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Extra/assets/raw/commit/90fdcea1bb71d91df2de6ff2e3897f278413f300/bin/trivy_0.68.2_Linux-64bit.deb
+                  sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
+
+            - name: Scan Docker image
+              run: |
+                  # Extract the first tag from the multi-line tags output
+                  IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1)
+                  trivy image --exit-code 1 "$IMAGE_TAG"
+
     build-dev:
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
@@ -114,3 +125,14 @@ jobs:
                   push: true
                   tags: ${{ steps.meta-dev.outputs.tags }}
                   labels: ${{ steps.meta-dev.outputs.labels }}
+
+            - name: Download Trivy
+              run: |
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Extra/assets/raw/commit/90fdcea1bb71d91df2de6ff2e3897f278413f300/bin/trivy_0.68.2_Linux-64bit.deb
+                  sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
+
+            - name: Scan Docker image (dev)
+              run: |
+                  # Extract the first tag from the multi-line tags output
+                  IMAGE_TAG=$(echo "${{ steps.meta-dev.outputs.tags }}" | head -n 1)
+                  trivy image --exit-code 1 "$IMAGE_TAG"
