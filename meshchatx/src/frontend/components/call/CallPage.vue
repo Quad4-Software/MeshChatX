@@ -1908,6 +1908,7 @@
 
 <script>
 import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import Utils from "../../js/Utils";
 import Compressor from "compressorjs";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
@@ -2095,6 +2096,9 @@ export default {
         this.getRingtones();
         this.getRingtoneStatus();
 
+        GlobalEmitter.on("telephone-history-updated", this.getHistory);
+        GlobalEmitter.on("telephone-history-updated", this.getVoicemails);
+
         // poll for status
         this.statusInterval = setInterval(() => {
             this.getStatus();
@@ -2127,6 +2131,9 @@ export default {
         }
     },
     beforeUnmount() {
+        GlobalEmitter.off("telephone-history-updated", this.getHistory);
+        GlobalEmitter.off("telephone-history-updated", this.getVoicemails);
+
         if (this.statusInterval) clearInterval(this.statusInterval);
         if (this.historyInterval) clearInterval(this.historyInterval);
         if (this.elapsedTimeInterval) clearInterval(this.elapsedTimeInterval);
