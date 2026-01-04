@@ -3882,6 +3882,9 @@ class ReticulumMeshChat:
                 remote_destination_hash = RNS.Destination.hash(
                     remote_identity, "lxmf", "delivery"
                 ).hex()
+                remote_telephony_hash = (
+                    self.get_lxst_telephony_hash_for_identity_hash(remote_hash)
+                )
                 remote_name = None
                 if self.telephone_manager.get_name_for_identity_hash:
                     remote_name = self.telephone_manager.get_name_for_identity_hash(
@@ -3912,6 +3915,8 @@ class ReticulumMeshChat:
                     "custom_image": custom_image,
                     "is_incoming": telephone_active_call.is_incoming,
                     "status": self.telephone_manager.telephone.call_status,
+                    "remote_destination_hash": remote_destination_hash,
+                    "remote_telephony_hash": remote_telephony_hash,
                     "audio_profile_id": self.telephone_manager.telephone.transmit_codec.profile
                     if hasattr(
                         self.telephone_manager.telephone.transmit_codec, "profile"
@@ -4078,11 +4083,16 @@ class ReticulumMeshChat:
                     lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
                         remote_identity_hash,
                     )
+                    tele_hash = self.get_lxst_telephony_hash_for_identity_hash(
+                        remote_identity_hash
+                    )
                     if lxmf_hash:
                         d["remote_destination_hash"] = lxmf_hash
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
                             d["remote_icon"] = dict(icon)
+                    if tele_hash:
+                        d["remote_telephony_hash"] = tele_hash
                     d["is_contact"] = bool(
                         self.database.contacts.get_contact_by_identity_hash(
                             remote_identity_hash,
@@ -4249,11 +4259,16 @@ class ReticulumMeshChat:
                     lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
                         remote_identity_hash,
                     )
+                    tele_hash = self.get_lxst_telephony_hash_for_identity_hash(
+                        remote_identity_hash
+                    )
                     if lxmf_hash:
                         d["remote_destination_hash"] = lxmf_hash
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
                             d["remote_icon"] = dict(icon)
+                    if tele_hash:
+                        d["remote_telephony_hash"] = tele_hash
                 voicemails.append(d)
 
             return web.json_response(
@@ -8670,6 +8685,26 @@ class ReticulumMeshChat:
             for announce in announces:
                 if announce["identity_hash"] == identity_hash:
                     return announce["destination_hash"]
+        return None
+
+    def get_lxst_telephony_hash_for_identity_hash(self, identity_hash: str):
+        # Primary: use announces table for lxst.telephony aspect
+        announces = self.database.announces.get_filtered_announces(
+            aspect="lxst.telephony",
+            search_term=identity_hash,
+        )
+        if announces:
+            for announce in announces:
+                if announce["identity_hash"] == identity_hash:
+                    return announce.get("destination_hash")
+
+        # Fallback: derive from identity if available (same identity, different aspect)
+        identity = self.recall_identity(identity_hash)
+        if identity is not None:
+            try:
+                return RNS.Destination.hash(identity, "lxst", "telephony").hex()
+            except Exception:  # noqa: S110
+                return None
         return None
 
     def recall_identity(self, hash_hex: str) -> RNS.Identity | None:

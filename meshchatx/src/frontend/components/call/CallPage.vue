@@ -661,10 +661,10 @@
                                                     </div>
                                                     <div
                                                         class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 cursor-pointer hover:text-blue-500 transition-colors"
-                                                        :title="entry.remote_destination_hash || entry.remote_identity_hash"
-                                                        @click.stop="copyHash(entry.remote_destination_hash || entry.remote_identity_hash)"
+                                                        :title="entry.remote_telephony_hash || entry.remote_destination_hash || entry.remote_identity_hash"
+                                                        @click.stop="copyHash(entry.remote_telephony_hash || entry.remote_destination_hash || entry.remote_identity_hash)"
                                                     >
-                                                        {{ formatDestinationHash(entry.remote_destination_hash || entry.remote_identity_hash) }}
+                                                        {{ formatDestinationHash(entry.remote_telephony_hash || entry.remote_destination_hash || entry.remote_identity_hash) }}
                                                     </div>
                                                 </div>
 
@@ -1249,7 +1249,7 @@
                                                     type="button"
                                                     class="text-[10px] flex items-center gap-1 text-gray-500 hover:text-blue-500 font-bold uppercase tracking-wider transition-colors"
                                                     @click="
-                                                        destinationHash = voicemail.remote_destination_hash || voicemail.remote_identity_hash;
+                                                        destinationHash = voicemail.remote_telephony_hash || voicemail.remote_destination_hash || voicemail.remote_identity_hash;
                                                         activeTab = 'phone';
                                                         call(destinationHash);
                                                     "
@@ -2060,7 +2060,7 @@ export default {
                     ) {
                         suggestions.push({
                             name: c.name,
-                            hash: c.remote_destination_hash || c.remote_identity_hash,
+                            hash: c.remote_telephony_hash || c.remote_destination_hash || c.remote_identity_hash,
                             type: "contact",
                             icon: "account",
                         });
@@ -2079,7 +2079,7 @@ export default {
                     ) {
                         suggestions.push({
                             name: h.remote_identity_name || h.remote_identity_hash.substring(0, 8),
-                            hash: h.remote_destination_hash || h.remote_identity_hash,
+                            hash: h.remote_telephony_hash || h.remote_destination_hash || h.remote_identity_hash,
                             type: "history",
                             icon: "history",
                         });
@@ -2279,7 +2279,8 @@ export default {
             this.editingContact = null;
             this.contactForm = {
                 name: entry.remote_identity_name || "",
-                remote_identity_hash: entry.remote_destination_hash || entry.remote_identity_hash,
+                remote_identity_hash:
+                    entry.remote_telephony_hash || entry.remote_destination_hash || entry.remote_identity_hash,
                 preferred_ringtone_id: null,
             };
             this.isContactModalOpen = true;
