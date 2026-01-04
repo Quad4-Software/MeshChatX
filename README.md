@@ -195,6 +195,7 @@ We use [Task](https://taskfile.dev/) for automation.
 | `task install`                | Install all dependencies                       |
 | `task run`                    | Run the application                            |
 | `task dev`                    | Run the application in development mode        |
+| `task check`                  | Run format, lint and test                      |
 | `task lint`                   | Run all linters (Python & Frontend)            |
 | `task lint-python`            | Lint Python code only                          |
 | `task lint-frontend`          | Lint frontend code only                        |
