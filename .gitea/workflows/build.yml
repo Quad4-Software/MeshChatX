@@ -72,7 +72,8 @@ jobs:
             - name: Install system dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng wine nsis zip rpm flatpak flatpak-builder
+                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng wine nsis zip rpm flatpak flatpak-builder elfutils
+                  flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
             - name: Setup Task
               uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
@@ -102,6 +103,9 @@ jobs:
             - name: Build Electron App (Windows EXE and NSIS)
               run: pnpm run dist:windows
 
+            - name: Build Electron App (ZIP)
+              run: task build-zip
+
             - name: Prepare release assets
               run: |
                   mkdir -p release-assets
@@ -110,6 +114,8 @@ jobs:
                   find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" -o -name "*-linux*.flatpak" \) -exec cp {} release-assets/ \;
                   # Windows artifacts
                   find dist -maxdepth 1 -type f \( -name "*-win*.exe" \) -exec cp {} release-assets/ \;
+                  # ZIP artifacts from Electron Forge
+                  find out/make -type f -name "*.zip" -exec cp {} release-assets/ \;
                   # Python artifacts
                   find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp {} release-assets/ \;
 

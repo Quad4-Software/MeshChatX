@@ -239,6 +239,12 @@ tasks:
         cmds:
             - "{{.NPM}} run dist:windows"
 
+    build-zip:
+        desc: Build Electron ZIP archive using Electron Forge
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run dist:zip"
+
     build-electron-all:
         desc: Build all Electron apps (Linux and Windows)
         deps: [build-frontend]
