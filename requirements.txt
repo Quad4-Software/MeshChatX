@@ -8,4 +8,5 @@ lxst>=0.4.4
 psutil>=7.1.3
 rns>=1.0.4
 websockets>=14.2
-requests>=2.32.5hypothesis>=6.0.0
+requests>=2.32.5
+hypothesis>=6.0.0
