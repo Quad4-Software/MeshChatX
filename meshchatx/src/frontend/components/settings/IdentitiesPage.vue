@@ -91,8 +91,23 @@
                                 </div>
                                 <div
                                     class="text-xs font-mono text-gray-500 dark:text-zinc-500 truncate mt-0.5 tracking-tight"
+                                    :title="'RNS: ' + identity.hash"
                                 >
-                                    {{ identity.hash }}
+                                    ID: {{ identity.hash }}
+                                </div>
+                                <div
+                                    v-if="identity.lxmf_address"
+                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 tracking-tighter"
+                                    :title="'LXMF: ' + identity.lxmf_address"
+                                >
+                                    LXMF: {{ identity.lxmf_address }}
+                                </div>
+                                <div
+                                    v-if="identity.lxst_address"
+                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 tracking-tighter"
+                                    :title="'LXST: ' + identity.lxst_address"
+                                >
+                                    LXST: {{ identity.lxst_address }}
                                 </div>
                             </div>
 

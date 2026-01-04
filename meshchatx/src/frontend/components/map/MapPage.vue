@@ -5,8 +5,8 @@
             class="flex items-center px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur z-10 relative"
         >
             <div class="flex items-center space-x-2">
-                <MaterialDesignIcon icon-name="map" class="size-6 text-blue-500" />
-                <h1 class="text-lg font-semibold text-gray-900 dark:text-zinc-100">{{ $t("map.title") }}</h1>
+                <v-icon icon="mdi-map" class="text-blue-500 dark:text-blue-400" size="24"></v-icon>
+                <h1 class="text-xl font-black text-gray-900 dark:text-white">{{ $t("map.title") }}</h1>
             </div>
 
             <div class="ml-auto flex items-center space-x-2">
@@ -78,25 +78,25 @@
             <!-- drawing toolbar -->
             <div class="absolute top-14 left-1/2 -translate-x-1/2 sm:top-2 z-20 flex flex-col gap-2 transform-gpu">
                 <div
-                    class="bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden flex flex-row p-1 gap-1"
+                    class="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden flex flex-row p-1 gap-1 border-0"
                 >
                     <button
                         v-for="tool in drawingTools"
                         :key="tool.type"
-                        class="p-2 rounded-lg transition-all"
+                        class="p-2.5 rounded-xl transition-all hover:scale-110 active:scale-90"
                         :class="[
-                            drawType === tool.type && !isMeasuring
+                            (drawType === tool.type && !isMeasuring) || (tool.type === 'Export' && isExportMode)
                                 ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
                                 : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400',
                         ]"
-                        :title="$t(`map.tool_${tool.type.toLowerCase()}`)"
-                        @click="toggleDraw(tool.type)"
+                        :title="tool.type === 'Export' ? 'MBTiles exporter' : $t(`map.tool_${tool.type.toLowerCase()}`)"
+                        @click="tool.type === 'Export' ? toggleExportMode() : toggleDraw(tool.type)"
                     >
-                        <MaterialDesignIcon :icon-name="tool.icon" class="size-6" />
+                        <v-icon :icon="'mdi-' + tool.icon" size="22"></v-icon>
                     </button>
                     <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
                     <button
-                        class="p-2 rounded-lg transition-all"
+                        class="p-2.5 rounded-xl transition-all hover:scale-110 active:scale-90"
                         :class="[
                             isMeasuring
                                 ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
@@ -105,37 +105,37 @@
                         :title="$t('map.tool_measure')"
                         @click="toggleMeasure"
                     >
-                        <MaterialDesignIcon icon-name="ruler" class="size-6" />
+                        <v-icon icon="mdi-ruler" size="22"></v-icon>
                     </button>
                     <button
-                        class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-all"
+                        class="p-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.tool_clear')"
                         @click="clearDrawings"
                     >
-                        <MaterialDesignIcon icon-name="trash-can-outline" class="size-6" />
+                        <v-icon icon="mdi-trash-can-outline" size="22"></v-icon>
                     </button>
                     <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
                     <button
-                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all"
+                        class="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.save_drawing')"
                         @click="showSaveDrawingModal = true"
                     >
-                        <MaterialDesignIcon icon-name="content-save-outline" class="size-6" />
+                        <v-icon icon="mdi-content-save-outline" size="22"></v-icon>
                     </button>
                     <button
-                        class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all"
+                        class="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.load_drawing')"
                         @click="openLoadDrawingModal"
                     >
-                        <MaterialDesignIcon icon-name="folder-open-outline" class="size-6" />
+                        <v-icon icon="mdi-folder-open-outline" size="22"></v-icon>
                     </button>
                     <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
                     <button
-                        class="p-2 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 transition-all"
+                        class="p-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.go_to_my_location')"
                         @click="goToMyLocation"
                     >
-                        <MaterialDesignIcon icon-name="crosshairs-gps" class="size-6" />
+                        <v-icon icon="mdi-crosshairs-gps" size="22"></v-icon>
                     </button>
                 </div>
             </div>
@@ -148,12 +148,12 @@
             >
                 <div class="relative">
                     <div
-                        class="flex items-center bg-white/90 dark:bg-zinc-900/90 backdrop-blur rounded-lg shadow-lg border border-gray-200/50 dark:border-zinc-800/50"
+                        class="flex items-center bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-xl shadow-2xl border-0 ring-0"
                     >
                         <input
                             v-model="searchQuery"
                             type="text"
-                            class="flex-1 px-3 py-2 bg-transparent text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:outline-none focus:ring-0 text-sm"
+                            class="flex-1 px-4 py-2.5 bg-transparent text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:outline-none focus:ring-0 border-0 text-sm"
                             :placeholder="$t('map.search_placeholder')"
                             @input="onSearchInput"
                             @keydown.enter="performSearch"
@@ -161,41 +161,45 @@
                         />
                         <button
                             v-if="searchQuery"
-                            class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                            class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
                             @click="clearSearch"
                         >
-                            <MaterialDesignIcon icon-name="close" class="size-4" />
+                            <v-icon icon="mdi-close" size="18"></v-icon>
                         </button>
                         <button
-                            class="p-2 text-blue-500 hover:text-blue-600 disabled:text-gray-300"
+                            class="p-2 mr-1 text-blue-500 hover:text-blue-600 disabled:text-gray-300 transition-colors"
                             :disabled="!searchQuery || isSearching"
                             @click="performSearch"
                         >
-                            <MaterialDesignIcon
-                                :icon-name="isSearching ? 'loading' : 'magnify'"
-                                :class="['size-5', { 'animate-spin': isSearching }]"
-                            />
+                            <v-icon
+                                :icon="isSearching ? 'mdi-loading' : 'mdi-magnify'"
+                                :class="{ 'animate-spin': isSearching }"
+                                size="20"
+                            ></v-icon>
                         </button>
                     </div>
 
                     <!-- search results dropdown -->
                     <div
                         v-if="isSearchFocused && (searchResults.length > 0 || searchError)"
-                        class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 rounded-lg shadow-xl border border-gray-200 dark:border-zinc-800 max-h-64 overflow-y-auto z-40"
+                        class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border-0 overflow-y-auto z-40 max-h-64"
                     >
-                        <div v-if="searchError" class="p-4 text-sm text-red-500">
+                        <div v-if="searchError" class="p-4 text-sm text-red-500 flex items-center gap-2">
+                            <v-icon icon="mdi-alert-circle" size="16"></v-icon>
                             {{ searchError }}
                         </div>
                         <button
                             v-for="(result, index) in searchResults"
                             :key="index"
-                            class="w-full px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 border-b border-gray-100 dark:border-zinc-800 last:border-b-0 transition-colors"
+                            class="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-800/50 border-b border-gray-100/50 dark:border-zinc-800/50 last:border-b-0 transition-all"
                             @click="selectSearchResult(result)"
                         >
-                            <div class="font-medium text-gray-900 dark:text-zinc-100 text-sm">
+                            <div class="font-bold text-gray-900 dark:text-zinc-100 text-sm">
                                 {{ result.display_name }}
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                            <div
+                                class="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5 font-bold uppercase tracking-wider"
+                            >
                                 {{ result.type }}
                             </div>
                         </button>
@@ -204,6 +208,63 @@
             </div>
 
             <div ref="mapContainer" class="absolute inset-0" :class="{ 'cursor-crosshair': isExportMode }"></div>
+
+            <!-- note hover tooltip -->
+            <div
+                v-if="hoveredNote && !editingFeature"
+                class="absolute pointer-events-none z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl p-2 text-sm text-gray-900 dark:text-zinc-100 max-w-xs transform -translate-x-1/2 -translate-y-full mb-4"
+                :style="{
+                    left: map.getPixelFromCoordinate(hoveredNote.getGeometry().getCoordinates())[0] + 'px',
+                    top: map.getPixelFromCoordinate(hoveredNote.getGeometry().getCoordinates())[1] + 'px',
+                }"
+            >
+                <div class="font-bold flex items-center gap-1 mb-1 text-amber-500">
+                    <MaterialDesignIcon icon-name="note-text" class="size-4" />
+                    <span>Note</span>
+                </div>
+                <div class="whitespace-pre-wrap break-words">{{ hoveredNote.get("note") || "Empty note" }}</div>
+            </div>
+
+            <!-- inline note editor (overlay) -->
+            <div ref="noteOverlayElement" class="absolute z-40">
+                <div
+                    v-if="editingFeature && !isMobileScreen"
+                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-700 p-4 w-64 transform -translate-x-1/2 -translate-y-full mb-6"
+                >
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                            <MaterialDesignIcon icon-name="note-edit" class="size-4 text-amber-500" />
+                            Edit Note
+                        </span>
+                        <button
+                            @click="closeNoteEditor"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                        >
+                            <MaterialDesignIcon icon-name="close" class="size-4" />
+                        </button>
+                    </div>
+                    <textarea
+                        v-model="noteText"
+                        class="w-full h-24 p-2 text-sm bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none resize-none text-gray-900 dark:text-zinc-100"
+                        placeholder="Type your note here..."
+                    ></textarea>
+                    <div class="flex justify-between mt-3">
+                        <button
+                            @click="deleteNote"
+                            class="px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1"
+                        >
+                            <MaterialDesignIcon icon-name="trash-can-outline" class="size-3.5" />
+                            Delete
+                        </button>
+                        <button
+                            @click="saveNote"
+                            class="px-3 py-1.5 text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 rounded-lg shadow-sm transition-colors"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- loading skeleton for map -->
             <div v-if="!isMapLoaded" class="absolute inset-0 z-0 bg-slate-100 dark:bg-zinc-900 animate-pulse">
@@ -227,10 +288,10 @@
                                 backgroundColor: selectedMarker.peer?.lxmf_user_icon?.background_colour || '#ffffff',
                             }"
                         >
-                            <MaterialDesignIcon
-                                :icon-name="selectedMarker.peer?.lxmf_user_icon?.icon_name || 'account'"
-                                class="size-5"
-                            />
+                            <v-icon
+                                :icon="'mdi-' + (selectedMarker.peer?.lxmf_user_icon?.icon_name || 'account')"
+                                size="18"
+                            ></v-icon>
                         </div>
                         <div>
                             <h3 class="font-bold text-gray-900 dark:text-zinc-100 truncate w-40">
@@ -248,7 +309,7 @@
                         class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300"
                         @click="selectedMarker = null"
                     >
-                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                        <v-icon icon="mdi-close" size="20"></v-icon>
                     </button>
                 </div>
                 <div class="p-4 space-y-3">
@@ -294,7 +355,7 @@
                     </div>
 
                     <div class="pt-2 text-[10px] text-gray-400 flex items-center gap-1">
-                        <MaterialDesignIcon icon-name="clock-outline" class="size-3" />
+                        <v-icon icon="mdi-clock-outline" size="12"></v-icon>
                         Updated: {{ formatTimestamp(selectedMarker.telemetry.timestamp) }}
                     </div>
 
@@ -302,7 +363,7 @@
                         class="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-colors text-sm flex items-center justify-center gap-2"
                         @click="openChat(selectedMarker.telemetry.destination_hash)"
                     >
-                        <MaterialDesignIcon icon-name="message-text" class="size-4" />
+                        <v-icon icon="mdi-message-text" size="16"></v-icon>
                         Open Chat
                     </button>
                 </div>
@@ -844,6 +905,55 @@
                 </div>
             </div>
         </div>
+
+        <!-- mobile note modal -->
+        <transition name="fade">
+            <div
+                v-if="showNoteModal"
+                class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                @click.self="closeNoteEditor"
+            >
+                <div
+                    class="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up sm:animate-fade-in"
+                >
+                    <div class="p-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <MaterialDesignIcon icon-name="note-edit" class="size-5 text-amber-500" />
+                            Edit Note
+                        </h3>
+                        <button
+                            @click="closeNoteEditor"
+                            class="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                        >
+                            <MaterialDesignIcon icon-name="close" class="size-5" />
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <textarea
+                            v-model="noteText"
+                            class="w-full h-40 p-4 text-base bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none resize-none text-gray-900 dark:text-zinc-100"
+                            placeholder="Type your note here..."
+                            autofocus
+                        ></textarea>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-zinc-800/50 flex justify-between gap-3">
+                        <button
+                            @click="deleteNote"
+                            class="flex-1 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center justify-center gap-2"
+                        >
+                            <MaterialDesignIcon icon-name="trash-can-outline" class="size-5" />
+                            Delete
+                        </button>
+                        <button
+                            @click="saveNote"
+                            class="flex-[2] px-4 py-3 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-xl shadow-lg shadow-amber-500/30 transition-colors"
+                        >
+                            Save Note
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 
@@ -950,9 +1060,11 @@ export default {
             isDrawing: false,
             drawingTools: [
                 { type: "Point", icon: "map-marker-plus" },
+                { type: "Note", icon: "note-text-outline" },
                 { type: "LineString", icon: "vector-line" },
                 { type: "Polygon", icon: "vector-polygon" },
                 { type: "Circle", icon: "circle-outline" },
+                { type: "Export", icon: "crop-free" },
             ],
 
             // measurement
@@ -965,6 +1077,13 @@ export default {
 
             // drawing storage
             savedDrawings: [],
+
+            // note editing
+            editingFeature: null,
+            noteText: "",
+            hoveredNote: null,
+            noteOverlay: null,
+            showNoteModal: false,
             showSaveDrawingModal: false,
             newDrawingName: "",
             isLoadingDrawings: false,
@@ -1219,24 +1338,53 @@ export default {
             this.drawSource = new VectorSource();
             this.drawLayer = new VectorLayer({
                 source: this.drawSource,
-                style: new Style({
-                    fill: new Fill({
-                        color: "rgba(59, 130, 246, 0.2)",
-                    }),
-                    stroke: new Stroke({
-                        color: "#3b82f6",
-                        width: 3,
-                    }),
-                    image: new CircleStyle({
-                        radius: 7,
+                style: (feature) => {
+                    const type = feature.get("type");
+                    if (type === "note") {
+                        return new Style({
+                            image: new CircleStyle({
+                                radius: 10,
+                                fill: new Fill({
+                                    color: "#f59e0b",
+                                }),
+                                stroke: new Stroke({
+                                    color: "#ffffff",
+                                    width: 2,
+                                }),
+                            }),
+                            // Use a simple circle for now as custom fonts in canvas can be tricky
+                            // or use the built-in Text style if we are sure it works
+                        });
+                    }
+                    return new Style({
                         fill: new Fill({
-                            color: "#3b82f6",
+                            color: "rgba(59, 130, 246, 0.2)",
                         }),
-                    }),
-                }),
+                        stroke: new Stroke({
+                            color: "#3b82f6",
+                            width: 3,
+                        }),
+                        image: new CircleStyle({
+                            radius: 7,
+                            fill: new Fill({
+                                color: "#3b82f6",
+                            }),
+                        }),
+                    });
+                },
                 zIndex: 50,
             });
             this.map.addLayer(this.drawLayer);
+
+            this.noteOverlay = new Overlay({
+                element: this.$refs.noteOverlayElement,
+                autoPan: {
+                    animation: {
+                        duration: 250,
+                    },
+                },
+            });
+            this.map.addOverlay(this.noteOverlay);
 
             this.modify = new Modify({ source: this.drawSource });
             this.modify.on("modifyend", () => this.saveMapState());
@@ -1253,7 +1401,9 @@ export default {
             });
             this.map.addLayer(this.markerLayer);
 
+            this.map.on("pointermove", this.handleMapPointerMove);
             this.map.on("click", (evt) => {
+                this.handleMapClick(evt);
                 const feature = this.map.forEachFeatureAtPixel(evt.pixel, (f) => f);
                 if (feature && feature.get("telemetry")) {
                     this.onMarkerClick(feature);
@@ -1434,12 +1584,27 @@ export default {
         updateMapSource() {
             if (!this.map) return;
             const layers = this.map.getLayers();
+
+            // Find and replace the tile layer (first layer usually)
+            // or just clear and re-add everything correctly
             layers.clear();
+
+            // 1. Tile layer
             layers.push(
                 new TileLayer({
                     source: this.getTileSource(),
                 })
             );
+
+            // 2. Draw layer
+            if (this.drawLayer) {
+                layers.push(this.drawLayer);
+            }
+
+            // 3. Marker layer
+            if (this.markerLayer) {
+                layers.push(this.markerLayer);
+            }
         },
         async toggleOffline(enabled) {
             if (enabled && !this.hasOfflineMap) {
@@ -1594,8 +1759,9 @@ export default {
                 this.metadata = response.data.metadata;
                 this.hasOfflineMap = true;
                 this.offlineEnabled = true;
+                await this.loadMBTilesList();
+                await this.checkOfflineMap();
                 this.updateMapSource();
-                this.loadMBTilesList();
                 ToastUtils.success(this.$t("map.upload_success"));
 
                 // If the map has bounds, we might want to fit to them
@@ -1895,20 +2061,109 @@ export default {
 
             this.draw = new Draw({
                 source: this.drawSource,
-                type: type,
+                type: type === "Note" ? "Point" : type,
             });
 
             this.draw.on("drawstart", () => {
                 this.isDrawing = true;
             });
 
-            this.draw.on("drawend", () => {
+            this.draw.on("drawend", (evt) => {
                 this.isDrawing = false;
+                const feature = evt.feature;
+                if (type === "Note") {
+                    feature.set("type", "note");
+                    feature.set("note", "");
+                    // Open edit box after a short delay to let the feature settle
+                    setTimeout(() => {
+                        this.startEditingNote(feature);
+                    }, 200);
+                }
                 // Use setTimeout to ensure the feature is actually in the source before saving
                 setTimeout(() => this.saveMapState(), 100);
             });
 
             this.map.addInteraction(this.draw);
+        },
+
+        startEditingNote(feature) {
+            this.editingFeature = feature;
+            this.noteText = feature.get("note") || "";
+            if (this.isMobileScreen) {
+                this.showNoteModal = true;
+            } else {
+                this.updateNoteOverlay();
+            }
+        },
+
+        updateNoteOverlay() {
+            if (!this.editingFeature || !this.map) return;
+            const geometry = this.editingFeature.getGeometry();
+            const coord = geometry.getCoordinates();
+            this.noteOverlay.setPosition(coord);
+        },
+
+        saveNote() {
+            if (this.editingFeature) {
+                this.editingFeature.set("note", this.noteText);
+                this.saveMapState();
+            }
+            this.closeNoteEditor();
+        },
+
+        cancelNote() {
+            // If it's a new note (no text and just added), we might want to remove it
+            // but for now just close
+            this.closeNoteEditor();
+        },
+
+        closeNoteEditor() {
+            this.editingFeature = null;
+            this.noteText = "";
+            this.showNoteModal = false;
+            if (this.noteOverlay) {
+                this.noteOverlay.setPosition(undefined);
+            }
+        },
+
+        deleteNote() {
+            if (this.editingFeature) {
+                this.drawSource.removeFeature(this.editingFeature);
+                this.saveMapState();
+            }
+            this.closeNoteEditor();
+        },
+
+        handleMapPointerMove(evt) {
+            if (evt.dragging || this.isDrawing || this.isMeasuring) return;
+
+            const pixel = this.map.getEventPixel(evt.originalEvent);
+            const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f, {
+                layerFilter: (l) => l === this.drawLayer,
+            });
+
+            if (feature && feature.get("type") === "note") {
+                this.hoveredNote = feature;
+                this.map.getTargetElement().style.cursor = "pointer";
+            } else {
+                this.hoveredNote = null;
+                this.map.getTargetElement().style.cursor = "";
+            }
+        },
+
+        handleMapClick(evt) {
+            if (this.isDrawing || this.isMeasuring) return;
+
+            const pixel = this.map.getEventPixel(evt.originalEvent);
+            const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f, {
+                layerFilter: (l) => l === this.drawLayer,
+            });
+
+            if (feature && feature.get("type") === "note") {
+                this.startEditingNote(feature);
+            } else {
+                this.closeNoteEditor();
+            }
         },
 
         stopDrawing() {
@@ -2350,5 +2605,41 @@ export default {
 }
 :deep(.ol-tooltip-static:before) {
     border-top-color: #3b82f6;
+}
+
+@keyframes slide-up {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

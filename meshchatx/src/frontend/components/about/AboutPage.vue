@@ -2,746 +2,688 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
-            <div class="space-y-4 w-full max-w-6xl mx-auto">
-                <div v-if="appInfo" class="glass-card">
-                    <div class="flex flex-col gap-4 md:flex-row md:items-center">
-                        <div class="flex-1 space-y-2">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                {{ $t("about.title") }}
+        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6 text-gray-900 dark:text-zinc-100">
+            <div class="space-y-6 w-full max-w-4xl mx-auto pb-20">
+                <!-- Basic Info Card -->
+                <div v-if="appInfo" class="glass-card !p-8">
+                    <div class="flex flex-col gap-8 md:flex-row md:items-center">
+                        <!-- Logo & Title -->
+                        <div class="flex items-center gap-6">
+                            <div
+                                class="w-20 h-20 rounded-3xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-xl"
+                            >
+                                <img src="../../public/favicons/favicon-512x512.png" class="w-12 h-12 object-contain" />
                             </div>
-                            <div class="text-3xl font-semibold text-gray-900 dark:text-white">Reticulum MeshChatX</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-300">
-                                {{ $t("about.version", { version: appInfo.version }) }} •
-                                {{ $t("about.rns_version", { version: appInfo.rns_version }) }} •
-                                {{ $t("about.lxmf_version", { version: appInfo.lxmf_version }) }} •
-                                {{ $t("about.python_version", { version: appInfo.python_version }) }}
+                            <div class="space-y-1">
+                                <div
+                                    class="text-4xl font-black text-gray-900 dark:text-white leading-none tracking-tight"
+                                >
+                                    MeshChatX
+                                </div>
+                                <div class="text-sm font-black text-blue-500 uppercase tracking-[0.2em] opacity-80">
+                                    {{ $t("about.version", { version: appInfo.version }) }}
+                                </div>
                             </div>
                         </div>
-                        <div class="flex flex-col sm:flex-row gap-2">
+
+                        <div class="flex-1 md:text-right flex flex-wrap justify-start md:justify-end gap-3">
                             <button
                                 type="button"
-                                class="danger-chip px-4 py-2 text-sm justify-center"
-                                @click="shutdown"
-                            >
-                                <MaterialDesignIcon icon-name="power" class="w-4 h-4" />
-                                {{ $t("common.shutdown", "Shutdown") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip px-4 py-2 text-sm justify-center"
-                                @click="showChangelog"
-                            >
-                                <MaterialDesignIcon icon-name="history" class="w-4 h-4" />
-                                {{ $t("app.changelog_title") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip px-4 py-2 text-sm justify-center"
+                                class="secondary-chip px-5 py-3 text-sm font-black transition-all hover:scale-105 active:scale-95"
                                 @click="showTutorial"
                             >
-                                <MaterialDesignIcon icon-name="help-circle" class="w-4 h-4" />
+                                <v-icon icon="mdi-help-circle" size="20" class="mr-2"></v-icon>
                                 {{ $t("app.tutorial_title") }}
                             </button>
                             <button
+                                type="button"
+                                class="secondary-chip px-5 py-3 text-sm font-black transition-all hover:scale-105 active:scale-95"
+                                @click="showChangelog"
+                            >
+                                <v-icon icon="mdi-history" size="20" class="mr-2"></v-icon>
+                                {{ $t("app.changelog_title") }}
+                            </button>
+                            <button
                                 v-if="isElectron"
                                 type="button"
-                                class="primary-chip px-4 py-2 text-sm justify-center"
+                                class="primary-chip px-5 py-3 text-sm font-black transition-all hover:scale-105 active:scale-95"
                                 @click="relaunch"
                             >
-                                <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
+                                <v-icon icon="mdi-restart" size="20" class="mr-2"></v-icon>
                                 {{ $t("common.restart_app") }}
                             </button>
+                            <button
+                                type="button"
+                                class="danger-chip px-5 py-3 text-sm font-black transition-all hover:scale-105 active:scale-95"
+                                @click="shutdown"
+                            >
+                                <v-icon icon="mdi-power" size="20" class="mr-2"></v-icon>
+                                {{ $t("common.shutdown", "Shutdown") }}
+                            </button>
                         </div>
                     </div>
-                    <div class="grid gap-3 sm:grid-cols-3 mt-4 text-sm text-gray-700 dark:text-gray-300">
-                        <div>
-                            <div class="glass-label">{{ $t("about.config_path") }}</div>
-                            <div class="monospace-field break-all">{{ appInfo.reticulum_config_path }}</div>
-                            <button
-                                v-if="isElectron"
-                                type="button"
-                                class="secondary-chip mt-2 text-xs"
-                                @click="showReticulumConfigFile"
-                            >
-                                <MaterialDesignIcon icon-name="folder" class="w-4 h-4" />
-                                {{ $t("common.reveal") }}
-                            </button>
+
+                    <div
+                        class="mt-10 pt-8 border-t border-gray-100 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-6"
+                    >
+                        <div class="text-gray-600 dark:text-zinc-400 max-w-xl text-lg leading-relaxed">
+                            A secure, resilient, and beautiful communications platform powered by the
+                            <a
+                                href="https://reticulum.network"
+                                target="_blank"
+                                class="text-blue-500 font-black hover:underline decoration-2 underline-offset-4"
+                                >Reticulum Network Stack</a
+                            >.
                         </div>
-                        <div>
-                            <div class="glass-label">{{ $t("about.database_path") }}</div>
-                            <div class="monospace-field break-all">{{ appInfo.database_path }}</div>
-                            <button
-                                v-if="isElectron"
-                                type="button"
-                                class="secondary-chip mt-2 text-xs"
-                                @click="showDatabaseFile"
+                        <div class="flex items-center gap-6 shrink-0">
+                            <div class="text-right">
+                                <div
+                                    class="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] leading-none mb-1"
+                                >
+                                    Database Size
+                                </div>
+                                <div class="text-2xl font-black text-gray-900 dark:text-white tabular-nums">
+                                    {{
+                                        formatBytes(
+                                            appInfo.database_files
+                                                ? appInfo.database_files.total_bytes
+                                                : appInfo.database_file_size
+                                        )
+                                    }}
+                                </div>
+                            </div>
+                            <div class="w-px h-12 bg-gray-100 dark:bg-zinc-800"></div>
+                            <v-btn
+                                variant="tonal"
+                                color="blue"
+                                height="48"
+                                class="font-black px-6 rounded-xl"
+                                @click="showAdvanced = !showAdvanced"
                             >
-                                <MaterialDesignIcon icon-name="database" class="w-4 h-4" />
-                                {{ $t("common.reveal") }}
-                            </button>
-                        </div>
-                        <div>
-                            <div class="glass-label">{{ $t("about.database_size") }}</div>
-                            <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {{
-                                    formatBytes(
-                                        appInfo.database_files
-                                            ? appInfo.database_files.total_bytes
-                                            : appInfo.database_file_size
-                                    )
-                                }}
-                            </div>
-                            <div v-if="appInfo.database_files" class="text-xs text-gray-500 dark:text-gray-400">
-                                Main {{ formatBytes(appInfo.database_files.main_bytes) }} • WAL
-                                {{ formatBytes(appInfo.database_files.wal_bytes) }}
-                            </div>
+                                <v-icon :icon="showAdvanced ? 'mdi-chevron-up' : 'mdi-xml'" start></v-icon>
+                                {{ showAdvanced ? "Hide Advanced" : "Advanced Mode" }}
+                            </v-btn>
                         </div>
                     </div>
                 </div>
 
-                <div v-if="appInfo" class="glass-card">
-                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {{ $t("about.security_integrity") }}
-                            </div>
-                            <div class="text-xs text-gray-600 dark:text-gray-400">
-                                {{ $t("about.security_integrity_description") }}
-                            </div>
-                        </div>
-                        <div v-if="appInfo.integrity_issues" class="flex flex-wrap gap-2">
-                            <span :class="statusPillClass(appInfo.integrity_issues.length === 0)">
-                                <MaterialDesignIcon
-                                    :icon-name="appInfo.integrity_issues.length === 0 ? 'shield-check' : 'shield-alert'"
-                                    class="w-4 h-4"
-                                />
-                                {{
-                                    appInfo.integrity_issues.length === 0
-                                        ? $t("about.secured")
-                                        : $t("about.tampering_detected")
-                                }}
-                            </span>
-                            <button
-                                v-if="appInfo.integrity_issues.length > 0"
-                                type="button"
-                                class="secondary-chip px-3 py-1 text-xs"
-                                @click="acknowledgeIntegrity"
-                            >
-                                <MaterialDesignIcon icon-name="check-circle-outline" class="w-4 h-4" />
-                                {{ $t("common.acknowledge_reset") }}
-                            </button>
-                        </div>
-                    </div>
-                    <div
-                        v-if="appInfo.integrity_issues && appInfo.integrity_issues.length > 0"
-                        class="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                    >
-                        <div class="text-sm font-semibold text-red-700 dark:text-red-400 mb-2">
-                            {{ $t("about.technical_issues") }}
-                        </div>
-                        <ul class="text-xs text-red-600 dark:text-red-300 space-y-1 list-disc list-inside">
-                            <li v-for="(issue, index) in appInfo.integrity_issues" :key="index">{{ issue }}</li>
-                        </ul>
-                    </div>
-                    <div v-else class="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                        <MaterialDesignIcon icon-name="check-circle" class="w-4 h-4 text-emerald-500" />
-                        {{ $t("about.no_integrity_violations") }}
-                    </div>
-                </div>
-
-                <div v-if="appInfo" class="glass-card">
-                    <div class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        {{ $t("about.dependency_chain") }}
-                    </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 relative">
-                        <!-- Main Dependencies -->
-                        <div class="flex flex-col space-y-4">
-                            <!-- MeshChatX -->
-                            <div class="flex items-center gap-4">
-                                <div
-                                    class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20"
-                                >
-                                    <img
-                                        src="../../public/favicons/favicon-512x512.png"
-                                        class="w-6 h-6 object-contain"
-                                    />
-                                </div>
-                                <div class="flex-1">
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white">MeshChatX</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">v{{ appInfo.version }}</div>
-                                </div>
-                            </div>
-
-                            <!-- Connector -->
-                            <div class="ml-5 border-l-2 border-gray-200 dark:border-zinc-800 h-4"></div>
-
-                            <!-- LXMF -->
-                            <div class="flex items-center gap-4">
-                                <div
-                                    class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 font-black text-xs"
-                                >
-                                    LXMF
-                                </div>
-                                <div class="flex-1">
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white">
-                                        Lightweight Extensible Message Format
-                                    </div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                                        v{{ appInfo.lxmf_version }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Connector -->
-                            <div class="ml-5 border-l-2 border-gray-200 dark:border-zinc-800 h-4"></div>
-
-                            <!-- RNS -->
-                            <div class="flex items-center gap-4">
-                                <div
-                                    class="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 font-black text-xs"
-                                >
-                                    RNS
-                                </div>
-                                <div class="flex-1">
-                                    <div class="text-sm font-bold text-gray-900 dark:text-white">
-                                        Reticulum Network Stack
-                                    </div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                                        v{{ appInfo.rns_version }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Side & Python Dependencies -->
-                        <div class="space-y-8">
-                            <!-- Side Dependencies -->
-                            <div>
-                                <div
-                                    class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3"
-                                >
-                                    {{ $t("about.other_core_components", "Other Core Components") }}
-                                </div>
-                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                    <div v-if="appInfo.lxst_version" class="flex flex-col">
-                                        <span class="text-[10px] font-black text-blue-500 uppercase">LXST</span>
-                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                            >v{{ appInfo.lxst_version }}</span
-                                        >
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-[10px] font-black text-blue-500 uppercase">Python</span>
-                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                            >v{{ appInfo.python_version }}</span
-                                        >
-                                    </div>
-                                    <div v-if="electronVersion" class="flex flex-col">
-                                        <span class="text-[10px] font-black text-blue-500 uppercase">Electron</span>
-                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                            >v{{ electronVersion }}</span
-                                        >
-                                    </div>
-                                    <div v-if="chromeVersion" class="flex flex-col">
-                                        <span class="text-[10px] font-black text-blue-500 uppercase">Chrome</span>
-                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                            >v{{ chromeVersion }}</span
-                                        >
-                                    </div>
-                                    <div v-if="nodeVersion" class="flex flex-col">
-                                        <span class="text-[10px] font-black text-blue-500 uppercase">Node</span>
-                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                            >v{{ nodeVersion }}</span
-                                        >
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Python Dependencies -->
-                            <div v-if="appInfo.dependencies" class="pt-6 border-t border-gray-100 dark:border-zinc-800">
-                                <div
-                                    class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3"
-                                >
-                                    {{ $t("about.backend_dependencies") }}
-                                </div>
-                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                    <div
-                                        v-for="(version, name) in appInfo.dependencies"
-                                        :key="name"
-                                        class="flex flex-col"
-                                    >
-                                        <span class="text-[10px] font-black text-blue-500/70 uppercase">{{
-                                            name.replace("_", " ")
-                                        }}</span>
-                                        <span class="text-xs font-medium text-gray-600 dark:text-zinc-400"
-                                            >v{{ version }}</span
-                                        >
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass-card space-y-4">
-                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {{ $t("about.database_health") }}
-                            </div>
-                            <div class="text-xs text-gray-600 dark:text-gray-400">
-                                {{ $t("about.database_health_description") }}
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                class="secondary-chip px-3 py-2 text-xs"
-                                :disabled="databaseActionInProgress || healthLoading"
-                                @click="getDatabaseHealth(true)"
-                            >
-                                <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
-                                {{ $t("common.refresh") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip px-3 py-2 text-xs"
-                                :disabled="databaseActionInProgress || healthLoading"
-                                @click="vacuumDatabase"
-                            >
-                                <MaterialDesignIcon icon-name="broom" class="w-4 h-4" />
-                                {{ $t("common.vacuum") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="primary-chip px-3 py-2 text-xs"
-                                :disabled="databaseActionInProgress || healthLoading"
-                                @click="recoverDatabase"
-                            >
-                                <MaterialDesignIcon icon-name="shield-sync" class="w-4 h-4" />
-                                {{ $t("common.auto_recover") }}
-                            </button>
-                        </div>
-                    </div>
-                    <div v-if="databaseActionMessage" class="text-xs text-emerald-600">{{ databaseActionMessage }}</div>
-                    <div v-if="databaseActionError" class="text-xs text-red-600">{{ databaseActionError }}</div>
-                    <div v-if="healthLoading" class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ $t("about.running_checks") }}
-                    </div>
-                    <div
-                        v-if="databaseHealth"
-                        class="grid gap-3 sm:grid-cols-3 text-sm text-gray-700 dark:text-gray-300"
-                    >
-                        <div>
-                            <div class="glass-label">{{ $t("about.integrity") }}</div>
-                            <div class="metric-value">{{ databaseHealth.quick_check }}</div>
-                        </div>
-                        <div>
-                            <div class="glass-label">{{ $t("about.journal_mode") }}</div>
-                            <div class="metric-value">{{ databaseHealth.journal_mode }}</div>
-                        </div>
-                        <div>
-                            <div class="glass-label">{{ $t("about.wal_autocheckpoint") }}</div>
-                            <div class="metric-value">
-                                {{
-                                    databaseHealth.wal_autocheckpoint !== null &&
-                                    databaseHealth.wal_autocheckpoint !== undefined
-                                        ? databaseHealth.wal_autocheckpoint
-                                        : "—"
-                                }}
-                            </div>
-                        </div>
-                        <div>
-                            <div class="glass-label">{{ $t("about.page_size") }}</div>
-                            <div class="metric-value">{{ formatBytes(databaseHealth.page_size) }}</div>
-                        </div>
-                        <div>
-                            <div class="glass-label">{{ $t("about.pages_free") }}</div>
-                            <div class="metric-value">
-                                {{ formatNumber(databaseHealth.page_count) }} /
-                                {{ formatNumber(databaseHealth.freelist_pages) }}
-                            </div>
-                        </div>
-                        <div>
-                            <div class="glass-label">{{ $t("about.free_space_estimate") }}</div>
-                            <div class="metric-value">{{ formatBytes(databaseHealth.estimated_free_bytes) }}</div>
-                        </div>
-                    </div>
-                    <div v-else-if="!healthLoading" class="text-sm text-gray-500 dark:text-gray-400">
-                        Health data will appear after the first refresh.
-                    </div>
-                    <div
-                        v-if="databaseRecoveryActions.length"
-                        class="text-xs text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-800 pt-3"
-                    >
-                        <div class="font-semibold text-gray-800 dark:text-gray-200 mb-1">Last recovery steps</div>
-                        <ul class="list-disc list-inside space-y-1">
-                            <li v-for="(action, index) in databaseRecoveryActions" :key="index">
-                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ action.step }}:</span>
-                                <span class="ml-1">{{ formatRecoveryResult(action.result) }}</span>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="border-t border-gray-200 dark:border-gray-800 pt-3 space-y-3">
-                        <div class="font-semibold text-gray-900 dark:text-white">Backups</div>
-                        <button
-                            type="button"
-                            class="secondary-chip px-3 py-2 text-xs"
-                            :disabled="backupInProgress"
-                            @click="backupDatabase"
-                        >
-                            <MaterialDesignIcon icon-name="content-save" class="w-4 h-4" />
-                            Download Backup
-                        </button>
-                        <div v-if="backupMessage" class="text-xs text-emerald-600">{{ backupMessage }}</div>
-                        <div v-if="backupError" class="text-xs text-red-600">{{ backupError }}</div>
-                        <div class="font-semibold text-gray-900 dark:text-white pt-2">Snapshots</div>
-                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                            <input
-                                v-model="snapshotName"
-                                type="text"
-                                placeholder="Snapshot name"
-                                class="input-field max-w-xs"
-                            />
-                            <button
-                                type="button"
-                                class="primary-chip px-3 py-2 text-xs"
-                                :disabled="snapshotInProgress"
-                                @click="createSnapshot"
-                            >
-                                <MaterialDesignIcon icon-name="camera" class="w-4 h-4" />
-                                Create Snapshot
-                            </button>
-                        </div>
-                        <div v-if="snapshots.length > 0" class="mt-3 space-y-2">
+                <transition name="fade-blur">
+                    <div v-if="showAdvanced" class="space-y-6">
+                        <!-- Advanced Tech Info -->
+                        <div v-if="appInfo" class="glass-card !p-6">
                             <div
-                                v-for="snapshot in snapshots"
-                                :key="snapshot.path"
-                                class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 text-xs"
+                                class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
                             >
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ snapshot.name }}</span>
-                                    <span class="text-gray-500"
-                                        >{{ formatBytes(snapshot.size) }} • {{ snapshot.created_at }}</span
+                                <v-icon icon="mdi-server" size="14"></v-icon>
+                                Environment Information
+                            </div>
+                            <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+                                <div>
+                                    <div class="glass-label !text-[10px] mb-2 opacity-50">Reticulum Config</div>
+                                    <div
+                                        class="monospace-field !bg-zinc-50 dark:!bg-zinc-950 break-all text-[11px] !p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"
                                     >
+                                        {{ appInfo.reticulum_config_path }}
+                                    </div>
+                                    <v-btn
+                                        v-if="isElectron"
+                                        variant="tonal"
+                                        size="x-small"
+                                        class="mt-3 font-black px-3"
+                                        @click="showReticulumConfigFile"
+                                    >
+                                        <v-icon icon="mdi-folder-open" start size="14"></v-icon> Reveal File
+                                    </v-btn>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="secondary-chip px-2 py-1"
-                                    @click="restoreFromSnapshot(snapshot.path)"
+                                <div>
+                                    <div class="glass-label !text-[10px] mb-2 opacity-50">Database Path</div>
+                                    <div
+                                        class="monospace-field !bg-zinc-50 dark:!bg-zinc-950 break-all text-[11px] !p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"
+                                    >
+                                        {{ appInfo.database_path }}
+                                    </div>
+                                    <v-btn
+                                        v-if="isElectron"
+                                        variant="tonal"
+                                        size="x-small"
+                                        class="mt-3 font-black px-3"
+                                        @click="showDatabaseFile"
+                                    >
+                                        <v-icon icon="mdi-database-search" start size="14"></v-icon> Reveal DB
+                                    </v-btn>
+                                </div>
+                                <div
+                                    class="flex flex-col justify-center space-y-3 bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800"
                                 >
-                                    Restore
-                                </button>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-black text-blue-500 uppercase tracking-wider"
+                                            >Python</span
+                                        >
+                                        <span class="font-mono text-xs font-bold">v{{ appInfo.python_version }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-black text-purple-500 uppercase tracking-wider"
+                                            >LXMF</span
+                                        >
+                                        <span class="font-mono text-xs font-bold">v{{ appInfo.lxmf_version }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-black text-indigo-500 uppercase tracking-wider"
+                                            >RNS</span
+                                        >
+                                        <span class="font-mono text-xs font-bold">v{{ appInfo.rns_version }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div v-if="snapshotMessage" class="text-xs text-emerald-600">{{ snapshotMessage }}</div>
-                        <div v-if="snapshotError" class="text-xs text-red-600">{{ snapshotError }}</div>
 
-                        <div class="font-semibold text-gray-900 dark:text-white pt-2">Restore</div>
-                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                            <input type="file" accept=".zip,.db" class="file-input" @change="onRestoreFileChange" />
-                            <button
-                                type="button"
-                                class="primary-chip px-3 py-2 text-xs"
-                                :disabled="restoreInProgress"
-                                @click="restoreDatabase"
-                            >
-                                <MaterialDesignIcon icon-name="database-sync" class="w-4 h-4" />
-                                Restore
-                            </button>
-                        </div>
-                        <div v-if="restoreFileName" class="text-xs text-gray-600 dark:text-gray-400">
-                            Selected: {{ restoreFileName }}
-                        </div>
-                        <div v-if="restoreMessage" class="text-xs text-emerald-600">{{ restoreMessage }}</div>
-                        <div v-if="restoreError" class="text-xs text-red-600">{{ restoreError }}</div>
-                        <div class="border-t border-gray-200 dark:border-gray-800 pt-3 space-y-3">
-                            <div class="font-semibold text-gray-900 dark:text-white">Identity Backup & Restore</div>
-                            <div class="text-xs text-red-600">
-                                Never share this identity. It grants full control. Clear your clipboard after copying.
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button
-                                    type="button"
-                                    class="secondary-chip px-3 py-2 text-xs"
-                                    @click="downloadIdentityFile"
+                        <!-- Security & Integrity -->
+                        <div v-if="appInfo" class="glass-card !p-6">
+                            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                                <div
+                                    class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                                 >
-                                    <MaterialDesignIcon icon-name="content-save" class="w-4 h-4" />
-                                    Download Identity File
-                                </button>
-                                <button
-                                    type="button"
-                                    class="secondary-chip px-3 py-2 text-xs"
-                                    @click="copyIdentityBase32"
+                                    <v-icon icon="mdi-shield-lock" size="14"></v-icon>
+                                    Security & Integrity
+                                </div>
+                                <div v-if="appInfo.integrity_issues" class="flex flex-wrap gap-2">
+                                    <span
+                                        :class="statusPillClass(appInfo.integrity_issues.length === 0)"
+                                        class="font-black px-3 py-1 text-[11px]"
+                                    >
+                                        <v-icon
+                                            :icon="
+                                                appInfo.integrity_issues.length === 0
+                                                    ? 'mdi-shield-check'
+                                                    : 'mdi-shield-alert'
+                                            "
+                                            size="14"
+                                            start
+                                        ></v-icon>
+                                        {{
+                                            appInfo.integrity_issues.length === 0
+                                                ? $t("about.secured")
+                                                : $t("about.tampering_detected")
+                                        }}
+                                    </span>
+                                    <button
+                                        v-if="appInfo.integrity_issues.length > 0"
+                                        type="button"
+                                        class="secondary-chip px-3 py-1 text-[11px] font-black"
+                                        @click="acknowledgeIntegrity"
+                                    >
+                                        <v-icon icon="mdi-check-circle" size="14" start></v-icon>
+                                        {{ $t("common.acknowledge_reset") }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="appInfo.integrity_issues && appInfo.integrity_issues.length > 0"
+                                class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl"
+                            >
+                                <div
+                                    class="text-xs font-black text-red-700 dark:text-red-400 mb-3 uppercase tracking-wider flex items-center gap-2"
                                 >
-                                    <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
-                                    Copy Base32 Identity
-                                </button>
+                                    <v-icon icon="mdi-alert-octagon" size="16"></v-icon>
+                                    Technical Issues Detected
+                                </div>
+                                <ul class="text-[11px] text-red-600 dark:text-red-300 space-y-2 list-none font-mono">
+                                    <li
+                                        v-for="(issue, index) in appInfo.integrity_issues"
+                                        :key="index"
+                                        class="flex gap-2"
+                                    >
+                                        <span class="opacity-50">•</span>
+                                        <span>{{ issue }}</span>
+                                    </li>
+                                </ul>
                             </div>
-                            <div v-if="identityBackupMessage" class="text-xs text-emerald-600">
-                                {{ identityBackupMessage }}
+                            <div
+                                v-else
+                                class="text-sm text-gray-500 dark:text-zinc-500 flex items-center gap-3 bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10"
+                            >
+                                <v-icon icon="mdi-check-decagram" color="emerald" size="20"></v-icon>
+                                <span class="font-bold tracking-tight">{{ $t("about.no_integrity_violations") }}</span>
                             </div>
-                            <div v-if="identityBackupError" class="text-xs text-red-600">{{ identityBackupError }}</div>
-                            <div v-if="identityBase32Message" class="text-xs text-emerald-600">
-                                {{ identityBase32Message }}
+                        </div>
+
+                        <!-- Dependency Chain -->
+                        <div v-if="appInfo" class="glass-card !p-6">
+                            <div
+                                class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-8 flex items-center gap-2"
+                            >
+                                <v-icon icon="mdi-link-variant" size="14"></v-icon>
+                                Dependency Chain
                             </div>
-                            <div v-if="identityBase32Error" class="text-xs text-red-600">{{ identityBase32Error }}</div>
-                            <div class="font-semibold text-gray-900 dark:text-white pt-2">Restore from file</div>
-                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                <input
-                                    type="file"
-                                    accept=".identity,.bin,.key"
-                                    class="file-input"
-                                    @change="onIdentityRestoreFileChange"
-                                />
-                                <button
-                                    type="button"
-                                    class="primary-chip px-3 py-2 text-xs"
-                                    :disabled="identityRestoreInProgress"
-                                    @click="restoreIdentityFile"
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 relative">
+                                <div class="flex flex-col space-y-8">
+                                    <div class="flex items-center gap-5">
+                                        <div
+                                            class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-sm"
+                                        >
+                                            <img
+                                                src="../../public/favicons/favicon-512x512.png"
+                                                class="w-7 h-7 object-contain"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-black text-gray-900 dark:text-white">
+                                                MeshChatX
+                                            </div>
+                                            <div class="text-xs font-mono font-bold text-gray-400">
+                                                v{{ appInfo.version }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
+                                    >
+                                        <div
+                                            class="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-blue-500 to-purple-500"
+                                        ></div>
+                                        <div
+                                            class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 font-black text-[10px] tracking-tighter shadow-sm"
+                                        >
+                                            LXMF
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                                Lightweight Extensible Message Format
+                                            </div>
+                                            <div class="text-xs font-mono font-bold text-gray-400 mt-1">
+                                                v{{ appInfo.lxmf_version }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
+                                    >
+                                        <div
+                                            class="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-purple-500 to-indigo-500"
+                                        ></div>
+                                        <div
+                                            class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 font-black text-[10px] tracking-tighter shadow-sm"
+                                        >
+                                            RNS
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                                Reticulum Network Stack
+                                            </div>
+                                            <div class="text-xs font-mono font-bold text-gray-400 mt-1">
+                                                v{{ appInfo.rns_version }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-8">
+                                    <div
+                                        class="bg-zinc-50 dark:bg-zinc-950 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800"
+                                    >
+                                        <div
+                                            class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
+                                        >
+                                            Core Runtime
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-x-6 gap-y-4">
+                                            <div v-if="appInfo.lxst_version" class="flex flex-col">
+                                                <span
+                                                    class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                    >LXST Engine</span
+                                                >
+                                                <span
+                                                    class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                    >v{{ appInfo.lxst_version }}</span
+                                                >
+                                            </div>
+                                            <div v-if="electronVersion" class="flex flex-col">
+                                                <span
+                                                    class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                    >Electron</span
+                                                >
+                                                <span
+                                                    class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                    >v{{ electronVersion }}</span
+                                                >
+                                            </div>
+                                            <div v-if="chromeVersion" class="flex flex-col">
+                                                <span
+                                                    class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                    >Chrome</span
+                                                >
+                                                <span
+                                                    class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                    >v{{ chromeVersion }}</span
+                                                >
+                                            </div>
+                                            <div v-if="nodeVersion" class="flex flex-col">
+                                                <span
+                                                    class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                    >Node.js</span
+                                                >
+                                                <span
+                                                    class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                    >v{{ nodeVersion }}</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="appInfo.dependencies" class="pt-2">
+                                        <div
+                                            class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
+                                        >
+                                            Backend Stack
+                                        </div>
+                                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+                                            <div
+                                                v-for="(version, name) in appInfo.dependencies"
+                                                :key="name"
+                                                class="flex flex-col"
+                                            >
+                                                <span
+                                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase truncate leading-none"
+                                                    >{{ name.replace("_", " ") }}</span
+                                                >
+                                                <span
+                                                    class="text-[10px] font-mono font-bold mt-1.5 opacity-50 tracking-tight"
+                                                    >v{{ version }}</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Database Health -->
+                        <div class="glass-card !p-6">
+                            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+                                <div
+                                    class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                                 >
-                                    <MaterialDesignIcon icon-name="database-sync" class="w-4 h-4" />
-                                    Restore Identity
-                                </button>
+                                    <v-icon icon="mdi-database-cog" size="14"></v-icon>
+                                    Database Health & Maintenance
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <v-btn
+                                        variant="tonal"
+                                        size="small"
+                                        class="font-black px-4 rounded-lg"
+                                        :loading="healthLoading"
+                                        :disabled="databaseActionInProgress"
+                                        @click="getDatabaseHealth(true)"
+                                    >
+                                        <v-icon icon="mdi-refresh" start size="14"></v-icon> Refresh
+                                    </v-btn>
+                                    <v-btn
+                                        variant="flat"
+                                        color="blue"
+                                        size="small"
+                                        class="font-black px-4 rounded-lg"
+                                        :loading="databaseActionInProgress"
+                                        @click="vacuumDatabase"
+                                    >
+                                        <v-icon icon="mdi-broom" start size="14"></v-icon> Vacuum
+                                    </v-btn>
+                                    <v-btn
+                                        variant="flat"
+                                        color="amber"
+                                        size="small"
+                                        class="font-black px-4 rounded-lg text-white"
+                                        :loading="databaseActionInProgress"
+                                        @click="recoverDatabase"
+                                    >
+                                        <v-icon icon="mdi-medical-bag" start size="14"></v-icon> Recovery
+                                    </v-btn>
+                                </div>
                             </div>
-                            <div v-if="identityRestoreFileName" class="text-xs text-gray-600 dark:text-gray-400">
-                                Selected: {{ identityRestoreFileName }}
-                            </div>
-                            <div class="font-semibold text-gray-900 dark:text-white pt-2">Restore from base32</div>
-                            <textarea v-model="identityRestoreBase32" rows="3" class="input-field"></textarea>
-                            <button
-                                type="button"
-                                class="primary-chip px-3 py-2 text-xs"
-                                :disabled="identityRestoreInProgress"
-                                @click="restoreIdentityBase32"
-                            >
-                                <MaterialDesignIcon icon-name="database-sync" class="w-4 h-4" />
-                                Restore Identity
-                            </button>
-                            <div v-if="identityRestoreMessage" class="text-xs text-emerald-600">
-                                {{ identityRestoreMessage }}
-                            </div>
-                            <div v-if="identityRestoreError" class="text-xs text-red-600">
-                                {{ identityRestoreError }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="grid gap-4 lg:grid-cols-2">
-                    <div v-if="appInfo?.memory_usage" class="glass-card space-y-3">
-                        <header class="flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="chip" class="w-5 h-5 text-blue-500" />
-                            <div>
-                                <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                                    {{ $t("about.system_resources") }}
+                            <div v-if="databaseHealth" class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+                                <div
+                                    class="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-inner"
+                                >
+                                    <div
+                                        class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    >
+                                        Integrity
+                                    </div>
+                                    <div
+                                        :class="[
+                                            databaseHealth.quick_check === 'ok' ? 'text-emerald-500' : 'text-red-500',
+                                        ]"
+                                        class="text-lg font-black uppercase tracking-tight"
+                                    >
+                                        {{ databaseHealth.quick_check }}
+                                    </div>
                                 </div>
-                                <div class="text-xs text-emerald-500 flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    {{ $t("about.live") }}
+                                <div
+                                    class="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-inner"
+                                >
+                                    <div
+                                        class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    >
+                                        Journal
+                                    </div>
+                                    <div class="text-lg font-black uppercase text-blue-500 tracking-tight">
+                                        {{ databaseHealth.journal_mode }}
+                                    </div>
+                                </div>
+                                <div
+                                    class="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-inner"
+                                >
+                                    <div
+                                        class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    >
+                                        Page Count
+                                    </div>
+                                    <div class="text-lg font-black font-mono tracking-tight tabular-nums">
+                                        {{ databaseHealth.page_count }}
+                                    </div>
+                                </div>
+                                <div
+                                    class="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-inner"
+                                >
+                                    <div
+                                        class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
+                                    >
+                                        Free Space
+                                    </div>
+                                    <div class="text-lg font-black text-amber-500 tracking-tight tabular-nums">
+                                        {{ formatBytes(databaseHealth.estimated_free_bytes) }}
+                                    </div>
                                 </div>
                             </div>
-                        </header>
-                        <div class="metric-row">
-                            <div>
-                                <div class="glass-label">{{ $t("about.memory_rss") }}</div>
-                                <div class="metric-value">{{ formatBytes(appInfo.memory_usage.rss) }}</div>
-                            </div>
-                            <div>
-                                <div class="glass-label">{{ $t("about.virtual_memory") }}</div>
-                                <div class="metric-value">{{ formatBytes(appInfo.memory_usage.vms) }}</div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div v-if="electronMemoryUsage" class="glass-card space-y-3">
-                        <header class="flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="electron-framework" class="w-5 h-5 text-blue-400" />
-                            <div>
-                                <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                                    Electron Resources
+                            <div class="border-t border-zinc-100 dark:border-zinc-800 pt-8 space-y-8">
+                                <!-- Backups -->
+                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                    <div class="space-y-1">
+                                        <div
+                                            class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
+                                        >
+                                            <v-icon
+                                                icon="mdi-content-save-all"
+                                                size="16"
+                                                class="text-blue-500"
+                                            ></v-icon>
+                                            Database Backups
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            Full snapshots of your communications database.
+                                        </div>
+                                    </div>
+                                    <v-btn
+                                        variant="tonal"
+                                        color="blue"
+                                        class="font-black rounded-xl"
+                                        :loading="backupInProgress"
+                                        @click="backupDatabase"
+                                    >
+                                        <v-icon icon="mdi-download" start></v-icon>
+                                        Download Backup
+                                    </v-btn>
                                 </div>
-                                <div class="text-xs text-emerald-500 flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    {{ $t("about.live") }}
-                                </div>
-                            </div>
-                        </header>
-                        <div class="metric-row">
-                            <div>
-                                <div class="glass-label">Private Memory</div>
-                                <div class="metric-value">{{ formatBytes(electronMemoryUsage.private * 1024) }}</div>
-                            </div>
-                            <div>
-                                <div class="glass-label">Resident Set</div>
-                                <div class="metric-value">
-                                    {{ formatBytes(electronMemoryUsage.residentSet * 1024) }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div v-if="appInfo?.network_stats" class="glass-card space-y-3">
-                        <header class="flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="access-point-network" class="w-5 h-5 text-purple-500" />
-                            <div>
-                                <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                                    {{ $t("about.network_stats") }}
-                                </div>
-                                <div class="text-xs text-emerald-500 flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    {{ $t("about.live") }}
-                                </div>
-                            </div>
-                        </header>
-                        <div class="metric-row">
-                            <div>
-                                <div class="glass-label">{{ $t("about.sent") }}</div>
-                                <div class="metric-value">{{ formatBytes(appInfo.network_stats.bytes_sent) }}</div>
-                            </div>
-                            <div>
-                                <div class="glass-label">{{ $t("about.received") }}</div>
-                                <div class="metric-value">{{ formatBytes(appInfo.network_stats.bytes_recv) }}</div>
-                            </div>
-                        </div>
-                        <div class="metric-row">
-                            <div>
-                                <div class="glass-label">{{ $t("about.packets_sent") }}</div>
-                                <div class="metric-value">{{ formatNumber(appInfo.network_stats.packets_sent) }}</div>
-                            </div>
-                            <div>
-                                <div class="glass-label">{{ $t("about.packets_received") }}</div>
-                                <div class="metric-value">{{ formatNumber(appInfo.network_stats.packets_recv) }}</div>
-                            </div>
-                        </div>
-                    </div>
+                                <!-- Snapshots -->
+                                <div class="space-y-6">
+                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div class="space-y-1">
+                                            <div
+                                                class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
+                                            >
+                                                <v-icon icon="mdi-camera" size="16" class="text-purple-500"></v-icon>
+                                                Local Snapshots
+                                            </div>
+                                            <div class="text-xs text-gray-500">
+                                                Create point-in-time restore points on disk.
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-2 w-full md:w-auto">
+                                            <input
+                                                v-model="snapshotName"
+                                                type="text"
+                                                placeholder="Snapshot label..."
+                                                class="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-xl text-sm border border-zinc-100 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 flex-1 md:min-w-[200px]"
+                                            />
+                                            <v-btn
+                                                color="purple"
+                                                class="font-black rounded-xl"
+                                                :loading="snapshotInProgress"
+                                                @click="createSnapshot"
+                                            >
+                                                Create
+                                            </v-btn>
+                                        </div>
+                                    </div>
 
-                    <div v-if="appInfo?.reticulum_stats" class="glass-card space-y-3">
-                        <header class="flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="diagram-projector" class="w-5 h-5 text-indigo-500" />
-                            <div>
-                                <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                                    {{ $t("about.reticulum_stats") }}
+                                    <div v-if="snapshots.length > 0" class="grid gap-3 sm:grid-cols-2">
+                                        <div
+                                            v-for="snapshot in snapshots"
+                                            :key="snapshot.path"
+                                            class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-purple-500/20 transition-all group"
+                                        >
+                                            <div class="flex flex-col">
+                                                <span
+                                                    class="font-black text-gray-900 dark:text-white text-xs truncate max-w-[150px]"
+                                                    >{{ snapshot.name }}</span
+                                                >
+                                                <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
+                                                    >{{ formatBytes(snapshot.size) }} • {{ snapshot.created_at }}</span
+                                                >
+                                            </div>
+                                            <v-btn
+                                                variant="tonal"
+                                                size="x-small"
+                                                color="purple"
+                                                class="font-black opacity-0 group-hover:opacity-100 transition-opacity"
+                                                @click="restoreFromSnapshot(snapshot.path)"
+                                            >
+                                                Restore
+                                            </v-btn>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="text-xs text-emerald-500 flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    {{ $t("about.live") }}
-                                </div>
-                            </div>
-                        </header>
-                        <div class="metric-grid">
-                            <div>
-                                <div class="glass-label">{{ $t("about.total_paths") }}</div>
-                                <div class="metric-value">{{ formatNumber(appInfo.reticulum_stats.total_paths) }}</div>
-                            </div>
-                            <div>
-                                <div class="glass-label">{{ $t("about.announces_per_second") }}</div>
-                                <div class="metric-value">
-                                    {{ formatNumber(appInfo.reticulum_stats.announces_per_second) }}
-                                </div>
-                            </div>
-                            <div>
-                                <div class="glass-label">{{ $t("about.announces_per_minute") }}</div>
-                                <div class="metric-value">
-                                    {{ formatNumber(appInfo.reticulum_stats.announces_per_minute) }}
-                                </div>
-                            </div>
-                            <div>
-                                <div class="glass-label">{{ $t("about.announces_per_hour") }}</div>
-                                <div class="metric-value">
-                                    {{ formatNumber(appInfo.reticulum_stats.announces_per_hour) }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div v-if="appInfo?.download_stats" class="glass-card space-y-3">
-                        <header class="flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="download" class="w-5 h-5 text-sky-500" />
-                            <div>
-                                <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                                    {{ $t("about.download_activity") }}
-                                </div>
-                                <div class="text-xs text-emerald-500 flex items-center gap-1">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    {{ $t("about.live") }}
+                                <!-- Identity Section -->
+                                <div class="bg-red-500/5 p-6 rounded-2xl border border-red-500/10 space-y-6">
+                                    <div class="flex items-center gap-4 text-red-500">
+                                        <v-icon icon="mdi-key-alert" size="24"></v-icon>
+                                        <div class="space-y-0.5">
+                                            <div class="font-black text-sm tracking-tight">Identity Key Control</div>
+                                            <div
+                                                class="text-[10px] font-bold uppercase tracking-widest opacity-70 italic"
+                                            >
+                                                Critical Security Warning
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-3">
+                                        <v-btn
+                                            variant="flat"
+                                            color="red"
+                                            class="font-black rounded-xl"
+                                            @click="downloadIdentityFile"
+                                        >
+                                            <v-icon icon="mdi-file-export" start></v-icon>
+                                            Export Key File
+                                        </v-btn>
+                                        <v-btn
+                                            variant="tonal"
+                                            color="red"
+                                            class="font-black rounded-xl"
+                                            @click="copyIdentityBase32"
+                                        >
+                                            <v-icon icon="mdi-content-copy" start></v-icon>
+                                            Copy Base32 Key
+                                        </v-btn>
+                                    </div>
+
+                                    <div class="space-y-4 pt-4 border-t border-red-500/10">
+                                        <div class="text-[10px] font-black text-red-500/60 uppercase tracking-widest">
+                                            Restore Identity
+                                        </div>
+                                        <div class="flex flex-col sm:flex-row gap-3">
+                                            <v-btn
+                                                variant="tonal"
+                                                color="zinc"
+                                                class="font-black rounded-xl flex-1 border-dashed border-2"
+                                                @click="$refs.identityFileInput.click()"
+                                            >
+                                                <v-icon icon="mdi-upload" start></v-icon>
+                                                Upload Key File
+                                            </v-btn>
+                                            <input
+                                                ref="identityFileInput"
+                                                type="file"
+                                                accept=".identity,.bin,.key"
+                                                class="hidden"
+                                                @change="onIdentityRestoreFileChange"
+                                            />
+                                            <div
+                                                class="text-center sm:py-2 text-[10px] font-black text-zinc-400 uppercase italic px-2 shrink-0 self-center"
+                                            >
+                                                — or —
+                                            </div>
+                                            <v-btn
+                                                variant="tonal"
+                                                color="zinc"
+                                                class="font-black rounded-xl flex-1 border-dashed border-2"
+                                                @click="showIdentityPaste = !showIdentityPaste"
+                                            >
+                                                <v-icon icon="mdi-clipboard-text" start></v-icon>
+                                                Paste Base32
+                                            </v-btn>
+                                        </div>
+
+                                        <transition name="fade-blur">
+                                            <div v-if="showIdentityPaste" class="space-y-3">
+                                                <textarea
+                                                    v-model="identityRestoreBase32"
+                                                    rows="4"
+                                                    placeholder="Paste your base32 identity key here..."
+                                                    class="w-full bg-white dark:bg-zinc-950 p-4 rounded-xl font-mono text-xs border border-zinc-100 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                                                ></textarea>
+                                                <v-btn
+                                                    block
+                                                    color="red"
+                                                    class="font-black rounded-xl"
+                                                    :loading="identityRestoreInProgress"
+                                                    @click="restoreIdentityBase32"
+                                                >
+                                                    Confirm Key Restore
+                                                </v-btn>
+                                            </div>
+                                        </transition>
+                                    </div>
                                 </div>
                             </div>
-                        </header>
-                        <div class="metric-value">
-                            <span v-if="appInfo.download_stats.avg_download_speed_bps !== null">
-                                {{ formatBytesPerSecond(appInfo.download_stats.avg_download_speed_bps) }}
-                            </span>
-                            <span v-else class="text-sm text-gray-500">{{ $t("about.no_downloads_yet") }}</span>
                         </div>
                     </div>
-                </div>
-
-                <div v-if="appInfo" class="glass-card space-y-3">
-                    <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $t("about.runtime_status") }}
-                    </div>
-                    <div class="flex flex-wrap gap-3">
-                        <span :class="statusPillClass(!appInfo.is_connected_to_shared_instance)">
-                            <MaterialDesignIcon icon-name="server" class="w-4 h-4" />
-                            {{
-                                appInfo.is_connected_to_shared_instance
-                                    ? $t("about.shared_instance")
-                                    : $t("about.standalone_instance")
-                            }}
-                        </span>
-                        <span :class="statusPillClass(appInfo.is_transport_enabled)">
-                            <MaterialDesignIcon icon-name="transit-connection" class="w-4 h-4" />
-                            {{
-                                appInfo.is_transport_enabled
-                                    ? $t("about.transport_enabled")
-                                    : $t("about.transport_disabled")
-                            }}
-                        </span>
-                    </div>
-                </div>
-
-                <div v-if="config" class="glass-card space-y-4">
-                    <div class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ $t("about.identity_addresses") }}
-                    </div>
-                    <div class="grid gap-3 md:grid-cols-2">
-                        <div class="address-card">
-                            <div class="glass-label">{{ $t("app.identity_hash") }}</div>
-                            <div class="monospace-field break-all">{{ config.identity_hash }}</div>
-                            <button
-                                type="button"
-                                class="secondary-chip mt-3 text-xs"
-                                @click="copyValue(config.identity_hash, $t('app.identity_hash'))"
-                            >
-                                <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
-                                {{ $t("app.copy") }}
-                            </button>
-                        </div>
-                        <div class="address-card">
-                            <div class="glass-label">{{ $t("app.lxmf_address") }}</div>
-                            <div class="monospace-field break-all">{{ config.lxmf_address_hash }}</div>
-                            <button
-                                type="button"
-                                class="secondary-chip mt-3 text-xs"
-                                @click="copyValue(config.lxmf_address_hash, $t('app.lxmf_address'))"
-                            >
-                                <MaterialDesignIcon icon-name="account-network" class="w-4 h-4" />
-                                {{ $t("app.copy") }}
-                            </button>
-                        </div>
-                        <div class="address-card">
-                            <div class="glass-label">{{ $t("app.propagation_node") }}</div>
-                            <div class="monospace-field break-all">
-                                {{ config.lxmf_local_propagation_node_address_hash || "—" }}
-                            </div>
-                        </div>
-                        <div class="address-card">
-                            <div class="glass-label">{{ $t("about.telephone_address") }}</div>
-                            <div class="monospace-field break-all">{{ config.telephone_address_hash || "—" }}</div>
-                        </div>
-                    </div>
-                </div>
+                </transition>
             </div>
         </div>
     </div>
@@ -798,6 +740,8 @@ export default {
             electronVersion: null,
             chromeVersion: null,
             nodeVersion: null,
+            showAdvanced: false,
+            showIdentityPaste: false,
         };
     },
     computed: {
@@ -1003,7 +947,7 @@ export default {
                 this.restoreInProgress = false;
             }
         },
-        async recoverDatabase() {
+        async runRecovery() {
             if (this.databaseActionInProgress) {
                 return;
             }

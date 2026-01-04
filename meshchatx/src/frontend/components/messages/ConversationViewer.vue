@@ -892,12 +892,50 @@
                         />
                     </svg>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-1">
-                    {{ $t("messages.no_active_chat") }}
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-zinc-400">
-                    {{ $t("messages.select_peer_or_enter_address") }}
-                </p>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-1">
+                {{ $t("messages.no_active_chat") }}
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-zinc-400 mb-8">
+                {{ $t("messages.select_peer_or_enter_address") }}
+            </p>
+
+            <!-- latest chats grid (desktop only) -->
+            <div v-if="!isMobile && latestConversations.length > 0" class="w-full max-w-2xl mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest">
+                        Latest Chats
+                    </h4>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div
+                        v-for="chat in latestConversations"
+                        :key="chat.destination_hash"
+                        class="group cursor-pointer p-4 bg-white dark:bg-zinc-900/50 border border-gray-100 dark:border-zinc-800 rounded-2xl hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 flex items-center gap-4"
+                        @click="$emit('update:selectedPeer', chat)"
+                    >
+                        <LxmfUserIcon
+                            :custom-image="chat.contact_image"
+                            :icon-name="chat.lxmf_user_icon ? chat.lxmf_user_icon.icon_name : ''"
+                            :icon-foreground-colour="chat.lxmf_user_icon ? chat.lxmf_user_icon.foreground_colour : ''"
+                            :icon-background-colour="chat.lxmf_user_icon ? chat.lxmf_user_icon.background_colour : ''"
+                            icon-class="size-10"
+                        />
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-gray-900 dark:text-zinc-100 truncate">
+                                {{ chat.custom_display_name ?? chat.display_name }}
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-zinc-500 truncate mt-0.5">
+                                {{ chat.latest_message_preview || chat.latest_message_title || "No messages yet" }}
+                            </div>
+                        </div>
+                        <v-icon
+                            icon="mdi-chevron-right"
+                            size="18"
+                            class="text-gray-300 dark:text-zinc-700 group-hover:text-blue-500 transition-colors"
+                        ></v-icon>
+                    </div>
+                </div>
             </div>
 
             <!-- compose message input -->
@@ -1087,6 +1125,9 @@ export default {
         },
         isMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        },
+        latestConversations() {
+            return this.conversations.slice(0, 4);
         },
         canSendMessage() {
             // can send if message text is present

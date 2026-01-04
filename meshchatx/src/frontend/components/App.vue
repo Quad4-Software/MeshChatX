@@ -24,9 +24,9 @@
             <template v-else>
                 <!-- header -->
                 <div
-                    class="relative z-[60] flex bg-white/80 dark:bg-zinc-900/70 backdrop-blur border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors"
+                    class="relative z-[60] flex bg-white/60 dark:bg-zinc-900/50 backdrop-blur-lg border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors overflow-x-hidden"
                 >
-                    <div class="flex w-full px-4">
+                    <div class="flex w-full px-2 sm:px-4 overflow-x-auto no-scrollbar">
                         <button
                             type="button"
                             class="sm:hidden my-auto mr-4 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
