@@ -672,7 +672,9 @@ export default {
                         },
                         selectionWidth: 3,
                         hoverWidth: 2,
-                        opacity: 0.6,
+                        color: {
+                            opacity: 0.6,
+                        },
                     },
                 }
             );
@@ -911,17 +913,19 @@ export default {
                         id: edgeId,
                         from: entry.interface,
                         to: entry.hash,
-                        color:
-                            entry.hops === 1
-                                ? isDarkMode
-                                    ? "#065f46"
-                                    : "#10b981"
-                                : isDarkMode
-                                  ? "#1e3a8a"
-                                  : "#3b82f6",
+                        color: {
+                            color:
+                                entry.hops === 1
+                                    ? isDarkMode
+                                        ? "#065f46"
+                                        : "#10b981"
+                                    : isDarkMode
+                                      ? "#1e3a8a"
+                                      : "#3b82f6",
+                            opacity: entry.hops === 1 ? 1 : 0.5,
+                        },
                         width: entry.hops === 1 ? 2 : 1,
                         dashes: entry.hops > 1,
-                        opacity: entry.hops === 1 ? 1 : 0.5,
                         hidden: this.enableOrbit,
                     });
                     processedEdgeIds.add(edgeId);
