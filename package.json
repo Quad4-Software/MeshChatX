@@ -23,6 +23,7 @@
         "dist:rpm": "pnpm run electron-postinstall && pnpm run build && electron-builder --linux rpm --publish=never",
         "dist:flatpak": "pnpm run electron-postinstall && pnpm run build && electron-builder --linux flatpak --publish=never",
         "dist:windows": "pnpm run electron-postinstall && pnpm run build && electron-builder --win portable nsis --publish=never",
+        "dist:zip": "pnpm run electron-postinstall && pnpm run build && electron-forge make --targets @electron-forge/maker-zip",
         "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
         "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
         "dist:mac-universal": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --universal --publish=never",
@@ -153,6 +154,23 @@
                         "**/*"
                     ]
                 }
+            ]
+        },
+        "flatpak": {
+            "runtime": "org.freedesktop.Platform",
+            "runtimeVersion": "24.08",
+            "sdk": "org.freedesktop.Sdk",
+            "base": "org.electronjs.Electron2.BaseApp",
+            "baseVersion": "24.08",
+            "finishArgs": [
+                "--share=ipc",
+                "--share=network",
+                "--socket=x11",
+                "--socket=wayland",
+                "--device=dri",
+                "--allow=bluetooth",
+                "--filesystem=home",
+                "--talk-name=org.freedesktop.Notifications"
             ]
         },
         "dmg": {
