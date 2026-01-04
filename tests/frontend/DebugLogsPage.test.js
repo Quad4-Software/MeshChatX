@@ -15,7 +15,14 @@ describe("DebugLogsPage.vue", () => {
     it("fetches and displays logs", async () => {
         const mockLogs = [
             { timestamp: Date.now() / 1000, level: "INFO", module: "test", message: "Hello", is_anomaly: 0 },
-            { timestamp: (Date.now() - 1000) / 1000, level: "ERROR", module: "test", message: "Boom", is_anomaly: 1, anomaly_type: "repeat" },
+            {
+                timestamp: (Date.now() - 1000) / 1000,
+                level: "ERROR",
+                module: "test",
+                message: "Boom",
+                is_anomaly: 1,
+                anomaly_type: "repeat",
+            },
         ];
 
         window.axios.get.mockResolvedValue({
@@ -53,7 +60,7 @@ describe("DebugLogsPage.vue", () => {
 
         const searchInput = wrapper.find("input[placeholder='Search logs...']");
         await searchInput.setValue("error");
-        
+
         // Wait for debounce (500ms)
         await new Promise((resolve) => setTimeout(resolve, 600));
 
@@ -82,9 +89,9 @@ describe("DebugLogsPage.vue", () => {
         });
 
         await new Promise((resolve) => setTimeout(resolve, 10));
-        
+
         // Click next
-        const nextButton = wrapper.findAll("button").find(b => b.text().includes("Next"));
+        const nextButton = wrapper.findAll("button").find((b) => b.text().includes("Next"));
         await nextButton.trigger("click");
 
         expect(window.axios.get).toHaveBeenCalledWith(
@@ -95,4 +102,3 @@ describe("DebugLogsPage.vue", () => {
         );
     });
 });
-
