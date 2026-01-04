@@ -327,6 +327,11 @@ tasks:
         cmds:
             - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f {{.DOCKER_COMPOSE_FILE}} up --remove-orphans --pull never reticulum-meshchatx'
 
+    run-docker-dev:
+        desc: Run Docker container in development mode using docker-compose.dev.yml
+        cmds:
+            - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f docker-compose.dev.yml up --build --remove-orphans reticulum-meshchatx'
+
     docker-build-env:
         desc: Build the Docker image for containerized builds
         cmds:

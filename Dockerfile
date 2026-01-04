@@ -1,4 +1,9 @@
-FROM node:22-alpine@sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf AS build-frontend
+ARG NODE_IMAGE=node:22-alpine
+ARG NODE_HASH=sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf
+ARG PYTHON_IMAGE=python:3.13-alpine
+ARG PYTHON_HASH=sha256:e7e041128ffc3e3600509f508e44d34ab08ff432bdb62ec508d01dfc5ca459f7
+
+FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 
 WORKDIR /src
 
@@ -11,11 +16,13 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN pnpm install --frozen-lockfile && \
     pnpm run build-frontend
 
-FROM python:3.13-alpine@sha256:e7e041128ffc3e3600509f508e44d34ab08ff432bdb62ec508d01dfc5ca459f7
+FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 
 WORKDIR /app
 
-RUN apk add --no-cache ffmpeg espeak-ng opusfile libffi-dev
+RUN apk add --no-cache ffmpeg espeak-ng opusfile libffi-dev && \
+    addgroup -S meshchat && adduser -S meshchat -G meshchat && \
+    mkdir -p /config && chown meshchat:meshchat /config
 
 COPY pyproject.toml poetry.lock ./
 RUN apk add --no-cache --virtual .build-deps \
@@ -28,9 +35,10 @@ RUN apk add --no-cache --virtual .build-deps \
     poetry install --no-root --only main && \
     apk del .build-deps
 
-COPY meshchatx ./meshchatx
+COPY --chown=meshchat:meshchat meshchatx ./meshchatx
+COPY --from=build-frontend --chown=meshchat:meshchat /src/meshchatx/public ./meshchatx/public
 
-COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
+USER meshchat
 
 ENV PYTHONUNBUFFERED=1
 

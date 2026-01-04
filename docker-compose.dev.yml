@@ -1,7 +1,10 @@
 services:
     reticulum-meshchatx:
+        build:
+            context: .
+            dockerfile: Dockerfile
         container_name: reticulum-meshchatx
-        image: git.quad4.io/rns-things/meshchatx-dev:dev
+        image: reticulum-meshchatx:local
         restart: unless-stopped
         security_opt:
             - no-new-privileges:true
