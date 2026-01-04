@@ -22,9 +22,8 @@
             </div>
 
             <template v-else>
-                <!-- header -->
                 <div
-                    class="relative z-[60] flex bg-white/60 dark:bg-zinc-900/50 backdrop-blur-lg border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors overflow-x-hidden"
+                    class="sticky top-0 z-[100] flex bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors overflow-x-hidden"
                 >
                     <div class="flex w-full px-2 sm:px-4 overflow-x-auto no-scrollbar">
                         <button
@@ -486,6 +485,7 @@
 </template>
 
 <script>
+import { useTheme } from "vuetify";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
@@ -524,6 +524,12 @@ export default {
         IntegrityWarningModal,
         ChangelogModal,
         TutorialModal,
+    },
+    setup() {
+        const vuetifyTheme = useTheme();
+        return {
+            vuetifyTheme,
+        };
     },
     data() {
         return {
@@ -600,12 +606,8 @@ export default {
                 if (newConfig && newConfig.custom_ringtone_enabled !== undefined) {
                     this.updateRingtonePlayer();
                 }
-                if (newConfig && newConfig.theme) {
-                    if (newConfig.theme === "dark") {
-                        document.documentElement.classList.add("dark");
-                    } else {
-                        document.documentElement.classList.remove("dark");
-                    }
+                if (newConfig && "theme" in newConfig) {
+                    this.applyThemePreference(newConfig.theme ?? "light");
                 }
             },
             deep: true,
@@ -647,6 +649,14 @@ export default {
             this.getBlockedDestinations();
         });
 
+        GlobalEmitter.on("show-changelog", () => {
+            this.$refs.changelogModal.show();
+        });
+
+        GlobalEmitter.on("show-tutorial", () => {
+            this.$refs.tutorialModal.show();
+        });
+
         this.getAppInfo();
         this.getConfig();
         this.getBlockedDestinations();
@@ -672,6 +682,15 @@ export default {
         }, 15000);
     },
     methods: {
+        applyThemePreference(theme) {
+            const mode = theme === "dark" ? "dark" : "light";
+            if (typeof document !== "undefined") {
+                document.documentElement.classList.toggle("dark", mode === "dark");
+            }
+            if (this.vuetifyTheme?.global?.name) {
+                this.vuetifyTheme.global.name.value = mode;
+            }
+        },
         getHashPopoutValue() {
             const hash = window.location.hash || "";
             const match = hash.match(/popout=([^&]+)/);
@@ -684,13 +703,6 @@ export default {
                     this.config = json.config;
                     GlobalState.config = json.config;
                     this.displayName = json.config.display_name;
-                    if (this.config?.theme) {
-                        if (this.config.theme === "dark") {
-                            document.documentElement.classList.add("dark");
-                        } else {
-                            document.documentElement.classList.remove("dark");
-                        }
-                    }
                     break;
                 }
                 case "keyboard_shortcuts": {
@@ -800,13 +812,6 @@ export default {
                 const response = await window.axios.get(`/api/v1/config`);
                 this.config = response.data.config;
                 GlobalState.config = response.data.config;
-                if (this.config?.theme) {
-                    if (this.config.theme === "dark") {
-                        document.documentElement.classList.add("dark");
-                    } else {
-                        document.documentElement.classList.remove("dark");
-                    }
-                }
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);
