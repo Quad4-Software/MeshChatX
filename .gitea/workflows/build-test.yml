@@ -39,7 +39,7 @@ jobs:
             - name: Install system dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng zip
+                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng zip rpm flatpak flatpak-builder
 
             - name: Setup Task
               uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
@@ -55,13 +55,26 @@ jobs:
             - name: Build Backend (Wheel)
               run: task wheel
 
+            - name: Build Electron App (Linux)
+              run: pnpm run dist:linux
+
+            - name: Build Electron App (RPM - Experimental)
+              continue-on-error: true
+              run: task build-rpm
+
+            - name: Build Electron App (Flatpak - Experimental)
+              continue-on-error: true
+              run: task build-flatpak
+
             - name: Prepare Frontend Zip
               run: |
                   mkdir -p release-assets
                   (cd meshchatx/public && zip -r ../../release-assets/meshchatx-frontend.zip .)
+                  # Collect Linux artifacts
+                  find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" -o -name "*-linux*.flatpak" \) -exec cp {} release-assets/ \;
 
-            - name: Upload Frontend artifact
+            - name: Upload artifacts
               uses: https://git.quad4.io/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
               with:
-                  name: meshchatx-frontend
+                  name: meshchatx-artifacts
                   path: release-assets/*

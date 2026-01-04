@@ -221,6 +221,18 @@ tasks:
         cmds:
             - "{{.NPM}} run dist:linux"
 
+    build-rpm:
+        desc: Build Linux RPM package
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run dist:rpm"
+
+    build-flatpak:
+        desc: Build Linux Flatpak package
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run dist:flatpak"
+
     build-electron-windows:
         desc: Build Windows Electron apps (portable and installer)
         deps: [build-frontend]
