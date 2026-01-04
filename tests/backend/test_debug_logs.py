@@ -62,9 +62,9 @@ def test_anomaly_flooding(handler, db):
     persistent_handler.flooding_threshold = 5
 
     for i in range(10):
-        logger.info(f"Message {i}")
+        logger.warning(f"Message {i}")
 
-    time.sleep(0.2)
+    # Wait for flush
     logger.debug("Force flush")
 
     logs = persistent_handler.get_logs(limit=20)
@@ -78,9 +78,9 @@ def test_anomaly_repeat(handler, db):
     persistent_handler.repeat_threshold = 3
 
     for _ in range(5):
-        logger.info("Same message")
+        logger.warning("Same message")
 
-    time.sleep(0.2)
+    # Wait for flush
     logger.debug("Force flush")
 
     logs = persistent_handler.get_logs(limit=20)

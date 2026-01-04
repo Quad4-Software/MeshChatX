@@ -41,6 +41,7 @@ async def test_app_info_extended(mock_rns_minimal, temp_dir):
         patch("meshchatx.meshchat.generate_ssl_certificate"),
         patch("psutil.Process") as mock_process,
         patch("psutil.net_io_counters") as mock_net_io,
+        patch("importlib.metadata.version", return_value="1.2.3"),
         patch("meshchatx.meshchat.LXST") as mock_lxst,
     ):
         mock_lxst.__version__ = "1.2.3"
