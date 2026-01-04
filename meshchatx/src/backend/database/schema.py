@@ -19,8 +19,11 @@ class DatabaseSchema:
         """Add a column to a table if it doesn't exist."""
         # First check if it exists using PRAGMA
         cursor = self.provider.connection.cursor()
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        columns = [row[1] for row in cursor.fetchall()]
+        try:
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns = [row[1] for row in cursor.fetchall()]
+        finally:
+            cursor.close()
 
         if column_name not in columns:
             try:
