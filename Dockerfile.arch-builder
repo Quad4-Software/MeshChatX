@@ -1,0 +1,39 @@
+FROM archlinux:latest
+
+# Install build dependencies
+RUN pacman -Syu --noconfirm --needed \
+    base-devel \
+    git \
+    sudo \
+    nodejs \
+    pnpm \
+    python \
+    python-poetry \
+    opus \
+    opusfile \
+    portaudio \
+    espeak-ng \
+    nss \
+    atk \
+    at-spi2-core \
+    libxcomposite \
+    libxrandr \
+    libxdamage \
+    mesa \
+    alsa-lib \
+    libx11
+
+# Create a non-root user for makepkg
+RUN useradd -m build && \
+    echo "build ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/build
+
+# Set up build directory
+USER build
+WORKDIR /home/build/project
+
+# Copy packaging files
+COPY --chown=build:build packaging/arch /home/build/project/packaging/arch
+
+# Default command to build the package
+CMD ["/bin/bash", "-c", "cd packaging/arch && makepkg -s --noconfirm"]
+
