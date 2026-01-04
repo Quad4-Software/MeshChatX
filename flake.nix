@@ -53,9 +53,6 @@
             gradle
             openjdk17
 
-            # Flatpak Packaging
-            flatpak-builder
-
             # Containerization
             docker
             docker-compose
