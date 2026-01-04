@@ -1,5 +1,6 @@
 import collections
 import logging
+import re
 import threading
 import time
 from datetime import UTC, datetime
@@ -21,6 +22,10 @@ class PersistentLogHandler(logging.Handler):
         self.repeat_threshold = 5  # identical messages in a row
         self.message_counts = collections.defaultdict(int)
         self.last_reset_time = time.time()
+
+        # UA and IP tracking
+        self.known_ips = set()
+        self.known_uas = set()
 
     def set_database(self, database):
         with self.lock:
@@ -54,8 +59,54 @@ class PersistentLogHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
+    def _detect_access_anomaly(self, message):
+        """Detect anomalies in aiohttp access logs."""
+        # Regex to extract IP and User-Agent from aiohttp access log
+        # Format: IP [date] "GET ..." status size "referer" "User-Agent"
+        match = re.search(
+            r"^([\d\.\:]+) .* \"[^\"]+\" \d+ \d+ \"[^\"]*\" \"([^\"]+)\"", message
+        )
+        if match:
+            ip = match.group(1)
+            ua = match.group(2)
+
+            with self.lock:
+                is_anomaly = False
+                anomaly_type = None
+
+                # Detect if this is a different UA or IP from what we've seen recently
+                if len(self.known_ips) > 0 and ip not in self.known_ips:
+                    is_anomaly = True
+                    anomaly_type = "multi_ip"
+
+                if len(self.known_uas) > 0 and ua not in self.known_uas:
+                    is_anomaly = True
+                    if anomaly_type:
+                        anomaly_type = "multi_ip_ua"
+                    else:
+                        anomaly_type = "multi_ua"
+
+                self.known_ips.add(ip)
+                self.known_uas.add(ua)
+
+                # Cap the tracking sets to prevent memory growth
+                if len(self.known_ips) > 100:
+                    self.known_ips.clear()
+                if len(self.known_uas) > 100:
+                    self.known_uas.clear()
+
+                return is_anomaly, anomaly_type
+
+        return False, None
+
     def _detect_anomaly(self, record, message, timestamp):
-        # Only detect anomalies for WARNING level and above
+        # 1. Access anomaly detection (UA/IP) - checked for all levels of aiohttp.access
+        if record.name == "aiohttp.access":
+            is_acc_anomaly, acc_type = self._detect_access_anomaly(message)
+            if is_acc_anomaly:
+                return True, acc_type
+
+        # Only detect other anomalies for WARNING level and above
         if record.levelno < logging.WARNING:
             return False, None
 

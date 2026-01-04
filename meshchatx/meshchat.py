@@ -374,6 +374,15 @@ class ReticulumMeshChat:
             self.current_context.rnstatus_handler = value
 
     @property
+    def rnpath_handler(self):
+        return self.current_context.rnpath_handler if self.current_context else None
+
+    @rnpath_handler.setter
+    def rnpath_handler(self, value):
+        if self.current_context:
+            self.current_context.rnpath_handler = value
+
+    @property
     def rnprobe_handler(self):
         return self.current_context.rnprobe_handler if self.current_context else None
 
@@ -3976,6 +3985,11 @@ class ReticulumMeshChat:
         async def telephone_switch_audio_profile(request):
             profile_id = request.match_info.get("profile_id")
             try:
+                if self.telephone_manager.telephone is None:
+                    return web.json_response(
+                        {"message": "Telephone not initialized"}, status=400
+                    )
+
                 await asyncio.to_thread(
                     self.telephone_manager.telephone.switch_profile,
                     int(profile_id),
@@ -5522,6 +5536,75 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
+        @routes.get("/api/v1/rnpath/table")
+        async def rnpath_table(request):
+            max_hops = request.query.get("max_hops")
+            if max_hops:
+                max_hops = int(max_hops)
+            try:
+                table = self.rnpath_handler.get_path_table(max_hops=max_hops)
+                return web.json_response({"table": table})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.get("/api/v1/rnpath/rates")
+        async def rnpath_rates(request):
+            try:
+                rates = self.rnpath_handler.get_rate_table()
+                return web.json_response({"rates": rates})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.post("/api/v1/rnpath/drop")
+        async def rnpath_drop(request):
+            data = await request.json()
+            destination_hash = data.get("destination_hash")
+            if not destination_hash:
+                return web.json_response(
+                    {"message": "destination_hash is required"}, status=400
+                )
+            try:
+                success = self.rnpath_handler.drop_path(destination_hash)
+                return web.json_response({"success": success})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.post("/api/v1/rnpath/drop-via")
+        async def rnpath_drop_via(request):
+            data = await request.json()
+            transport_instance_hash = data.get("transport_instance_hash")
+            if not transport_instance_hash:
+                return web.json_response(
+                    {"message": "transport_instance_hash is required"}, status=400
+                )
+            try:
+                success = self.rnpath_handler.drop_all_via(transport_instance_hash)
+                return web.json_response({"success": success})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.post("/api/v1/rnpath/drop-queues")
+        async def rnpath_drop_queues(request):
+            try:
+                self.rnpath_handler.drop_announce_queues()
+                return web.json_response({"success": True})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.post("/api/v1/rnpath/request")
+        async def rnpath_request(request):
+            data = await request.json()
+            destination_hash = data.get("destination_hash")
+            if not destination_hash:
+                return web.json_response(
+                    {"message": "destination_hash is required"}, status=400
+                )
+            try:
+                success = self.rnpath_handler.request_path(destination_hash)
+                return web.json_response({"success": success})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
         @routes.post("/api/v1/rnprobe")
         async def rnprobe(request):
             data = await request.json()
@@ -6461,12 +6544,46 @@ class ReticulumMeshChat:
 
             try:
                 self.database.misc.add_blocked_destination(destination_hash)
-                # drop any existing paths to this destination
-                try:
-                    if hasattr(self, "reticulum") and self.reticulum:
-                        self.reticulum.drop_path(bytes.fromhex(destination_hash))
-                except Exception as e:
-                    print(f"Failed to drop path for blocked destination: {e}")
+
+                # add to Reticulum blackhole if available and enabled
+                if self.config.blackhole_integration_enabled.get():
+                    try:
+                        if hasattr(self, "reticulum") and self.reticulum:
+                            # Try to resolve identity hash from destination hash
+                            identity_hash = None
+                            announce = self.database.announces.get_announce_by_hash(
+                                destination_hash
+                            )
+                            if announce and announce.get("identity_hash"):
+                                identity_hash = announce["identity_hash"]
+
+                            # Use resolved identity hash or fallback to destination hash
+                            target_hash = identity_hash or destination_hash
+                            dest_bytes = bytes.fromhex(target_hash)
+
+                            # Reticulum 1.1.0+
+                            if hasattr(self.reticulum, "blackhole_identity"):
+                                reason = (
+                                    f"Blocked in MeshChatX (from {destination_hash})"
+                                    if identity_hash
+                                    else "Blocked in MeshChatX"
+                                )
+                                self.reticulum.blackhole_identity(
+                                    dest_bytes, reason=reason
+                                )
+                            else:
+                                # fallback to dropping path
+                                self.reticulum.drop_path(dest_bytes)
+                    except Exception as e:
+                        print(f"Failed to blackhole identity in Reticulum: {e}")
+                else:
+                    # fallback to just dropping path if integration disabled
+                    try:
+                        if hasattr(self, "reticulum") and self.reticulum:
+                            self.reticulum.drop_path(bytes.fromhex(destination_hash))
+                    except Exception as e:
+                        print(f"Failed to drop path for blocked destination: {e}")
+
                 return web.json_response({"message": "ok"})
             except Exception:
                 return web.json_response(
@@ -6486,7 +6603,55 @@ class ReticulumMeshChat:
 
             try:
                 self.database.misc.delete_blocked_destination(destination_hash)
+
+                # remove from Reticulum blackhole if available and enabled
+                if self.config.blackhole_integration_enabled.get():
+                    try:
+                        if hasattr(self, "reticulum") and self.reticulum:
+                            # Try to resolve identity hash from destination hash
+                            identity_hash = None
+                            announce = self.database.announces.get_announce_by_hash(
+                                destination_hash
+                            )
+                            if announce and announce.get("identity_hash"):
+                                identity_hash = announce["identity_hash"]
+
+                            # Use resolved identity hash or fallback to destination hash
+                            target_hash = identity_hash or destination_hash
+                            dest_bytes = bytes.fromhex(target_hash)
+
+                            if hasattr(self.reticulum, "unblackhole_identity"):
+                                self.reticulum.unblackhole_identity(dest_bytes)
+                    except Exception as e:
+                        print(f"Failed to unblackhole identity in Reticulum: {e}")
+
                 return web.json_response({"message": "ok"})
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        @routes.get("/api/v1/reticulum/blackhole")
+        async def reticulum_blackhole_get(request):
+            if not hasattr(self, "reticulum") or not self.reticulum:
+                return web.json_response(
+                    {"error": "Reticulum not initialized"}, status=503
+                )
+
+            try:
+                if hasattr(self.reticulum, "get_blackholed_identities"):
+                    identities = self.reticulum.get_blackholed_identities()
+                    # Convert bytes keys to hex strings
+                    formatted = {}
+                    for h, info in identities.items():
+                        formatted[h.hex()] = {
+                            "source": info.get("source", b"").hex()
+                            if info.get("source")
+                            else None,
+                            "until": info.get("until"),
+                            "reason": info.get("reason"),
+                        }
+                    return web.json_response({"blackholed_identities": formatted})
+                else:
+                    return web.json_response({"blackholed_identities": {}})
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
@@ -6871,8 +7036,10 @@ class ReticulumMeshChat:
             # Add security headers to all responses
             response.headers["X-Content-Type-Options"] = "nosniff"
 
-            # Allow framing for docs
-            if request.path.startswith("/reticulum-docs/"):
+            # Allow framing for docs and rnode flasher
+            if request.path.startswith("/reticulum-docs/") or request.path.startswith(
+                "/rnode-flasher/"
+            ):
                 response.headers["X-Frame-Options"] = "SAMEORIGIN"
             else:
                 response.headers["X-Frame-Options"] = "DENY"
@@ -7353,6 +7520,10 @@ class ReticulumMeshChat:
                     os.remove(disable_gpu_file)
             except Exception as e:
                 print(f"Failed to update GPU disable flag: {e}")
+
+        if "blackhole_integration_enabled" in data:
+            value = self._parse_bool(data["blackhole_integration_enabled"])
+            self.config.blackhole_integration_enabled.set(value)
 
         # update voicemail settings
         if "voicemail_enabled" in data:
@@ -8234,6 +8405,7 @@ class ReticulumMeshChat:
             "libretranslate_url": ctx.config.libretranslate_url.get(),
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
+            "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),
         }
 
     # try and get a name for the provided identity hash

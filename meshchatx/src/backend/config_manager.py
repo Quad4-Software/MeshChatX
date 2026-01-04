@@ -236,6 +236,13 @@ class ConfigManager:
         )
         self.message_font_size = self.IntConfig(self, "message_font_size", 14)
 
+        # blackhole integration config
+        self.blackhole_integration_enabled = self.BoolConfig(
+            self,
+            "blackhole_integration_enabled",
+            True,
+        )
+
     def get(self, key: str, default_value=None) -> str | None:
         return self.db.config.get(key, default_value)
 

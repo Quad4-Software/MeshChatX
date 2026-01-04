@@ -17,6 +17,7 @@ from meshchatx.src.backend.voicemail_manager import VoicemailManager
 from meshchatx.src.backend.ringtone_manager import RingtoneManager
 from meshchatx.src.backend.rncp_handler import RNCPHandler
 from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+from meshchatx.src.backend.rnpath_handler import RNPathHandler
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.translator_handler import TranslatorHandler
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
@@ -193,6 +194,9 @@ class IdentityContext:
             storage_dir=self.app.storage_dir,
         )
         self.rnstatus_handler = RNStatusHandler(
+            reticulum_instance=getattr(self.app, "reticulum", None),
+        )
+        self.rnpath_handler = RNPathHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),
         )
         self.rnprobe_handler = RNProbeHandler(
