@@ -20,6 +20,8 @@
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
         "dist:linux": "pnpm run electron-postinstall && pnpm run build && electron-builder --linux AppImage deb --publish=never",
+        "dist:rpm": "pnpm run electron-postinstall && pnpm run build && electron-builder --linux rpm --publish=never",
+        "dist:flatpak": "pnpm run electron-postinstall && pnpm run build && electron-builder --linux flatpak --publish=never",
         "dist:windows": "pnpm run electron-postinstall && pnpm run build && electron-builder --win portable nsis --publish=never",
         "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
         "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
