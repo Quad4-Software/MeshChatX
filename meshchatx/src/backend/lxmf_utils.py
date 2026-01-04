@@ -97,8 +97,12 @@ def convert_lxmf_message_to_dict(
             "next_delivery_attempt",
             None,
         ),  # attribute may not exist yet
-        "title": lxmf_message.title.decode("utf-8") if lxmf_message.title else "",
-        "content": lxmf_message.content.decode("utf-8") if lxmf_message.content else "",
+        "title": lxmf_message.title.decode("utf-8", errors="replace")
+        if lxmf_message.title
+        else "",
+        "content": lxmf_message.content.decode("utf-8", errors="replace")
+        if lxmf_message.content
+        else "",
         "fields": fields,
         "timestamp": lxmf_message.timestamp,
         "rssi": rssi,
@@ -149,7 +153,14 @@ def convert_db_lxmf_message_to_dict(
     db_lxmf_message,
     include_attachments: bool = False,
 ):
-    fields = json.loads(db_lxmf_message["fields"])
+    try:
+        fields_str = db_lxmf_message.get("fields", "{}")
+        fields = json.loads(fields_str) if fields_str else {}
+    except (json.JSONDecodeError, TypeError):
+        fields = {}
+
+    if not isinstance(fields, dict):
+        fields = {}
 
     # strip attachments if requested
     if not include_attachments:
