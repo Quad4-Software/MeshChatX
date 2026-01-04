@@ -1069,6 +1069,7 @@ import ExpandingSection from "./ExpandingSection.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import FormSubLabel from "../forms/FormSubLabel.vue";
 import Toggle from "../forms/Toggle.vue";
+import GlobalState from "../../js/GlobalState";
 
 export default {
     name: "AddInterfacePage",
@@ -1474,12 +1475,13 @@ export default {
                     DialogUtils.alert(response.data.message);
                 }
 
+                // track change
+                GlobalState.hasPendingInterfaceChanges = true;
+                GlobalState.modifiedInterfaceNames.add(this.newInterfaceName);
+
                 // go to interfaces page
                 this.$router.push({
                     name: "interfaces",
-                    query: {
-                        restart_required: this.newInterfaceName,
-                    },
                 });
             } catch (e) {
                 const message = e.response?.data?.message ?? "failed to add interface";

@@ -144,6 +144,7 @@ import ImportInterfacesModal from "./ImportInterfacesModal.vue";
 import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import GlobalState from "../../js/GlobalState";
 
 export default {
     name: "InterfacesPage",
@@ -160,13 +161,17 @@ export default {
             searchTerm: "",
             statusFilter: "all",
             typeFilter: "all",
-            hasPendingInterfaceChanges: false,
             reloadingRns: false,
-            modifiedInterfaceNames: new Set(),
             isReticulumRunning: true,
         };
     },
     computed: {
+        hasPendingInterfaceChanges() {
+            return GlobalState.hasPendingInterfaceChanges;
+        },
+        modifiedInterfaceNames() {
+            return GlobalState.modifiedInterfaceNames;
+        },
         isElectron() {
             return ElectronUtils.isElectron();
         },
@@ -237,11 +242,6 @@ export default {
         this.loadInterfaces();
         this.updateInterfaceStats();
 
-        // check if we have a restart required from adding an interface
-        if (this.$route.query.restart_required) {
-            this.trackInterfaceChange(this.$route.query.restart_required);
-        }
-
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
             this.updateInterfaceStats();
@@ -252,9 +252,9 @@ export default {
             ElectronUtils.relaunch();
         },
         trackInterfaceChange(interfaceName = null) {
-            this.hasPendingInterfaceChanges = true;
+            GlobalState.hasPendingInterfaceChanges = true;
             if (interfaceName) {
-                this.modifiedInterfaceNames.add(interfaceName);
+                GlobalState.modifiedInterfaceNames.add(interfaceName);
             }
         },
         isInterfaceEnabled: function (iface) {
@@ -350,7 +350,6 @@ export default {
             try {
                 // fetch exported interfaces
                 const response = await window.axios.post("/api/v1/reticulum/interfaces/export");
-                this.trackInterfaceChange();
 
                 // download file to browser
                 DownloadUtils.downloadFile("meshchat_interfaces.txt", new Blob([response.data]));
@@ -365,7 +364,6 @@ export default {
                 const response = await window.axios.post("/api/v1/reticulum/interfaces/export", {
                     selected_interface_names: [interfaceName],
                 });
-                this.trackInterfaceChange();
 
                 // download file to browser
                 DownloadUtils.downloadFile(`${interfaceName}.txt`, new Blob([response.data]));
@@ -397,8 +395,8 @@ export default {
                 this.reloadingRns = true;
                 const response = await window.axios.post("/api/v1/reticulum/reload");
                 ToastUtils.success(response.data.message);
-                this.hasPendingInterfaceChanges = false;
-                this.modifiedInterfaceNames.clear();
+                GlobalState.hasPendingInterfaceChanges = false;
+                GlobalState.modifiedInterfaceNames.clear();
                 await this.loadInterfaces();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.error || "Failed to reload Reticulum!");

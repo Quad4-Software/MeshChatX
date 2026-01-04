@@ -6,6 +6,7 @@
         max-width="800"
         transition="dialog-bottom-transition"
         class="tutorial-dialog"
+        persistent
         @update:model-value="onVisibleUpdate"
     >
         <v-card class="flex flex-col h-full bg-white dark:bg-zinc-950 border-0 overflow-hidden">
@@ -42,7 +43,7 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-8">
                             <div
-                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
                                 <v-icon icon="mdi-shield-lock" color="blue" size="32"></v-icon>
                                 <div>
@@ -53,20 +54,20 @@
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
                                 <v-icon icon="mdi-map-marker-path" color="purple" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Enhanced Maps</div>
+                                    <div class="font-bold text-gray-900 dark:text-white">Maps</div>
                                     <div class="text-sm text-gray-500">
                                         OpenLayers w/ MBTiles support and custom API endpoints.
                                     </div>
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
-                                <v-icon icon="mdi-phone-voip" color="green" size="32"></v-icon>
+                                <v-icon icon="mdi-phone" color="green" size="32"></v-icon>
                                 <div>
                                     <div class="font-bold text-gray-900 dark:text-white">Full LXST Voice</div>
                                     <div class="text-sm text-gray-500">
@@ -75,29 +76,42 @@
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
                                 <v-icon icon="mdi-tools" color="orange" size="32"></v-icon>
                                 <div>
                                     <div class="font-bold text-gray-900 dark:text-white">Advanced Tools</div>
                                     <div class="text-sm text-gray-500">
-                                        Micron, Paper Messages, RNS tools, Crawler & Archiver.
+                                        Micron Editor, Paper Messages, RNS tools, Docs.
                                     </div>
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
+                            >
+                                <v-icon icon="mdi-database-search" color="teal" size="32"></v-icon>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white">Crawler & Archiver</div>
+                                    <div class="text-sm text-gray-500">
+                                        Automated network crawling and page archiving.
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
                                 <v-icon icon="mdi-keyboard-outline" color="red" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Command Palette</div>
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        Command Palette + Keybindings
+                                    </div>
                                     <div class="text-sm text-gray-500">
-                                        Navigate everything instantly with a few keystrokes.
+                                        Navigate everything instantly and customize shortcuts.
                                     </div>
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800"
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
                             >
                                 <v-icon icon="mdi-translate" color="cyan" size="32"></v-icon>
                                 <div>
@@ -524,7 +538,7 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-12">
                             <div
-                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-transform hover:scale-[1.02]"
+                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
                             >
                                 <v-icon icon="mdi-shield-lock" color="blue" size="40"></v-icon>
                                 <div>
@@ -538,11 +552,11 @@
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-transform hover:scale-[1.02]"
+                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
                             >
                                 <v-icon icon="mdi-map-marker-path" color="purple" size="40"></v-icon>
                                 <div>
-                                    <div class="font-bold text-xl text-gray-900 dark:text-white">Enhanced Maps</div>
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white">Maps</div>
                                     <div class="text-gray-500">
                                         OpenLayers support with offline MBTiles and custom API endpoints for online
                                         maps.
@@ -550,9 +564,9 @@
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-transform hover:scale-[1.02]"
+                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
                             >
-                                <v-icon icon="mdi-phone-voip" color="green" size="40"></v-icon>
+                                <v-icon icon="mdi-phone" color="green" size="40"></v-icon>
                                 <div>
                                     <div class="font-bold text-xl text-gray-900 dark:text-white">Full LXST Voice</div>
                                     <div class="text-gray-500">
@@ -562,30 +576,45 @@
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-transform hover:scale-[1.02]"
+                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
                             >
                                 <v-icon icon="mdi-tools" color="orange" size="40"></v-icon>
                                 <div>
                                     <div class="font-bold text-xl text-gray-900 dark:text-white">Advanced Tools</div>
                                     <div class="text-gray-500">
-                                        Micron editor, paper messages, RNS tools, network Crawler and Archiver.
+                                        Micron editor, paper messages, RNS tools, and integrated documentation.
                                     </div>
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-transform hover:scale-[1.02]"
+                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
+                            >
+                                <v-icon icon="mdi-database-search" color="teal" size="40"></v-icon>
+                                <div>
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                        Crawler & Archiver
+                                    </div>
+                                    <div class="text-gray-500">
+                                        Automated network crawling and page archiving tools for offline browsing.
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
                             >
                                 <v-icon icon="mdi-keyboard-outline" color="red" size="40"></v-icon>
                                 <div>
-                                    <div class="font-bold text-xl text-gray-900 dark:text-white">Command Palette</div>
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                        Command Palette + Keybindings
+                                    </div>
                                     <div class="text-gray-500">
-                                        Navigate the entire application and access tools instantly with a single
-                                        shortcut.
+                                        Navigate the entire application and customize your workflow with instant
+                                        shortcuts.
                                     </div>
                                 </div>
                             </div>
                             <div
-                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-transform hover:scale-[1.02]"
+                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
                             >
                                 <v-icon icon="mdi-translate" color="cyan" size="40"></v-icon>
                                 <div>
@@ -710,6 +739,11 @@
                                         density="comfortable"
                                         rounded="xl"
                                         class="bg-white dark:bg-zinc-800"
+                                        bg-color="white"
+                                        base-color="gray"
+                                        color="blue"
+                                        persistent-placeholder
+                                        :menu-props="{ attach: true }"
                                     ></v-select>
 
                                     <v-text-field
@@ -720,6 +754,10 @@
                                         density="comfortable"
                                         rounded="xl"
                                         class="bg-white dark:bg-zinc-800"
+                                        bg-color="white"
+                                        base-color="gray"
+                                        color="blue"
+                                        persistent-placeholder
                                     ></v-text-field>
 
                                     <!-- TCP Client Fields -->
@@ -733,6 +771,10 @@
                                                 density="comfortable"
                                                 rounded="xl"
                                                 class="bg-white dark:bg-zinc-800"
+                                                bg-color="white"
+                                                base-color="gray"
+                                                color="blue"
+                                                persistent-placeholder
                                             ></v-text-field>
                                             <v-text-field
                                                 v-model="newInterface.target_port"
@@ -742,6 +784,10 @@
                                                 density="comfortable"
                                                 rounded="xl"
                                                 class="bg-white dark:bg-zinc-800"
+                                                bg-color="white"
+                                                base-color="gray"
+                                                color="blue"
+                                                persistent-placeholder
                                             ></v-text-field>
                                         </div>
                                     </template>
@@ -761,6 +807,10 @@
                                                 density="comfortable"
                                                 rounded="xl"
                                                 class="bg-white dark:bg-zinc-800"
+                                                bg-color="white"
+                                                base-color="gray"
+                                                color="blue"
+                                                persistent-placeholder
                                             ></v-text-field>
                                             <v-text-field
                                                 v-model="newInterface.listen_port"
@@ -770,6 +820,10 @@
                                                 density="comfortable"
                                                 rounded="xl"
                                                 class="bg-white dark:bg-zinc-800"
+                                                bg-color="white"
+                                                base-color="gray"
+                                                color="blue"
+                                                persistent-placeholder
                                             ></v-text-field>
                                         </div>
                                     </template>
@@ -796,6 +850,11 @@
                                             density="comfortable"
                                             rounded="xl"
                                             class="bg-white dark:bg-zinc-800"
+                                            bg-color="white"
+                                            base-color="gray"
+                                            color="blue"
+                                            persistent-placeholder
+                                            :menu-props="{ attach: true }"
                                         >
                                             <template #item="{ props, item }">
                                                 <v-list-item v-bind="props" :subtitle="item.raw.product"></v-list-item>
@@ -814,6 +873,10 @@
                                             density="comfortable"
                                             rounded="xl"
                                             class="bg-white dark:bg-zinc-800"
+                                            bg-color="white"
+                                            base-color="gray"
+                                            color="blue"
+                                            persistent-placeholder
                                         ></v-text-field>
                                     </template>
 
@@ -827,6 +890,10 @@
                                             density="comfortable"
                                             rounded="xl"
                                             class="bg-white dark:bg-zinc-800"
+                                            bg-color="white"
+                                            base-color="gray"
+                                            color="blue"
+                                            persistent-placeholder
                                         ></v-text-field>
                                     </template>
 
@@ -1006,6 +1073,7 @@ import logoUrl from "../assets/images/logo.png";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import ElectronUtils from "../js/ElectronUtils";
+import GlobalState from "../js/GlobalState";
 
 export default {
     name: "TutorialModal",
@@ -1095,6 +1163,11 @@ export default {
                     enabled: true,
                 });
                 ToastUtils.success(`Added interface: ${iface.name}`);
+
+                // track change
+                GlobalState.hasPendingInterfaceChanges = true;
+                GlobalState.modifiedInterfaceNames.add(iface.name);
+
                 this.nextStep();
             } catch (e) {
                 console.error(e);
@@ -1149,6 +1222,11 @@ export default {
 
                 await window.axios.post("/api/v1/reticulum/interfaces/add", payload);
                 ToastUtils.success(`Added interface: ${this.newInterface.name}`);
+
+                // track change
+                GlobalState.hasPendingInterfaceChanges = true;
+                GlobalState.modifiedInterfaceNames.add(this.newInterface.name);
+
                 this.nextStep();
             } catch (e) {
                 console.error(e);
@@ -1197,6 +1275,60 @@ export default {
 </script>
 
 <style scoped>
+.tutorial-dialog :deep(.v-field) {
+    border-radius: 1rem !important;
+}
+
+.tutorial-dialog :deep(.v-field--variant-outlined .v-field__outline) {
+    --v-field-border-opacity: 0.15;
+}
+
+.tutorial-dialog :deep(.v-field--focused .v-field__outline) {
+    --v-field-border-opacity: 1;
+}
+
+.tutorial-dialog :deep(.v-field__input) {
+    padding-top: 24px !important;
+    padding-bottom: 8px !important;
+}
+
+.tutorial-dialog :deep(.v-label.v-field-label--floating) {
+    transform: translateY(-8px) scale(0.75) !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+.tutorial-dialog :deep(.v-select .v-theme--light),
+.tutorial-dialog :deep(.v-list),
+.tutorial-dialog :deep(.v-list-item) {
+    background-color: white !important;
+    color: #111827 !important;
+}
+
+.tutorial-dialog :deep(.v-list-item-title),
+.tutorial-dialog :deep(.v-list-item-subtitle) {
+    color: inherit !important;
+}
+
+.tutorial-dialog :deep(.dark .v-list),
+.tutorial-dialog :deep(.dark .v-list-item) {
+    background-color: #18181b !important;
+    color: white !important;
+}
+
+.tutorial-dialog :deep(.v-field__input) {
+    color: inherit !important;
+}
+
+.tutorial-dialog :deep(.v-label.v-field-label) {
+    color: #6b7280 !important;
+}
+
+.tutorial-dialog :deep(.dark .v-label.v-field-label) {
+    color: #a1a1aa !important;
+}
+
 .tutorial-dialog .v-overlay__content {
     border-radius: 2rem !important;
     overflow: hidden;

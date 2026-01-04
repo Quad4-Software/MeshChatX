@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import InterfacesPage from "../../meshchatx/src/frontend/components/interfaces/InterfacesPage.vue";
+import GlobalState from "../../meshchatx/src/frontend/js/GlobalState";
 
 // Mock global objects
 const mockAxios = {
@@ -36,6 +37,8 @@ describe("InterfacesPage.vue", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockAxios.get.mockResolvedValue({ data: { interfaces: [], app_info: { is_reticulum_running: true } } });
+        GlobalState.hasPendingInterfaceChanges = false;
+        GlobalState.modifiedInterfaceNames.clear();
     });
 
     it("loads interfaces on mount", async () => {
@@ -98,8 +101,8 @@ describe("InterfacesPage.vue", () => {
             },
         });
 
-        wrapper.vm.hasPendingInterfaceChanges = true;
-        wrapper.vm.modifiedInterfaceNames.add("test-iface");
+        GlobalState.hasPendingInterfaceChanges = true;
+        GlobalState.modifiedInterfaceNames.add("test-iface");
 
         await wrapper.vm.reloadRns();
 
