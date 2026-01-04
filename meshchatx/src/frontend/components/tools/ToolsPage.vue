@@ -137,7 +137,7 @@
                     <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
                 </RouterLink>
 
-                <a target="_blank" href="/rnode-flasher/index.html" class="tool-card glass-card">
+                <RouterLink :to="{ name: 'rnode-flasher' }" class="tool-card glass-card">
                     <div
                         class="tool-card__icon bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-200"
                     >
@@ -149,8 +149,18 @@
                             {{ $t("tools.rnode_flasher.description") }}
                         </div>
                     </div>
-                    <MaterialDesignIcon icon-name="open-in-new" class="tool-card__chevron" />
-                </a>
+                    <div class="flex items-center gap-2">
+                        <a
+                            href="/rnode-flasher/index.html"
+                            target="_blank"
+                            class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-blue-500"
+                            @click.stop
+                        >
+                            <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
+                        </a>
+                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                    </div>
+                </RouterLink>
 
                 <RouterLink :to="{ name: 'debug-logs' }" class="tool-card glass-card border-dashed border-2">
                     <div class="tool-card__icon bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
