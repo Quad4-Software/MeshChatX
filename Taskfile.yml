@@ -104,7 +104,13 @@ tasks:
     test-frontend:
         desc: Run frontend tests using vitest
         cmds:
-            - "{{.NPM}} run test"
+            - "{{.NPM}} run test -- --exclude tests/frontend/i18n.test.js"
+
+    test-lang:
+        desc: Run language and localization tests
+        cmds:
+            - "{{.NPM}} run test tests/frontend/i18n.test.js"
+            - "poetry run pytest tests/backend/test_translator_handler.py"
 
     gen-locale-template:
         desc: Generate a locales.json template with empty values from en.json
@@ -113,7 +119,7 @@ tasks:
 
     test:
         desc: Run all tests
-        deps: [test-python, test-frontend]
+        deps: [test-python, test-frontend, test-lang]
 
     test:cov:
         desc: Run all tests with coverage reports
