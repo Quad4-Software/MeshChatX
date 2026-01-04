@@ -25,21 +25,20 @@
                                 {{ $t("rncp.usage_steps") }}
                             </div>
                             <div class="space-y-1.5">
-                                <!-- eslint-disable-next-line vue/no-v-html -->
+                                <!-- eslint-disable vue/no-v-html -->
                                 <p
                                     class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
                                     v-html="renderMarkdown($t('rncp.step_1'))"
                                 ></p>
-                                <!-- eslint-disable-next-line vue/no-v-html -->
                                 <p
                                     class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
                                     v-html="renderMarkdown($t('rncp.step_2'))"
                                 ></p>
-                                <!-- eslint-disable-next-line vue/no-v-html -->
                                 <p
                                     class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
                                     v-html="renderMarkdown($t('rncp.step_3'))"
                                 ></p>
+                                <!-- eslint-enable vue/no-v-html -->
                             </div>
                         </div>
                     </div>
