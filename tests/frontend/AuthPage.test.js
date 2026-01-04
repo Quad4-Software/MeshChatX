@@ -348,4 +348,3 @@ describe("AuthPage.vue", () => {
         expect(wrapper.vm.error).toContain("Failed to check");
     });
 });
-

@@ -308,4 +308,3 @@ describe("CommandPalette.vue", () => {
         expect(results.length).toBe(0);
     });
 });
-

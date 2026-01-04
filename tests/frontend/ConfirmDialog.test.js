@@ -99,16 +99,16 @@ describe("ConfirmDialog.vue", () => {
             const classes = el.classes();
             return classes.includes("inset-0") && !classes.includes("z-[200]");
         });
-        
+
         if (backdrop && backdrop.exists()) {
             await backdrop.trigger("click");
             await wrapper.vm.$nextTick();
             expect(resolvePromise).toHaveBeenCalledWith(false);
             expect(wrapper.find(".fixed").exists()).toBe(false);
         } else {
-        wrapper.vm.cancel();
-        await wrapper.vm.$nextTick();
-        expect(resolvePromise).toHaveBeenCalledWith(false);
+            wrapper.vm.cancel();
+            await wrapper.vm.$nextTick();
+            expect(resolvePromise).toHaveBeenCalledWith(false);
         }
     });
 
