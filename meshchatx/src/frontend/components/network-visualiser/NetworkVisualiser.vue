@@ -637,15 +637,15 @@ export default {
                         enabled: this.enablePhysics,
                         solver: "barnesHut",
                         barnesHut: {
-                            gravitationalConstant: -8000,
-                            springConstant: 0.04,
-                            springLength: 150,
-                            damping: 0.09,
-                            avoidOverlap: 0.5,
+                            gravitationalConstant: -10000,
+                            springConstant: 0.02,
+                            springLength: 200,
+                            damping: 0.4,
+                            avoidOverlap: 1,
                         },
                         stabilization: {
                             enabled: true,
-                            iterations: 100,
+                            iterations: 150,
                             updateInterval: 25,
                         },
                     },
@@ -763,6 +763,8 @@ export default {
                     title: `Local Node: ${meLabel}\nIdentity: ${this.config?.identity_hash ?? "Unknown"}`,
                     color: { border: "#3b82f6", background: isDarkMode ? "#1e40af" : "#eff6ff" },
                     font: { color: fontColor, size: 16, bold: true },
+                    x: 0,
+                    y: 0,
                 };
                 this.nodes.update([meNode]);
                 processedNodeIds.add("me");
@@ -771,13 +773,22 @@ export default {
             // Add interfaces
             const interfaceNodes = [];
             const interfaceEdges = [];
-            for (const entry of this.interfaces) {
+            const interfaceCount = this.interfaces.length;
+            const radius = 400; // Start interfaces at 400px from center
+
+            for (let idx = 0; idx < interfaceCount; idx++) {
+                const entry = this.interfaces[idx];
                 let label = entry.interface_name ?? entry.name;
                 if (entry.type === "LocalServerInterface" || entry.parent_interface_name != null) {
                     label = entry.name;
                 }
 
                 if (matchesSearch(label) || matchesSearch(entry.name)) {
+                    // Distribute interfaces in a circle
+                    const angle = (idx / interfaceCount) * 2 * Math.PI;
+                    const initialX = Math.cos(angle) * radius;
+                    const initialY = Math.sin(angle) * radius;
+
                     interfaceNodes.push({
                         id: entry.name,
                         group: "interface",
@@ -793,6 +804,8 @@ export default {
                             background: isDarkMode ? "#064e3b" : "#ecfdf5",
                         },
                         font: { color: fontColor, size: 12, bold: true },
+                        x: initialX,
+                        y: initialY,
                     });
                     processedNodeIds.add(entry.name);
 
@@ -847,12 +860,32 @@ export default {
                     }
 
                     const conversation = this.conversations[announce.destination_hash];
+                    const interfaceNode = this.nodes.get(entry.interface);
+                    let initX = 0,
+                        initY = 0;
+
+                    if (interfaceNode && interfaceNode.x !== undefined) {
+                        // Place around their parent interface with some randomness to avoid stacking
+                        const angle = Math.random() * 2 * Math.PI;
+                        const dist = 150 + Math.random() * 150;
+                        initX = interfaceNode.x + Math.cos(angle) * dist;
+                        initY = interfaceNode.y + Math.sin(angle) * dist;
+                    } else {
+                        // Fallback far from center
+                        const angle = Math.random() * 2 * Math.PI;
+                        const dist = 600 + Math.random() * 200;
+                        initX = Math.cos(angle) * dist;
+                        initY = Math.sin(angle) * dist;
+                    }
+
                     const node = {
                         id: entry.hash,
                         group: "announce",
                         size: 25,
                         _announce: announce,
                         font: { color: fontColor, size: 11 },
+                        x: initX,
+                        y: initY,
                     };
 
                     node.label = displayName;
