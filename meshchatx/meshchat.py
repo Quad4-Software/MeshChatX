@@ -1834,6 +1834,9 @@ class ReticulumMeshChat:
         except Exception:  # noqa: S110
             pass
 
+    def exit_app(self, code=0):
+        sys.exit(code)
+
     def get_routes(self):
         # This is a bit of a hack to get the routes without running the full server
         # It's mainly for testing purposes
@@ -3257,7 +3260,7 @@ class ReticulumMeshChat:
             async def do_shutdown():
                 await asyncio.sleep(0.5)  # give some time for the response to be sent
                 await self.shutdown(None)
-                sys.exit(0)
+                self.exit_app(0)
 
             asyncio.create_task(do_shutdown())
             return web.json_response({"message": "Shutting down..."})
