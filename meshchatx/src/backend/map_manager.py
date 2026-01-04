@@ -1,4 +1,5 @@
 import base64
+import concurrent.futures
 import math
 import os
 import sqlite3
@@ -184,14 +185,17 @@ class MapManager:
         # bbox: [min_lon, min_lat, max_lon, max_lat]
         min_lon, min_lat, max_lon, max_lat = bbox
 
-        # calculate total tiles
-        total_tiles = 0
+        # collect all tiles to download
+        tiles_to_download = []
         zoom_levels = range(min_zoom, max_zoom + 1)
         for z in zoom_levels:
             x1, y1 = self._lonlat_to_tile(min_lon, max_lat, z)
             x2, y2 = self._lonlat_to_tile(max_lon, min_lat, z)
-            total_tiles += (x2 - x1 + 1) * (y2 - y1 + 1)
+            for x in range(x1, x2 + 1):
+                for y in range(y1, y2 + 1):
+                    tiles_to_download.append((z, x, y))
 
+        total_tiles = len(tiles_to_download)
         self._export_progress[export_id]["total"] = total_tiles
         self._export_progress[export_id]["status"] = "downloading"
 
@@ -220,61 +224,96 @@ class MapManager:
                 ("bounds", f"{min_lon},{min_lat},{max_lon},{max_lat}"),
             ]
             cursor.executemany("INSERT INTO metadata VALUES (?, ?)", metadata)
+            conn.commit()
 
+            tile_server_url = self.config.map_tile_server_url.get()
             current_count = 0
-            for z in zoom_levels:
-                x1, y1 = self._lonlat_to_tile(min_lon, max_lat, z)
-                x2, y2 = self._lonlat_to_tile(max_lon, min_lat, z)
 
-                for x in range(x1, x2 + 1):
-                    for y in range(y1, y2 + 1):
-                        # check if we should stop
-                        if export_id in self._export_cancelled:
-                            conn.close()
-                            if os.path.exists(dest_path):
-                                os.remove(dest_path)
-                            if export_id in self._export_progress:
-                                del self._export_progress[export_id]
-                            self._export_cancelled.remove(export_id)
-                            return
+            # download tiles in parallel
+            # using 10 workers for a good balance between speed and being polite
+            max_workers = 10
 
-                        # download tile
-                        tile_server_url = self.config.map_tile_server_url.get()
-                        tile_url = (
-                            tile_server_url.replace("{z}", str(z))
-                            .replace("{x}", str(x))
-                            .replace("{y}", str(y))
-                        )
-                        try:
-                            # wait a bit to be nice to OSM
-                            time.sleep(0.1)
+            def download_tile(tile_coords):
+                if export_id in self._export_cancelled:
+                    return None
 
-                            response = requests.get(
-                                tile_url,
-                                headers={"User-Agent": "MeshChatX/1.0 MapExporter"},
-                                timeout=10,
-                            )
-                            if response.status_code == 200:
-                                # MBTiles uses TMS (y flipped)
-                                tms_y = (1 << z) - 1 - y
-                                cursor.execute(
-                                    "INSERT INTO tiles VALUES (?, ?, ?, ?)",
-                                    (z, x, tms_y, response.content),
-                                )
-                        except Exception as e:
-                            RNS.log(
-                                f"Export failed to download tile {z}/{x}/{y}: {e}",
-                                RNS.LOG_ERROR,
-                            )
+                z, x, y = tile_coords
+                tile_url = (
+                    tile_server_url.replace("{z}", str(z))
+                    .replace("{x}", str(x))
+                    .replace("{y}", str(y))
+                )
 
-                        current_count += 1
+                try:
+                    # small per-thread delay to avoid overwhelming servers
+                    time.sleep(0.02)
+
+                    response = requests.get(
+                        tile_url,
+                        headers={"User-Agent": "MeshChatX/1.0 MapExporter"},
+                        timeout=15,
+                    )
+                    if response.status_code == 200:
+                        # MBTiles uses TMS (y flipped)
+                        tms_y = (1 << z) - 1 - y
+                        return (z, x, tms_y, response.content)
+                except Exception as e:
+                    RNS.log(
+                        f"Export failed to download tile {z}/{x}/{y}: {e}",
+                        RNS.LOG_ERROR,
+                    )
+                return None
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
+                future_to_tile = {
+                    executor.submit(download_tile, tile): tile
+                    for tile in tiles_to_download
+                }
+
+                batch_size = 50
+                batch_data = []
+
+                for future in concurrent.futures.as_completed(future_to_tile):
+                    if export_id in self._export_cancelled:
+                        executor.shutdown(wait=False, cancel_futures=True)
+                        break
+
+                    result = future.result()
+                    if result:
+                        batch_data.append(result)
+
+                    current_count += 1
+
+                    # Update progress every few tiles or when batch is ready
+                    if current_count % 5 == 0 or current_count == total_tiles:
                         self._export_progress[export_id]["current"] = current_count
                         self._export_progress[export_id]["progress"] = int(
                             (current_count / total_tiles) * 100,
                         )
 
-                # commit after each zoom level
-                conn.commit()
+                    # Write batches to database
+                    if len(batch_data) >= batch_size or (
+                        current_count == total_tiles and batch_data
+                    ):
+                        try:
+                            cursor.executemany(
+                                "INSERT INTO tiles VALUES (?, ?, ?, ?)", batch_data
+                            )
+                            conn.commit()
+                            batch_data = []
+                        except Exception as e:
+                            RNS.log(f"Failed to insert map tiles: {e}", RNS.LOG_ERROR)
+
+            if export_id in self._export_cancelled:
+                conn.close()
+                if os.path.exists(dest_path):
+                    os.remove(dest_path)
+                if export_id in self._export_progress:
+                    del self._export_progress[export_id]
+                self._export_cancelled.remove(export_id)
+                return
 
             conn.close()
             self._export_progress[export_id]["status"] = "completed"

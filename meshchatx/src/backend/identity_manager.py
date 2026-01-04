@@ -67,6 +67,8 @@ class IdentityManager:
                         "icon_background_colour": metadata.get(
                             "icon_background_colour"
                         ),
+                        "lxmf_address": metadata.get("lxmf_address"),
+                        "lxst_address": metadata.get("lxst_address"),
                         "is_current": (
                             current_identity_hash is not None
                             and identity_hash == current_identity_hash
@@ -84,6 +86,8 @@ class IdentityManager:
             icon_name = None
             icon_foreground_colour = None
             icon_background_colour = None
+            lxmf_address = None
+            lxst_address = None
 
             try:
                 temp_provider = DatabaseProvider(db_path)
@@ -96,6 +100,8 @@ class IdentityManager:
                 icon_background_colour = temp_config_dao.get(
                     "lxmf_user_icon_background_colour",
                 )
+                lxmf_address = temp_config_dao.get("lxmf_address_hash")
+                lxst_address = temp_config_dao.get("lxst_address_hash")
                 temp_provider.close()
 
                 # Save metadata for next time
@@ -104,6 +110,8 @@ class IdentityManager:
                     "icon_name": icon_name,
                     "icon_foreground_colour": icon_foreground_colour,
                     "icon_background_colour": icon_background_colour,
+                    "lxmf_address": lxmf_address,
+                    "lxst_address": lxst_address,
                 }
                 with open(metadata_path, "w") as f:
                     json.dump(metadata, f)
@@ -117,6 +125,8 @@ class IdentityManager:
                     "icon_name": icon_name,
                     "icon_foreground_colour": icon_foreground_colour,
                     "icon_background_colour": icon_background_colour,
+                    "lxmf_address": lxmf_address,
+                    "lxst_address": lxst_address,
                     "is_current": (
                         current_identity_hash is not None
                         and identity_hash == current_identity_hash

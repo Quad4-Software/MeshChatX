@@ -1125,6 +1125,8 @@ class ReticulumMeshChat:
             "icon_name": self.config.lxmf_user_icon_name.get(),
             "icon_foreground_colour": self.config.lxmf_user_icon_foreground_colour.get(),
             "icon_background_colour": self.config.lxmf_user_icon_background_colour.get(),
+            "lxmf_address": self.config.lxmf_address_hash.get(),
+            "lxst_address": self.config.lxst_address_hash.get(),
         }
         self.identity_manager.update_metadata_cache(identity_hash, metadata)
 
