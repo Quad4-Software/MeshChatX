@@ -125,6 +125,13 @@ tasks:
         desc: Run all tests with coverage reports
         deps: [test-python-cov, test-frontend]
 
+    check:
+        desc: Run format, lint and test
+        cmds:
+            - task: format
+            - task: lint
+            - task: test
+
     bench-backend:
         desc: Run comprehensive backend benchmarks
         cmds:
