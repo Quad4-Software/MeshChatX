@@ -16,10 +16,10 @@
     </div>
     <div
         v-else
-        class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-[15%] rounded-full shrink-0 flex items-center justify-center"
+        class="bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 p-[15%] rounded-full shrink-0 flex items-center justify-center border border-gray-200 dark:border-zinc-700"
         :class="iconClass || 'size-6'"
     >
-        <MaterialDesignIcon icon-name="account-outline" class="w-full h-full" />
+        <MaterialDesignIcon icon-name="account" class="w-full h-full" />
     </div>
 </template>
 

@@ -50,7 +50,7 @@
                         <MaterialDesignIcon icon-name="tag-outline" class="size-4" />
                     </div>
                     <div
-                        class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-xs sm:max-w-sm text-base"
+                        class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[120px] sm:max-w-sm text-base"
                         :title="selectedPeer.custom_display_name ?? selectedPeer.display_name"
                     >
                         {{ selectedPeer.custom_display_name ?? selectedPeer.display_name }}
@@ -193,16 +193,16 @@
             class="h-full overflow-y-scroll bg-gray-50/30 dark:bg-zinc-950/50"
             @scroll="onMessagesScroll"
         >
-            <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6">
+            <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6 min-w-0">
                 <div
                     v-for="chatItem of selectedPeerChatItemsReversed"
                     :key="chatItem.lxmf_message.hash"
-                    class="flex flex-col max-w-[75%] sm:max-w-[65%] lg:max-w-[55%] mb-4 group"
+                    class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
                     :class="{ 'ml-auto items-end': chatItem.is_outbound, 'mr-auto items-start': !chatItem.is_outbound }"
                 >
                     <!-- message content -->
                     <div
-                        class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md"
+                        class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
                         :class="[
                             ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
                                 ? 'bg-red-500 text-white shadow-sm'
@@ -214,7 +214,7 @@
                         ]"
                         @click="onChatItemClick(chatItem)"
                     >
-                        <div class="w-full space-y-1 px-4 py-2.5">
+                        <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
                             <!-- spam badge -->
                             <div
                                 v-if="chatItem.lxmf_message.is_spam"
@@ -243,7 +243,7 @@
                             <!-- content -->
                             <div
                                 v-if="chatItem.lxmf_message.content"
-                                class="leading-relaxed whitespace-pre-wrap break-words"
+                                class="leading-relaxed whitespace-pre-wrap break-words [word-break:break-word] min-w-0"
                                 :style="{
                                     'font-family': 'inherit',
                                     'font-size': (config?.message_font_size || 14) + 'px',
@@ -296,14 +296,14 @@
 
                                 <!-- paper message auto-conversion -->
                                 <div
-                                    v-if="getParsedItems(chatItem).paperMessage"
-                                    class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30"
+                                    v-if="getParsedItems(chatItem).paperMessage && !chatItem.is_outbound"
+                                    class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-black/60 border border-emerald-100 dark:border-zinc-700/50"
                                 >
-                                    <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                                    <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                                         <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
                                         <span class="text-sm font-bold">Paper Message detected</span>
                                     </div>
-                                    <p class="text-xs text-emerald-600/80 dark:text-emerald-400/80 leading-relaxed">
+                                    <p class="text-xs text-emerald-600/80 dark:text-zinc-400 leading-relaxed">
                                         This message contains a signed LXMF URI that can be ingested into your
                                         conversations.
                                     </p>
@@ -321,7 +321,7 @@
                             <div v-if="chatItem.lxmf_message.fields?.image" class="relative group mt-1 -mx-1">
                                 <img
                                     :src="`/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/image`"
-                                    class="w-full rounded-lg cursor-pointer transition-transform group-hover:scale-[1.01]"
+                                    class="max-w-[240px] sm:max-w-xs w-full rounded-lg cursor-pointer transition-transform group-hover:scale-[1.01]"
                                     @click.stop="
                                         openImage(
                                             `/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/image`
@@ -636,6 +636,7 @@
                         <div
                             v-for="(line, index) in getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound)"
                             :key="index"
+                            class="break-all"
                         >
                             {{ line }}
                         </div>
@@ -674,7 +675,7 @@
             class="w-full border-t border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm px-3 sm:px-4 py-2.5"
         >
             <div class="w-full">
-                <!-- blocked user notification -->
+                <!-- banished user notification -->
                 <div
                     v-if="isSelectedPeerBlocked"
                     class="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-2"
@@ -694,7 +695,7 @@
                         />
                     </svg>
                     <span class="text-sm text-yellow-800 dark:text-yellow-200"
-                        >You have blocked this user. They cannot send you messages or establish links.</span
+                        >You have banished this user. They cannot send you messages or establish links.</span
                     >
                 </div>
 
@@ -914,13 +915,27 @@
                         class="group cursor-pointer p-4 bg-white dark:bg-zinc-900/50 border border-gray-100 dark:border-zinc-800 rounded-2xl hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 flex items-center gap-4"
                         @click="$emit('update:selectedPeer', chat)"
                     >
-                        <LxmfUserIcon
-                            :custom-image="chat.contact_image"
-                            :icon-name="chat.lxmf_user_icon ? chat.lxmf_user_icon.icon_name : ''"
-                            :icon-foreground-colour="chat.lxmf_user_icon ? chat.lxmf_user_icon.foreground_colour : ''"
-                            :icon-background-colour="chat.lxmf_user_icon ? chat.lxmf_user_icon.background_colour : ''"
-                            icon-class="size-10"
-                        />
+                        <div class="flex-shrink-0">
+                            <LxmfUserIcon
+                                :custom-image="chat.contact_image"
+                                :icon-name="
+                                    chat.lxmf_user_icon && chat.lxmf_user_icon.icon_name
+                                        ? chat.lxmf_user_icon.icon_name
+                                        : 'account'
+                                "
+                                :icon-foreground-colour="
+                                    chat.lxmf_user_icon && chat.lxmf_user_icon.foreground_colour
+                                        ? chat.lxmf_user_icon.foreground_colour
+                                        : ''
+                                "
+                                :icon-background-colour="
+                                    chat.lxmf_user_icon && chat.lxmf_user_icon.background_colour
+                                        ? chat.lxmf_user_icon.background_colour
+                                        : ''
+                                "
+                                icon-class="size-12 sm:size-14"
+                            />
+                        </div>
                         <div class="flex-1 min-w-0">
                             <div class="font-bold text-gray-900 dark:text-zinc-100 truncate">
                                 {{ chat.custom_display_name ?? chat.display_name }}
@@ -984,12 +999,14 @@
     <PaperMessageModal
         v-if="isPaperMessageModalOpen"
         :message-hash="paperMessageHash"
+        :recipient-hash="selectedPeer?.destination_hash"
         @close="isPaperMessageModalOpen = false"
     />
 
     <PaperMessageModal
         v-if="isPaperMessageResultModalOpen"
         :initial-uri="generatedPaperMessageUri"
+        :recipient-hash="selectedPeer?.destination_hash"
         @close="
             isPaperMessageResultModalOpen = false;
             generatedPaperMessageUri = null;
@@ -2763,7 +2780,16 @@ export default {
     @apply inline-flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-red-500;
 }
 .attachment-action-button {
-    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-100 shadow-sm hover:border-blue-400 dark:hover:border-blue-500 transition;
+    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white shadow-sm transition-all !important;
+}
+.attachment-action-button:hover {
+    @apply bg-gray-50 text-gray-900 border-blue-400 !important;
+}
+.dark .attachment-action-button {
+    @apply border-zinc-700 text-zinc-100 bg-zinc-900 !important;
+}
+.dark .attachment-action-button:hover {
+    @apply bg-zinc-800 text-white border-blue-500 !important;
 }
 
 .audio-controls-light {

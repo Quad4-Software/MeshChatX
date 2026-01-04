@@ -15,6 +15,33 @@
                         <div class="text-sm text-gray-600 dark:text-gray-300">
                             {{ $t("rncp.description") }}
                         </div>
+
+                        <div
+                            class="mt-4 p-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
+                        >
+                            <div
+                                class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2"
+                            >
+                                {{ $t("rncp.usage_steps") }}
+                            </div>
+                            <div class="space-y-1.5">
+                                <!-- eslint-disable-next-line vue/no-v-html -->
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    v-html="renderMarkdown($t('rncp.step_1'))"
+                                ></p>
+                                <!-- eslint-disable-next-line vue/no-v-html -->
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    v-html="renderMarkdown($t('rncp.step_2'))"
+                                ></p>
+                                <!-- eslint-disable-next-line vue/no-v-html -->
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    v-html="renderMarkdown($t('rncp.step_3'))"
+                                ></p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex gap-2 border-b border-gray-200 dark:border-zinc-700">
@@ -492,6 +519,10 @@ export default {
             this.listenActive = false;
             this.listenDestinationHash = null;
             this.listenResult = null;
+        },
+        renderMarkdown(text) {
+            if (!text) return "";
+            return text.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
         },
     },
 };

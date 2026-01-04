@@ -1,6 +1,6 @@
 <template>
     <div
-        class="audio-waveform-player flex items-center gap-3 p-2 rounded-xl transition-all w-full min-w-[240px]"
+        class="audio-waveform-player flex items-center gap-3 p-2 rounded-xl transition-all w-full min-w-0"
         :class="[
             isOutbound ? 'bg-white/10 text-white' : 'bg-gray-100 dark:bg-zinc-800/80 text-gray-800 dark:text-zinc-200',
         ]"

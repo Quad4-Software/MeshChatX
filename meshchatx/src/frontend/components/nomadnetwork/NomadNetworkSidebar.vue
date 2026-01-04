@@ -92,7 +92,7 @@
                                 <div v-if="isBlocked(favourite.destination_hash)" class="border-t">
                                     <DropDownMenuItem @click.stop="onUnblockNode(favourite.destination_hash)">
                                         <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
-                                        <span class="text-green-500">Unblock Node</span>
+                                        <span class="text-green-500">Lift Banishment</span>
                                     </DropDownMenuItem>
                                 </div>
                             </template>
@@ -169,7 +169,7 @@
                                 </DropDownMenuItem>
                                 <DropDownMenuItem v-else @click.stop="onUnblockNode(node.identity_hash)">
                                     <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
-                                    <span class="text-green-500">Unblock Node</span>
+                                    <span class="text-green-500">Lift Banishment</span>
                                 </DropDownMenuItem>
                             </template>
                         </DropDownMenu>
@@ -321,9 +321,9 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/blocked-destinations/${identityHash}`);
                 GlobalEmitter.emit("block-status-changed");
-                DialogUtils.alert("Node unblocked successfully");
+                DialogUtils.alert("Banishment lifted successfully");
             } catch (e) {
-                DialogUtils.alert("Failed to unblock node");
+                DialogUtils.alert("Failed to lift banishment");
                 console.log(e);
             }
         },

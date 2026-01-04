@@ -38,6 +38,7 @@
                 :my-lxmf-address-hash="config?.lxmf_address_hash"
                 :selected-peer="selectedPeer"
                 :conversations="conversations"
+                @update:selected-peer="onPeerClick"
                 @close="onCloseConversationViewer"
                 @reload-conversations="getConversations"
             />

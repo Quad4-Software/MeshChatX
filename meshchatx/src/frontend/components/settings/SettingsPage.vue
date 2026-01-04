@@ -436,6 +436,40 @@
                         </div>
                     </section>
 
+                    <!-- Network Security -->
+                    <section class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">RNS Security</div>
+                                <h2>Network Security</h2>
+                                <p>Manage mesh-level security features.</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="setting-toggle">
+                                <div class="setting-toggle__label">
+                                    <div class="setting-toggle__title">
+                                        {{ $t("app.blackhole_integration_enabled") }}
+                                    </div>
+                                    <div class="setting-toggle__description text-xs text-gray-500">
+                                        {{ $t("app.blackhole_integration_description") }}
+                                    </div>
+                                </div>
+                                <Toggle
+                                    v-model="config.blackhole_integration_enabled"
+                                    @update:model-value="
+                                        updateConfig(
+                                            {
+                                                blackhole_integration_enabled: config.blackhole_integration_enabled,
+                                            },
+                                            'blackhole_integration_enabled'
+                                        )
+                                    "
+                                />
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Transport -->
                     <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
@@ -494,14 +528,14 @@
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Privacy</div>
-                                <h2>Blocked</h2>
-                                <p>Manage blocked users and nodes</p>
+                                <h2>Banished</h2>
+                                <p>Manage Banished users and nodes</p>
                             </div>
-                            <RouterLink :to="{ name: 'blocked' }" class="primary-chip"> Manage Blocked </RouterLink>
+                            <RouterLink :to="{ name: 'blocked' }" class="primary-chip"> Manage Banished </RouterLink>
                         </header>
                         <div class="glass-card__body">
                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Blocked users and nodes will not be able to send you messages, and their announces will
+                                Banished users and nodes will not be able to send you messages, and their announces will
                                 be ignored.
                             </p>
                         </div>
@@ -867,6 +901,7 @@ export default {
                 banished_effect_enabled: true,
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
+                blackhole_integration_enabled: true,
             },
             saveTimeouts: {},
             shortcuts: [],
@@ -1318,9 +1353,6 @@ export default {
 }
 .setting-toggle__hint {
     @apply text-xs text-gray-500 dark:text-gray-400;
-}
-.primary-chip {
-    @apply inline-flex items-center gap-x-1 rounded-full bg-blue-600/90 px-4 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 transition;
 }
 .info-callout {
     @apply rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-blue-900 dark:text-blue-100;

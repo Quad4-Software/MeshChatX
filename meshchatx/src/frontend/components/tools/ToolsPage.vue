@@ -70,6 +70,21 @@
                     <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
                 </RouterLink>
 
+                <RouterLink :to="{ name: 'rnpath' }" class="tool-card glass-card">
+                    <div
+                        class="tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200"
+                    >
+                        <MaterialDesignIcon icon-name="route" class="w-6 h-6" />
+                    </div>
+                    <div class="flex-1">
+                        <div class="tool-card__title">{{ $t("tools.rnpath.title") }}</div>
+                        <div class="tool-card__description">
+                            {{ $t("tools.rnpath.description") }}
+                        </div>
+                    </div>
+                    <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                </RouterLink>
+
                 <RouterLink :to="{ name: 'translator' }" class="tool-card glass-card">
                     <div
                         class="tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200"

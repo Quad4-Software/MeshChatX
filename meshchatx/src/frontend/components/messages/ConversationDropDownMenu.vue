@@ -28,11 +28,11 @@
             <div class="border-t">
                 <DropDownMenuItem v-if="!isBlocked" @click="onBlockDestination">
                     <MaterialDesignIcon icon-name="block-helper" class="size-5 text-red-500" />
-                    <span class="text-red-500">Block User</span>
+                    <span class="text-red-500">Banish User</span>
                 </DropDownMenuItem>
                 <DropDownMenuItem v-else @click="onUnblockDestination">
                     <MaterialDesignIcon icon-name="check-circle" class="size-5 text-green-500" />
-                    <span class="text-green-500">Unblock User</span>
+                    <span class="text-green-500">Lift Banishment</span>
                 </DropDownMenuItem>
             </div>
 
@@ -83,7 +83,7 @@ export default {
         async onBlockDestination() {
             if (
                 !(await DialogUtils.confirm(
-                    "Are you sure you want to block this user? They will not be able to send you messages or establish links."
+                    "Are you sure you want to banish this user? They will not be able to send you messages or establish links."
                 ))
             ) {
                 return;
@@ -94,10 +94,10 @@ export default {
                     destination_hash: this.peer.destination_hash,
                 });
                 GlobalEmitter.emit("block-status-changed");
-                DialogUtils.alert("User blocked successfully");
+                DialogUtils.alert("User banished successfully");
                 this.$emit("block-status-changed");
             } catch (e) {
-                DialogUtils.alert("Failed to block user");
+                DialogUtils.alert("Failed to banish user");
                 console.log(e);
             }
         },
@@ -105,10 +105,10 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
                 GlobalEmitter.emit("block-status-changed");
-                DialogUtils.alert("User unblocked successfully");
+                DialogUtils.alert("Banishment lifted successfully");
                 this.$emit("block-status-changed");
             } catch (e) {
-                DialogUtils.alert("Failed to unblock user");
+                DialogUtils.alert("Failed to lift banishment");
                 console.log(e);
             }
         },

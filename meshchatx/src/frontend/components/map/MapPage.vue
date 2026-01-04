@@ -78,12 +78,12 @@
             <!-- drawing toolbar -->
             <div class="absolute top-14 left-1/2 -translate-x-1/2 sm:top-2 z-20 flex flex-col gap-2 transform-gpu">
                 <div
-                    class="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden flex flex-row p-1 gap-1 border-0"
+                    class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-row p-1 gap-1 border-0"
                 >
                     <button
                         v-for="tool in drawingTools"
                         :key="tool.type"
-                        class="p-2.5 rounded-xl transition-all hover:scale-110 active:scale-90"
+                        class="p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                         :class="[
                             (drawType === tool.type && !isMeasuring) || (tool.type === 'Export' && isExportMode)
                                 ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
@@ -92,11 +92,11 @@
                         :title="tool.type === 'Export' ? 'MBTiles exporter' : $t(`map.tool_${tool.type.toLowerCase()}`)"
                         @click="tool.type === 'Export' ? toggleExportMode() : toggleDraw(tool.type)"
                     >
-                        <v-icon :icon="'mdi-' + tool.icon" size="22"></v-icon>
+                        <v-icon :icon="'mdi-' + tool.icon" size="20"></v-icon>
                     </button>
                     <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
                     <button
-                        class="p-2.5 rounded-xl transition-all hover:scale-110 active:scale-90"
+                        class="p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                         :class="[
                             isMeasuring
                                 ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
@@ -105,37 +105,37 @@
                         :title="$t('map.tool_measure')"
                         @click="toggleMeasure"
                     >
-                        <v-icon icon="mdi-ruler" size="22"></v-icon>
+                        <v-icon icon="mdi-ruler" size="20"></v-icon>
                     </button>
                     <button
-                        class="p-2.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-all hover:scale-110 active:scale-90"
+                        class="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.tool_clear')"
                         @click="clearDrawings"
                     >
-                        <v-icon icon="mdi-trash-can-outline" size="22"></v-icon>
+                        <v-icon icon="mdi-trash-can-outline" size="20"></v-icon>
                     </button>
                     <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
                     <button
-                        class="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
+                        class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.save_drawing')"
                         @click="showSaveDrawingModal = true"
                     >
-                        <v-icon icon="mdi-content-save-outline" size="22"></v-icon>
+                        <v-icon icon="mdi-content-save-outline" size="20"></v-icon>
                     </button>
                     <button
-                        class="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
+                        class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.load_drawing')"
                         @click="openLoadDrawingModal"
                     >
-                        <v-icon icon="mdi-folder-open-outline" size="22"></v-icon>
+                        <v-icon icon="mdi-folder-open-outline" size="20"></v-icon>
                     </button>
                     <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
                     <button
-                        class="p-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-all hover:scale-110 active:scale-90"
+                        class="p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.go_to_my_location')"
                         @click="goToMyLocation"
                     >
-                        <v-icon icon="mdi-crosshairs-gps" size="22"></v-icon>
+                        <v-icon icon="mdi-crosshairs-gps" size="20"></v-icon>
                     </button>
                 </div>
             </div>
@@ -147,9 +147,7 @@
                 class="absolute top-2 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-30"
             >
                 <div class="relative">
-                    <div
-                        class="flex items-center bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-xl shadow-2xl border-0 ring-0"
-                    >
+                    <div class="flex items-center bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border-0 ring-0">
                         <input
                             v-model="searchQuery"
                             type="text"
@@ -237,8 +235,8 @@
                             Edit Note
                         </span>
                         <button
-                            @click="closeNoteEditor"
                             class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                            @click="closeNoteEditor"
                         >
                             <MaterialDesignIcon icon-name="close" class="size-4" />
                         </button>
@@ -250,15 +248,15 @@
                     ></textarea>
                     <div class="flex justify-between mt-3">
                         <button
-                            @click="deleteNote"
                             class="px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1"
+                            @click="deleteNote"
                         >
                             <MaterialDesignIcon icon-name="trash-can-outline" class="size-3.5" />
                             Delete
                         </button>
                         <button
-                            @click="saveNote"
                             class="px-3 py-1.5 text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 rounded-lg shadow-sm transition-colors"
+                            @click="saveNote"
                         >
                             Save
                         </button>
@@ -922,8 +920,8 @@
                             Edit Note
                         </h3>
                         <button
-                            @click="closeNoteEditor"
                             class="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                            @click="closeNoteEditor"
                         >
                             <MaterialDesignIcon icon-name="close" class="size-5" />
                         </button>
@@ -938,15 +936,15 @@
                     </div>
                     <div class="p-4 bg-gray-50 dark:bg-zinc-800/50 flex justify-between gap-3">
                         <button
-                            @click="deleteNote"
                             class="flex-1 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center justify-center gap-2"
+                            @click="deleteNote"
                         >
                             <MaterialDesignIcon icon-name="trash-can-outline" class="size-5" />
                             Delete
                         </button>
                         <button
-                            @click="saveNote"
                             class="flex-[2] px-4 py-3 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-xl shadow-lg shadow-amber-500/30 transition-colors"
+                            @click="saveNote"
                         >
                             Save Note
                         </button>

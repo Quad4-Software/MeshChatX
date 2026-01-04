@@ -32,8 +32,8 @@
                 </div>
                 <template v-else-if="uri">
                     <!-- QR code container -->
-                    <div class="p-4 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6 relative group">
-                        <div class="size-48 sm:size-64 flex items-center justify-center overflow-hidden">
+                    <div class="p-3 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6 relative group">
+                        <div class="size-40 sm:size-48 flex items-center justify-center overflow-hidden">
                             <canvas ref="qrcode"></canvas>
                         </div>
                         <div
@@ -47,7 +47,61 @@
                         </div>
                     </div>
 
-                    <div class="w-full space-y-3">
+                    <div v-if="recipientHash" class="w-full space-y-3">
+                        <div
+                            class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
+                        >
+                            <label
+                                class="block text-[9px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                            >
+                                LXMF URI
+                            </label>
+                            <div class="flex gap-2">
+                                <div
+                                    class="flex-1 font-mono text-[10px] break-all text-gray-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-2 rounded-lg border border-gray-200 dark:border-zinc-700 max-h-20 overflow-y-auto"
+                                >
+                                    {{ uri }}
+                                </div>
+                                <button
+                                    type="button"
+                                    class="size-9 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                                    title="Copy URI"
+                                    @click="copyUri"
+                                >
+                                    <MaterialDesignIcon icon-name="content-copy" class="size-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2 pt-1">
+                            <button
+                                type="button"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
+                                @click="printQRCode"
+                            >
+                                <MaterialDesignIcon icon-name="printer" class="size-4" />
+                                Print
+                            </button>
+                            <button
+                                type="button"
+                                class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] text-sm"
+                                :disabled="isSending"
+                                @click="sendPaperMessage"
+                            >
+                                <template v-if="isSending">
+                                    <div
+                                        class="size-4 border-2 border-white/20 border-t-white rounded-full animate-spin"
+                                    ></div>
+                                    Sending...
+                                </template>
+                                <template v-else>
+                                    <MaterialDesignIcon icon-name="send" class="size-4" />
+                                    Send
+                                </template>
+                            </button>
+                        </div>
+                    </div>
+                    <div v-else class="w-full space-y-3">
                         <div
                             class="bg-gray-50 dark:bg-zinc-800/50 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50"
                         >
@@ -134,12 +188,18 @@ export default {
             required: false,
             default: null,
         },
+        recipientHash: {
+            type: String,
+            required: false,
+            default: null,
+        },
     },
     emits: ["close"],
     data() {
         return {
             uri: this.initialUri,
             isLoading: !this.initialUri,
+            isSending: false,
         };
     },
     async mounted() {
@@ -173,7 +233,7 @@ export default {
 
             try {
                 await QRCode.toCanvas(this.$refs.qrcode, this.uri, {
-                    width: 320,
+                    width: 256,
                     margin: 2,
                     color: {
                         dark: "#000000",
@@ -211,9 +271,54 @@ export default {
             const dataUrl = canvas.toDataURL("image/png");
             if (dataUrl) {
                 const link = document.createElement("a");
-                link.download = `lxmf-paper-message-${this.messageHash.substring(0, 8)}.png`;
+                link.download = `lxmf-paper-message-${this.messageHash ? this.messageHash.substring(0, 8) : Date.now()}.png`;
                 link.href = dataUrl;
                 link.click();
+            }
+        },
+        async sendPaperMessage() {
+            const canvas = this.$refs.qrcode;
+            if (!canvas || !this.recipientHash || !this.uri) return;
+
+            try {
+                this.isSending = true;
+
+                // get data url from canvas (format: data:image/png;base64,iVBORw0KG...)
+                const dataUrl = canvas.toDataURL("image/png");
+
+                // extract base64 data by removing the prefix
+                const imageBytes = dataUrl.split(",")[1];
+
+                // build lxmf message
+                const lxmf_message = {
+                    destination_hash: this.recipientHash,
+                    content: this.uri,
+                    fields: {
+                        image: {
+                            image_type: "png",
+                            image_bytes: imageBytes,
+                            name: "qrcode.png",
+                        },
+                    },
+                };
+
+                // send message
+                const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                    delivery_method: "opportunistic",
+                    lxmf_message: lxmf_message,
+                });
+
+                if (response.data.status === "success") {
+                    ToastUtils.success("Paper message sent successfully");
+                    this.close();
+                } else {
+                    ToastUtils.error(response.data.message || "Failed to send paper message");
+                }
+            } catch (err) {
+                console.error("Failed to send paper message:", err);
+                ToastUtils.error("Failed to send paper message");
+            } finally {
+                this.isSending = false;
             }
         },
         printQRCode() {

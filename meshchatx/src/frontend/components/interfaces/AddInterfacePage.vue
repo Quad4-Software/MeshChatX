@@ -1588,12 +1588,6 @@ export default {
 .glass-label {
     @apply mb-1 text-sm font-semibold text-gray-800 dark:text-gray-200;
 }
-.primary-chip {
-    @apply inline-flex items-center gap-x-2 rounded-full bg-blue-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 transition;
-}
-.secondary-chip {
-    @apply inline-flex items-center gap-x-2 rounded-full border border-gray-300 dark:border-zinc-700 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/80 dark:bg-zinc-900/70 hover:border-blue-400;
-}
 .glass-field {
     @apply space-y-1;
 }

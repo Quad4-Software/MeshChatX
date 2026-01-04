@@ -2380,15 +2380,15 @@ export default {
             }
         },
         async blockIdentity(hash) {
-            if (!confirm(`Are you sure you want to block this identity?`)) return;
+            if (!confirm(`Are you sure you want to banish this identity?`)) return;
             try {
                 await window.axios.post("/api/v1/blocked-destinations", {
                     destination_hash: hash,
                 });
-                ToastUtils.success("Identity blocked");
+                ToastUtils.success("Identity banished");
                 this.getHistory();
             } catch {
-                ToastUtils.error("Failed to block identity");
+                ToastUtils.error("Failed to banish identity");
             }
         },
         async getVoicemailStatus() {

@@ -3,7 +3,7 @@
         <button
             type="button"
             class="relative rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-            @click="toggleDropdown"
+            @click.stop="toggleDropdown"
         >
             <MaterialDesignIcon icon-name="bell" class="w-5 h-5 sm:w-6 sm:h-6" />
             <span
@@ -14,96 +14,103 @@
             </span>
         </button>
 
-        <div
-            v-if="isDropdownOpen"
-            v-click-outside="closeDropdown"
-            class="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] max-h-[500px] overflow-hidden flex flex-col"
-        >
-            <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                        @click="closeDropdown"
-                    >
-                        <MaterialDesignIcon icon-name="close" class="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-
-            <div class="overflow-y-auto flex-1">
-                <div v-if="isLoading" class="p-8 text-center">
-                    <div class="inline-block animate-spin text-gray-400">
-                        <MaterialDesignIcon icon-name="refresh" class="w-6 h-6" />
+        <Teleport to="body">
+            <div
+                v-if="isDropdownOpen"
+                v-click-outside="closeDropdown"
+                class="fixed w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] max-h-[500px] overflow-hidden flex flex-col"
+                :style="dropdownStyle"
+            >
+                <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                        <button
+                            type="button"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            @click="closeDropdown"
+                        >
+                            <MaterialDesignIcon icon-name="close" class="w-5 h-5" />
+                        </button>
                     </div>
-                    <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading notifications...</div>
                 </div>
 
-                <div v-else-if="notifications.length === 0" class="p-8 text-center">
-                    <MaterialDesignIcon
-                        icon-name="bell-off"
-                        class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500"
-                    />
-                    <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">No new notifications</div>
-                </div>
-
-                <div v-else class="divide-y divide-gray-200 dark:divide-zinc-800">
-                    <button
-                        v-for="notification in notifications"
-                        :key="notification.destination_hash"
-                        type="button"
-                        class="w-full p-4 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left"
-                        @click="onNotificationClick(notification)"
-                    >
-                        <div class="flex gap-3">
-                            <div class="flex-shrink-0">
-                                <div
-                                    v-if="notification.lxmf_user_icon"
-                                    class="p-2 rounded-lg"
-                                    :style="{
-                                        color: notification.lxmf_user_icon.foreground_colour,
-                                        'background-color': notification.lxmf_user_icon.background_colour,
-                                    }"
-                                >
-                                    <MaterialDesignIcon
-                                        :icon-name="notification.lxmf_user_icon.icon_name"
-                                        class="w-6 h-6"
-                                    />
-                                </div>
-                                <div
-                                    v-else
-                                    class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded-lg"
-                                >
-                                    <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6" />
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-start justify-between gap-2 mb-1">
-                                    <div
-                                        class="font-semibold text-gray-900 dark:text-white truncate"
-                                        :title="notification.custom_display_name ?? notification.display_name"
-                                    >
-                                        {{ notification.custom_display_name ?? notification.display_name }}
-                                    </div>
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0"
-                                    >
-                                        {{ formatTimeAgo(notification.updated_at) }}
-                                    </div>
-                                </div>
-                                <div
-                                    class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
-                                    :title="notification.latest_message_preview ?? notification.content ?? 'No preview'"
-                                >
-                                    {{ notification.latest_message_preview ?? notification.content ?? "No preview" }}
-                                </div>
-                            </div>
+                <div class="overflow-y-auto flex-1">
+                    <div v-if="isLoading" class="p-8 text-center">
+                        <div class="inline-block animate-spin text-gray-400">
+                            <MaterialDesignIcon icon-name="refresh" class="w-6 h-6" />
                         </div>
-                    </button>
+                        <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading notifications...</div>
+                    </div>
+
+                    <div v-else-if="notifications.length === 0" class="p-8 text-center">
+                        <MaterialDesignIcon
+                            icon-name="bell-off"
+                            class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500"
+                        />
+                        <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">No new notifications</div>
+                    </div>
+
+                    <div v-else class="divide-y divide-gray-200 dark:divide-zinc-800">
+                        <button
+                            v-for="notification in notifications"
+                            :key="notification.destination_hash"
+                            type="button"
+                            class="w-full p-4 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left"
+                            @click="onNotificationClick(notification)"
+                        >
+                            <div class="flex gap-3">
+                                <div class="flex-shrink-0">
+                                    <div
+                                        v-if="notification.lxmf_user_icon"
+                                        class="p-2 rounded-lg"
+                                        :style="{
+                                            color: notification.lxmf_user_icon.foreground_colour,
+                                            'background-color': notification.lxmf_user_icon.background_colour,
+                                        }"
+                                    >
+                                        <MaterialDesignIcon
+                                            :icon-name="notification.lxmf_user_icon.icon_name"
+                                            class="w-6 h-6"
+                                        />
+                                    </div>
+                                    <div
+                                        v-else
+                                        class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded-lg"
+                                    >
+                                        <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6" />
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-start justify-between gap-2 mb-1">
+                                        <div
+                                            class="font-semibold text-gray-900 dark:text-white truncate"
+                                            :title="notification.custom_display_name ?? notification.display_name"
+                                        >
+                                            {{ notification.custom_display_name ?? notification.display_name }}
+                                        </div>
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap flex-shrink-0"
+                                        >
+                                            {{ formatTimeAgo(notification.updated_at) }}
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2"
+                                        :title="
+                                            notification.latest_message_preview ?? notification.content ?? 'No preview'
+                                        "
+                                    >
+                                        {{
+                                            notification.latest_message_preview ?? notification.content ?? "No preview"
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
     </div>
 </template>
 
@@ -139,9 +146,17 @@ export default {
             notifications: [],
             unreadCount: 0,
             reloadInterval: null,
+            dropdownPosition: { top: 0, left: 0 },
         };
     },
-    computed: {},
+    computed: {
+        dropdownStyle() {
+            return {
+                top: `${this.dropdownPosition.top}px`,
+                left: `${this.dropdownPosition.left}px`,
+            };
+        },
+    },
     beforeUnmount() {
         if (this.reloadInterval) {
             clearInterval(this.reloadInterval);
@@ -158,12 +173,24 @@ export default {
         }, 5000);
     },
     methods: {
-        async toggleDropdown() {
+        async toggleDropdown(event) {
             this.isDropdownOpen = !this.isDropdownOpen;
             if (this.isDropdownOpen) {
+                this.updateDropdownPosition(event);
                 await this.loadNotifications();
                 await this.markNotificationsAsViewed();
             }
+        },
+        updateDropdownPosition(event) {
+            const button = event.currentTarget;
+            const rect = button.getBoundingClientRect();
+            const isMobile = window.innerWidth < 640;
+            const dropdownWidth = isMobile ? 320 : 384; // 80 (320px) or 96 (384px)
+
+            this.dropdownPosition = {
+                top: rect.bottom + 8,
+                left: Math.max(16, rect.right - dropdownWidth),
+            };
         },
         closeDropdown() {
             this.isDropdownOpen = false;
