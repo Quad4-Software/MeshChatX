@@ -4,7 +4,7 @@
             <div class="max-w-4xl mx-auto p-4 space-y-6">
                 <!-- Header with Preview -->
                 <div
-                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800"
                 >
                     <div class="p-6 border-b border-gray-200 dark:border-zinc-800">
                         <div class="flex items-center justify-between">
@@ -51,6 +51,7 @@
                             <div class="text-sm font-medium text-gray-700 dark:text-zinc-300">Preview</div>
                             <div class="p-8 bg-gray-50 dark:bg-zinc-800 rounded-2xl">
                                 <LxmfUserIcon
+                                    :key="iconName + iconForegroundColour + iconBackgroundColour"
                                     :icon-name="iconName"
                                     :icon-foreground-colour="iconForegroundColour"
                                     :icon-background-colour="iconBackgroundColour"
@@ -66,7 +67,7 @@
 
                 <!-- Color Selection -->
                 <div
-                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800"
                 >
                     <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Colors</h3>
@@ -252,14 +253,17 @@ export default {
         },
     },
     watch: {
-        config() {
-            if (this.config) {
-                this.iconName = this.config.lxmf_user_icon_name || null;
-                this.iconForegroundColour = this.config.lxmf_user_icon_foreground_colour || "#6b7280";
-                this.iconBackgroundColour = this.config.lxmf_user_icon_background_colour || "#e5e7eb";
+        config: {
+            handler() {
+                if (this.config) {
+                    this.iconName = this.config.lxmf_user_icon_name || null;
+                    this.iconForegroundColour = this.config.lxmf_user_icon_foreground_colour || "#6b7280";
+                    this.iconBackgroundColour = this.config.lxmf_user_icon_background_colour || "#e5e7eb";
 
-                this.saveOriginalValues();
-            }
+                    this.saveOriginalValues();
+                }
+            },
+            immediate: true,
         },
         iconForegroundColour() {
             this.debouncedAutoSave();

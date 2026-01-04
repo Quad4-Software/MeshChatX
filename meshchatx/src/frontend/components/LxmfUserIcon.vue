@@ -1,16 +1,25 @@
 <template>
-    <div v-if="customImage" class="rounded-full overflow-hidden" :class="iconClass">
+    <div
+        v-if="customImage"
+        class="rounded-full overflow-hidden shrink-0 flex items-center justify-center"
+        :class="iconClass || 'size-6'"
+    >
         <img :src="customImage" class="w-full h-full object-cover" />
     </div>
     <div
         v-else-if="iconName"
-        class="p-2 rounded-full"
-        :style="{ color: iconForegroundColour, 'background-color': iconBackgroundColour }"
+        class="p-[15%] rounded-full shrink-0 flex items-center justify-center"
+        :style="{ 'background-color': iconBackgroundColour }"
+        :class="iconClass || 'size-6'"
     >
-        <MaterialDesignIcon :icon-name="iconName" :class="iconClass" />
+        <MaterialDesignIcon :icon-name="iconName" class="w-full h-full" :style="{ color: iconForegroundColour }" />
     </div>
-    <div v-else class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded-full">
-        <MaterialDesignIcon icon-name="account-outline" :class="iconClass" />
+    <div
+        v-else
+        class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-[15%] rounded-full shrink-0 flex items-center justify-center"
+        :class="iconClass || 'size-6'"
+    >
+        <MaterialDesignIcon icon-name="account-outline" class="w-full h-full" />
     </div>
 </template>
 
@@ -32,15 +41,15 @@ export default {
         },
         iconForegroundColour: {
             type: String,
-            default: "",
+            default: "#6b7280",
         },
         iconBackgroundColour: {
             type: String,
-            default: "",
+            default: "#e5e7eb",
         },
         iconClass: {
             type: String,
-            default: "size-6",
+            default: "",
         },
     },
 };

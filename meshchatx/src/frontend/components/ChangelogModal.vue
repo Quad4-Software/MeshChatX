@@ -50,9 +50,9 @@
                 <div v-else-if="error" class="flex flex-col items-center justify-center h-full text-center space-y-4">
                     <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
                     <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <v-btn color="#3b82f6" variant="flat" class="text-white font-bold" @click="fetchChangelog"
-                        >Retry</v-btn
-                    >
+                    <v-btn color="blue" variant="flat" class="font-bold uppercase px-6" rounded="lg" @click="fetchChangelog">
+                        Retry
+                    </v-btn>
                 </div>
 
                 <div
@@ -66,20 +66,30 @@
 
             <!-- Footer -->
             <v-divider class="dark:border-zinc-800"></v-divider>
-            <v-card-actions class="px-6 py-4 bg-gray-50 dark:bg-zinc-950/50">
-                <v-checkbox
-                    v-model="dontShowAgain"
-                    :label="$t('app.do_not_show_again', 'Do not show again for this version')"
-                    density="compact"
-                    hide-details
-                    color="blue"
-                    class="my-0 text-gray-700 dark:text-zinc-300 font-medium"
-                ></v-checkbox>
+            <v-card-actions class="px-6 py-4 bg-gray-50 dark:bg-zinc-950/50 flex-wrap gap-y-2">
+                <div class="flex flex-col">
+                    <v-checkbox
+                        v-model="dontShowAgain"
+                        :label="$t('app.do_not_show_again', 'Do not show again for this version')"
+                        density="compact"
+                        hide-details
+                        color="blue"
+                        class="my-0 text-gray-700 dark:text-zinc-300 font-medium"
+                    ></v-checkbox>
+                    <v-checkbox
+                        v-model="dontShowEver"
+                        :label="$t('app.do_not_show_ever', 'Do not show ever again')"
+                        density="compact"
+                        hide-details
+                        color="red"
+                        class="my-0 text-gray-700 dark:text-zinc-300 font-medium"
+                    ></v-checkbox>
+                </div>
                 <v-spacer></v-spacer>
                 <v-btn
-                    variant="tonal"
+                    variant="flat"
                     color="blue"
-                    class="px-8 font-black tracking-tighter text-white uppercase"
+                    class="px-8 font-black tracking-tighter uppercase text-white dark:text-zinc-900"
                     rounded="xl"
                     @click="close"
                 >
@@ -121,9 +131,9 @@
                 <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
                     <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
                     <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <v-btn color="#3b82f6" variant="flat" class="text-white font-bold" @click="fetchChangelog"
-                        >Retry</v-btn
-                    >
+                    <v-btn color="blue" variant="flat" class="font-bold uppercase px-6" rounded="lg" @click="fetchChangelog">
+                        Retry
+                    </v-btn>
                 </div>
 
                 <div v-else class="changelog-content max-w-none prose dark:prose-invert pb-20">
@@ -138,6 +148,12 @@
 <script>
 export default {
     name: "ChangelogModal",
+    props: {
+        appVersion: {
+            type: String,
+            default: "",
+        },
+    },
     data() {
         return {
             visible: false,
@@ -146,9 +162,13 @@ export default {
             changelogHtml: "",
             version: "",
             dontShowAgain: false,
+            dontShowEver: false,
         };
     },
     computed: {
+        currentVersion() {
+            return this.version || this.appVersion;
+        },
         isPage() {
             return this.$route?.meta?.isPage === true;
         },
@@ -187,18 +207,43 @@ export default {
             }
         },
         async close() {
-            this.visible = false;
-            // logic moved to onVisibleUpdate
-        },
-        async onVisibleUpdate(val) {
-            if (!val && this.dontShowAgain) {
+            // mark as seen for current version automatically on close if not already marked
+            if (!this.dontShowEver && !this.dontShowAgain) {
                 try {
                     await window.axios.post("/api/v1/app/changelog/seen", {
-                        version: this.version,
+                        version: this.currentVersion || "0.0.0",
                     });
                 } catch (e) {
-                    console.error("Failed to mark changelog as seen:", e);
+                    console.error("Failed to auto-mark changelog as seen:", e);
                 }
+            } else {
+                await this.markAsSeen();
+            }
+            this.visible = false;
+        },
+        async markAsSeen() {
+            if (this.dontShowEver) {
+                try {
+                    await window.axios.post("/api/v1/app/changelog/seen", {
+                        version: "999.999.999",
+                    });
+                } catch (e) {
+                    console.error("Failed to mark changelog as seen forever:", e);
+                }
+            } else if (this.dontShowAgain) {
+                try {
+                    await window.axios.post("/api/v1/app/changelog/seen", {
+                        version: this.currentVersion,
+                    });
+                } catch (e) {
+                    console.error("Failed to mark changelog as seen for this version:", e);
+                }
+            }
+        },
+        async onVisibleUpdate(val) {
+            if (!val) {
+                // handle case where dialog is closed by clicking outside or ESC
+                await this.markAsSeen();
             }
         },
     },

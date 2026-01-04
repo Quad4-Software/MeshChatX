@@ -5,6 +5,8 @@
         role="img"
         :aria-label="iconName"
         fill="currentColor"
+        width="100%"
+        height="100%"
         style="display: inline-block; vertical-align: middle; shape-rendering: inherit"
         class="antialiased"
     >
@@ -20,18 +22,26 @@ export default {
     props: {
         iconName: {
             type: String,
-            required: true,
+            required: false,
+            default: "",
         },
     },
     computed: {
         mdiIconName() {
+            if (!this.iconName) return "mdiAccountOutline";
+            
+            // if already starts with mdi and is camelCase, return as is
+            if (this.iconName.startsWith("mdi") && /[A-Z]/.test(this.iconName)) {
+                return this.iconName;
+            }
+
             // convert icon name from lxmf icon appearance to format expected by the @mdi/js library
             // e.g: alien-outline -> mdiAlienOutline
-            // https://pictogrammers.github.io/@mdi/font/5.4.55/
             return (
                 "mdi" +
                 this.iconName
                     .split("-")
+                    .filter(word => word.length > 0)
                     .map((word) => {
                         // capitalise first letter of each part
                         return word.charAt(0).toUpperCase() + word.slice(1);
@@ -40,8 +50,13 @@ export default {
             );
         },
         iconPath() {
-            // find icon, otherwise fallback to question mark, and if that doesn't exist, show nothing...
-            return mdi[this.mdiIconName] || mdi["mdiProgressQuestion"] || "";
+            if (!mdi) return "";
+            
+            const path = mdi[this.mdiIconName];
+            if (path) return path;
+            
+            // fallback logic
+            return mdi["mdiHelpCircleOutline"] || mdi["mdiProgressQuestion"] || "";
         },
     },
 };

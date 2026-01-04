@@ -22,7 +22,7 @@
             leave-from-class="transform opacity-100 scale-100"
             leave-to-class="transform opacity-0 scale-95"
         >
-            <div v-if="isShowingMenu" class="absolute left-0 z-10 ml-4">
+            <div v-if="isShowingMenu" class="absolute left-0 z-[100] mt-2">
                 <v-color-picker
                     v-model="colourPickerValue"
                     :modes="['hex']"

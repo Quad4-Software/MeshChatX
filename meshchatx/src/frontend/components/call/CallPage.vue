@@ -127,7 +127,7 @@
                                                 ? (activeCall || lastCall).remote_icon.background_colour
                                                 : ''
                                         "
-                                        class="size-20"
+                                        icon-class="size-20"
                                     />
                                 </div>
 
@@ -601,7 +601,7 @@
                                                 :icon-background-colour="
                                                     entry.remote_icon ? entry.remote_icon.background_colour : ''
                                                 "
-                                                class="size-10"
+                                                icon-class="size-10"
                                             />
                                             <div
                                                 class="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-zinc-800 shrink-0 flex items-center justify-center size-5"

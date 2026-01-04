@@ -69,7 +69,7 @@
                         :icon-name="activeCall.remote_icon ? activeCall.remote_icon.icon_name : ''"
                         :icon-foreground-colour="activeCall.remote_icon ? activeCall.remote_icon.foreground_colour : ''"
                         :icon-background-colour="activeCall.remote_icon ? activeCall.remote_icon.background_colour : ''"
-                        class="size-8"
+                        icon-class="size-8"
                     />
                 </div>
                 <div class="text-center w-full min-w-0">
@@ -246,7 +246,7 @@
                     :icon-name="activeCall.remote_icon ? activeCall.remote_icon.icon_name : ''"
                     :icon-foreground-colour="activeCall.remote_icon ? activeCall.remote_icon.foreground_colour : ''"
                     :icon-background-colour="activeCall.remote_icon ? activeCall.remote_icon.background_colour : ''"
-                    class="size-5 shrink-0"
+                    icon-class="size-5 shrink-0"
                 />
                 <div class="flex flex-col min-w-0">
                     <span class="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate block">

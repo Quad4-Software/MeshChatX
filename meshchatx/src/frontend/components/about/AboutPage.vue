@@ -154,7 +154,8 @@
                     <div class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                         {{ $t("about.dependency_chain") }}
                     </div>
-                    <div class="relative">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 relative">
+                        <!-- Main Dependencies -->
                         <div class="flex flex-col space-y-4">
                             <!-- MeshChatX -->
                             <div class="flex items-center gap-4">
@@ -213,65 +214,65 @@
                             </div>
                         </div>
 
-                        <!-- Side Dependencies -->
-                        <div class="mt-8 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                            <div
-                                class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3"
-                            >
-                                {{ $t("about.other_core_components", "Other Core Components") }}
+                        <!-- Side & Python Dependencies -->
+                        <div class="space-y-8">
+                            <!-- Side Dependencies -->
+                            <div>
+                                <div
+                                    class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3"
+                                >
+                                    {{ $t("about.other_core_components", "Other Core Components") }}
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                    <div v-if="appInfo.lxst_version" class="flex flex-col">
+                                        <span class="text-[10px] font-black text-blue-500 uppercase">LXST</span>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                            >v{{ appInfo.lxst_version }}</span
+                                        >
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] font-black text-blue-500 uppercase">Python</span>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                            >v{{ appInfo.python_version }}</span
+                                        >
+                                    </div>
+                                    <div v-if="electronVersion" class="flex flex-col">
+                                        <span class="text-[10px] font-black text-blue-500 uppercase">Electron</span>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                            >v{{ electronVersion }}</span
+                                        >
+                                    </div>
+                                    <div v-if="chromeVersion" class="flex flex-col">
+                                        <span class="text-[10px] font-black text-blue-500 uppercase">Chrome</span>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                            >v{{ chromeVersion }}</span
+                                        >
+                                    </div>
+                                    <div v-if="nodeVersion" class="flex flex-col">
+                                        <span class="text-[10px] font-black text-blue-500 uppercase">Node</span>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
+                                            >v{{ nodeVersion }}</span
+                                        >
+                                    </div>
+                                </div>
                             </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                <div v-if="appInfo.lxst_version" class="flex flex-col">
-                                    <span class="text-[10px] font-black text-blue-500 uppercase">LXST</span>
-                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                        >v{{ appInfo.lxst_version }}</span
-                                    >
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="text-[10px] font-black text-blue-500 uppercase">Python</span>
-                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                        >v{{ appInfo.python_version }}</span
-                                    >
-                                </div>
-                                <div v-if="electronVersion" class="flex flex-col">
-                                    <span class="text-[10px] font-black text-blue-500 uppercase">Electron</span>
-                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                        >v{{ electronVersion }}</span
-                                    >
-                                </div>
-                                <div v-if="chromeVersion" class="flex flex-col">
-                                    <span class="text-[10px] font-black text-blue-500 uppercase">Chrome</span>
-                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                        >v{{ chromeVersion }}</span
-                                    >
-                                </div>
-                                <div v-if="nodeVersion" class="flex flex-col">
-                                    <span class="text-[10px] font-black text-blue-500 uppercase">Node</span>
-                                    <span class="text-sm font-medium text-gray-700 dark:text-zinc-300"
-                                        >v{{ nodeVersion }}</span
-                                    >
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Python Dependencies -->
-                        <div
-                            v-if="appInfo.dependencies"
-                            class="mt-8 pt-6 border-t border-gray-100 dark:border-zinc-800"
-                        >
-                            <div
-                                class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3"
-                            >
-                                {{ $t("about.backend_dependencies") }}
-                            </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                <div v-for="(version, name) in appInfo.dependencies" :key="name" class="flex flex-col">
-                                    <span class="text-[10px] font-black text-blue-500/70 uppercase">{{
-                                        name.replace("_", " ")
-                                    }}</span>
-                                    <span class="text-xs font-medium text-gray-600 dark:text-zinc-400"
-                                        >v{{ version }}</span
-                                    >
+                            <!-- Python Dependencies -->
+                            <div v-if="appInfo.dependencies" class="pt-6 border-t border-gray-100 dark:border-zinc-800">
+                                <div
+                                    class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-3"
+                                >
+                                    {{ $t("about.backend_dependencies") }}
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                    <div v-for="(version, name) in appInfo.dependencies" :key="name" class="flex flex-col">
+                                        <span class="text-[10px] font-black text-blue-500/70 uppercase">{{
+                                            name.replace("_", " ")
+                                        }}</span>
+                                        <span class="text-xs font-medium text-gray-600 dark:text-zinc-400"
+                                            >v{{ version }}</span
+                                        >
+                                    </div>
                                 </div>
                             </div>
                         </div>

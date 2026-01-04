@@ -35,7 +35,7 @@
                     :icon-background-colour="
                         selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.background_colour : ''
                     "
-                    class="size-10"
+                    icon-class="size-10"
                 />
             </div>
 

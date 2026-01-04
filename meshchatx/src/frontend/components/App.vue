@@ -3,6 +3,17 @@
         :class="{ dark: config?.theme === 'dark' }"
         class="h-screen w-full flex flex-col bg-slate-50 dark:bg-zinc-950 transition-colors"
     >
+        <!-- emergency banner -->
+        <div
+            v-if="appInfo?.emergency"
+            class="relative z-[100] bg-red-600 text-white px-4 py-2 text-center text-sm font-bold shadow-md animate-pulse"
+        >
+            <div class="flex items-center justify-center gap-2">
+                <MaterialDesignIcon icon-name="alert-decagram" class="size-5" />
+                <span>{{ $t("app.emergency_mode_active") }}</span>
+            </div>
+        </div>
+
         <RouterView v-if="$route.name === 'auth'" />
 
         <template v-else>
@@ -437,7 +448,7 @@
         <ConfirmDialog />
         <CommandPalette />
         <IntegrityWarningModal />
-        <ChangelogModal ref="changelogModal" />
+        <ChangelogModal ref="changelogModal" :app-version="appInfo?.version" />
         <TutorialModal ref="tutorialModal" />
 
         <!-- identity switching overlay -->
@@ -723,7 +734,8 @@ export default {
                     }
 
                     // show notification for new messages if window is not focussed
-                    if (!document.hasFocus()) {
+                    // only for incoming messages
+                    if (!document.hasFocus() && json.lxmf_message?.is_incoming) {
                         NotificationUtils.showNewMessageNotification(
                             json.remote_identity_name,
                             json.lxmf_message?.content
@@ -761,8 +773,12 @@ export default {
                     this.hasCheckedForModals = true;
                     if (this.appInfo && !this.appInfo.tutorial_seen) {
                         this.$refs.tutorialModal.show();
-                    } else if (this.appInfo && this.appInfo.changelog_seen_version !== this.appInfo.version) {
-                        // show changelog if version changed
+                    } else if (
+                        this.appInfo &&
+                        this.appInfo.changelog_seen_version !== "999.999.999" &&
+                        this.appInfo.changelog_seen_version !== this.appInfo.version
+                    ) {
+                        // show changelog if version changed and not silenced forever
                         this.$refs.changelogModal.show();
                     }
                 }
