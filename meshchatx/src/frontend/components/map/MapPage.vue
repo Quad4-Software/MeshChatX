@@ -215,7 +215,7 @@
             <!-- telemetry marker overlay -->
             <div
                 v-if="selectedMarker"
-                class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 z-20 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 z-20 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
             >
                 <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -319,7 +319,7 @@
             <!-- export configuration overlay -->
             <div
                 v-if="isExportMode && selectedBbox"
-                class="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-80 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                class="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-80 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
             >
                 <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
                     <h3 class="font-semibold text-gray-900 dark:text-zinc-100">{{ $t("map.export_area") }}</h3>

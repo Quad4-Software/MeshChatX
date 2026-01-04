@@ -35,7 +35,7 @@
                     :icon-background-colour="
                         selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.background_colour : ''
                     "
-                    icon-class="size-10"
+                    icon-class="size-11"
                 />
             </div>
 
@@ -114,17 +114,17 @@
 
                 <!-- call button -->
                 <IconButton title="Start a Call" @click="onStartCall">
-                    <MaterialDesignIcon icon-name="phone" class="w-5 h-5" />
+                    <MaterialDesignIcon icon-name="phone" class="size-6" />
                 </IconButton>
 
                 <!-- share contact button -->
                 <IconButton title="Share Contact" @click="openShareContactModal">
-                    <MaterialDesignIcon icon-name="notebook-outline" class="w-5 h-5" />
+                    <MaterialDesignIcon icon-name="notebook-outline" class="size-6" />
                 </IconButton>
 
                 <!-- close button -->
                 <IconButton title="Close" @click="close">
-                    <MaterialDesignIcon icon-name="close" class="size-5" />
+                    <MaterialDesignIcon icon-name="close" class="size-6" />
                 </IconButton>
             </div>
         </div>
@@ -243,10 +243,78 @@
                             <!-- content -->
                             <div
                                 v-if="chatItem.lxmf_message.content"
-                                class="text-sm leading-relaxed whitespace-pre-wrap break-words"
-                                style="font-family: inherit"
+                                class="leading-relaxed whitespace-pre-wrap break-words"
+                                :style="{
+                                    'font-family': 'inherit',
+                                    'font-size': (config?.message_font_size || 14) + 'px',
+                                }"
                             >
                                 {{ chatItem.lxmf_message.content }}
+                            </div>
+
+                            <!-- parsed items (contacts / paper messages) -->
+                            <div v-if="getParsedItems(chatItem)" class="mt-2 space-y-2">
+                                <!-- contact -->
+                                <div
+                                    v-if="getParsedItems(chatItem).contact && !chatItem.is_outbound"
+                                    class="flex flex-col gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
+                                >
+                                    <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                        <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
+                                        <span class="text-sm font-bold">Contact Shared</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="size-10 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-200 font-bold"
+                                        >
+                                            {{ getParsedItems(chatItem).contact.name.charAt(0).toUpperCase() }}
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                {{ getParsedItems(chatItem).contact.name }}
+                                            </div>
+                                            <div
+                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
+                                            >
+                                                {{ getParsedItems(chatItem).contact.hash }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                        @click="
+                                            addContact(
+                                                getParsedItems(chatItem).contact.name,
+                                                getParsedItems(chatItem).contact.hash
+                                            )
+                                        "
+                                    >
+                                        Add to Contacts
+                                    </button>
+                                </div>
+
+                                <!-- paper message auto-conversion -->
+                                <div
+                                    v-if="getParsedItems(chatItem).paperMessage"
+                                    class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30"
+                                >
+                                    <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                                        <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
+                                        <span class="text-sm font-bold">Paper Message detected</span>
+                                    </div>
+                                    <p class="text-xs text-emerald-600/80 dark:text-emerald-400/80 leading-relaxed">
+                                        This message contains a signed LXMF URI that can be ingested into your
+                                        conversations.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                        @click="ingestPaperMessage(getParsedItems(chatItem).paperMessage)"
+                                    >
+                                        Ingest Message
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- image field -->
@@ -413,15 +481,6 @@
                                 @click.stop="deleteChatItem(chatItem)"
                             >
                                 Delete
-                            </button>
-
-                            <!-- share as paper message -->
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ml-2"
-                                @click.stop="shareAsPaperMessage(chatItem)"
-                            >
-                                Paper Message
                             </button>
                         </div>
                     </div>
@@ -766,6 +825,24 @@
                             <span class="hidden sm:inline">{{ $t("messages.request") }}</span>
                         </button>
                         <button
+                            type="button"
+                            class="attachment-action-button"
+                            :title="$t('messages.generate_paper_message')"
+                            :disabled="!canSendMessage || isGeneratingPaperMessage"
+                            @click="generatePaperMessageFromComposition"
+                        >
+                            <template v-if="isGeneratingPaperMessage">
+                                <div
+                                    class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                                ></div>
+                                <span class="hidden sm:inline">Generating...</span>
+                            </template>
+                            <template v-else>
+                                <MaterialDesignIcon icon-name="qrcode-plus" class="w-4 h-4" />
+                                <span class="hidden sm:inline">LXM</span>
+                            </template>
+                        </button>
+                        <button
                             v-if="hasTranslator && newMessageText"
                             type="button"
                             class="attachment-action-button"
@@ -871,6 +948,15 @@
         :message-hash="paperMessageHash"
         @close="isPaperMessageModalOpen = false"
     />
+
+    <PaperMessageModal
+        v-if="isPaperMessageResultModalOpen"
+        :initial-uri="generatedPaperMessageUri"
+        @close="
+            isPaperMessageResultModalOpen = false;
+            generatedPaperMessageUri = null;
+        "
+    />
 </template>
 
 <script>
@@ -967,6 +1053,9 @@ export default {
             expandedMessageInfo: null,
             imageModalUrl: null,
             isSelectedPeerBlocked: false,
+            isGeneratingPaperMessage: false,
+            generatedPaperMessageUri: null,
+            isPaperMessageResultModalOpen: false,
             lxmfAudioModeToCodec2ModeMap: {
                 // https://github.com/markqvist/LXMF/blob/master/LXMF/LXMF.py#L21
                 0x01: "450PWB", // AM_CODEC2_450PWB
@@ -1282,6 +1371,77 @@ export default {
                 this.isLoadingPrevious = false;
             }
         },
+        getParsedItems(chatItem) {
+            const content = chatItem.lxmf_message.content;
+            if (!content) return null;
+
+            const items = {
+                contact: null,
+                paperMessage: null,
+            };
+
+            // Parse contact: Contact: ivan <ca314c30b27eacec5f6ca6ac504e94c9>
+            const contactMatch = content.match(/^Contact:\s+(.+?)\s+<([a-fA-F0-9]{32})>$/i);
+            if (contactMatch) {
+                items.contact = {
+                    name: contactMatch[1],
+                    hash: contactMatch[2],
+                };
+            }
+
+            // Parse paper message link
+            const paperMatch = content.match(/(lxm|lxmf):\/\/[a-zA-Z0-9+/=]+/i);
+            if (paperMatch) {
+                items.paperMessage = paperMatch[0];
+            }
+
+            return items;
+        },
+        async addContact(name, hash) {
+            try {
+                // Check if contact already exists
+                const checkResponse = await window.axios.get(`/api/v1/telephone/contacts/check/${hash}`);
+                if (checkResponse.data?.id) {
+                    ToastUtils.info(`${name} is already in your contacts`);
+                    return;
+                }
+
+                await window.axios.post("/api/v1/telephone/contacts", {
+                    name: name,
+                    remote_identity_hash: hash,
+                });
+                ToastUtils.success(`Added ${name} to contacts`);
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error("Failed to add contact");
+            }
+        },
+        async ingestPaperMessage(uri) {
+            try {
+                WebSocketConnection.send(
+                    JSON.stringify({
+                        type: "lxm.ingest_uri",
+                        uri: uri,
+                    })
+                );
+                ToastUtils.info("Ingesting paper message...");
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error("Failed to ingest paper message");
+            }
+        },
+        async generatePaperMessageFromComposition() {
+            if (!this.canSendMessage) return;
+
+            this.isGeneratingPaperMessage = true;
+            WebSocketConnection.send(
+                JSON.stringify({
+                    type: "lxm.generate_paper_uri",
+                    destination_hash: this.selectedPeer.destination_hash,
+                    content: this.newMessageText,
+                })
+            );
+        },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
             switch (json.type) {
@@ -1311,6 +1471,26 @@ export default {
                 }
                 case "lxmf_message_deleted": {
                     this.onLxmfMessageDeleted(json.hash);
+                    break;
+                }
+                case "lxm.generate_paper_uri.result": {
+                    this.isGeneratingPaperMessage = false;
+                    if (json.status === "success") {
+                        this.generatedPaperMessageUri = json.uri;
+                        this.isPaperMessageResultModalOpen = true;
+                    } else {
+                        ToastUtils.error(json.message);
+                    }
+                    break;
+                }
+                case "lxm.ingest_uri.result": {
+                    if (json.status === "success") {
+                        ToastUtils.success(json.message);
+                    } else if (json.status === "error") {
+                        ToastUtils.error(json.message);
+                    } else {
+                        ToastUtils.warning(json.message);
+                    }
                     break;
                 }
             }

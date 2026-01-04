@@ -368,11 +368,41 @@
                                 <p>{{ $t("app.appearance_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-3">
-                            <select v-model="config.theme" class="input-field" @change="onThemeChange">
-                                <option value="light">{{ $t("app.light_theme") }}</option>
-                                <option value="dark">{{ $t("app.dark_theme") }}</option>
-                            </select>
+                        <div class="glass-card__body space-y-4">
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.theme") }}
+                                </div>
+                                <select v-model="config.theme" class="input-field" @change="onThemeChange">
+                                    <option value="light">{{ $t("app.light_theme") }}</option>
+                                    <option value="dark">{{ $t("app.dark_theme") }}</option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Message Font Size
+                                    </div>
+                                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                                        {{ config.message_font_size || 14 }}px
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-gray-400">A</span>
+                                    <input
+                                        v-model.number="config.message_font_size"
+                                        type="range"
+                                        min="10"
+                                        max="32"
+                                        step="1"
+                                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                        @input="onMessageFontSizeChange"
+                                    />
+                                    <span class="text-lg text-gray-400">A</span>
+                                </div>
+                            </div>
+
                             <div
                                 class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-2xl px-3 py-2"
                             >
@@ -925,6 +955,17 @@ export default {
                 },
                 "theme"
             );
+        },
+        async onMessageFontSizeChange() {
+            if (this.saveTimeouts.message_font_size) clearTimeout(this.saveTimeouts.message_font_size);
+            this.saveTimeouts.message_font_size = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        message_font_size: this.config.message_font_size,
+                    },
+                    "message_font_size"
+                );
+            }, 1000);
         },
         async onLanguageChange() {
             await this.updateConfig(

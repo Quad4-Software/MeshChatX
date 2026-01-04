@@ -53,7 +53,7 @@
                                     :icon-name="iconName"
                                     :icon-foreground-colour="iconForegroundColour"
                                     :icon-background-colour="iconBackgroundColour"
-                                    icon-class="size-16"
+                                    icon-class="size-24"
                                 />
                             </div>
                             <div class="text-xs text-gray-500 dark:text-zinc-400 text-center max-w-md">
@@ -154,7 +154,7 @@
                                     :icon-background-colour="
                                         iconName === mdiIconName ? iconBackgroundColour : '#e5e7eb'
                                     "
-                                    icon-class="size-8"
+                                    icon-class="size-12"
                                 />
                                 <div
                                     class="mt-2 text-xs text-center text-gray-600 dark:text-zinc-400 truncate w-full"

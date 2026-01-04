@@ -3,46 +3,98 @@
     <div class="flex flex-col h-full bg-slate-50 dark:bg-zinc-950 overflow-hidden">
         <!-- Header -->
         <div
-            class="p-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between z-30"
+            class="p-2 md:p-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center gap-4 z-30"
         >
-            <div class="flex items-center space-x-3">
-                <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+            <!-- Title Section -->
+            <div class="flex items-center space-x-3 shrink-0">
+                <div class="hidden md:block p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                     <MaterialDesignIcon
                         icon-name="book-open-variant"
                         class="w-5 h-5 text-blue-600 dark:text-blue-400"
                     />
                 </div>
-                <div>
-                    <h1 class="text-sm font-bold text-gray-900 dark:text-zinc-100">{{ $t("docs.title") }}</h1>
+                <div class="shrink-0">
+                    <h1 class="text-xs md:text-sm font-bold text-gray-900 dark:text-zinc-100">
+                        {{ $t("docs.title") }}
+                    </h1>
                     <div
                         v-if="status.has_docs || status.has_meshchatx_docs"
-                        class="flex items-center text-[10px] text-gray-500"
+                        class="hidden md:flex items-center text-[10px] text-gray-500"
                     >
                         <span class="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
-                        Offline Ready
+                        Ready
                     </div>
                 </div>
             </div>
 
-            <div class="flex items-center space-x-2">
-                <!-- Export Docs Button -->
-                <button
-                    v-if="status.has_docs || status.has_meshchatx_docs"
-                    class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                    title="Export all documentation as ZIP"
-                    @click="exportDocs"
-                >
-                    <MaterialDesignIcon icon-name="download" class="w-5 h-5" />
-                </button>
+            <!-- Search & Navigation (Desktop) -->
+            <div class="hidden lg:flex flex-1 items-center gap-4 max-w-3xl">
+                <!-- Tabs -->
+                <div class="flex bg-gray-100 dark:bg-zinc-800 p-0.5 rounded-lg shrink-0">
+                    <button
+                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
+                        :class="
+                            activeTab === 'meshchatx'
+                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                        "
+                        @click="activeTab = 'meshchatx'"
+                    >
+                        MeshChatX
+                    </button>
+                    <button
+                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
+                        :class="
+                            activeTab === 'reticulum'
+                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
+                        "
+                        @click="activeTab = 'reticulum'"
+                    >
+                        Reticulum
+                    </button>
+                </div>
 
-                <div v-if="activeTab === 'reticulum' && otherLanguages.length > 0 && status.has_docs" class="relative">
+                <!-- Search Input -->
+                <div v-if="status.has_docs || status.has_meshchatx_docs" class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                        <MaterialDesignIcon icon-name="magnify" class="h-3.5 w-3.5 text-gray-400" />
+                    </div>
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        class="block w-full pl-8 pr-8 py-1.5 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        placeholder="Search documentation..."
+                        @input="debounceSearch"
+                    />
+                    <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-2.5 flex items-center">
+                        <MaterialDesignIcon icon-name="loading" class="h-3 w-3 text-gray-400 animate-spin" />
+                    </div>
+                    <button
+                        v-else-if="searchQuery"
+                        class="absolute inset-y-0 right-0 pr-2.5 flex items-center"
+                        @click="clearSearch"
+                    >
+                        <MaterialDesignIcon
+                            icon-name="close"
+                            class="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 cursor-pointer"
+                        />
+                    </button>
+                </div>
+            </div>
+
+            <!-- Actions Section -->
+            <div class="flex items-center space-x-1 md:space-x-2 ml-auto shrink-0">
+                <!-- Language Selector -->
+                <div v-if="activeTab === 'reticulum' && status.has_docs" class="relative">
                     <button
                         v-click-outside="() => (showLanguages = false)"
-                        class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                        class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-1.5"
                         :class="{ 'bg-gray-100 dark:bg-zinc-800': showLanguages }"
                         @click="showLanguages = !showLanguages"
                     >
-                        <MaterialDesignIcon icon-name="translate" class="w-5 h-5" />
+                        <MaterialDesignIcon icon-name="translate" class="w-4 h-4 md:w-5 md:h-5" />
+                        <span class="hidden xl:inline text-[10px] font-bold uppercase">{{ currentLang }}</span>
                     </button>
                     <div
                         v-if="showLanguages"
@@ -60,9 +112,20 @@
                     </div>
                 </div>
 
+                <!-- Export Button -->
+                <button
+                    v-if="status.has_docs || status.has_meshchatx_docs"
+                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    title="Export all documentation as ZIP"
+                    @click="exportDocs"
+                >
+                    <MaterialDesignIcon icon-name="download" class="w-4 h-4 md:w-5 md:h-5" />
+                </button>
+
+                <!-- Update Button -->
                 <button
                     :disabled="status.status === 'downloading' || status.status === 'extracting'"
-                    class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
                     :title="status.has_docs ? $t('docs.btn_update') : $t('docs.btn_download')"
                     @click="updateDocs"
                 >
@@ -71,32 +134,33 @@
                             status.status === 'downloading' || status.status === 'extracting' ? 'loading' : 'refresh'
                         "
                         :class="{ 'animate-spin': status.status === 'downloading' || status.status === 'extracting' }"
-                        class="w-5 h-5"
+                        class="w-4 h-4 md:w-5 md:h-5"
                     />
                 </button>
 
+                <!-- Open External -->
                 <a
                     v-if="status.has_docs"
                     :href="localDocsUrl"
                     target="_blank"
-                    class="flex items-center px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-xs shadow-sm"
+                    class="hidden sm:flex items-center px-2.5 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-sm"
                 >
-                    <MaterialDesignIcon icon-name="open-in-new" class="w-3.5 h-3.5 mr-1.5" />
+                    <MaterialDesignIcon icon-name="open-in-new" class="w-3 h-3 mr-1.5" />
                     Open
                 </a>
             </div>
         </div>
 
-        <!-- Search Bar -->
+        <!-- Secondary Navigation (Mobile/Tablet) -->
         <div
-            v-if="status.has_docs || status.has_meshchatx_docs"
-            class="px-4 py-2 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 z-10"
+            v-if="(status.has_docs || status.has_meshchatx_docs) && !isSearching"
+            class="lg:hidden px-3 py-2 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 z-10"
         >
-            <div class="flex flex-col md:flex-row items-center gap-4 max-w-4xl mx-auto w-full">
+            <div class="flex flex-col md:flex-row items-center gap-2 w-full">
                 <!-- Tabs -->
-                <div class="flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-xl shrink-0 w-full md:w-auto">
+                <div class="flex bg-gray-100 dark:bg-zinc-800 p-0.5 rounded-lg w-full md:w-auto">
                     <button
-                        class="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all"
+                        class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'meshchatx'
                                 ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
@@ -107,7 +171,7 @@
                         MeshChatX
                     </button>
                     <button
-                        class="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all"
+                        class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'reticulum'
                                 ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
@@ -120,14 +184,14 @@
                 </div>
 
                 <!-- Search Input -->
-                <div class="relative flex-1 w-full">
+                <div class="relative w-full">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <MaterialDesignIcon icon-name="magnify" class="h-4 w-4 text-gray-400" />
+                        <MaterialDesignIcon icon-name="magnify" class="h-3.5 w-3.5 text-gray-400" />
                     </div>
                     <input
                         v-model="searchQuery"
                         type="text"
-                        class="block w-full pl-10 pr-10 py-1.5 border border-gray-200 dark:border-zinc-700 rounded-xl bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        class="block w-full pl-9 pr-9 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                         placeholder="Search all documentation..."
                         @input="debounceSearch"
                     />
@@ -325,27 +389,6 @@
 
                     <div v-if="selectedDocContent" class="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
                         <div class="max-w-3xl mx-auto">
-                            <!-- Share Actions -->
-                            <div
-                                class="flex items-center justify-between mb-8 pb-4 border-b border-gray-100 dark:border-zinc-800"
-                            >
-                                <div class="flex items-center space-x-2 text-gray-400">
-                                    <MaterialDesignIcon icon-name="clock-outline" class="w-3 h-3" />
-                                    <span class="text-[10px] font-mono uppercase tracking-tighter"
-                                        >Ready for sharing</span
-                                    >
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <button
-                                        class="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg text-[10px] font-bold text-gray-600 dark:text-zinc-300 transition-colors"
-                                        @click="copyDocLink"
-                                    >
-                                        <MaterialDesignIcon icon-name="share-variant" class="w-3.5 h-3.5" />
-                                        <span>Share Link</span>
-                                    </button>
-                                </div>
-                            </div>
-
                             <div class="max-w-none break-words" v-html="selectedDocContent.html"></div>
                         </div>
                     </div>
@@ -476,10 +519,16 @@ export default {
             try {
                 const response = await window.axios.get("/api/v1/docs/status");
                 this.status = response.data;
+
+                // Auto-download Reticulum docs if missing and we're not already doing something
+                if (!this.status.has_docs && this.status.status === "idle" && !this.status.last_error) {
+                    this.updateDocs();
+                }
+
                 // If we don't have Reticulum docs but have MeshChatX docs, default to MeshChatX tab
-                if (!this.status.has_docs && this.status.has_meshchatx_docs) {
+                if (!this.status.has_docs && this.status.has_meshchatx_docs && this.activeTab === "reticulum") {
                     this.activeTab = "meshchatx";
-                } else if (this.status.has_docs && !this.status.has_meshchatx_docs) {
+                } else if (this.status.has_docs && !this.status.has_meshchatx_docs && this.activeTab === "meshchatx") {
                     this.activeTab = "reticulum";
                 }
             } catch (error) {
@@ -619,5 +668,29 @@ export default {
 /* Ensure the iframe fills the container and respects dark mode if possible */
 iframe {
     color-scheme: light dark;
+}
+
+/* Markdown styling for the rendered HTML */
+:deep(.max-w-none) pre {
+    color: #f4f4f5 !important; /* zinc-100 */
+}
+
+:deep(.max-w-none) pre code {
+    color: inherit !important;
+}
+
+:deep(.max-w-none) code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.dark :deep(.max-w-none) p {
+    color: #e4e4e7; /* zinc-200 */
+}
+
+.dark :deep(.max-w-none) h1,
+.dark :deep(.max-w-none) h2,
+.dark :deep(.max-w-none) h3,
+.dark :deep(.max-w-none) h4 {
+    color: #f4f4f5; /* zinc-100 */
 }
 </style>

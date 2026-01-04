@@ -8,11 +8,11 @@
     </div>
     <div
         v-else-if="iconName"
-        class="p-[15%] rounded-full shrink-0 flex items-center justify-center"
+        class="p-[10%] rounded-full shrink-0 flex items-center justify-center"
         :style="{ 'background-color': finalBackgroundColor }"
         :class="iconClass || 'size-6'"
     >
-        <MaterialDesignIcon :icon-name="iconName" class="w-full h-full" :style="{ color: finalForegroundColor }" />
+        <MaterialDesignIcon :icon-name="iconName" class="size-full" :style="{ color: finalForegroundColor }" />
     </div>
     <div
         v-else

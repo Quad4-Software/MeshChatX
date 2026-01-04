@@ -127,7 +127,7 @@
                                                 ? (activeCall || lastCall).remote_icon.background_colour
                                                 : ''
                                         "
-                                        icon-class="size-20"
+                                        icon-class="size-28"
                                     />
                                 </div>
 

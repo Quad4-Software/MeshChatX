@@ -315,6 +315,7 @@
                                                     :icon-name="config?.lxmf_user_icon_name"
                                                     :icon-foreground-colour="config?.lxmf_user_icon_foreground_colour"
                                                     :icon-background-colour="config?.lxmf_user_icon_background_colour"
+                                                    icon-class="size-7"
                                                 />
                                             </RouterLink>
                                         </div>

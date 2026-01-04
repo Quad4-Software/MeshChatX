@@ -126,18 +126,30 @@ export default {
     props: {
         messageHash: {
             type: String,
-            required: true,
+            required: false,
+            default: null,
+        },
+        initialUri: {
+            type: String,
+            required: false,
+            default: null,
         },
     },
     emits: ["close"],
     data() {
         return {
-            uri: null,
-            isLoading: true,
+            uri: this.initialUri,
+            isLoading: !this.initialUri,
         };
     },
     async mounted() {
-        await this.fetchUri();
+        if (!this.uri && this.messageHash) {
+            await this.fetchUri();
+        } else if (this.uri) {
+            this.$nextTick(() => {
+                this.renderQRCode();
+            });
+        }
     },
     methods: {
         async fetchUri() {

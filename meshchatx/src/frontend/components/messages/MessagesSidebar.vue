@@ -127,7 +127,7 @@
                                 :icon-background-colour="
                                     conversation.lxmf_user_icon ? conversation.lxmf_user_icon.background_colour : ''
                                 "
-                                icon-class="w-6 h-6"
+                                icon-class="size-7"
                             />
                         </div>
                         <div class="mr-auto w-full pr-2 min-w-0">
@@ -263,22 +263,12 @@
                         </div>
 
                         <div class="my-auto mr-2">
-                            <div
-                                v-if="peer.lxmf_user_icon"
-                                class="p-2 rounded"
-                                :style="{
-                                    color: peer.lxmf_user_icon.foreground_colour,
-                                    'background-color': peer.lxmf_user_icon.background_colour,
-                                }"
-                            >
-                                <MaterialDesignIcon :icon-name="peer.lxmf_user_icon.icon_name" class="w-6 h-6" />
-                            </div>
-                            <div
-                                v-else
-                                class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded"
-                            >
-                                <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6" />
-                            </div>
+                            <LxmfUserIcon
+                                :icon-name="peer.lxmf_user_icon?.icon_name"
+                                :icon-foreground-colour="peer.lxmf_user_icon?.foreground_colour"
+                                :icon-background-colour="peer.lxmf_user_icon?.background_colour"
+                                icon-class="size-7"
+                            />
                         </div>
                         <div class="min-w-0 flex-1">
                             <div

@@ -7,10 +7,10 @@
         fill="currentColor"
         width="100%"
         height="100%"
-        style="display: inline-block; vertical-align: middle; shape-rendering: inherit"
+        style="display: block"
         class="antialiased"
     >
-        <path :d="iconPath" />
+        <path :d="iconPath" fill="currentColor" />
     </svg>
 </template>
 
