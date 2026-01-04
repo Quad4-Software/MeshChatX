@@ -41,7 +41,7 @@ jobs:
                     if [ -z "${VERSION}" ]; then
                       VERSION="${{ github.ref_name }}"
                     fi
-                    if [ "${VERSION}" = "master" ] || [ "${VERSION}" = "main" ]; then
+                    if [ "${VERSION}" = "master" ]; then
                       echo "Error: Invalid tag name '${VERSION}'. Tag name cannot be a branch name." >&2
                       exit 1
                     fi
@@ -72,7 +72,7 @@ jobs:
             - name: Install system dependencies
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng wine nsis zip
+                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng wine nsis zip rpm flatpak flatpak-builder
 
             - name: Setup Task
               uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
@@ -88,10 +88,18 @@ jobs:
             - name: Build Python wheel
               run: task wheel
 
-            - name: Build Electron App (Linux)
+            - name: Build Electron App (Appimage)
               run: pnpm run dist:linux
 
-            - name: Build Electron App (Windows)
+            - name: Build Electron App (RPM)
+              continue-on-error: true
+              run: task build-rpm
+
+            - name: Build Electron App (Flatpak)
+              continue-on-error: true
+              run: task build-flatpak
+
+            - name: Build Electron App (Windows EXE and NSIS)
               run: pnpm run dist:windows
 
             - name: Prepare release assets
@@ -99,7 +107,7 @@ jobs:
                   mkdir -p release-assets
                   # Collect artifacts from dist/
                   # Linux artifacts
-                  find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" \) -exec cp {} release-assets/ \;
+                  find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" -o -name "*-linux*.flatpak" \) -exec cp {} release-assets/ \;
                   # Windows artifacts
                   find dist -maxdepth 1 -type f \( -name "*-win*.exe" \) -exec cp {} release-assets/ \;
                   # Python artifacts
@@ -107,6 +115,11 @@ jobs:
 
                   # Create frontend zip
                   (cd meshchatx/public && zip -r ../../release-assets/meshchatx-frontend.zip .)
+
+                  # Generate SBOM (CycloneDX)
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Extra/assets/raw/commit/90fdcea1bb71d91df2de6ff2e3897f278413f300/bin/trivy_0.68.2_Linux-64bit.deb
+                  sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
+                  trivy fs --format cyclonedx --include-dev-deps --output release-assets/sbom.cyclonedx.json .
 
                   # Generate checksums
                   cd release-assets
@@ -137,7 +150,7 @@ jobs:
                     echo "Error: Version is empty" >&2
                     exit 1
                   fi
-                  if [ "${VERSION}" = "master" ] || [ "${VERSION}" = "main" ]; then
+                  if [ "${VERSION}" = "master" ]; then
                     echo "Error: Invalid version '${VERSION}'. Version cannot be a branch name." >&2
                     exit 1
                   fi
@@ -154,10 +167,13 @@ jobs:
                   files: |
                       release-assets/*.AppImage
                       release-assets/*.deb
+                      release-assets/*.rpm
+                      release-assets/*.flatpak
                       release-assets/*.exe
                       release-assets/*.whl
                       release-assets/*.sha256
                       release-assets/*.zip
+                      release-assets/sbom.cyclonedx.json
                   body_path: "release-body.md"
                   draft: false
                   prerelease: false
