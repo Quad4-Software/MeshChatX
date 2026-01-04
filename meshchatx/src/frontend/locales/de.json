@@ -17,6 +17,7 @@
         "about": "Über",
         "changelog_title": "Was ist neu",
         "do_not_show_again": "Für diese Version nicht mehr anzeigen",
+        "do_not_show_ever": "Nie wieder anzeigen",
         "tutorial_title": "Tutorial",
         "tutorial_welcome": "Willkommen bei MeshChatX",
         "tutorial_connect": "Verbinden Sie sich mit dem Mesh",
@@ -158,7 +159,8 @@
         "sync_complete": "Synchronisierung abgeschlossen. {count} Nachrichten empfangen.",
         "sync_error": "Synchronisierungsfehler: {status}",
         "switching_identity": "Identität wird gewechselt...",
-        "loading_identity": "Ihre Identität wird geladen"
+        "loading_identity": "Ihre Identität wird geladen",
+        "emergency_mode_active": "Notfallmodus aktiv - In-Memory-Datenbank und eingeschränkte Dienste werden verwendet."
     },
     "common": {
         "open": "Öffnen",

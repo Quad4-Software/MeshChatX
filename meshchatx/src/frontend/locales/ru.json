@@ -17,6 +17,7 @@
         "about": "О программе",
         "changelog_title": "Что нового",
         "do_not_show_again": "Не показывать снова для этой версии",
+        "do_not_show_ever": "Больше никогда не показывать",
         "tutorial_title": "Руководство",
         "tutorial_welcome": "Добро пожаловать в MeshChatX",
         "tutorial_connect": "Подключение к сети Mesh",
@@ -158,7 +159,8 @@
         "sync_complete": "Синхронизация завершена. Получено сообщений: {count}.",
         "sync_error": "Ошибка синхронизации: {status}",
         "switching_identity": "Переключение личности...",
-        "loading_identity": "Загрузка вашей личности"
+        "loading_identity": "Загрузка вашей личности",
+        "emergency_mode_active": "Аварийный режим активен — используется база данных в оперативной памяти и ограниченные службы."
     },
     "common": {
         "open": "Открыть",

@@ -17,6 +17,7 @@
         "about": "About",
         "changelog_title": "What's New",
         "do_not_show_again": "Do not show again for this version",
+        "do_not_show_ever": "Do not show ever again",
         "tutorial_title": "Getting Started",
         "tutorial_welcome": "Welcome to MeshChatX",
         "tutorial_connect": "Connect to the Mesh",
