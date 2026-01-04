@@ -28,6 +28,7 @@ def mock_rns_minimal():
         yield mock_id
 
 
+@pytest.mark.asyncio
 async def test_app_status_endpoints(mock_rns_minimal, temp_dir):
     # Setup app with minimal mocks using ExitStack to avoid too many nested blocks
     from contextlib import ExitStack

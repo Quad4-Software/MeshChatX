@@ -59,17 +59,18 @@ def test_docs_manager_readonly_public_dir_handling(tmp_path):
     os.chmod(public_dir, 0o555)
 
     config = MagicMock()
-    try:
-        # Should not crash even if os.makedirs fails
+    # Mock os.makedirs to force it to fail, as some environments (like CI running as root)
+    # might still allow writing to 555 directories.
+    with patch("os.makedirs", side_effect=OSError("Read-only file system")):
         dm = DocsManager(config, str(public_dir))
         assert dm.last_error is not None
         assert (
             "Read-only file system" in dm.last_error
             or "Permission denied" in dm.last_error
         )
-    finally:
-        # Restore permissions for cleanup
-        os.chmod(public_dir, 0o755)
+
+    # Restore permissions for cleanup
+    os.chmod(public_dir, 0o755)
 
 
 def test_has_docs(docs_manager, temp_dirs):

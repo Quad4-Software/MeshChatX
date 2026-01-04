@@ -93,7 +93,9 @@ async def test_app_shutdown_endpoint(mock_rns_minimal, temp_dir):
         )
 
         # Mock shutdown method to avoid actual exit
-        app_instance.shutdown = MagicMock(side_effect=asyncio.sleep(0))
+        from unittest.mock import AsyncMock
+
+        app_instance.shutdown = AsyncMock()
 
         # Create a mock request
         request = MagicMock()
@@ -108,10 +110,7 @@ async def test_app_shutdown_endpoint(mock_rns_minimal, temp_dir):
         assert shutdown_handler is not None
 
         # We need to patch sys.exit to avoid stopping the test runner
-        with (
-            patch("sys.exit"),
-            patch("asyncio.sleep", return_value=asyncio.sleep(0)),
-        ):
+        with patch("sys.exit"):
             response = await shutdown_handler(request)
             assert response.status == 200
             data = json.loads(response.body)

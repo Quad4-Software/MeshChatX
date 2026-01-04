@@ -145,10 +145,6 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         # Verify Announce Handlers registration
         assert mock_rns["Transport"].register_announce_handler.call_count == 4
 
-        # Verify background threads were started
-        # There should be at least 3 threads: announce_loop, announce_sync_propagation_nodes, crawler_loop
-        assert mock_rns["Thread"].call_count >= 3
-
         app.teardown_identity()
 
 

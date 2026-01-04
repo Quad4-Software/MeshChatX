@@ -158,6 +158,7 @@ def mock_app(temp_dir):
         )
         mock_async_utils = stack.enter_context(patch("meshchatx.meshchat.AsyncUtils"))
         stack.enter_context(patch("LXMF.LXMRouter"))
+        stack.enter_context(patch("LXST.Primitives.Telephony"))
         stack.enter_context(patch("RNS.Identity", MockIdentityClass))
         mock_reticulum_class = stack.enter_context(patch("RNS.Reticulum"))
         mock_reticulum_class.MTU = 1200
@@ -183,6 +184,11 @@ def mock_app(temp_dir):
         stack.enter_context(
             patch.object(
                 ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
+            ),
+        )
+        stack.enter_context(
+            patch.object(
+                ReticulumMeshChat, "auto_backup_loop", new=MagicMock(return_value=None)
             ),
         )
 

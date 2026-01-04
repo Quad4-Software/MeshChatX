@@ -26,6 +26,15 @@ def mock_rns():
             self.hash = b"test_hash_32_bytes_long_01234567"
             self.hexhash = self.hash.hex()
 
+        def get_private_key(self):
+            return b"test_private_key"
+
+        def load(self, *args, **kwargs):
+            pass
+
+        def load_private_key(self, *args, **kwargs):
+            pass
+
     with (
         patch("RNS.Reticulum") as mock_reticulum,
         patch("RNS.Transport") as mock_transport,
@@ -43,7 +52,6 @@ def mock_rns():
         ),
     ):
         mock_id_instance = MockIdentityClass()
-        mock_id_instance.get_private_key = MagicMock(return_value=b"test_private_key")
 
         with (
             patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance),
@@ -217,9 +225,7 @@ def test_identity_loading_fallback(mock_rns, temp_dir):
 def test_cli_flags_and_envs(mock_rns, temp_dir):
     with (
         patch("meshchatx.meshchat.ReticulumMeshChat") as mock_app_class,
-        patch("RNS.Identity"),
         patch("aiohttp.web.run_app"),
-        patch("os.makedirs"),
     ):
         # Test Env Vars
         env = {
@@ -227,6 +233,7 @@ def test_cli_flags_and_envs(mock_rns, temp_dir):
             "MESHCHAT_PORT": "9000",
             "MESHCHAT_AUTO_RECOVER": "true",
             "MESHCHAT_AUTH": "1",
+            "MESHCHAT_STORAGE_DIR": temp_dir,
         }
         with patch.dict("os.environ", env):
             with patch("sys.argv", ["meshchat.py"]):
@@ -248,7 +255,16 @@ def test_cli_flags_and_envs(mock_rns, temp_dir):
         with patch.dict("os.environ", env):
             with patch(
                 "sys.argv",
-                ["meshchat.py", "--host", "5.6.7.8", "--port", "7000", "--no-https"],
+                [
+                    "meshchat.py",
+                    "--host",
+                    "5.6.7.8",
+                    "--port",
+                    "7000",
+                    "--no-https",
+                    "--storage-dir",
+                    temp_dir,
+                ],
             ):
                 main()
 

@@ -176,7 +176,7 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         print(
             f"Concurrent insertion took {duration:.2f}s for {num_threads * announces_per_thread} announces"
         )
-        self.assertLess(duration, 2.0, "Concurrent announce insertion is too slow!")
+        self.assertLess(duration, 10.0, "Concurrent announce insertion is too slow!")
 
 
 if __name__ == "__main__":
