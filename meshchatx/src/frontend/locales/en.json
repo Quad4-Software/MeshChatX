@@ -91,6 +91,7 @@
         "last_sync": "Last Sync: {time} ago",
         "last_sync_never": "Last Sync: never",
         "syncing": "Syncing...",
+        "syncing_node": "Syncing... ({state})",
         "synced": "Synced",
         "not_synced": "Not Synced",
         "not_configured": "Not Configured",
