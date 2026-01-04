@@ -8,6 +8,14 @@ import ChangelogModal from "../../meshchatx/src/frontend/components/ChangelogMod
 import NotificationBell from "../../meshchatx/src/frontend/components/NotificationBell.vue";
 import LanguageSelector from "../../meshchatx/src/frontend/components/LanguageSelector.vue";
 
+vi.mock("vuetify", () => ({
+    useTheme: vi.fn(() => ({
+        global: {
+            name: { value: "light" },
+        },
+    })),
+}));
+
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
         on: vi.fn(),
@@ -344,6 +352,7 @@ describe("Visibility Checks", () => {
                         banished_effect_enabled: true,
                         banished_text: "BANISHED",
                         banished_color: "#dc2626",
+                        blackhole_integration_enabled: true,
                     },
                 },
             }),
@@ -375,6 +384,42 @@ describe("Visibility Checks", () => {
         const hasBanishedConfig =
             wrapper.text().includes("app.banished") || wrapper.findAll('input[type="text"]').length > 0;
         expect(hasBanishedConfig).toBe(true);
+
+        delete window.axios;
+    });
+
+    it("SettingsPage shows blackhole integration toggle", async () => {
+        const axiosMock = {
+            get: vi.fn().mockResolvedValue({
+                data: {
+                    config: {
+                        blackhole_integration_enabled: true,
+                    },
+                },
+            }),
+            patch: vi.fn().mockResolvedValue({ data: {} }),
+        };
+        window.axios = axiosMock;
+
+        const wrapper = mount(SettingsPage, {
+            global: {
+                stubs: {
+                    MaterialDesignIcon: { template: "<div></div>" },
+                    Toggle: Toggle,
+                    ShortcutRecorder: { template: "<div></div>" },
+                    RouterLink: { template: "<a><slot /></a>" },
+                },
+                mocks: {
+                    $t: (key) => key,
+                    $router: { push: vi.fn() },
+                },
+            },
+        });
+
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("app.blackhole_integration_enabled");
 
         delete window.axios;
     });

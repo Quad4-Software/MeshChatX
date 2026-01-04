@@ -32,6 +32,7 @@ describe("NotificationBell.vue", () => {
                 },
                 stubs: {
                     MaterialDesignIcon: true,
+                    Teleport: true,
                 },
                 directives: {
                     "click-outside": {},
@@ -172,6 +173,7 @@ describe("NotificationBell.vue", () => {
                 },
                 stubs: {
                     MaterialDesignIcon: true,
+                    Teleport: true,
                 },
                 directives: {
                     "click-outside": {},
