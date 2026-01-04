@@ -37,7 +37,19 @@ jobs:
               run: task install
 
             - name: Run Benchmarks
-              run: task bench
+              id: bench
+              run: |
+                  set -o pipefail
+                  task bench 2>&1 | tee bench_results.txt
 
             - name: Run Integrity Tests
-              run: task test-integrity
+              id: integrity
+              run: |
+                  set -o pipefail
+                  task test-integrity 2>&1 | tee -a bench_results.txt
+
+            - name: Post Results to PR
+              if: always() && github.event_name == 'pull_request'
+              env:
+                  GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+              run: bash scripts/post_bench_results.sh
