@@ -22,7 +22,7 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         self.reticulum_mock.get_packet_q.return_value = 3
 
     def tearDown(self):
-        self.db.close()
+        self.db.close_all()
         shutil.rmtree(self.test_dir)
 
     def test_message_pagination_performance(self):

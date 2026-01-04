@@ -63,6 +63,8 @@ def mock_app():
         stack.enter_context(patch("RNS.Identity", MockIdentityClass))
         stack.enter_context(patch("RNS.Reticulum"))
         stack.enter_context(patch("RNS.Transport"))
+        mock_packet = stack.enter_context(patch("RNS.Packet"))
+        mock_packet.MTU = 500  # Set a default MTU to avoid MagicMock comparison errors
         stack.enter_context(patch("threading.Thread"))
         stack.enter_context(
             patch.object(
@@ -79,6 +81,16 @@ def mock_app():
         stack.enter_context(
             patch.object(
                 ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
+            ),
+        )
+        stack.enter_context(
+            patch.object(
+                ReticulumMeshChat, "auto_backup_loop", new=MagicMock(return_value=None)
+            ),
+        )
+        stack.enter_context(
+            patch.object(
+                ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
             ),
         )
 
@@ -132,6 +144,7 @@ def mock_app():
         app.websocket_broadcast = MagicMock()
 
         yield app
+        app.teardown_identity()
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)

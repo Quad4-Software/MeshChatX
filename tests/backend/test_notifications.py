@@ -29,7 +29,8 @@ def db(temp_db):
     schema.initialize()
     database = Database(temp_db)
     yield database
-    database.close()
+    database.close_all()
+    provider.close_all()
 
 
 @pytest.fixture
@@ -110,6 +111,18 @@ def mock_app(db, tmp_path):
             )
         )
 
+        stack.enter_context(
+            patch.object(
+                ReticulumMeshChat, "auto_backup_loop", new=MagicMock(return_value=None)
+            )
+        )
+        # Prevent JSON serialization issues with MagicMocks
+        stack.enter_context(
+            patch.object(
+                ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
+            )
+        )
+
         app = ReticulumMeshChat(
             identity=mock_id,
             storage_dir=str(tmp_path),
@@ -120,7 +133,8 @@ def mock_app(db, tmp_path):
         app.database = db
         app.websocket_broadcast = MagicMock(side_effect=lambda data: None)
 
-        return app
+        yield app
+        app.teardown_identity()
 
 
 def test_add_get_notifications(db):

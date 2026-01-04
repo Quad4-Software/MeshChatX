@@ -32,6 +32,15 @@ def mock_rns():
         patch("threading.Thread") as mock_thread,
         patch("LXMF.LXMRouter") as mock_lxmf_router,
         patch("meshchatx.meshchat.get_file_path", return_value="/tmp/mock_path"),
+        patch.object(ReticulumMeshChat, "announce_loop", return_value=None),
+        patch.object(
+            ReticulumMeshChat, "announce_sync_propagation_nodes", return_value=None
+        ),
+        patch.object(ReticulumMeshChat, "crawler_loop", return_value=None),
+        patch.object(ReticulumMeshChat, "auto_backup_loop", return_value=None),
+        patch.object(
+            ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
+        ),
     ):
         # Setup mock instance
         mock_id_instance = MockIdentityClass()
@@ -140,6 +149,8 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         # There should be at least 3 threads: announce_loop, announce_sync_propagation_nodes, crawler_loop
         assert mock_rns["Thread"].call_count >= 3
 
+        app.teardown_identity()
+
 
 def test_reticulum_meshchat_init_with_auth(mock_rns, temp_dir):
     with (
@@ -173,6 +184,7 @@ def test_reticulum_meshchat_init_with_auth(mock_rns, temp_dir):
         )
 
         assert app.auth_enabled is True
+        app.teardown_identity()
 
 
 def test_reticulum_meshchat_init_database_failure_recovery(mock_rns, temp_dir):
@@ -199,7 +211,7 @@ def test_reticulum_meshchat_init_database_failure_recovery(mock_rns, temp_dir):
         # Fail the first initialize call
         mock_db_instance.initialize.side_effect = [Exception("DB Error"), None]
 
-        _ = ReticulumMeshChat(
+        app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
@@ -208,3 +220,4 @@ def test_reticulum_meshchat_init_database_failure_recovery(mock_rns, temp_dir):
 
         assert mock_recovery.called
         assert mock_db_instance.initialize.call_count == 2
+        app.teardown_identity()

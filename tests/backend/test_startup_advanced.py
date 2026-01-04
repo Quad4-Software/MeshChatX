@@ -32,6 +32,15 @@ def mock_rns():
         patch("RNS.Identity", MockIdentityClass),
         patch("threading.Thread"),
         patch("LXMF.LXMRouter"),
+        patch.object(ReticulumMeshChat, "announce_loop", return_value=None),
+        patch.object(
+            ReticulumMeshChat, "announce_sync_propagation_nodes", return_value=None
+        ),
+        patch.object(ReticulumMeshChat, "crawler_loop", return_value=None),
+        patch.object(ReticulumMeshChat, "auto_backup_loop", return_value=None),
+        patch.object(
+            ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
+        ),
     ):
         mock_id_instance = MockIdentityClass()
         mock_id_instance.get_private_key = MagicMock(return_value=b"test_private_key")
@@ -112,6 +121,7 @@ def test_run_https_logic(mock_rns, temp_dir):
         app.run(host="127.0.0.1", port=8000, launch_browser=False, enable_https=False)
         args, kwargs = mock_run_app.call_args
         assert kwargs.get("ssl_context") is None
+        app.teardown_identity()
 
 
 # 2. Test specific database integrity failure recovery
@@ -152,7 +162,7 @@ def test_database_integrity_recovery(mock_rns, temp_dir):
         mock_config.auth_session_secret.get.return_value = "test_secret"
         mock_config.display_name.get.return_value = "Test"
 
-        _ = ReticulumMeshChat(
+        app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
@@ -164,6 +174,7 @@ def test_database_integrity_recovery(mock_rns, temp_dir):
         assert mock_db_instance.provider.integrity_check.called
         assert mock_db_instance.provider.vacuum.called
         assert mock_db_instance._tune_sqlite_pragmas.called
+        app.teardown_identity()
 
 
 # 3. Test missing critical files (identity)

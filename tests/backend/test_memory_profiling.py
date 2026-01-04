@@ -16,7 +16,7 @@ class TestMemoryProfiling(unittest.TestCase):
         self.db.initialize()
 
     def tearDown(self):
-        self.db.close()
+        self.db.close_all()
         if os.path.exists(self.test_dir):
             shutil.rmtree(self.test_dir)
 

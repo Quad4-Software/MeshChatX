@@ -39,6 +39,14 @@ def mock_rns():
             "crawler_loop",
             new=MagicMock(return_value=None),
         ),
+        patch.object(
+            ReticulumMeshChat,
+            "auto_backup_loop",
+            new=MagicMock(return_value=None),
+        ),
+        patch.object(
+            ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
+        ),
     ):
         # Setup mock instance
         mock_id_instance = MockIdentityClass()
@@ -116,6 +124,7 @@ async def test_cleanup_rns_state_for_identity(mock_rns, temp_dir):
         # Verify deregistration and teardown were called
         mock_rns["Transport"].deregister_destination.assert_called_with(mock_dest)
         mock_link.teardown.assert_called()
+        app.teardown_identity()
 
 
 @pytest.mark.asyncio
@@ -198,6 +207,7 @@ async def test_reload_reticulum(mock_rns, temp_dir):
         assert mock_rns["Reticulum"]._Reticulum__instance is None
         # Verify setup_identity was called again
         app.setup_identity.assert_called()
+        app.teardown_identity()
 
 
 @pytest.mark.asyncio
@@ -245,6 +255,7 @@ async def test_reload_reticulum_failure_recovery(mock_rns, temp_dir):
         assert result is False
         # Verify recovery: setup_identity should be called because hasattr(self, "reticulum") is False
         app.setup_identity.assert_called()
+        app.teardown_identity()
 
 
 @pytest.mark.asyncio
@@ -294,3 +305,4 @@ async def test_hotswap_identity(mock_rns, temp_dir):
         # Check if the broadcast contains identity_switched
         broadcast_call = app.websocket_broadcast.call_args[0][0]
         assert "identity_switched" in broadcast_call
+        app.teardown_identity()
