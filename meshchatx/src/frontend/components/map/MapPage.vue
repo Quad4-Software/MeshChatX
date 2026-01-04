@@ -2035,6 +2035,7 @@ export default {
             this.isMobileScreen = window.innerWidth < 640;
         },
         async fetchPeers() {
+            if (!window.axios) return;
             try {
                 const response = await window.axios.get("/api/v1/lxmf/conversations");
                 const peers = {};

@@ -155,6 +155,27 @@
                                 <div
                                     class="flex flex-col justify-center space-y-3 bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800"
                                 >
+                                    <div
+                                        v-if="config"
+                                        class="space-y-3 mb-2 pb-3 border-b border-zinc-100 dark:border-zinc-800"
+                                    >
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] font-black text-blue-500 uppercase tracking-wider"
+                                                >Identity Hash</span
+                                            >
+                                            <span class="font-mono text-[10px] break-all opacity-70">{{
+                                                config.identity_hash
+                                            }}</span>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] font-black text-blue-500 uppercase tracking-wider"
+                                                >LXMF Address</span
+                                            >
+                                            <span class="font-mono text-[10px] break-all opacity-70">{{
+                                                config.lxmf_address_hash
+                                            }}</span>
+                                        </div>
+                                    </div>
                                     <div class="flex items-center justify-between">
                                         <span class="text-[10px] font-black text-blue-500 uppercase tracking-wider"
                                             >Python</span
@@ -434,7 +455,7 @@
                                         size="small"
                                         class="font-black px-4 rounded-lg text-white"
                                         :loading="databaseActionInProgress"
-                                        @click="recoverDatabase"
+                                        @click="runRecovery"
                                     >
                                         <v-icon icon="mdi-medical-bag" start size="14"></v-icon> Recovery
                                     </v-btn>
