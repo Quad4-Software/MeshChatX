@@ -876,7 +876,7 @@ export default {
     computed: {
         safeConfig() {
             if (!this.config) {
-                this.config = {
+                return {
                     display_name: "",
                     identity_hash: "",
                     lxmf_address_hash: "",
