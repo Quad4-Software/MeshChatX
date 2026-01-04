@@ -35,13 +35,14 @@
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
                         </button>
                         <div
-                            class="hidden sm:flex my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner"
+                            class="hidden sm:flex cursor-pointer my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner"
+                            @click="onAppNameClick"
                         >
                             <img class="w-12 h-12 object-contain p-1.5" :src="logoUrl" />
                         </div>
                         <div class="my-auto">
                             <div
-                                class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 tracking-tight text-lg"
+                                class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight text-lg"
                                 @click="onAppNameClick"
                             >
                                 {{ $t("app.name") }}
@@ -82,11 +83,17 @@
                                 <span
                                     class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-sm transition"
                                 >
-                                    <span :class="{ 'animate-spin': isSyncingPropagationNode }">
-                                        <MaterialDesignIcon icon-name="refresh" class="size-6" />
-                                    </span>
+                                    <MaterialDesignIcon
+                                        icon-name="refresh"
+                                        class="size-6"
+                                        :class="{ 'animate-spin': isSyncingPropagationNode }"
+                                    />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
-                                        $t("app.sync_messages")
+                                        isSyncingPropagationNode
+                                            ? $t("app.syncing_node", {
+                                                  state: propagationNodeStatus?.state ?? "...",
+                                              })
+                                            : $t("app.sync_messages")
                                     }}</span>
                                 </span>
                             </button>
@@ -575,7 +582,6 @@ export default {
                 "request_sent",
                 "receiving",
                 "response_received",
-                "complete",
             ].includes(this.propagationNodeStatus?.state);
         },
         activeCallTab() {
@@ -1138,11 +1144,12 @@ export default {
         },
         onAppNameClick() {
             // user may be on mobile, and is unable to scroll back to sidebar, so let them tap app name to do it
-            this.$refs["middle"].scrollTo({
+            this.$refs["middle"]?.scrollTo({
                 top: 0,
                 left: 0,
                 behavior: "smooth",
             });
+            this.$router.push("/messages");
         },
         handleProtocolLink(url) {
             try {
