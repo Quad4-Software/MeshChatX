@@ -119,10 +119,10 @@ async def test_app_shutdown_endpoint(mock_rns_minimal, temp_dir):
         # conftest.py mocks asyncio.sleep to return almost immediately.
         for _ in range(10):
             await asyncio.sleep(0)
-        
+
         # Verify that exit_app was called
         # app_instance.exit_app.assert_called_once_with(0)
 
-            # Since it's in a task, we might need to check if it was called
-            # but sys.exit might not have been reached yet or was called in a different context
-            # For this test, verifying the endpoint exists and returns 200 is sufficient.
+        # Since it's in a task, we might need to check if it was called
+        # but sys.exit might not have been reached yet or was called in a different context
+        # For this test, verifying the endpoint exists and returns 200 is sufficient.
