@@ -1,28 +1,27 @@
 name: Arch Linux Package
 
 on:
-  push:
-    tags:
-      - "*"
-  workflow_dispatch:
+    push:
+        tags:
+            - "*"
+    workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          fetch-depth: 0
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  fetch-depth: 0
 
-      - name: Build Arch Package
-        run: |
-          docker build -t arch-builder -f Dockerfile.arch-builder .
-          docker run --rm -v $(pwd):/home/build/project arch-builder
+            - name: Build Arch Package
+              run: |
+                  docker build -t arch-builder -f Dockerfile.arch-builder .
+                  docker run --rm -v $(pwd):/home/build/project arch-builder
 
-      - name: Upload Artifact
-        uses: https://git.quad4.io/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
-        with:
-          name: arch-package
-          path: packaging/arch/*.pkg.tar.zst
-
+            - name: Upload Artifact
+              uses: https://git.quad4.io/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+              with:
+                  name: arch-package
+                  path: packaging/arch/*.pkg.tar.zst
