@@ -121,8 +121,8 @@ export default {
     name: "SendMessageButton",
     props: {
         deliveryMethod: {
-            type: String,
             required: true,
+            validator: (value) => value === null || typeof value === "string",
         },
         canSendMessage: Boolean,
         isSendingMessage: Boolean,
