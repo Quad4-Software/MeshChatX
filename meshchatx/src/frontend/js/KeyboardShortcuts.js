@@ -11,6 +11,7 @@ class KeyboardShortcuts {
         window.addEventListener("keydown", (e) => this.handleKeyDown(e));
         window.addEventListener("keyup", (e) => this.handleKeyUp(e));
         window.addEventListener("blur", () => this.activeKeys.clear());
+        window.addEventListener("mousedown", () => this.activeKeys.clear()); // Clear on mouse click to prevent stuck modifiers
     }
 
     getDefaultShortcuts() {
@@ -30,21 +31,10 @@ class KeyboardShortcuts {
     }
 
     handleKeyDown(e) {
+        // Always update modifier states regardless of other conditions
+        this.updateModifiers(e);
+
         const key = e.key.toLowerCase();
-
-        // Update active keys from modifiers to ensure they are in sync
-        if (e.ctrlKey) this.activeKeys.add("control");
-        else if (!this.isRecording) this.activeKeys.delete("control");
-
-        if (e.altKey) this.activeKeys.add("alt");
-        else if (!this.isRecording) this.activeKeys.delete("alt");
-
-        if (e.shiftKey) this.activeKeys.add("shift");
-        else if (!this.isRecording) this.activeKeys.delete("shift");
-
-        if (e.metaKey) this.activeKeys.add("meta");
-        else if (!this.isRecording) this.activeKeys.delete("meta");
-
         if (!["control", "alt", "shift", "meta"].includes(key)) {
             this.activeKeys.add(key);
         }
@@ -60,13 +50,22 @@ class KeyboardShortcuts {
         // Check for matches
         for (const shortcut of this.shortcuts) {
             if (this.matches(shortcut.keys, e)) {
-                // Don't trigger if user is typing in an input, unless it's a global shortcut
-                const isInput = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
+                // Check if we should ignore because we're in an input
+                const isInput =
+                    ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) ||
+                    document.activeElement.isContentEditable ||
+                    document.activeElement.closest(".v-input"); // Better Vuetify detection
+
                 const hasModifier = shortcut.keys.some((k) => ["control", "alt", "meta"].includes(k));
 
+                // If it's an input, only allow shortcuts with modifiers (like Alt+1, Ctrl+K)
+                // but ignore simple keys if they're not explicitly allowed in inputs
                 if (isInput && !hasModifier) {
                     continue;
                 }
+
+                // Specifically allow navigation shortcuts (Alt+number) even in inputs
+                // as they don't usually conflict with typing (unless using special chars)
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -74,6 +73,20 @@ class KeyboardShortcuts {
                 break;
             }
         }
+    }
+
+    updateModifiers(e) {
+        if (e.ctrlKey) this.activeKeys.add("control");
+        else if (!this.isRecording) this.activeKeys.delete("control");
+
+        if (e.altKey) this.activeKeys.add("alt");
+        else if (!this.isRecording) this.activeKeys.delete("alt");
+
+        if (e.shiftKey) this.activeKeys.add("shift");
+        else if (!this.isRecording) this.activeKeys.delete("shift");
+
+        if (e.metaKey) this.activeKeys.add("meta");
+        else if (!this.isRecording) this.activeKeys.delete("meta");
     }
 
     handleKeyUp(e) {
@@ -94,24 +107,42 @@ class KeyboardShortcuts {
         const hasControl = shortcutKeys.includes("control");
         const hasAlt = shortcutKeys.includes("alt");
         const hasShift = shortcutKeys.includes("shift");
+        const hasMeta = shortcutKeys.includes("meta");
 
-        // Allow Cmd (Meta) to act as Control on Mac for improved compatibility
-        const ctrlMatch = hasControl ? e.ctrlKey || e.metaKey : !e.ctrlKey && !e.metaKey;
-        const altMatch = hasAlt ? e.altKey : !e.altKey;
-        const shiftMatch = hasShift ? e.shiftKey : !e.shiftKey;
+        // Browsers handle Alt and Control differently on different OSs.
+        // We use a normalized approach here.
+        const isControlPressed = e.ctrlKey;
+        const isAltPressed = e.altKey;
+        const isShiftPressed = e.shiftKey;
+        const isMetaPressed = e.metaKey;
 
-        if (!ctrlMatch || !altMatch || !shiftMatch) return false;
+        const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+        const ctrlMatch = hasControl
+            ? isControlPressed || (isMac && isMetaPressed)
+            : !isControlPressed && !(isMac && isMetaPressed);
+        if (!ctrlMatch) return false;
+
+        if (isAltPressed !== hasAlt) return false;
+        if (isShiftPressed !== hasShift) return false;
+        if (!isMac && isMetaPressed !== hasMeta) return false;
 
         // Find the non-modifier key in the shortcut
         const mainKey = shortcutKeys.find((k) => !["control", "alt", "shift", "meta"].includes(k));
         if (!mainKey) return true; // Modifier-only shortcut (rare but possible)
 
         const pressedKey = e.key.toLowerCase();
+
+        // Direct key match
         if (pressedKey === mainKey.toLowerCase()) return true;
 
         // Layout independence: check e.code as well (handles Alt+key layout changes)
-        if (e.code === `Digit${mainKey}`) return true;
-        if (e.code === `Key${mainKey.toUpperCase()}`) return true;
+        // e.g. Alt+1 might be captured as Digit1 regardless of layout
+        const codeMatch =
+            e.code === `Digit${mainKey}` ||
+            e.code === `Key${mainKey.toUpperCase()}` ||
+            e.code === mainKey.toUpperCase(); // For keys like 'Enter', 'Escape'
+
+        if (codeMatch) return true;
 
         return false;
     }
