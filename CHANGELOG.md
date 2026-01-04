@@ -8,6 +8,11 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
 
 ### New Features
 
+- **Banishment System (formerly Blocked):** 
+    - Renamed all instances of "Blocked" to **"Banished"**, you can now banish people to the shadow realm.
+    - **Blackhole Integration:** Automatically blackholes identities at the RNS transport layer when they are banished in MeshChatX. This prevents their traffic from being relayed through your node and publishes the update to your interfaces (trusted interfaces will pull and enforce the banishment).
+    - Integrated RNS 1.1.0 Blackhole to display publishing status, sources, and current blackhole counts in the RNStatus page.
+- **RNPath Management Tool:** New UI tool to manage the Reticulum path table, monitor announce rates (with rate-limit detection), and perform manual path requests or purges directly from the app.
 - **Maps:** You can now draw and doodle directly on the map to mark locations or plan routes.
 - **Calls & Audio:**
     - Added support for custom ringtones and a brand-new ringtone editor.

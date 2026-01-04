@@ -1,11 +1,13 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
+import WebSocketConnection from "@/js/WebSocketConnection";
 
 describe("ConversationViewer.vue", () => {
     let axiosMock;
 
     beforeEach(() => {
+        WebSocketConnection.connect();
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
                 if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
@@ -44,6 +46,7 @@ describe("ConversationViewer.vue", () => {
     afterEach(() => {
         delete window.axios;
         vi.unstubAllGlobals();
+        WebSocketConnection.destroy();
     });
 
     const mountConversationViewer = (props = {}) => {

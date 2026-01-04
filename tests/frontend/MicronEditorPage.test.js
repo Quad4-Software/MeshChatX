@@ -62,8 +62,9 @@ describe("MicronEditorPage.vue", () => {
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick(); // Wait for loadContent
 
-        expect(wrapper.vm.tabs.length).toBe(1);
+        expect(wrapper.vm.tabs.length).toBe(2);
         expect(wrapper.vm.tabs[0].name).toBe("tools.micron_editor.main_tab");
+        expect(wrapper.vm.tabs[1].name).toBe("tools.micron_editor.guide_tab");
         expect(wrapper.text()).toContain("tools.micron_editor.title");
     });
 
@@ -88,8 +89,7 @@ describe("MicronEditorPage.vue", () => {
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
 
-        // Add a second tab so we can remove one (close button only shows if tabs.length > 1)
-        await wrapper.vm.addTab();
+        // Already have 2 tabs (Main + Guide)
         expect(wrapper.vm.tabs.length).toBe(2);
 
         // Find close button on the second tab
@@ -105,14 +105,14 @@ describe("MicronEditorPage.vue", () => {
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
 
-        await wrapper.vm.addTab();
-        expect(wrapper.vm.activeTabIndex).toBe(1);
-
-        // Click first tab
-        const tabs = wrapper.findAll(".group.flex.items-center");
-        await tabs[0].trigger("click");
-
+        // Initially on first tab
         expect(wrapper.vm.activeTabIndex).toBe(0);
+
+        // Click second tab (Guide)
+        const tabs = wrapper.findAll(".group.flex.items-center");
+        await tabs[1].trigger("click");
+
+        expect(wrapper.vm.activeTabIndex).toBe(1);
     });
 
     it("resets all tabs when clicking reset button", async () => {
@@ -120,8 +120,9 @@ describe("MicronEditorPage.vue", () => {
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
 
+        const initialTabCount = wrapper.vm.tabs.length;
         await wrapper.vm.addTab();
-        expect(wrapper.vm.tabs.length).toBe(2);
+        expect(wrapper.vm.tabs.length).toBe(initialTabCount + 1);
 
         // Find reset button
         const resetButton = wrapper.find('.mdi-stub[data-icon-name="refresh"]').element.parentElement;
@@ -129,7 +130,7 @@ describe("MicronEditorPage.vue", () => {
 
         expect(window.confirm).toHaveBeenCalled();
         expect(micronStorage.clearAll).toHaveBeenCalled();
-        expect(wrapper.vm.tabs.length).toBe(1);
+        expect(wrapper.vm.tabs.length).toBe(2); // Resets to Main + Guide
         expect(wrapper.vm.activeTabIndex).toBe(0);
     });
 

@@ -191,7 +191,7 @@
                                                 {{ $t("call.recording_voicemail") }}
                                             </span>
                                             <span
-                                                v-else-if="activeCall.is_incoming && activeCall.status === 4"
+                                                v-else-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                                                 class="text-blue-600 dark:text-blue-400 font-bold text-sm animate-bounce"
                                                 >{{ $t("call.incoming_call") }}</span
                                             >
@@ -199,31 +199,31 @@
                                                 v-else
                                                 class="text-gray-700 dark:text-zinc-300 font-bold text-sm flex items-center gap-2"
                                             >
-                                                <span v-if="activeCall.status === 0">Busy...</span>
-                                                <span v-else-if="activeCall.status === 1" class="text-red-500"
+                                                <span v-if="activeCall && activeCall.status === 0">Busy...</span>
+                                                <span v-else-if="activeCall && activeCall.status === 1" class="text-red-500"
                                                     >Rejected</span
                                                 >
-                                                <span v-else-if="activeCall.status === 2" class="animate-pulse"
+                                                <span v-else-if="activeCall && activeCall.status === 2" class="animate-pulse"
                                                     >Calling...</span
                                                 >
-                                                <span v-else-if="activeCall.status === 3">Available</span>
-                                                <span v-else-if="activeCall.status === 4" class="animate-pulse"
+                                                <span v-else-if="activeCall && activeCall.status === 3">Available</span>
+                                                <span v-else-if="activeCall && activeCall.status === 4" class="animate-pulse"
                                                     >Ringing...</span
                                                 >
-                                                <span v-else-if="activeCall.status === 5">Connecting...</span>
+                                                <span v-else-if="activeCall && activeCall.status === 5">Connecting...</span>
                                                 <span
-                                                    v-else-if="activeCall.status === 6"
+                                                    v-else-if="activeCall && activeCall.status === 6"
                                                     class="text-green-500 flex items-center gap-2"
                                                 >
                                                     <span class="size-2 bg-green-500 rounded-full animate-ping"></span>
                                                     Connected
                                                 </span>
-                                                <span v-else>Status: {{ activeCall.status }}</span>
+                                                <span v-else-if="activeCall">Status: {{ activeCall.status }}</span>
                                             </span>
 
                                             <!-- Duration -->
                                             <div
-                                                v-if="activeCall.status === 6 && elapsedTime"
+                                                v-if="activeCall && activeCall.status === 6 && elapsedTime"
                                                 class="text-xs font-mono text-gray-400 dark:text-zinc-500 mt-1"
                                             >
                                                 {{ elapsedTime }}
@@ -336,7 +336,7 @@
                                 <div class="flex gap-3">
                                     <!-- answer call -->
                                     <button
-                                        v-if="activeCall.is_incoming && activeCall.status === 4"
+                                        v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                                         type="button"
                                         class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-sm font-bold text-white shadow-xl shadow-green-600/20 hover:bg-green-500 transition-all duration-200"
                                         @click="answerCall"
@@ -347,7 +347,7 @@
 
                                     <!-- send to voicemail -->
                                     <button
-                                        v-if="activeCall.is_incoming && activeCall.status === 4"
+                                        v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                                         type="button"
                                         class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-500 transition-all duration-200"
                                         @click="sendToVoicemail"
@@ -365,7 +365,7 @@
                                 >
                                     <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-[135deg]" />
                                     <span>{{
-                                        activeCall.is_incoming && activeCall.status === 4
+                                        activeCall && activeCall.is_incoming && activeCall.status === 4
                                             ? $t("call.decline")
                                             : $t("call.hangup")
                                     }}</span>

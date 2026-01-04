@@ -396,13 +396,13 @@
                 <div class="flex items-center gap-4">
                     <a
                         target="_blank"
-                        href="https://github.com/liamcottle/rnode-flasher"
+                        href="https://git.quad4.io/Reticulum/rnode-flasher"
                         class="text-blue-500 hover:underline text-sm font-bold"
                         >RNode Flasher GH</a
                     >
                     <a
                         target="_blank"
-                        href="https://github.com/markqvist/RNode_Firmware"
+                        href="https://git.quad4.io/Reticulum/RNode_Firmware"
                         class="text-blue-500 hover:underline text-sm font-bold"
                         >RNode Firmware GH</a
                     >
@@ -472,7 +472,9 @@ export default {
     methods: {
         async fetchLatestRelease() {
             try {
-                const response = await fetch("https://api.github.com/repos/markqvist/RNode_Firmware/releases/latest");
+                const response = await fetch(
+                    "https://git.quad4.io/api/v1/repos/Reticulum/RNode_Firmware/releases/latest"
+                );
                 if (response.ok) {
                     this.latestRelease = await response.json();
                 }
@@ -726,6 +728,7 @@ export default {
                     terminal: {
                         writeLine: console.log,
                         write: console.log,
+                        clean: () => {},
                     },
                 });
 
@@ -738,7 +741,11 @@ export default {
                     calculateMD5Hash: (img) => window.CryptoJS.MD5(window.CryptoJS.enc.Latin1.parse(img)),
                     reportProgress: (idx, written, total) => {
                         this.flashingProgress = Math.floor((written / total) * 100);
-                        this.flashingStatus = `File ${idx + 1}/${filesToFlash.length}: ${this.flashingProgress}%`;
+                        this.flashingStatus = this.$t("tools.rnode_flasher.flashing_file_progress", {
+                            current: idx + 1,
+                            total: filesToFlash.length,
+                            percentage: this.flashingProgress,
+                        });
                     },
                 });
 
@@ -762,7 +769,7 @@ export default {
                 const rnode = await this.askForRNode();
                 if (!rnode) return;
                 const ver = await rnode.getFirmwareVersion();
-                ToastUtils.success(`RNode v${ver} detected`);
+                ToastUtils.success(this.$t("tools.rnode_flasher.alerts.rnode_detected", { version: ver }));
                 await rnode.close();
             } catch {
                 ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_detect"));
@@ -775,8 +782,8 @@ export default {
                 await rnode.reset();
                 await rnode.close();
                 ToastUtils.success(this.$t("tools.rnode_flasher.alerts.rebooting"));
-            } catch {
-                // ignore
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_reboot", { error: e.message || e }));
             }
         },
         async readDisplay() {
@@ -786,8 +793,8 @@ export default {
                 const buffer = await rnode.readDisplay();
                 await rnode.close();
                 this.rnodeDisplayImage = this.rnodeDisplayBufferToPng(buffer);
-            } catch {
-                // ignore
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_read_display", { error: e.message || e }));
             }
         },
         rnodeDisplayBufferToPng(displayBuffer) {
@@ -837,9 +844,9 @@ export default {
                 const eeprom = await rnode.getRom();
                 console.log(RNodeUtils.bytesToHex(eeprom));
                 await rnode.close();
-                ToastUtils.success("EEPROM dumped to console");
-            } catch {
-                // ignore
+                ToastUtils.success(this.$t("tools.rnode_flasher.alerts.eeprom_dumped"));
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_dump_eeprom", { error: e.message || e }));
             }
         },
         async wipeEeprom() {
@@ -854,8 +861,8 @@ export default {
                 await rnode.reset();
                 await rnode.close();
                 ToastUtils.success(this.$t("tools.rnode_flasher.alerts.eeprom_wiped"));
-            } catch {
-                // ignore
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_wipe_eeprom", { error: e.message || e }));
             }
         },
         async provision() {
@@ -904,8 +911,8 @@ export default {
                 await rnode.reset();
                 await rnode.close();
                 ToastUtils.success(this.$t("tools.rnode_flasher.alerts.provision_success"));
-            } catch {
-                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_provision"));
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_provision", { error: e.message || e }));
             } finally {
                 this.isProvisioning = false;
             }
@@ -920,7 +927,6 @@ export default {
                     await rnode.close();
                     return;
                 }
-
                 this.isSettingFirmwareHash = true;
                 const hash = await rnode.getFirmwareHash();
                 await rnode.setFirmwareHash(hash);
@@ -930,8 +936,8 @@ export default {
                 });
                 await rnode.close();
                 ToastUtils.success(this.$t("tools.rnode_flasher.alerts.hash_success"));
-            } catch {
-                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_set_hash"));
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_set_hash", { error: e.message || e }));
             } finally {
                 this.isSettingFirmwareHash = false;
             }
@@ -953,8 +959,8 @@ export default {
                 await rnode.reset();
                 await rnode.close();
                 ToastUtils.success(this.$t("tools.rnode_flasher.alerts.tnc_enabled"));
-            } catch {
-                // ignore
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_enable_tnc", { error: e.message || e }));
             }
         },
         async disableTncMode() {
@@ -966,8 +972,8 @@ export default {
                 await rnode.reset();
                 await rnode.close();
                 ToastUtils.success(this.$t("tools.rnode_flasher.alerts.tnc_disabled"));
-            } catch {
-                // ignore
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_disable_tnc", { error: e.message || e }));
             }
         },
         async enableBluetooth() {
@@ -978,8 +984,10 @@ export default {
                 await RNodeUtils.sleepMillis(1000);
                 await rnode.close();
                 ToastUtils.success(this.$t("tools.rnode_flasher.alerts.bluetooth_enabled"));
-            } catch {
-                // ignore
+            } catch (e) {
+                ToastUtils.error(
+                    this.$t("tools.rnode_flasher.errors.failed_enable_bluetooth", { error: e.message || e })
+                );
             }
         },
         async disableBluetooth() {
@@ -990,8 +998,10 @@ export default {
                 await RNodeUtils.sleepMillis(1000);
                 await rnode.close();
                 ToastUtils.success(this.$t("tools.rnode_flasher.alerts.bluetooth_disabled"));
-            } catch {
-                // ignore
+            } catch (e) {
+                ToastUtils.error(
+                    this.$t("tools.rnode_flasher.errors.failed_disable_bluetooth", { error: e.message || e })
+                );
             }
         },
         async startBluetoothPairing() {
@@ -1001,9 +1011,9 @@ export default {
                 await rnode.startBluetoothPairing((pin) => {
                     ToastUtils.success(this.$t("tools.rnode_flasher.alerts.bluetooth_pairing_pin", { pin }));
                 });
-                ToastUtils.success("Pairing mode started (30s)");
-            } catch {
-                // ignore
+                ToastUtils.success(this.$t("tools.rnode_flasher.alerts.bluetooth_pairing_started"));
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_start_pairing", { error: e.message || e }));
             }
         },
         async setDisplayRotation(rot) {
@@ -1012,9 +1022,9 @@ export default {
                 if (!rnode) return;
                 await rnode.setDisplayRotation(rot);
                 await rnode.close();
-                ToastUtils.success("Rotation updated");
-            } catch {
-                // ignore
+                ToastUtils.success(this.$t("tools.rnode_flasher.alerts.rotation_updated"));
+            } catch (e) {
+                ToastUtils.error(this.$t("tools.rnode_flasher.errors.failed_set_rotation", { error: e.message || e }));
             }
         },
         async startDisplayReconditioning() {
@@ -1023,9 +1033,11 @@ export default {
                 if (!rnode) return;
                 await rnode.startDisplayReconditioning();
                 await rnode.close();
-                ToastUtils.success("Reconditioning started");
-            } catch {
-                // ignore
+                ToastUtils.success(this.$t("tools.rnode_flasher.alerts.reconditioning_started"));
+            } catch (e) {
+                ToastUtils.error(
+                    this.$t("tools.rnode_flasher.errors.failed_start_reconditioning", { error: e.message || e })
+                );
             }
         },
         async readAsBinaryString(blob) {

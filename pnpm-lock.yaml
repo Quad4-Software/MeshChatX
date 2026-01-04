@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  tmp: '>=0.2.4'
+
 importers:
 
   .:
@@ -20,9 +23,6 @@ importers:
       '@vitejs/plugin-vue':
         specifier: ^5.2.4
         version: 5.2.4(vite@6.4.1(@types/node@25.0.3)(jiti@1.21.7)(terser@5.44.1))(vue@3.5.26(typescript@5.9.3))
-      autoprefixer:
-        specifier: ^10.4.23
-        version: 10.4.23(postcss@8.5.6)
       axios:
         specifier: ^1.13.2
         version: 1.13.2
@@ -50,18 +50,12 @@ importers:
       ol:
         specifier: ^10.7.0
         version: 10.7.0
-      postcss:
-        specifier: ^8.5.6
-        version: 8.5.6
       protobufjs:
         specifier: ^7.5.4
         version: 7.5.4
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
-      tailwindcss:
-        specifier: ^3.4.19
-        version: 3.4.19
       vis-data:
         specifier: ^7.1.10
         version: 7.1.10(uuid@11.1.0)(vis-util@5.0.7(@egjs/hammerjs@2.0.17)(component-emitter@2.0.0))
@@ -123,12 +117,18 @@ importers:
       '@rushstack/eslint-patch':
         specifier: ^1.15.0
         version: 1.15.0
+      '@tailwindcss/typography':
+        specifier: ^0.5.19
+        version: 0.5.19(tailwindcss@3.4.19)
       '@vue/eslint-config-prettier':
         specifier: ^10.2.0
         version: 10.2.0(@types/eslint@9.6.1)(eslint@9.39.2(jiti@1.21.7))(prettier@3.7.4)
       '@vue/test-utils':
         specifier: ^2.4.6
         version: 2.4.6
+      autoprefixer:
+        specifier: ^10.4.23
+        version: 10.4.23(postcss@8.5.6)
       electron:
         specifier: ^39.2.7
         version: 39.2.7
@@ -159,9 +159,15 @@ importers:
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
+      postcss:
+        specifier: ^8.5.6
+        version: 8.5.6
       prettier:
         specifier: ^3.7.4
         version: 3.7.4
+      tailwindcss:
+        specifier: ^3.4.19
+        version: 3.4.19
       terser:
         specifier: ^5.44.1
         version: 5.44.1
@@ -924,6 +930,11 @@ packages:
     resolution: {integrity: sha512-h9wegbZDPurxG22xZSoWtdzc41/OlNEUQERNqI/0fOwa2aVlWGu7C35E/x6LDyD3lgtztFSSjKZyuVM0hxhbgA==}
     peerDependencies:
       tailwindcss: '>=3.0.0 || >= 3.0.0-alpha.1 || >= 4.0.0-alpha.20 || >= 4.0.0-beta.1'
+
+  '@tailwindcss/typography@0.5.19':
+    resolution: {integrity: sha512-w31dd8HOx3k9vPtcQh5QHP9GwKcgbMp87j58qi6xgiBnFFtKEAgCWnDw4qUT8aHwkCp8bKvb/KGKWWHedP0AAg==}
+    peerDependencies:
+      tailwindcss: '>=3.0.0 || insiders || >=4.0.0-alpha.20 || >=4.0.0-beta.1'
 
   '@tootallnate/once@2.0.0':
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
@@ -2745,10 +2756,6 @@ packages:
     resolution: {integrity: sha512-5b6Y85tPxZZ7QytO+BQzysW31HJku27cRIlkbAXaNx+BdcVi+LlRFmVXzeF6a7JCwJpyw5c4b+YSVImQIrBpuQ==}
     engines: {node: '>=10'}
 
-  os-tmpdir@1.0.2:
-    resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
-    engines: {node: '>=0.10.0'}
-
   p-cancelable@2.1.1:
     resolution: {integrity: sha512-BZOr3nRQHOntUjTrH8+Lh54smKHoHyur8We1V8DSMVrl5A2malOOwuJRnKRDjSnkoeBh4at6BwEnb5I7Jl31wg==}
     engines: {node: '>=8'}
@@ -2940,6 +2947,10 @@ packages:
     engines: {node: '>=12.0'}
     peerDependencies:
       postcss: ^8.2.14
+
+  postcss-selector-parser@6.0.10:
+    resolution: {integrity: sha512-IQ7TZdoaqbT+LCpShg46jnZVlhWD2w6iQYAcYXfHARZ7X1t/UGhhceQDs5X0cGqKvYlHNOuv7Oa1xmb0oQuA3w==}
+    engines: {node: '>=4'}
 
   postcss-selector-parser@6.1.2:
     resolution: {integrity: sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==}
@@ -3441,10 +3452,6 @@ packages:
 
   tmp-promise@3.0.3:
     resolution: {integrity: sha512-RwM7MoPojPxsOBYnyd2hy0bxtIlVrihNs9pj5SUvY8Zz1sQcQG2tG1hSr8PDxfgEB8RNKDhqbIlroIarSNDNsQ==}
-
-  tmp@0.0.33:
-    resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}
-    engines: {node: '>=0.6.0'}
 
   tmp@0.2.5:
     resolution: {integrity: sha512-voyz6MApa1rQGUxT3E+BK7/ROe8itEx7vD8/HEvt4xwXucvQ5G5oeEiHkmHZJuBO21RpOf+YYm9MOivj709jow==}
@@ -4831,6 +4838,11 @@ snapshots:
       mini-svg-data-uri: 1.4.4
       tailwindcss: 3.4.19
 
+  '@tailwindcss/typography@0.5.19(tailwindcss@3.4.19)':
+    dependencies:
+      postcss-selector-parser: 6.0.10
+      tailwindcss: 3.4.19
+
   '@tootallnate/once@2.0.0': {}
 
   '@types/cacheable-request@6.0.3':
@@ -6045,7 +6057,7 @@ snapshots:
     dependencies:
       chardet: 0.7.0
       iconv-lite: 0.4.24
-      tmp: 0.0.33
+      tmp: 0.2.5
 
   extract-zip@2.0.1:
     dependencies:
@@ -6923,8 +6935,6 @@ snapshots:
       strip-ansi: 6.0.1
       wcwidth: 1.0.1
 
-  os-tmpdir@1.0.2: {}
-
   p-cancelable@2.1.1: {}
 
   p-defer@1.0.0: {}
@@ -7063,6 +7073,11 @@ snapshots:
     dependencies:
       postcss: 8.5.6
       postcss-selector-parser: 6.1.2
+
+  postcss-selector-parser@6.0.10:
+    dependencies:
+      cssesc: 3.0.0
+      util-deprecate: 1.0.2
 
   postcss-selector-parser@6.1.2:
     dependencies:
@@ -7596,10 +7611,6 @@ snapshots:
   tmp-promise@3.0.3:
     dependencies:
       tmp: 0.2.5
-
-  tmp@0.0.33:
-    dependencies:
-      os-tmpdir: 1.0.2
 
   tmp@0.2.5: {}
 

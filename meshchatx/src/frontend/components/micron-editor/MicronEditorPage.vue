@@ -15,7 +15,7 @@
                         {{ $t("tools.micron_editor.title") }}
                     </h1>
                     <a
-                        href="https://github.com/RFnexus"
+                        href="https://git.quad4.io/RFnexus"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="text-[10px] text-gray-500 hover:text-teal-500 transition-colors hidden sm:block leading-tight"

@@ -50,7 +50,7 @@
                                 {{ $t("app.custom_fork_by") }}
                                 <a
                                     target="_blank"
-                                    href="https://github.com/Sudo-Ivan"
+                                    href="https://git.quad4.io/Sudo-Ivan"
                                     class="text-blue-500 dark:text-blue-300 hover:underline"
                                     >Sudo-Ivan</a
                                 >

@@ -122,7 +122,8 @@ describe("ChangelogModal.vue", () => {
         await wrapper.vm.show();
         await wrapper.vm.$nextTick();
 
-        const closeBtn = wrapper.find(".v-btn");
+        const closeBtn = wrapper.find("button.v-btn");
+        expect(closeBtn.exists()).toBe(true);
         expect(closeBtn.attributes("class")).toContain("dark:hover:bg-white/10");
         expect(closeBtn.attributes("class")).toContain("hover:bg-black/5");
     });

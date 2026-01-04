@@ -85,6 +85,71 @@
 
             <!-- Actions Section -->
             <div class="flex items-center space-x-1 md:space-x-2 ml-auto shrink-0">
+                <!-- Version Selector -->
+                <div
+                    v-if="activeTab === 'reticulum' && (status.has_docs || status.versions.length > 0)"
+                    class="relative"
+                >
+                    <button
+                        v-click-outside="() => (showVersions = false)"
+                        class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-1.5"
+                        :class="{ 'bg-gray-100 dark:bg-zinc-800': showVersions }"
+                        @click="showVersions = !showVersions"
+                    >
+                        <MaterialDesignIcon icon-name="history" class="w-4 h-4 md:w-5 md:h-5" />
+                        <span class="hidden xl:inline text-[10px] font-bold uppercase">{{
+                            status.current_version || "Default"
+                        }}</span>
+                    </button>
+                    <div
+                        v-if="showVersions"
+                        class="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden"
+                    >
+                        <div
+                            class="p-2 border-b border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
+                        >
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Versions</span>
+                        </div>
+                        <div class="max-h-64 overflow-y-auto py-1">
+                            <button
+                                v-for="version in status.versions"
+                                :key="version"
+                                class="w-full px-4 py-2 text-left text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between"
+                                :class="
+                                    status.current_version === version
+                                        ? 'text-blue-600 dark:text-blue-400 font-bold'
+                                        : 'text-gray-700 dark:text-zinc-300'
+                                "
+                                @click="switchVersion(version)"
+                            >
+                                <span>{{ version }}</span>
+                                <MaterialDesignIcon
+                                    v-if="status.current_version === version"
+                                    icon-name="check"
+                                    class="w-3.5 h-3.5"
+                                />
+                            </button>
+                            <div
+                                v-if="status.versions.length === 0"
+                                class="px-4 py-3 text-center text-gray-500 text-[10px]"
+                            >
+                                No versions available
+                            </div>
+                        </div>
+                        <div
+                            class="p-2 border-t border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
+                        >
+                            <label
+                                class="flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-[10px] font-bold uppercase"
+                            >
+                                <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
+                                <span>Upload ZIP</span>
+                                <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Language Selector -->
                 <div v-if="activeTab === 'reticulum' && status.has_docs" class="relative">
                     <button
@@ -456,9 +521,12 @@ export default {
                 last_error: null,
                 has_docs: false,
                 has_meshchatx_docs: false,
+                versions: [],
+                current_version: null,
             },
             statusInterval: null,
             showLanguages: false,
+            showVersions: false,
             searchQuery: "",
             searchResults: [],
             isSearching: false,
@@ -566,6 +634,44 @@ export default {
                 this.fetchStatus();
             } catch (error) {
                 console.error("Failed to trigger docs update:", error);
+            }
+        },
+        async switchVersion(version) {
+            try {
+                await window.axios.post("/api/v1/docs/switch", { version });
+                this.showVersions = false;
+                this.fetchStatus();
+                // reload iframe if in reticulum tab
+                if (this.activeTab === "reticulum") {
+                    const iframe = this.$refs.docsIframe;
+                    if (iframe) {
+                        iframe.contentWindow.location.reload();
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to switch docs version:", error);
+            }
+        },
+        async handleZipUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const version = prompt("Enter version name for this upload:", `upload-${Date.now()}`);
+            if (!version) return;
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                await window.axios.post(`/api/v1/docs/upload?version=${encodeURIComponent(version)}`, formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+                this.fetchStatus();
+            } catch (error) {
+                console.error("Failed to upload docs zip:", error);
+                alert("Failed to upload docs zip: " + (error.response?.data?.error || error.message));
             }
         },
         async exportDocs() {

@@ -402,9 +402,6 @@ class VoicemailManager:
         threading.Thread(target=session_job, daemon=True).start()
 
     def start_recording(self, caller_identity):
-        # Disabled for now
-        return
-
         telephone = self.telephone_manager.telephone
         if not telephone or not telephone.active_call:
             return
@@ -454,6 +451,9 @@ class VoicemailManager:
 
             # Save to database if long enough
             if duration >= 1:
+                filepath = os.path.join(self.recordings_dir, self.recording_filename)
+                self._fix_recording(filepath)
+
                 remote_name = self.get_name_for_identity_hash(
                     self.recording_remote_identity.hash.hex(),
                 )
@@ -491,10 +491,51 @@ class VoicemailManager:
             RNS.log(f"Error stopping recording: {e}", RNS.LOG_ERROR)
             self.is_recording = False
 
-    def start_greeting_recording(self):
-        # Disabled for now
-        return
+    def _fix_recording(self, filepath):
+        """Ensures the recording is a valid OGG/Opus file using ffmpeg."""
+        if not self.has_ffmpeg or not os.path.exists(filepath):
+            return
 
+        temp_path = filepath + ".fix"
+        try:
+            # We assume it might be raw opus packets or a slightly broken ogg
+            # ffmpeg can often fix this by just re-wrapping it.
+            # We try to detect if it's already a valid format first.
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                "-i",
+                filepath,
+                "-c:a",
+                "libopus",
+                "-b:a",
+                "16k",
+                "-ar",
+                "48000",
+                "-ac",
+                "1",
+                temp_path,
+            ]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, check=False
+            )  # noqa: S603
+
+            if result.returncode == 0 and os.path.exists(temp_path):
+                os.remove(filepath)
+                os.rename(temp_path, filepath)
+                RNS.log(f"Voicemail: Fixed recording format for {filepath}", RNS.LOG_DEBUG)
+            else:
+                RNS.log(
+                    f"Voicemail: ffmpeg failed to fix {filepath}: {result.stderr}",
+                    RNS.LOG_WARNING,
+                )
+        except Exception as e:
+            RNS.log(f"Voicemail: Error fixing recording {filepath}: {e}", RNS.LOG_ERROR)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def start_greeting_recording(self):
         telephone = self.telephone_manager.telephone
         if not telephone:
             return

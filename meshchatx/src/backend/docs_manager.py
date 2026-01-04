@@ -19,14 +19,17 @@ class DocsManager:
         self.storage_dir = storage_dir
 
         # Determine docs directories
-        # If storage_dir is provided, we prefer using it for documentation storage
-        # to avoid Read-only file system errors in environments like AppImages.
         if self.storage_dir:
-            self.docs_dir = os.path.join(self.storage_dir, "reticulum-docs")
+            self.docs_base_dir = os.path.join(self.storage_dir, "reticulum-docs")
             self.meshchatx_docs_dir = os.path.join(self.storage_dir, "meshchatx-docs")
         else:
-            self.docs_dir = os.path.join(self.public_dir, "reticulum-docs")
+            self.docs_base_dir = os.path.join(self.public_dir, "reticulum-docs")
             self.meshchatx_docs_dir = os.path.join(self.public_dir, "meshchatx-docs")
+
+        # The actual docs are served from this directory
+        # We will use a 'current' subdirectory for the active version
+        self.docs_dir = os.path.join(self.docs_base_dir, "current")
+        self.versions_dir = os.path.join(self.docs_base_dir, "versions")
 
         self.download_status = "idle"
         self.download_progress = 0
@@ -34,14 +37,15 @@ class DocsManager:
 
         # Ensure docs directories exist
         try:
-            if not os.path.exists(self.docs_dir):
-                os.makedirs(self.docs_dir)
+            for d in [self.docs_base_dir, self.versions_dir, self.meshchatx_docs_dir]:
+                if not os.path.exists(d):
+                    os.makedirs(d)
 
-            if not os.path.exists(self.meshchatx_docs_dir):
-                os.makedirs(self.meshchatx_docs_dir)
+            # If 'current' doesn't exist but we have versions, pick the latest one
+            if not os.path.exists(self.docs_dir) or not os.listdir(self.docs_dir):
+                self._update_current_link()
+
         except OSError as e:
-            # If we still fail (e.g. storage_dir was not provided and public_dir is read-only)
-            # we log it but don't crash the whole app. Emergency mode can still run.
             logging.error(f"Failed to create documentation directories: {e}")
             self.last_error = str(e)
 
@@ -50,6 +54,75 @@ class DocsManager:
             self.meshchatx_docs_dir, os.W_OK
         ):
             self.populate_meshchatx_docs()
+
+    def _update_current_link(self, version=None):
+        """Updates the 'current' directory to point to the specified version or the latest one."""
+        if not os.path.exists(self.versions_dir):
+            return
+
+        versions = self.get_available_versions()
+        if not versions:
+            return
+
+        target_version = version
+        if not target_version:
+            # Pick latest version (alphabetically)
+            target_version = versions[-1]
+
+        version_path = os.path.join(self.versions_dir, target_version)
+        if not os.path.exists(version_path):
+            return
+
+        # On some systems symlinks might fail or be restricted, so we use a directory copy or move
+        # but for now let's try to just use the path directly if possible.
+        # However, meshchat.py uses self.docs_dir for the static route.
+
+        # To make it simple and robust across platforms, we'll clear 'current' and copy the version
+        if os.path.exists(self.docs_dir):
+            if os.path.islink(self.docs_dir):
+                os.unlink(self.docs_dir)
+            else:
+                shutil.rmtree(self.docs_dir)
+
+        try:
+            # Try symlink first as it's efficient
+            os.symlink(version_path, self.docs_dir)
+        except (OSError, AttributeError):
+            # Fallback to copy
+            shutil.copytree(version_path, self.docs_dir)
+
+    def get_available_versions(self):
+        if not os.path.exists(self.versions_dir):
+            return []
+        versions = [
+            d
+            for d in os.listdir(self.versions_dir)
+            if os.path.isdir(os.path.join(self.versions_dir, d))
+        ]
+        return sorted(versions)
+
+    def get_current_version(self):
+        if not os.path.exists(self.docs_dir):
+            return None
+
+        if os.path.islink(self.docs_dir):
+            return os.path.basename(os.readlink(self.docs_dir))
+
+        # If it's a copy, we might need a metadata file to know which version it is
+        version_file = os.path.join(self.docs_dir, ".version")
+        if os.path.exists(version_file):
+            try:
+                with open(version_file, "r") as f:
+                    return f.read().strip()
+            except OSError:
+                pass
+        return "unknown"
+
+    def switch_version(self, version):
+        if version in self.get_available_versions():
+            self._update_current_link(version)
+            return True
+        return False
 
     def populate_meshchatx_docs(self):
         """Populates meshchatx-docs from the project's docs folder."""
@@ -134,6 +207,8 @@ class DocsManager:
             "last_error": self.last_error,
             "has_docs": self.has_docs(),
             "has_meshchatx_docs": self.has_meshchatx_docs(),
+            "versions": self.get_available_versions(),
+            "current_version": self.get_current_version(),
         }
 
     def has_meshchatx_docs(self):
@@ -340,32 +415,36 @@ class DocsManager:
         return results
 
     def has_docs(self):
-        # Check if index.html exists in the docs folder or if config says so
+        # Check if index.html exists in the docs folder or if we have any versions
         if self.config.docs_downloaded.get():
             return True
-        return os.path.exists(os.path.join(self.docs_dir, "index.html"))
+        return (
+            os.path.exists(os.path.join(self.docs_dir, "index.html"))
+            or len(self.get_available_versions()) > 0
+        )
 
-    def update_docs(self):
+    def update_docs(self, version="latest"):
         if (
             self.download_status == "downloading"
             or self.download_status == "extracting"
         ):
             return False
 
-        thread = threading.Thread(target=self._download_task)
+        thread = threading.Thread(target=self._download_task, args=(version,))
         thread.daemon = True
         thread.start()
         return True
 
-    def _download_task(self):
+    def _download_task(self, version="latest"):
         self.download_status = "downloading"
         self.download_progress = 0
         self.last_error = None
 
         try:
             # We use the reticulum_website repository which contains the built HTML docs
-            url = "https://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip"
-            zip_path = os.path.join(self.docs_dir, "website.zip")
+            # Default to git.quad4.io as requested
+            url = "https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip"
+            zip_path = os.path.join(self.docs_base_dir, "website.zip")
 
             # Download ZIP
             response = requests.get(url, stream=True, timeout=60)
@@ -386,7 +465,13 @@ class DocsManager:
 
             # Extract
             self.download_status = "extracting"
-            self._extract_docs(zip_path)
+            # For automatic downloads from git, we'll use a timestamp as version if none provided
+            if version == "latest":
+                import time
+
+                version = f"git-{int(time.time())}"
+
+            self._extract_docs(zip_path, version)
 
             # Cleanup
             if os.path.exists(zip_path):
@@ -395,50 +480,104 @@ class DocsManager:
             self.config.docs_downloaded.set(True)
             self.download_progress = 100
             self.download_status = "completed"
+
+            # Switch to the new version
+            self.switch_version(version)
+
         except Exception as e:
             self.last_error = str(e)
             self.download_status = "error"
             logging.exception(f"Failed to update docs: {e}")
 
-    def _extract_docs(self, zip_path):
+    def upload_zip(self, zip_bytes, version):
+        self.download_status = "extracting"
+        self.download_progress = 0
+        self.last_error = None
+
+        try:
+            zip_path = os.path.join(self.docs_base_dir, "uploaded.zip")
+            with open(zip_path, "wb") as f:
+                f.write(zip_bytes)
+
+            self._extract_docs(zip_path, version)
+
+            if os.path.exists(zip_path):
+                os.remove(zip_path)
+
+            self.download_status = "completed"
+            self.download_progress = 100
+            self.switch_version(version)
+            return True
+        except Exception as e:
+            self.last_error = str(e)
+            self.download_status = "error"
+            logging.exception(f"Failed to upload docs: {e}")
+            return False
+
+    def _extract_docs(self, zip_path, version):
+        # Target dir for this version
+        version_dir = os.path.join(self.versions_dir, version)
+        if os.path.exists(version_dir):
+            shutil.rmtree(version_dir)
+        os.makedirs(version_dir)
+
         # Temp dir for extraction
-        temp_extract = os.path.join(self.docs_dir, "temp_extract")
+        temp_extract = os.path.join(self.docs_base_dir, "temp_extract")
         if os.path.exists(temp_extract):
             shutil.rmtree(temp_extract)
 
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            # GitHub zips have a root folder like reticulum_website-main/
-            # We want the contents of reticulum_website-main/docs/
-            root_folder = zip_ref.namelist()[0].split("/")[0]
+            # Gitea/GitHub zips have a root folder
+            namelist = zip_ref.namelist()
+            if not namelist:
+                raise Exception("Zip file is empty")
+
+            root_folder = namelist[0].split("/")[0]
+
+            # Check if it's the reticulum_website repo (has docs/ folder)
             docs_prefix = f"{root_folder}/docs/"
+            has_docs_subfolder = any(m.startswith(docs_prefix) for m in namelist)
 
-            members_to_extract = [
-                m for m in zip_ref.namelist() if m.startswith(docs_prefix)
-            ]
+            if has_docs_subfolder:
+                members_to_extract = [m for m in namelist if m.startswith(docs_prefix)]
+                for member in members_to_extract:
+                    zip_ref.extract(member, temp_extract)
 
-            for member in members_to_extract:
-                zip_ref.extract(member, temp_extract)
-
-            src_path = os.path.join(temp_extract, root_folder, "docs")
-
-            # Clear existing docs except for the temp folder
-            for item in os.listdir(self.docs_dir):
-                item_path = os.path.join(self.docs_dir, item)
-                if item != "temp_extract" and item != "website.zip":
-                    if os.path.isdir(item_path):
-                        shutil.rmtree(item_path)
-                    else:
-                        os.remove(item_path)
-
-            # Move files from extracted docs to docs_dir
-            if os.path.exists(src_path):
+                src_path = os.path.join(temp_extract, root_folder, "docs")
+                # Move files from extracted docs to version_dir
                 for item in os.listdir(src_path):
                     s = os.path.join(src_path, item)
-                    d = os.path.join(self.docs_dir, item)
+                    d = os.path.join(version_dir, item)
                     if os.path.isdir(s):
                         shutil.copytree(s, d)
                     else:
                         shutil.copy2(s, d)
+            else:
+                # Just extract everything directly to version_dir, but remove root folder if exists
+                zip_ref.extractall(temp_extract)
+                src_path = os.path.join(temp_extract, root_folder)
+                if os.path.exists(src_path) and os.path.isdir(src_path):
+                    for item in os.listdir(src_path):
+                        s = os.path.join(src_path, item)
+                        d = os.path.join(version_dir, item)
+                        if os.path.isdir(s):
+                            shutil.copytree(s, d)
+                        else:
+                            shutil.copy2(s, d)
+                else:
+                    # Fallback if no root folder
+                    for item in os.listdir(temp_extract):
+                        s = os.path.join(temp_extract, item)
+                        d = os.path.join(version_dir, item)
+                        if os.path.isdir(s):
+                            shutil.copytree(s, d)
+                        else:
+                            shutil.copy2(s, d)
+
+        # Create a metadata file with the version name
+        with open(os.path.join(version_dir, ".version"), "w") as f:
+            f.write(version)
 
         # Cleanup temp
-        shutil.rmtree(temp_extract)
+        if os.path.exists(temp_extract):
+            shutil.rmtree(temp_extract)

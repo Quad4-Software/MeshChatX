@@ -108,6 +108,9 @@ export default {
                 this.stopPlayback();
 
                 const response = await fetch(this.src);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const arrayBuffer = await response.arrayBuffer();
 
                 if (!this.audioContext) {

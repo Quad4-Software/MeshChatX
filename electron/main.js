@@ -350,7 +350,7 @@ app.whenReady().then(async () => {
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org",
             "font-src 'self' data:",
-            "connect-src 'self' http://localhost:9337 https://localhost:9337 ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://api.github.com https://objects.githubusercontent.com https://github.com",
+            "connect-src 'self' http://localhost:9337 https://localhost:9337 ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://git.quad4.io",
             "media-src 'self' blob:",
             "worker-src 'self' blob:",
             "frame-src 'self'",

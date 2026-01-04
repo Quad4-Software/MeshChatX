@@ -112,7 +112,7 @@
                             ? 'text-red-600 dark:text-red-400 animate-pulse'
                             : activeCall.is_voicemail
                               ? 'text-red-600 dark:text-red-400 animate-pulse'
-                              : activeCall.status === 6
+                              : activeCall && activeCall.status === 6
                                 ? 'text-green-600 dark:text-green-400'
                                 : 'text-gray-600 dark:text-zinc-400',
                     ]"
@@ -123,17 +123,17 @@
                         <MaterialDesignIcon icon-name="record" class="size-4" />
                         {{ $t("call.recording_voicemail") }}
                     </span>
-                    <span v-else-if="activeCall.is_incoming && activeCall.status === 4">{{
+                    <span v-else-if="activeCall && activeCall.is_incoming && activeCall.status === 4">{{
                         $t("call.incoming_call")
                     }}</span>
-                    <span v-else-if="activeCall.status === 0">{{ $t("call.busy") }}</span>
-                    <span v-else-if="activeCall.status === 1">{{ $t("call.rejected") }}</span>
-                    <span v-else-if="activeCall.status === 2">{{ $t("call.calling") }}</span>
-                    <span v-else-if="activeCall.status === 3">{{ $t("call.available") }}</span>
-                    <span v-else-if="activeCall.status === 4">{{ $t("call.ringing") }}</span>
-                    <span v-else-if="activeCall.status === 5">{{ $t("call.connecting") }}</span>
-                    <span v-else-if="activeCall.status === 6">{{ $t("call.connected") }}</span>
-                    <span v-else>{{ $t("call.status") }}: {{ activeCall.status }}</span>
+                    <span v-else-if="activeCall && activeCall.status === 0">{{ $t("call.busy") }}</span>
+                    <span v-else-if="activeCall && activeCall.status === 1">{{ $t("call.rejected") }}</span>
+                    <span v-else-if="activeCall && activeCall.status === 2">{{ $t("call.calling") }}</span>
+                    <span v-else-if="activeCall && activeCall.status === 3">{{ $t("call.available") }}</span>
+                    <span v-else-if="activeCall && activeCall.status === 4">{{ $t("call.ringing") }}</span>
+                    <span v-else-if="activeCall && activeCall.status === 5">{{ $t("call.connecting") }}</span>
+                    <span v-else-if="activeCall && activeCall.status === 6">{{ $t("call.connected") }}</span>
+                    <span v-else-if="activeCall">{{ $t("call.status") }}: {{ activeCall.status }}</span>
                 </div>
                 <div
                     v-else-if="initiationStatus"
@@ -154,7 +154,7 @@
 
             <!-- Stats (only when connected and not minimized) -->
             <div
-                v-if="activeCall.status === 6 && !isEnded"
+                v-if="activeCall && activeCall.status === 6 && !isEnded"
                 class="mb-4 p-2 bg-gray-50 dark:bg-zinc-800/50 rounded-lg text-[10px] text-gray-500 dark:text-zinc-400 grid grid-cols-2 gap-1"
             >
                 <div class="flex items-center space-x-1">
@@ -203,7 +203,7 @@
                 <button
                     type="button"
                     :title="
-                        activeCall.is_incoming && activeCall.status === 4
+                        activeCall && activeCall.is_incoming && activeCall.status === 4
                             ? $t('call.decline_call')
                             : $t('call.hangup_call')
                     "
@@ -215,7 +215,7 @@
 
                 <!-- Send to Voicemail (if incoming) -->
                 <button
-                    v-if="activeCall.is_incoming && activeCall.status === 4"
+                    v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                     type="button"
                     :title="$t('call.send_to_voicemail')"
                     class="p-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition-all duration-200"
@@ -226,7 +226,7 @@
 
                 <!-- Answer (if incoming) -->
                 <button
-                    v-if="activeCall.is_incoming && activeCall.status === 4"
+                    v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                     type="button"
                     :title="$t('call.answer_call')"
                     class="p-2.5 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-600/30 animate-bounce"
@@ -239,7 +239,7 @@
 
         <!-- Ended State Voicemail Playback -->
         <div
-            v-if="isEnded && activeCall.is_voicemail && voicemailStatus && voicemailStatus.latest_id"
+            v-if="isEnded && activeCall && activeCall.is_voicemail && voicemailStatus && voicemailStatus.latest_id"
             class="px-4 pb-4"
         >
             <AudioWaveformPlayer :src="`/api/v1/telephone/voicemails/${voicemailStatus.latest_id}/audio`" />

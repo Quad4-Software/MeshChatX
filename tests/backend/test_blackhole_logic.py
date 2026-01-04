@@ -5,7 +5,6 @@ import json
 from unittest.mock import MagicMock, patch, AsyncMock
 from meshchatx.meshchat import ReticulumMeshChat
 import RNS
-import asyncio
 
 
 @pytest.fixture

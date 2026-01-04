@@ -32,11 +32,16 @@ describe("DocsPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        if (wrapper) {
+            wrapper.unmount();
+        }
+        // Do not delete window.axios, as it might be used by async operations
+        // and it is globally defined in setup.js anyway.
     });
 
+    let wrapper;
     const mountDocsPage = () => {
-        return mount(DocsPage, {
+        wrapper = mount(DocsPage, {
             global: {
                 directives: {
                     "click-outside": vi.fn(),
@@ -50,6 +55,7 @@ describe("DocsPage.vue", () => {
                 },
             },
         });
+        return wrapper;
     };
 
     it("renders download button when no docs are present", async () => {

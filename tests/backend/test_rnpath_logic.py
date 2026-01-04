@@ -14,7 +14,7 @@ def temp_dir(tmp_path):
 def mock_rns_minimal():
     with (
         patch("RNS.Reticulum") as mock_rns,
-        patch("RNS.Transport"),
+        patch("RNS.Transport") as mock_transport,
         patch("LXMF.LXMRouter"),
         patch("meshchatx.meshchat.get_file_path", return_value="/tmp/mock_path"),
     ):
@@ -22,6 +22,13 @@ def mock_rns_minimal():
         mock_rns_instance.configpath = "/tmp/mock_config"
         mock_rns_instance.is_connected_to_shared_instance = False
         mock_rns_instance.transport_enabled.return_value = True
+
+        # Setup RNS.Transport mock constants and tables
+        mock_transport.path_table = {}
+        mock_transport.path_states = {}
+        mock_transport.STATE_UNKNOWN = 0
+        mock_transport.STATE_RESPONSIVE = 1
+        mock_transport.STATE_UNRESPONSIVE = 2
 
         # Path management mocks
         mock_rns_instance.get_path_table.return_value = []

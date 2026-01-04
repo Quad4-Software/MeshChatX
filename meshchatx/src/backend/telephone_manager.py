@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import os
 import time
 
@@ -61,6 +62,7 @@ class TelephoneManager:
         self.call_start_time = None
         self.call_status_at_end = None
         self.call_is_incoming = False
+        self.call_was_established = False
 
         # Manual mute overrides in case LXST internal muting is buggy
         self.transmit_muted = False
@@ -82,6 +84,8 @@ class TelephoneManager:
         self.telephone = Telephone(self.identity)
         # Disable busy tone played on caller side when remote side rejects, or doesn't answer
         self.telephone.set_busy_tone_time(0)
+        # Increase connection timeout for slower networks
+        self.telephone.set_connect_timeout(30)
 
         # Set initial profile from config
         if self.config_manager:
@@ -109,12 +113,14 @@ class TelephoneManager:
     def on_telephone_ringing(self, caller_identity: RNS.Identity):
         self.call_start_time = time.time()
         self.call_is_incoming = True
+        self.call_was_established = False
         if self.on_ringing_callback:
             self.on_ringing_callback(caller_identity)
 
     def on_telephone_call_established(self, caller_identity: RNS.Identity):
         # Update start time to when it was actually established for duration calculation
         self.call_start_time = time.time()
+        self.call_was_established = True
 
         # Recording disabled for now due to stability issues with LXST
         # if self.config_manager and self.config_manager.call_recording_enabled.get():
@@ -139,9 +145,19 @@ class TelephoneManager:
         # Disabled for now
         pass
 
-    def announce(self, attached_interface=None):
+    def announce(self, attached_interface=None, display_name=None):
         if self.telephone:
-            self.telephone.announce(attached_interface=attached_interface)
+            if display_name:
+                import RNS.vendor.umsgpack as msgpack
+
+                # Pack display name in LXMF-compatible app data format
+                app_data = msgpack.packb([display_name, None, None])
+                self.telephone.destination.announce(
+                    app_data=app_data, attached_interface=attached_interface
+                )
+                self.telephone.last_announce = time.time()
+            else:
+                self.telephone.announce(attached_interface=attached_interface)
 
     def _update_initiation_status(self, status, target_hash=None):
         self.initiation_status = status
@@ -171,15 +187,36 @@ class TelephoneManager:
         self._update_initiation_status("Resolving identity...", destination_hash_hex)
 
         try:
-            # Find destination identity
-            destination_identity = RNS.Identity.recall(destination_hash)
 
-            # If identity not found, check if it's a destination hash in our announces
-            if destination_identity is None and self.db:
-                announce = self.db.announces.get_announce_by_hash(destination_hash_hex)
-                if announce:
-                    identity_hash = bytes.fromhex(announce["identity_hash"])
-                    destination_identity = RNS.Identity.recall(identity_hash)
+            def resolve_identity(target_hash_hex):
+                target_hash = bytes.fromhex(target_hash_hex)
+                # 1. Try RNS recall
+                ident = RNS.Identity.recall(target_hash)
+                if ident:
+                    return ident
+
+                # 2. Check DB announces
+                if self.db:
+                    announce = self.db.announces.get_announce_by_hash(target_hash_hex)
+                    if announce:
+                        # Try recalling identity hash from announce
+                        identity_hash = bytes.fromhex(announce["identity_hash"])
+                        ident = RNS.Identity.recall(identity_hash)
+                        if ident:
+                            return ident
+
+                        # Try reconstructing from public key if recall failed
+                        if announce.get("identity_public_key"):
+                            try:
+                                return RNS.Identity.from_bytes(
+                                    base64.b64decode(announce["identity_public_key"])
+                                )
+                            except Exception:
+                                pass
+                return None
+
+            # Find destination identity
+            destination_identity = resolve_identity(destination_hash_hex)
 
             if destination_identity is None:
                 self._update_initiation_status("Discovering path/identity...")
@@ -189,19 +226,9 @@ class TelephoneManager:
                 start_wait = time.time()
                 while time.time() - start_wait < timeout_seconds:
                     await asyncio.sleep(0.5)
-                    destination_identity = RNS.Identity.recall(destination_hash)
+                    destination_identity = resolve_identity(destination_hash_hex)
                     if destination_identity:
                         break
-
-                    if self.db:
-                        announce = self.db.announces.get_announce_by_hash(
-                            destination_hash_hex
-                        )
-                        if announce:
-                            identity_hash = bytes.fromhex(announce["identity_hash"])
-                            destination_identity = RNS.Identity.recall(identity_hash)
-                            if destination_identity:
-                                break
 
             if destination_identity is None:
                 self._update_initiation_status(None, None)
@@ -211,6 +238,13 @@ class TelephoneManager:
             if not RNS.Transport.has_path(destination_hash):
                 self._update_initiation_status("Requesting path...")
                 RNS.Transport.request_path(destination_hash)
+
+                # Wait up to 10s for path discovery
+                path_wait_start = time.time()
+                while time.time() - path_wait_start < min(timeout_seconds, 10):
+                    if RNS.Transport.has_path(destination_hash):
+                        break
+                    await asyncio.sleep(0.5)
 
             self._update_initiation_status("Dialing...")
             self.call_start_time = time.time()

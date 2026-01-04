@@ -1756,8 +1756,8 @@ class ReticulumMeshChat:
                 timestamp=time.time(),
             )
 
-            # Trigger missed call notification if it was an incoming call that ended while ringing
-            if is_incoming and status_code == 4:
+            # Trigger missed call notification if it was an incoming call that ended without being established
+            if is_incoming and not self.telephone_manager.call_was_established:
                 # Check if we should suppress the notification/websocket message
                 # If DND was on, we still record it but maybe skip the noisy websocket?
                 # Actually, persistent notification is good.
@@ -1812,7 +1812,9 @@ class ReticulumMeshChat:
         target_name = None
         if target_hash:
             try:
-                contact = ctx.database.contacts.get_contact_by_hash(target_hash)
+                contact = ctx.database.contacts.get_contact_by_identity_hash(
+                    target_hash
+                )
                 if contact:
                     target_name = contact.name
             except Exception:  # noqa: S110
@@ -2264,7 +2266,7 @@ class ReticulumMeshChat:
                 return web.json_response({"error": "URL is required"}, status=400)
 
             # Restrict to GitHub for safety
-            if not url.startswith("https://github.com/") and not url.startswith(
+            if not url.startswith("https://git.quad4.io/") and not url.startswith(
                 "https://objects.githubusercontent.com/"
             ):
                 return web.json_response({"error": "Invalid download URL"}, status=403)
@@ -3330,8 +3332,47 @@ class ReticulumMeshChat:
         # update docs
         @routes.post("/api/v1/docs/update")
         async def docs_update(request):
-            success = self.docs_manager.update_docs()
+            version = request.query.get("version", "latest")
+            success = self.docs_manager.update_docs(version=version)
             return web.json_response({"success": success})
+
+        # upload docs zip
+        @routes.post("/api/v1/docs/upload")
+        async def docs_upload(request):
+            try:
+                reader = await request.multipart()
+                field = await reader.next()
+                if field.name != "file":
+                    return web.json_response(
+                        {"error": "No file field in multipart request"}, status=400
+                    )
+
+                version = request.query.get("version")
+                if not version:
+                    # use timestamp if no version provided
+                    version = f"upload-{int(time.time())}"
+
+                zip_data = await field.read()
+                success = self.docs_manager.upload_zip(zip_data, version)
+                return web.json_response({"success": success, "version": version})
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        # switch docs version
+        @routes.post("/api/v1/docs/switch")
+        async def docs_switch(request):
+            try:
+                data = await request.json()
+                version = data.get("version")
+                if not version:
+                    return web.json_response(
+                        {"error": "No version provided"}, status=400
+                    )
+
+                success = self.docs_manager.switch_version(version)
+                return web.json_response({"success": success})
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
 
         # search docs
         @routes.get("/api/v1/docs/search")
@@ -3875,7 +3916,7 @@ class ReticulumMeshChat:
             initiation_target_name = None
             if initiation_target_hash:
                 try:
-                    contact = self.database.contacts.get_contact_by_hash(
+                    contact = self.database.contacts.get_contact_by_identity_hash(
                         initiation_target_hash
                     )
                     if contact:
@@ -4230,7 +4271,9 @@ class ReticulumMeshChat:
                 "greeting.opus",
             )
             if os.path.exists(filepath):
-                return web.FileResponse(filepath)
+                return web.FileResponse(
+                    filepath, headers={"Content-Type": "audio/opus"}
+                )
             return web.json_response(
                 {"message": "Greeting audio not found"},
                 status=404,
@@ -4240,6 +4283,16 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/telephone/voicemails/{id}/audio")
         async def telephone_voicemail_audio(request):
             voicemail_id = request.match_info.get("id")
+            try:
+                voicemail_id = int(voicemail_id)
+            except (ValueError, TypeError):
+                return web.json_response({"message": "Invalid voicemail ID"}, status=400)
+
+            if not self.voicemail_manager:
+                return web.json_response(
+                    {"message": "Voicemail manager not available"}, status=503
+                )
+
             voicemail = self.database.voicemails.get_voicemail(voicemail_id)
             if voicemail:
                 filepath = os.path.join(
@@ -4247,7 +4300,10 @@ class ReticulumMeshChat:
                     voicemail["filename"],
                 )
                 if os.path.exists(filepath):
-                    return web.FileResponse(filepath)
+                    # Browsers might need a proper content type for .opus files
+                    return web.FileResponse(
+                        filepath, headers={"Content-Type": "audio/opus"}
+                    )
                 RNS.log(
                     f"Voicemail: Recording file missing for ID {voicemail_id}: {filepath}",
                     RNS.LOG_ERROR,
@@ -4288,6 +4344,13 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/telephone/recordings/{id}/audio/{side}")
         async def telephone_recording_audio(request):
             recording_id = request.match_info.get("id")
+            try:
+                recording_id = int(recording_id)
+            except (ValueError, TypeError):
+                return web.json_response(
+                    {"message": "Invalid recording ID"}, status=400
+                )
+
             side = request.match_info.get("side")  # rx or tx
             recording = self.database.telephone.get_call_recording(recording_id)
             if recording:
@@ -4302,7 +4365,9 @@ class ReticulumMeshChat:
                     filename,
                 )
                 if os.path.exists(filepath):
-                    return web.FileResponse(filepath)
+                    return web.FileResponse(
+                        filepath, headers={"Content-Type": "audio/opus"}
+                    )
 
             return web.json_response({"message": "Recording not found"}, status=404)
 
@@ -7105,6 +7170,14 @@ class ReticulumMeshChat:
                 response.headers["Content-Type"] = "application/wasm"
             elif path.endswith(".html"):
                 response.headers["Content-Type"] = "text/html; charset=utf-8"
+            elif path.endswith(".opus"):
+                response.headers["Content-Type"] = "audio/opus"
+            elif path.endswith(".ogg"):
+                response.headers["Content-Type"] = "audio/ogg"
+            elif path.endswith(".wav"):
+                response.headers["Content-Type"] = "audio/wav"
+            elif path.endswith(".mp3"):
+                response.headers["Content-Type"] = "audio/mpeg"
             return response
 
         # security headers middleware
@@ -7135,7 +7208,7 @@ class ReticulumMeshChat:
                 "style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org; "
                 "font-src 'self' data:; "
-                "connect-src 'self' ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://api.github.com https://objects.githubusercontent.com https://github.com; "
+                "connect-src 'self' ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://git.quad4.io; "
                 "media-src 'self' blob:; "
                 "worker-src 'self' blob:; "
                 "frame-src 'self'; "
@@ -7335,7 +7408,7 @@ class ReticulumMeshChat:
             ctx.message_router.announce_propagation_node()
 
         # send announce for telephone
-        ctx.telephone_manager.announce()
+        ctx.telephone_manager.announce(display_name=ctx.config.display_name.get())
 
         # tell websocket clients we just announced
         await self.send_announced_to_websocket_clients(context=ctx)
@@ -8629,7 +8702,7 @@ class ReticulumMeshChat:
                 announce["app_data"],
             )
         elif announce["aspect"] == "lxst.telephony":
-            display_name = announce.get("display_name") or "Anonymous Peer"
+            display_name = parse_lxmf_display_name(announce["app_data"])
 
         # Try to find associated LXMF destination hash if this is a telephony announce
         lxmf_destination_hash = None
@@ -9452,7 +9525,8 @@ class ReticulumMeshChat:
         print(
             "Received an announce from "
             + RNS.prettyhexrep(destination_hash)
-            + " for [lxst.telephony]",
+            + " for [lxst.telephony]"
+            + (f" ({display_name})" if (display_name := parse_lxmf_display_name(base64.b64encode(app_data).decode() if app_data else None, None)) else "")
         )
 
         # track announce timestamp
