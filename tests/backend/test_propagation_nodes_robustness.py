@@ -4,7 +4,6 @@ import pytest
 import json
 from unittest.mock import MagicMock, patch
 from meshchatx.meshchat import ReticulumMeshChat
-import asyncio
 import RNS
 
 
