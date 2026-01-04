@@ -23,7 +23,9 @@ class DebugLogsDAO:
             ),
         )
 
-    def get_logs(self, limit=100, offset=0, search=None, level=None, module=None, is_anomaly=None):
+    def get_logs(
+        self, limit=100, offset=0, search=None, level=None, module=None, is_anomaly=None
+    ):
         sql = "SELECT * FROM debug_logs WHERE 1=1"
         params = []
 
@@ -80,8 +82,9 @@ class DebugLogsDAO:
             row = self.provider.fetchone(sql, (max_logs - 1,))
             if row:
                 cutoff_ts = row["timestamp"]
-                self.provider.execute("DELETE FROM debug_logs WHERE timestamp < ?", (cutoff_ts,))
+                self.provider.execute(
+                    "DELETE FROM debug_logs WHERE timestamp < ?", (cutoff_ts,)
+                )
 
     def get_anomalies(self, limit=50):
         return self.get_logs(limit=limit, is_anomaly=True)
-

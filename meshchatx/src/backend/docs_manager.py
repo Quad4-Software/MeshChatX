@@ -86,10 +86,9 @@ class DocsManager:
                     dest_path = os.path.join(self.meshchatx_docs_dir, file)
 
                     # Only copy if source and destination are different
-                    if (
-                        os.path.abspath(src_path) != os.path.abspath(dest_path)
-                        and os.access(self.meshchatx_docs_dir, os.W_OK)
-                    ):
+                    if os.path.abspath(src_path) != os.path.abspath(
+                        dest_path
+                    ) and os.access(self.meshchatx_docs_dir, os.W_OK):
                         shutil.copy2(src_path, dest_path)
 
                     # Also pre-render to HTML for easy sharing/viewing

@@ -69,10 +69,16 @@ class IntegrityManager:
                 m_date = manifest.get("date", "Unknown")
                 m_time = manifest.get("time", "Unknown")
                 m_id = manifest.get("identity", "Unknown")
-                issues.insert(0, f"Last integrity snapshot: {m_date} {m_time} (Identity: {m_id})")
+                issues.insert(
+                    0, f"Last integrity snapshot: {m_date} {m_time} (Identity: {m_id})"
+                )
 
                 # Check if identity matches
-                if self.identity_hash and m_id != "Unknown" and self.identity_hash != m_id:
+                if (
+                    self.identity_hash
+                    and m_id != "Unknown"
+                    and self.identity_hash != m_id
+                ):
                     issues.append(f"Identity mismatch! Manifest belongs to: {m_id}")
 
             self.issues = issues

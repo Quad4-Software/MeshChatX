@@ -107,11 +107,13 @@ class DatabaseProvider:
 
     def fetchone(self, query, params=None):
         cursor = self.execute(query, params)
-        return cursor.fetchone()
+        row = cursor.fetchone()
+        return dict(row) if row else None
 
     def fetchall(self, query, params=None):
         cursor = self.execute(query, params)
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
 
     def close(self):
         if hasattr(self._local, "connection"):

@@ -86,7 +86,6 @@ from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.telemetry_utils import Telemeter
 from meshchatx.src.version import __version__ as app_version
 
-import collections
 import logging
 
 
@@ -495,7 +494,7 @@ class ReticulumMeshChat:
         self.contexts[identity_hash] = context
         self.current_context = context
         context.setup()
-        
+
         # Link database to memory log handler
         memory_log_handler.set_database(context.database)
 
@@ -1165,6 +1164,12 @@ class ReticulumMeshChat:
     @staticmethod
     def get_app_version() -> str:
         return app_version
+
+    def get_lxst_version(self) -> str:
+        try:
+            return importlib.metadata.version("lxst")
+        except Exception:
+            return getattr(LXST, "__version__", "unknown")
 
     # automatically announces based on user config
     async def announce_loop(self, session_id, context=None):
@@ -3095,7 +3100,7 @@ class ReticulumMeshChat:
                         "version": self.get_app_version(),
                         "lxmf_version": LXMF.__version__,
                         "rns_version": RNS.__version__,
-                        "lxst_version": getattr(LXST, "__version__", "unknown"),
+                        "lxst_version": self.get_lxst_version(),
                         "python_version": platform.python_version(),
                         "dependencies": {
                             "aiohttp": importlib.metadata.version("aiohttp"),
@@ -3925,8 +3930,13 @@ class ReticulumMeshChat:
                 remote_identity_hash = d.get("remote_identity_hash")
                 if remote_identity_hash:
                     # try to resolve name if unknown or missing
-                    if not d.get("remote_identity_name") or d.get("remote_identity_name") == "Unknown":
-                        resolved_name = self.get_name_for_identity_hash(remote_identity_hash)
+                    if (
+                        not d.get("remote_identity_name")
+                        or d.get("remote_identity_name") == "Unknown"
+                    ):
+                        resolved_name = self.get_name_for_identity_hash(
+                            remote_identity_hash
+                        )
                         if resolved_name:
                             d["remote_identity_name"] = resolved_name
 
