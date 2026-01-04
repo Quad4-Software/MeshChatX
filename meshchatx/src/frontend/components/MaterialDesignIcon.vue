@@ -29,7 +29,7 @@ export default {
     computed: {
         mdiIconName() {
             if (!this.iconName) return "mdiAccountOutline";
-            
+
             // if already starts with mdi and is camelCase, return as is
             if (this.iconName.startsWith("mdi") && /[A-Z]/.test(this.iconName)) {
                 return this.iconName;
@@ -41,7 +41,7 @@ export default {
                 "mdi" +
                 this.iconName
                     .split("-")
-                    .filter(word => word.length > 0)
+                    .filter((word) => word.length > 0)
                     .map((word) => {
                         // capitalise first letter of each part
                         return word.charAt(0).toUpperCase() + word.slice(1);
@@ -50,12 +50,18 @@ export default {
             );
         },
         iconPath() {
-            if (!mdi) return "";
-            
-            const path = mdi[this.mdiIconName];
+            if (!mdi || Object.keys(mdi).length === 0) {
+                console.error("MDI library not loaded or empty");
+                return "";
+            }
+
+            const name = this.mdiIconName;
+            const path = mdi[name];
+
             if (path) return path;
-            
+
             // fallback logic
+            console.warn(`Icon not found: ${name} (original: ${this.iconName})`);
             return mdi["mdiHelpCircleOutline"] || mdi["mdiProgressQuestion"] || "";
         },
     },

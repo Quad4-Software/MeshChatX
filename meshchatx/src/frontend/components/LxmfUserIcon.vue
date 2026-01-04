@@ -9,10 +9,10 @@
     <div
         v-else-if="iconName"
         class="p-[15%] rounded-full shrink-0 flex items-center justify-center"
-        :style="{ 'background-color': iconBackgroundColour }"
+        :style="{ 'background-color': finalBackgroundColor }"
         :class="iconClass || 'size-6'"
     >
-        <MaterialDesignIcon :icon-name="iconName" class="w-full h-full" :style="{ color: iconForegroundColour }" />
+        <MaterialDesignIcon :icon-name="iconName" class="w-full h-full" :style="{ color: finalForegroundColor }" />
     </div>
     <div
         v-else
@@ -50,6 +50,18 @@ export default {
         iconClass: {
             type: String,
             default: "",
+        },
+    },
+    computed: {
+        finalForegroundColor() {
+            return this.iconForegroundColour && this.iconForegroundColour !== ""
+                ? this.iconForegroundColour
+                : "#6b7280";
+        },
+        finalBackgroundColor() {
+            return this.iconBackgroundColour && this.iconBackgroundColour !== ""
+                ? this.iconBackgroundColour
+                : "#e5e7eb";
         },
     },
 };

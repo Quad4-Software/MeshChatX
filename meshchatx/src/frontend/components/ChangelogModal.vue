@@ -50,7 +50,13 @@
                 <div v-else-if="error" class="flex flex-col items-center justify-center h-full text-center space-y-4">
                     <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
                     <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <v-btn color="blue" variant="flat" class="font-bold uppercase px-6" rounded="lg" @click="fetchChangelog">
+                    <v-btn
+                        color="blue"
+                        variant="flat"
+                        class="font-bold uppercase px-6"
+                        rounded="lg"
+                        @click="fetchChangelog"
+                    >
                         Retry
                     </v-btn>
                 </div>
@@ -131,7 +137,13 @@
                 <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
                     <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
                     <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <v-btn color="blue" variant="flat" class="font-bold uppercase px-6" rounded="lg" @click="fetchChangelog">
+                    <v-btn
+                        color="blue"
+                        variant="flat"
+                        class="font-bold uppercase px-6"
+                        rounded="lg"
+                        @click="fetchChangelog"
+                    >
                         Retry
                     </v-btn>
                 </div>

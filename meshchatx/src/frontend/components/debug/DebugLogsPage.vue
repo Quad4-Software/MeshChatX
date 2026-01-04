@@ -21,7 +21,9 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-zinc-800/50 p-3 rounded-lg border border-gray-200 dark:border-zinc-700">
+                <div
+                    class="flex flex-wrap gap-3 items-center bg-white/50 dark:bg-zinc-800/50 p-3 rounded-lg border border-gray-200 dark:border-zinc-700"
+                >
                     <div class="relative flex-1 min-w-[200px]">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <MaterialDesignIcon icon-name="magnify" class="w-4 h-4 text-gray-400" />
@@ -34,7 +36,7 @@
                             @input="debouncedSearch"
                         />
                     </div>
-                    
+
                     <select
                         v-model="level"
                         class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white"
@@ -61,15 +63,17 @@
             </div>
 
             <div class="flex-1 overflow-hidden glass-card max-w-6xl mx-auto w-full p-0 flex flex-col rounded-sm">
-                <div class="flex-1 overflow-auto p-4 font-mono text-[10px] sm:text-xs leading-relaxed select-text bg-white dark:bg-zinc-950">
+                <div
+                    class="flex-1 overflow-auto p-4 font-mono text-[10px] sm:text-xs leading-relaxed select-text bg-white dark:bg-zinc-950"
+                >
                     <div v-if="logs.length === 0" class="text-gray-500 italic text-center py-10">
-                        {{ loading ? 'Loading logs...' : 'No logs found matching your criteria.' }}
+                        {{ loading ? "Loading logs..." : "No logs found matching your criteria." }}
                     </div>
                     <div
                         v-for="(log, index) in logs"
                         :key="index"
                         class="border-b border-gray-100 dark:border-zinc-900 py-1 flex gap-3 hover:bg-gray-50 dark:hover:bg-zinc-900/50"
-                        :class="{'bg-red-50/30 dark:bg-red-900/10': log.is_anomaly}"
+                        :class="{ 'bg-red-50/30 dark:bg-red-900/10': log.is_anomaly }"
                     >
                         <span class="text-gray-400 shrink-0">{{ formatTime(log.timestamp) }}</span>
                         <span :class="levelClass(log.level)" class="w-12 shrink-0 font-bold uppercase">{{
@@ -80,16 +84,21 @@
                         >
                         <span class="text-gray-800 dark:text-gray-200 break-words flex-1">
                             {{ log.message }}
-                            <span v-if="log.is_anomaly" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 uppercase">
+                            <span
+                                v-if="log.is_anomaly"
+                                class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 uppercase"
+                            >
                                 <MaterialDesignIcon icon-name="alert-circle" class="w-2.5 h-2.5 mr-1" />
-                                {{ log.anomaly_type || 'anomaly' }}
+                                {{ log.anomaly_type || "anomaly" }}
                             </span>
                         </span>
                     </div>
                 </div>
-                
+
                 <!-- Pagination -->
-                <div class="px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50">
+                <div
+                    class="px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50"
+                >
                     <div class="flex-1 flex justify-between sm:hidden">
                         <button
                             class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
@@ -226,7 +235,7 @@ export default {
         formatTime(timestamp) {
             try {
                 // If timestamp is a number (Unix timestamp from Python), multiply by 1000 for JS
-                const ts = typeof timestamp === 'number' ? timestamp * 1000 : timestamp;
+                const ts = typeof timestamp === "number" ? timestamp * 1000 : timestamp;
                 const date = new Date(ts);
                 return date.toLocaleString();
             } catch {
@@ -242,7 +251,12 @@ export default {
             return "text-gray-400";
         },
         async copyLogs() {
-            const logText = this.logs.map((l) => `${this.formatTime(l.timestamp)} [${l.level}] [${l.module}] ${l.message}${l.is_anomaly ? ' [ANOMALY:' + l.anomaly_type + ']' : ''}`).join("\n");
+            const logText = this.logs
+                .map(
+                    (l) =>
+                        `${this.formatTime(l.timestamp)} [${l.level}] [${l.module}] ${l.message}${l.is_anomaly ? " [ANOMALY:" + l.anomaly_type + "]" : ""}`
+                )
+                .join("\n");
             try {
                 await navigator.clipboard.writeText(logText);
                 ToastUtils.success("Logs on this page copied to clipboard");

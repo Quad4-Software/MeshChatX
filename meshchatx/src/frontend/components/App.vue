@@ -735,7 +735,7 @@ export default {
 
                     // show notification for new messages if window is not focussed
                     // only for incoming messages
-                    if (!document.hasFocus() && json.lxmf_message?.is_incoming) {
+                    if (!document.hasFocus() && json.lxmf_message?.is_incoming === true) {
                         NotificationUtils.showNewMessageNotification(
                             json.remote_identity_name,
                             json.lxmf_message?.content

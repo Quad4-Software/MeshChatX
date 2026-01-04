@@ -265,7 +265,11 @@
                                     {{ $t("about.backend_dependencies") }}
                                 </div>
                                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                    <div v-for="(version, name) in appInfo.dependencies" :key="name" class="flex flex-col">
+                                    <div
+                                        v-for="(version, name) in appInfo.dependencies"
+                                        :key="name"
+                                        class="flex flex-col"
+                                    >
                                         <span class="text-[10px] font-black text-blue-500/70 uppercase">{{
                                             name.replace("_", " ")
                                         }}</span>
