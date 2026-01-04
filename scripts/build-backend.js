@@ -21,17 +21,24 @@ function getFiles(dir, fileList = []) {
 function generateManifest(buildDir, manifestPath) {
     console.log("Generating backend integrity manifest...");
     const files = getFiles(buildDir);
-    const manifest = {};
+    const manifest = {
+        _metadata: {
+            version: 1,
+            date: new Date().toISOString().split("T")[0],
+            time: new Date().toISOString().split("T")[1].split(".")[0],
+        },
+        files: {},
+    };
 
     for (const file of files) {
         const relativePath = path.relative(buildDir, file);
         const fileBuffer = fs.readFileSync(file);
         const hash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
-        manifest[relativePath] = hash;
+        manifest.files[relativePath] = hash;
     }
 
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-    console.log(`Manifest saved to ${manifestPath} (${Object.keys(manifest).length} files)`);
+    console.log(`Manifest saved to ${manifestPath} (${Object.keys(manifest.files).length} files)`);
 }
 
 try {

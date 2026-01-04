@@ -108,9 +108,12 @@ function verifyBackendIntegrity(exeDir) {
         const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
         const issues = [];
 
+        const filesToVerify = manifest.files || manifest;
+        const metadata = manifest._metadata || {};
+
         // The exeDir is build/exe when running or unpacked
         // we only care about files in the manifest
-        for (const [relPath, expectedHash] of Object.entries(manifest)) {
+        for (const [relPath, expectedHash] of Object.entries(filesToVerify)) {
             const fullPath = path.join(exeDir, relPath);
             if (!fs.existsSync(fullPath)) {
                 issues.push(`Missing: ${relPath}`);
@@ -122,6 +125,10 @@ function verifyBackendIntegrity(exeDir) {
             if (actualHash !== expectedHash) {
                 issues.push(`Modified: ${relPath}`);
             }
+        }
+
+        if (issues.length > 0 && metadata.date && metadata.time) {
+            issues.unshift(`Backend build timestamp: ${metadata.date} ${metadata.time}`);
         }
 
         return {
