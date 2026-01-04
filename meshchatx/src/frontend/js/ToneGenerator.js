@@ -4,6 +4,7 @@ export default class ToneGenerator {
         this.oscillator = null;
         this.gainNode = null;
         this.timeoutId = null;
+        this.currentTone = null; // 'ringback', 'busy', or null
     }
 
     _initAudioContext() {
@@ -13,8 +14,10 @@ export default class ToneGenerator {
     }
 
     playRingback() {
+        if (this.currentTone === "ringback") return;
         this._initAudioContext();
         this.stop();
+        this.currentTone = "ringback";
 
         const play = () => {
             const osc1 = this.audioCtx.createOscillator();
@@ -57,8 +60,10 @@ export default class ToneGenerator {
     }
 
     playBusyTone() {
+        if (this.currentTone === "busy") return;
         this._initAudioContext();
         this.stop();
+        this.currentTone = "busy";
 
         const play = () => {
             const osc = this.audioCtx.createOscillator();
@@ -89,12 +94,13 @@ export default class ToneGenerator {
         };
 
         play();
-        
+
         // Auto-stop busy tone after 4 seconds (4 cycles)
         setTimeout(() => this.stop(), 4000);
     }
 
     stop() {
+        this.currentTone = null;
         if (this.timeoutId) {
             clearTimeout(this.timeoutId);
             this.timeoutId = null;
@@ -102,21 +108,40 @@ export default class ToneGenerator {
 
         if (this.oscillator) {
             if (Array.isArray(this.oscillator)) {
-                this.oscillator.forEach(osc => {
-                    try { osc.stop(); } catch (e) {}
-                    try { osc.disconnect(); } catch (e) {}
+                this.oscillator.forEach((osc) => {
+                    try {
+                        osc.stop();
+                    } catch {
+                        // Ignore errors if oscillator is already stopped or disconnected
+                    }
+                    try {
+                        osc.disconnect();
+                    } catch {
+                        // Ignore errors if oscillator is already disconnected
+                    }
                 });
             } else {
-                try { this.oscillator.stop(); } catch (e) {}
-                try { this.oscillator.disconnect(); } catch (e) {}
+                try {
+                    this.oscillator.stop();
+                } catch {
+                    // Ignore errors if oscillator is already stopped or disconnected
+                }
+                try {
+                    this.oscillator.disconnect();
+                } catch {
+                    // Ignore errors if oscillator is already disconnected
+                }
             }
             this.oscillator = null;
         }
 
         if (this.gainNode) {
-            try { this.gainNode.disconnect(); } catch (e) {}
+            try {
+                this.gainNode.disconnect();
+            } catch {
+                // Ignore errors if gain node is already disconnected
+            }
             this.gainNode = null;
         }
     }
 }
-

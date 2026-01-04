@@ -191,7 +191,9 @@
                                                 {{ $t("call.recording_voicemail") }}
                                             </span>
                                             <span
-                                                v-else-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
+                                                v-else-if="
+                                                    activeCall && activeCall.is_incoming && activeCall.status === 4
+                                                "
                                                 class="text-blue-600 dark:text-blue-400 font-bold text-sm animate-bounce"
                                                 >{{ $t("call.incoming_call") }}</span
                                             >
@@ -200,17 +202,25 @@
                                                 class="text-gray-700 dark:text-zinc-300 font-bold text-sm flex items-center gap-2"
                                             >
                                                 <span v-if="activeCall && activeCall.status === 0">Busy...</span>
-                                                <span v-else-if="activeCall && activeCall.status === 1" class="text-red-500"
+                                                <span
+                                                    v-else-if="activeCall && activeCall.status === 1"
+                                                    class="text-red-500"
                                                     >Rejected</span
                                                 >
-                                                <span v-else-if="activeCall && activeCall.status === 2" class="animate-pulse"
+                                                <span
+                                                    v-else-if="activeCall && activeCall.status === 2"
+                                                    class="animate-pulse"
                                                     >Calling...</span
                                                 >
                                                 <span v-else-if="activeCall && activeCall.status === 3">Available</span>
-                                                <span v-else-if="activeCall && activeCall.status === 4" class="animate-pulse"
+                                                <span
+                                                    v-else-if="activeCall && activeCall.status === 4"
+                                                    class="animate-pulse"
                                                     >Ringing...</span
                                                 >
-                                                <span v-else-if="activeCall && activeCall.status === 5">Connecting...</span>
+                                                <span v-else-if="activeCall && activeCall.status === 5"
+                                                    >Connecting...</span
+                                                >
                                                 <span
                                                     v-else-if="activeCall && activeCall.status === 6"
                                                     class="text-green-500 flex items-center gap-2"
@@ -651,10 +661,10 @@
                                                     </div>
                                                     <div
                                                         class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 cursor-pointer hover:text-blue-500 transition-colors"
-                                                        :title="entry.remote_identity_hash"
-                                                        @click.stop="copyHash(entry.remote_identity_hash)"
+                                                        :title="entry.remote_destination_hash || entry.remote_identity_hash"
+                                                        @click.stop="copyHash(entry.remote_destination_hash || entry.remote_identity_hash)"
                                                     >
-                                                        {{ formatDestinationHash(entry.remote_identity_hash) }}
+                                                        {{ formatDestinationHash(entry.remote_destination_hash || entry.remote_identity_hash) }}
                                                     </div>
                                                 </div>
 
@@ -1239,7 +1249,7 @@
                                                     type="button"
                                                     class="text-[10px] flex items-center gap-1 text-gray-500 hover:text-blue-500 font-bold uppercase tracking-wider transition-colors"
                                                     @click="
-                                                        destinationHash = voicemail.remote_identity_hash;
+                                                        destinationHash = voicemail.remote_destination_hash || voicemail.remote_identity_hash;
                                                         activeTab = 'phone';
                                                         call(destinationHash);
                                                     "
@@ -2050,7 +2060,7 @@ export default {
                     ) {
                         suggestions.push({
                             name: c.name,
-                            hash: c.remote_identity_hash,
+                            hash: c.remote_destination_hash || c.remote_identity_hash,
                             type: "contact",
                             icon: "account",
                         });
@@ -2069,7 +2079,7 @@ export default {
                     ) {
                         suggestions.push({
                             name: h.remote_identity_name || h.remote_identity_hash.substring(0, 8),
-                            hash: h.remote_identity_hash,
+                            hash: h.remote_destination_hash || h.remote_identity_hash,
                             type: "history",
                             icon: "history",
                         });
@@ -2199,6 +2209,7 @@ export default {
                 const response = await window.axios.get("/api/v1/telephone/status");
                 const oldCall = this.activeCall;
                 const newCall = response.data.active_call;
+                const callStatus = response.data.call_status;
 
                 // Sync local mute state from backend
                 if (newCall) {
@@ -2212,6 +2223,14 @@ export default {
                 this.initiationStatus = response.data.initiation_status;
                 this.initiationTargetHash = response.data.initiation_target_hash;
                 this.initiationTargetName = response.data.initiation_target_name;
+
+                // If no active call and status is idle/busy/rejected/available, clear stale initiation UI
+                const isIdleState = !this.activeCall && ![2, 4, 5].includes(callStatus);
+                if (isIdleState && this.initiationStatus) {
+                    this.initiationStatus = null;
+                    this.initiationTargetHash = null;
+                    this.initiationTargetName = null;
+                }
 
                 if (this.activeCall?.is_voicemail) {
                     this.wasVoicemail = true;
@@ -2260,7 +2279,7 @@ export default {
             this.editingContact = null;
             this.contactForm = {
                 name: entry.remote_identity_name || "",
-                remote_identity_hash: entry.remote_identity_hash,
+                remote_identity_hash: entry.remote_destination_hash || entry.remote_identity_hash,
                 preferred_ringtone_id: null,
             };
             this.isContactModalOpen = true;
@@ -2863,6 +2882,12 @@ export default {
             }
 
             let hashToCall = identityHash.trim();
+            // Accept lxmf:// URIs or pasted text; extract first 64-char hex
+            const hexMatch = hashToCall.match(/[0-9a-fA-F]{64}/);
+            if (hexMatch) {
+                hashToCall = hexMatch[0];
+            }
+            hashToCall = hashToCall.toLowerCase();
 
             // Try to resolve name from contacts
             const contact = this.contacts.find((c) => c.name.toLowerCase() === hashToCall.toLowerCase());

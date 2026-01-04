@@ -72,17 +72,22 @@ def test_generate_greeting(mock_deps, temp_dir):
 def test_start_recording_currently_disabled(mock_deps, temp_dir):
     mock_db = MagicMock()
     mock_config = MagicMock()
+    mock_tel_manager = MagicMock()
     mock_tel = MagicMock()
-    vm = VoicemailManager(mock_db, mock_config, mock_tel, temp_dir)
+    mock_tel_manager.telephone = mock_tel
+    vm = VoicemailManager(mock_db, mock_config, mock_tel_manager, temp_dir)
 
-    mock_link = MagicMock()
-    mock_remote_id = MagicMock()
-    mock_remote_id.hash = b"remote_hash"
-    mock_link.get_remote_identity.return_value = mock_remote_id
+    mock_caller_identity = MagicMock()
+    # Use actual bytes for hash, which has a .hex() method
+    mock_caller_identity.hash = b"remote_hash_32_bytes_long_012345"
 
-    vm.start_recording(mock_link)
+    # Recording requires telephone.active_call to exist
+    # Without it, recording won't start
+    mock_tel.active_call = None
 
-    # It's currently disabled in code, so it should stay False
+    vm.start_recording(mock_caller_identity)
+
+    # Without active_call, recording should not start
     assert vm.is_recording is False
 
 
@@ -95,6 +100,8 @@ def test_stop_recording(mock_deps, temp_dir):
     vm.is_recording = True
     mock_pipeline_inst = MagicMock()
     vm.recording_pipeline = mock_pipeline_inst
+    mock_sink = MagicMock()
+    vm.recording_sink = mock_sink
     vm.recording_filename = "test.opus"
 
     mock_remote_id = MagicMock()
@@ -107,11 +114,20 @@ def test_stop_recording(mock_deps, temp_dir):
 
     vm.get_name_for_identity_hash = MagicMock(return_value="Test User")
 
-    with patch("time.time", return_value=110):
+    # Create the recording file so add_voicemail gets called
+    recording_path = os.path.join(vm.recordings_dir, "test.opus")
+    os.makedirs(vm.recordings_dir, exist_ok=True)
+    with open(recording_path, "wb") as f:
+        f.write(b"fake opus data")
+
+    with patch("time.time", return_value=110), patch.object(
+        vm, "_fix_recording"
+    ) as mock_fix:
         vm.stop_recording()
 
     assert vm.is_recording is False
     mock_pipeline_inst.stop.assert_called()
+    mock_sink.stop.assert_called()
     mock_db.voicemails.add_voicemail.assert_called()
 
 
@@ -127,6 +143,8 @@ def test_start_voicemail_session(mock_deps, temp_dir):
     mock_caller = MagicMock()
     mock_caller.hash = b"caller"
 
+    # Set call_status to RINGING (4) so answer() gets called
+    mock_tel.call_status = 4
     mock_tel.answer.return_value = True
     mock_tel.audio_input = MagicMock()
 

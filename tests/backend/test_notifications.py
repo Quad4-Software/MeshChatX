@@ -184,6 +184,7 @@ def test_missed_call_notification(mock_app):
     mock_app.telephone_manager.call_is_incoming = True
     mock_app.telephone_manager.call_status_at_end = 4  # Ringing
     mock_app.telephone_manager.call_start_time = time.time() - 10
+    mock_app.telephone_manager.call_was_established = False
 
     mock_app.on_telephone_call_ended(caller_identity)
 
@@ -291,8 +292,9 @@ def test_voicemail_notification_fuzzing(mock_app, remote_hash, remote_name, dura
 @given(
     remote_hash=st.text(min_size=32, max_size=64),  # Hex hash
     status_code=st.integers(min_value=0, max_value=10),
+    call_was_established=st.booleans(),
 )
-def test_missed_call_notification_fuzzing(mock_app, remote_hash, status_code):
+def test_missed_call_notification_fuzzing(mock_app, remote_hash, status_code, call_was_established):
     """Fuzz missed call notification triggering."""
     mock_app.database.misc.provider.execute("DELETE FROM notifications")
 
@@ -305,11 +307,13 @@ def test_missed_call_notification_fuzzing(mock_app, remote_hash, status_code):
     mock_app.telephone_manager.call_is_incoming = True
     mock_app.telephone_manager.call_status_at_end = status_code
     mock_app.telephone_manager.call_start_time = time.time()
+    mock_app.telephone_manager.call_was_established = call_was_established
 
     mock_app.on_telephone_call_ended(caller_identity)
 
     notifications = mock_app.database.misc.get_notifications()
-    if status_code == 4:  # Ringing
+    # Notification is created if incoming and not established, regardless of status_code
+    if not call_was_established:
         assert len(notifications) == 1
         assert notifications[0]["type"] == "telephone_missed_call"
     else:

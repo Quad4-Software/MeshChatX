@@ -1082,8 +1082,12 @@
             class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             @click.self="isRawMessageModalOpen = false"
         >
-            <div class="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
+            <div
+                class="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div
+                    class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between shrink-0"
+                >
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">Raw LXMF Message</h3>
                     <button
                         type="button"
@@ -1094,7 +1098,9 @@
                     </button>
                 </div>
                 <div class="p-6 overflow-y-auto font-mono text-xs bg-gray-50 dark:bg-black/40">
-                    <pre class="whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300">{{ JSON.stringify(rawMessageData, null, 2) }}</pre>
+                    <pre class="whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300">{{
+                        JSON.stringify(rawMessageData, null, 2)
+                    }}</pre>
                 </div>
                 <div class="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 flex justify-end shrink-0">
                     <button
@@ -1607,10 +1613,7 @@ export default {
                 // if content is only the paper message, or it already contains the detected text,
                 // we'll hide the raw content div to avoid double rendering.
                 const trimmedContent = content.trim();
-                if (
-                    trimmedContent === items.paperMessage ||
-                    trimmedContent.includes("Paper Message detected")
-                ) {
+                if (trimmedContent === items.paperMessage || trimmedContent.includes("Paper Message detected")) {
                     items.isOnlyPaperMessage = true;
                 }
             }
@@ -2040,7 +2043,7 @@ export default {
                     ...chatItem.lxmf_message,
                     raw_uri: response.data.uri,
                 };
-            } catch (e) {
+            } catch {
                 // if URI is not available (message no longer in router), we show what we have
                 this.rawMessageData = { ...chatItem.lxmf_message };
             }

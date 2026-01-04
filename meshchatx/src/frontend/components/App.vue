@@ -724,6 +724,10 @@ export default {
                     if (this.config?.do_not_disturb_enabled) {
                         break;
                     }
+                    // If we are the caller (outgoing initiation), skip playing the incoming ringtone
+                    if (this.initiationStatus) {
+                        break;
+                    }
                     NotificationUtils.showIncomingCallNotification();
                     this.updateTelephoneStatus();
                     this.playRingtone();
@@ -1059,13 +1063,32 @@ export default {
                 this.initiationTargetHash = response.data.initiation_target_hash;
                 this.initiationTargetName = response.data.initiation_target_name;
 
+                // Update call ended state if needed
+                const justEnded = oldCall != null && this.activeCall == null;
+                if (justEnded) {
+                    this.lastCall = oldCall;
+                    this.toneGenerator.playBusyTone();
+
+                    // Trigger history refresh
+                    GlobalEmitter.emit("telephone-history-updated");
+
+                    if (!this.wasDeclined) {
+                        this.isCallEnded = true;
+                    }
+
+                    if (this.endedTimeout) clearTimeout(this.endedTimeout);
+                    this.endedTimeout = setTimeout(() => {
+                        this.isCallEnded = false;
+                        this.wasDeclined = false;
+                        this.lastCall = null;
+                    }, 5000);
+                }
+
                 // Handle outgoing ringback tone
                 if (this.initiationStatus === "Ringing...") {
                     this.toneGenerator.playRingback();
-                } else if (!this.initiationStatus && !this.activeCall) {
-                    // Only stop if we're not ringing or in a call
-                    // This might be too aggressive if called during a transition, 
-                    // but toneGenerator.stop() is safe to call multiple times.
+                } else if (!this.initiationStatus && !this.activeCall && !this.isCallEnded) {
+                    // Only stop if we're not ringing, in a call, or just finished a call (busy tone playing)
                     this.toneGenerator.stop();
                 }
 
@@ -1092,8 +1115,8 @@ export default {
                     this.isCallWindowOpen = false;
                 }
 
-                // Handle ringtone
-                if (this.activeCall?.status === 4) {
+                // Handle ringtone (only for incoming ringing)
+                if (this.activeCall?.status === 4 && this.activeCall?.is_incoming) {
                     // Call is ringing
                     if (!this.ringtonePlayer && this.config?.custom_ringtone_enabled && !this.isFetchingRingtone) {
                         this.isFetchingRingtone = true;
@@ -1138,25 +1161,8 @@ export default {
                 }
 
                 // If call just ended, show ended state for a few seconds
-                if (oldCall != null && this.activeCall == null) {
-                    this.lastCall = oldCall;
-                    this.toneGenerator.playBusyTone();
-
-                    // Trigger history refresh
-                    GlobalEmitter.emit("telephone-history-updated");
-
-                    if (this.wasDeclined) {
-                        // Already set by hangupCall
-                    } else {
-                        this.isCallEnded = true;
-                    }
-
-                    if (this.endedTimeout) clearTimeout(this.endedTimeout);
-                    this.endedTimeout = setTimeout(() => {
-                        this.isCallEnded = false;
-                        this.wasDeclined = false;
-                        this.lastCall = null;
-                    }, 5000);
+                if (justEnded) {
+                    // Handled above
                 } else if (this.activeCall != null) {
                     // if a new call starts, clear ended state
                     this.isCallEnded = false;

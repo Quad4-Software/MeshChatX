@@ -110,7 +110,7 @@ class TelephoneManager:
                 self.telephone.hangup()
             except Exception as e:
                 RNS.log(f"TelephoneManager: Error during hangup: {e}", RNS.LOG_ERROR)
-        
+
         # Always clear initiation status on hangup to prevent "Dialing..." hang
         self._update_initiation_status(None, None)
 
@@ -140,7 +140,7 @@ class TelephoneManager:
         # Update start time to when it was actually established for duration calculation
         self.call_start_time = time.time()
         self.call_was_established = True
-        
+
         # Clear initiation status as soon as call is established
         self._update_initiation_status(None, None)
 
@@ -296,20 +296,42 @@ class TelephoneManager:
             self._update_initiation_status("Dialing...")
             self.call_start_time = time.time()
             self.call_is_incoming = False
-            
+
             # Use a thread for the blocking LXST call, but monitor status for early exit
             # if established elsewhere or timed out/hung up
-            call_task = asyncio.create_task(asyncio.to_thread(self.telephone.call, destination_identity))
-            
+            call_task = asyncio.create_task(
+                asyncio.to_thread(self.telephone.call, destination_identity)
+            )
+
             start_wait = time.time()
             # LXST telephone.call usually returns on establishment or timeout.
             # We wait for it, but if status becomes established or ended, we can stop waiting.
             while not call_task.done():
-                if self.telephone.call_status in [6, 0, 1]: # Established, Busy, Rejected
+                if self.telephone.call_status in [
+                    6,
+                    0,
+                    1,
+                ]:  # Established, Busy, Rejected
                     break
-                if self.telephone.call_status == 3 and (time.time() - start_wait > 1.0): # Available (ended/timeout)
+                if self.telephone.call_status == 3 and (
+                    time.time() - start_wait > 1.0
+                ):  # Available (ended/timeout)
                     break
                 await asyncio.sleep(0.5)
+
+            # If the task finished but we're still ringing or connecting,
+            # wait a bit more for establishment or definitive failure
+            if self.telephone.call_status in [4, 5]:  # Ringing, Connecting
+                wait_until = time.time() + timeout_seconds
+                while time.time() < wait_until:
+                    if self.telephone.call_status in [
+                        6,
+                        0,
+                        1,
+                        3,
+                    ]:  # Established, Busy, Rejected, Ended
+                        break
+                    await asyncio.sleep(0.5)
 
             return self.telephone.active_call
 

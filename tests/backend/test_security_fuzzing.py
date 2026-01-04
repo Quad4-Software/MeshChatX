@@ -1591,13 +1591,15 @@ def test_lxst_call_initiation_fuzzing(mock_app, destination_hash, timeout):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        dest_hash_bytes = (
-            bytes.fromhex(destination_hash)
-            if isinstance(destination_hash, str) and len(destination_hash) == 32
-            else destination_hash
-            if isinstance(destination_hash, bytes)
-            else os.urandom(16)
-        )
+        if isinstance(destination_hash, str) and len(destination_hash) == 32:
+            try:
+                dest_hash_bytes = bytes.fromhex(destination_hash)
+            except ValueError:
+                dest_hash_bytes = os.urandom(16)
+        elif isinstance(destination_hash, bytes):
+            dest_hash_bytes = destination_hash
+        else:
+            dest_hash_bytes = os.urandom(16)
         timeout_int = (
             int(timeout)
             if isinstance(timeout, (int, float))

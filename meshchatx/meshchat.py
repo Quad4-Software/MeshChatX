@@ -1650,6 +1650,13 @@ class ReticulumMeshChat:
         ctx = context or self.current_context
         if not ctx:
             return
+
+        if ctx.telephone_manager and ctx.telephone_manager.initiation_status:
+            print(
+                "on_incoming_telephone_call: Ignoring as we are currently initiating an outgoing call."
+            )
+            return
+
         caller_hash = caller_identity.hash.hex()
 
         # Check if caller is blocked
@@ -3872,6 +3879,9 @@ class ReticulumMeshChat:
             if telephone_active_call is not None:
                 # remote_identity is already fetched and checked for None above
                 remote_hash = remote_identity.hash.hex()
+                remote_destination_hash = RNS.Destination.hash(
+                    remote_identity, "lxmf", "delivery"
+                ).hex()
                 remote_name = None
                 if self.telephone_manager.get_name_for_identity_hash:
                     remote_name = self.telephone_manager.get_name_for_identity_hash(
@@ -3896,6 +3906,7 @@ class ReticulumMeshChat:
                 active_call = {
                     "hash": telephone_active_call.hash.hex(),
                     "remote_identity_hash": remote_hash,
+                    "remote_destination_hash": remote_destination_hash,
                     "remote_identity_name": remote_name,
                     "remote_icon": dict(remote_icon) if remote_icon else None,
                     "custom_image": custom_image,
@@ -4068,6 +4079,7 @@ class ReticulumMeshChat:
                         remote_identity_hash,
                     )
                     if lxmf_hash:
+                        d["remote_destination_hash"] = lxmf_hash
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
                             d["remote_icon"] = dict(icon)
@@ -4238,6 +4250,7 @@ class ReticulumMeshChat:
                         remote_identity_hash,
                     )
                     if lxmf_hash:
+                        d["remote_destination_hash"] = lxmf_hash
                         icon = self.database.misc.get_user_icon(lxmf_hash)
                         if icon:
                             d["remote_icon"] = dict(icon)
@@ -4296,7 +4309,9 @@ class ReticulumMeshChat:
             try:
                 voicemail_id = int(voicemail_id)
             except (ValueError, TypeError):
-                return web.json_response({"message": "Invalid voicemail ID"}, status=400)
+                return web.json_response(
+                    {"message": "Invalid voicemail ID"}, status=400
+                )
 
             if not self.voicemail_manager:
                 return web.json_response(
@@ -9536,7 +9551,15 @@ class ReticulumMeshChat:
             "Received an announce from "
             + RNS.prettyhexrep(destination_hash)
             + " for [lxst.telephony]"
-            + (f" ({display_name})" if (display_name := parse_lxmf_display_name(base64.b64encode(app_data).decode() if app_data else None, None)) else "")
+            + (
+                f" ({display_name})"
+                if (
+                    display_name := parse_lxmf_display_name(
+                        base64.b64encode(app_data).decode() if app_data else None, None
+                    )
+                )
+                else ""
+            )
         )
 
         # track announce timestamp

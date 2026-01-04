@@ -29,7 +29,7 @@ def docs_manager(temp_dirs):
 
 def test_docs_manager_initialization(docs_manager, temp_dirs):
     _, docs_dir = temp_dirs
-    assert docs_manager.docs_dir == docs_dir
+    assert docs_manager.docs_dir == os.path.join(docs_dir, "current")
     assert os.path.exists(docs_dir)
     assert docs_manager.download_status == "idle"
 
@@ -44,9 +44,10 @@ def test_docs_manager_storage_dir_fallback(tmp_path):
     # If storage_dir is provided, it should be used for docs
     dm = DocsManager(config, str(public_dir), storage_dir=str(storage_dir))
 
-    assert dm.docs_dir == os.path.join(str(storage_dir), "reticulum-docs")
+    assert dm.docs_dir == os.path.join(str(storage_dir), "reticulum-docs", "current")
     assert dm.meshchatx_docs_dir == os.path.join(str(storage_dir), "meshchatx-docs")
-    assert os.path.exists(dm.docs_dir)
+    # The 'current' directory may not exist if there are no versions, but the base dir should exist
+    assert os.path.exists(dm.docs_base_dir)
     assert os.path.exists(dm.meshchatx_docs_dir)
 
 
@@ -77,7 +78,9 @@ def test_has_docs(docs_manager, temp_dirs):
     _, docs_dir = temp_dirs
     assert docs_manager.has_docs() is False
 
-    index_path = os.path.join(docs_dir, "index.html")
+    current_dir = os.path.join(docs_dir, "current")
+    os.makedirs(current_dir, exist_ok=True)
+    index_path = os.path.join(current_dir, "index.html")
     with open(index_path, "w") as f:
         f.write("<html></html>")
 
@@ -108,7 +111,9 @@ def test_download_task_success(mock_get, docs_manager, temp_dirs):
         assert docs_manager.download_status == "completed"
         assert mock_extract.called
         zip_path = os.path.join(docs_dir, "website.zip")
-        mock_extract.assert_called_with(zip_path)
+        call_args = mock_extract.call_args
+        assert call_args[0][0] == zip_path
+        assert call_args[0][1].startswith("git-")
 
 
 @patch("requests.get")

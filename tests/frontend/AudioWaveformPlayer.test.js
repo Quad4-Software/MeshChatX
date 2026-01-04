@@ -7,6 +7,7 @@ class MockAudioContext {
     constructor() {
         this.state = "suspended";
         this.currentTime = 0;
+        this.destination = {};
     }
     decodeAudioData() {
         return Promise.resolve({
@@ -37,6 +38,7 @@ class MockAudioContext {
 // Mock fetch
 global.fetch = vi.fn(() =>
     Promise.resolve({
+        ok: true,
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
     })
 );

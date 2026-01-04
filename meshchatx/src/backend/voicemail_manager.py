@@ -550,14 +550,14 @@ class VoicemailManager:
                 "1",
                 temp_path,
             ]
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, check=False
-            )  # noqa: S603
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603
 
             if result.returncode == 0 and os.path.exists(temp_path):
                 os.remove(filepath)
                 os.rename(temp_path, filepath)
-                RNS.log(f"Voicemail: Fixed recording format for {filepath}", RNS.LOG_DEBUG)
+                RNS.log(
+                    f"Voicemail: Fixed recording format for {filepath}", RNS.LOG_DEBUG
+                )
             else:
                 RNS.log(
                     f"Voicemail: ffmpeg failed to fix {filepath}: {result.stderr}",
@@ -581,7 +581,7 @@ class VoicemailManager:
                 "-f",
                 "lavfi",
                 "-i",
-                f"anullsrc=r=48000:cl=mono",
+                "anullsrc=r=48000:cl=mono",
                 "-t",
                 str(max(1, seconds)),
                 "-c:a",
@@ -598,7 +598,10 @@ class VoicemailManager:
                 RNS.LOG_ERROR,
             )
         except Exception as e:
-            RNS.log(f"Voicemail: Error creating silence file for {filepath}: {e}", RNS.LOG_ERROR)
+            RNS.log(
+                f"Voicemail: Error creating silence file for {filepath}: {e}",
+                RNS.LOG_ERROR,
+            )
         return False
 
     def start_greeting_recording(self):
