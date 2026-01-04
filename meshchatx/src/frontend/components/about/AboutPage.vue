@@ -714,13 +714,10 @@
 import Utils from "../../js/Utils";
 import ElectronUtils from "../../js/ElectronUtils";
 import DialogUtils from "../../js/DialogUtils";
-import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 export default {
     name: "AboutPage",
-    components: {
-        MaterialDesignIcon,
-    },
+    components: {},
     data() {
         return {
             appInfo: null,
