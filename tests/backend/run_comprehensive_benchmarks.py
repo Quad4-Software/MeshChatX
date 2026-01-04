@@ -5,8 +5,6 @@ import shutil
 import tempfile
 import random
 import secrets
-import gc
-from unittest.mock import MagicMock
 
 # Ensure we can import meshchatx
 sys.path.append(os.getcwd())
@@ -14,10 +12,8 @@ sys.path.append(os.getcwd())
 import json
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.identity_manager import IdentityManager
-from meshchatx.src.backend.announce_manager import AnnounceManager
 from meshchatx.src.backend.database.telephone import TelephoneDAO
 from tests.backend.benchmarking_utils import (
-    MemoryTracker,
     benchmark,
     get_memory_usage_mb,
 )

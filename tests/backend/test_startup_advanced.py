@@ -1,4 +1,3 @@
-import os
 import shutil
 import tempfile
 import base64
@@ -153,7 +152,7 @@ def test_database_integrity_recovery(mock_rns, temp_dir):
         mock_config.auth_session_secret.get.return_value = "test_secret"
         mock_config.display_name.get.return_value = "Test"
 
-        app = ReticulumMeshChat(
+        _ = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,

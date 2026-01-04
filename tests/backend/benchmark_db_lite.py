@@ -84,7 +84,7 @@ def test_db_performance():
     # Test unread states for all peers
     print("Testing get_conversations_unread_states()...")
     start_time = time.time()
-    unread = db.messages.get_conversations_unread_states(peer_hashes)
+    _ = db.messages.get_conversations_unread_states(peer_hashes)
     end_time = time.time()
     print(
         f"get_conversations_unread_states() for {len(peer_hashes)} peers took {end_time - start_time:.4f} seconds"
@@ -111,7 +111,7 @@ def test_db_performance():
 
     print("Testing get_filtered_announces()...")
     start_time = time.time()
-    anns = db.announces.get_filtered_announces(limit=100)
+    _ = db.announces.get_filtered_announces(limit=100)
     end_time = time.time()
     print(f"get_filtered_announces() took {end_time - start_time:.4f} seconds")
 

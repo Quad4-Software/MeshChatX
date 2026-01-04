@@ -1,10 +1,8 @@
-import os
 import shutil
 import tempfile
 import pytest
 import json
 from unittest.mock import MagicMock, patch
-from aiohttp import web
 from meshchatx.meshchat import ReticulumMeshChat
 import RNS
 import asyncio
@@ -110,7 +108,7 @@ async def test_app_shutdown_endpoint(mock_rns_minimal, temp_dir):
 
         # We need to patch sys.exit to avoid stopping the test runner
         with (
-            patch("sys.exit") as mock_exit,
+            patch("sys.exit"),
             patch("asyncio.sleep", return_value=asyncio.sleep(0)),
         ):
             response = await shutdown_handler(request)

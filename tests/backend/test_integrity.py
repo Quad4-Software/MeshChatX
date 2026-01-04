@@ -1,8 +1,6 @@
 import unittest
-import os
 import shutil
 import tempfile
-import json
 from pathlib import Path
 from meshchatx.src.backend.integrity_manager import IntegrityManager
 

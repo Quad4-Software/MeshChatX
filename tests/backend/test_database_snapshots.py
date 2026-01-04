@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
 
 import pytest
 from meshchatx.src.backend.database import Database

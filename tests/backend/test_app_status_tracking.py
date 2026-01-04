@@ -1,10 +1,7 @@
-import os
 import shutil
 import tempfile
-import json
 import pytest
 from unittest.mock import MagicMock, patch
-from aiohttp import web
 from meshchatx.meshchat import ReticulumMeshChat
 import RNS
 
@@ -96,9 +93,6 @@ async def test_app_status_endpoints(mock_rns_minimal, temp_dir):
 
         app_instance.config.set("changelog_seen_version", "4.0.0")
         assert app_instance.config.get("changelog_seen_version") == "4.0.0"
-
-        # Mock request for app_info
-        mock_request = MagicMock()
 
         # Test app_info returns these values
         with ExitStack() as info_stack:

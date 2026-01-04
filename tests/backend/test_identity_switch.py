@@ -1,8 +1,6 @@
 import os
 import shutil
 import tempfile
-import asyncio
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 from contextlib import ExitStack
 import pytest
@@ -243,7 +241,6 @@ async def test_hotswap_identity_recovery(mock_rns, temp_dir):
 
     # Mock setup_identity to fail first time (after hotswap start),
     # but the second call (recovery) should succeed.
-    original_setup = app.setup_identity
     app.setup_identity = MagicMock(side_effect=[Exception("Setup failed"), None])
     app.teardown_identity = MagicMock()
     app.websocket_broadcast = AsyncMock()

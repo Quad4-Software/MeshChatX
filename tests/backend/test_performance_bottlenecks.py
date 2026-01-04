@@ -3,7 +3,6 @@ import os
 import shutil
 import tempfile
 import time
-import random
 import secrets
 from unittest.mock import MagicMock
 from meshchatx.src.backend.database import Database

@@ -1,7 +1,5 @@
-import os
 import shutil
 import tempfile
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from contextlib import ExitStack
 import pytest
@@ -9,7 +7,6 @@ import RNS
 import LXMF
 
 from meshchatx.meshchat import ReticulumMeshChat
-from meshchatx.src.backend.lxmf_message_fields import LxmfImageField
 
 
 @pytest.fixture

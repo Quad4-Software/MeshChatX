@@ -1,12 +1,9 @@
-import os
 import shutil
 import tempfile
-import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
-import LXMF
 
 from meshchatx.meshchat import ReticulumMeshChat
 
@@ -85,12 +82,8 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.MapManager"),
         patch("meshchatx.src.backend.identity_context.DocsManager"),
         patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
-        patch(
-            "meshchatx.src.backend.identity_context.TelephoneManager"
-        ) as mock_tel_class,
-        patch(
-            "meshchatx.src.backend.identity_context.VoicemailManager"
-        ) as mock_vm_class,
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         patch("meshchatx.src.backend.identity_context.RingtoneManager"),
         patch("meshchatx.src.backend.identity_context.RNCPHandler"),
         patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
@@ -206,7 +199,7 @@ def test_reticulum_meshchat_init_database_failure_recovery(mock_rns, temp_dir):
         # Fail the first initialize call
         mock_db_instance.initialize.side_effect = [Exception("DB Error"), None]
 
-        app = ReticulumMeshChat(
+        _ = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,

@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 from unittest.mock import MagicMock, patch
 from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
 from meshchatx.src.backend.rnstatus_handler import RNStatusHandler

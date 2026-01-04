@@ -2,12 +2,10 @@ import unittest
 import os
 import shutil
 import tempfile
-import random
 import secrets
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.identity_manager import IdentityManager
-from meshchatx.src.backend.announce_manager import AnnounceManager
-from tests.backend.benchmarking_utils import MemoryTracker, get_memory_usage_mb
+from tests.backend.benchmarking_utils import MemoryTracker
 
 
 class TestMemoryProfiling(unittest.TestCase):
@@ -111,8 +109,6 @@ class TestMemoryProfiling(unittest.TestCase):
 
     def test_announce_manager_leaks(self):
         """Test for memory leaks in AnnounceManager during repeated updates."""
-        announce_manager = AnnounceManager(self.db)
-
         with MemoryTracker("Announce Stress (2k unique announces)") as tracker:
             for i in range(2000):
                 data = {

@@ -6,7 +6,6 @@ import LXMF
 from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_message_to_dict,
     convert_lxmf_state_to_string,
-    convert_lxmf_method_to_string,
     convert_db_lxmf_message_to_dict,
 )
 

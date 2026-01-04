@@ -1,5 +1,3 @@
-import asyncio
-import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -26,7 +24,6 @@ async def test_initiation_status_updates(telephone_manager):
 
     telephone_manager.on_initiation_status_callback = status_callback
     destination_hash = b"\x01" * 32
-    destination_hash_hex = destination_hash.hex()
 
     # Mock RNS.Identity.recall to return an identity immediately
     with patch.object(RNS.Identity, "recall") as mock_recall:

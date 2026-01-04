@@ -6,7 +6,6 @@ import random
 import secrets
 import psutil
 import gc
-from unittest.mock import MagicMock
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.recovery import CrashRecovery
 

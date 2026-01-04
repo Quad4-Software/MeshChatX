@@ -1,6 +1,5 @@
 import unittest
 import os
-import sqlite3
 import tempfile
 import shutil
 from meshchatx.src.backend.database.provider import DatabaseProvider

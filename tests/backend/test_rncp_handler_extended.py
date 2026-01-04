@@ -84,7 +84,7 @@ def test_setup_receive_destination(mock_rns, temp_dir):
     handler = RNCPHandler(mock_rns["Reticulum"], mock_rns["id_instance"], temp_dir)
 
     mock_rns["Reticulum"].identitypath = temp_dir
-    dest_hash = handler.setup_receive_destination(
+    _ = handler.setup_receive_destination(
         allowed_hashes=["abc123def456"], fetch_allowed=True, fetch_jail=temp_dir
     )
 
