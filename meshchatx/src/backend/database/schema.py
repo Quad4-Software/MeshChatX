@@ -11,6 +11,10 @@ class DatabaseSchema:
         try:
             return self.provider.execute(query, params)
         except Exception as e:
+            # Silence expected errors during migrations (e.g. duplicate columns/indexes)
+            err_msg = str(e).lower()
+            if "duplicate column name" in err_msg or "already exists" in err_msg:
+                return None
             print(f"Database operation failed: {query[:100]}... Error: {e}")
             return None
 
