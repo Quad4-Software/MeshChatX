@@ -161,7 +161,9 @@
         "sync_error": "Synchronisierungsfehler: {status}",
         "switching_identity": "Identität wird gewechselt...",
         "loading_identity": "Ihre Identität wird geladen",
-        "emergency_mode_active": "Notfallmodus aktiv - In-Memory-Datenbank und eingeschränkte Dienste werden verwendet."
+        "emergency_mode_active": "Notfallmodus aktiv - In-Memory-Datenbank und eingeschränkte Dienste werden verwendet.",
+        "blackhole_integration_enabled": "Blackhole-Integration",
+        "blackhole_integration_description": "Identitäten automatisch auf der Reticulum-Transportebene sperren (Blackhole), wenn Benutzer in MeshChatX verbannt werden."
     },
     "common": {
         "open": "Öffnen",
@@ -504,6 +506,10 @@
             "title": "RNStatus",
             "description": "Schnittstellenstatistiken und Netzwerkstatusinformationen anzeigen."
         },
+        "rnpath": {
+            "title": "RNPath",
+            "description": "Verwalten Sie die Pfadtabelle, sehen Sie Ankündigungsraten und fordern Sie Pfade an."
+        },
         "translator": {
             "title": "Übersetzer",
             "description": "Text mit der LibreTranslate API oder lokalem Argos Translate übersetzen."
@@ -560,7 +566,11 @@
     "rncp": {
         "file_transfer": "Dateiübertragung",
         "title": "RNCP - Reticulum Network Copy",
-        "description": "Senden und Empfangen von Dateien über das Reticulum-Netzwerk unter Verwendung von RNS-Ressourcen.",
+        "description": "Senden und Empfangen von Dateien über das Reticulum-Netzwerk unter Verwendung von RNS-Ressourcen. Dieses Tool ermöglicht eine zuverlässige Dateiübertragung zwischen Mesh-Knoten, selbst über Verbindungen mit hoher Latenz.",
+        "usage_steps": "Verwendung von RNCP:",
+        "step_1": "1. Um eine Datei zu **empfangen**, gehen Sie zum Tab **Hören**, geben Sie erlaubte Identitäts-Hashes ein (wer an Sie senden darf) und klicken Sie auf **Hören starten**.",
+        "step_2": "2. Um eine Datei zu **senden**, besorgen Sie sich den **Ziel-Hash** eines hörenden Knotens, geben Sie den **lokalen Dateipfad** ein und klicken Sie auf **Datei senden**.",
+        "step_3": "3. Um eine Datei **abzurufen**, besorgen Sie sich den **Ziel-Hash** eines Knotens, der mit aktiviertem 'Abruf zulassen' hört, geben Sie den **Remote-Dateipfad** ein und klicken Sie auf **Datei abrufen**.",
         "send_file": "Datei senden",
         "fetch_file": "Datei abrufen",
         "listen": "Hören",

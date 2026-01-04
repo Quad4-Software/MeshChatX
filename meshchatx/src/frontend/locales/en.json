@@ -131,9 +131,9 @@
         "smart_crawler": "Smart Crawler",
         "authentication": "Authentication",
         "banishment": "Banishment",
-        "banishment_description": "Customize the visual effect shown for blocked peers and nodes.",
+        "banishment_description": "Customize the visual effect shown for banished peers and nodes.",
         "banished_effect_enabled": "Enable Banishment Effect",
-        "banished_effect_description": "Show a visual overlay on blocked peers and nodes.",
+        "banished_effect_description": "Show a visual overlay on banished peers and nodes.",
         "banished_text_label": "Banishment Text",
         "banished_text_description": "Custom message to display on the overlay.",
         "banished_color_label": "Banishment Color",
@@ -161,14 +161,16 @@
         "sync_error": "Sync error: {status}",
         "switching_identity": "Switching Identity...",
         "loading_identity": "Loading your identity",
-        "emergency_mode_active": "Emergency Mode Active - Using in-memory database and restricted services."
+        "emergency_mode_active": "Emergency Mode Active - Using in-memory database and restricted services.",
+        "blackhole_integration_enabled": "Blackhole Integration",
+        "blackhole_integration_description": "Automatically blackhole identities at the Reticulum transport layer when banishing users in MeshChatX."
     },
     "common": {
         "open": "Open",
         "close": "Close",
         "cancel": "Cancel",
         "save": "Save",
-        "block": "Block",
+        "block": "Banish",
         "delete": "Delete",
         "edit": "Edit",
         "add": "Add",
@@ -428,12 +430,12 @@
         "add_nodes_from_announces": "Add nodes from the announces tab.",
         "search_announces": "Search announces",
         "announced_time_ago": "Announced {time} ago",
-        "block_node": "Block Node",
+        "block_node": "Banish Node",
         "no_announces_yet": "No announces yet",
         "listening_for_peers": "Listening for peers on the mesh.",
-        "block_node_confirm": "Are you sure you want to block {name}? Their announces will be ignored and they won't appear in the announce stream.",
-        "node_blocked_successfully": "Node blocked successfully",
-        "failed_to_block_node": "Failed to block node",
+        "block_node_confirm": "Are you sure you want to banish {name}? Their announces will be ignored and they won't appear in the announce stream.",
+        "node_blocked_successfully": "Node banished successfully",
+        "failed_to_block_node": "Failed to banish node",
         "rename_favourite": "Rename this favourite",
         "remove_favourite_confirm": "Are you sure you want to remove this favourite?",
         "enter_nomadnet_url": "Enter a Nomadnet URL",
@@ -504,6 +506,10 @@
             "title": "RNStatus",
             "description": "View interface statistics and network status information."
         },
+        "rnpath": {
+            "title": "RNPath",
+            "description": "Manage the path table, view announce rates and request paths."
+        },
         "translator": {
             "title": "Translator",
             "description": "Translate text using LibreTranslate API or local Argos Translate."
@@ -560,7 +566,11 @@
     "rncp": {
         "file_transfer": "File Transfer",
         "title": "RNCP - Reticulum Network Copy",
-        "description": "Send and receive files over the Reticulum network using RNS resources.",
+        "description": "Send and receive files over the Reticulum network using RNS resources. This tool allows for reliable file transfer between mesh nodes even over high-latency links.",
+        "usage_steps": "How to use RNCP:",
+        "step_1": "1. To **receive** a file, go to the **Listen** tab, enter allowed identity hashes (who can send to you), and click **Start Listening**.",
+        "step_2": "2. To **send** a file, get the **Destination Hash** of a listening node, enter the **Local File Path**, and click **Send File**.",
+        "step_3": "3. To **fetch** a file, get the **Destination Hash** of a node listening with 'Allow Fetch' enabled, enter the **Remote File Path**, and click **Fetch File**.",
         "send_file": "Send File",
         "fetch_file": "Fetch File",
         "listen": "Listen",
