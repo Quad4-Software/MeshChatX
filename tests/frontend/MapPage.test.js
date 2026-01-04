@@ -19,6 +19,12 @@ vi.mock("ol/Map", () => ({
         on: vi.fn(),
         addLayer: vi.fn(),
         addInteraction: vi.fn(),
+        addOverlay: vi.fn(),
+        removeInteraction: vi.fn(),
+        removeOverlay: vi.fn(),
+        un: vi.fn(),
+        getEventPixel: vi.fn().mockReturnValue([0, 0]),
+        getTargetElement: vi.fn().mockReturnValue({ style: {} }),
         getView: vi.fn().mockReturnValue({
             on: vi.fn(),
             setCenter: vi.fn(),
@@ -31,6 +37,9 @@ vi.mock("ol/Map", () => ({
         getLayers: vi.fn().mockReturnValue({
             clear: vi.fn(),
             push: vi.fn(),
+            getArray: vi.fn().mockReturnValue([]),
+        }),
+        getOverlays: vi.fn().mockReturnValue({
             getArray: vi.fn().mockReturnValue([]),
         }),
         forEachFeatureAtPixel: vi.fn(),
@@ -129,10 +138,12 @@ describe("MapPage.vue", () => {
             patch: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
+        vi.stubGlobal("axios", axiosMock);
         window.axios = axiosMock;
     });
 
     beforeEach(() => {
+        vi.stubGlobal("axios", axiosMock);
         window.axios = axiosMock;
         // Mock localStorage
         const localStorageMock = {

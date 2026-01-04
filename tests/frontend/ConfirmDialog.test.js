@@ -95,12 +95,9 @@ describe("ConfirmDialog.vue", () => {
 
         await wrapper.vm.$nextTick();
 
-        const backdrop = wrapper.findAll(".fixed").find((el) => {
-            const classes = el.classes();
-            return classes.includes("inset-0") && !classes.includes("z-[200]");
-        });
+        const backdrop = wrapper.find(".backdrop-blur-sm");
 
-        if (backdrop && backdrop.exists()) {
+        if (backdrop.exists()) {
             await backdrop.trigger("click");
             await wrapper.vm.$nextTick();
             expect(resolvePromise).toHaveBeenCalledWith(false);

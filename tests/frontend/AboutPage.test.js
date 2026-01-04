@@ -91,24 +91,28 @@ describe("AboutPage.vue", () => {
         });
 
         const wrapper = mountAboutPage();
+        wrapper.vm.showAdvanced = true;
         await vi.runOnlyPendingTimers();
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick(); // Extra tick for multiple async calls
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
 
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/app/info");
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
 
-        expect(wrapper.text()).toContain("Reticulum MeshChatX");
+        expect(wrapper.text()).toContain("MeshChatX");
+        expect(wrapper.text()).toContain("Reticulum Network Stack");
         expect(wrapper.text()).toContain("hash1");
         expect(wrapper.text()).toContain("hash2");
 
         // Check for Dependency Chain section
-        expect(wrapper.text()).toContain("about.dependency_chain");
+        expect(wrapper.text()).toContain("Dependency Chain");
         expect(wrapper.text()).toContain("Lightweight Extensible Message Format");
         expect(wrapper.text()).toContain("Reticulum Network Stack");
 
         // Check for dependencies
-        expect(wrapper.text()).toContain("about.backend_dependencies");
+        expect(wrapper.text()).toContain("Backend Stack");
         expect(wrapper.text()).toContain("aiohttp");
         expect(wrapper.text()).toContain("3.8.1");
     });
@@ -133,6 +137,7 @@ describe("AboutPage.vue", () => {
         });
 
         const wrapper = mountAboutPage();
+        wrapper.vm.showAdvanced = true;
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
@@ -140,7 +145,7 @@ describe("AboutPage.vue", () => {
 
         expect(getMemoryUsageSpy).toHaveBeenCalled();
         expect(wrapper.vm.electronMemoryUsage).not.toBeNull();
-        expect(wrapper.text()).toContain("Electron Resources");
+        expect(wrapper.text()).toContain("Environment Information");
     });
 
     it("handles shutdown action", async () => {
