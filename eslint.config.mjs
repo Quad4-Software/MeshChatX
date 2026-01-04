@@ -13,6 +13,8 @@ export default [
             "**/android/**",
             "**/MagicMock/**",
             "**/reticulum_meshchatx.egg-info/**",
+            "**/meshchat-config/**",
+            "**/screenshots/**",
             "**/electron/assets/**",
             "**/meshchatx/public/**",
             "**/meshchatx/src/frontend/public/**",
