@@ -1,5 +1,6 @@
 <template>
     <div
+        v-if="config"
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
         <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
@@ -851,6 +852,11 @@ export default {
             ElectronUtils,
             KeyboardShortcuts,
             config: {
+                display_name: "",
+                identity_hash: "",
+                lxmf_address_hash: "",
+                theme: "dark",
+                is_transport_enabled: false,
                 auto_resend_failed_messages_when_announce_received: null,
                 allow_auto_resending_failed_messages_with_attachments: null,
                 auto_send_failed_messages_to_propagation_node: null,
@@ -867,6 +873,20 @@ export default {
             reloadingRns: false,
         };
     },
+    computed: {
+        safeConfig() {
+            if (!this.config) {
+                this.config = {
+                    display_name: "",
+                    identity_hash: "",
+                    lxmf_address_hash: "",
+                    theme: "dark",
+                    is_transport_enabled: false,
+                };
+            }
+            return this.config;
+        },
+    },
     beforeUnmount() {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -882,7 +902,9 @@ export default {
             const json = JSON.parse(message.data);
             switch (json.type) {
                 case "config": {
-                    this.config = json.config;
+                    if (json.config) {
+                        this.config = { ...this.config, ...json.config };
+                    }
                     break;
                 }
                 case "keyboard_shortcuts": {
@@ -894,7 +916,9 @@ export default {
         async getConfig() {
             try {
                 const response = await window.axios.get("/api/v1/config");
-                this.config = response.data.config;
+                if (response?.data?.config) {
+                    this.config = { ...this.config, ...response.data.config };
+                }
                 this.getKeyboardShortcuts();
             } catch (e) {
                 // do nothing if failed to load config
