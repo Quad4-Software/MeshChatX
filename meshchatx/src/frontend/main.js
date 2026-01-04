@@ -27,7 +27,39 @@ const i18n = createI18n({
 
 // init vuetify
 import { createVuetify } from "vuetify";
-const vuetify = createVuetify();
+const vuetify = createVuetify({
+    theme: {
+        defaultTheme: "light",
+        themes: {
+            light: {
+                dark: false,
+                colors: {
+                    background: "#f8fafc",
+                    surface: "#ffffff",
+                    primary: "#2563eb",
+                    secondary: "#475569",
+                    error: "#dc2626",
+                    info: "#0284c7",
+                    success: "#16a34a",
+                    warning: "#f97316",
+                },
+            },
+            dark: {
+                dark: true,
+                colors: {
+                    background: "#09090b",
+                    surface: "#18181b",
+                    primary: "#60a5fa",
+                    secondary: "#94a3b8",
+                    error: "#f87171",
+                    info: "#38bdf8",
+                    success: "#34d399",
+                    warning: "#fb923c",
+                },
+            },
+        },
+    },
+});
 
 // provide axios globally
 window.axios = axios;
@@ -141,6 +173,11 @@ const router = createRouter({
             name: "rnstatus",
             path: "/rnstatus",
             component: defineAsyncComponent(() => import("./components/rnstatus/RNStatusPage.vue")),
+        },
+        {
+            name: "rnpath",
+            path: "/rnpath",
+            component: defineAsyncComponent(() => import("./components/tools/RNPathPage.vue")),
         },
         {
             name: "rnprobe",
