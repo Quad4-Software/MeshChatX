@@ -1,6 +1,6 @@
 <template>
     <div
-        v-if="activeCall"
+        v-if="activeCall || initiationStatus || isEnded || wasDeclined"
         class="fixed bottom-4 right-4 z-[100] w-80 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-all duration-300"
         :class="{ 'ring-2 ring-red-500 ring-opacity-50': isEnded || wasDeclined }"
     >
@@ -25,11 +25,13 @@
                                 ? $t("call.call_declined")
                                 : isEnded
                                   ? $t("call.call_ended")
-                                  : activeCall.is_voicemail
+                                  : activeCall && activeCall.is_voicemail
                                     ? $t("call.recording_voicemail")
-                                    : activeCall.status === 6
+                                    : activeCall && activeCall.status === 6
                                       ? $t("call.active_call")
-                                      : $t("call.call_status")
+                                      : initiationStatus
+                                        ? $t("call.initiation")
+                                        : $t("call.call_status")
                         }}
                     </span>
                     <MaterialDesignIcon
@@ -65,27 +67,35 @@
                     "
                 >
                     <LxmfUserIcon
-                        :custom-image="activeCall.custom_image"
-                        :icon-name="activeCall.remote_icon ? activeCall.remote_icon.icon_name : ''"
-                        :icon-foreground-colour="activeCall.remote_icon ? activeCall.remote_icon.foreground_colour : ''"
-                        :icon-background-colour="activeCall.remote_icon ? activeCall.remote_icon.background_colour : ''"
+                        :custom-image="activeCall ? activeCall.custom_image : null"
+                        :icon-name="activeCall && activeCall.remote_icon ? activeCall.remote_icon.icon_name : ''"
+                        :icon-foreground-colour="
+                            activeCall && activeCall.remote_icon ? activeCall.remote_icon.foreground_colour : ''
+                        "
+                        :icon-background-colour="
+                            activeCall && activeCall.remote_icon ? activeCall.remote_icon.background_colour : ''
+                        "
                         icon-class="size-14"
                     />
                 </div>
                 <div class="text-center w-full min-w-0">
                     <div class="font-bold text-gray-900 dark:text-white truncate px-2">
-                        {{ activeCall.remote_identity_name || $t("call.unknown") }}
+                        {{
+                            (activeCall ? activeCall.remote_identity_name : initiationTargetName) || $t("call.unknown")
+                        }}
                     </div>
                     <div
-                        v-if="activeCall.is_contact"
+                        v-if="activeCall ? activeCall.is_contact : !!initiationTargetName"
                         class="text-[10px] text-blue-600 dark:text-blue-400 font-medium mt-0.5"
                     >
                         In contacts
                     </div>
                     <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate px-4">
                         {{
-                            activeCall.remote_identity_hash
-                                ? formatDestinationHash(activeCall.remote_identity_hash)
+                            (activeCall ? activeCall.remote_identity_hash : initiationTargetHash)
+                                ? formatDestinationHash(
+                                      activeCall ? activeCall.remote_identity_hash : initiationTargetHash
+                                  )
                                 : ""
                         }}
                     </div>
@@ -242,18 +252,24 @@
         >
             <div class="flex items-center space-x-2 overflow-hidden mr-2 min-w-0">
                 <LxmfUserIcon
-                    :custom-image="activeCall.custom_image"
-                    :icon-name="activeCall.remote_icon ? activeCall.remote_icon.icon_name : ''"
-                    :icon-foreground-colour="activeCall.remote_icon ? activeCall.remote_icon.foreground_colour : ''"
-                    :icon-background-colour="activeCall.remote_icon ? activeCall.remote_icon.background_colour : ''"
+                    :custom-image="activeCall ? activeCall.custom_image : null"
+                    :icon-name="activeCall && activeCall.remote_icon ? activeCall.remote_icon.icon_name : ''"
+                    :icon-foreground-colour="
+                        activeCall && activeCall.remote_icon ? activeCall.remote_icon.foreground_colour : ''
+                    "
+                    :icon-background-colour="
+                        activeCall && activeCall.remote_icon ? activeCall.remote_icon.background_colour : ''
+                    "
                     icon-class="size-6 shrink-0"
                 />
                 <div class="flex flex-col min-w-0">
                     <span class="text-sm font-medium text-gray-700 dark:text-zinc-200 truncate block">
-                        {{ activeCall.remote_identity_name || $t("call.unknown") }}
+                        {{
+                            (activeCall ? activeCall.remote_identity_name : initiationTargetName) || $t("call.unknown")
+                        }}
                     </span>
                     <span
-                        v-if="activeCall.status === 6 && elapsedTime"
+                        v-if="activeCall && activeCall.status === 6 && elapsedTime"
                         class="text-[10px] text-gray-500 dark:text-zinc-400 font-mono"
                     >
                         {{ elapsedTime }}
@@ -297,7 +313,7 @@ export default {
     props: {
         activeCall: {
             type: Object,
-            required: true,
+            default: null,
         },
         isEnded: {
             type: Boolean,
@@ -312,6 +328,14 @@ export default {
             default: null,
         },
         initiationStatus: {
+            type: String,
+            default: null,
+        },
+        initiationTargetHash: {
+            type: String,
+            default: null,
+        },
+        initiationTargetName: {
             type: String,
             default: null,
         },

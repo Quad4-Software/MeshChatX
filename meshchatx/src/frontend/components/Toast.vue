@@ -60,12 +60,13 @@ export default {
         };
     },
     mounted() {
-        GlobalEmitter.on("toast", (toast) => {
+        this.toastHandler = (toast) => {
             this.add(toast);
-        });
+        };
+        GlobalEmitter.on("toast", this.toastHandler);
     },
     beforeUnmount() {
-        GlobalEmitter.off("toast");
+        GlobalEmitter.off("toast", this.toastHandler);
     },
     methods: {
         add(toast) {

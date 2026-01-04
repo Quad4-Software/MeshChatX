@@ -141,16 +141,24 @@
 
                             <div class="relative z-10 space-y-1 mb-8">
                                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white truncate max-w-[280px]">
-                                    {{ (activeCall || lastCall)?.remote_identity_name || $t("call.unknown") }}
+                                    {{
+                                        (activeCall || lastCall)?.remote_identity_name ||
+                                        initiationTargetName ||
+                                        $t("call.unknown")
+                                    }}
                                 </h2>
                                 <div
-                                    v-if="(activeCall || lastCall)?.remote_identity_hash"
+                                    v-if="(activeCall || lastCall)?.remote_identity_hash || initiationTargetHash"
                                     class="text-xs font-mono text-gray-400 dark:text-zinc-500 tracking-wider"
                                 >
-                                    {{ formatDestinationHash((activeCall || lastCall).remote_identity_hash) }}
+                                    {{
+                                        formatDestinationHash(
+                                            (activeCall || lastCall)?.remote_identity_hash || initiationTargetHash
+                                        )
+                                    }}
                                 </div>
                                 <div
-                                    v-if="(activeCall || lastCall)?.is_contact"
+                                    v-if="(activeCall || lastCall)?.is_contact || !!initiationTargetName"
                                     class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full uppercase tracking-wider"
                                 >
                                     <MaterialDesignIcon icon-name="check-decagram" class="size-3" />
@@ -2001,6 +2009,7 @@ export default {
             localSpeakerMuted: false,
             initiationStatus: null,
             initiationTargetHash: null,
+            initiationTargetName: null,
         };
     },
     computed: {
@@ -2202,6 +2211,7 @@ export default {
                 this.activeCall = newCall;
                 this.initiationStatus = response.data.initiation_status;
                 this.initiationTargetHash = response.data.initiation_target_hash;
+                this.initiationTargetName = response.data.initiation_target_name;
 
                 if (this.activeCall?.is_voicemail) {
                     this.wasVoicemail = true;
@@ -2862,6 +2872,9 @@ export default {
 
             // Provide immediate feedback
             this.destinationHash = hashToCall;
+            const targetContact = this.contacts.find((c) => c.remote_identity_hash === hashToCall);
+            this.initiationTargetHash = hashToCall;
+            this.initiationTargetName = targetContact ? targetContact.name : null;
             this.activeTab = "phone";
             this.initiationStatus = "Initiating...";
             this.isCallEnded = false;

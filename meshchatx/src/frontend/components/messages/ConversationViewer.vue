@@ -954,7 +954,7 @@
             </div>
 
             <!-- compose message input -->
-            <div class="w-full">
+            <div class="w-full relative">
                 <input
                     id="compose-input"
                     ref="compose-input"
@@ -964,7 +964,53 @@
                     class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2.5 shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                     placeholder="Enter LXMF address..."
                     @keydown.enter.exact.prevent="onComposeEnterPressed"
+                    @keydown.up.prevent="handleComposeInputUp"
+                    @keydown.down.prevent="handleComposeInputDown"
+                    @focus="isComposeInputFocused = true"
+                    @blur="onComposeInputBlur"
                 />
+                <!-- Suggestions Dropdown -->
+                <div
+                    v-if="isComposeInputFocused && composeSuggestions.length > 0"
+                    class="absolute z-50 left-0 right-0 bottom-full mb-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200"
+                >
+                    <div
+                        v-for="(suggestion, index) in composeSuggestions"
+                        :key="suggestion.hash"
+                        class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
+                        :class="[
+                            index === selectedComposeSuggestionIndex
+                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                        ]"
+                        @mousedown.prevent="selectComposeSuggestion(suggestion)"
+                    >
+                        <div
+                            class="shrink-0 size-8 rounded-full flex items-center justify-center text-xs"
+                            :class="
+                                suggestion.type === 'contact'
+                                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
+                                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-500'
+                            "
+                        >
+                            <MaterialDesignIcon :icon-name="suggestion.icon" class="size-4" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold truncate">
+                                {{ suggestion.name }}
+                            </div>
+                            <div class="text-[10px] font-mono opacity-50 truncate">
+                                {{ formatDestinationHash(suggestion.hash) }}
+                            </div>
+                        </div>
+                        <div
+                            v-if="suggestion.type === 'contact'"
+                            class="text-[10px] uppercase font-bold tracking-widest opacity-30"
+                        >
+                            Contact
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1092,6 +1138,8 @@ export default {
             isSendingMessage: false,
             autoScrollOnNewMessage: true,
             composeAddress: "",
+            isComposeInputFocused: false,
+            selectedComposeSuggestionIndex: -1,
 
             isShareContactModalOpen: false,
             contacts: [],
@@ -1145,6 +1193,48 @@ export default {
         },
         latestConversations() {
             return this.conversations.slice(0, 4);
+        },
+        composeSuggestions() {
+            if (!this.isComposeInputFocused) return [];
+
+            const search = this.composeAddress.toLowerCase().trim();
+            const suggestions = [];
+            const seenHashes = new Set();
+
+            // 1. Check contacts
+            this.contacts.forEach((c) => {
+                const hash = c.remote_identity_hash;
+                if (!seenHashes.has(hash)) {
+                    if (!search || c.name.toLowerCase().includes(search) || hash.toLowerCase().includes(search)) {
+                        suggestions.push({
+                            name: c.name,
+                            hash: hash,
+                            type: "contact",
+                            icon: "account",
+                        });
+                        seenHashes.add(hash);
+                    }
+                }
+            });
+
+            // 2. Check recent conversations
+            this.conversations.forEach((c) => {
+                const hash = c.destination_hash;
+                if (!seenHashes.has(hash)) {
+                    const name = c.custom_display_name ?? c.display_name;
+                    if (!search || name.toLowerCase().includes(search) || hash.toLowerCase().includes(search)) {
+                        suggestions.push({
+                            name: name,
+                            hash: hash,
+                            type: "recent",
+                            icon: "history",
+                        });
+                        seenHashes.add(hash);
+                    }
+                }
+            });
+
+            return suggestions.slice(0, 10);
         },
         canSendMessage() {
             // can send if message text is present
@@ -1249,8 +1339,19 @@ export default {
 
         // check translator
         this.checkTranslator();
+
+        // fetch contacts for suggestions
+        this.fetchContacts();
     },
     methods: {
+        async fetchContacts() {
+            try {
+                const response = await window.axios.get("/api/v1/telephone/contacts");
+                this.contacts = response.data;
+            } catch (e) {
+                console.log("Failed to fetch contacts:", e);
+            }
+        },
         async checkTranslator() {
             if (!this.config?.translator_enabled) {
                 this.hasTranslator = false;
@@ -1575,7 +1676,46 @@ export default {
             await this.handleComposeAddress(destinationHash);
         },
         onComposeEnterPressed() {
+            if (
+                this.selectedComposeSuggestionIndex >= 0 &&
+                this.selectedComposeSuggestionIndex < this.composeSuggestions.length
+            ) {
+                const suggestion = this.composeSuggestions[this.selectedComposeSuggestionIndex];
+                this.selectComposeSuggestion(suggestion);
+            } else {
+                this.onComposeSubmit();
+            }
+        },
+        handleComposeInputUp() {
+            if (this.composeSuggestions.length > 0) {
+                if (this.selectedComposeSuggestionIndex > 0) {
+                    this.selectedComposeSuggestionIndex--;
+                } else {
+                    this.selectedComposeSuggestionIndex = this.composeSuggestions.length - 1;
+                }
+            }
+        },
+        handleComposeInputDown() {
+            if (this.composeSuggestions.length > 0) {
+                if (this.selectedComposeSuggestionIndex < this.composeSuggestions.length - 1) {
+                    this.selectedComposeSuggestionIndex++;
+                } else {
+                    this.selectedComposeSuggestionIndex = 0;
+                }
+            }
+        },
+        selectComposeSuggestion(suggestion) {
+            this.composeAddress = suggestion.hash;
+            this.isComposeInputFocused = false;
+            this.selectedComposeSuggestionIndex = -1;
             this.onComposeSubmit();
+        },
+        onComposeInputBlur() {
+            // Delay blur to allow mousedown on suggestions
+            setTimeout(() => {
+                this.isComposeInputFocused = false;
+                this.selectedComposeSuggestionIndex = -1;
+            }, 200);
         },
         async handleComposeAddress(destinationHash) {
             if (destinationHash.startsWith("lxmf@")) {

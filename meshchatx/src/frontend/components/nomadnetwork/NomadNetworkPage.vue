@@ -561,21 +561,19 @@ export default {
                     // handle success for archived versions first (before path check)
                     if (nomadnetPageDownload.status === "success" && nomadnetPageDownload.is_archived_version) {
                         this.nodePagePath = responsePagePath;
+                        this.nodePagePathUrlInput = responsePagePath;
                         this.isShowingArchivedVersion = true;
                         this.archivedAt = nomadnetPageDownload.archived_at;
                         this.nodePageContent = nomadnetPageDownload.page_content;
                         this.nodePageProgress = 100;
                         this.isLoadingNodePage = false;
                         this.currentPageDownloadId = null;
-                        this.renderPageContent(nomadnetPageDownload.page_path, nomadnetPageDownload.page_content);
+                        this.fetchArchives();
                         return;
                     }
 
                     // ignore response if it's for a different page than currently requested/viewed
-                    if (responsePagePath !== this.nodePagePath) {
-                        console.log(
-                            `ignoring nomadnet page download response for ${responsePagePath} as current page is ${this.nodePagePath}`
-                        );
+                    if (this.nodePagePath && responsePagePath !== this.nodePagePath) {
                         return;
                     }
 
@@ -593,22 +591,18 @@ export default {
                     const nomadnetPageDownloadCallback =
                         this.nomadnetPageDownloadCallbacks[getNomadnetPageDownloadCallbackKey];
 
-                    // handle success
-                    if (nomadnetPageDownload.status === "success") {
-                        if (nomadnetPageDownloadCallback && nomadnetPageDownloadCallback.onSuccessCallback) {
-                            nomadnetPageDownloadCallback.onSuccessCallback(nomadnetPageDownload.page_content);
-                            delete this.nomadnetPageDownloadCallbacks[getNomadnetPageDownloadCallbackKey];
-                            this.currentPageDownloadId = null;
-                            return;
-                        }
-                    }
-
                     // if no callback found for other statuses, return
                     if (!nomadnetPageDownloadCallback) {
-                        console.log(
-                            "did not find nomadnet page download callback for key: " +
-                                getNomadnetPageDownloadCallbackKey
-                        );
+                        return;
+                    }
+
+                    // handle success
+                    if (nomadnetPageDownload.status === "success") {
+                        if (nomadnetPageDownloadCallback.onSuccessCallback) {
+                            nomadnetPageDownloadCallback.onSuccessCallback(nomadnetPageDownload.page_content);
+                        }
+                        delete this.nomadnetPageDownloadCallbacks[getNomadnetPageDownloadCallbackKey];
+                        this.currentPageDownloadId = null;
                         return;
                     }
 
@@ -703,10 +697,14 @@ export default {
                     break;
                 }
                 case "nomadnet.page.archives": {
+                    const currentRelativePath = this.nodePagePath?.includes(":")
+                        ? this.nodePagePath.split(":").slice(1).join(":")
+                        : this.nodePagePath;
+
                     if (
                         this.selectedNode &&
                         json.destination_hash === this.selectedNode.destination_hash &&
-                        json.page_path === this.nodePagePath
+                        (json.page_path === this.nodePagePath || json.page_path === currentRelativePath)
                     ) {
                         this.pageArchives = json.archives;
                         this.isLoadingArchives = false;
@@ -714,10 +712,14 @@ export default {
                     break;
                 }
                 case "nomadnet.page.archive.added": {
+                    const currentRelativePath = this.nodePagePath?.includes(":")
+                        ? this.nodePagePath.split(":").slice(1).join(":")
+                        : this.nodePagePath;
+
                     if (
                         this.selectedNode &&
                         json.destination_hash === this.selectedNode.destination_hash &&
-                        json.page_path === this.nodePagePath
+                        (json.page_path === this.nodePagePath || json.page_path === currentRelativePath)
                     ) {
                         ToastUtils.success(this.$t("nomadnet.page_archived_successfully"));
                         this.fetchArchives();
@@ -883,6 +885,7 @@ export default {
             this.archivedAt = null;
             this.nodePagePath = `${destinationHash}:${pagePath}`;
             this.nodePageContent = null;
+            this.pageArchives = [];
             this.nodePageProgress = 0;
 
             // update url bar
@@ -905,8 +908,8 @@ export default {
                 // if page is cache, we can just return it now
                 if (cachedNodePageContent != null) {
                     this.nodePageContent = cachedNodePageContent;
-                    this.renderPageContent(pagePath, cachedNodePageContent);
                     this.isLoadingNodePage = false;
+                    this.fetchArchives();
                     return;
                 }
             }
@@ -918,7 +921,6 @@ export default {
                 (pageContent) => {
                     // do nothing if callback is for a previous request
                     if (seq !== this.nodePageRequestSequence) {
-                        console.log("ignoring page content callback for previous page request");
                         return;
                     }
 
@@ -929,17 +931,18 @@ export default {
                     const nodePagePathCacheKey = `${destinationHash}:${pagePath}`;
                     this.nodePageCache[nodePagePathCacheKey] = this.nodePageContent;
 
-                    // update page content
-                    this.renderPageContent(pagePath, pageContent);
+                    // update status
                     this.isLoadingNodePage = false;
 
                     // update node path
                     this.getNodePath(destinationHash);
+
+                    // check if this page has archives
+                    this.fetchArchives();
                 },
                 (failureReason) => {
                     // do nothing if callback is for a previous request
                     if (seq !== this.nodePageRequestSequence) {
-                        console.log("ignoring failure callback for previous page request");
                         return;
                     }
 
@@ -953,7 +956,6 @@ export default {
                 (progress) => {
                     // do nothing if callback is for a previous request
                     if (seq !== this.nodePageRequestSequence) {
-                        console.log("ignoring progress callback for previous page request");
                         return;
                     }
 
@@ -1329,11 +1331,15 @@ export default {
         fetchArchives() {
             if (!this.selectedNode || !this.nodePagePath) return;
             this.isLoadingArchives = true;
+
+            const parsed = this.parseNomadnetworkUrl(this.nodePagePath);
+            if (!parsed) return;
+
             WebSocketConnection.send(
                 JSON.stringify({
                     type: "nomadnet.page.archives.get",
                     destination_hash: this.selectedNode.destination_hash,
-                    page_path: this.nodePagePath,
+                    page_path: parsed.path,
                 })
             );
         },
@@ -1343,6 +1349,13 @@ export default {
             this.isShowingArchivedVersion = false;
             this.archivedAt = null;
             this.nodePageProgress = 0;
+
+            const archive = this.pageArchives.find((a) => a.id === archiveId);
+            if (archive) {
+                this.nodePagePath = `${archive.destination_hash}:${archive.page_path}`;
+                this.nodePagePathUrlInput = this.nodePagePath;
+            }
+
             WebSocketConnection.send(
                 JSON.stringify({
                     type: "nomadnet.page.archive.load",
@@ -1354,11 +1367,15 @@ export default {
         manualArchive() {
             if (!this.selectedNode || !this.nodePagePath || !this.nodePageContent) return;
             ToastUtils.info(this.$t("nomadnet.archiving_page"));
+
+            const parsed = this.parseNomadnetworkUrl(this.nodePagePath);
+            if (!parsed) return;
+
             WebSocketConnection.send(
                 JSON.stringify({
                     type: "nomadnet.page.archive.add",
                     destination_hash: this.selectedNode.destination_hash,
-                    page_path: this.nodePagePath,
+                    page_path: parsed.path,
                     content: this.nodePageContent,
                 })
             );

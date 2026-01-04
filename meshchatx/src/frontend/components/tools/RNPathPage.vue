@@ -45,17 +45,75 @@
 
             <!-- path table -->
             <div v-if="tab === 'table'" class="space-y-4">
+                <!-- filters -->
+                <div class="glass-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="relative">
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Search Hash or Via..."
+                            class="input-field pl-10"
+                        />
+                        <MaterialDesignIcon
+                            icon-name="magnify"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400"
+                        />
+                    </div>
+                    <select v-model="filterInterface" class="input-field">
+                        <option value="">All Interfaces</option>
+                        <option v-for="iface in interfaces" :key="iface" :value="iface">
+                            {{ iface }}
+                        </option>
+                    </select>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-semibold text-gray-500 uppercase min-w-fit">Hops:</span>
+                        <input
+                            v-model.number="filterHops"
+                            type="number"
+                            min="0"
+                            max="128"
+                            placeholder="Any"
+                            class="input-field"
+                        />
+                    </div>
+                    <div class="flex items-center justify-end gap-4">
+                        <div class="flex flex-col items-end">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
+                            <span class="text-sm font-bold">{{ totalItems }}</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-[10px] font-bold text-green-500 uppercase">Responsive</span>
+                            <span class="text-sm font-bold text-green-600 dark:text-green-400">{{
+                                responsiveItems
+                            }}</span>
+                        </div>
+                        <div class="flex flex-col items-end">
+                            <span class="text-[10px] font-bold text-red-500 uppercase">Unresponsive</span>
+                            <span class="text-sm font-bold text-red-600 dark:text-red-400">{{
+                                unresponsiveItems
+                            }}</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div v-if="pathTable.length === 0" class="glass-card p-12 text-center text-gray-500">
-                    No paths currently known.
+                    No paths found matching your criteria.
                 </div>
                 <div v-else class="grid gap-4">
                     <div
                         v-for="path in pathTable"
                         :key="path.hash"
-                        class="glass-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                        class="glass-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
+                        :class="[
+                            path.state === 2
+                                ? 'border-l-green-500'
+                                : path.state === 1
+                                  ? 'border-l-red-500'
+                                  : 'border-l-gray-300 dark:border-l-zinc-700',
+                        ]"
                     >
                         <div class="min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
                                 <span class="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate">
                                     {{ path.hash }}
                                 </span>
@@ -64,11 +122,28 @@
                                 >
                                     {{ path.hops }} {{ path.hops === 1 ? "hop" : "hops" }}
                                 </span>
+                                <span
+                                    class="px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider"
+                                    :class="getStateColor(path.state)"
+                                >
+                                    {{ getStateText(path.state) }}
+                                </span>
                             </div>
                             <div class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
                                 via {{ path.via }} on {{ path.interface }}
                             </div>
-                            <div class="text-[10px] text-gray-400 mt-1">Expires: {{ formatDate(path.expires) }}</div>
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px]">
+                                <div class="text-gray-400">
+                                    <span class="font-semibold uppercase">Last Updated:</span>
+                                    {{ path.timestamp ? formatDate(path.timestamp) : "Unknown" }}
+                                </div>
+                                <div class="text-gray-400">
+                                    <span class="font-semibold uppercase">Expires:</span> {{ formatDate(path.expires) }}
+                                </div>
+                                <div v-if="path.announce_hash" class="text-gray-400">
+                                    <span class="font-semibold uppercase">Announce Hash:</span> {{ path.announce_hash }}
+                                </div>
+                            </div>
                         </div>
                         <button
                             class="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-900/30"
@@ -76,6 +151,39 @@
                         >
                             Drop Path
                         </button>
+                    </div>
+                </div>
+
+                <!-- pagination -->
+                <div v-if="totalPages > 1" class="flex items-center justify-between glass-card p-4">
+                    <div class="flex items-center gap-2">
+                        <button
+                            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                            :disabled="currentPage === 1"
+                            @click="currentPage--"
+                        >
+                            <MaterialDesignIcon icon-name="chevron-left" class="size-5" />
+                        </button>
+                        <span class="text-sm font-medium"> Page {{ currentPage }} of {{ totalPages }} </span>
+                        <button
+                            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                            :disabled="currentPage === totalPages"
+                            @click="currentPage++"
+                        >
+                            <MaterialDesignIcon icon-name="chevron-right" class="size-5" />
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500 uppercase font-semibold">Show:</span>
+                        <select
+                            v-model="itemsPerPage"
+                            class="bg-transparent border-none text-sm font-bold focus:ring-0 cursor-pointer"
+                        >
+                            <option :value="20">20</option>
+                            <option :value="50">50</option>
+                            <option :value="100">100</option>
+                            <option :value="250">250</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -208,7 +316,39 @@ export default {
             rateTable: [],
             requestHash: "",
             dropViaHash: "",
+            // Pagination & Filtering
+            searchQuery: "",
+            filterInterface: "",
+            filterHops: null,
+            currentPage: 1,
+            itemsPerPage: 50,
+            totalItems: 0,
+            responsiveItems: 0,
+            unresponsiveItems: 0,
+            interfaces: [],
         };
+    },
+    computed: {
+        totalPages() {
+            return Math.ceil(this.totalItems / this.itemsPerPage);
+        },
+    },
+    watch: {
+        searchQuery() {
+            this.currentPage = 1;
+            this.refreshTable();
+        },
+        filterInterface() {
+            this.currentPage = 1;
+            this.refreshTable();
+        },
+        filterHops() {
+            this.currentPage = 1;
+            this.refreshTable();
+        },
+        currentPage() {
+            this.refreshTable();
+        },
     },
     mounted() {
         this.refreshAll();
@@ -217,18 +357,58 @@ export default {
         async refreshAll() {
             this.isLoading = true;
             try {
-                const [pathRes, rateRes] = await Promise.all([
-                    window.axios.get("/api/v1/rnpath/table"),
+                const [pathRes, rateRes, ifaceRes] = await Promise.all([
+                    this.fetchPathTable(),
                     window.axios.get("/api/v1/rnpath/rates"),
+                    window.axios.get("/api/v1/reticulum/interfaces"),
                 ]);
-                this.pathTable = pathRes.data.table;
+                this.pathTable = pathRes.table;
+                this.totalItems = pathRes.total;
+                this.responsiveItems = pathRes.responsive;
+                this.unresponsiveItems = pathRes.unresponsive;
                 this.rateTable = rateRes.data.rates;
+                this.interfaces = Object.keys(ifaceRes.data.interfaces);
             } catch (e) {
                 console.error(e);
                 ToastUtils.error("Failed to fetch path data");
             } finally {
                 this.isLoading = false;
             }
+        },
+        async refreshTable() {
+            this.isLoading = true;
+            try {
+                const res = await this.fetchPathTable();
+                this.pathTable = res.table;
+                this.totalItems = res.total;
+                this.responsiveItems = res.responsive;
+                this.unresponsiveItems = res.unresponsive;
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async fetchPathTable() {
+            const params = {
+                page: this.currentPage,
+                limit: this.itemsPerPage,
+                search: this.searchQuery || undefined,
+                interface: this.filterInterface || undefined,
+                hops: this.filterHops !== null ? this.filterHops : undefined,
+            };
+            const res = await window.axios.get("/api/v1/rnpath/table", { params });
+            return res.data;
+        },
+        getStateColor(state) {
+            if (state === 2) return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+            if (state === 1) return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+            return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400";
+        },
+        getStateText(state) {
+            if (state === 2) return "RESPONSIVE";
+            if (state === 1) return "UNRESPONSIVE";
+            return "UNKNOWN";
         },
         async dropPath(hash) {
             if (!(await DialogUtils.confirm(`Are you sure you want to drop the path to ${hash}?`))) {

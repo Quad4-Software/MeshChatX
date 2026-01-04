@@ -76,14 +76,16 @@
         <!-- map container -->
         <div class="relative flex-1 min-h-0">
             <!-- drawing toolbar -->
-            <div class="absolute top-14 left-1/2 -translate-x-1/2 sm:top-2 z-20 flex flex-col gap-2 transform-gpu">
+            <div
+                class="absolute top-14 left-1/2 -translate-x-1/2 sm:top-2 z-20 flex flex-col gap-2 transform-gpu w-max max-w-[98vw]"
+            >
                 <div
-                    class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-row p-1 gap-1 border-0"
+                    class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-row p-0.5 sm:p-1 gap-0 sm:gap-0.5 border-0"
                 >
                     <button
                         v-for="tool in drawingTools"
                         :key="tool.type"
-                        class="p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
+                        class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                         :class="[
                             (drawType === tool.type && !isMeasuring) || (tool.type === 'Export' && isExportMode)
                                 ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
@@ -92,11 +94,11 @@
                         :title="tool.type === 'Export' ? 'MBTiles exporter' : $t(`map.tool_${tool.type.toLowerCase()}`)"
                         @click="tool.type === 'Export' ? toggleExportMode() : toggleDraw(tool.type)"
                     >
-                        <v-icon :icon="'mdi-' + tool.icon" size="20"></v-icon>
+                        <v-icon :icon="'mdi-' + tool.icon" size="18" class="sm:!size-5"></v-icon>
                     </button>
-                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
+                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-0.5 sm:mx-1"></div>
                     <button
-                        class="p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
+                        class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                         :class="[
                             isMeasuring
                                 ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
@@ -105,37 +107,37 @@
                         :title="$t('map.tool_measure')"
                         @click="toggleMeasure"
                     >
-                        <v-icon icon="mdi-ruler" size="20"></v-icon>
+                        <v-icon icon="mdi-ruler" size="18" class="sm:!size-5"></v-icon>
                     </button>
                     <button
-                        class="p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-all hover:scale-110 active:scale-90"
+                        class="p-1.5 sm:p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.tool_clear')"
                         @click="clearDrawings"
                     >
-                        <v-icon icon="mdi-trash-can-outline" size="20"></v-icon>
+                        <v-icon icon="mdi-trash-can-outline" size="18" class="sm:!size-5"></v-icon>
                     </button>
-                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
+                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-0.5 sm:mx-1"></div>
                     <button
-                        class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
+                        class="p-1.5 sm:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.save_drawing')"
                         @click="showSaveDrawingModal = true"
                     >
-                        <v-icon icon="mdi-content-save-outline" size="20"></v-icon>
+                        <v-icon icon="mdi-content-save-outline" size="18" class="sm:!size-5"></v-icon>
                     </button>
                     <button
-                        class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
+                        class="p-1.5 sm:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.load_drawing')"
                         @click="openLoadDrawingModal"
                     >
-                        <v-icon icon="mdi-folder-open-outline" size="20"></v-icon>
+                        <v-icon icon="mdi-folder-open-outline" size="18" class="sm:!size-5"></v-icon>
                     </button>
-                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-1"></div>
+                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-0.5 sm:mx-1"></div>
                     <button
-                        class="p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-all hover:scale-110 active:scale-90"
+                        class="p-1.5 sm:p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-all hover:scale-110 active:scale-90"
                         :title="$t('map.go_to_my_location')"
                         @click="goToMyLocation"
                     >
-                        <v-icon icon="mdi-crosshairs-gps" size="20"></v-icon>
+                        <v-icon icon="mdi-crosshairs-gps" size="18" class="sm:!size-5"></v-icon>
                     </button>
                 </div>
             </div>

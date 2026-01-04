@@ -9,7 +9,23 @@
         persistent
         @update:model-value="onVisibleUpdate"
     >
-        <v-card class="flex flex-col h-full bg-white dark:bg-zinc-950 border-0 overflow-hidden">
+        <v-card class="flex flex-col h-full bg-white dark:bg-zinc-950 border-0 overflow-hidden relative">
+            <!-- Settings Controls -->
+            <div class="absolute top-4 left-4 z-50 flex items-center gap-1">
+                <LanguageSelector @language-change="onLanguageChange" />
+                <button
+                    type="button"
+                    class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                    @click="toggleTheme"
+                >
+                    <MaterialDesignIcon
+                        :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
+                        class="w-5 h-5 sm:w-6 sm:h-6"
+                    />
+                </button>
+            </div>
+
             <!-- Progress Bar -->
             <div class="w-full h-1.5 bg-gray-100 dark:bg-zinc-900 overflow-hidden flex">
                 <div
@@ -35,10 +51,10 @@
                         </div>
                         <div class="space-y-2">
                             <h1 class="text-4xl font-black tracking-tight text-gray-900 dark:text-white">
-                                Welcome to <span class="text-blue-500">MeshChatX</span>
+                                {{ $t("tutorial.welcome") }} <span class="text-blue-500">MeshChatX</span>
                             </h1>
                             <p class="text-lg text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
-                                The future of off-grid communication. Secure, decentralized, and unstoppable.
+                                {{ $t("tutorial.welcome_desc") }}
                             </p>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-8">
@@ -47,9 +63,11 @@
                             >
                                 <v-icon icon="mdi-shield-lock" color="blue" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Security & Performance</div>
-                                    <div class="text-sm text-gray-500">
-                                        Massive improvements in speed, security, and crash recovery.
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.security") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.security_desc") }}
                                     </div>
                                 </div>
                             </div>
@@ -58,9 +76,9 @@
                             >
                                 <v-icon icon="mdi-map-marker-path" color="purple" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Maps</div>
-                                    <div class="text-sm text-gray-500">
-                                        OpenLayers w/ MBTiles support and custom API endpoints.
+                                    <div class="font-bold text-gray-900 dark:text-white">{{ $t("tutorial.maps") }}</div>
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.maps_desc") }}
                                     </div>
                                 </div>
                             </div>
@@ -69,9 +87,11 @@
                             >
                                 <v-icon icon="mdi-phone" color="green" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Full LXST Voice</div>
-                                    <div class="text-sm text-gray-500">
-                                        Voicemail, ringtones, phonebook, and contact sharing.
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.voice") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.voice_desc") }}
                                     </div>
                                 </div>
                             </div>
@@ -80,9 +100,11 @@
                             >
                                 <v-icon icon="mdi-tools" color="orange" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Advanced Tools</div>
-                                    <div class="text-sm text-gray-500">
-                                        Micron Editor, Paper Messages, RNS tools, Docs.
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.tools") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.tools_desc") }}
                                     </div>
                                 </div>
                             </div>
@@ -91,9 +113,24 @@
                             >
                                 <v-icon icon="mdi-database-search" color="teal" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Crawler & Archiver</div>
-                                    <div class="text-sm text-gray-500">
-                                        Automated network crawling and page archiving.
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.archiver") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.archiver_desc") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
+                            >
+                                <v-icon icon="mdi-account-cancel" color="amber" size="32"></v-icon>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.banishment") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.banishment_desc") }}
                                     </div>
                                 </div>
                             </div>
@@ -103,10 +140,10 @@
                                 <v-icon icon="mdi-keyboard-outline" color="red" size="32"></v-icon>
                                 <div>
                                     <div class="font-bold text-gray-900 dark:text-white">
-                                        Command Palette + Keybindings
+                                        {{ $t("tutorial.palette") }}
                                     </div>
-                                    <div class="text-sm text-gray-500">
-                                        Navigate everything instantly and customize shortcuts.
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.palette_desc") }}
                                     </div>
                                 </div>
                             </div>
@@ -115,256 +152,108 @@
                             >
                                 <v-icon icon="mdi-translate" color="cyan" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">i18n Support</div>
-                                    <div class="text-sm text-gray-500">Available in English, German, and Russian.</div>
+                                    <div class="font-bold text-gray-900 dark:text-white">{{ $t("tutorial.i18n") }}</div>
+                                    <div class="text-sm text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.i18n_desc") }}
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                        <div
+                            class="w-full flex justify-end items-center gap-2 mt-4 px-4 text-gray-400 dark:text-zinc-500"
+                        >
+                            <v-icon icon="mdi-plus" size="16"></v-icon>
+                            <span class="text-xs font-bold uppercase tracking-widest">{{
+                                $t("tutorial.more_features")
+                            }}</span>
                         </div>
                     </div>
 
                     <!-- Step 2: Add Interface -->
                     <div v-else-if="currentStep === 2" key="step2" class="space-y-6">
                         <div class="text-center space-y-2">
-                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Connect to the Mesh</h2>
-                            <p class="text-gray-600 dark:text-zinc-400">
-                                To send messages, you need to connect to a Reticulum interface.
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                {{ $t("tutorial.connect") }}
+                            </h2>
+                            <p class="text-gray-600 dark:text-zinc-400 text-base">
+                                {{ $t("tutorial.connect_desc") }}
                             </p>
                         </div>
 
-                        <div v-if="!showCustomForm" class="space-y-4">
+                        <div class="space-y-4">
                             <!-- Community Interfaces -->
                             <div
-                                class="bg-gray-50 dark:bg-zinc-900 rounded-3xl p-4 border border-gray-100 dark:border-zinc-800"
+                                class="bg-gray-50 dark:bg-zinc-900 rounded-3xl p-3 border border-gray-100 dark:border-zinc-800"
                             >
-                                <div class="flex items-center gap-2 mb-4 px-2">
+                                <div class="flex items-center gap-2 mb-3 px-2 text-sm">
                                     <v-icon icon="mdi-web" color="blue"></v-icon>
-                                    <span class="font-bold text-gray-900 dark:text-white">Suggested Public Relays</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{
+                                        $t("tutorial.suggested_networks")
+                                    }}</span>
                                 </div>
-                                <div class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                                <div class="space-y-2 max-h-[260px] overflow-y-auto pr-2">
                                     <div
                                         v-for="iface in communityInterfaces"
                                         :key="iface.name"
-                                        class="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-2xl border border-gray-100 dark:border-zinc-700 hover:border-blue-400 transition-colors cursor-pointer"
+                                        class="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-zinc-700 hover:border-blue-400 transition-colors cursor-pointer"
                                         @click="selectCommunityInterface(iface)"
                                     >
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-gray-900 dark:text-white">{{
+                                            <span class="font-bold text-gray-900 dark:text-white text-sm">{{
                                                 iface.name
                                             }}</span>
-                                            <span class="text-xs text-gray-500"
+                                            <span class="text-[11px] text-gray-500 dark:text-zinc-400"
                                                 >{{ iface.target_host }}:{{ iface.target_port }}</span
                                             >
                                         </div>
-                                        <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-2">
                                             <span
                                                 v-if="iface.online"
-                                                class="flex items-center gap-1 text-[10px] font-bold text-green-500 uppercase tracking-wider"
+                                                class="flex items-center gap-1 text-[9px] font-bold text-green-500 uppercase tracking-[0.2em]"
                                             >
                                                 <span
                                                     class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
                                                 ></span>
-                                                Online
+                                                {{ $t("tutorial.online") }}
                                             </span>
-                                            <v-btn
-                                                size="small"
-                                                variant="flat"
-                                                color="#3b82f6"
-                                                rounded="lg"
-                                                class="font-bold text-white"
+                                            <button
+                                                type="button"
+                                                class="px-3 py-1 text-[11px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all"
                                                 @click.stop="selectCommunityInterface(iface)"
-                                                >Use</v-btn
                                             >
+                                                {{ $t("tutorial.use") }}
+                                            </button>
                                         </div>
                                     </div>
-                                    <div v-if="loadingInterfaces" class="flex justify-center py-4">
+                                    <div v-if="loadingInterfaces" class="flex justify-center py-3">
                                         <v-progress-circular indeterminate color="blue" size="24"></v-progress-circular>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="text-center text-sm text-gray-500 dark:text-zinc-500">OR</div>
-
-                            <!-- Custom Interface -->
-                            <v-btn
-                                block
-                                variant="outlined"
-                                color="blue"
-                                rounded="xl"
-                                class="font-bold h-12 dark:text-blue-400"
-                                prepend-icon="mdi-plus"
-                                @click="showCustomInterfacePrompt"
-                            >
-                                Manual Configuration
-                            </v-btn>
                         </div>
 
-                        <!-- Custom Interface Form -->
-                        <div v-else class="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <div
-                                class="bg-gray-50 dark:bg-zinc-900 rounded-3xl p-6 border border-gray-100 dark:border-zinc-800 space-y-4"
+                        <div class="flex flex-col items-center gap-3 text-sm text-gray-900 dark:text-white">
+                            <p class="max-w-sm text-center">
+                                {{ $t("tutorial.custom_interfaces_desc") }}
+                            </p>
+                            <button
+                                type="button"
+                                class="px-5 py-2 text-[11px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                @click="gotoAddInterface"
                             >
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="font-bold text-gray-900 dark:text-white">Custom Interface</span>
-                                    <v-btn size="small" variant="text" color="gray" @click="showCustomForm = false"
-                                        >Cancel</v-btn
-                                    >
-                                </div>
-
-                                <v-select
-                                    v-model="newInterface.type"
-                                    :items="interfaceTypes"
-                                    label="Interface Type"
-                                    variant="outlined"
-                                    density="comfortable"
-                                    rounded="lg"
-                                    hide-details
-                                    class="bg-white dark:bg-zinc-800"
-                                ></v-select>
-
-                                <v-text-field
-                                    v-model="newInterface.name"
-                                    label="Interface Name"
-                                    placeholder="e.g. My Relay"
-                                    variant="outlined"
-                                    density="comfortable"
-                                    rounded="lg"
-                                    hide-details
-                                    class="bg-white dark:bg-zinc-800"
-                                ></v-text-field>
-
-                                <!-- TCP Client Fields -->
-                                <template v-if="newInterface.type === 'TCPClientInterface'">
-                                    <v-text-field
-                                        v-model="newInterface.target_host"
-                                        label="Target Host"
-                                        placeholder="e.g. 1.2.3.4 or example.com"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="lg"
-                                        hide-details
-                                        class="bg-white dark:bg-zinc-800"
-                                    ></v-text-field>
-                                    <v-text-field
-                                        v-model="newInterface.target_port"
-                                        label="Target Port"
-                                        type="number"
-                                        placeholder="4242"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="lg"
-                                        hide-details
-                                        class="bg-white dark:bg-zinc-800"
-                                    ></v-text-field>
-                                </template>
-
-                                <!-- Server/UDP Fields -->
-                                <template
-                                    v-if="
-                                        newInterface.type === 'TCPServerInterface' ||
-                                        newInterface.type === 'UDPInterface'
-                                    "
-                                >
-                                    <v-text-field
-                                        v-model="newInterface.listen_ip"
-                                        label="Listen IP"
-                                        placeholder="0.0.0.0"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="lg"
-                                        hide-details
-                                        class="bg-white dark:bg-zinc-800"
-                                    ></v-text-field>
-                                    <v-text-field
-                                        v-model="newInterface.listen_port"
-                                        label="Listen Port"
-                                        type="number"
-                                        placeholder="4242"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="lg"
-                                        hide-details
-                                        class="bg-white dark:bg-zinc-800"
-                                    ></v-text-field>
-                                </template>
-
-                                <!-- RNode/Serial/KISS Fields -->
-                                <template
-                                    v-if="
-                                        [
-                                            'RNodeInterface',
-                                            'RNodeMultiInterface',
-                                            'SerialInterface',
-                                            'KISSInterface',
-                                            'AX25KISSInterface',
-                                        ].includes(newInterface.type)
-                                    "
-                                >
-                                    <v-select
-                                        v-model="newInterface.port"
-                                        :items="comports"
-                                        item-title="device"
-                                        item-value="device"
-                                        label="Serial Port"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="lg"
-                                        hide-details
-                                        class="bg-white dark:bg-zinc-800"
-                                    ></v-select>
-                                    <v-text-field
-                                        v-if="
-                                            ['SerialInterface', 'KISSInterface', 'AX25KISSInterface'].includes(
-                                                newInterface.type
-                                            )
-                                        "
-                                        v-model="newInterface.speed"
-                                        label="Baud Rate"
-                                        type="number"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="lg"
-                                        hide-details
-                                        class="bg-white dark:bg-zinc-800"
-                                    ></v-text-field>
-                                </template>
-
-                                <!-- Pipe Interface Fields -->
-                                <template v-if="newInterface.type === 'PipeInterface'">
-                                    <v-text-field
-                                        v-model="newInterface.command"
-                                        label="Command"
-                                        placeholder="e.g. netcat -l 5757"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="lg"
-                                        hide-details
-                                        class="bg-white dark:bg-zinc-800"
-                                    ></v-text-field>
-                                </template>
-
-                                <v-btn
-                                    block
-                                    color="blue"
-                                    variant="flat"
-                                    rounded="lg"
-                                    class="font-bold h-12 text-white mt-4"
-                                    @click="addCustomInterface"
-                                >
-                                    Add Interface
-                                </v-btn>
-                                <p class="text-[10px] text-center text-gray-500">
-                                    More advanced options are available in the full Interface settings after setup.
-                                </p>
-                            </div>
+                                {{ $t("tutorial.open_interfaces") }}
+                            </button>
                         </div>
                     </div>
 
                     <!-- Step 3: Documentation & Tools -->
                     <div v-else-if="currentStep === 3" key="step3" class="space-y-6">
                         <div class="text-center space-y-2">
-                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Learn & Create</h2>
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                {{ $t("tutorial.learn_create") }}
+                            </h2>
                             <p class="text-gray-600 dark:text-zinc-400">
-                                Discover how to use MeshChatX to its full potential.
+                                {{ $t("tutorial.learn_create_desc") }}
                             </p>
                         </div>
 
@@ -374,27 +263,27 @@
                             >
                                 <v-icon icon="mdi-book-open-variant" color="blue" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Documentation</div>
-                                    <div class="text-sm text-gray-500 mb-2">
-                                        Read the official MeshChatX and Reticulum documentation.
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.documentation") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white mb-2">
+                                        {{ $t("tutorial.documentation_desc") }}
                                     </div>
                                     <div class="flex gap-2">
-                                        <v-btn
-                                            size="x-small"
-                                            variant="tonal"
-                                            color="blue"
+                                        <a
                                             href="/meshchatx-docs/index.html"
                                             target="_blank"
-                                            >MeshChatX Docs</v-btn
+                                            class="px-3 py-1 text-[10px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all inline-block"
                                         >
-                                        <v-btn
-                                            size="x-small"
-                                            variant="tonal"
-                                            color="purple"
-                                            href="https://reticulum.network/manual/"
+                                            {{ $t("tutorial.meshchatx_docs") }}
+                                        </a>
+                                        <a
+                                            href="/reticulum-docs/index.html"
                                             target="_blank"
-                                            >Reticulum Docs</v-btn
+                                            class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-block"
                                         >
+                                            {{ $t("tutorial.reticulum_docs") }}
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -404,20 +293,81 @@
                             >
                                 <v-icon icon="mdi-file-document-edit-outline" color="orange" size="32"></v-icon>
                                 <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">Micron Editor</div>
-                                    <div class="text-sm text-gray-500 mb-2">
-                                        Take a look at the Micron Editor for a guide on creating mesh-native pages.
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.micron_editor") }}
                                     </div>
-                                    <v-btn
-                                        size="x-small"
-                                        variant="tonal"
-                                        color="orange"
-                                        @click="
-                                            $router.push({ name: 'micron-editor' });
-                                            visible = false;
-                                        "
-                                        >Open Micron Editor</v-btn
+                                    <div class="text-sm text-gray-900 dark:text-white mb-2">
+                                        {{ $t("tutorial.micron_editor_desc") }}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                        @click="gotoRoute('micron-editor')"
                                     >
+                                        {{ $t("tutorial.open_micron_editor") }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div
+                                    class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors"
+                                    @click="gotoRoute('nomadnetwork')"
+                                >
+                                    <v-icon icon="mdi-earth" color="purple" size="24"></v-icon>
+                                    <div>
+                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                            {{ $t("tutorial.paper_messages") }}
+                                        </div>
+                                        <div class="text-[10px] text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.paper_messages_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors"
+                                    @click="gotoRoute('messages')"
+                                >
+                                    <v-icon icon="mdi-message-text-outline" color="green" size="24"></v-icon>
+                                    <div>
+                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                            {{ $t("tutorial.send_messages") }}
+                                        </div>
+                                        <div class="text-[10px] text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.send_messages_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors"
+                                    @click="gotoRoute('network-visualiser')"
+                                >
+                                    <v-icon icon="mdi-hub" color="teal" size="24"></v-icon>
+                                    <div>
+                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                            {{ $t("tutorial.explore_nodes") }}
+                                        </div>
+                                        <div class="text-[10px] text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.explore_nodes_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors"
+                                    @click="gotoRoute('call')"
+                                >
+                                    <v-icon icon="mdi-phone-in-talk-outline" color="red" size="24"></v-icon>
+                                    <div>
+                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                            {{ $t("tutorial.voice_calls") }}
+                                        </div>
+                                        <div class="text-[10px] text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.voice_calls_desc") }}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -434,20 +384,19 @@
                             <div class="absolute inset-0 bg-green-500/20 rounded-full animate-ping opacity-20"></div>
                         </div>
                         <div class="space-y-3">
-                            <h2 class="text-3xl font-black text-gray-900 dark:text-white">Ready to Roll!</h2>
+                            <h2 class="text-3xl font-black text-gray-900 dark:text-white">
+                                {{ $t("tutorial.ready") }}
+                            </h2>
                             <p class="text-lg text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
-                                Everything is set up. You need to restart the application for the changes to take
-                                effect.
+                                {{ $t("tutorial.ready_desc") }}
                             </p>
                         </div>
                         <div
+                            v-if="interfaceAddedViaTutorial"
                             class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30 text-amber-700 dark:text-amber-400 text-sm flex gap-3 max-w-md text-left"
                         >
                             <v-icon icon="mdi-information-outline" class="shrink-0"></v-icon>
-                            <span
-                                >If you're running in Docker, make sure your container auto-restarts or start it
-                                manually after it stops.</span
-                            >
+                            <span>{{ $t("tutorial.docker_note") }}</span>
                         </div>
                     </div>
                 </transition>
@@ -456,51 +405,65 @@
             <!-- Footer -->
             <v-divider class="dark:border-zinc-900"></v-divider>
             <v-card-actions class="px-6 py-6 bg-gray-50 dark:bg-zinc-950/50 flex justify-between">
-                <v-btn
+                <button
                     v-if="currentStep > 1 && currentStep < totalSteps"
-                    variant="text"
-                    color="gray"
-                    class="font-bold text-gray-700 dark:text-zinc-300"
+                    type="button"
+                    class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
                     @click="currentStep--"
-                    >Back</v-btn
                 >
+                    {{ $t("tutorial.back") }}
+                </button>
                 <div v-else></div>
 
                 <div class="flex gap-3">
-                    <v-btn
+                    <button
                         v-if="currentStep < totalSteps"
-                        variant="text"
-                        color="gray"
-                        class="font-bold opacity-50 hover:opacity-100 text-gray-700 dark:text-zinc-300"
+                        type="button"
+                        class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-zinc-700"
                         @click="skipTutorial"
-                        >Skip</v-btn
                     >
+                        {{ $t("tutorial.skip") }}
+                    </button>
 
-                    <v-btn
+                    <button
                         v-if="currentStep < totalSteps"
-                        variant="flat"
-                        color="#3b82f6"
-                        class="px-8 font-black tracking-wide h-12 text-white"
-                        rounded="xl"
+                        type="button"
+                        class="px-8 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-sm transition-all"
                         @click="nextStep"
-                        >Next</v-btn
                     >
+                        {{ $t("tutorial.next") }}
+                    </button>
 
-                    <v-btn
+                    <button
                         v-else
-                        variant="flat"
-                        color="#22c55e"
-                        class="px-8 font-black tracking-wide h-12 text-white"
-                        rounded="xl"
+                        type="button"
+                        class="px-8 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-sm transition-all"
                         @click="finishAndRestart"
-                        >Restart & Start Chatting</v-btn
                     >
+                        {{ $t("tutorial.restart_start") }}
+                    </button>
                 </div>
             </v-card-actions>
         </v-card>
     </v-dialog>
 
-    <div v-else class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden">
+    <div v-else class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden relative">
+        <!-- Settings Controls -->
+        <div class="absolute top-4 left-4 z-50 flex items-center gap-1">
+            <LanguageSelector @language-change="onLanguageChange" />
+            <button
+                type="button"
+                class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                @click="toggleTheme"
+            >
+                <MaterialDesignIcon
+                    :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
+                    class="w-5 h-5 sm:w-6 sm:h-6"
+                />
+            </button>
+        </div>
+
         <!-- Progress Bar -->
         <div class="w-full h-1.5 bg-gray-100 dark:bg-zinc-900 overflow-hidden flex">
             <div
@@ -530,10 +493,10 @@
                         </div>
                         <div class="space-y-4">
                             <h1 class="text-5xl font-black tracking-tight text-gray-900 dark:text-white">
-                                Welcome to <span class="text-blue-500">MeshChatX</span>
+                                {{ $t("tutorial.welcome") }} <span class="text-blue-500">MeshChatX</span>
                             </h1>
                             <p class="text-xl text-gray-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                                The future of off-grid communication. Secure, decentralized, and unstoppable.
+                                {{ $t("tutorial.welcome_desc") }}
                             </p>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-12">
@@ -543,11 +506,10 @@
                                 <v-icon icon="mdi-shield-lock" color="blue" size="40"></v-icon>
                                 <div>
                                     <div class="font-bold text-xl text-gray-900 dark:text-white">
-                                        Security & Performance
+                                        {{ $t("tutorial.security") }}
                                     </div>
-                                    <div class="text-gray-500">
-                                        Massive improvements in speed, security, and integrity with built-in crash
-                                        recovery.
+                                    <div class="text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.security_desc_page") }}
                                     </div>
                                 </div>
                             </div>
@@ -556,10 +518,11 @@
                             >
                                 <v-icon icon="mdi-map-marker-path" color="purple" size="40"></v-icon>
                                 <div>
-                                    <div class="font-bold text-xl text-gray-900 dark:text-white">Maps</div>
-                                    <div class="text-gray-500">
-                                        OpenLayers support with offline MBTiles and custom API endpoints for online
-                                        maps.
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.maps") }}
+                                    </div>
+                                    <div class="text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.maps_desc_page") }}
                                     </div>
                                 </div>
                             </div>
@@ -568,10 +531,11 @@
                             >
                                 <v-icon icon="mdi-phone" color="green" size="40"></v-icon>
                                 <div>
-                                    <div class="font-bold text-xl text-gray-900 dark:text-white">Full LXST Voice</div>
-                                    <div class="text-gray-500">
-                                        Crystal clear voice calls over mesh. Voicemail, custom ringtones, and phonebook
-                                        discovery.
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.voice") }}
+                                    </div>
+                                    <div class="text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.voice_desc_page") }}
                                     </div>
                                 </div>
                             </div>
@@ -580,9 +544,11 @@
                             >
                                 <v-icon icon="mdi-tools" color="orange" size="40"></v-icon>
                                 <div>
-                                    <div class="font-bold text-xl text-gray-900 dark:text-white">Advanced Tools</div>
-                                    <div class="text-gray-500">
-                                        Micron editor, paper messages, RNS tools, and integrated documentation.
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.tools") }}
+                                    </div>
+                                    <div class="text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.tools_desc_page") }}
                                     </div>
                                 </div>
                             </div>
@@ -592,10 +558,23 @@
                                 <v-icon icon="mdi-database-search" color="teal" size="40"></v-icon>
                                 <div>
                                     <div class="font-bold text-xl text-gray-900 dark:text-white">
-                                        Crawler & Archiver
+                                        {{ $t("tutorial.archiver") }}
                                     </div>
-                                    <div class="text-gray-500">
-                                        Automated network crawling and page archiving tools for offline browsing.
+                                    <div class="text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.archiver_desc_page") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
+                            >
+                                <v-icon icon="mdi-account-cancel" color="amber" size="40"></v-icon>
+                                <div>
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.banishment") }}
+                                    </div>
+                                    <div class="text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.banishment_desc") }}
                                     </div>
                                 </div>
                             </div>
@@ -605,11 +584,10 @@
                                 <v-icon icon="mdi-keyboard-outline" color="red" size="40"></v-icon>
                                 <div>
                                     <div class="font-bold text-xl text-gray-900 dark:text-white">
-                                        Command Palette + Keybindings
+                                        {{ $t("tutorial.palette") }}
                                     </div>
-                                    <div class="text-gray-500">
-                                        Navigate the entire application and customize your workflow with instant
-                                        shortcuts.
+                                    <div class="text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.palette_desc_page") }}
                                     </div>
                                 </div>
                             </div>
@@ -618,310 +596,114 @@
                             >
                                 <v-icon icon="mdi-translate" color="cyan" size="40"></v-icon>
                                 <div>
-                                    <div class="font-bold text-xl text-gray-900 dark:text-white">i18n Support</div>
-                                    <div class="text-gray-500">
-                                        Full internationalization support for English, German, and Russian languages.
+                                    <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.i18n") }}
+                                    </div>
+                                    <div class="text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.i18n_desc_page") }}
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div
+                            class="w-full flex justify-end items-center gap-2 mt-8 px-6 text-gray-400 dark:text-zinc-500"
+                        >
+                            <v-icon icon="mdi-plus" size="24"></v-icon>
+                            <span class="text-base font-bold uppercase tracking-widest">{{
+                                $t("tutorial.more_features")
+                            }}</span>
                         </div>
                     </div>
 
                     <!-- Step 2: Add Interface -->
-                    <div v-else-if="currentStep === 2" key="step2" class="space-y-8 py-10">
-                        <div class="text-center space-y-4">
-                            <h2 class="text-4xl font-black text-gray-900 dark:text-white">Connect to the Mesh</h2>
-                            <p class="text-xl text-gray-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                                To send messages and make calls, you need to connect to a Reticulum interface.
+                    <div v-else-if="currentStep === 2" key="step2" class="space-y-6 py-8">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-3xl font-black text-gray-900 dark:text-white">
+                                {{ $t("tutorial.connect") }}
+                            </h2>
+                            <p class="text-lg text-gray-600 dark:text-zinc-400 max-w-2xl mx-auto">
+                                {{ $t("tutorial.connect_desc_page") }}
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <!-- Community Interfaces -->
                             <div
-                                class="bg-gray-50 dark:bg-zinc-900 rounded-[2rem] p-8 border border-gray-100 dark:border-zinc-800"
+                                class="bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-5 border border-gray-100 dark:border-zinc-800"
                             >
-                                <div class="flex items-center gap-3 mb-6">
-                                    <v-icon icon="mdi-web" color="blue" size="28"></v-icon>
-                                    <span class="text-xl font-bold text-gray-900 dark:text-white"
-                                        >Suggested Public Relays</span
-                                    >
+                                <div class="flex items-center gap-2 mb-5">
+                                    <v-icon icon="mdi-web" color="blue" size="26"></v-icon>
+                                    <span class="text-lg font-bold text-gray-900 dark:text-white">{{
+                                        $t("tutorial.suggested_relays")
+                                    }}</span>
                                 </div>
-                                <div class="space-y-3 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                                <div class="space-y-3 max-h-[320px] overflow-y-auto pr-3 custom-scrollbar">
                                     <div
                                         v-for="iface in communityInterfaces"
                                         :key="iface.name"
-                                        class="flex items-center justify-between p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-gray-100 dark:border-zinc-700 hover:border-blue-400 transition-all cursor-pointer group shadow-sm hover:shadow-md"
+                                        class="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-zinc-700 hover:border-blue-400 transition-all cursor-pointer"
                                         @click="selectCommunityInterface(iface)"
                                     >
                                         <div class="flex flex-col">
-                                            <span
-                                                class="font-bold text-gray-900 dark:text-white text-lg group-hover:text-blue-500 transition-colors"
-                                                >{{ iface.name }}</span
-                                            >
-                                            <span class="text-sm text-gray-500 font-mono"
+                                            <span class="font-bold text-gray-900 dark:text-white text-base">
+                                                {{ iface.name }}
+                                            </span>
+                                            <span class="text-xs text-gray-500 font-mono"
                                                 >{{ iface.target_host }}:{{ iface.target_port }}</span
                                             >
                                         </div>
-                                        <div class="flex items-center gap-4">
+                                        <div class="flex items-center gap-2">
                                             <span
                                                 v-if="iface.online"
-                                                class="flex items-center gap-1.5 text-[10px] font-bold text-green-500 uppercase tracking-widest"
+                                                class="flex items-center gap-1.5 text-[9px] font-bold text-green-500 uppercase tracking-[0.2em]"
                                             >
                                                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                                Online
+                                                {{ $t("tutorial.online") }}
                                             </span>
-                                            <v-btn
-                                                variant="flat"
-                                                color="#3b82f6"
-                                                rounded="xl"
-                                                class="font-black px-6 text-white"
+                                            <button
+                                                type="button"
+                                                class="px-4 py-1 text-[11px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all"
                                                 @click.stop="selectCommunityInterface(iface)"
-                                                >Use</v-btn
                                             >
+                                                {{ $t("tutorial.use") }}
+                                            </button>
                                         </div>
                                     </div>
-                                    <div v-if="loadingInterfaces" class="flex justify-center py-10">
-                                        <v-progress-circular indeterminate color="blue" size="40"></v-progress-circular>
+                                    <div v-if="loadingInterfaces" class="flex justify-center py-4">
+                                        <v-progress-circular indeterminate color="blue" size="32"></v-progress-circular>
                                     </div>
                                 </div>
                             </div>
 
-                            <div v-if="!showCustomForm" class="flex flex-col justify-center space-y-8">
-                                <div class="relative py-4">
-                                    <div class="absolute inset-0 flex items-center">
-                                        <div class="w-full border-t border-gray-200 dark:border-zinc-800"></div>
-                                    </div>
-                                    <div
-                                        class="relative flex justify-center text-sm font-black uppercase tracking-widest"
-                                    >
-                                        <span class="bg-white dark:bg-zinc-950 px-4 text-gray-400">Custom Setup</span>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-4">
-                                    <p class="text-gray-500 text-center px-6 text-lg">
-                                        Already have a private relay or hardware RNode? Add it manually to connect to
-                                        your own mesh.
-                                    </p>
-                                    <v-btn
-                                        block
-                                        variant="outlined"
-                                        color="blue"
-                                        rounded="2xl"
-                                        class="font-black h-20 text-xl border-2 dark:text-blue-400"
-                                        prepend-icon="mdi-plus"
-                                        @click="showCustomInterfacePrompt"
-                                    >
-                                        Manual Configuration
-                                    </v-btn>
-                                </div>
-                            </div>
-
-                            <!-- Custom Interface Form (Page Mode) -->
                             <div
-                                v-else
-                                class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 bg-gray-50 dark:bg-zinc-900 rounded-[2rem] p-8 border border-gray-100 dark:border-zinc-800"
+                                class="flex flex-col justify-center gap-4 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-5 border border-gray-100 dark:border-zinc-800"
                             >
-                                <div class="flex items-center justify-between">
-                                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Custom Interface</h3>
-                                    <v-btn variant="text" color="gray" @click="showCustomForm = false"
-                                        >Back to suggested</v-btn
-                                    >
-                                </div>
-
-                                <div class="space-y-5">
-                                    <v-select
-                                        v-model="newInterface.type"
-                                        :items="interfaceTypes"
-                                        label="Interface Type"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="xl"
-                                        class="bg-white dark:bg-zinc-800"
-                                        bg-color="white"
-                                        base-color="gray"
-                                        color="blue"
-                                        persistent-placeholder
-                                        :menu-props="{ attach: true }"
-                                    ></v-select>
-
-                                    <v-text-field
-                                        v-model="newInterface.name"
-                                        label="Interface Name"
-                                        placeholder="e.g. My Relay"
-                                        variant="outlined"
-                                        density="comfortable"
-                                        rounded="xl"
-                                        class="bg-white dark:bg-zinc-800"
-                                        bg-color="white"
-                                        base-color="gray"
-                                        color="blue"
-                                        persistent-placeholder
-                                    ></v-text-field>
-
-                                    <!-- TCP Client Fields -->
-                                    <template v-if="newInterface.type === 'TCPClientInterface'">
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <v-text-field
-                                                v-model="newInterface.target_host"
-                                                label="Target Host"
-                                                placeholder="e.g. 1.2.3.4"
-                                                variant="outlined"
-                                                density="comfortable"
-                                                rounded="xl"
-                                                class="bg-white dark:bg-zinc-800"
-                                                bg-color="white"
-                                                base-color="gray"
-                                                color="blue"
-                                                persistent-placeholder
-                                            ></v-text-field>
-                                            <v-text-field
-                                                v-model="newInterface.target_port"
-                                                label="Target Port"
-                                                type="number"
-                                                variant="outlined"
-                                                density="comfortable"
-                                                rounded="xl"
-                                                class="bg-white dark:bg-zinc-800"
-                                                bg-color="white"
-                                                base-color="gray"
-                                                color="blue"
-                                                persistent-placeholder
-                                            ></v-text-field>
-                                        </div>
-                                    </template>
-
-                                    <!-- Server/UDP Fields -->
-                                    <template
-                                        v-if="
-                                            newInterface.type === 'TCPServerInterface' ||
-                                            newInterface.type === 'UDPInterface'
-                                        "
-                                    >
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <v-text-field
-                                                v-model="newInterface.listen_ip"
-                                                label="Listen IP"
-                                                variant="outlined"
-                                                density="comfortable"
-                                                rounded="xl"
-                                                class="bg-white dark:bg-zinc-800"
-                                                bg-color="white"
-                                                base-color="gray"
-                                                color="blue"
-                                                persistent-placeholder
-                                            ></v-text-field>
-                                            <v-text-field
-                                                v-model="newInterface.listen_port"
-                                                label="Listen Port"
-                                                type="number"
-                                                variant="outlined"
-                                                density="comfortable"
-                                                rounded="xl"
-                                                class="bg-white dark:bg-zinc-800"
-                                                bg-color="white"
-                                                base-color="gray"
-                                                color="blue"
-                                                persistent-placeholder
-                                            ></v-text-field>
-                                        </div>
-                                    </template>
-
-                                    <!-- RNode/Serial/KISS Fields -->
-                                    <template
-                                        v-if="
-                                            [
-                                                'RNodeInterface',
-                                                'RNodeMultiInterface',
-                                                'SerialInterface',
-                                                'KISSInterface',
-                                                'AX25KISSInterface',
-                                            ].includes(newInterface.type)
-                                        "
-                                    >
-                                        <v-select
-                                            v-model="newInterface.port"
-                                            :items="comports"
-                                            item-title="device"
-                                            item-value="device"
-                                            label="Serial Port"
-                                            variant="outlined"
-                                            density="comfortable"
-                                            rounded="xl"
-                                            class="bg-white dark:bg-zinc-800"
-                                            bg-color="white"
-                                            base-color="gray"
-                                            color="blue"
-                                            persistent-placeholder
-                                            :menu-props="{ attach: true }"
-                                        >
-                                            <template #item="{ props, item }">
-                                                <v-list-item v-bind="props" :subtitle="item.raw.product"></v-list-item>
-                                            </template>
-                                        </v-select>
-                                        <v-text-field
-                                            v-if="
-                                                ['SerialInterface', 'KISSInterface', 'AX25KISSInterface'].includes(
-                                                    newInterface.type
-                                                )
-                                            "
-                                            v-model="newInterface.speed"
-                                            label="Baud Rate"
-                                            type="number"
-                                            variant="outlined"
-                                            density="comfortable"
-                                            rounded="xl"
-                                            class="bg-white dark:bg-zinc-800"
-                                            bg-color="white"
-                                            base-color="gray"
-                                            color="blue"
-                                            persistent-placeholder
-                                        ></v-text-field>
-                                    </template>
-
-                                    <!-- Pipe Interface Fields -->
-                                    <template v-if="newInterface.type === 'PipeInterface'">
-                                        <v-text-field
-                                            v-model="newInterface.command"
-                                            label="Command"
-                                            placeholder="e.g. netcat -l 5757"
-                                            variant="outlined"
-                                            density="comfortable"
-                                            rounded="xl"
-                                            class="bg-white dark:bg-zinc-800"
-                                            bg-color="white"
-                                            base-color="gray"
-                                            color="blue"
-                                            persistent-placeholder
-                                        ></v-text-field>
-                                    </template>
-
-                                    <v-btn
-                                        block
-                                        color="blue"
-                                        variant="flat"
-                                        rounded="xl"
-                                        class="h-16 text-lg font-bold text-white mt-4"
-                                        @click="addCustomInterface"
-                                    >
-                                        Add & Connect
-                                    </v-btn>
-                                    <p class="text-sm text-center text-gray-500">
-                                        Additional configuration like frequencies, encryption, and modes can be adjusted
-                                        in the full Interface settings later.
+                                <div class="text-center">
+                                    <p class="text-base font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.custom_interfaces") }}
+                                    </p>
+                                    <p class="mt-2">
+                                        {{ $t("tutorial.custom_interfaces_desc_page") }}
                                     </p>
                                 </div>
+                                <button
+                                    type="button"
+                                    class="px-4 py-2 text-[11px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                    @click="gotoAddInterface"
+                                >
+                                    {{ $t("tutorial.open_interfaces") }}
+                                </button>
                             </div>
                         </div>
                     </div>
-
                     <!-- Step 3: Documentation & Tools -->
                     <div v-else-if="currentStep === 3" key="step3" class="space-y-8 py-10">
                         <div class="text-center space-y-4">
-                            <h2 class="text-4xl font-black text-gray-900 dark:text-white">Learn & Create</h2>
+                            <h2 class="text-4xl font-black text-gray-900 dark:text-white">
+                                {{ $t("tutorial.learn_create") }}
+                            </h2>
                             <p class="text-xl text-gray-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                                Discover how to use MeshChatX to its full potential and create your own content.
+                                {{ $t("tutorial.learn_create_desc_page") }}
                             </p>
                         </div>
 
@@ -932,32 +714,26 @@
                                 <v-icon icon="mdi-book-open-variant" color="blue" size="64"></v-icon>
                                 <div>
                                     <div class="font-bold text-2xl text-gray-900 dark:text-white mb-2">
-                                        Documentation
+                                        {{ $t("tutorial.documentation") }}
                                     </div>
-                                    <p class="text-gray-500 mb-6">
-                                        Comprehensive guides for MeshChatX and the underlying Reticulum Network Stack.
+                                    <p class="text-gray-900 dark:text-white mb-6">
+                                        {{ $t("tutorial.documentation_desc_page") }}
                                     </p>
                                     <div class="flex flex-col gap-3">
-                                        <v-btn
-                                            block
-                                            variant="flat"
-                                            color="blue"
-                                            class="h-12 font-bold text-white"
-                                            rounded="xl"
+                                        <a
                                             href="/meshchatx-docs/index.html"
                                             target="_blank"
-                                            >Read MeshChatX Docs</v-btn
+                                            class="h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all inline-flex items-center justify-center px-6"
                                         >
-                                        <v-btn
-                                            block
-                                            variant="outlined"
-                                            color="purple"
-                                            class="h-12 font-bold"
-                                            rounded="xl"
-                                            href="https://reticulum.network/manual/"
+                                            {{ $t("tutorial.read_meshchatx_docs") }}
+                                        </a>
+                                        <a
+                                            href="/reticulum-docs/index.html"
                                             target="_blank"
-                                            >Reticulum Network Manual</v-btn
+                                            class="h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-flex items-center justify-center px-6"
                                         >
+                                            {{ $t("tutorial.reticulum_manual") }}
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -968,21 +744,80 @@
                                 <v-icon icon="mdi-file-document-edit-outline" color="orange" size="64"></v-icon>
                                 <div>
                                     <div class="font-bold text-2xl text-gray-900 dark:text-white mb-2">
-                                        Micron Editor
+                                        {{ $t("tutorial.micron_editor") }}
                                     </div>
-                                    <p class="text-gray-500 mb-6">
-                                        Learn how to create mesh-native pages and interactive content using the Micron
-                                        markup language.
+                                    <p class="text-gray-900 dark:text-white mb-6">
+                                        {{ $t("tutorial.micron_editor_desc_page") }}
                                     </p>
-                                    <v-btn
-                                        block
-                                        variant="flat"
-                                        color="orange"
-                                        class="h-12 font-bold text-white"
-                                        rounded="xl"
-                                        @click="$router.push({ name: 'micron-editor' })"
-                                        >Open Micron Editor</v-btn
+                                    <button
+                                        type="button"
+                                        class="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold shadow-sm transition-all"
+                                        @click="gotoRoute('micron-editor')"
                                     >
+                                        {{ $t("tutorial.open_micron_editor") }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div
+                                class="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02]"
+                                @click="gotoRoute('nomadnetwork')"
+                            >
+                                <v-icon icon="mdi-earth" color="purple" size="40"></v-icon>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.paper_messages") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white mt-1">
+                                        {{ $t("tutorial.paper_messages_desc") }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02]"
+                                @click="gotoRoute('messages')"
+                            >
+                                <v-icon icon="mdi-message-text-outline" color="green" size="40"></v-icon>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.send_messages") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white mt-1">
+                                        {{ $t("tutorial.send_messages_desc") }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02]"
+                                @click="gotoRoute('network-visualiser')"
+                            >
+                                <v-icon icon="mdi-hub" color="teal" size="40"></v-icon>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.explore_nodes") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white mt-1">
+                                        {{ $t("tutorial.explore_nodes_desc") }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02]"
+                                @click="gotoRoute('call')"
+                            >
+                                <v-icon icon="mdi-phone-in-talk-outline" color="red" size="40"></v-icon>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.voice_calls") }}
+                                    </div>
+                                    <div class="text-sm text-gray-900 dark:text-white mt-1">
+                                        {{ $t("tutorial.voice_calls_desc") }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -999,10 +834,11 @@
                             <div class="absolute inset-0 bg-green-500/20 rounded-full animate-ping opacity-20"></div>
                         </div>
                         <div class="space-y-4">
-                            <h2 class="text-5xl font-black text-gray-900 dark:text-white">Ready to Roll!</h2>
+                            <h2 class="text-5xl font-black text-gray-900 dark:text-white">
+                                {{ $t("tutorial.ready") }}
+                            </h2>
                             <p class="text-xl text-gray-600 dark:text-zinc-400 max-w-2xl mx-auto">
-                                MeshChatX is now configured. You need to restart the application to finalize the
-                                connection.
+                                {{ $t("tutorial.ready_desc_page") }}
                             </p>
                         </div>
                         <div
@@ -1010,10 +846,9 @@
                         >
                             <v-icon icon="mdi-information-outline" size="32" class="shrink-0"></v-icon>
                             <div class="space-y-1">
-                                <div class="font-bold text-lg">Restart Required</div>
+                                <div class="font-bold text-lg">{{ $t("tutorial.restart_required") }}</div>
                                 <div class="opacity-90">
-                                    If you're running in Docker, ensure your container auto-restarts. Native apps will
-                                    relaunch automatically.
+                                    {{ $t("tutorial.restart_desc_page") }}
                                 </div>
                             </div>
                         </div>
@@ -1022,45 +857,43 @@
 
                 <!-- Navigation Buttons (Page Mode) -->
                 <div class="flex justify-between items-center mt-12 border-t dark:border-zinc-900 pt-8">
-                    <v-btn
+                    <button
                         v-if="currentStep > 1 && currentStep < totalSteps"
-                        variant="text"
-                        color="gray"
-                        class="font-black h-12 px-8 text-gray-700 dark:text-zinc-300"
+                        type="button"
+                        class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
                         @click="currentStep--"
-                        >Back</v-btn
                     >
+                        {{ $t("tutorial.back") }}
+                    </button>
                     <div v-else></div>
 
                     <div class="flex gap-4">
-                        <v-btn
+                        <button
                             v-if="currentStep < totalSteps"
-                            variant="text"
-                            color="gray"
-                            class="font-black h-12 px-8 opacity-50 hover:opacity-100 text-gray-700 dark:text-zinc-300"
+                            type="button"
+                            class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-zinc-700"
                             @click="skipTutorial"
-                            >Skip Setup</v-btn
                         >
+                            {{ $t("tutorial.skip_setup") }}
+                        </button>
 
-                        <v-btn
+                        <button
                             v-if="currentStep < totalSteps"
-                            variant="flat"
-                            color="#3b82f6"
-                            class="px-12 font-black tracking-wide h-14 text-lg text-white"
-                            rounded="2xl"
+                            type="button"
+                            class="px-12 h-14 text-lg rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all"
                             @click="nextStep"
-                            >Continue</v-btn
                         >
+                            {{ $t("tutorial.continue") }}
+                        </button>
 
-                        <v-btn
+                        <button
                             v-else
-                            variant="flat"
-                            color="#22c55e"
-                            class="px-12 font-black tracking-wide h-14 text-lg text-white"
-                            rounded="2xl"
+                            type="button"
+                            class="px-12 h-14 text-lg rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-sm transition-all"
                             @click="finishAndRestart"
-                            >Restart & Start Chatting</v-btn
                         >
+                            {{ $t("tutorial.restart_start") }}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1074,9 +907,15 @@ import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import ElectronUtils from "../js/ElectronUtils";
 import GlobalState from "../js/GlobalState";
+import LanguageSelector from "./LanguageSelector.vue";
+import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
 export default {
     name: "TutorialModal",
+    components: {
+        LanguageSelector,
+        MaterialDesignIcon,
+    },
     data() {
         return {
             visible: false,
@@ -1085,32 +924,7 @@ export default {
             logoUrl,
             communityInterfaces: [],
             loadingInterfaces: false,
-            showCustomForm: false,
-            comports: [],
-            newInterface: {
-                name: "",
-                type: "TCPClientInterface",
-                target_host: "",
-                target_port: 4242,
-                listen_ip: "0.0.0.0",
-                listen_port: 4242,
-                device: "",
-                port: "",
-                speed: 115200,
-            },
-            interfaceTypes: [
-                { title: "TCP Client", value: "TCPClientInterface" },
-                { title: "TCP Server", value: "TCPServerInterface" },
-                { title: "UDP Interface", value: "UDPInterface" },
-                { title: "RNode Interface", value: "RNodeInterface" },
-                { title: "RNode Multi", value: "RNodeMultiInterface" },
-                { title: "Serial Interface", value: "SerialInterface" },
-                { title: "KISS Interface", value: "KISSInterface" },
-                { title: "AX.25 KISS", value: "AX25KISSInterface" },
-                { title: "I2P Interface", value: "I2PInterface" },
-                { title: "Auto Interface", value: "AutoInterface" },
-                { title: "Pipe Interface", value: "PipeInterface" },
-            ],
+            interfaceAddedViaTutorial: false,
         };
     },
     computed: {
@@ -1120,27 +934,43 @@ export default {
         isMobile() {
             return window.innerWidth < 640;
         },
+        config() {
+            return GlobalState.config;
+        },
     },
     mounted() {
         if (this.isPage) {
             this.loadCommunityInterfaces();
-            this.loadComports();
         }
     },
     methods: {
+        async toggleTheme() {
+            const newTheme = this.config.theme === "dark" ? "light" : "dark";
+            try {
+                await window.axios.patch("/api/v1/config", {
+                    theme: newTheme,
+                });
+                GlobalState.config.theme = newTheme;
+            } catch (e) {
+                console.error("Failed to update theme:", e);
+            }
+        },
+        async onLanguageChange(langCode) {
+            try {
+                await window.axios.patch("/api/v1/config", {
+                    language: langCode,
+                });
+                this.$i18n.locale = langCode;
+                GlobalState.config.language = langCode;
+            } catch (e) {
+                console.error("Failed to update language:", e);
+            }
+        },
         async show() {
             this.visible = true;
             this.currentStep = 1;
+            this.interfaceAddedViaTutorial = false;
             await this.loadCommunityInterfaces();
-            await this.loadComports();
-        },
-        async loadComports() {
-            try {
-                const response = await window.axios.get("/api/v1/comports");
-                this.comports = response.data.comports;
-            } catch (e) {
-                console.error("Failed to load comports:", e);
-            }
         },
         async loadCommunityInterfaces() {
             this.loadingInterfaces = true;
@@ -1164,6 +994,8 @@ export default {
                 });
                 ToastUtils.success(`Added interface: ${iface.name}`);
 
+                this.interfaceAddedViaTutorial = true;
+
                 // track change
                 GlobalState.hasPendingInterfaceChanges = true;
                 GlobalState.modifiedInterfaceNames.add(iface.name);
@@ -1174,63 +1006,20 @@ export default {
                 ToastUtils.error(e.response?.data?.message || "Failed to add interface");
             }
         },
-        showCustomInterfacePrompt() {
-            this.showCustomForm = true;
-        },
-        async addCustomInterface() {
-            if (!this.newInterface.name) {
-                ToastUtils.error("Please enter an interface name");
-                return;
+        gotoAddInterface() {
+            if (!this.isPage) {
+                this.visible = false;
             }
-
-            try {
-                const payload = {
-                    name: this.newInterface.name,
-                    type: this.newInterface.type,
-                    enabled: true,
-                };
-
-                if (this.newInterface.type === "TCPClientInterface") {
-                    payload.target_host = this.newInterface.target_host;
-                    payload.target_port = parseInt(this.newInterface.target_port);
-                } else if (
-                    this.newInterface.type === "TCPServerInterface" ||
-                    this.newInterface.type === "UDPInterface"
-                ) {
-                    payload.listen_ip = this.newInterface.listen_ip;
-                    payload.listen_port = parseInt(this.newInterface.listen_port);
-                    if (this.newInterface.type === "UDPInterface") {
-                        payload.forward_ip = "255.255.255.255";
-                        payload.forward_port = parseInt(this.newInterface.listen_port);
-                    }
-                } else if (
-                    [
-                        "RNodeInterface",
-                        "RNodeMultiInterface",
-                        "SerialInterface",
-                        "KISSInterface",
-                        "AX25KISSInterface",
-                    ].includes(this.newInterface.type)
-                ) {
-                    payload.port = this.newInterface.port;
-                    if (["SerialInterface", "KISSInterface", "AX25KISSInterface"].includes(this.newInterface.type)) {
-                        payload.speed = parseInt(this.newInterface.speed);
-                    }
-                } else if (this.newInterface.type === "PipeInterface") {
-                    payload.command = this.newInterface.command;
-                }
-
-                await window.axios.post("/api/v1/reticulum/interfaces/add", payload);
-                ToastUtils.success(`Added interface: ${this.newInterface.name}`);
-
-                // track change
-                GlobalState.hasPendingInterfaceChanges = true;
-                GlobalState.modifiedInterfaceNames.add(this.newInterface.name);
-
-                this.nextStep();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(e.response?.data?.message || "Failed to add interface");
+            if (this.$router) {
+                this.$router.push({ path: "/interfaces/add" });
+            }
+        },
+        gotoRoute(routeName) {
+            if (!this.isPage) {
+                this.visible = false;
+            }
+            if (this.$router) {
+                this.$router.push({ name: routeName });
             }
         },
         nextStep() {
@@ -1239,11 +1028,7 @@ export default {
             }
         },
         async skipTutorial() {
-            if (
-                await DialogUtils.confirm(
-                    "Are you sure you want to skip the setup? You'll need to manually add interfaces later."
-                )
-            ) {
+            if (await DialogUtils.confirm(this.$t("tutorial.skip_confirm"))) {
                 await this.markSeen();
                 this.visible = false;
             }
@@ -1260,7 +1045,9 @@ export default {
             if (ElectronUtils.isElectron()) {
                 ElectronUtils.relaunch();
             } else {
-                ToastUtils.info("Restart the application/container to apply changes.");
+                if (this.interfaceAddedViaTutorial) {
+                    ToastUtils.info("Restart the application/container to apply changes.");
+                }
                 this.visible = false;
             }
         },

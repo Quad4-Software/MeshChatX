@@ -141,10 +141,7 @@
                         </select>
                         <FormSubLabel>
                             Need help?
-                            <a
-                                class="text-blue-500 underline"
-                                href="https://reticulum.network/manual/interfaces.html"
-                                target="_blank"
+                            <a class="text-blue-500 underline" href="/reticulum-docs/interfaces.html" target="_blank"
                                 >Reticulum Docs: Configuring Interfaces</a
                             >
                         </FormSubLabel>
@@ -982,7 +979,7 @@
                                 This setting requires Transport Mode to be enabled.
                                 <a
                                     class="text-blue-500 underline"
-                                    href="https://reticulum.network/manual/interfaces.html#interface-modes"
+                                    href="/reticulum-docs/interfaces.html#interface-modes"
                                     target="_blank"
                                     >Reticulum Docs: Interface Modes</a
                                 >

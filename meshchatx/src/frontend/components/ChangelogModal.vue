@@ -18,26 +18,21 @@
                     <v-toolbar-title class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                         {{ $t("app.changelog_title", "What's New") }}
                     </v-toolbar-title>
-                    <v-chip
+                    <span
                         v-if="version"
-                        size="x-small"
-                        color="blue"
-                        variant="flat"
-                        class="ml-3 font-black text-[10px] px-2 h-5 tracking-tighter uppercase rounded-sm"
+                        class="ml-3 font-black text-[10px] px-2 h-5 tracking-tighter uppercase rounded-sm bg-blue-600 text-white inline-flex items-center"
                     >
                         v{{ version }}
-                    </v-chip>
+                    </span>
                 </div>
                 <v-spacer></v-spacer>
-                <v-btn
-                    icon
-                    size="small"
-                    variant="text"
-                    class="text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
+                <button
+                    type="button"
+                    class="v-btn text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 p-2 transition-colors"
                     @click="close"
                 >
                     <v-icon>mdi-close</v-icon>
-                </v-btn>
+                </button>
             </v-toolbar>
 
             <!-- Content -->
@@ -50,15 +45,7 @@
                 <div v-else-if="error" class="flex flex-col items-center justify-center h-full text-center space-y-4">
                     <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
                     <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <v-btn
-                        color="blue"
-                        variant="flat"
-                        class="font-bold uppercase px-6"
-                        rounded="lg"
-                        @click="fetchChangelog"
-                    >
-                        Retry
-                    </v-btn>
+                    <button type="button" class="primary-chip !px-6" @click="fetchChangelog">Retry</button>
                 </div>
 
                 <div
@@ -92,15 +79,9 @@
                     ></v-checkbox>
                 </div>
                 <v-spacer></v-spacer>
-                <v-btn
-                    variant="flat"
-                    color="blue"
-                    class="px-8 font-black tracking-tighter uppercase text-white dark:text-zinc-900"
-                    rounded="xl"
-                    @click="close"
-                >
+                <button type="button" class="primary-chip !px-8 !h-10 !rounded-xl" @click="close">
                     {{ $t("common.close", "Close") }}
-                </v-btn>
+                </button>
             </v-card-actions>
         </v-card>
     </v-dialog>
@@ -117,14 +98,11 @@
                             {{ $t("app.changelog_title", "What's New") }}
                         </h1>
                         <div class="flex items-center gap-2">
-                            <v-chip
-                                color="blue"
-                                variant="flat"
-                                size="x-small"
-                                class="font-black text-[10px] px-2 h-5 rounded-sm"
+                            <span
+                                class="font-black text-[10px] px-2 h-5 rounded-sm bg-blue-600 text-white inline-flex items-center"
                             >
                                 v{{ version }}
-                            </v-chip>
+                            </span>
                             <span class="text-sm text-gray-500 font-medium">Full release history</span>
                         </div>
                     </div>
@@ -137,15 +115,7 @@
                 <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
                     <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
                     <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <v-btn
-                        color="blue"
-                        variant="flat"
-                        class="font-bold uppercase px-6"
-                        rounded="lg"
-                        @click="fetchChangelog"
-                    >
-                        Retry
-                    </v-btn>
+                    <button type="button" class="primary-chip !px-6" @click="fetchChangelog">Retry</button>
                 </div>
 
                 <div v-else class="changelog-content max-w-none prose dark:prose-invert pb-20">

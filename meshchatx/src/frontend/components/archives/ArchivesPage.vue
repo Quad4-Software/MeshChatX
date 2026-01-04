@@ -3,7 +3,7 @@
     <div class="flex h-full overflow-hidden bg-white dark:bg-zinc-950">
         <!-- Sidebar 1: Nodes -->
         <ArchiveSidebar
-            v-if="!isSidebarHidden"
+            v-if="!isSidebar1Hidden"
             class="w-full sm:w-64 border-r border-gray-200 dark:border-zinc-800 shrink-0"
             :class="{ 'hidden sm:flex': selectedNodeHash }"
             :nodes="groupedArchives"
@@ -15,7 +15,7 @@
 
         <!-- Sidebar 2: Snapshots -->
         <div
-            v-if="selectedNode"
+            v-if="selectedNode && !isSidebar2Hidden"
             class="w-full sm:w-80 border-r border-gray-200 dark:border-zinc-800 flex flex-col shrink-0 bg-gray-50 dark:bg-zinc-900/50"
             :class="{ 'hidden sm:flex': viewingArchive }"
         >
@@ -141,6 +141,23 @@
 
                 <div class="flex items-center gap-1">
                     <button
+                        class="p-2 hover:bg-zinc-800 rounded transition-colors hidden sm:block"
+                        :class="{ 'text-blue-400': !isSidebar1Hidden, 'text-zinc-600': isSidebar1Hidden }"
+                        :title="isSidebar1Hidden ? 'Show Nodes' : 'Hide Nodes'"
+                        @click="isSidebar1Hidden = !isSidebar1Hidden"
+                    >
+                        <MaterialDesignIcon icon-name="page-layout-sidebar-left" class="size-4" />
+                    </button>
+                    <button
+                        class="p-2 hover:bg-zinc-800 rounded transition-colors hidden sm:block"
+                        :class="{ 'text-blue-400': !isSidebar2Hidden, 'text-zinc-600': isSidebar2Hidden }"
+                        :title="isSidebar2Hidden ? 'Show Snapshots' : 'Hide Snapshots'"
+                        @click="isSidebar2Hidden = !isSidebar2Hidden"
+                    >
+                        <MaterialDesignIcon icon-name="view-list" class="size-4" />
+                    </button>
+                    <div class="hidden sm:block w-px h-6 bg-zinc-800 mx-1"></div>
+                    <button
                         class="p-2 hover:bg-zinc-800 rounded transition-colors text-blue-400 flex items-center gap-2"
                         @click="openInNomadnet(viewingArchive)"
                     >
@@ -199,7 +216,8 @@ export default {
             muParser: new MicronParser(),
             selectedNodeHash: null,
             viewingArchive: null,
-            isSidebarHidden: false,
+            isSidebar1Hidden: false,
+            isSidebar2Hidden: false,
             renderedContent: "",
             searchQuery: "",
             selectedArchives: [],
@@ -257,6 +275,8 @@ export default {
                 }, 10);
             } else {
                 this.renderedContent = "";
+                this.isSidebar1Hidden = false;
+                this.isSidebar2Hidden = false;
             }
         },
     },

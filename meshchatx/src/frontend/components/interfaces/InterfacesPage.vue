@@ -2,54 +2,57 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="overflow-y-auto p-3 md:p-6 space-y-4 max-w-6xl mx-auto w-full flex-1">
-            <div
-                v-if="showRestartReminder"
-                class="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-3xl shadow-xl p-4 flex flex-wrap gap-3 items-center"
-            >
-                <div class="flex items-center gap-3">
-                    <MaterialDesignIcon icon-name="alert" class="w-6 h-6" />
-                    <div>
-                        <div class="text-lg font-semibold">{{ $t("interfaces.restart_required") }}</div>
-                        <div class="text-sm">{{ $t("interfaces.restart_description") }}</div>
-                    </div>
-                </div>
-                <button
-                    v-if="isElectron"
-                    type="button"
-                    class="ml-auto inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1.5 text-sm font-semibold text-white hover:bg-white/10 transition"
-                    @click="relaunch"
+        <div class="flex-1 overflow-y-auto w-full">
+            <div class="p-3 md:p-6 space-y-4 max-w-6xl mx-auto w-full flex-1">
+                <div
+                    v-if="showRestartReminder"
+                    class="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-3xl shadow-xl p-4 flex flex-wrap gap-3 items-center"
                 >
-                    <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
-                    {{ $t("interfaces.restart_now") }}
-                </button>
-            </div>
-
-            <div class="glass-card space-y-4">
-                <div class="flex flex-wrap gap-3 items-center">
-                    <div class="flex-1">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            {{ $t("interfaces.manage") }}
+                    <div class="flex items-center gap-3">
+                        <MaterialDesignIcon icon-name="alert" class="w-6 h-6" />
+                        <div>
+                            <div class="text-lg font-semibold">{{ $t("interfaces.restart_required") }}</div>
+                            <div class="text-sm">{{ $t("interfaces.restart_description") }}</div>
                         </div>
-                        <div class="text-xl font-semibold text-gray-900 dark:text-white">
-                            {{ $t("interfaces.title") }}
-                        </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">{{ $t("interfaces.description") }}</div>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        <RouterLink :to="{ name: 'interfaces.add' }" class="primary-chip px-4 py-2 text-sm">
-                            <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
-                            {{ $t("interfaces.add_interface") }}
-                        </RouterLink>
-                        <button type="button" class="secondary-chip text-sm" @click="showImportInterfacesModal">
-                            <MaterialDesignIcon icon-name="import" class="w-4 h-4" />
-                            {{ $t("interfaces.import") }}
-                        </button>
-                        <button type="button" class="secondary-chip text-sm" @click="exportInterfaces">
-                            <MaterialDesignIcon icon-name="export" class="w-4 h-4" />
-                            {{ $t("interfaces.export_all") }}
-                        </button>
-                        <!--
+                    <button
+                        v-if="isElectron"
+                        type="button"
+                        class="ml-auto inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1.5 text-sm font-semibold text-white hover:bg-white/10 transition"
+                        @click="relaunch"
+                    >
+                        <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
+                        {{ $t("interfaces.restart_now") }}
+                    </button>
+                </div>
+
+                <div class="glass-card space-y-4">
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="flex-1">
+                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                {{ $t("interfaces.manage") }}
+                            </div>
+                            <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                                {{ $t("interfaces.title") }}
+                            </div>
+                            <div class="text-sm text-gray-600 dark:text-gray-300">
+                                {{ $t("interfaces.description") }}
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <RouterLink :to="{ name: 'interfaces.add' }" class="primary-chip px-4 py-2 text-sm">
+                                <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
+                                {{ $t("interfaces.add_interface") }}
+                            </RouterLink>
+                            <button type="button" class="secondary-chip text-sm" @click="showImportInterfacesModal">
+                                <MaterialDesignIcon icon-name="import" class="w-4 h-4" />
+                                {{ $t("interfaces.import") }}
+                            </button>
+                            <button type="button" class="secondary-chip text-sm" @click="exportInterfaces">
+                                <MaterialDesignIcon icon-name="export" class="w-4 h-4" />
+                                {{ $t("interfaces.export_all") }}
+                            </button>
+                            <!--
                         <button
                             type="button"
                             class="secondary-chip text-sm bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30"
@@ -63,71 +66,73 @@
                             />
                             {{ reloadingRns ? $t("app.reloading_rns") : $t("app.reload_rns") }}
                         </button>
-                        -->
+                        --></div>
+                    </div>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="flex-1">
+                            <input
+                                v-model="searchTerm"
+                                type="text"
+                                :placeholder="$t('interfaces.search_placeholder')"
+                                class="input-field"
+                            />
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                :class="filterChipClass(statusFilter === 'all')"
+                                @click="setStatusFilter('all')"
+                            >
+                                {{ $t("interfaces.all") }}
+                            </button>
+                            <button
+                                type="button"
+                                :class="filterChipClass(statusFilter === 'enabled')"
+                                @click="setStatusFilter('enabled')"
+                            >
+                                {{ $t("app.enabled") }}
+                            </button>
+                            <button
+                                type="button"
+                                :class="filterChipClass(statusFilter === 'disabled')"
+                                @click="setStatusFilter('disabled')"
+                            >
+                                {{ $t("app.disabled") }}
+                            </button>
+                        </div>
+                        <div class="w-full sm:w-60">
+                            <select v-model="typeFilter" class="input-field">
+                                <option value="all">{{ $t("interfaces.all_types") }}</option>
+                                <option v-for="type in sortedInterfaceTypes" :key="type" :value="type">
+                                    {{ type }}
+                                </option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-3 items-center">
-                    <div class="flex-1">
-                        <input
-                            v-model="searchTerm"
-                            type="text"
-                            :placeholder="$t('interfaces.search_placeholder')"
-                            class="input-field"
-                        />
-                    </div>
-                    <div class="flex gap-2 flex-wrap">
-                        <button
-                            type="button"
-                            :class="filterChipClass(statusFilter === 'all')"
-                            @click="setStatusFilter('all')"
-                        >
-                            {{ $t("interfaces.all") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClass(statusFilter === 'enabled')"
-                            @click="setStatusFilter('enabled')"
-                        >
-                            {{ $t("app.enabled") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClass(statusFilter === 'disabled')"
-                            @click="setStatusFilter('disabled')"
-                        >
-                            {{ $t("app.disabled") }}
-                        </button>
-                    </div>
-                    <div class="w-full sm:w-60">
-                        <select v-model="typeFilter" class="input-field">
-                            <option value="all">{{ $t("interfaces.all_types") }}</option>
-                            <option v-for="type in sortedInterfaceTypes" :key="type" :value="type">{{ type }}</option>
-                        </select>
-                    </div>
+
+                <div
+                    v-if="filteredInterfaces.length === 0"
+                    class="glass-card text-center py-10 text-gray-500 dark:text-gray-300"
+                >
+                    <MaterialDesignIcon icon-name="lan-disconnect" class="w-10 h-10 mx-auto mb-3" />
+                    <div class="text-lg font-semibold">{{ $t("interfaces.no_interfaces_found") }}</div>
+                    <div class="text-sm">{{ $t("interfaces.no_interfaces_description") }}</div>
                 </div>
-            </div>
 
-            <div
-                v-if="filteredInterfaces.length === 0"
-                class="glass-card text-center py-10 text-gray-500 dark:text-gray-300"
-            >
-                <MaterialDesignIcon icon-name="lan-disconnect" class="w-10 h-10 mx-auto mb-3" />
-                <div class="text-lg font-semibold">{{ $t("interfaces.no_interfaces_found") }}</div>
-                <div class="text-sm">{{ $t("interfaces.no_interfaces_description") }}</div>
-            </div>
-
-            <div v-else class="grid gap-4 xl:grid-cols-2">
-                <Interface
-                    v-for="iface of filteredInterfaces"
-                    :key="iface._name"
-                    :iface="iface"
-                    :is-reticulum-running="isReticulumRunning"
-                    @enable="enableInterface(iface._name)"
-                    @disable="disableInterface(iface._name)"
-                    @edit="editInterface(iface._name)"
-                    @export="exportInterface(iface._name)"
-                    @delete="deleteInterface(iface._name)"
-                />
+                <div v-else class="grid gap-4 xl:grid-cols-2">
+                    <Interface
+                        v-for="iface of filteredInterfaces"
+                        :key="iface._name"
+                        :iface="iface"
+                        :is-reticulum-running="isReticulumRunning"
+                        @enable="enableInterface(iface._name)"
+                        @disable="disableInterface(iface._name)"
+                        @edit="editInterface(iface._name)"
+                        @export="exportInterface(iface._name)"
+                        @delete="deleteInterface(iface._name)"
+                    />
+                </div>
             </div>
         </div>
     </div>

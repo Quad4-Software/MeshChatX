@@ -448,6 +448,8 @@
             :was-declined="wasDeclined"
             :voicemail-status="voicemailStatus"
             :initiation-status="initiationStatus"
+            :initiation-target-hash="initiationTargetHash"
+            :initiation-target-name="initiationTargetName"
             @hangup="onOverlayHangup"
             @toggle-mic="onToggleMic"
             @toggle-speaker="onToggleSpeaker"
@@ -564,6 +566,7 @@ export default {
             isFetchingRingtone: false,
             initiationStatus: null,
             initiationTargetHash: null,
+            initiationTargetName: null,
             isCallWindowOpen: false,
         };
     },
@@ -732,6 +735,7 @@ export default {
                 case "telephone_initiation_status": {
                     this.initiationStatus = json.status;
                     this.initiationTargetHash = json.target_hash;
+                    this.initiationTargetName = json.target_name;
                     break;
                 }
                 case "new_voicemail": {
@@ -788,8 +792,22 @@ export default {
                 const response = await window.axios.get(`/api/v1/app/info`);
                 this.appInfo = response.data.app_info;
 
-                // check if we should show tutorial or changelog (only on first load)
-                if (!this.hasCheckedForModals) {
+                // check URL params for modal triggers
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has("show-guide")) {
+                    this.$refs.tutorialModal.show();
+                    // remove param from URL
+                    urlParams.delete("show-guide");
+                    const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : "");
+                    window.history.replaceState({}, "", newUrl);
+                } else if (urlParams.has("changelog")) {
+                    this.$refs.changelogModal.show();
+                    // remove param from URL
+                    urlParams.delete("changelog");
+                    const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : "");
+                    window.history.replaceState({}, "", newUrl);
+                } else if (!this.hasCheckedForModals) {
+                    // check if we should show tutorial or changelog (only on first load)
                     this.hasCheckedForModals = true;
                     if (this.appInfo && !this.appInfo.tutorial_seen) {
                         this.$refs.tutorialModal.show();
@@ -1020,6 +1038,7 @@ export default {
                 this.voicemailStatus = response.data.voicemail;
                 this.initiationStatus = response.data.initiation_status;
                 this.initiationTargetHash = response.data.initiation_target_hash;
+                this.initiationTargetName = response.data.initiation_target_name;
 
                 // Handle power management for calls
                 if (ElectronUtils.isElectron()) {
