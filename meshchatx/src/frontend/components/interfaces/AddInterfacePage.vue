@@ -310,7 +310,7 @@
                     </div>
 
                     <!-- interface Frequency -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2">
                         <FormLabel class="mb-1">
                             <span>Frequency</span><span v-if="formattedFrequency">: {{ formattedFrequency }}</span>
                         </FormLabel>
@@ -349,7 +349,7 @@
                     </div>
 
                     <!-- interface bandwidth -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2">
                         <FormLabel class="mb-1">Bandwidth</FormLabel>
                         <select
                             v-model="newInterfaceBandwidth"
@@ -366,7 +366,7 @@
                     </div>
 
                     <!-- interface txpower -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2">
                         <FormLabel class="mb-1">Transmit Power (dBm)</FormLabel>
                         <input
                             v-model="newInterfaceTxpower"
@@ -375,13 +375,13 @@
                         />
                     </div>
 
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2 flex flex-wrap items-start gap-4">
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2 flex flex-wrap items-start gap-4">
                         <!-- interface spreading factor -->
                         <div class="flex-1">
                             <FormLabel class="mb-1">Spreading Factor</FormLabel>
                             <select
                                 v-model="newInterfaceSpreadingFactor"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-500"
                             >
                                 <option
                                     v-for="spreadingfactor in RNodeInterfaceDefaults.spreadingfactors"
@@ -398,7 +398,7 @@
                             <FormLabel class="mb-1">Coding Rate</FormLabel>
                             <select
                                 v-model="newInterfaceCodingRate"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-500"
                             >
                                 <option
                                     v-for="codingrate in RNodeInterfaceDefaults.codingrates"
@@ -1164,10 +1164,10 @@ export default {
             RNodeMHzValue: 0,
             RNodekHzValue: 0,
             newInterfaceFrequency: null,
-            newInterfaceBandwidth: null,
-            newInterfaceTxpower: null,
-            newInterfaceSpreadingFactor: null,
-            newInterfaceCodingRate: null,
+            newInterfaceBandwidth: 125000,
+            newInterfaceTxpower: 7,
+            newInterfaceSpreadingFactor: 12,
+            newInterfaceCodingRate: 5,
 
             // Serial, KISS, and AX25KISS options
             newInterfaceSpeed: null,
@@ -1503,9 +1503,9 @@ export default {
                     airtime_limit_long: this.newInterfaceAirtimeLimitLong,
                     airtime_limit_short: this.newInterfaceAirtimeLimitShort,
 
-                    // settings that can be added to any interface type
-                    mode: this.sharedInterfaceSettings.mode,
-                    bitrate: this.sharedInterfaceSettings.bitrate,
+            // settings that can be added to any interface type
+            mode: this.sharedInterfaceSettings.mode || "full",
+            bitrate: this.sharedInterfaceSettings.bitrate,
                     network_name: this.sharedInterfaceSettings.network_name,
                     passphrase: this.sharedInterfaceSettings.passphrase,
                     ifac_size: this.sharedInterfaceSettings.ifac_size,
@@ -1550,6 +1550,13 @@ export default {
             );
         },
         calculateRNodeParameters(bandwidth, spreadingFactor, codingRate, noiseFloor, antennaGain, transmitPower) {
+            if (!bandwidth || !spreadingFactor || !codingRate) {
+                this.RNodeInterfaceLoRaParameters.dataRate = "0 bps";
+                this.RNodeInterfaceLoRaParameters.sensitivity = "??? dBm";
+                this.RNodeInterfaceLoRaParameters.linkBudget = "??? dB";
+                return;
+            }
+
             // https://unsigned.io/understanding-lora-parameters/
             // "SX1272/3/6/7/8 LoRa Modem Design Guide" https://www.openhacks.com/uploadsproductos/loradesignguide_std.pdf
             // 4:5 - 4:8
