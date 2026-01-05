@@ -40,7 +40,7 @@ FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 WORKDIR /app
 # Install runtime dependencies only
 # We keep py3-setuptools because CFFI/LXST might need it at runtime on Python 3.12+
-RUN apk add --no-cache ffmpeg espeak-ng opusfile libffi su-exec py3-setuptools && \
+RUN apk add --no-cache ffmpeg opusfile libffi su-exec py3-setuptools && \
     addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
     mkdir -p /config && chown meshchat:meshchat /config
 
