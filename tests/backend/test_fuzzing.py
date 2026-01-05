@@ -270,7 +270,7 @@ def mock_app(temp_dir):
         app.convert_db_announce_to_dict = MagicMock(return_value={})
         app.get_config_dict = MagicMock(return_value={"test_config": "test_value"})
         app.resend_failed_messages_for_destination = MagicMock(
-            side_effect=lambda dest: None,
+            side_effect=lambda dest, context=None: None,
         )
 
         yield app
