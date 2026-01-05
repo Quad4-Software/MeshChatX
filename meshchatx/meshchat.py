@@ -1186,7 +1186,14 @@ class ReticulumMeshChat:
         try:
             return importlib.metadata.version(package_name)
         except Exception:
-            return default
+            try:
+                # try to import the package and get __version__
+                # some packages use underscores instead of hyphens in module names
+                module_name = package_name.replace("-", "_")
+                module = __import__(module_name)
+                return getattr(module, "__version__", default)
+            except Exception:
+                return default
 
     def get_lxst_version(self) -> str:
         return self.get_package_version("lxst", getattr(LXST, "__version__", "unknown"))
@@ -2690,8 +2697,11 @@ class ReticulumMeshChat:
                 # set optional UDPInterface options
                 InterfaceEditor.update_value(interface_details, data, "device")
 
-            # handle RNodeInterface
-            if interface_type == "RNodeInterface":
+            # handle RNodeInterface and RNodeIPInterface
+            if interface_type in ("RNodeInterface", "RNodeIPInterface"):
+                # map RNodeIPInterface to RNodeInterface for Reticulum config
+                interface_details["type"] = "RNodeInterface"
+
                 # ensure port provided
                 interface_port = data.get("port")
                 if interface_port is None or interface_port == "":
