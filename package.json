@@ -84,9 +84,6 @@
         "appId": "com.sudoivan.reticulummeshchat",
         "productName": "Reticulum MeshChatX",
         "asar": true,
-        "asarUnpack": [
-            "build/exe/**/*"
-        ],
         "electronFuses": {
             "runAsNode": false,
             "enableCookieEncryption": true,
@@ -110,15 +107,14 @@
             },
             "identity": null,
             "artifactName": "ReticulumMeshChatX-v${version}-mac-${arch}.${ext}",
-            "x64ArchFiles": "Contents/Resources/app/electron/build/exe/**",
             "extendInfo": {
                 "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
                 "com.apple.security.device.audio-input": true
             },
-            "extraFiles": [
+            "extraResources": [
                 {
                     "from": "build/exe",
-                    "to": "Resources/app/electron/build/exe",
+                    "to": "backend",
                     "filter": [
                         "**/*"
                     ]
@@ -135,10 +131,10 @@
                     "target": "nsis"
                 }
             ],
-            "extraFiles": [
+            "extraResources": [
                 {
                     "from": "build/exe",
-                    "to": "Resources/app/electron/build/exe",
+                    "to": "backend",
                     "filter": [
                         "**/*"
                     ]
@@ -153,10 +149,10 @@
             ],
             "maintainer": "Sudo-Ivan",
             "category": "Network",
-            "extraFiles": [
+            "extraResources": [
                 {
                     "from": "build/exe",
-                    "to": "resources/app/electron/build/exe",
+                    "to": "backend",
                     "filter": [
                         "**/*"
                     ]
