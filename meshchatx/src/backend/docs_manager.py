@@ -86,7 +86,10 @@ class DocsManager:
 
         try:
             # Try symlink first as it's efficient
-            os.symlink(version_path, self.docs_dir)
+            # We use a relative path for the symlink target to make the storage directory portable
+            # version_path is relative to CWD, so we need it relative to the parent of self.docs_dir
+            rel_target = os.path.relpath(version_path, os.path.dirname(self.docs_dir))
+            os.symlink(rel_target, self.docs_dir)
         except (OSError, AttributeError):
             # Fallback to copy
             shutil.copytree(version_path, self.docs_dir)
@@ -440,54 +443,68 @@ class DocsManager:
         self.download_progress = 0
         self.last_error = None
 
-        try:
-            # We use the reticulum_website repository which contains the built HTML docs
-            # Default to git.quad4.io as requested
-            url = "https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip"
-            zip_path = os.path.join(self.docs_base_dir, "website.zip")
+        # Get URLs from config
+        urls_str = self.config.docs_download_urls.get()
+        urls = [u.strip() for u in urls_str.replace("\n", ",").split(",") if u.strip()]
+        if not urls:
+            urls = ["https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip"]
 
-            # Download ZIP
-            response = requests.get(url, stream=True, timeout=60)
-            response.raise_for_status()
+        last_exception = None
+        for url in urls:
+            try:
+                logging.info(f"Attempting to download docs from {url}")
+                zip_path = os.path.join(self.docs_base_dir, "website.zip")
 
-            total_size = int(response.headers.get("content-length", 0))
-            downloaded_size = 0
+                # Download ZIP
+                response = requests.get(url, stream=True, timeout=60)
+                response.raise_for_status()
 
-            with open(zip_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded_size += len(chunk)
-                        if total_size > 0:
-                            self.download_progress = int(
-                                (downloaded_size / total_size) * 90
-                            )
+                total_size = int(response.headers.get("content-length", 0))
+                downloaded_size = 0
 
-            # Extract
-            self.download_status = "extracting"
-            # For automatic downloads from git, we'll use a timestamp as version if none provided
-            if version == "latest":
-                import time
+                with open(zip_path, "wb") as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded_size += len(chunk)
+                            if total_size > 0:
+                                self.download_progress = int(
+                                    (downloaded_size / total_size) * 90
+                                )
 
-                version = f"git-{int(time.time())}"
+                # Extract
+                self.download_status = "extracting"
+                # For automatic downloads from git, we'll use a timestamp as version if none provided
+                if version == "latest":
+                    import time
 
-            self._extract_docs(zip_path, version)
+                    version = f"git-{int(time.time())}"
 
-            # Cleanup
-            if os.path.exists(zip_path):
-                os.remove(zip_path)
+                self._extract_docs(zip_path, version)
 
-            self.config.docs_downloaded.set(True)
-            self.download_progress = 100
-            self.download_status = "completed"
+                # Cleanup
+                if os.path.exists(zip_path):
+                    os.remove(zip_path)
 
-            # Switch to the new version
-            self.switch_version(version)
+                self.config.docs_downloaded.set(True)
+                self.download_progress = 100
+                self.download_status = "completed"
 
-        except Exception as e:
-            self.last_error = str(e)
-            self.download_status = "error"
-            logging.exception(f"Failed to update docs: {e}")
+                # Switch to the new version
+                self.switch_version(version)
+                return  # Success, exit task
+
+            except Exception as e:
+                logging.warning(f"Failed to download docs from {url}: {e}")
+                last_exception = e
+                if os.path.exists(os.path.join(self.docs_base_dir, "website.zip")):
+                    os.remove(os.path.join(self.docs_base_dir, "website.zip"))
+                continue  # Try next URL
+
+        # If we got here, all URLs failed
+        self.last_error = str(last_exception)
+        self.download_status = "error"
+        logging.error(f"All docs download sources failed. Last error: {last_exception}")
 
     def upload_zip(self, zip_bytes, version):
         self.download_status = "extracting"

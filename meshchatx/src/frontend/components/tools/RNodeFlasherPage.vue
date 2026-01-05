@@ -396,13 +396,13 @@
                 <div class="flex items-center gap-4">
                     <a
                         target="_blank"
-                        href="https://git.quad4.io/Reticulum/rnode-flasher"
+                        :href="`${giteaBaseUrl}/Reticulum/rnode-flasher`"
                         class="text-blue-500 hover:underline text-sm font-bold"
                         >RNode Flasher GH</a
                     >
                     <a
                         target="_blank"
-                        href="https://git.quad4.io/Reticulum/RNode_Firmware"
+                        :href="`${giteaBaseUrl}/Reticulum/RNode_Firmware`"
                         class="text-blue-500 hover:underline text-sm font-bold"
                         >RNode Firmware GH</a
                     >
@@ -420,6 +420,7 @@ import Nrf52DfuFlasher from "../../js/rnode/Nrf52DfuFlasher.js";
 import RNodeUtils from "../../js/rnode/RNodeUtils.js";
 import products from "../../js/rnode/products.js";
 import ToastUtils from "../../js/ToastUtils.js";
+import GlobalState from "../../js/GlobalState";
 
 export default {
     name: "RNodeFlasherPage",
@@ -459,6 +460,9 @@ export default {
         recommendedFirmwareFilename() {
             return this.selectedModel?.firmware_filename ?? this.selectedProduct?.firmware_filename;
         },
+        giteaBaseUrl() {
+            return GlobalState.config?.gitea_base_url || "https://git.quad4.io";
+        },
     },
     watch: {
         selectedProduct() {
@@ -473,7 +477,7 @@ export default {
         async fetchLatestRelease() {
             try {
                 const response = await fetch(
-                    "https://git.quad4.io/api/v1/repos/Reticulum/RNode_Firmware/releases/latest"
+                    `${this.giteaBaseUrl}/api/v1/repos/Reticulum/RNode_Firmware/releases/latest`
                 );
                 if (response.ok) {
                     this.latestRelease = await response.json();

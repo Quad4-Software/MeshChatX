@@ -34,7 +34,10 @@
             class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-700 overflow-hidden min-h-0"
         >
             <!-- search + filters -->
-            <div v-if="conversations.length > 0" class="p-1 border-b border-gray-300 dark:border-zinc-700 space-y-2">
+            <div
+                v-if="conversations.length > 0 || isFilterActive"
+                class="p-1 border-b border-gray-300 dark:border-zinc-700 space-y-2"
+            >
                 <div class="flex gap-1">
                     <input
                         :value="conversationSearchTerm"
@@ -188,7 +191,10 @@
                     </div>
 
                     <!-- no conversations at all -->
-                    <div v-else-if="conversations.length === 0" class="flex flex-col text-gray-900 dark:text-gray-100">
+                    <div
+                        v-else-if="conversations.length === 0 && !isFilterActive"
+                        class="flex flex-col text-gray-900 dark:text-gray-100"
+                    >
                         <div class="mx-auto mb-1 text-gray-500">
                             <MaterialDesignIcon icon-name="tray-remove" class="size-6" />
                         </div>
@@ -196,11 +202,8 @@
                         <div>Discover peers on the Announces tab</div>
                     </div>
 
-                    <!-- is searching, but no results -->
-                    <div
-                        v-else-if="conversationSearchTerm !== ''"
-                        class="flex flex-col text-gray-900 dark:text-gray-100"
-                    >
+                    <!-- is searching or filtering, but no results -->
+                    <div v-else-if="isFilterActive" class="flex flex-col text-gray-900 dark:text-gray-100">
                         <div class="mx-auto mb-1 text-gray-500">
                             <MaterialDesignIcon icon-name="magnify-close" class="size-6" />
                         </div>
@@ -418,6 +421,14 @@ export default {
         };
     },
     computed: {
+        isFilterActive() {
+            return (
+                this.conversationSearchTerm !== "" ||
+                this.filterUnreadOnly ||
+                this.filterFailedOnly ||
+                this.filterHasAttachmentsOnly
+            );
+        },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
         },

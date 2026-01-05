@@ -881,47 +881,96 @@
     </div>
 
     <!-- no peer selected -->
-    <div v-else class="flex flex-col h-full items-center justify-center">
-        <div class="w-full max-w-md px-4">
-            <div class="mb-6 text-center">
+    <div v-else class="flex flex-col h-full overflow-y-auto bg-gray-50/50 dark:bg-zinc-950/50">
+        <div class="max-w-4xl mx-auto w-full px-4 py-8 sm:py-12 flex flex-col items-center">
+            <!-- welcome header -->
+            <div class="text-center mb-12">
                 <div
-                    class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 flex items-center justify-center"
+                    class="inline-flex items-center justify-center p-4 rounded-3xl bg-blue-600 shadow-xl shadow-blue-500/20 mb-6"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="w-8 h-8 text-blue-600 dark:text-blue-400"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
-                        />
-                    </svg>
+                    <MaterialDesignIcon icon-name="message-text" class="size-10 text-white" />
                 </div>
+                <h1 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-3">
+                    {{ $t("messages.no_active_chat") }}
+                </h1>
+                <p class="text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
+                    {{ $t("messages.select_peer_or_enter_address") }}
+                </p>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-1">
-                {{ $t("messages.no_active_chat") }}
-            </h3>
-            <p class="text-sm text-gray-500 dark:text-zinc-400 mb-8">
-                {{ $t("messages.select_peer_or_enter_address") }}
-            </p>
 
-            <!-- latest chats grid (desktop only) -->
-            <div v-if="!isMobile && latestConversations.length > 0" class="w-full max-w-2xl mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest">
-                        Latest Chats
-                    </h4>
+            <!-- main actions grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mb-12">
+                <button
+                    type="button"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    @click="focusComposeInput"
+                >
+                    <div
+                        class="size-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                    >
+                        <MaterialDesignIcon icon-name="plus" class="size-6" />
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">New Message</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    @click="syncPropagationNode"
+                >
+                    <div
+                        class="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                        :class="{ 'animate-spin': isSyncingPropagationNode }"
+                    >
+                        <MaterialDesignIcon icon-name="sync" class="size-6" />
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">{{
+                        isSyncingPropagationNode ? "Syncing..." : "Sync Node"
+                    }}</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    @click="copyMyAddress"
+                >
+                    <div
+                        class="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                    >
+                        <MaterialDesignIcon icon-name="content-copy" class="size-6" />
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">My Address</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    @click="$router.push({ name: 'identities' })"
+                >
+                    <div
+                        class="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                    >
+                        <MaterialDesignIcon icon-name="account-multiple" class="size-6" />
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">Identities</span>
+                </button>
+            </div>
+
+            <!-- latest chats section -->
+            <div v-if="latestConversations.length > 0" class="w-full mb-12">
+                <div class="flex items-center justify-between mb-6">
+                    <h2
+                        class="text-sm font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2"
+                    >
+                        <MaterialDesignIcon icon-name="history" class="size-4" />
+                        Latest Conversations
+                    </h2>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div
                         v-for="chat in latestConversations"
                         :key="chat.destination_hash"
-                        class="group cursor-pointer p-4 bg-white dark:bg-zinc-900/50 border border-gray-100 dark:border-zinc-800 rounded-2xl hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 flex items-center gap-4"
+                        class="group cursor-pointer p-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl hover:border-blue-500/50 hover:shadow-xl transition-all flex items-center gap-4"
                         @click="$emit('update:selectedPeer', chat)"
                     >
                         <div class="flex-shrink-0">
@@ -933,90 +982,103 @@
                                         : 'account'
                                 "
                                 :icon-foreground-colour="
-                                    chat.lxmf_user_icon && chat.lxmf_user_icon.foreground_colour
-                                        ? chat.lxmf_user_icon.foreground_colour
-                                        : ''
+                                    chat.lxmf_user_icon ? chat.lxmf_user_icon.foreground_colour : ''
                                 "
                                 :icon-background-colour="
-                                    chat.lxmf_user_icon && chat.lxmf_user_icon.background_colour
-                                        ? chat.lxmf_user_icon.background_colour
-                                        : ''
+                                    chat.lxmf_user_icon ? chat.lxmf_user_icon.background_colour : ''
                                 "
                                 icon-class="size-12 sm:size-14"
                             />
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-bold text-gray-900 dark:text-zinc-100 truncate">
-                                {{ chat.custom_display_name ?? chat.display_name }}
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="font-bold text-gray-900 dark:text-zinc-100 truncate">
+                                    {{ chat.custom_display_name ?? chat.display_name }}
+                                </div>
+                                <div class="text-[10px] text-gray-400 dark:text-zinc-500 whitespace-nowrap">
+                                    {{ formatTimeAgo(chat.updated_at) }}
+                                </div>
                             </div>
                             <div class="text-xs text-gray-500 dark:text-zinc-500 truncate mt-0.5">
                                 {{ chat.latest_message_preview || chat.latest_message_title || "No messages yet" }}
                             </div>
                         </div>
-                        <v-icon
-                            icon="mdi-chevron-right"
-                            size="18"
-                            class="text-gray-300 dark:text-zinc-700 group-hover:text-blue-500 transition-colors"
-                        ></v-icon>
+                        <MaterialDesignIcon
+                            icon-name="chevron-right"
+                            class="size-5 text-gray-300 dark:text-zinc-700 group-hover:text-blue-500 transition-colors"
+                        />
                     </div>
                 </div>
             </div>
 
-            <!-- compose message input -->
-            <div class="w-full relative">
-                <input
-                    id="compose-input"
-                    ref="compose-input"
-                    v-model="composeAddress"
-                    :readonly="isSendingMessage"
-                    type="text"
-                    class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2.5 shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
-                    placeholder="Enter LXMF address..."
-                    @keydown.enter.exact.prevent="onComposeEnterPressed"
-                    @keydown.up.prevent="handleComposeInputUp"
-                    @keydown.down.prevent="handleComposeInputDown"
-                    @focus="isComposeInputFocused = true"
-                    @blur="onComposeInputBlur"
-                />
-                <!-- Suggestions Dropdown -->
-                <div
-                    v-if="isComposeInputFocused && composeSuggestions.length > 0"
-                    class="absolute z-50 left-0 right-0 bottom-full mb-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200"
-                >
+            <!-- address input composer -->
+            <div class="w-full max-w-xl">
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <MaterialDesignIcon
+                            icon-name="at"
+                            class="size-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                        />
+                    </div>
+                    <input
+                        id="compose-input"
+                        ref="compose-input"
+                        v-model="composeAddress"
+                        :readonly="isSendingMessage"
+                        type="text"
+                        class="w-full bg-white dark:bg-zinc-900 border-2 border-gray-100 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-base rounded-3xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 pl-12 pr-4 py-4 shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600 font-medium"
+                        placeholder="Enter LXMF address to start a conversation..."
+                        @keydown.enter.exact.prevent="onComposeEnterPressed"
+                        @keydown.up.prevent="handleComposeInputUp"
+                        @keydown.down.prevent="handleComposeInputDown"
+                        @focus="isComposeInputFocused = true"
+                        @blur="onComposeInputBlur"
+                    />
+
+                    <!-- Suggestions Dropdown -->
                     <div
-                        v-for="(suggestion, index) in composeSuggestions"
-                        :key="suggestion.hash"
-                        class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
-                        :class="[
-                            index === selectedComposeSuggestionIndex
-                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
-                        ]"
-                        @mousedown.prevent="selectComposeSuggestion(suggestion)"
+                        v-if="isComposeInputFocused && composeSuggestions.length > 0"
+                        class="absolute z-50 left-0 right-0 bottom-full mb-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
                     >
-                        <div
-                            class="shrink-0 size-8 rounded-full flex items-center justify-center text-xs"
-                            :class="
-                                suggestion.type === 'contact'
-                                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
-                                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-500'
-                            "
-                        >
-                            <MaterialDesignIcon :icon-name="suggestion.icon" class="size-4" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-bold truncate">
-                                {{ suggestion.name }}
+                        <div class="p-2 space-y-1">
+                            <div
+                                v-for="(suggestion, index) in composeSuggestions"
+                                :key="suggestion.hash"
+                                class="px-4 py-3 flex items-center gap-3 cursor-pointer rounded-2xl transition-all"
+                                :class="[
+                                    index === selectedComposeSuggestionIndex
+                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                ]"
+                                @mousedown.prevent="selectComposeSuggestion(suggestion)"
+                            >
+                                <div
+                                    class="shrink-0 size-10 rounded-xl flex items-center justify-center"
+                                    :class="[
+                                        index === selectedComposeSuggestionIndex
+                                            ? 'bg-white/20'
+                                            : suggestion.type === 'contact'
+                                              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
+                                              : 'bg-gray-100 dark:bg-zinc-800 text-gray-500',
+                                    ]"
+                                >
+                                    <MaterialDesignIcon :icon-name="suggestion.icon" class="size-5" />
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-bold truncate">
+                                        {{ suggestion.name }}
+                                    </div>
+                                    <div class="text-[10px] font-mono opacity-60 truncate">
+                                        {{ formatDestinationHash(suggestion.hash) }}
+                                    </div>
+                                </div>
+                                <div
+                                    v-if="suggestion.type === 'contact'"
+                                    class="text-[10px] uppercase font-black tracking-widest opacity-40 px-2 py-1 rounded-md bg-black/5"
+                                >
+                                    Contact
+                                </div>
                             </div>
-                            <div class="text-[10px] font-mono opacity-50 truncate">
-                                {{ formatDestinationHash(suggestion.hash) }}
-                            </div>
-                        </div>
-                        <div
-                            v-if="suggestion.type === 'contact'"
-                            class="text-[10px] uppercase font-bold tracking-widest opacity-30"
-                        >
-                            Contact
                         </div>
                     </div>
                 </div>
@@ -1097,10 +1159,157 @@
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                 </div>
-                <div class="p-6 overflow-y-auto font-mono text-xs bg-gray-50 dark:bg-black/40">
-                    <pre class="whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300">{{
-                        JSON.stringify(rawMessageData, null, 2)
-                    }}</pre>
+                <div class="p-0 overflow-y-auto bg-gray-50 dark:bg-zinc-950 flex-grow">
+                    <div class="p-6 space-y-6">
+                        <!-- header / status info -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Message ID</label
+                                >
+                                <div class="text-sm font-mono text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.id }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >State</label
+                                >
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset"
+                                        :class="
+                                            rawMessageData.state === 'delivered'
+                                                ? 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400'
+                                                : 'bg-blue-50 text-blue-700 ring-blue-700/10 dark:bg-blue-900/30 dark:text-blue-400'
+                                        "
+                                    >
+                                        {{ rawMessageData.state }}
+                                    </span>
+                                    <span v-if="rawMessageData.is_incoming" class="text-[10px] text-gray-400"
+                                        >Incoming</span
+                                    >
+                                    <span v-else class="text-[10px] text-gray-400">Outbound</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                >Message Hash</label
+                            >
+                            <div
+                                class="text-sm font-mono break-all text-gray-900 dark:text-zinc-200 bg-white dark:bg-zinc-900 p-2 rounded border border-gray-100 dark:border-zinc-800"
+                            >
+                                {{ rawMessageData.hash }}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Source Hash</label
+                                >
+                                <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.source_hash }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Destination Hash</label
+                                >
+                                <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.destination_hash }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Method</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200 capitalize">
+                                    {{ rawMessageData.method }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >RSSI</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.rssi || "N/A" }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >SNR</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.snr || "N/A" }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Attempts</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.delivery_attempts }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                >Content / App Data</label
+                            >
+                            <div
+                                class="text-xs font-mono bg-white dark:bg-zinc-900 p-3 rounded border border-gray-100 dark:border-zinc-800 whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300"
+                            >
+                                {{ rawMessageData.content }}
+                            </div>
+                        </div>
+
+                        <div v-if="rawMessageData.raw_uri" class="space-y-1">
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                >Raw LXMF URI</label
+                            >
+                            <div
+                                class="text-[10px] font-mono bg-white dark:bg-zinc-900 p-2 rounded border border-gray-100 dark:border-zinc-800 break-all text-gray-600 dark:text-zinc-400"
+                            >
+                                {{ rawMessageData.raw_uri }}
+                            </div>
+                        </div>
+
+                        <!-- JSON fallback for full detail -->
+                        <details class="group">
+                            <summary
+                                class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="chevron-right"
+                                    class="size-4 group-open:rotate-90 transition-transform"
+                                />
+                                View Full JSON Object
+                            </summary>
+                            <div class="mt-2 p-4 bg-black/5 dark:bg-black/20 rounded-lg overflow-x-auto">
+                                <pre class="text-[10px] font-mono text-gray-600 dark:text-zinc-400">{{
+                                    JSON.stringify(rawMessageData, null, 2)
+                                }}</pre>
+                            </div>
+                        </details>
+                    </div>
                 </div>
                 <div class="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 flex justify-end shrink-0">
                     <button
@@ -1233,9 +1442,21 @@ export default {
             rawMessageData: null,
             hasTranslator: false,
             translatorLanguages: [],
+            propagationNodeStatus: null,
+            propagationStatusInterval: null,
         };
     },
     computed: {
+        isSyncingPropagationNode() {
+            return [
+                "path_requested",
+                "link_establishing",
+                "link_established",
+                "request_sent",
+                "receiving",
+                "response_received",
+            ].includes(this.propagationNodeStatus?.state);
+        },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
         },
@@ -1387,6 +1608,9 @@ export default {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
+        if (this.propagationStatusInterval) {
+            clearInterval(this.propagationStatusInterval);
+        }
     },
     mounted() {
         // listen for websocket messages
@@ -1400,8 +1624,42 @@ export default {
 
         // fetch contacts for suggestions
         this.fetchContacts();
+
+        // fetch propagation status
+        this.updatePropagationNodeStatus();
+        this.propagationStatusInterval = setInterval(() => {
+            this.updatePropagationNodeStatus();
+        }, 2000);
     },
     methods: {
+        async updatePropagationNodeStatus() {
+            try {
+                const response = await window.axios.get("/api/v1/lxmf/propagation-node/status");
+                this.propagationNodeStatus = response.data.propagation_node_status;
+            } catch {
+                // do nothing on error
+            }
+        },
+        async syncPropagationNode() {
+            GlobalEmitter.emit("sync-propagation-node");
+        },
+        async copyMyAddress() {
+            try {
+                await navigator.clipboard.writeText(this.myLxmfAddressHash);
+                ToastUtils.success("Your LXMF address copied to clipboard");
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error("Failed to copy address");
+            }
+        },
+        focusComposeInput() {
+            this.$nextTick(() => {
+                const input = document.getElementById("compose-input");
+                if (input) {
+                    input.focus();
+                }
+            });
+        },
         async fetchContacts() {
             try {
                 const response = await window.axios.get("/api/v1/telephone/contacts");

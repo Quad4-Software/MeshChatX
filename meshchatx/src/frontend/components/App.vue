@@ -50,7 +50,7 @@
                                 {{ $t("app.custom_fork_by") }}
                                 <a
                                     target="_blank"
-                                    href="https://git.quad4.io/Sudo-Ivan"
+                                    :href="`${giteaBaseUrl}/Sudo-Ivan`"
                                     class="text-blue-500 dark:text-blue-300 hover:underline"
                                     >Sudo-Ivan</a
                                 >
@@ -573,6 +573,9 @@ export default {
         };
     },
     computed: {
+        giteaBaseUrl() {
+            return this.config?.gitea_base_url || "https://git.quad4.io";
+        },
         currentPopoutType() {
             if (this.$route?.meta?.popoutType) {
                 return this.$route.meta.popoutType;

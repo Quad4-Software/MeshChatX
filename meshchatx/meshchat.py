@@ -201,6 +201,8 @@ class ReticulumMeshChat:
         auth_enabled: bool = False,
         public_dir: str | None = None,
         emergency: bool = False,
+        gitea_base_url: str | None = None,
+        docs_download_urls: str | None = None,
     ):
         self.running = True
         self.reticulum_config_dir = reticulum_config_dir
@@ -210,6 +212,8 @@ class ReticulumMeshChat:
         self.emergency = emergency
         self.auth_enabled_initial = auth_enabled
         self.public_dir_override = public_dir
+        self.gitea_base_url_override = gitea_base_url
+        self.docs_download_urls_override = docs_download_urls
         self.websocket_clients: list[web.WebSocketResponse] = []
 
         # track announce timestamps for rate calculation
@@ -1177,11 +1181,15 @@ class ReticulumMeshChat:
     def get_app_version() -> str:
         return app_version
 
-    def get_lxst_version(self) -> str:
+    @staticmethod
+    def get_package_version(package_name: str, default: str = "unknown") -> str:
         try:
-            return importlib.metadata.version("lxst")
+            return importlib.metadata.version(package_name)
         except Exception:
-            return getattr(LXST, "__version__", "unknown")
+            return default
+
+    def get_lxst_version(self) -> str:
+        return self.get_package_version("lxst", getattr(LXST, "__version__", "unknown"))
 
     # automatically announces based on user config
     async def announce_loop(self, session_id, context=None):
@@ -2272,9 +2280,16 @@ class ReticulumMeshChat:
             if not url:
                 return web.json_response({"error": "URL is required"}, status=400)
 
-            # Restrict to GitHub for safety
-            if not url.startswith("https://git.quad4.io/") and not url.startswith(
-                "https://objects.githubusercontent.com/"
+            # Restrict to allowed sources for safety
+            gitea_url = "https://git.quad4.io"
+            if self.current_context and self.current_context.config:
+                gitea_url = self.current_context.config.gitea_base_url.get()
+
+            if (
+                not url.startswith(gitea_url + "/")
+                and not url.startswith("https://git.quad4.io/")
+                and not url.startswith("https://github.com/")
+                and not url.startswith("https://objects.githubusercontent.com/")
             ):
                 return web.json_response({"error": "Invalid download URL"}, status=403)
 
@@ -3172,21 +3187,21 @@ class ReticulumMeshChat:
                         "lxst_version": self.get_lxst_version(),
                         "python_version": platform.python_version(),
                         "dependencies": {
-                            "aiohttp": importlib.metadata.version("aiohttp"),
-                            "aiohttp_session": importlib.metadata.version(
+                            "aiohttp": self.get_package_version("aiohttp"),
+                            "aiohttp_session": self.get_package_version(
                                 "aiohttp-session"
                             ),
-                            "cryptography": importlib.metadata.version("cryptography"),
-                            "psutil": importlib.metadata.version("psutil"),
-                            "requests": importlib.metadata.version("requests"),
-                            "websockets": importlib.metadata.version("websockets"),
+                            "cryptography": self.get_package_version("cryptography"),
+                            "psutil": self.get_package_version("psutil"),
+                            "requests": self.get_package_version("requests"),
+                            "websockets": self.get_package_version("websockets"),
                             "audioop_lts": (
-                                importlib.metadata.version("audioop-lts")
+                                self.get_package_version("audioop-lts")
                                 if sys.version_info >= (3, 13)
                                 else "n/a"
                             ),
-                            "ply": importlib.metadata.version("ply"),
-                            "bcrypt": importlib.metadata.version("bcrypt"),
+                            "ply": self.get_package_version("ply"),
+                            "bcrypt": self.get_package_version("bcrypt"),
                         },
                         "storage_path": self.storage_path,
                         "database_path": self.database_path,
@@ -7290,16 +7305,59 @@ class ReticulumMeshChat:
 
             response.headers["X-XSS-Protection"] = "1; mode=block"
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
             # CSP: allow localhost for development and Electron, websockets, and blob URLs
             # Add 'unsafe-inline' and 'unsafe-eval' for some legacy doc scripts if needed,
             # and allow framing ourselves for the docs page.
+            gitea_url = "https://git.quad4.io"
+            connect_sources = [
+                "'self'",
+                "ws://localhost:*",
+                "wss://localhost:*",
+                "blob:",
+                "https://*.tile.openstreetmap.org",
+                "https://tile.openstreetmap.org",
+                "https://nominatim.openstreetmap.org",
+            ]
+
+            if self.current_context and self.current_context.config:
+                # Add configured Gitea base URL
+                gitea_url = self.current_context.config.gitea_base_url.get()
+                if gitea_url not in connect_sources:
+                    connect_sources.append(gitea_url)
+
+                # Add configured docs download URLs domains
+                docs_urls_str = self.current_context.config.docs_download_urls.get()
+                docs_urls = [
+                    u.strip()
+                    for u in docs_urls_str.replace("\n", ",").split(",")
+                    if u.strip()
+                ]
+                for url in docs_urls:
+                    try:
+                        from urllib.parse import urlparse
+
+                        parsed = urlparse(url)
+                        if parsed.netloc:
+                            domain = f"{parsed.scheme}://{parsed.netloc}"
+                            if domain not in connect_sources:
+                                connect_sources.append(domain)
+
+                            # If GitHub is used, also allow objects.githubusercontent.com for redirects
+                            if "github.com" in domain:
+                                content_domain = "https://objects.githubusercontent.com"
+                                if content_domain not in connect_sources:
+                                    connect_sources.append(content_domain)
+                    except Exception:  # noqa: S110
+                        pass
+
             csp = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
                 "style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org; "
                 "font-src 'self' data:; "
-                "connect-src 'self' ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://git.quad4.io; "
+                f"connect-src {' '.join(connect_sources)}; "
                 "media-src 'self' blob:; "
                 "worker-src 'self' blob:; "
                 "frame-src 'self'; "
@@ -10154,6 +10212,18 @@ def main():
         help="Path to the directory containing the frontend static files (default: bundled public folder). Can also be set via MESHCHAT_PUBLIC_DIR environment variable.",
     )
     parser.add_argument(
+        "--gitea-base-url",
+        type=str,
+        default=os.environ.get("MESHCHAT_GITEA_BASE_URL"),
+        help="Base URL for Gitea instance (default: https://git.quad4.io). Can also be set via MESHCHAT_GITEA_BASE_URL environment variable.",
+    )
+    parser.add_argument(
+        "--docs-download-urls",
+        type=str,
+        default=os.environ.get("MESHCHAT_DOCS_DOWNLOAD_URLS"),
+        help="Comma-separated list of URLs to download documentation from. Can also be set via MESHCHAT_DOCS_DOWNLOAD_URLS environment variable.",
+    )
+    parser.add_argument(
         "--test-exception-message",
         type=str,
         help="Throws an exception. Used for testing the electron error dialog",
@@ -10278,6 +10348,8 @@ def main():
         auth_enabled=args.auth,
         public_dir=args.public_dir,
         emergency=args.emergency,
+        gitea_base_url=args.gitea_base_url,
+        docs_download_urls=args.docs_download_urls,
     )
 
     # update recovery with known paths

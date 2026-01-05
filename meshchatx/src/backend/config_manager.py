@@ -118,6 +118,14 @@ class ConfigManager:
             "initial_docs_download_attempted",
             False,
         )
+        self.gitea_base_url = self.StringConfig(
+            self, "gitea_base_url", "https://git.quad4.io"
+        )
+        self.docs_download_urls = self.StringConfig(
+            self,
+            "docs_download_urls",
+            "https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip,https://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip",
+        )
 
         # desktop config
         self.desktop_open_calls_in_separate_window = self.BoolConfig(

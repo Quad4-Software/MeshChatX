@@ -129,6 +129,19 @@ class IdentityContext:
 
         # 3. Initialize Config and Managers
         self.config = ConfigManager(self.database)
+
+        # Apply overrides from CLI/ENV if provided
+        if (
+            hasattr(self.app, "gitea_base_url_override")
+            and self.app.gitea_base_url_override
+        ):
+            self.config.gitea_base_url.set(self.app.gitea_base_url_override)
+        if (
+            hasattr(self.app, "docs_download_urls_override")
+            and self.app.docs_download_urls_override
+        ):
+            self.config.docs_download_urls.set(self.app.docs_download_urls_override)
+
         self.message_handler = MessageHandler(self.database)
         self.announce_manager = AnnounceManager(self.database)
         self.archiver_manager = ArchiverManager(self.database)

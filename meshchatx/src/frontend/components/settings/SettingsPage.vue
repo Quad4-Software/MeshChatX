@@ -183,19 +183,20 @@
                             </div>
                         </header>
                         <div class="glass-card__body space-y-4">
-                            <label class="setting-toggle">
+                            <label class="setting-toggle opacity-50 cursor-not-allowed">
                                 <Toggle
                                     id="desktop-open-calls-in-separate-window"
-                                    v-model="config.desktop_open_calls_in_separate_window"
-                                    @update:model-value="onDesktopOpenCallsInSeparateWindowChange"
+                                    :model-value="false"
+                                    :disabled="true"
                                 />
                                 <span class="setting-toggle__label">
                                     <span class="setting-toggle__title">{{
                                         $t("app.desktop_open_calls_in_separate_window")
                                     }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.desktop_open_calls_in_separate_window_description")
-                                    }}</span>
+                                    <span class="setting-toggle__description">
+                                        {{ $t("app.desktop_open_calls_in_separate_window_description") }}
+                                        <span class="text-blue-500 font-bold block mt-1">(Phased out for now)</span>
+                                    </span>
                                 </span>
                             </label>
 
@@ -615,6 +616,47 @@
                         </div>
                     </section>
 
+                    <!-- Sources & Infrastructure -->
+                    <section class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Infrastructure</div>
+                                <h2>Sources & Mirroring</h2>
+                                <p>Customize URLs for documentation and external resources.</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Gitea Base URL</div>
+                                <input
+                                    v-model="config.gitea_base_url"
+                                    type="text"
+                                    placeholder="https://git.quad4.io"
+                                    class="input-field"
+                                    @input="onGiteaConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    The base URL for your preferred Gitea instance.
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Documentation Download URLs
+                                </div>
+                                <textarea
+                                    v-model="config.docs_download_urls"
+                                    placeholder="Enter one URL per line (or comma-separated)"
+                                    class="input-field min-h-[100px] text-xs font-mono"
+                                    @input="onGiteaConfigChange"
+                                ></textarea>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    List of ZIP URLs to try when downloading documentation. One URL per line.
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Messages -->
                     <section class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
@@ -904,6 +946,8 @@ export default {
                 blackhole_integration_enabled: true,
                 telephone_tone_generator_enabled: true,
                 telephone_tone_generator_volume: 50,
+                gitea_base_url: "https://git.quad4.io",
+                docs_download_urls: "",
             },
             saveTimeouts: {},
             shortcuts: [],
@@ -1254,6 +1298,18 @@ export default {
                         libretranslate_url: this.config.libretranslate_url,
                     },
                     "translator"
+                );
+            }, 1000);
+        },
+        async onGiteaConfigChange() {
+            if (this.saveTimeouts.gitea) clearTimeout(this.saveTimeouts.gitea);
+            this.saveTimeouts.gitea = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        gitea_base_url: this.config.gitea_base_url,
+                        docs_download_urls: this.config.docs_download_urls,
+                    },
+                    "Infrastructure"
                 );
             }, 1000);
         },

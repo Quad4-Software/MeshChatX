@@ -2304,7 +2304,6 @@ export default {
                 const response = await window.axios.get("/api/v1/telephone/status");
                 const oldCall = this.activeCall;
                 const newCall = response.data.active_call;
-                const callStatus = response.data.call_status;
 
                 // Sync local mute state from backend
                 if (newCall) {
@@ -2318,14 +2317,6 @@ export default {
                 this.initiationStatus = response.data.initiation_status;
                 this.initiationTargetHash = response.data.initiation_target_hash;
                 this.initiationTargetName = response.data.initiation_target_name;
-
-                // If no active call and status is idle/busy/rejected/available, clear stale initiation UI
-                const isIdleState = !this.activeCall && ![2, 4, 5].includes(callStatus);
-                if (isIdleState && this.initiationStatus) {
-                    this.initiationStatus = null;
-                    this.initiationTargetHash = null;
-                    this.initiationTargetName = null;
-                }
 
                 if (this.activeCall?.is_voicemail) {
                     this.wasVoicemail = true;

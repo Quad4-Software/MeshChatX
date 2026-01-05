@@ -367,12 +367,48 @@
                     <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mx-auto mb-3" />
                     <div class="text-lg font-bold mb-2">{{ $t("docs.error") }}</div>
                     <div class="text-sm opacity-80">{{ status.last_error }}</div>
-                    <button
-                        class="mt-6 px-6 py-2 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-colors"
-                        @click="updateDocs"
-                    >
-                        Retry Download
-                    </button>
+                    <div class="flex flex-col gap-4 mt-6">
+                        <button
+                            class="px-6 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-colors shadow-lg"
+                            @click="updateDocs"
+                        >
+                            Retry Download
+                        </button>
+
+                        <div class="relative py-2">
+                            <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div class="w-full border-t border-red-200 dark:border-red-900/50"></div>
+                            </div>
+                            <div class="relative flex justify-center text-[10px] uppercase font-bold">
+                                <span class="bg-red-50 dark:bg-zinc-900 px-2 text-red-400"
+                                    >or use alternate source</span
+                                >
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <input
+                                v-model="alternateDocsUrl"
+                                type="text"
+                                class="w-full px-4 py-2.5 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-900/50 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-900 dark:text-zinc-100"
+                                placeholder="https://mirror.example.com/reticulum_docs.zip"
+                            />
+                            <button
+                                class="w-full px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                                :disabled="!alternateDocsUrl"
+                                @click="addAndRetryDocs"
+                            >
+                                Add Source & Retry
+                            </button>
+                        </div>
+
+                        <RouterLink
+                            :to="{ name: 'settings' }"
+                            class="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors"
+                        >
+                            Manage all sources in settings
+                        </RouterLink>
+                    </div>
                 </div>
             </div>
 
@@ -535,6 +571,7 @@ export default {
             meshchatxDocs: [],
             selectedDocPath: null,
             selectedDocContent: null,
+            alternateDocsUrl: "",
             languages: {
                 en: "English",
                 de: "Deutsch",
@@ -634,6 +671,27 @@ export default {
                 this.fetchStatus();
             } catch (error) {
                 console.error("Failed to trigger docs update:", error);
+            }
+        },
+        async addAndRetryDocs() {
+            if (!this.alternateDocsUrl) return;
+            try {
+                // Get current config
+                const configResponse = await window.axios.get("/api/v1/config");
+                const currentUrls = configResponse.data.config.docs_download_urls || "";
+                const newUrls = currentUrls ? `${currentUrls},${this.alternateDocsUrl}` : this.alternateDocsUrl;
+
+                // Update config
+                await window.axios.patch("/api/v1/config", {
+                    docs_download_urls: newUrls,
+                });
+
+                // Clear input and retry
+                this.alternateDocsUrl = "";
+                await this.updateDocs();
+            } catch (error) {
+                console.error("Failed to add alternate source:", error);
+                ToastUtils.error("Failed to update documentation sources");
             }
         },
         async switchVersion(version) {

@@ -141,18 +141,11 @@ class TelephoneManager:
         self.call_start_time = time.time()
         self.call_was_established = True
 
-        # Clear initiation status as soon as call is established
-        self._update_initiation_status(None, None)
-
         # Track per-call stats from the active link (uses RNS Link counters)
         link = getattr(self.telephone, "active_call", None)
         self.call_stats = {
             "link": link,
         }
-
-        # Recording disabled for now due to stability issues with LXST
-        # if self.config_manager and self.config_manager.call_recording_enabled.get():
-        #     self.start_recording()
 
         if self.on_established_callback:
             self.on_established_callback(caller_identity)
@@ -351,6 +344,14 @@ class TelephoneManager:
             await asyncio.sleep(3)
             raise
         finally:
+            # If call was successful, keep status for a moment to prevent UI flicker
+            # while the frontend picks up the new active_call state
+            if (
+                self.telephone
+                and self.telephone.active_call
+                and self.telephone.call_status == 6
+            ):
+                await asyncio.sleep(1.5)
             self._update_initiation_status(None, None)
 
     def mute_transmit(self):
