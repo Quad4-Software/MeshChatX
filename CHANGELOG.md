@@ -38,6 +38,9 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
     *   **Protocol Handling:** Register as default handler for `lxmf://` and `rns://` links for seamless cross-app navigation.
     *   **Hardware Acceleration Toggle:** Power-user setting to disable GPU acceleration if flickering or glitches occur.
     *   **Power Management:** Automatically prevents system sleep during active audio calls to maintain RNS path stability.
+- **Added Web Audio Bridge** which allows web/electron to hook into LXST backend for passing microphone and audio streams to active telephone calls.
+- **Added LXMFy** for running bots.
+- **Added RNS Discoverable Interfaces** https://markqvist.github.io/Reticulum/manual/interfaces.html#discoverable-interfaces
 
 ### Improvements
 
