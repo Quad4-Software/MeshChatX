@@ -1,6 +1,13 @@
 import path from "path";
+import fs from "fs";
 import vue from "@vitejs/plugin-vue";
 import vuetify from "vite-plugin-vuetify";
+
+// Purge old assets before build to prevent accumulation
+const assetsDir = path.join(__dirname, "meshchatx", "public", "assets");
+if (fs.existsSync(assetsDir)) {
+    fs.rmSync(assetsDir, { recursive: true, force: true });
+}
 
 export default {
     plugins: [vue(), vuetify()],
