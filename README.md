@@ -1,7 +1,7 @@
 # Reticulum MeshChatX
 
 > [!IMPORTANT]  
-> v4 coming soon with release builds for Linux and Windows. As well as updated container images and wheel packages.
+> v4 coming soon with release builds for Linux and Windows (Appimage and EXE portable/installer). As well as updated container images and wheel packages. You can test v4 using container by replacing normal image with `git.quad4.io/rns-things/meshchatx-dev:dev`
 
 [![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
 [![Tests](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml)
