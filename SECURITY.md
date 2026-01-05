@@ -32,4 +32,3 @@ The project employs continuous security monitoring and testing:
 - **Pinned Actions**: All CI/CD workflows use pinned actions with full URLs to forked, vetted actions hosted on our Gitea instance (`git.quad4.io`) to prevent supply chain attacks.
 - **Extensive Testing & Fuzzing**: Comprehensive backend benchmarking suite with high-precision timing, memory delta tracking, and extreme stress modes to ensure stability and prevent resource exhaustion.
 - **Linting & Code Quality**: Strict linting rules and static analysis are enforced on every push.
-
