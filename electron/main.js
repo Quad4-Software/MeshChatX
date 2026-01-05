@@ -468,11 +468,16 @@ app.whenReady().then(async () => {
     const resourcesPath = process.resourcesPath || path.join(appPath, "..", "..");
     var exe = null;
 
-    // when packaged, extraFiles are placed at resources/app/electron/build/exe
+    // when packaged, extraResources are placed at resources/backend
+    // when packaged with extraFiles, they were at resources/app/electron/build/exe
     // when packaged with asar, unpacked files are in app.asar.unpacked/ directory
     // app.getAppPath() returns the path to app.asar, so unpacked is at the same level
     const possiblePaths = [
-        // packaged app - extraFiles location (resources/app/electron/build/exe)
+        // packaged app - extraResources location (resources/backend)
+        path.join(resourcesPath, "backend", exeName),
+        // electron-forge extraResource location (resources/exe)
+        path.join(resourcesPath, "exe", exeName),
+        // legacy packaged app - extraFiles location (resources/app/electron/build/exe)
         path.join(resourcesPath, "app", "electron", "build", "exe", exeName),
         // packaged app with asar (unpacked files from asarUnpack)
         path.join(appPath, "..", "app.asar.unpacked", "build", "exe", exeName),
