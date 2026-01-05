@@ -375,7 +375,10 @@
                         />
                     </div>
 
-                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2 flex flex-wrap items-start gap-4">
+                    <div
+                        v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)"
+                        class="mb-2 flex flex-wrap items-start gap-4"
+                    >
                         <!-- interface spreading factor -->
                         <div class="flex-1">
                             <FormLabel class="mb-1">Spreading Factor</FormLabel>
@@ -1503,9 +1506,9 @@ export default {
                     airtime_limit_long: this.newInterfaceAirtimeLimitLong,
                     airtime_limit_short: this.newInterfaceAirtimeLimitShort,
 
-            // settings that can be added to any interface type
-            mode: this.sharedInterfaceSettings.mode || "full",
-            bitrate: this.sharedInterfaceSettings.bitrate,
+                    // settings that can be added to any interface type
+                    mode: this.sharedInterfaceSettings.mode || "full",
+                    bitrate: this.sharedInterfaceSettings.bitrate,
                     network_name: this.sharedInterfaceSettings.network_name,
                     passphrase: this.sharedInterfaceSettings.passphrase,
                     ifac_size: this.sharedInterfaceSettings.ifac_size,

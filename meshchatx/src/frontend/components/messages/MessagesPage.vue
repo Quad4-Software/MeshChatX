@@ -136,6 +136,7 @@ export default {
             conversationRefreshTimeout: null,
 
             config: null,
+            hasLoadedConversations: false,
             peers: {},
             selectedPeer: null,
 
@@ -348,7 +349,9 @@ export default {
         },
         async getConversations(append = false) {
             try {
-                if (this.conversations.length === 0 && !append) {
+                const shouldShowInitialLoading =
+                    !append && !this.hasLoadedConversations && this.conversations.length === 0;
+                if (shouldShowInitialLoading) {
                     this.isLoadingConversations = true;
                 }
 
@@ -368,6 +371,7 @@ export default {
                     this.conversations = newConversations;
                 }
 
+                this.hasLoadedConversations = true;
                 this.hasMoreConversations = newConversations.length === this.pageSize;
             } catch (e) {
                 console.log(e);

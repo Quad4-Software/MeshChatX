@@ -2116,7 +2116,7 @@ export default {
             callHistorySearch: "",
             callHistoryLimit: 10,
             callHistoryOffset: 0,
-            hasMoreCallHistory: true,
+            hasMoreCallHistory: false,
             isCallEnded: false,
             wasDeclined: false,
             wasVoicemail: false,
@@ -2643,7 +2643,6 @@ export default {
             try {
                 if (!loadMore) {
                     this.callHistoryOffset = 0;
-                    this.hasMoreCallHistory = true;
                 }
 
                 const response = await window.axios.get(
