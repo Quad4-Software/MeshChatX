@@ -13,6 +13,9 @@ def create_lxmf_router(identity, storagepath, propagation_cost=None):
     Creates an LXMF.LXMRouter instance safely, avoiding signal handler crashes
     when called from non-main threads.
     """
+    if propagation_cost is None:
+        propagation_cost = 0
+
     if threading.current_thread() != threading.main_thread():
         # signal.signal can only be called from the main thread in Python
         # We monkeypatch it temporarily to avoid the ValueError
