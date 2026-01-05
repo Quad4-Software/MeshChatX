@@ -20,7 +20,11 @@
                     title="Refresh"
                     @click="refreshAll"
                 >
-                    <MaterialDesignIcon icon-name="refresh" class="size-6" :class="{ 'animate-spin': isLoading }" />
+                    <MaterialDesignIcon
+                        icon-name="refresh"
+                        class="size-6"
+                        :class="{ 'animate-spin-reverse': isLoading }"
+                    />
                 </button>
             </div>
         </div>

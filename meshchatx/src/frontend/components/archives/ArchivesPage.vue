@@ -178,7 +178,7 @@
             <!-- Rendered Content -->
             <div class="flex-1 overflow-y-auto p-4 nodeContainer overscroll-contain">
                 <div v-if="isLoading" class="flex items-center justify-center h-full text-zinc-500">
-                    <MaterialDesignIcon icon-name="refresh" class="size-8 animate-spin" />
+                    <MaterialDesignIcon icon-name="refresh" class="size-8 animate-spin-reverse" />
                 </div>
                 <div
                     v-else-if="!viewingArchive"

@@ -846,7 +846,7 @@
                                     <MaterialDesignIcon
                                         :icon-name="reloadingRns ? 'refresh' : 'restart'"
                                         class="w-5 h-5"
-                                        :class="{ 'animate-spin': reloadingRns }"
+                                        :class="{ 'animate-spin-reverse': reloadingRns }"
                                     />
                                     <span>{{ reloadingRns ? $t("app.reloading_rns") : $t("app.reload_rns") }}</span>
                                 </button>

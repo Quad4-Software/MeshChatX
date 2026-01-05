@@ -194,7 +194,7 @@ export default {
                 case "AutoInterface":
                     return "home-automation";
                 case "RNodeInterface":
-                    return "radio-tower";
+                    return this.iface.port && this.iface.port.startsWith("tcp://") ? "lan-connect" : "radio-tower";
                 case "RNodeMultiInterface":
                     return "access-point-network";
                 case "TCPClientInterface":
@@ -225,6 +225,9 @@ export default {
             }
             if (this.iface.type === "SerialInterface") {
                 return `${this.iface.port} @ ${this.iface.speed || "9600"}bps`;
+            }
+            if (this.iface.type === "RNodeInterface" && this.iface.port && this.iface.port.startsWith("tcp://")) {
+                return `RNode over IP @ ${this.iface.port.replace("tcp://", "")}`;
             }
             if (this.iface.type === "AutoInterface") {
                 return "Auto-detect Ethernet and Wi-Fi peers";

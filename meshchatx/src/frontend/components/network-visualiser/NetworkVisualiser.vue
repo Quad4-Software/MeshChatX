@@ -1030,17 +1030,4 @@ export default {
     background-image: radial-gradient(#18181b 1px, transparent 1px);
     background-size: 32px 32px;
 }
-
-@keyframes spin-reverse {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(-360deg);
-    }
-}
-
-.animate-spin-reverse {
-    animation: spin-reverse 1s linear infinite;
-}
 </style>

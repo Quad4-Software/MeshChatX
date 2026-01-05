@@ -27,7 +27,7 @@
                             <MaterialDesignIcon
                                 icon-name="refresh"
                                 class="w-4 h-4"
-                                :class="{ 'animate-spin': isLoading }"
+                                :class="{ 'animate-spin-reverse': isLoading }"
                             />
                             Refresh
                         </button>

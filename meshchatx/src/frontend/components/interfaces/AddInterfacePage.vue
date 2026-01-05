@@ -122,6 +122,7 @@
                             </optgroup>
                             <optgroup label="RNodes">
                                 <option value="RNodeInterface">RNode Interface</option>
+                                <option value="RNodeIPInterface">RNode IP Interface</option>
                                 <option value="RNodeMultiInterface">RNode Multi Interface</option>
                             </optgroup>
                             <optgroup label="IP Networks">
@@ -263,20 +264,49 @@
 
                     <!-- RNode interface -->
                     <!-- interface port -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
-                        <FormLabel class="mb-1">Port</FormLabel>
-                        <select
-                            v-model="newInterfacePort"
-                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600"
-                        >
-                            <option v-for="comport of comports" :key="comport.device" :value="comport.device">
-                                {{ comport.device }} (Product: {{ comport.product ?? "?" }}, Serial:
-                                {{ comport.serial ?? "?" }})
-                            </option>
-                        </select>
-                        <FormSubLabel>
-                            <div class="text-blue-500 underline cursor-pointer" @click="loadComports">Reload Ports</div>
-                        </FormSubLabel>
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2">
+                        <div v-if="newInterfaceType === 'RNodeInterface'" class="flex items-center mb-2">
+                            <Toggle id="rnode-use-ip" v-model="newInterfaceRNodeUseIP" />
+                            <FormLabel for="rnode-use-ip" class="ml-2">Connect over IP</FormLabel>
+                        </div>
+
+                        <div v-if="newInterfaceRNodeUseIP || newInterfaceType === 'RNodeIPInterface'" class="space-y-2">
+                            <div>
+                                <FormLabel class="mb-1">Host</FormLabel>
+                                <input
+                                    v-model="newInterfaceRNodeIPHost"
+                                    type="text"
+                                    placeholder="e.g: 10.0.0.1"
+                                    class="input-field"
+                                />
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Port</FormLabel>
+                                <input
+                                    v-model="newInterfaceRNodeIPPort"
+                                    type="text"
+                                    placeholder="e.g: 7633"
+                                    class="input-field"
+                                />
+                            </div>
+                        </div>
+                        <div v-else>
+                            <FormLabel class="mb-1">Port</FormLabel>
+                            <select
+                                v-model="newInterfacePort"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600"
+                            >
+                                <option v-for="comport of comports" :key="comport.device" :value="comport.device">
+                                    {{ comport.device }} (Product: {{ comport.product ?? "?" }}, Serial:
+                                    {{ comport.serial ?? "?" }})
+                                </option>
+                            </select>
+                            <FormSubLabel>
+                                <div class="text-blue-500 underline cursor-pointer" @click="loadComports">
+                                    Reload Ports
+                                </div>
+                            </FormSubLabel>
+                        </div>
                     </div>
 
                     <!-- interface Frequency -->
@@ -694,7 +724,7 @@
             </div>
 
             <!-- RNodeInterface bitrate & link budget -->
-            <ExpandingSection v-if="newInterfaceType === 'RNodeInterface'">
+            <ExpandingSection v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)">
                 <template #title>Calculated RNode Bitrate & Link Budget</template>
                 <template #content>
                     <div class="p-2 space-y-3">
@@ -908,7 +938,7 @@
             </ExpandingSection>
 
             <!-- optional RNodeInterface settings -->
-            <ExpandingSection v-if="newInterfaceType === 'RNodeInterface'">
+            <ExpandingSection v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)">
                 <template #title>Optional RNodeInterface Settings</template>
                 <template #content>
                     <div class="p-2 space-y-3">
@@ -1127,6 +1157,9 @@ export default {
             },
 
             newInterfacePort: null,
+            newInterfaceRNodeUseIP: false,
+            newInterfaceRNodeIPHost: "localhost",
+            newInterfaceRNodeIPPort: "7633",
             RNodeGHzValue: 0,
             RNodeMHzValue: 0,
             RNodekHzValue: 0,
@@ -1321,6 +1354,14 @@ export default {
 
                 // Port (For RNode, Serial, and KISS)
                 this.newInterfacePort = iface.port;
+                if (iface.type === "RNodeInterface" && iface.port && iface.port.startsWith("tcp://")) {
+                    this.newInterfaceType = "RNodeIPInterface";
+                    this.newInterfaceRNodeUseIP = true;
+                    const address = iface.port.replace("tcp://", "");
+                    const parts = address.split(":");
+                    this.newInterfaceRNodeIPHost = parts[0];
+                    this.newInterfaceRNodeIPPort = parts[1] || "7633";
+                }
 
                 // RNode Interface
                 this.newInterfaceFrequency = iface.frequency;
@@ -1425,7 +1466,10 @@ export default {
                     peers: this.I2PSettings.newInterfacePeers.join(","),
 
                     // rnode interface
-                    port: this.newInterfacePort,
+                    port:
+                        this.newInterfaceRNodeUseIP || this.newInterfaceType === "RNodeIPInterface"
+                            ? `tcp://${this.newInterfaceRNodeIPHost}:${this.newInterfaceRNodeIPPort}`
+                            : this.newInterfacePort,
                     frequency: this.calculateFrequencyInHz(),
                     bandwidth: this.newInterfaceBandwidth,
                     txpower: this.newInterfaceTxpower,

@@ -920,9 +920,12 @@
                 >
                     <div
                         class="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"
-                        :class="{ 'animate-spin': isSyncingPropagationNode }"
                     >
-                        <MaterialDesignIcon icon-name="sync" class="size-6" />
+                        <MaterialDesignIcon
+                            icon-name="sync"
+                            class="size-6"
+                            :class="{ 'animate-spin-reverse': isSyncingPropagationNode }"
+                        />
                     </div>
                     <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">{{
                         isSyncingPropagationNode ? "Syncing..." : "Sync Node"
