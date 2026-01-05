@@ -2373,7 +2373,7 @@ export default {
                 } else {
                     this.stopWebAudio();
                 }
-            } catch (e) {
+            } catch {
                 // revert on failure
                 this.config.telephone_web_audio_enabled = !newVal;
             }
@@ -2497,7 +2497,9 @@ export default {
             if (this.audioProcessor) {
                 try {
                     this.audioProcessor.disconnect();
-                } catch (_) {}
+                } catch {
+                    // ignore
+                }
                 this.audioProcessor = null;
             }
             if (this.audioStream) {
@@ -2507,7 +2509,9 @@ export default {
             if (this.audioWs) {
                 try {
                     this.audioWs.close();
-                } catch (_) {}
+                } catch {
+                    // ignore
+                }
                 this.audioWs = null;
             }
             if (this.remoteAudioEl) {
@@ -2517,13 +2521,17 @@ export default {
             if (this.audioWorkletNode) {
                 try {
                     this.audioWorkletNode.disconnect();
-                } catch (_) {}
+                } catch {
+                    // ignore
+                }
                 this.audioWorkletNode = null;
             }
             if (this.audioSilentGain) {
                 try {
                     this.audioSilentGain.disconnect();
-                } catch (_) {}
+                } catch {
+                    // ignore
+                }
                 this.audioSilentGain = null;
             }
         },
