@@ -16,7 +16,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate && \
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH} AS builder
 WORKDIR /build
 # Install build dependencies for C-extensions
-RUN apk add --no-cache gcc musl-dev linux-headers python3-dev libffi-dev openssl-dev
+RUN apk add --no-cache gcc musl-dev linux-headers python3-dev libffi-dev openssl-dev git
 # Setup venv and install dependencies
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
