@@ -35,6 +35,7 @@ from aiohttp import WSCloseCode, WSMessage, WSMsgType, web
 from aiohttp_session import get_session
 from aiohttp_session import setup as setup_session
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
+from logging.handlers import RotatingFileHandler
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -91,11 +92,56 @@ from meshchatx.src.version import __version__ as app_version
 import logging
 
 
+def resolve_log_dir():
+    """Choose a writable log directory across container, desktop, and Windows."""
+    env_dir = os.environ.get("MESHCHAT_LOG_DIR")
+    candidates = []
+    if env_dir:
+        candidates.append(env_dir)
+
+    candidates.append("/config/logs")
+
+    if os.name == "nt":
+        appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+        if appdata:
+            candidates.append(os.path.join(appdata, "MeshChatX", "logs"))
+
+    home_dir = os.path.expanduser("~")
+    candidates.append(os.path.join(home_dir, ".reticulum-meshchatx", "logs"))
+    candidates.append(os.path.join(tempfile.gettempdir(), "meshchatx", "logs"))
+
+    for path in candidates:
+        if not path:
+            continue
+        try:
+            os.makedirs(path, exist_ok=True)
+            return path
+        except PermissionError:
+            continue
+        except OSError:
+            continue
+
+    return None
+
+
 # Global log handler
 memory_log_handler = PersistentLogHandler()
-logging.basicConfig(
-    level=logging.INFO, handlers=[memory_log_handler, logging.StreamHandler(sys.stdout)]
-)
+log_dir = resolve_log_dir()
+handlers = [memory_log_handler]
+
+if log_dir:
+    file_handler = RotatingFileHandler(
+        os.path.join(log_dir, "meshchatx.log"),
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    handlers.append(file_handler)
+else:
+    handlers.append(logging.StreamHandler(sys.stdout))
+
+logging.basicConfig(level=logging.INFO, handlers=handlers)
+logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
 logger = logging.getLogger("meshchatx")
 
 
