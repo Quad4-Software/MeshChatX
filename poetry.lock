@@ -1076,14 +1076,14 @@ files = [
 
 [[package]]
 name = "hypothesis"
-version = "6.148.11"
+version = "6.149.0"
 description = "The property-based testing library for Python"
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "hypothesis-6.148.11-py3-none-any.whl", hash = "sha256:397b3fd13d0906cf5ece76f5da340a0fbb07bd18ab61ac41a7982ceb080312f0"},
-    {file = "hypothesis-6.148.11.tar.gz", hash = "sha256:4f3c38030d0f0b38c8b7153d6907892e6fcac9ecb0410e627d6af2cea677f92c"},
+    {file = "hypothesis-6.149.0-py3-none-any.whl", hash = "sha256:96420e306421741be4eea4f32bfc7a13360d73400b2e886a5d5e3668a2337a05"},
+    {file = "hypothesis-6.149.0.tar.gz", hash = "sha256:27afa07824fbb7785369dfae8e2574ec2ae0b1bdce50f3a327dfc069b79b0a44"},
 ]
 
 [package.dependencies]
@@ -1232,6 +1232,26 @@ files = [
 
 [package.dependencies]
 rns = ">=1.0.1"
+
+[[package]]
+name = "lxmfy"
+version = "1.3.0"
+description = "LXMF bot framework for creating bots for the Reticulum Network"
+optional = false
+python-versions = ">=3.11"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+lxmf = ">=0.9.3"
+rns = ">=1.1.0"
+
+[package.source]
+type = "git"
+url = "https://git.quad4.io/LXMFy/LXMFy.git"
+reference = "HEAD"
+resolved_reference = "bf5986d1a145420af4beec9b726c8bbc12dce691"
 
 [[package]]
 name = "lxst"
@@ -2254,4 +2274,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "4dda950e0586a558174bb05ed43a8d3feaaf2cf6acb056bafcb27e4b80e975f3"
+content-hash = "a4edf771858212d7b4a90871b57ef55623e73929c5f1ead40cab10949dc1eadc"
