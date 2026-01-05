@@ -85,6 +85,7 @@ from meshchatx.src.backend.recovery import CrashRecovery
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.telemetry_utils import Telemeter
+from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.version import __version__ as app_version
 
 import logging
@@ -233,6 +234,7 @@ class ReticulumMeshChat:
         self.current_context: IdentityContext | None = None
 
         self.setup_identity(identity)
+        self.web_audio_bridge = WebAudioBridge(None, None)
 
     # Proxy properties for backward compatibility
     @property
@@ -497,6 +499,10 @@ class ReticulumMeshChat:
             self.current_context = self.contexts[identity_hash]
             if not self.current_context.running:
                 self.current_context.setup()
+            self.web_audio_bridge = WebAudioBridge(
+                self.current_context.telephone_manager,
+                self.current_context.config,
+            )
             return
 
         # Initialize Reticulum if not already done
@@ -508,6 +514,9 @@ class ReticulumMeshChat:
         self.contexts[identity_hash] = context
         self.current_context = context
         context.setup()
+        self.web_audio_bridge = WebAudioBridge(
+            context.telephone_manager, context.config
+        )
 
         # Link database to memory log handler
         memory_log_handler.set_database(context.database)
@@ -1745,6 +1754,10 @@ class ReticulumMeshChat:
         print(
             f"on_telephone_call_ended: {caller_identity.hash.hex() if caller_identity else 'Unknown'}",
         )
+        try:
+            self.web_audio_bridge.on_call_ended()
+        except Exception:
+            pass
 
         # Record call history
         if caller_identity:
@@ -3142,6 +3155,51 @@ class ReticulumMeshChat:
 
             return websocket_response
 
+        @routes.get("/ws/telephone/audio")
+        async def telephone_audio_ws(request):
+            websocket_response = web.WebSocketResponse(
+                max_msg_size=5 * 1024 * 1024,
+            )
+            await websocket_response.prepare(request)
+
+            # Early guard on config
+            if not self.web_audio_bridge.config_enabled():
+                await websocket_response.send_str(
+                    json.dumps(
+                        {"type": "error", "message": "Web audio is disabled in config"},
+                    ),
+                )
+            else:
+                await self.web_audio_bridge.send_status(websocket_response)
+                attached = self.web_audio_bridge.attach_client(websocket_response)
+                if not attached:
+                    await websocket_response.send_str(
+                        json.dumps(
+                            {"type": "error", "message": "No active call to attach"},
+                        ),
+                    )
+
+            async for msg in websocket_response:
+                msg: WSMessage = msg
+                if msg.type == WSMsgType.BINARY:
+                    self.web_audio_bridge.push_client_frame(msg.data)
+                elif msg.type == WSMsgType.TEXT:
+                    try:
+                        data = json.loads(msg.data)
+                        if data.get("type") == "attach":
+                            self.web_audio_bridge.attach_client(websocket_response)
+                        elif data.get("type") == "ping":
+                            await websocket_response.send_str(
+                                json.dumps({"type": "pong"})
+                            )
+                    except Exception:
+                        pass
+                elif msg.type == WSMsgType.ERROR:
+                    print(f"telephone audio ws error {websocket_response.exception()}")
+
+            self.web_audio_bridge.detach_client(websocket_response)
+            return websocket_response
+
         # get app info
         @routes.get("/api/v1/app/info")
         async def app_info(request):
@@ -3990,6 +4048,26 @@ class ReticulumMeshChat:
                     "initiation_status": self.telephone_manager.initiation_status,
                     "initiation_target_hash": initiation_target_hash,
                     "initiation_target_name": initiation_target_name,
+                    "web_audio": {
+                        "enabled": getattr(
+                            self.config.telephone_web_audio_enabled,
+                            "get",
+                            lambda: False,
+                        )(),
+                        "allow_fallback": getattr(
+                            self.config.telephone_web_audio_allow_fallback,
+                            "get",
+                            lambda: True,
+                        )(),
+                        "has_client": bool(
+                            getattr(self.web_audio_bridge, "clients", []),
+                        ),
+                        "frame_ms": getattr(
+                            self.telephone_manager.telephone,
+                            "target_frame_time_ms",
+                            None,
+                        ),
+                    },
                 },
             )
 
@@ -7921,6 +7999,16 @@ class ReticulumMeshChat:
                     profile_id,
                 )
 
+        if "telephone_web_audio_enabled" in data:
+            self.config.telephone_web_audio_enabled.set(
+                self._parse_bool(data["telephone_web_audio_enabled"]),
+            )
+
+        if "telephone_web_audio_allow_fallback" in data:
+            self.config.telephone_web_audio_allow_fallback.set(
+                self._parse_bool(data["telephone_web_audio_allow_fallback"]),
+            )
+
         if "translator_enabled" in data:
             value = self._parse_bool(data["translator_enabled"])
             self.config.translator_enabled.set(value)
@@ -8728,6 +8816,8 @@ class ReticulumMeshChat:
             "do_not_disturb_enabled": ctx.config.do_not_disturb_enabled.get(),
             "telephone_allow_calls_from_contacts_only": ctx.config.telephone_allow_calls_from_contacts_only.get(),
             "telephone_audio_profile_id": ctx.config.telephone_audio_profile_id.get(),
+            "telephone_web_audio_enabled": ctx.config.telephone_web_audio_enabled.get(),
+            "telephone_web_audio_allow_fallback": ctx.config.telephone_web_audio_allow_fallback.get(),
             "call_recording_enabled": ctx.config.call_recording_enabled.get(),
             "banished_effect_enabled": ctx.config.banished_effect_enabled.get(),
             "banished_text": ctx.config.banished_text.get(),

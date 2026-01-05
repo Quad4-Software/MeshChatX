@@ -189,6 +189,16 @@ class ConfigManager:
             "telephone_audio_profile_id",
             2,  # Default to Voice (profile 2)
         )
+        self.telephone_web_audio_enabled = self.BoolConfig(
+            self,
+            "telephone_web_audio_enabled",
+            False,
+        )
+        self.telephone_web_audio_allow_fallback = self.BoolConfig(
+            self,
+            "telephone_web_audio_allow_fallback",
+            True,
+        )
         self.call_recording_enabled = self.BoolConfig(
             self,
             "call_recording_enabled",
