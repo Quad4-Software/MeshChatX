@@ -1,8 +1,18 @@
 import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import MessagesSidebar from "@/components/messages/MessagesSidebar.vue";
 
 describe("MessagesSidebar.vue", () => {
+    beforeEach(() => {
+        // Mock localStorage
+        global.localStorage = {
+            getItem: vi.fn(() => null),
+            setItem: vi.fn(),
+            removeItem: vi.fn(),
+            clear: vi.fn(),
+        };
+    });
+
     const defaultProps = {
         peers: {},
         conversations: [],
@@ -38,11 +48,13 @@ describe("MessagesSidebar.vue", () => {
 
         const wrapper = mountMessagesSidebar({ conversations });
 
-        const nameElement = wrapper.find(".truncate");
+        const nameElement = wrapper.find(".conversation-item .truncate");
         expect(nameElement.exists()).toBe(true);
         expect(nameElement.text()).toContain("Long Name");
 
-        const previewElement = wrapper.findAll(".truncate").find((el) => el.text().includes("Message"));
+        const previewElement = wrapper
+            .findAll(".conversation-item .truncate")
+            .find((el) => el.text().includes("Message"));
         expect(previewElement.exists()).toBe(true);
     });
 
@@ -60,7 +72,7 @@ describe("MessagesSidebar.vue", () => {
         expect(scrollContainer.exists()).toBe(true);
         expect(scrollContainer.classes()).toContain("overflow-y-auto");
 
-        const conversationItems = wrapper.findAll("div.overflow-y-auto .cursor-pointer");
+        const conversationItems = wrapper.findAll(".conversation-item");
         expect(conversationItems.length).toBe(100);
     });
 

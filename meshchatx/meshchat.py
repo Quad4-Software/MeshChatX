@@ -42,6 +42,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
+from RNS.Discovery import InterfaceDiscovery
 from serial.tools import list_ports
 
 from meshchatx.src.backend.async_utils import AsyncUtils
@@ -2152,8 +2153,37 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/database/snapshots")
         async def list_db_snapshots(request):
             try:
+                limit = int(request.query.get("limit", 100))
+                offset = int(request.query.get("offset", 0))
                 snapshots = self.database.list_snapshots(self.storage_dir)
-                return web.json_response(snapshots)
+                total = len(snapshots)
+                paginated_snapshots = snapshots[offset : offset + limit]
+                return web.json_response(
+                    {
+                        "snapshots": paginated_snapshots,
+                        "total": total,
+                        "limit": limit,
+                        "offset": offset,
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"status": "error", "message": str(e)},
+                    status=500,
+                )
+
+        @routes.delete("/api/v1/database/snapshots/{filename}")
+        async def delete_db_snapshot(request):
+            try:
+                filename = request.match_info.get("filename")
+                if not filename.endswith(".zip"):
+                    filename += ".zip"
+                self.database.delete_snapshot_or_backup(
+                    self.storage_dir,
+                    filename,
+                    is_backup=False,
+                )
+                return web.json_response({"status": "success"})
             except Exception as e:
                 return web.json_response(
                     {"status": "error", "message": str(e)},
@@ -2199,9 +2229,13 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/database/backups")
         async def list_db_backups(request):
             try:
+                limit = int(request.query.get("limit", 100))
+                offset = int(request.query.get("offset", 0))
                 backup_dir = os.path.join(self.storage_dir, "database-backups")
                 if not os.path.exists(backup_dir):
-                    return web.json_response([])
+                    return web.json_response(
+                        {"backups": [], "total": 0, "limit": limit, "offset": offset},
+                    )
 
                 backups = []
                 for file in os.listdir(backup_dir):
@@ -2219,9 +2253,39 @@ class ReticulumMeshChat:
                                 ).isoformat(),
                             },
                         )
-                return web.json_response(
-                    sorted(backups, key=lambda x: x["created_at"], reverse=True),
+                sorted_backups = sorted(
+                    backups,
+                    key=lambda x: x["created_at"],
+                    reverse=True,
                 )
+                total = len(sorted_backups)
+                paginated_backups = sorted_backups[offset : offset + limit]
+                return web.json_response(
+                    {
+                        "backups": paginated_backups,
+                        "total": total,
+                        "limit": limit,
+                        "offset": offset,
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"status": "error", "message": str(e)},
+                    status=500,
+                )
+
+        @routes.delete("/api/v1/database/backups/{filename}")
+        async def delete_db_backup(request):
+            try:
+                filename = request.match_info.get("filename")
+                if not filename.endswith(".zip"):
+                    filename += ".zip"
+                self.database.delete_snapshot_or_backup(
+                    self.storage_dir,
+                    filename,
+                    is_backup=True,
+                )
+                return web.json_response({"status": "success"})
             except Exception as e:
                 return web.json_response(
                     {"status": "error", "message": str(e)},
@@ -3360,6 +3424,7 @@ class ReticulumMeshChat:
                             ),
                             "ply": self.get_package_version("ply"),
                             "bcrypt": self.get_package_version("bcrypt"),
+                            "lxmfy": self.get_package_version("lxmfy"),
                         },
                         "storage_path": self.storage_path,
                         "database_path": self.database_path,
@@ -3939,6 +4004,62 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
+        # maintenance - clear messages
+        @routes.delete("/api/v1/maintenance/messages")
+        async def maintenance_clear_messages(request):
+            self.database.messages.delete_all_lxmf_messages()
+            return web.json_response({"message": "All messages cleared"})
+
+        # maintenance - clear announces
+        @routes.delete("/api/v1/maintenance/announces")
+        async def maintenance_clear_announces(request):
+            aspect = request.query.get("aspect")
+            self.database.announces.delete_all_announces(aspect=aspect)
+            return web.json_response(
+                {
+                    "message": f"Announces cleared{' for aspect ' + aspect if aspect else ''}",
+                },
+            )
+
+        # maintenance - clear favorites
+        @routes.delete("/api/v1/maintenance/favourites")
+        async def maintenance_clear_favourites(request):
+            aspect = request.query.get("aspect")
+            self.database.announces.delete_all_favourites(aspect=aspect)
+            return web.json_response(
+                {
+                    "message": f"Favourites cleared{' for aspect ' + aspect if aspect else ''}",
+                },
+            )
+
+        # maintenance - clear archives
+        @routes.delete("/api/v1/maintenance/archives")
+        async def maintenance_clear_archives(request):
+            self.database.misc.delete_archived_pages()
+            return web.json_response({"message": "All archived pages cleared"})
+
+        # maintenance - export messages
+        @routes.get("/api/v1/maintenance/messages/export")
+        async def maintenance_export_messages(request):
+            messages = self.database.messages.get_all_lxmf_messages()
+            # Convert sqlite3.Row to dict if necessary
+            messages_list = [dict(m) for m in messages]
+            return web.json_response({"messages": messages_list})
+
+        # maintenance - import messages
+        @routes.post("/api/v1/maintenance/messages/import")
+        async def maintenance_import_messages(request):
+            try:
+                data = await request.json()
+                messages = data.get("messages", [])
+                for msg in messages:
+                    self.database.messages.upsert_lxmf_message(msg)
+                return web.json_response(
+                    {"message": f"Successfully imported {len(messages)} messages"},
+                )
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=400)
+
         # get config
         @routes.get("/api/v1/config")
         async def config_get(request):
@@ -4042,6 +4163,91 @@ class ReticulumMeshChat:
             }
 
             return web.json_response({"discovery": discovery_config})
+
+        @routes.get("/api/v1/reticulum/discovered-interfaces")
+        async def reticulum_discovered_interfaces(request):
+            try:
+                discovery = InterfaceDiscovery(discover_interfaces=False)
+                interfaces = discovery.list_discovered_interfaces()
+                active = []
+                try:
+                    if hasattr(self, "reticulum") and self.reticulum:
+                        stats = self.reticulum.get_interface_stats().get(
+                            "interfaces",
+                            [],
+                        )
+                        active = []
+                        for s in stats:
+                            name = s.get("name") or ""
+                            parsed_host = None
+                            parsed_port = None
+                            if "/" in name:
+                                try:
+                                    host_port = name.split("/")[-1].strip("[]")
+                                    if ":" in host_port:
+                                        parsed_host, parsed_port = host_port.rsplit(
+                                            ":",
+                                            1,
+                                        )
+                                        try:
+                                            parsed_port = int(parsed_port)
+                                        except Exception:
+                                            parsed_port = None
+                                    else:
+                                        parsed_host = host_port
+                                except Exception:
+                                    parsed_host = None
+                                    parsed_port = None
+
+                            host = (
+                                s.get("target_host") or s.get("remote") or parsed_host
+                            )
+                            port = (
+                                s.get("target_port")
+                                or s.get("listen_port")
+                                or parsed_port
+                            )
+                            transport_id = s.get("transport_id")
+                            if isinstance(transport_id, (bytes, bytearray)):
+                                transport_id = transport_id.hex()
+
+                            active.append(
+                                {
+                                    "name": name,
+                                    "short_name": s.get("short_name"),
+                                    "type": s.get("type"),
+                                    "target_host": host,
+                                    "target_port": port,
+                                    "listen_ip": s.get("listen_ip"),
+                                    "connected": s.get("connected"),
+                                    "online": s.get("online"),
+                                    "transport_id": transport_id,
+                                    "network_id": s.get("network_id"),
+                                },
+                            )
+                except Exception as e:
+                    logger.debug(f"Failed to get interface stats: {e}")
+
+                def to_jsonable(obj):
+                    if isinstance(obj, bytes):
+                        return obj.hex()
+                    if isinstance(obj, dict):
+                        return {k: to_jsonable(v) for k, v in obj.items()}
+                    if isinstance(obj, list):
+                        return [to_jsonable(v) for v in obj]
+                    return obj
+
+                return web.json_response(
+                    {
+                        "interfaces": to_jsonable(interfaces),
+                        "active": to_jsonable(active),
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Failed to load discovered interfaces: {e!s}"},
+                    status=500,
+                )
 
         # enable transport mode
         @routes.post("/api/v1/reticulum/enable-transport")
@@ -6920,6 +7126,12 @@ class ReticulumMeshChat:
                     request.query.get("filter_has_attachments", "false"),
                 ),
             )
+            folder_id = request.query.get("folder_id")
+            if folder_id is not None:
+                try:
+                    folder_id = int(folder_id)
+                except ValueError:
+                    folder_id = None
 
             # get pagination params
             try:
@@ -6943,6 +7155,7 @@ class ReticulumMeshChat:
                 filter_unread=filter_unread,
                 filter_failed=filter_failed,
                 filter_has_attachments=filter_has_attachments,
+                folder_id=folder_id,
                 limit=limit,
                 offset=offset,
             )
@@ -7020,6 +7233,123 @@ class ReticulumMeshChat:
                     "conversations": conversations,
                 },
             )
+
+        @routes.get("/api/v1/lxmf/folders")
+        async def lxmf_folders_get(request):
+            folders = self.database.messages.get_all_folders()
+            return web.json_response([dict(f) for f in folders])
+
+        @routes.post("/api/v1/lxmf/folders")
+        async def lxmf_folders_post(request):
+            data = await request.json()
+            name = data.get("name")
+            if not name:
+                return web.json_response({"message": "Name is required"}, status=400)
+            try:
+                self.database.messages.create_folder(name)
+                return web.json_response({"message": "Folder created"})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.patch("/api/v1/lxmf/folders/{id}")
+        async def lxmf_folders_patch(request):
+            folder_id = int(request.match_info["id"])
+            data = await request.json()
+            name = data.get("name")
+            if not name:
+                return web.json_response({"message": "Name is required"}, status=400)
+            self.database.messages.rename_folder(folder_id, name)
+            return web.json_response({"message": "Folder renamed"})
+
+        @routes.delete("/api/v1/lxmf/folders/{id}")
+        async def lxmf_folders_delete(request):
+            folder_id = int(request.match_info["id"])
+            self.database.messages.delete_folder(folder_id)
+            return web.json_response({"message": "Folder deleted"})
+
+        @routes.post("/api/v1/lxmf/conversations/move-to-folder")
+        async def lxmf_conversations_move_to_folder(request):
+            data = await request.json()
+            peer_hashes = data.get("peer_hashes", [])
+            folder_id = data.get("folder_id")  # Can be None to remove from folder
+            if not peer_hashes:
+                return web.json_response(
+                    {"message": "peer_hashes is required"},
+                    status=400,
+                )
+            self.database.messages.move_conversations_to_folder(peer_hashes, folder_id)
+            return web.json_response({"message": "Conversations moved"})
+
+        @routes.post("/api/v1/lxmf/conversations/bulk-mark-as-read")
+        async def lxmf_conversations_bulk_mark_read(request):
+            data = await request.json()
+            destination_hashes = data.get("destination_hashes", [])
+            if not destination_hashes:
+                return web.json_response(
+                    {"message": "destination_hashes is required"},
+                    status=400,
+                )
+            self.database.messages.mark_conversations_as_read(destination_hashes)
+            return web.json_response({"message": "Conversations marked as read"})
+
+        @routes.post("/api/v1/lxmf/conversations/bulk-delete")
+        async def lxmf_conversations_bulk_delete(request):
+            data = await request.json()
+            destination_hashes = data.get("destination_hashes", [])
+            if not destination_hashes:
+                return web.json_response(
+                    {"message": "destination_hashes is required"},
+                    status=400,
+                )
+            local_hash = self.local_lxmf_destination.hexhash
+            for dest_hash in destination_hashes:
+                self.message_handler.delete_conversation(local_hash, dest_hash)
+            return web.json_response({"message": "Conversations deleted"})
+
+        @routes.get("/api/v1/lxmf/folders/export")
+        async def lxmf_folders_export(request):
+            folders = [dict(f) for f in self.database.messages.get_all_folders()]
+            mappings = [
+                dict(m) for m in self.database.messages.get_all_conversation_folders()
+            ]
+            return web.json_response({"folders": folders, "mappings": mappings})
+
+        @routes.post("/api/v1/lxmf/folders/import")
+        async def lxmf_folders_import(request):
+            data = await request.json()
+            folders = data.get("folders", [])
+            mappings = data.get("mappings", [])
+
+            # We'll try to recreate folders by name to avoid ID conflicts
+            folder_name_to_new_id = {}
+            for f in folders:
+                try:
+                    self.database.messages.create_folder(f["name"])
+                except Exception as e:
+                    logger.debug(f"Folder '{f['name']}' likely already exists: {e}")
+
+            # Refresh folder list to get new IDs
+            all_folders = self.database.messages.get_all_folders()
+            for f in all_folders:
+                folder_name_to_new_id[f["name"]] = f["id"]
+
+            # Map old IDs to new IDs if possible, or just use names if we had them
+            # Since IDs might change, we should have exported names too
+            # Let's assume the export had folder names in mappings or we match by old folder info
+            old_id_to_name = {f["id"]: f["name"] for f in folders}
+
+            for m in mappings:
+                peer_hash = m["peer_hash"]
+                old_folder_id = m["folder_id"]
+                folder_name = old_id_to_name.get(old_folder_id)
+                if folder_name and folder_name in folder_name_to_new_id:
+                    new_folder_id = folder_name_to_new_id[folder_name]
+                    self.database.messages.move_conversation_to_folder(
+                        peer_hash,
+                        new_folder_id,
+                    )
+
+            return web.json_response({"message": "Folders and mappings imported"})
 
         # mark lxmf conversation as read
         @routes.get("/api/v1/lxmf/conversations/{destination_hash}/mark-as-read")
@@ -7806,7 +8136,7 @@ class ReticulumMeshChat:
                 f"connect-src {' '.join(connect_sources)}; "
                 "media-src 'self' blob:; "
                 "worker-src 'self' blob:; "
-                "frame-src 'self'; "
+                "frame-src 'self' https://reticulum.network; "
                 "object-src 'none'; "
                 "base-uri 'self';"
             )
@@ -7922,17 +8252,24 @@ class ReticulumMeshChat:
         # (e.g. when running from a read-only AppImage)
         if self.current_context and hasattr(self.current_context, "docs_manager"):
             dm = self.current_context.docs_manager
-            if (
-                dm.docs_dir
-                and os.path.exists(dm.docs_dir)
-                and not dm.docs_dir.startswith(public_dir)
-            ):
-                app.router.add_static(
-                    "/reticulum-docs/",
-                    dm.docs_dir,
-                    name="reticulum_docs_storage",
-                    follow_symlinks=True,
-                )
+
+            # Custom handler for reticulum docs to allow fallback to official website
+            async def reticulum_docs_handler(request):
+                path = request.match_info.get("filename", "index.html")
+                if not path:
+                    path = "index.html"
+                if path.endswith("/"):
+                    path += "index.html"
+
+                local_path = os.path.join(dm.docs_dir, path)
+                if os.path.exists(local_path) and os.path.isfile(local_path):
+                    return web.FileResponse(local_path)
+
+                # Fallback to official website
+                return web.HTTPFound(f"https://reticulum.network/manual/{path}")
+
+            app.router.add_get("/reticulum-docs/{filename:.*}", reticulum_docs_handler)
+
             if (
                 dm.meshchatx_docs_dir
                 and os.path.exists(dm.meshchatx_docs_dir)
@@ -7978,7 +8315,8 @@ class ReticulumMeshChat:
                     print(
                         f"Performing scheduled auto-backup for {ctx.identity_hash}...",
                     )
-                    ctx.database.backup_database(self.storage_dir)
+                    max_count = ctx.config.backup_max_count.get()
+                    ctx.database.backup_database(self.storage_dir, max_count=max_count)
             except Exception as e:
                 print(f"Auto-backup failed: {e}")
 

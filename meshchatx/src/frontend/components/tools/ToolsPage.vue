@@ -35,8 +35,16 @@
                     <RouterLink
                         v-for="tool in filteredTools"
                         :key="tool.name"
-                        :to="tool.route"
-                        :class="['tool-card', 'glass-card', tool.customClass].filter(Boolean)"
+                        :to="tool.comingSoon ? '' : tool.route"
+                        :class="
+                            [
+                                'tool-card',
+                                'glass-card',
+                                tool.customClass,
+                                tool.comingSoon ? 'opacity-60 grayscale-[0.5] cursor-default' : '',
+                            ].filter(Boolean)
+                        "
+                        @click="tool.comingSoon ? $event.preventDefault() : null"
                     >
                         <div :class="tool.iconBg">
                             <MaterialDesignIcon v-if="tool.icon" :icon-name="tool.icon" class="w-6 h-6" />
@@ -48,23 +56,33 @@
                             />
                         </div>
                         <div class="flex-1">
-                            <div class="tool-card__title">{{ tool.title }}</div>
+                            <div class="flex items-center gap-2">
+                                <div class="tool-card__title">{{ tool.title }}</div>
+                                <span
+                                    v-if="tool.comingSoon"
+                                    class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-md border border-gray-200 dark:border-zinc-700"
+                                >
+                                    Soon
+                                </span>
+                            </div>
                             <div class="tool-card__description">
                                 {{ tool.description }}
                             </div>
                         </div>
-                        <div v-if="tool.extraAction" class="flex items-center gap-2">
-                            <a
-                                :href="tool.extraAction.href"
-                                :target="tool.extraAction.target"
-                                class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-blue-500"
-                                @click.stop
-                            >
-                                <MaterialDesignIcon :icon-name="tool.extraAction.icon" class="size-5" />
-                            </a>
-                            <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                        <div v-if="!tool.comingSoon">
+                            <div v-if="tool.extraAction" class="flex items-center gap-2">
+                                <a
+                                    :href="tool.extraAction.href"
+                                    :target="tool.extraAction.target"
+                                    class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-blue-500"
+                                    @click.stop
+                                >
+                                    <MaterialDesignIcon :icon-name="tool.extraAction.icon" class="size-5" />
+                                </a>
+                                <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                            </div>
+                            <MaterialDesignIcon v-else icon-name="chevron-right" class="tool-card__chevron" />
                         </div>
-                        <MaterialDesignIcon v-else icon-name="chevron-right" class="tool-card__chevron" />
                     </RouterLink>
                 </div>
 
@@ -192,6 +210,30 @@ export default {
                         target: "_blank",
                         icon: "open-in-new",
                     },
+                },
+                {
+                    name: "rns-page-node",
+                    comingSoon: true,
+                    icon: "server-network",
+                    iconBg: "tool-card__icon bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-200",
+                    titleKey: "tools.rns_page_node.title",
+                    descriptionKey: "tools.rns_page_node.description",
+                },
+                {
+                    name: "rns-tunnel",
+                    comingSoon: true,
+                    icon: "tunnel",
+                    iconBg: "tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200",
+                    titleKey: "tools.rns_tunnel.title",
+                    descriptionKey: "tools.rns_tunnel.description",
+                },
+                {
+                    name: "rns-filesync",
+                    comingSoon: true,
+                    icon: "folder-sync",
+                    iconBg: "tool-card__icon bg-emerald-50 text-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-200",
+                    titleKey: "tools.rns_filesync.title",
+                    descriptionKey: "tools.rns_filesync.description",
                 },
                 {
                     name: "debug-logs",

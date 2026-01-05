@@ -212,7 +212,31 @@
         "confirm": "Bestätigen",
         "delete_confirm": "Sind Sie sicher, dass Sie dies löschen möchten? Dies kann nicht rückgängig gemacht werden.",
         "search": "Werkzeuge suchen...",
-        "no_results": "Keine Werkzeuge gefunden"
+        "no_results": "Keine Werkzeuge gefunden",
+        "error": "Fehler"
+    },
+    "maintenance": {
+        "title": "Wartung & Daten",
+        "description": "Verwalten Sie Ihre lokalen Daten, löschen Sie Caches und sichern Sie Konversationen.",
+        "clear_messages": "Alle Nachrichten löschen",
+        "clear_messages_desc": "Alle gesendeten und empfangenen Nachrichten dauerhaft löschen.",
+        "clear_announces": "Alle Ankündigungen löschen",
+        "clear_announces_desc": "Alle entdeckten Peers und Knoten aus dem Cache entfernen.",
+        "clear_nomadnet_favs": "NomadNetwork-Favoriten löschen",
+        "clear_nomadnet_favs_desc": "Alle gespeicherten NomadNetwork-Knoten aus den Favoriten entfernen.",
+        "clear_archives": "Seitenarchive löschen",
+        "clear_archives_desc": "Alle zwischengespeicherten NomadNetwork-Seiten löschen.",
+        "export_messages": "Nachrichten exportieren",
+        "export_messages_desc": "Alle Konversationen als JSON-Datei herunterladen.",
+        "import_messages": "Nachrichten importieren",
+        "import_messages_desc": "Konversationen aus einer JSON-Datei wiederherstellen.",
+        "clear_confirm": "Sind Sie sicher? Diese Aktion kann nicht rückgängig gemacht werden.",
+        "messages_cleared": "Nachrichten erfolgreich gelöscht",
+        "announces_cleared": "Ankündigungen erfolgreich gelöscht",
+        "favourites_cleared": "Favoriten erfolgreich gelöscht",
+        "archives_cleared": "Archive erfolgreich gelöscht",
+        "import_success": "Erfolgreich {count} Nachrichten importiert",
+        "import_failed": "Nachrichten konnten nicht importiert werden"
     },
     "identities": {
         "title": "Identitäten",
@@ -695,6 +719,18 @@
             "title": "Papiernachricht",
             "description": "Erstellen und lesen Sie LXMF-signierte Papiernachrichten über QR-Codes."
         },
+        "rns_page_node": {
+            "title": "RNS Page-Knoten",
+            "description": "Nomadnet-Micron-Seiten hosten und Dateien mühelos teilen."
+        },
+        "rns_tunnel": {
+            "title": "RNS-Tunnel",
+            "description": "Regulären IP-Verkehr über Reticulum-Netzwerkverbindungen tunneln."
+        },
+        "rns_filesync": {
+            "title": "RNS-Dateisynchronisierung",
+            "description": "Dateien effizient mit anderen Mesh-Peers teilen und synchronisieren."
+        },
         "bots": {
             "title": "LXMFy-Bots",
             "description": "Verwalten Sie automatisierte Bots für Echo, Notizen und Erinnerungen mit LXMFy."
@@ -1051,7 +1087,11 @@
         "restart_start": "MeshChatX starten",
         "skip_setup": "Setup überspringen",
         "continue": "Weiter",
-        "skip_confirm": "Sind Sie sicher, dass Sie das Setup überspringen möchten? Sie müssen Schnittstellen später manuell hinzufügen."
+        "skip_confirm": "Sind Sie sicher, dass Sie das Setup überspringen möchten? Sie müssen Schnittstellen später manuell hinzufügen.",
+        "discovery_question": "Möchten Sie die Community-Schnittstellenerkennung und Auto-Connect verwenden?",
+        "discovery_desc": "Dies ermöglicht es MeshChatX, automatisch öffentliche Community-Knoten in Ihrer Nähe oder im Internet zu finden und sich mit ihnen zu verbinden.",
+        "yes": "Ja, Erkennung verwenden",
+        "no": "Nein, manuelle Einrichtung"
     },
     "command_palette": {
         "search_placeholder": "Befehle suchen, navigieren oder Peers finden...",

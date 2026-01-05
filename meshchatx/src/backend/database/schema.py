@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 35
+    LATEST_VERSION = 36
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -421,6 +421,24 @@ class DatabaseSchema:
                     is_anomaly INTEGER DEFAULT 0,
                     anomaly_type TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_folders": """
+                CREATE TABLE IF NOT EXISTS lxmf_folders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "lxmf_conversation_folders": """
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_folders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    peer_hash TEXT UNIQUE,
+                    folder_id INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (folder_id) REFERENCES lxmf_folders(id) ON DELETE CASCADE
                 )
             """,
         }
@@ -931,6 +949,32 @@ class DatabaseSchema:
             )
             self._safe_execute(
                 "ALTER TABLE contacts ADD COLUMN lxst_address TEXT DEFAULT NULL",
+            )
+
+        if current_version < 36:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_folders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_folders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    peer_hash TEXT UNIQUE,
+                    folder_id INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (folder_id) REFERENCES lxmf_folders(id) ON DELETE CASCADE
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_folders_peer_hash ON lxmf_conversation_folders(peer_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_folders_folder_id ON lxmf_conversation_folders(folder_id)",
             )
 
         # Update version in config

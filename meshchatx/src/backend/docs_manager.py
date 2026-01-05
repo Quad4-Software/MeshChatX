@@ -38,7 +38,12 @@ class DocsManager:
 
         # Ensure docs directories exist
         try:
-            for d in [self.docs_base_dir, self.versions_dir, self.meshchatx_docs_dir]:
+            for d in [
+                self.docs_base_dir,
+                self.versions_dir,
+                self.docs_dir,
+                self.meshchatx_docs_dir,
+            ]:
                 if not os.path.exists(d):
                     os.makedirs(d)
 
@@ -423,8 +428,6 @@ class DocsManager:
 
     def has_docs(self):
         # Check if index.html exists in the docs folder or if we have any versions
-        if self.config.docs_downloaded.get():
-            return True
         return (
             os.path.exists(os.path.join(self.docs_dir, "index.html"))
             or len(self.get_available_versions()) > 0

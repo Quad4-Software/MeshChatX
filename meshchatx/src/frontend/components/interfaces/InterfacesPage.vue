@@ -3,7 +3,7 @@
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
         <div class="flex-1 overflow-y-auto w-full">
-            <div class="p-3 md:p-6 space-y-4 max-w-6xl mx-auto w-full flex-1">
+            <div class="p-3 md:p-6 space-y-4 w-full flex-1">
                 <div
                     v-if="showRestartReminder"
                     class="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-3xl shadow-xl p-4 flex flex-wrap gap-3 items-center"
@@ -28,11 +28,11 @@
 
                 <div class="glass-card space-y-4">
                     <div class="flex flex-wrap gap-3 items-center">
-                        <div class="flex-1">
+                        <div class="flex-1 min-w-0">
                             <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 {{ $t("interfaces.manage") }}
                             </div>
-                            <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                            <div class="text-xl font-semibold text-gray-900 dark:text-white truncate">
                                 {{ $t("interfaces.title") }}
                             </div>
                             <div class="text-sm text-gray-600 dark:text-gray-300">
@@ -111,135 +111,369 @@
                     </div>
                 </div>
 
-                <div
-                    v-if="filteredInterfaces.length === 0"
-                    class="glass-card text-center py-10 text-gray-500 dark:text-gray-300"
-                >
-                    <MaterialDesignIcon icon-name="lan-disconnect" class="w-10 h-10 mx-auto mb-3" />
-                    <div class="text-lg font-semibold">{{ $t("interfaces.no_interfaces_found") }}</div>
-                    <div class="text-sm">{{ $t("interfaces.no_interfaces_description") }}</div>
-                </div>
-
                 <div class="glass-card space-y-4">
-                    <div class="flex flex-wrap gap-3 items-center">
-                        <div class="flex-1">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Discovery
-                            </div>
-                            <div class="text-xl font-semibold text-gray-900 dark:text-white">Interface Discovery</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-300">
-                                Publish your interfaces for others to find, or listen for announced entrypoints and
-                                auto-connect to them.
-                            </div>
-                        </div>
-                        <RouterLink :to="{ name: 'interfaces.add' }" class="secondary-chip text-sm">
-                            <MaterialDesignIcon icon-name="lan" class="w-4 h-4" />
-                            Configure Per-Interface
-                        </RouterLink>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            v-for="tab in ['overview', 'discovery']"
+                            :key="tab"
+                            type="button"
+                            :class="tabChipClass(activeTab === tab)"
+                            @click="activeTab = tab"
+                        >
+                            <span v-if="tab === 'overview'">Overview</span>
+                            <span v-else>Discovery Settings</span>
+                        </button>
                     </div>
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                            <div class="font-semibold text-gray-900 dark:text-white">Publish (Server)</div>
-                            <div>
-                                Enable discovery while adding or editing an interface to broadcast reachable details.
-                                Reticulum will sign and stamp announces automatically.
+
+                    <div v-if="activeTab === 'overview'" class="space-y-4">
+                        <div class="glass-card space-y-3">
+                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                Configured
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                Requires LXMF in the Python environment. Transport is optional for publishing, but
-                                usually recommended so peers can connect back.
+                            <div class="text-xl font-semibold text-gray-900 dark:text-white">Interfaces</div>
+                            <div
+                                v-if="filteredInterfaces.length !== 0"
+                                class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 4xl:grid-cols-5"
+                            >
+                                <Interface
+                                    v-for="iface of filteredInterfaces"
+                                    :key="iface._name"
+                                    :iface="iface"
+                                    :is-reticulum-running="isReticulumRunning"
+                                    @enable="enableInterface(iface._name)"
+                                    @disable="disableInterface(iface._name)"
+                                    @edit="editInterface(iface._name)"
+                                    @export="exportInterface(iface._name)"
+                                    @delete="deleteInterface(iface._name)"
+                                />
+                            </div>
+                            <div v-else class="glass-card text-center py-10 text-gray-500 dark:text-gray-300">
+                                <MaterialDesignIcon icon-name="lan-disconnect" class="w-10 h-10 mx-auto mb-3" />
+                                <div class="text-lg font-semibold">{{ $t("interfaces.no_interfaces_found") }}</div>
+                                <div class="text-sm">{{ $t("interfaces.no_interfaces_description") }}</div>
                             </div>
                         </div>
-                        <div class="space-y-3">
-                            <div class="flex items-center">
-                                <div class="flex flex-col mr-auto">
-                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                                        Discover Interfaces (Peer)
+
+                        <div class="glass-card space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div class="flex-1">
+                                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        Discovered Interfaces
+                                    </div>
+                                    <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                                        Recently Heard Announces
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                                        Cards appear/disappear as announces are heard. Connected entries show a green
+                                        pill; disconnected entries are dimmed with a red label.
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button
+                                        v-if="interfacesWithLocation.length > 0"
+                                        type="button"
+                                        class="secondary-chip text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                                        @click="mapAllDiscovered"
+                                    >
+                                        <MaterialDesignIcon icon-name="map-marker-multiple" class="w-4 h-4" />
+                                        Map All ({{ interfacesWithLocation.length }})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip text-xs"
+                                        @click="loadDiscoveredInterfaces"
+                                    >
+                                        <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
+                                        Refresh
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="sortedDiscoveredInterfaces.length === 0"
+                                class="text-sm text-gray-500 dark:text-gray-300"
+                            >
+                                No discovered interfaces yet.
+                            </div>
+
+                            <div
+                                v-else
+                                class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6"
+                            >
+                                <div
+                                    v-for="iface in sortedDiscoveredInterfaces"
+                                    :key="iface.discovery_hash || iface.name"
+                                    class="interface-card group transition-all duration-300"
+                                    :class="{ 'opacity-70 grayscale-[0.3]': !isDiscoveredConnected(iface) }"
+                                >
+                                    <div class="flex gap-4 items-start relative">
+                                        <!-- Disconnected Overlay -->
+                                        <div
+                                            v-if="!isDiscoveredConnected(iface)"
+                                            class="absolute inset-0 z-10 flex items-center justify-center bg-white/20 dark:bg-zinc-900/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
+                                        >
+                                            <div
+                                                class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider animate-pulse"
+                                            >
+                                                <MaterialDesignIcon icon-name="lan-disconnect" class="w-3.5 h-3.5" />
+                                                <span>{{ $t("app.disabled") }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="interface-card__icon shrink-0">
+                                            <MaterialDesignIcon :icon-name="getDiscoveryIcon(iface)" class="w-6 h-6" />
+                                        </div>
+
+                                        <div class="flex-1 min-w-0 space-y-2">
+                                            <div class="flex items-center gap-2 flex-nowrap min-w-0">
+                                                <div
+                                                    class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate min-w-0"
+                                                >
+                                                    {{ iface.name }}
+                                                </div>
+                                                <span class="type-chip shrink-0">{{ iface.type }}</span>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span
+                                                    v-if="iface.value"
+                                                    class="text-[10px] font-bold text-blue-600 dark:text-blue-400"
+                                                >
+                                                    Stamps: {{ iface.value }}
+                                                </span>
+                                                <span
+                                                    v-if="isDiscoveredConnected(iface)"
+                                                    class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-emerald-900/40 dark:text-emerald-200 shrink-0"
+                                                >
+                                                    Connected
+                                                </span>
+                                            </div>
+
+                                            <div class="flex flex-wrap gap-1.5 text-[10px] sm:text-xs">
+                                                <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
+                                                    >Hops: {{ iface.hops }}</span
+                                                >
+                                                <span class="stat-chip capitalize bg-gray-50 dark:bg-zinc-800/50">{{
+                                                    iface.status
+                                                }}</span>
+                                                <span
+                                                    v-if="iface.last_heard"
+                                                    class="stat-chip bg-gray-50 dark:bg-zinc-800/50"
+                                                >
+                                                    Heard: {{ formatLastHeard(iface.last_heard) }}
+                                                </span>
+                                            </div>
+
+                                            <div class="grid gap-1.5 text-[10px] sm:text-[11px] pt-1 min-w-0">
+                                                <div
+                                                    v-if="iface.reachable_on"
+                                                    class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                    @click="
+                                                        copyToClipboard(
+                                                            `${iface.reachable_on}:${iface.port}`,
+                                                            'Address'
+                                                        )
+                                                    "
+                                                >
+                                                    <MaterialDesignIcon
+                                                        icon-name="link-variant"
+                                                        class="w-3.5 h-3.5 shrink-0"
+                                                    />
+                                                    <span class="truncate"
+                                                        >Address: {{ iface.reachable_on }}:{{ iface.port }}</span
+                                                    >
+                                                </div>
+
+                                                <div
+                                                    v-if="iface.transport_id"
+                                                    class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                    @click="copyToClipboard(iface.transport_id, 'Transport ID')"
+                                                >
+                                                    <MaterialDesignIcon
+                                                        icon-name="identifier"
+                                                        class="w-3.5 h-3.5 shrink-0"
+                                                    />
+                                                    <span class="truncate font-mono"
+                                                        >Transport ID: {{ iface.transport_id }}</span
+                                                    >
+                                                </div>
+
+                                                <div
+                                                    v-if="iface.network_id"
+                                                    class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                    @click="copyToClipboard(iface.network_id, 'Network ID')"
+                                                >
+                                                    <MaterialDesignIcon icon-name="lan" class="w-3.5 h-3.5 shrink-0" />
+                                                    <span class="truncate font-mono"
+                                                        >Network ID: {{ iface.network_id }}</span
+                                                    >
+                                                </div>
+
+                                                <div
+                                                    v-if="iface.latitude != null && iface.longitude != null"
+                                                    class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                    @click="
+                                                        copyToClipboard(
+                                                            `${iface.latitude}, ${iface.longitude}`,
+                                                            'Location'
+                                                        )
+                                                    "
+                                                >
+                                                    <MaterialDesignIcon
+                                                        icon-name="map-marker"
+                                                        class="w-3.5 h-3.5 shrink-0"
+                                                    />
+                                                    <span class="truncate"
+                                                        >Loc: {{ iface.latitude }}, {{ iface.longitude }}</span
+                                                    >
+                                                </div>
+
+                                                <div
+                                                    v-if="discoveredBytes(iface)"
+                                                    class="flex items-center gap-2 text-gray-500 dark:text-gray-500 min-w-0"
+                                                >
+                                                    <MaterialDesignIcon
+                                                        icon-name="swap-vertical"
+                                                        class="w-3.5 h-3.5 shrink-0"
+                                                    />
+                                                    <span class="truncate"
+                                                        >TX {{ discoveredBytes(iface).tx }} · RX
+                                                        {{ discoveredBytes(iface).rx }}</span
+                                                    >
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex flex-col gap-2 shrink-0">
+                                            <button
+                                                v-if="iface.latitude != null && iface.longitude != null"
+                                                type="button"
+                                                class="secondary-chip !p-2 !rounded-xl"
+                                                :title="$t('map.title')"
+                                                @click="goToMap(iface)"
+                                            >
+                                                <MaterialDesignIcon icon-name="map" class="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else class="space-y-4">
+                        <div class="glass-card space-y-4">
+                            <div class="flex flex-wrap gap-3 items-center">
+                                <div class="flex-1">
+                                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        Discovery
+                                    </div>
+                                    <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                                        Interface Discovery
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                                        Publish your interfaces for others to find, or listen for announced entrypoints
+                                        and auto-connect to them.
+                                    </div>
+                                </div>
+                                <RouterLink :to="{ name: 'interfaces.add' }" class="secondary-chip text-sm">
+                                    <MaterialDesignIcon icon-name="lan" class="w-4 h-4" />
+                                    Configure Per-Interface
+                                </RouterLink>
+                            </div>
+                            <div class="grid gap-4 md:grid-cols-2">
+                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <div class="font-semibold text-gray-900 dark:text-white">Publish (Server)</div>
+                                    <div>
+                                        Enable discovery while adding or editing an interface to broadcast reachable
+                                        details. Reticulum will sign and stamp announces automatically.
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                                        Listen for discovery announces and optionally auto-connect to available
-                                        interfaces.
+                                        Requires LXMF in the Python environment. Transport is optional for publishing,
+                                        but usually recommended so peers can connect back.
                                     </div>
                                 </div>
-                                <Toggle v-model="discoveryConfig.discover_interfaces" class="my-auto mx-2" />
-                            </div>
-                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <div>
-                                    <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                        Allowed Sources
+                                <div class="space-y-3">
+                                    <div class="flex items-center">
+                                        <div class="flex flex-col mr-auto">
+                                            <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                Discover Interfaces (Peer)
+                                            </div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                Listen for discovery announces and optionally auto-connect to available
+                                                interfaces.
+                                            </div>
+                                        </div>
+                                        <Toggle v-model="discoveryConfig.discover_interfaces" class="my-auto mx-2" />
                                     </div>
-                                    <input
-                                        v-model="discoveryConfig.interface_discovery_sources"
-                                        type="text"
-                                        placeholder="Comma separated identity hashes"
-                                        class="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                        Required Stamp Value
+                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                Allowed Sources
+                                            </div>
+                                            <input
+                                                v-model="discoveryConfig.interface_discovery_sources"
+                                                type="text"
+                                                placeholder="Comma separated identity hashes"
+                                                class="input-field"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                Required Stamp Value
+                                            </div>
+                                            <input
+                                                v-model.number="discoveryConfig.required_discovery_value"
+                                                type="number"
+                                                min="0"
+                                                class="input-field"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                Auto-connect Slots
+                                            </div>
+                                            <input
+                                                v-model.number="discoveryConfig.autoconnect_discovered_interfaces"
+                                                type="number"
+                                                min="0"
+                                                class="input-field"
+                                            />
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                0 disables auto-connect.
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                Network Identity Path
+                                            </div>
+                                            <input
+                                                v-model="discoveryConfig.network_identity"
+                                                type="text"
+                                                placeholder="~/.reticulum/storage/identities/..."
+                                                class="input-field"
+                                            />
+                                        </div>
                                     </div>
-                                    <input
-                                        v-model.number="discoveryConfig.required_discovery_value"
-                                        type="number"
-                                        min="0"
-                                        class="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                        Auto-connect Slots
+                                    <div class="flex justify-end">
+                                        <button
+                                            type="button"
+                                            class="primary-chip text-xs"
+                                            :disabled="savingDiscovery"
+                                            @click="saveDiscoveryConfig"
+                                        >
+                                            <MaterialDesignIcon
+                                                :icon-name="savingDiscovery ? 'progress-clock' : 'content-save'"
+                                                class="w-4 h-4"
+                                                :class="{ 'animate-spin-reverse': savingDiscovery }"
+                                            />
+                                            <span class="ml-1">Save Discovery Settings</span>
+                                        </button>
                                     </div>
-                                    <input
-                                        v-model.number="discoveryConfig.autoconnect_discovered_interfaces"
-                                        type="number"
-                                        min="0"
-                                        class="input-field"
-                                    />
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">0 disables auto-connect.</div>
                                 </div>
-                                <div>
-                                    <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                        Network Identity Path
-                                    </div>
-                                    <input
-                                        v-model="discoveryConfig.network_identity"
-                                        type="text"
-                                        placeholder="~/.reticulum/storage/identities/..."
-                                        class="input-field"
-                                    />
-                                </div>
-                            </div>
-                            <div class="flex justify-end">
-                                <button
-                                    type="button"
-                                    class="primary-chip text-xs"
-                                    :disabled="savingDiscovery"
-                                    @click="saveDiscoveryConfig"
-                                >
-                                    <MaterialDesignIcon
-                                        :icon-name="savingDiscovery ? 'progress-clock' : 'content-save'"
-                                        class="w-4 h-4"
-                                        :class="{ 'animate-spin-reverse': savingDiscovery }"
-                                    />
-                                    <span class="ml-1">Save Discovery Settings</span>
-                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div v-if="filteredInterfaces.length !== 0" class="grid gap-4 xl:grid-cols-2">
-                    <Interface
-                        v-for="iface of filteredInterfaces"
-                        :key="iface._name"
-                        :iface="iface"
-                        :is-reticulum-running="isReticulumRunning"
-                        @enable="enableInterface(iface._name)"
-                        @disable="disableInterface(iface._name)"
-                        @edit="editInterface(iface._name)"
-                        @export="exportInterface(iface._name)"
-                        @delete="deleteInterface(iface._name)"
-                    />
                 </div>
             </div>
         </div>
@@ -286,6 +520,10 @@ export default {
                 network_identity: "",
             },
             savingDiscovery: false,
+            discoveredInterfaces: [],
+            discoveredActive: [],
+            discoveryInterval: null,
+            activeTab: "overview",
         };
     },
     computed: {
@@ -357,19 +595,57 @@ export default {
             this.interfacesWithStats.forEach((iface) => types.add(iface.type));
             return Array.from(types).sort();
         },
+        sortedDiscoveredInterfaces() {
+            return [...this.discoveredInterfaces].sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
+        },
+        interfacesWithLocation() {
+            return this.discoveredInterfaces.filter((iface) => iface.latitude != null && iface.longitude != null);
+        },
+        activeInterfaceStats() {
+            return Object.values(this.interfaceStats || {});
+        },
+        tabChipClass() {
+            return (isActive) => (isActive ? "primary-chip text-xs" : "secondary-chip text-xs");
+        },
+        discoveredActiveSet() {
+            const set = new Set();
+            this.discoveredActive.forEach((a) => {
+                const host = a.target_host || a.remote || a.listen_ip;
+                const port = a.target_port || a.listen_port;
+                if (host && port) {
+                    set.add(`${host}:${port}`);
+                }
+            });
+            return set;
+        },
+        discoveredActiveTransportIds() {
+            const set = new Set();
+            this.discoveredActive.forEach((a) => {
+                if (a.transport_id) {
+                    set.add(a.transport_id);
+                }
+            });
+            return set;
+        },
     },
     beforeUnmount() {
         clearInterval(this.reloadInterval);
+        clearInterval(this.discoveryInterval);
     },
     mounted() {
         this.loadInterfaces();
         this.updateInterfaceStats();
         this.loadDiscoveryConfig();
+        this.loadDiscoveredInterfaces();
 
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
             this.updateInterfaceStats();
         }, 1000);
+
+        this.discoveryInterval = setInterval(() => {
+            this.loadDiscoveredInterfaces();
+        }, 5000);
     },
     methods: {
         relaunch() {
@@ -506,6 +782,77 @@ export default {
                 this.trackInterfaceChange();
             }
         },
+        async loadDiscoveredInterfaces() {
+            try {
+                const response = await window.axios.get(`/api/v1/reticulum/discovered-interfaces`);
+                this.discoveredInterfaces = response.data?.interfaces ?? [];
+                this.discoveredActive = response.data?.active ?? [];
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        formatLastHeard(ts) {
+            const seconds = Math.max(0, Math.floor(Date.now() / 1000 - ts));
+            if (seconds < 60) return `${seconds}s ago`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        },
+        isDiscoveredConnected(iface) {
+            const reach = iface.reachable_on;
+            const port = iface.port;
+            if (iface.transport_id && this.discoveredActiveTransportIds.has(iface.transport_id)) {
+                return true;
+            }
+            if (reach && port && this.discoveredActiveSet && this.discoveredActiveSet.has(`${reach}:${port}`)) {
+                return true;
+            }
+            return this.activeInterfaceStats.some((s) => {
+                const hostMatch =
+                    (s.target_host && reach && s.target_host === reach) || (s.remote && reach && s.remote === reach);
+                const portMatch =
+                    (s.target_port && port && Number(s.target_port) === Number(port)) ||
+                    (s.listen_port && port && Number(s.listen_port) === Number(port));
+                return hostMatch && portMatch && (s.connected || s.online);
+            });
+        },
+        goToMap(iface) {
+            if (iface.latitude == null || iface.longitude == null) return;
+            this.$router.push({
+                name: "map",
+                query: {
+                    lat: iface.latitude,
+                    lon: iface.longitude,
+                    label: iface.name,
+                },
+            });
+        },
+        mapAllDiscovered() {
+            this.$router.push({
+                name: "map",
+                query: { view: "discovered" },
+            });
+        },
+        discoveredBytes(iface) {
+            const reach = iface.reachable_on;
+            const port = iface.port;
+            const stats = this.activeInterfaceStats || [];
+            const match = stats.find((s) => {
+                const host = s.target_host || s.remote || s.interface_name;
+                const p = s.target_port || s.listen_port;
+                const hostMatch = host && reach && host === reach;
+                const portMatch = p && port && Number(p) === Number(port);
+                return hostMatch && portMatch;
+            });
+            if (!match) return null;
+            return {
+                tx: this.formatBytes(match.txb || 0),
+                rx: this.formatBytes(match.rxb || 0),
+            };
+        },
+        formatBytes(bytes) {
+            return Utils.formatBytes(bytes || 0);
+        },
         parseBool(value) {
             if (typeof value === "string") {
                 return ["true", "yes", "1", "y", "on"].includes(value.toLowerCase());
@@ -564,6 +911,39 @@ export default {
             } finally {
                 this.savingDiscovery = false;
             }
+        },
+        getDiscoveryIcon(iface) {
+            switch (iface.type) {
+                case "AutoInterface":
+                    return "home-automation";
+                case "RNodeInterface":
+                    return iface.port && iface.port.toString().startsWith("tcp://") ? "lan-connect" : "radio-tower";
+                case "RNodeMultiInterface":
+                    return "access-point-network";
+                case "TCPClientInterface":
+                case "BackboneInterface":
+                    return "lan-connect";
+                case "TCPServerInterface":
+                    return "lan";
+                case "UDPInterface":
+                    return "wan";
+                case "SerialInterface":
+                    return "usb-port";
+                case "KISSInterface":
+                case "AX25KISSInterface":
+                    return "antenna";
+                case "I2PInterface":
+                    return "eye";
+                case "PipeInterface":
+                    return "pipe";
+                default:
+                    return "server-network";
+            }
+        },
+        copyToClipboard(text, label) {
+            if (!text) return;
+            navigator.clipboard.writeText(text);
+            ToastUtils.success(`${label} copied to clipboard`);
         },
         setStatusFilter(value) {
             this.statusFilter = value;

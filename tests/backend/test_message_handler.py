@@ -22,10 +22,14 @@ class TestMessageHandler(unittest.TestCase):
 
     def test_delete_conversation(self):
         self.handler.delete_conversation("local", "dest")
-        self.db.provider.execute.assert_called()
-        args, kwargs = self.db.provider.execute.call_args
-        self.assertIn("DELETE FROM lxmf_messages", args[0])
-        self.assertIn("dest", args[1])
+        self.assertEqual(self.db.provider.execute.call_count, 2)
+        call_args_list = self.db.provider.execute.call_args_list
+        first_call_args, _ = call_args_list[0]
+        second_call_args, _ = call_args_list[1]
+        self.assertIn("DELETE FROM lxmf_messages", first_call_args[0])
+        self.assertIn("dest", first_call_args[1])
+        self.assertIn("DELETE FROM lxmf_conversation_folders", second_call_args[0])
+        self.assertIn("dest", second_call_args[1])
 
 
 if __name__ == "__main__":

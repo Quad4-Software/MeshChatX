@@ -173,6 +173,167 @@
                         </div>
                     </section>
 
+                    <!-- Maintenance & Data -->
+                    <section class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Maintenance</div>
+                                <h2>{{ $t("maintenance.title") }}</h2>
+                                <p>{{ $t("maintenance.description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="grid grid-cols-1 gap-3">
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                    @click="clearMessages"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="message-remove" class="size-4" />
+                                            {{ $t("maintenance.clear_messages") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_messages_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
+                                    @click="clearAnnounces"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="broadcast-off" class="size-4" />
+                                            {{ $t("maintenance.clear_announces") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_announces_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-indigo-200 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/20"
+                                    @click="clearNomadnetFavorites"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="bookmark-remove" class="size-4" />
+                                            {{ $t("maintenance.clear_nomadnet_favs") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_nomadnet_favs_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                                    @click="clearArchives"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
+                                            {{ $t("maintenance.clear_archives") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_archives_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Automatic Backup Limit
+                                </div>
+                                <input
+                                    v-model.number="config.backup_max_count"
+                                    type="number"
+                                    min="1"
+                                    max="50"
+                                    class="input-field"
+                                    @input="onBackupConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    Number of automatic backups to keep.
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 mt-4">
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-blue-500 transition group"
+                                    @click="exportMessages"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="export"
+                                        class="size-6 text-blue-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">{{ $t("maintenance.export_messages") }}</div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-emerald-500 transition group"
+                                    @click="triggerImport"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="import"
+                                        class="size-6 text-emerald-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">{{ $t("maintenance.import_messages") }}</div>
+                                </button>
+                                <input
+                                    ref="importFile"
+                                    type="file"
+                                    accept=".json"
+                                    class="hidden"
+                                    @change="importMessages"
+                                />
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800">
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-purple-500 transition group"
+                                    @click="exportFolders"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="folder-export-outline"
+                                        class="size-6 text-purple-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">Export Folders</div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-indigo-500 transition group"
+                                    @click="triggerFolderImport"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="folder-import-outline"
+                                        class="size-6 text-indigo-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">Import Folders</div>
+                                </button>
+                                <input
+                                    ref="importFolderFile"
+                                    type="file"
+                                    accept=".json"
+                                    class="hidden"
+                                    @change="importFolders"
+                                />
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Desktop / Electron Settings -->
                     <section v-if="ElectronUtils.isElectron()" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
@@ -1313,6 +1474,17 @@ export default {
                 );
             }, 1000);
         },
+        async onBackupConfigChange() {
+            if (this.saveTimeouts.backup) clearTimeout(this.saveTimeouts.backup);
+            this.saveTimeouts.backup = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        backup_max_count: this.config.backup_max_count,
+                    },
+                    "backup_max_count"
+                );
+            }, 1000);
+        },
         async flushArchivedPages() {
             if (
                 !(await DialogUtils.confirm(
@@ -1335,19 +1507,15 @@ export default {
         async onIsTransportEnabledChange() {
             if (this.config.is_transport_enabled) {
                 try {
-                    const response = await window.axios.post("/api/v1/reticulum/enable-transport");
-                    ToastUtils.success(response.data.message);
-                } catch (e) {
+                    await window.axios.post("/api/v1/reticulum/enable-transport");
+                } catch {
                     ToastUtils.error("Failed to enable transport mode!");
-                    console.log(e);
                 }
             } else {
                 try {
-                    const response = await window.axios.post("/api/v1/reticulum/disable-transport");
-                    ToastUtils.success(response.data.message);
-                } catch (e) {
+                    await window.axios.post("/api/v1/reticulum/disable-transport");
+                } catch {
                     ToastUtils.error("Failed to disable transport mode!");
-                    console.log(e);
                 }
             }
         },
@@ -1358,12 +1526,129 @@ export default {
                 this.reloadingRns = true;
                 const response = await window.axios.post("/api/v1/reticulum/reload");
                 ToastUtils.success(response.data.message);
-            } catch (e) {
-                ToastUtils.error(e.response?.data?.error || "Failed to reload Reticulum!");
-                console.error(e);
+            } catch {
+                ToastUtils.error("Failed to reload Reticulum!");
             } finally {
                 this.reloadingRns = false;
             }
+        },
+        async clearMessages() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/messages");
+                ToastUtils.success(this.$t("maintenance.messages_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearAnnounces() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/announces");
+                ToastUtils.success(this.$t("maintenance.announces_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearNomadnetFavorites() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/favourites", {
+                    params: { aspect: "nomadnetwork.node" },
+                });
+                ToastUtils.success(this.$t("maintenance.favourites_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearArchives() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/archives");
+                ToastUtils.success(this.$t("maintenance.archives_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async exportMessages() {
+            try {
+                const response = await window.axios.get("/api/v1/maintenance/messages/export");
+                const messages = response.data.messages;
+                const dataStr = JSON.stringify({ messages }, null, 2);
+                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+
+                const exportFileDefaultName = `meshchat_messages_${new Date().toISOString().slice(0, 10)}.json`;
+
+                const linkElement = document.createElement("a");
+                linkElement.setAttribute("href", dataUri);
+                linkElement.setAttribute("download", exportFileDefaultName);
+                linkElement.click();
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        triggerImport() {
+            this.$refs.importFile.click();
+        },
+        async importMessages(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.messages) throw new Error("Invalid file format");
+
+                    await window.axios.post("/api/v1/maintenance/messages/import", {
+                        messages: data.messages,
+                    });
+                    ToastUtils.success(this.$t("maintenance.import_success", { count: data.messages.length }));
+                } catch {
+                    ToastUtils.error(this.$t("maintenance.import_failed"));
+                }
+            };
+            reader.readAsText(file);
+            // Reset input
+            event.target.value = "";
+        },
+        async exportFolders() {
+            try {
+                const response = await window.axios.get("/api/v1/lxmf/folders/export");
+                const dataStr = JSON.stringify(response.data, null, 2);
+                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+                const exportFileDefaultName = `meshchat_folders_${new Date().toISOString().slice(0, 10)}.json`;
+                const linkElement = document.createElement("a");
+                linkElement.setAttribute("href", dataUri);
+                linkElement.setAttribute("download", exportFileDefaultName);
+                linkElement.click();
+                ToastUtils.success("Folders exported");
+            } catch {
+                ToastUtils.error("Failed to export folders");
+            }
+        },
+        triggerFolderImport() {
+            this.$refs.importFolderFile.click();
+        },
+        async importFolders(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.folders || !data.mappings) throw new Error("Invalid file format");
+
+                    await window.axios.post("/api/v1/lxmf/folders/import", data);
+                    ToastUtils.success("Folders and mappings imported successfully");
+                } catch {
+                    ToastUtils.error("Failed to import folders");
+                }
+            };
+            reader.readAsText(file);
+            // Reset input
+            event.target.value = "";
         },
         formatSecondsAgo: function (seconds) {
             return Utils.formatSecondsAgo(seconds);
@@ -1393,6 +1678,9 @@ export default {
 }
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+}
+.btn-maintenance {
+    @apply w-full px-4 py-3 rounded-2xl border transition flex items-center justify-between;
 }
 .setting-toggle {
     @apply flex items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;

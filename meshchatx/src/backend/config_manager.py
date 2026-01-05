@@ -103,6 +103,7 @@ class ConfigManager:
             "archives_max_storage_gb",
             1,
         )
+        self.backup_max_count = self.IntConfig(self, "backup_max_count", 5)
         self.crawler_enabled = self.BoolConfig(self, "crawler_enabled", False)
         self.crawler_max_retries = self.IntConfig(self, "crawler_max_retries", 3)
         self.crawler_retry_delay_seconds = self.IntConfig(

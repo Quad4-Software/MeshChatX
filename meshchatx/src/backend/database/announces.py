@@ -54,6 +54,15 @@ class AnnounceDAO:
             (destination_hash,),
         )
 
+    def delete_all_announces(self, aspect=None):
+        if aspect:
+            self.provider.execute(
+                "DELETE FROM announces WHERE aspect = ?",
+                (aspect,),
+            )
+        else:
+            self.provider.execute("DELETE FROM announces")
+
     def get_filtered_announces(
         self,
         aspect=None,
@@ -137,3 +146,12 @@ class AnnounceDAO:
             "DELETE FROM favourite_destinations WHERE destination_hash = ?",
             (destination_hash,),
         )
+
+    def delete_all_favourites(self, aspect=None):
+        if aspect:
+            self.provider.execute(
+                "DELETE FROM favourite_destinations WHERE aspect = ?",
+                (aspect,),
+            )
+        else:
+            self.provider.execute("DELETE FROM favourite_destinations")

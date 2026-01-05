@@ -240,7 +240,9 @@ class BotHandler:
                     shutil.rmtree(storage_dir)
                 except Exception as exc:
                     logger.warning(
-                        "Failed to delete storage dir for bot %s: %s", bot_id, exc
+                        "Failed to delete storage dir for bot %s: %s",
+                        bot_id,
+                        exc,
                     )
 
             self._save_state()

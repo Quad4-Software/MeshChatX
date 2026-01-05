@@ -264,7 +264,27 @@
                                     class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
                                 >
                                     <div
-                                        class="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-blue-500 to-purple-500"
+                                        class="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-blue-500 to-emerald-500"
+                                    ></div>
+                                    <div
+                                        class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-600 font-black text-[10px] tracking-tighter shadow-sm"
+                                    >
+                                        LXMFy
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                            LXMF Bot framework
+                                        </div>
+                                        <div class="text-xs font-mono font-bold text-gray-400 mt-1">
+                                            v{{ (appInfo.dependencies && appInfo.dependencies.lxmfy) || "unknown" }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
+                                >
+                                    <div
+                                        class="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-emerald-500 to-purple-500"
                                     ></div>
                                     <div
                                         class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 font-black text-[10px] tracking-tighter shadow-sm"
@@ -295,8 +315,24 @@
                                         <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
                                             Reticulum Network Stack
                                         </div>
-                                        <div class="text-xs font-mono font-bold text-gray-400 mt-1">
-                                            v{{ appInfo.rns_version }}
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <div class="text-xs font-mono font-bold text-gray-400">
+                                                v{{ appInfo.rns_version }}
+                                            </div>
+                                            <div
+                                                :class="[
+                                                    appInfo.is_connected_to_shared_instance
+                                                        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                                                        : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+                                                ]"
+                                                class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border"
+                                            >
+                                                {{
+                                                    appInfo.is_connected_to_shared_instance
+                                                        ? "Shared Instance"
+                                                        : "Main Instance"
+                                                }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -530,34 +566,75 @@
                                     </div>
                                 </div>
 
-                                <div v-if="snapshots.length > 0" class="grid gap-3 sm:grid-cols-2">
-                                    <div
-                                        v-for="snapshot in snapshots"
-                                        :key="snapshot.path"
-                                        class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-purple-500/20 transition-all group"
-                                    >
-                                        <div class="flex flex-col">
-                                            <span
-                                                class="font-black text-gray-900 dark:text-white text-xs truncate max-w-[150px]"
-                                                >{{ snapshot.name }}</span
-                                            >
-                                            <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
-                                                >{{ formatBytes(snapshot.size) }} • {{ snapshot.created_at }}</span
-                                            >
-                                        </div>
-                                        <button
-                                            type="button"
-                                            class="secondary-chip !px-3 !py-1 !text-[10px] opacity-0 group-hover:opacity-100"
-                                            @click="restoreFromSnapshot(snapshot.path)"
+                                <div v-if="snapshots && snapshots.length > 0" class="space-y-4">
+                                    <div class="grid gap-3 sm:grid-cols-2">
+                                        <div
+                                            v-for="snapshot in snapshots"
+                                            :key="snapshot.path"
+                                            class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-purple-500/20 transition-all group"
                                         >
-                                            Restore
-                                        </button>
+                                            <div class="flex flex-col min-w-0">
+                                                <span
+                                                    class="font-black text-gray-900 dark:text-white text-xs truncate"
+                                                    >{{ snapshot.name }}</span
+                                                >
+                                                <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
+                                                    >{{ formatBytes(snapshot.size) }} •
+                                                    {{ Utils.formatTimeAgo(snapshot.created_at) }}</span
+                                                >
+                                            </div>
+                                            <div
+                                                class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    class="secondary-chip !px-3 !py-1 !text-[10px]"
+                                                    @click="restoreFromSnapshot(snapshot.path)"
+                                                >
+                                                    Restore
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="danger-chip !px-3 !py-1 !text-[10px]"
+                                                    @click="deleteSnapshot(snapshot.name)"
+                                                >
+                                                    <v-icon icon="mdi-delete" size="12"></v-icon>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Snapshots Pagination -->
+                                    <div
+                                        v-if="snapshotsTotal > snapshotsLimit"
+                                        class="flex items-center justify-between px-2"
+                                    >
+                                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                            Page {{ Math.floor(snapshotsOffset / snapshotsLimit) + 1 }} of
+                                            {{ Math.ceil(snapshotsTotal / snapshotsLimit) }}
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button
+                                                class="secondary-chip !p-1 disabled:opacity-30"
+                                                :disabled="snapshotsOffset === 0"
+                                                @click="prevSnapshots"
+                                            >
+                                                <v-icon icon="mdi-chevron-left"></v-icon>
+                                            </button>
+                                            <button
+                                                class="secondary-chip !p-1 disabled:opacity-30"
+                                                :disabled="snapshotsOffset + snapshotsLimit >= snapshotsTotal"
+                                                @click="nextSnapshots"
+                                            >
+                                                <v-icon icon="mdi-chevron-right"></v-icon>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Auto Backups -->
-                            <div v-if="autoBackups.length > 0" class="space-y-6">
+                            <div v-if="autoBackups && autoBackups.length > 0" class="space-y-6">
                                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div class="space-y-1">
                                         <div
@@ -572,28 +649,69 @@
                                     </div>
                                 </div>
 
-                                <div class="grid gap-3 sm:grid-cols-2">
-                                    <div
-                                        v-for="backup in autoBackups"
-                                        :key="backup.path"
-                                        class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-blue-500/20 transition-all group"
-                                    >
-                                        <div class="flex flex-col">
-                                            <span
-                                                class="font-black text-gray-900 dark:text-white text-xs truncate max-w-[150px]"
-                                                >{{ backup.name }}</span
-                                            >
-                                            <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
-                                                >{{ formatBytes(backup.size) }} • {{ backup.created_at }}</span
-                                            >
-                                        </div>
-                                        <button
-                                            type="button"
-                                            class="secondary-chip !px-3 !py-1 !text-[10px] opacity-0 group-hover:opacity-100"
-                                            @click="restoreFromSnapshot(backup.path)"
+                                <div v-if="autoBackups && autoBackups.length > 0" class="space-y-4">
+                                    <div class="grid gap-3 sm:grid-cols-2">
+                                        <div
+                                            v-for="backup in autoBackups"
+                                            :key="backup.path"
+                                            class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-blue-500/20 transition-all group"
                                         >
-                                            Restore
-                                        </button>
+                                            <div class="flex flex-col min-w-0">
+                                                <span
+                                                    class="font-black text-gray-900 dark:text-white text-xs truncate"
+                                                    >{{ backup.name }}</span
+                                                >
+                                                <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
+                                                    >{{ formatBytes(backup.size) }} •
+                                                    {{ Utils.formatTimeAgo(backup.created_at) }}</span
+                                                >
+                                            </div>
+                                            <div
+                                                class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    class="secondary-chip !px-3 !py-1 !text-[10px]"
+                                                    @click="restoreFromSnapshot(backup.path)"
+                                                >
+                                                    Restore
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="danger-chip !px-3 !py-1 !text-[10px]"
+                                                    @click="deleteBackup(backup.name)"
+                                                >
+                                                    <v-icon icon="mdi-delete" size="12"></v-icon>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Backups Pagination -->
+                                    <div
+                                        v-if="autoBackupsTotal > autoBackupsLimit"
+                                        class="flex items-center justify-between px-2"
+                                    >
+                                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                            Page {{ Math.floor(autoBackupsOffset / autoBackupsLimit) + 1 }} of
+                                            {{ Math.ceil(autoBackupsTotal / autoBackupsLimit) }}
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button
+                                                class="secondary-chip !p-1 disabled:opacity-30"
+                                                :disabled="autoBackupsOffset === 0"
+                                                @click="prevBackups"
+                                            >
+                                                <v-icon icon="mdi-chevron-left"></v-icon>
+                                            </button>
+                                            <button
+                                                class="secondary-chip !p-1 disabled:opacity-30"
+                                                :disabled="autoBackupsOffset + autoBackupsLimit >= autoBackupsTotal"
+                                                @click="nextBackups"
+                                            >
+                                                <v-icon icon="mdi-chevron-right"></v-icon>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -704,6 +822,7 @@ export default {
     components: {},
     data() {
         return {
+            Utils,
             appInfo: null,
             config: null,
             updateInterval: null,
@@ -725,10 +844,16 @@ export default {
             restoreFile: null,
             snapshotName: "",
             snapshots: [],
+            snapshotsTotal: 0,
+            snapshotsOffset: 0,
+            snapshotsLimit: 3,
             snapshotInProgress: false,
             snapshotMessage: "",
             snapshotError: "",
             autoBackups: [],
+            autoBackupsTotal: 0,
+            autoBackupsOffset: 0,
+            autoBackupsLimit: 3,
             identityBackupMessage: "",
             identityBackupError: "",
             identityBase32: "",
@@ -776,18 +901,74 @@ export default {
     methods: {
         async listSnapshots() {
             try {
-                const response = await window.axios.get("/api/v1/database/snapshots");
-                this.snapshots = response.data;
+                const response = await window.axios.get("/api/v1/database/snapshots", {
+                    params: {
+                        limit: this.snapshotsLimit,
+                        offset: this.snapshotsOffset,
+                    },
+                });
+                this.snapshots = response.data.snapshots;
+                this.snapshotsTotal = response.data.total;
             } catch (e) {
                 console.log("Failed to list snapshots", e);
             }
         },
         async listAutoBackups() {
             try {
-                const response = await window.axios.get("/api/v1/database/backups");
-                this.autoBackups = response.data;
-            } catch (e) {
-                console.log("Failed to list auto-backups", e);
+                const response = await window.axios.get("/api/v1/database/backups", {
+                    params: {
+                        limit: this.autoBackupsLimit,
+                        offset: this.autoBackupsOffset,
+                    },
+                });
+                this.autoBackups = response.data.backups;
+                this.autoBackupsTotal = response.data.total;
+            } catch {
+                console.log("Failed to list auto-backups");
+            }
+        },
+        async deleteSnapshot(filename) {
+            if (!(await DialogUtils.confirm("Are you sure you want to delete this snapshot?"))) return;
+            try {
+                await window.axios.delete(`/api/v1/database/snapshots/${filename}`);
+                ToastUtils.success("Snapshot deleted");
+                await this.listSnapshots();
+            } catch {
+                ToastUtils.error("Failed to delete snapshot");
+            }
+        },
+        async deleteBackup(filename) {
+            if (!(await DialogUtils.confirm("Are you sure you want to delete this backup?"))) return;
+            try {
+                await window.axios.delete(`/api/v1/database/backups/${filename}`);
+                ToastUtils.success("Backup deleted");
+                await this.listAutoBackups();
+            } catch {
+                ToastUtils.error("Failed to delete backup");
+            }
+        },
+        async nextSnapshots() {
+            if (this.snapshotsOffset + this.snapshotsLimit < this.snapshotsTotal) {
+                this.snapshotsOffset += this.snapshotsLimit;
+                await this.listSnapshots();
+            }
+        },
+        async prevSnapshots() {
+            if (this.snapshotsOffset > 0) {
+                this.snapshotsOffset = Math.max(0, this.snapshotsOffset - this.snapshotsLimit);
+                await this.listSnapshots();
+            }
+        },
+        async nextBackups() {
+            if (this.autoBackupsOffset + this.autoBackupsLimit < this.autoBackupsTotal) {
+                this.autoBackupsOffset += this.autoBackupsLimit;
+                await this.listAutoBackups();
+            }
+        },
+        async prevBackups() {
+            if (this.autoBackupsOffset > 0) {
+                this.autoBackupsOffset = Math.max(0, this.autoBackupsOffset - this.autoBackupsLimit);
+                await this.listAutoBackups();
             }
         },
         async createSnapshot() {
@@ -802,9 +983,8 @@ export default {
                 this.snapshotMessage = "Snapshot created successfully";
                 this.snapshotName = "";
                 await this.listSnapshots();
-            } catch (e) {
+            } catch {
                 this.snapshotError = "Failed to create snapshot";
-                console.log(e);
             } finally {
                 this.snapshotInProgress = false;
             }
@@ -825,9 +1005,8 @@ export default {
                         setTimeout(() => ElectronUtils.relaunch(), 2000);
                     }
                 }
-            } catch (e) {
+            } catch {
                 ToastUtils.error("Failed to restore snapshot");
-                console.log(e);
             }
         },
         async getAppInfo() {
@@ -856,9 +1035,8 @@ export default {
                     await window.axios.post("/api/v1/app/integrity/acknowledge");
                     ToastUtils.success("Integrity issues acknowledged");
                     await this.getAppInfo();
-                } catch (e) {
+                } catch {
                     ToastUtils.error("Failed to acknowledge integrity issues");
-                    console.log(e);
                 }
             }
         },
@@ -1075,9 +1253,9 @@ export default {
                 link.remove();
                 window.URL.revokeObjectURL(url);
                 this.identityBackupMessage = "Identity downloaded. Keep it secret.";
-            } catch (e) {
+                ToastUtils.success("Identity key file exported");
+            } catch {
                 this.identityBackupError = "Failed to download identity";
-                console.log(e);
             }
         },
         async copyIdentityBase32() {
@@ -1092,9 +1270,9 @@ export default {
                 }
                 await navigator.clipboard.writeText(this.identityBase32);
                 this.identityBase32Message = "Identity copied. Clear your clipboard after use.";
-            } catch (e) {
+                ToastUtils.success("Identity Base32 key copied to clipboard");
+            } catch {
                 this.identityBase32Error = "Failed to copy identity";
-                console.log(e);
             }
         },
         onIdentityRestoreFileChange(event) {
@@ -1124,9 +1302,8 @@ export default {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 this.identityRestoreMessage = response.data.message || "Identity imported.";
-            } catch (e) {
+            } catch {
                 this.identityRestoreError = "Identity restore failed";
-                console.log(e);
             } finally {
                 this.identityRestoreInProgress = false;
             }
@@ -1147,9 +1324,8 @@ export default {
                     base32: this.identityRestoreBase32.trim(),
                 });
                 this.identityRestoreMessage = response.data.message || "Identity imported.";
-            } catch (e) {
+            } catch {
                 this.identityRestoreError = "Identity restore failed";
-                console.log(e);
             } finally {
                 this.identityRestoreInProgress = false;
             }

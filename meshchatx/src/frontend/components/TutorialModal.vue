@@ -180,7 +180,161 @@
                             </p>
                         </div>
 
-                        <div class="space-y-4">
+                        <div v-if="discoveryOption === null" class="flex flex-col items-center gap-6 py-4">
+                            <div
+                                class="bg-blue-500/10 dark:bg-blue-500/20 p-6 rounded-[2rem] text-center space-y-4 border border-blue-500/20 max-w-md"
+                            >
+                                <v-icon icon="mdi-account-search" color="blue" size="48"></v-icon>
+                                <div class="text-lg font-bold text-gray-900 dark:text-white">
+                                    {{
+                                        $t("tutorial.discovery_question") ||
+                                        "Do you want to use community interface discovering and auto-connect?"
+                                    }}
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-zinc-400">
+                                    {{
+                                        $t("tutorial.discovery_desc") ||
+                                        "This allows MeshChatX to automatically find and connect to public community nodes near you or on the internet."
+                                    }}
+                                </p>
+                                <div class="flex gap-3 justify-center pt-2">
+                                    <button
+                                        type="button"
+                                        class="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg transition-all"
+                                        :disabled="savingDiscovery"
+                                        @click="useDiscovery"
+                                    >
+                                        <v-progress-circular
+                                            v-if="savingDiscovery"
+                                            indeterminate
+                                            size="16"
+                                            width="2"
+                                            class="mr-2"
+                                        ></v-progress-circular>
+                                        {{ $t("tutorial.yes") || "Yes, use discovery" }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="px-6 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold shadow-sm transition-all"
+                                        @click="discoveryOption = 'no'"
+                                    >
+                                        {{ $t("tutorial.no") || "No, manual setup" }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="space-y-4">
+                            <!-- Discovered Interfaces (if any) -->
+                            <div
+                                v-if="sortedDiscoveredInterfaces.length > 0"
+                                class="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl p-4 border border-emerald-500/20"
+                            >
+                                <div class="flex items-center gap-2 mb-3 px-1 text-sm">
+                                    <v-icon icon="mdi-radar" color="emerald"></v-icon>
+                                    <span class="font-bold text-gray-900 dark:text-white">Discovered Interfaces</span>
+                                </div>
+                                <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div
+                                        v-for="iface in sortedDiscoveredInterfaces"
+                                        :key="iface.discovery_hash || iface.name"
+                                        class="interface-card group !p-3 transition-all duration-300"
+                                    >
+                                        <div class="flex gap-3 items-start relative">
+                                            <div class="interface-card__icon !w-10 !h-10 !rounded-xl shrink-0">
+                                                <MaterialDesignIcon
+                                                    :icon-name="getDiscoveryIcon(iface)"
+                                                    class="w-5 h-5"
+                                                />
+                                            </div>
+
+                                            <div class="flex-1 min-w-0 space-y-1">
+                                                <div class="flex items-center gap-2 flex-nowrap min-w-0">
+                                                    <div
+                                                        class="text-sm font-bold text-gray-900 dark:text-white truncate min-w-0"
+                                                    >
+                                                        {{ iface.name }}
+                                                    </div>
+                                                    <span class="type-chip !text-[9px] !px-1.5 shrink-0">{{
+                                                        iface.type
+                                                    }}</span>
+                                                </div>
+
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span
+                                                        v-if="iface.value"
+                                                        class="text-[9px] font-bold text-blue-600 dark:text-blue-400 shrink-0"
+                                                    >
+                                                        Stamps: {{ iface.value }}
+                                                    </span>
+                                                </div>
+
+                                                <div class="flex flex-wrap gap-1.5 text-[10px] text-gray-500">
+                                                    <span>Hops: {{ iface.hops }}</span>
+                                                    <span class="capitalize shrink-0">{{ iface.status }}</span>
+                                                    <span v-if="iface.last_heard" class="shrink-0">
+                                                        {{ formatLastHeard(iface.last_heard) }}
+                                                    </span>
+                                                </div>
+
+                                                <div
+                                                    class="flex flex-col gap-0.5 pt-1 text-[9px] text-gray-400 dark:text-zinc-500 min-w-0"
+                                                >
+                                                    <div
+                                                        v-if="iface.reachable_on"
+                                                        class="flex items-center gap-1.5 hover:text-blue-500 cursor-pointer min-w-0"
+                                                        @click="
+                                                            copyToClipboard(
+                                                                `${iface.reachable_on}:${iface.port}`,
+                                                                'Address'
+                                                            )
+                                                        "
+                                                    >
+                                                        <MaterialDesignIcon
+                                                            icon-name="link-variant"
+                                                            class="w-3 h-3 shrink-0"
+                                                        />
+                                                        <span class="truncate"
+                                                            >Address: {{ iface.reachable_on }}:{{ iface.port }}</span
+                                                        >
+                                                    </div>
+                                                    <div
+                                                        v-if="iface.transport_id"
+                                                        class="flex items-center gap-1.5 hover:text-blue-500 cursor-pointer min-w-0"
+                                                        @click="copyToClipboard(iface.transport_id, 'Transport ID')"
+                                                    >
+                                                        <MaterialDesignIcon
+                                                            icon-name="identifier"
+                                                            class="w-3 h-3 shrink-0"
+                                                        />
+                                                        <span class="truncate font-mono"
+                                                            >Transport ID: {{ iface.transport_id }}</span
+                                                        >
+                                                    </div>
+                                                    <div
+                                                        v-if="iface.network_id"
+                                                        class="flex items-center gap-1.5 hover:text-blue-500 cursor-pointer min-w-0"
+                                                        @click="copyToClipboard(iface.network_id, 'Network ID')"
+                                                    >
+                                                        <MaterialDesignIcon icon-name="lan" class="w-3 h-3 shrink-0" />
+                                                        <span class="truncate font-mono"
+                                                            >Network ID: {{ iface.network_id }}</span
+                                                        >
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                <span
+                                                    class="text-[8px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                                                    >Heard</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Community Interfaces -->
                             <div
                                 class="bg-gray-50 dark:bg-zinc-900 rounded-3xl p-3 border border-gray-100 dark:border-zinc-800"
@@ -232,7 +386,10 @@
                             </div>
                         </div>
 
-                        <div class="flex flex-col items-center gap-3 text-sm text-gray-900 dark:text-white">
+                        <div
+                            v-if="discoveryOption !== null"
+                            class="flex flex-col items-center gap-3 text-sm text-gray-900 dark:text-white"
+                        >
                             <p class="max-w-sm text-center">
                                 {{ $t("tutorial.custom_interfaces_desc") }}
                             </p>
@@ -479,7 +636,7 @@
         </div>
 
         <div class="flex-1 overflow-y-auto px-6 md:px-12 py-10">
-            <div class="max-w-4xl mx-auto h-full flex flex-col justify-between">
+            <div class="w-full h-full flex flex-col justify-between">
                 <transition name="fade-slide" mode="out-in">
                     <!-- Step 1: Welcome -->
                     <div
@@ -626,69 +783,284 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Community Interfaces -->
+                        <div v-if="discoveryOption === null" class="flex flex-col items-center gap-8 py-12">
                             <div
-                                class="bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-5 border border-gray-100 dark:border-zinc-800"
+                                class="bg-blue-500/10 dark:bg-blue-500/20 p-12 rounded-[3rem] text-center space-y-6 border border-blue-500/20 max-w-2xl shadow-2xl"
                             >
-                                <div class="flex items-center gap-2 mb-5">
-                                    <v-icon icon="mdi-web" color="blue" size="26"></v-icon>
-                                    <span class="text-lg font-bold text-gray-900 dark:text-white">{{
-                                        $t("tutorial.suggested_relays")
-                                    }}</span>
+                                <v-icon icon="mdi-account-search" color="blue" size="80"></v-icon>
+                                <div class="text-3xl font-black text-gray-900 dark:text-white">
+                                    {{
+                                        $t("tutorial.discovery_question") ||
+                                        "Do you want to use community interface discovering and auto-connect?"
+                                    }}
                                 </div>
-                                <div class="space-y-3 max-h-[320px] overflow-y-auto pr-3 custom-scrollbar">
-                                    <div
-                                        v-for="iface in communityInterfaces"
-                                        :key="iface.name"
-                                        class="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-zinc-700 hover:border-blue-400 transition-all cursor-pointer"
-                                        @click="selectCommunityInterface(iface)"
+                                <p class="text-xl text-gray-600 dark:text-zinc-400">
+                                    {{
+                                        $t("tutorial.discovery_desc") ||
+                                        "This allows MeshChatX to automatically find and connect to public community nodes near you or on the internet."
+                                    }}
+                                </p>
+                                <div class="flex gap-6 justify-center pt-4">
+                                    <button
+                                        type="button"
+                                        class="px-10 py-4 text-xl rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-xl transition-all transform hover:scale-105"
+                                        :disabled="savingDiscovery"
+                                        @click="useDiscovery"
                                     >
-                                        <div class="flex flex-col">
-                                            <span class="font-bold text-gray-900 dark:text-white text-base">
-                                                {{ iface.name }}
-                                            </span>
-                                            <span class="text-xs text-gray-500 font-mono"
-                                                >{{ iface.target_host }}:{{ iface.target_port }}</span
-                                            >
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span
-                                                v-if="iface.online"
-                                                class="flex items-center gap-1.5 text-[9px] font-bold text-green-500 uppercase tracking-[0.2em]"
-                                            >
-                                                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                                {{ $t("tutorial.online") }}
-                                            </span>
+                                        <v-progress-circular
+                                            v-if="savingDiscovery"
+                                            indeterminate
+                                            size="24"
+                                            width="3"
+                                            class="mr-3"
+                                        ></v-progress-circular>
+                                        {{ $t("tutorial.yes") || "Yes, use discovery" }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="px-10 py-4 text-xl rounded-2xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-black shadow-lg transition-all transform hover:scale-105"
+                                        @click="discoveryOption = 'no'"
+                                    >
+                                        {{ $t("tutorial.no") || "No, manual setup" }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <!-- Left/Middle Columns: Discovered & Community -->
+                            <div class="lg:col-span-1 xl:col-span-2 space-y-6">
+                                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    <!-- Discovered Interfaces -->
+                                    <div
+                                        v-if="sortedDiscoveredInterfaces.length > 0"
+                                        class="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-[1.5rem] p-5 border border-emerald-500/20 h-fit"
+                                    >
+                                        <div class="flex items-center justify-between mb-5">
+                                            <div class="flex items-center gap-2">
+                                                <v-icon icon="mdi-radar" color="emerald" size="26"></v-icon>
+                                                <span class="text-lg font-bold text-gray-900 dark:text-white"
+                                                    >Discovered</span
+                                                >
+                                            </div>
                                             <button
+                                                v-if="interfacesWithLocation.length > 0"
                                                 type="button"
-                                                class="px-4 py-1 text-[11px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all"
-                                                @click.stop="selectCommunityInterface(iface)"
+                                                class="px-2 py-1 text-[9px] rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                                                @click="mapAllDiscovered"
                                             >
-                                                {{ $t("tutorial.use") }}
+                                                Map All ({{ interfacesWithLocation.length }})
                                             </button>
                                         </div>
+                                        <div class="space-y-3 max-h-[600px] overflow-y-auto pr-3 custom-scrollbar">
+                                            <div
+                                                v-for="iface in sortedDiscoveredInterfaces"
+                                                :key="iface.discovery_hash || iface.name"
+                                                class="interface-card group !p-4 transition-all duration-300"
+                                            >
+                                                <div class="flex gap-4 items-start relative">
+                                                    <div class="interface-card__icon !w-12 !h-12 !rounded-2xl shrink-0">
+                                                        <MaterialDesignIcon
+                                                            :icon-name="getDiscoveryIcon(iface)"
+                                                            class="w-6 h-6"
+                                                        />
+                                                    </div>
+
+                                                    <div class="flex-1 min-w-0 space-y-2">
+                                                        <div class="flex items-center gap-2 flex-nowrap min-w-0">
+                                                            <div
+                                                                class="text-lg font-bold text-gray-900 dark:text-white truncate min-w-0"
+                                                            >
+                                                                {{ iface.name }}
+                                                            </div>
+                                                            <span class="type-chip shrink-0">{{ iface.type }}</span>
+                                                        </div>
+
+                                                        <div class="flex items-center gap-2 flex-wrap">
+                                                            <span
+                                                                v-if="iface.value"
+                                                                class="text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0"
+                                                            >
+                                                                Stamps: {{ iface.value }}
+                                                            </span>
+                                                        </div>
+
+                                                        <div class="flex flex-wrap gap-2 text-xs text-gray-500">
+                                                            <span class="stat-chip !px-2 !py-0.5"
+                                                                >Hops: {{ iface.hops }}</span
+                                                            >
+                                                            <span class="stat-chip !px-2 !py-0.5 capitalize shrink-0">{{
+                                                                iface.status
+                                                            }}</span>
+                                                            <span
+                                                                v-if="iface.last_heard"
+                                                                class="stat-chip !px-2 !py-0.5 shrink-0"
+                                                            >
+                                                                {{ formatLastHeard(iface.last_heard) }}
+                                                            </span>
+                                                        </div>
+
+                                                        <div
+                                                            class="grid gap-1.5 pt-1 text-[11px] text-gray-500 dark:text-zinc-400 min-w-0"
+                                                        >
+                                                            <div
+                                                                v-if="iface.reachable_on"
+                                                                class="flex items-center gap-2 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                                @click="
+                                                                    copyToClipboard(
+                                                                        `${iface.reachable_on}:${iface.port}`,
+                                                                        'Address'
+                                                                    )
+                                                                "
+                                                            >
+                                                                <MaterialDesignIcon
+                                                                    icon-name="link-variant"
+                                                                    class="w-4 h-4 shrink-0"
+                                                                />
+                                                                <span class="truncate"
+                                                                    >Address: {{ iface.reachable_on }}:{{
+                                                                        iface.port
+                                                                    }}</span
+                                                                >
+                                                            </div>
+
+                                                            <div
+                                                                v-if="iface.transport_id"
+                                                                class="flex items-center gap-2 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                                @click="
+                                                                    copyToClipboard(iface.transport_id, 'Transport ID')
+                                                                "
+                                                            >
+                                                                <MaterialDesignIcon
+                                                                    icon-name="identifier"
+                                                                    class="w-4 h-4 shrink-0"
+                                                                />
+                                                                <span class="truncate font-mono"
+                                                                    >Transport ID: {{ iface.transport_id }}</span
+                                                                >
+                                                            </div>
+
+                                                            <div
+                                                                v-if="iface.network_id"
+                                                                class="flex items-center gap-2 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                                @click="copyToClipboard(iface.network_id, 'Network ID')"
+                                                            >
+                                                                <MaterialDesignIcon
+                                                                    icon-name="lan"
+                                                                    class="w-4 h-4 shrink-0"
+                                                                />
+                                                                <span class="truncate font-mono"
+                                                                    >Network ID: {{ iface.network_id }}</span
+                                                                >
+                                                            </div>
+
+                                                            <div
+                                                                v-if="iface.latitude != null && iface.longitude != null"
+                                                                class="flex items-center gap-2 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
+                                                                @click="
+                                                                    copyToClipboard(
+                                                                        `${iface.latitude}, ${iface.longitude}`,
+                                                                        'Location'
+                                                                    )
+                                                                "
+                                                            >
+                                                                <MaterialDesignIcon
+                                                                    icon-name="map-marker"
+                                                                    class="w-4 h-4 shrink-0"
+                                                                />
+                                                                <span class="truncate"
+                                                                    >Loc: {{ iface.latitude }},
+                                                                    {{ iface.longitude }}</span
+                                                                >
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-2 shrink-0">
+                                                        <span
+                                                            class="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider"
+                                                            >Heard</span
+                                                        >
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div v-if="loadingInterfaces" class="flex justify-center py-4">
-                                        <v-progress-circular indeterminate color="blue" size="32"></v-progress-circular>
+
+                                    <!-- Community Interfaces -->
+                                    <div
+                                        class="bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-5 border border-gray-100 dark:border-zinc-800 h-fit"
+                                    >
+                                        <div class="flex items-center gap-2 mb-5">
+                                            <v-icon icon="mdi-web" color="blue" size="26"></v-icon>
+                                            <span class="text-lg font-bold text-gray-900 dark:text-white">{{
+                                                $t("tutorial.suggested_relays")
+                                            }}</span>
+                                        </div>
+                                        <div class="space-y-3 max-h-[600px] overflow-y-auto pr-3 custom-scrollbar">
+                                            <div
+                                                v-for="iface in communityInterfaces"
+                                                :key="iface.name"
+                                                class="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-zinc-700 hover:border-blue-400 transition-all cursor-pointer"
+                                                @click="selectCommunityInterface(iface)"
+                                            >
+                                                <div class="flex flex-col min-w-0">
+                                                    <span
+                                                        class="font-bold text-gray-900 dark:text-white text-base truncate"
+                                                    >
+                                                        {{ iface.name }}
+                                                    </span>
+                                                    <span class="text-xs text-gray-500 font-mono truncate"
+                                                        >{{ iface.target_host }}:{{ iface.target_port }}</span
+                                                    >
+                                                </div>
+                                                <div class="flex items-center gap-2 shrink-0">
+                                                    <span
+                                                        v-if="iface.online"
+                                                        class="flex items-center gap-1.5 text-[9px] font-bold text-green-500 uppercase tracking-[0.2em]"
+                                                    >
+                                                        <span
+                                                            class="w-2 h-2 rounded-full bg-green-500 animate-pulse"
+                                                        ></span>
+                                                        {{ $t("tutorial.online") }}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        class="px-4 py-1 text-[11px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all"
+                                                        @click.stop="selectCommunityInterface(iface)"
+                                                    >
+                                                        {{ $t("tutorial.use") }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div v-if="loadingInterfaces" class="flex justify-center py-4">
+                                                <v-progress-circular
+                                                    indeterminate
+                                                    color="blue"
+                                                    size="32"
+                                                ></v-progress-circular>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Right Column: Manual Setup -->
                             <div
-                                class="flex flex-col justify-center gap-4 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-5 border border-gray-100 dark:border-zinc-800"
+                                class="flex flex-col justify-center gap-4 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-8 border border-gray-100 dark:border-zinc-800 h-fit my-auto"
                             >
-                                <div class="text-center">
-                                    <p class="text-base font-bold text-gray-900 dark:text-white">
+                                <div class="text-center space-y-4">
+                                    <v-icon icon="mdi-plus-circle-outline" size="48" color="blue"></v-icon>
+                                    <p class="text-xl font-bold text-gray-900 dark:text-white">
                                         {{ $t("tutorial.custom_interfaces") }}
                                     </p>
-                                    <p class="mt-2">
+                                    <p class="text-gray-600 dark:text-zinc-400">
                                         {{ $t("tutorial.custom_interfaces_desc_page") }}
                                     </p>
                                 </div>
                                 <button
                                     type="button"
-                                    class="px-4 py-2 text-[11px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                    class="mt-4 px-6 py-3 text-sm rounded-xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
                                     @click="gotoAddInterface"
                                 >
                                     {{ $t("tutorial.open_interfaces") }}
@@ -925,6 +1297,12 @@ export default {
             communityInterfaces: [],
             loadingInterfaces: false,
             interfaceAddedViaTutorial: false,
+            discoveryOption: null,
+            discoveredInterfaces: [],
+            discoveredActive: [],
+            loadingDiscovered: false,
+            savingDiscovery: false,
+            discoveryInterval: null,
         };
     },
     computed: {
@@ -937,10 +1315,25 @@ export default {
         config() {
             return GlobalState.config;
         },
+        sortedDiscoveredInterfaces() {
+            return [...this.discoveredInterfaces].sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
+        },
+        interfacesWithLocation() {
+            return this.discoveredInterfaces.filter((iface) => iface.latitude != null && iface.longitude != null);
+        },
+    },
+    beforeUnmount() {
+        if (this.discoveryInterval) {
+            clearInterval(this.discoveryInterval);
+        }
     },
     mounted() {
         if (this.isPage) {
             this.loadCommunityInterfaces();
+            this.loadDiscoveredInterfaces();
+            this.discoveryInterval = setInterval(() => {
+                this.loadDiscoveredInterfaces();
+            }, 5000);
         }
     },
     methods: {
@@ -970,7 +1363,16 @@ export default {
             this.visible = true;
             this.currentStep = 1;
             this.interfaceAddedViaTutorial = false;
+            this.discoveryOption = null;
             await this.loadCommunityInterfaces();
+            await this.loadDiscoveredInterfaces();
+
+            if (this.discoveryInterval) {
+                clearInterval(this.discoveryInterval);
+            }
+            this.discoveryInterval = setInterval(() => {
+                this.loadDiscoveredInterfaces();
+            }, 5000);
         },
         async loadCommunityInterfaces() {
             this.loadingInterfaces = true;
@@ -982,6 +1384,85 @@ export default {
             } finally {
                 this.loadingInterfaces = false;
             }
+        },
+        async loadDiscoveredInterfaces() {
+            this.loadingDiscovered = true;
+            try {
+                const response = await window.axios.get(`/api/v1/reticulum/discovered-interfaces`);
+                this.discoveredInterfaces = response.data?.interfaces ?? [];
+                this.discoveredActive = response.data?.active ?? [];
+            } catch (e) {
+                console.error("Failed to load discovered interfaces:", e);
+            } finally {
+                this.loadingDiscovered = false;
+            }
+        },
+        async useDiscovery() {
+            this.savingDiscovery = true;
+            try {
+                const payload = {
+                    discover_interfaces: true,
+                    autoconnect_discovered_interfaces: 3, // default to 3 slots
+                };
+                await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
+                ToastUtils.success("Community discovery enabled");
+                this.discoveryOption = "yes";
+                this.nextStep();
+            } catch (e) {
+                console.error("Failed to enable discovery:", e);
+                ToastUtils.error("Failed to enable discovery");
+            } finally {
+                this.savingDiscovery = false;
+            }
+        },
+        getDiscoveryIcon(iface) {
+            switch (iface.type) {
+                case "AutoInterface":
+                    return "home-automation";
+                case "RNodeInterface":
+                    return iface.port && iface.port.toString().startsWith("tcp://") ? "lan-connect" : "radio-tower";
+                case "RNodeMultiInterface":
+                    return "access-point-network";
+                case "TCPClientInterface":
+                case "BackboneInterface":
+                    return "lan-connect";
+                case "TCPServerInterface":
+                    return "lan";
+                case "UDPInterface":
+                    return "wan";
+                case "SerialInterface":
+                    return "usb-port";
+                case "KISSInterface":
+                case "AX25KISSInterface":
+                    return "antenna";
+                case "I2PInterface":
+                    return "eye";
+                case "PipeInterface":
+                    return "pipe";
+                default:
+                    return "server-network";
+            }
+        },
+        formatLastHeard(ts) {
+            const seconds = Math.max(0, Math.floor(Date.now() / 1000 - ts));
+            if (seconds < 60) return `${seconds}s ago`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        },
+        copyToClipboard(text, label) {
+            if (!text) return;
+            navigator.clipboard.writeText(text);
+            ToastUtils.success(`${label} copied to clipboard`);
+        },
+        mapAllDiscovered() {
+            if (!this.isPage) {
+                this.visible = false;
+            }
+            this.$router.push({
+                name: "map",
+                query: { view: "discovered" },
+            });
         },
         async selectCommunityInterface(iface) {
             try {

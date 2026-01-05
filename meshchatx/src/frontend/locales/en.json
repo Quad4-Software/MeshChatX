@@ -212,7 +212,31 @@
         "confirm": "Confirm",
         "delete_confirm": "Are you sure you want to delete this? This cannot be undone.",
         "search": "Search tools...",
-        "no_results": "No tools found"
+        "no_results": "No tools found",
+        "error": "Error"
+    },
+    "maintenance": {
+        "title": "Maintenance & Data",
+        "description": "Manage your local data, clear caches, and backup conversations.",
+        "clear_messages": "Clear All Messages",
+        "clear_messages_desc": "Permanently delete all sent and received messages.",
+        "clear_announces": "Clear All Announces",
+        "clear_announces_desc": "Remove all discovered peers and nodes from your cache.",
+        "clear_nomadnet_favs": "Clear NomadNetwork Favorites",
+        "clear_nomadnet_favs_desc": "Remove all saved NomadNetwork nodes from your favorites.",
+        "clear_archives": "Clear Page Archives",
+        "clear_archives_desc": "Delete all cached NomadNetwork pages.",
+        "export_messages": "Export Messages",
+        "export_messages_desc": "Download all conversations as a JSON file.",
+        "import_messages": "Import Messages",
+        "import_messages_desc": "Restore conversations from a JSON file.",
+        "clear_confirm": "Are you sure? This action cannot be undone.",
+        "messages_cleared": "Messages cleared successfully",
+        "announces_cleared": "Announces cleared successfully",
+        "favourites_cleared": "Favorites cleared successfully",
+        "archives_cleared": "Archives cleared successfully",
+        "import_success": "Successfully imported {count} messages",
+        "import_failed": "Failed to import messages"
     },
     "identities": {
         "title": "Identities",
@@ -695,6 +719,18 @@
             "title": "Paper Message",
             "description": "Generate and read LXMF signed paper messages via QR codes."
         },
+        "rns_page_node": {
+            "title": "RNS Page Node",
+            "description": "Host Nomadnet micron pages and share files with ease."
+        },
+        "rns_tunnel": {
+            "title": "RNS Tunnel",
+            "description": "Tunnel regular IP traffic over Reticulum network links."
+        },
+        "rns_filesync": {
+            "title": "RNS Filesync",
+            "description": "Efficiently share and sync files with other mesh peers."
+        },
         "bots": {
             "title": "LXMFy Bots",
             "description": "Manage automated bots for echo, notes, and reminders using LXMFy."
@@ -1051,7 +1087,11 @@
         "restart_start": "Start MeshChatX",
         "skip_setup": "Skip Setup",
         "continue": "Continue",
-        "skip_confirm": "Are you sure you want to skip the setup? You'll need to manually add interfaces later."
+        "skip_confirm": "Are you sure you want to skip the setup? You'll need to manually add interfaces later.",
+        "discovery_question": "Do you want to use community interface discovering and auto-connect?",
+        "discovery_desc": "This allows MeshChatX to automatically find and connect to public community nodes near you or on the internet.",
+        "yes": "Yes, use discovery",
+        "no": "No, manual setup"
     },
     "command_palette": {
         "search_placeholder": "Search commands, navigate, or find peers...",

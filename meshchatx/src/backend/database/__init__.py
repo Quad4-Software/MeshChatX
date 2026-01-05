@@ -211,14 +211,41 @@ class Database:
             "size": os.path.getsize(backup_path),
         }
 
-    def backup_database(self, storage_path, backup_path: str | None = None):
+    def backup_database(
+        self,
+        storage_path,
+        backup_path: str | None = None,
+        max_count: int | None = None,
+    ):
         default_dir = os.path.join(storage_path, "database-backups")
         os.makedirs(default_dir, exist_ok=True)
         if backup_path is None:
             timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
             backup_path = os.path.join(default_dir, f"backup-{timestamp}.zip")
 
-        return self._backup_to_zip(backup_path)
+        result = self._backup_to_zip(backup_path)
+
+        # Cleanup old backups if a limit is set
+        if max_count is not None and max_count > 0:
+            try:
+                backups = []
+                for file in os.listdir(default_dir):
+                    if file.endswith(".zip"):
+                        full_path = os.path.join(default_dir, file)
+                        stats = os.stat(full_path)
+                        backups.append((full_path, stats.st_mtime))
+
+                if len(backups) > max_count:
+                    # Sort by modification time (oldest first)
+                    backups.sort(key=lambda x: x[1])
+                    to_delete = backups[: len(backups) - max_count]
+                    for path, _ in to_delete:
+                        if os.path.exists(path):
+                            os.remove(path)
+            except Exception as e:
+                print(f"Failed to cleanup old backups: {e}")
+
+        return result
 
     def create_snapshot(self, storage_path, name: str):
         """Creates a named snapshot of the database."""
@@ -257,6 +284,29 @@ class Database:
                     },
                 )
         return sorted(snapshots, key=lambda x: x["created_at"], reverse=True)
+
+    def delete_snapshot_or_backup(
+        self,
+        storage_path,
+        filename: str,
+        is_backup: bool = False,
+    ):
+        """Deletes a database snapshot or auto-backup."""
+        base_dir = "database-backups" if is_backup else "snapshots"
+        file_path = os.path.join(storage_path, base_dir, filename)
+
+        # Basic security check to ensure we stay within the intended directory
+        abs_path = os.path.abspath(file_path)
+        abs_base = os.path.abspath(os.path.join(storage_path, base_dir))
+
+        if not abs_path.startswith(abs_base):
+            msg = "Invalid path"
+            raise ValueError(msg)
+
+        if os.path.exists(abs_path):
+            os.remove(abs_path)
+            return True
+        return False
 
     def restore_database(self, backup_path: str):
         if not os.path.exists(backup_path):

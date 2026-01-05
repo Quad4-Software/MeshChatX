@@ -106,7 +106,7 @@ describe("UI Performance and Memory Tests", () => {
             `Rendered ${numConvs} conversations in ${renderTime.toFixed(2)}ms, Memory growth: ${memGrowth.toFixed(2)}MB`
         );
 
-        expect(wrapper.findAll(".flex.cursor-pointer").length).toBe(numConvs);
+        expect(wrapper.findAll(".conversation-item").length).toBe(numConvs);
         expect(renderTime).toBeLessThan(5000);
         expect(memGrowth).toBeLessThan(200); // Adjusted for JSDOM/Node.js overhead with 2000 items
     });

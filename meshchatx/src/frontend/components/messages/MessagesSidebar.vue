@@ -33,6 +33,145 @@
             v-if="tab === 'conversations'"
             class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-700 overflow-hidden min-h-0"
         >
+            <!-- Folders Section -->
+            <div class="border-b border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/50">
+                <div
+                    class="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    @click="foldersExpanded = !foldersExpanded"
+                >
+                    <div class="flex items-center gap-2">
+                        <MaterialDesignIcon
+                            :icon-name="foldersExpanded ? 'chevron-down' : 'chevron-right'"
+                            class="size-4 text-gray-400"
+                        />
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-500">
+                            Folders
+                        </span>
+                    </div>
+                    <div class="flex gap-1" @click.stop>
+                        <button
+                            type="button"
+                            class="p-1 text-gray-400 hover:text-blue-500 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                            title="Create Folder"
+                            @click="createFolder"
+                        >
+                            <MaterialDesignIcon icon-name="folder-plus-outline" class="size-4" />
+                        </button>
+                        <div class="relative">
+                            <button
+                                type="button"
+                                class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                @click="folderMenu.show = !folderMenu.show"
+                            >
+                                <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
+                            </button>
+                            <div
+                                v-if="folderMenu.show"
+                                v-click-outside="{ handler: () => (folderMenu.show = false), capture: true }"
+                                class="absolute right-0 top-full mt-1 z-[60] min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                            >
+                                <button
+                                    type="button"
+                                    class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                    @click="
+                                        $emit('export-folders');
+                                        folderMenu.show = false;
+                                    "
+                                >
+                                    <MaterialDesignIcon icon-name="export" class="size-4" />
+                                    <span>Export Folders</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                    @click="
+                                        $emit('import-folders');
+                                        folderMenu.show = false;
+                                    "
+                                >
+                                    <MaterialDesignIcon icon-name="import" class="size-4" />
+                                    <span>Import Folders</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="foldersExpanded" class="flex flex-col max-h-48 overflow-y-auto pb-1">
+                    <div
+                        class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
+                        :class="[
+                            selectedFolderId === null
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
+                            dragOverFolderId === 'all'
+                                ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
+                                : '',
+                        ]"
+                        @click="$emit('folder-click', null)"
+                        @dragover="onDragOver($event, 'all')"
+                        @dragleave="onDragLeave"
+                        @drop="onDropOnFolder($event, null)"
+                    >
+                        <MaterialDesignIcon icon-name="inbox-outline" class="size-4" />
+                        <span class="truncate flex-1">All Messages</span>
+                    </div>
+                    <div
+                        class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
+                        :class="[
+                            selectedFolderId === 0
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
+                            dragOverFolderId === 0
+                                ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
+                                : '',
+                        ]"
+                        @click="$emit('folder-click', 0)"
+                        @dragover="onDragOver($event, 0)"
+                        @dragleave="onDragLeave"
+                        @drop="onDropOnFolder($event, 0)"
+                    >
+                        <MaterialDesignIcon icon-name="folder-outline" class="size-4" />
+                        <span class="truncate flex-1">Uncategorized</span>
+                    </div>
+                    <div
+                        v-for="folder in folders"
+                        :key="folder.id"
+                        class="group px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
+                        :class="[
+                            selectedFolderId === folder.id
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
+                            dragOverFolderId === folder.id
+                                ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
+                                : '',
+                        ]"
+                        @click="$emit('folder-click', folder.id)"
+                        @dragover="onDragOver($event, folder.id)"
+                        @dragleave="onDragLeave"
+                        @drop="onDropOnFolder($event, folder.id)"
+                    >
+                        <MaterialDesignIcon icon-name="folder" class="size-4" />
+                        <span class="truncate flex-1">{{ folder.name }}</span>
+                        <div class="hidden group-hover:flex items-center gap-0.5">
+                            <button
+                                type="button"
+                                class="p-1 hover:text-blue-500 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                @click.stop="renameFolder(folder)"
+                            >
+                                <MaterialDesignIcon icon-name="pencil-outline" class="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                class="p-1 hover:text-red-500 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                @click.stop="deleteFolder(folder)"
+                            >
+                                <MaterialDesignIcon icon-name="trash-can-outline" class="size-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- search + filters -->
             <div
                 v-if="conversations.length > 0 || isFilterActive"
@@ -49,11 +188,83 @@
                     <button
                         type="button"
                         class="p-2 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                        title="Selection Mode"
+                        :class="{ 'text-blue-500 bg-blue-50 dark:bg-blue-900/20': selectionMode }"
+                        @click="toggleSelectionMode"
+                    >
+                        <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
+                    </button>
+                    <button
+                        type="button"
+                        class="p-2 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
                         title="Ingest Paper Message"
                         @click="openIngestPaperMessageModal"
                     >
                         <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
                     </button>
+                </div>
+                <div
+                    v-if="selectionMode"
+                    class="flex items-center justify-between px-2 py-1 bg-blue-50 dark:bg-blue-900/10 rounded-lg"
+                >
+                    <div class="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            :checked="allSelected"
+                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            @change="toggleSelectAll"
+                        />
+                        <span class="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                            {{ selectedHashes.size }} selected
+                        </span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            type="button"
+                            class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                            @click="bulkMarkAsRead"
+                        >
+                            Mark as read
+                        </button>
+                        <button
+                            type="button"
+                            class="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                            @click="bulkDelete"
+                        >
+                            Delete
+                        </button>
+                        <div class="relative">
+                            <button
+                                type="button"
+                                class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                @click="moveMenu.show = !moveMenu.show"
+                            >
+                                Move to
+                            </button>
+                            <div
+                                v-if="moveMenu.show"
+                                v-click-outside="{ handler: () => (moveMenu.show = false), capture: true }"
+                                class="absolute right-0 top-full mt-1 z-[60] min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                            >
+                                <button
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                    @click="moveSelectedToFolder(null)"
+                                >
+                                    Uncategorized
+                                </button>
+                                <button
+                                    v-for="folder in folders"
+                                    :key="folder.id"
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                    @click="moveSelectedToFolder(folder.id)"
+                                >
+                                    {{ folder.name }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-1">
                     <button type="button" :class="filterChipClasses(filterUnreadOnly)" @click="toggleFilter('unread')">
@@ -96,15 +307,38 @@
                             conversation.failed_messages_count,
                             selectedDestinationHash === conversation.destination_hash,
                             GlobalState.config.banished_effect_enabled && isBlocked(conversation.destination_hash),
+                            selectionMode,
+                            selectedHashes.has(conversation.destination_hash),
                         ]"
-                        class="flex cursor-pointer p-2 border-l-2 relative"
+                        class="flex cursor-pointer p-2 border-l-2 relative group conversation-item"
                         :class="[
                             conversation.destination_hash === selectedDestinationHash
                                 ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
                                 : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600',
+                            selectedHashes.has(conversation.destination_hash)
+                                ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                                : '',
                         ]"
-                        @click="onConversationClick(conversation)"
+                        draggable="true"
+                        @click="
+                            selectionMode
+                                ? toggleSelectConversation(conversation.destination_hash)
+                                : onConversationClick(conversation)
+                        "
+                        @contextmenu="onRightClick($event, conversation.destination_hash)"
+                        @dragstart="onDragStart($event, conversation.destination_hash)"
                     >
+                        <!-- Selection Checkbox -->
+                        <div v-if="selectionMode" class="my-auto mr-3 px-1">
+                            <input
+                                type="checkbox"
+                                :checked="selectedHashes.has(conversation.destination_hash)"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                @click.stop
+                                @change="toggleSelectConversation(conversation.destination_hash)"
+                            />
+                        </div>
+
                         <!-- banished overlay -->
                         <div
                             v-if="
@@ -175,6 +409,58 @@
                                 <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Context Menu -->
+                    <div
+                        v-if="contextMenu.show"
+                        v-click-outside="{ handler: () => (contextMenu.show = false), capture: true }"
+                        class="fixed z-[100] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                        :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
+                    >
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="bulkMarkAsRead"
+                        >
+                            <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />
+                            <span class="font-medium">Mark as Read</span>
+                        </button>
+                        <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                        <div
+                            class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
+                        >
+                            Move to Folder
+                        </div>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
+                            @click="moveSelectedToFolder(null)"
+                        >
+                            <MaterialDesignIcon icon-name="inbox-arrow-down" class="size-4 opacity-70" />
+                            <span>Uncategorized</span>
+                        </button>
+                        <div class="max-h-[200px] overflow-y-auto custom-scrollbar">
+                            <button
+                                v-for="folder in folders"
+                                :key="folder.id"
+                                type="button"
+                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
+                                @click="moveSelectedToFolder(folder.id)"
+                            >
+                                <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
+                                <span class="truncate">{{ folder.name }}</span>
+                            </button>
+                        </div>
+                        <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                            @click="bulkDelete"
+                        >
+                            <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
+                            <span class="font-bold">Delete</span>
+                        </button>
                     </div>
 
                     <!-- loading more spinner -->
@@ -340,6 +626,7 @@
 
 <script>
 import Utils from "../../js/Utils";
+import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalState from "../../js/GlobalState";
@@ -355,6 +642,14 @@ export default {
         conversations: {
             type: Array,
             required: true,
+        },
+        folders: {
+            type: Array,
+            default: () => [],
+        },
+        selectedFolderId: {
+            type: [Number, String],
+            default: null,
         },
         selectedDestinationHash: {
             type: String,
@@ -414,11 +709,45 @@ export default {
         "ingest-paper-message",
         "load-more",
         "load-more-announces",
+        "folder-click",
+        "create-folder",
+        "rename-folder",
+        "delete-folder",
+        "move-to-folder",
+        "bulk-mark-as-read",
+        "bulk-delete",
+        "export-folders",
+        "import-folders",
     ],
     data() {
+        let foldersExpanded = true;
+        try {
+            if (typeof localStorage !== "undefined") {
+                foldersExpanded = localStorage.getItem("meshchatx_folders_expanded") !== "false";
+            }
+        } catch {
+            // ignore
+        }
         return {
             GlobalState,
             tab: "conversations",
+            foldersExpanded,
+            selectionMode: false,
+            selectedHashes: new Set(),
+            folderMenu: {
+                show: false,
+            },
+            moveMenu: {
+                show: false,
+            },
+            contextMenu: {
+                show: false,
+                x: 0,
+                y: 0,
+                targetHash: null,
+            },
+            draggedHash: null,
+            dragOverFolderId: null,
         };
     },
     computed: {
@@ -461,8 +790,126 @@ export default {
         hasUnreadConversations() {
             return this.conversations.some((c) => c.is_unread);
         },
+        allSelected() {
+            return this.conversations.length > 0 && this.selectedHashes.size === this.conversations.length;
+        },
+    },
+    watch: {
+        foldersExpanded(newVal) {
+            try {
+                if (typeof localStorage !== "undefined") {
+                    localStorage.setItem("meshchatx_folders_expanded", newVal);
+                }
+            } catch {
+                // ignore
+            }
+        },
     },
     methods: {
+        toggleSelectionMode() {
+            this.selectionMode = !this.selectionMode;
+            if (!this.selectionMode) {
+                this.selectedHashes.clear();
+            }
+        },
+        toggleSelectAll() {
+            if (this.allSelected) {
+                this.selectedHashes.clear();
+            } else {
+                this.conversations.forEach((c) => this.selectedHashes.add(c.destination_hash));
+            }
+        },
+        toggleSelectConversation(hash) {
+            if (this.selectedHashes.has(hash)) {
+                this.selectedHashes.delete(hash);
+            } else {
+                this.selectedHashes.add(hash);
+            }
+        },
+        onRightClick(event, hash) {
+            event.preventDefault();
+            if (this.selectionMode && !this.selectedHashes.has(hash)) {
+                this.selectedHashes.add(hash);
+            }
+            this.contextMenu.x = event.clientX;
+            this.contextMenu.y = event.clientY;
+            this.contextMenu.targetHash = hash;
+            this.contextMenu.show = true;
+        },
+        onFolderContextMenu(event) {
+            event.preventDefault();
+            // Show folder management menu
+        },
+        onDragStart(event, hash) {
+            this.draggedHash = hash;
+            event.dataTransfer.setData("text/plain", hash);
+            event.dataTransfer.effectAllowed = "move";
+        },
+        onDragOver(event, folderId) {
+            event.preventDefault();
+            this.dragOverFolderId = folderId;
+            event.dataTransfer.dropEffect = "move";
+        },
+        onDragLeave() {
+            this.dragOverFolderId = null;
+        },
+        onDropOnFolder(event, folderId) {
+            event.preventDefault();
+            this.dragOverFolderId = null;
+            const hash = event.dataTransfer.getData("text/plain");
+            if (hash) {
+                this.$emit("move-to-folder", {
+                    peer_hashes: [hash],
+                    folder_id: folderId,
+                });
+            }
+            this.draggedHash = null;
+        },
+        async createFolder() {
+            const name = await DialogUtils.prompt("Enter folder name", "New Folder");
+            if (name) {
+                this.$emit("create-folder", name);
+            }
+        },
+        async renameFolder(folder) {
+            const name = await DialogUtils.prompt("Rename folder", folder.name);
+            if (name && name !== folder.name) {
+                this.$emit("rename-folder", { id: folder.id, name });
+            }
+        },
+        async deleteFolder(folder) {
+            const confirmed = await DialogUtils.confirm(
+                `Are you sure you want to delete the folder "${folder.name}"? Conversations will be moved to Uncategorized.`,
+                "Delete Folder"
+            );
+            if (confirmed) {
+                this.$emit("delete-folder", folder.id);
+            }
+        },
+        bulkMarkAsRead() {
+            const hashes = this.selectionMode ? Array.from(this.selectedHashes) : [this.contextMenu.targetHash];
+            this.$emit("bulk-mark-as-read", hashes);
+            this.contextMenu.show = false;
+            this.moveMenu.show = false;
+            this.folderMenu.show = false;
+            if (this.selectionMode) this.toggleSelectionMode();
+        },
+        bulkDelete() {
+            const hashes = this.selectionMode ? Array.from(this.selectedHashes) : [this.contextMenu.targetHash];
+            this.$emit("bulk-delete", hashes);
+            this.contextMenu.show = false;
+            this.moveMenu.show = false;
+            this.folderMenu.show = false;
+            if (this.selectionMode) this.toggleSelectionMode();
+        },
+        moveSelectedToFolder(folderId) {
+            const hashes = this.selectionMode ? Array.from(this.selectedHashes) : [this.contextMenu.targetHash];
+            this.$emit("move-to-folder", { peer_hashes: hashes, folder_id: folderId });
+            this.contextMenu.show = false;
+            this.moveMenu.show = false;
+            this.folderMenu.show = false;
+            if (this.selectionMode) this.toggleSelectionMode();
+        },
         isBlocked(destinationHash) {
             return this.blockedDestinations.some((b) => b.destination_hash === destinationHash);
         },

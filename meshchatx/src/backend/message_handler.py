@@ -35,6 +35,11 @@ class MessageHandler:
     def delete_conversation(self, local_hash, destination_hash):
         query = "DELETE FROM lxmf_messages WHERE peer_hash = ?"
         self.db.provider.execute(query, [destination_hash])
+        # Also clean up folder mapping
+        self.db.provider.execute(
+            "DELETE FROM lxmf_conversation_folders WHERE peer_hash = ?",
+            [destination_hash],
+        )
 
     def search_messages(self, local_hash, search_term):
         like_term = f"%{search_term}%"
@@ -54,6 +59,7 @@ class MessageHandler:
         filter_unread=False,
         filter_failed=False,
         filter_has_attachments=False,
+        folder_id=None,
         limit=None,
         offset=0,
     ):
@@ -66,6 +72,8 @@ class MessageHandler:
                 con.custom_image as contact_image,
                 i.icon_name, i.foreground_colour, i.background_colour,
                 r.last_read_at,
+                f.id as folder_id,
+                fn.name as folder_name,
                 (SELECT COUNT(*) FROM lxmf_messages m_failed 
                  WHERE m_failed.peer_hash = m1.peer_hash AND m_failed.state = 'failed') as failed_count
             FROM lxmf_messages m1
@@ -84,9 +92,19 @@ class MessageHandler:
             )
             LEFT JOIN lxmf_user_icons i ON i.destination_hash = m1.peer_hash
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = m1.peer_hash
+            LEFT JOIN lxmf_conversation_folders f ON f.peer_hash = m1.peer_hash
+            LEFT JOIN lxmf_folders fn ON fn.id = f.folder_id
         """
         params = []
         where_clauses = []
+
+        if folder_id is not None:
+            if folder_id == 0 or folder_id == "0":
+                # Special case: no folder (Uncategorized)
+                where_clauses.append("f.folder_id IS NULL")
+            else:
+                where_clauses.append("f.folder_id = ?")
+                params.append(folder_id)
 
         if filter_unread:
             where_clauses.append(

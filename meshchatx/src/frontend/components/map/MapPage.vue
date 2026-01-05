@@ -29,6 +29,13 @@
                 <!-- offline/online toggle -->
                 <div class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
                     <button
+                        class="p-2 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors mr-1"
+                        title="Map Discovered Interfaces"
+                        @click="mapDiscoveredNodes"
+                    >
+                        <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                    </button>
+                    <button
                         :class="
                             !offlineEnabled
                                 ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400'
@@ -1059,6 +1066,7 @@ import { fromCircle } from "ol/geom/Polygon";
 import { unByKey } from "ol/Observable";
 import Overlay from "ol/Overlay";
 import GeoJSON from "ol/format/GeoJSON";
+import { extend as extendExtent, createEmpty as createEmptyExtent, isEmpty as isExtentEmpty } from "ol/extent";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
@@ -1090,6 +1098,8 @@ export default {
             markerSource: null,
             markerLayer: null,
             selectedMarker: null,
+            queryMarker: null,
+            discoveredMarkers: [],
 
             // caching
             cachingEnabled: true,
@@ -1256,6 +1266,11 @@ export default {
         await this.fetchPeers();
         await this.fetchTelemetryMarkers();
 
+        // Handle view modes
+        if (this.$route.query.view === "discovered") {
+            await this.mapDiscoveredNodes();
+        }
+
         // Listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
@@ -1264,10 +1279,29 @@ export default {
             const lat = parseFloat(this.$route.query.lat);
             const lon = parseFloat(this.$route.query.lon);
             const zoom = parseInt(this.$route.query.zoom || 15);
+            const label = this.$route.query.label || "Target";
 
             if (!isNaN(lat) && !isNaN(lon)) {
                 this.map.getView().setCenter(fromLonLat([lon, lat]));
                 this.map.getView().setZoom(zoom);
+
+                // add a temporary marker for the query target
+                const feature = new Feature({
+                    geometry: new Point(fromLonLat([lon, lat])),
+                });
+                feature.setStyle(
+                    this.createMarkerStyle({
+                        iconColor: "#2563eb",
+                        bgColor: "#bfdbfe",
+                        label,
+                        isStale: false,
+                        iconPath: null,
+                    })
+                );
+                this.queryMarker = feature;
+                if (this.markerSource) {
+                    this.markerSource.addFeature(feature);
+                }
             }
         }
 
@@ -2962,18 +2996,83 @@ export default {
             if (!this.markerSource) return;
             this.markerSource.clear();
 
+            const featuresByCoord = {};
+
+            // Helper to collect features
+            const addFeatureToGroup = (coord, feature) => {
+                // Round coordinates to handle floating point jitter
+                const key = coord.map((c) => c.toFixed(6)).join(",");
+                if (!featuresByCoord[key]) featuresByCoord[key] = [];
+                featuresByCoord[key].push(feature);
+            };
+
+            // Process telemetry
             for (const t of this.telemetryList) {
                 const loc = t.telemetry?.location;
                 if (!loc || loc.latitude === undefined || loc.longitude === undefined) continue;
 
+                const coord = fromLonLat([loc.longitude, loc.latitude]);
                 const feature = new Feature({
-                    geometry: new Point(fromLonLat([loc.longitude, loc.latitude])),
+                    geometry: new Point(coord),
                     telemetry: t,
                     peer: this.peers[t.destination_hash],
                 });
-
-                this.markerSource.addFeature(feature);
+                addFeatureToGroup(coord, feature);
             }
+
+            // Process query marker
+            if (this.queryMarker) {
+                const coord = this.queryMarker.getGeometry().getCoordinates();
+                addFeatureToGroup(coord, this.queryMarker);
+            }
+
+            // Process discovered markers
+            if (this.discoveredMarkers && this.discoveredMarkers.length > 0) {
+                for (const feature of this.discoveredMarkers) {
+                    const coord = feature.getGeometry().getCoordinates();
+                    addFeatureToGroup(coord, feature);
+                }
+            }
+
+            // Now handle groups (Marker Explosion)
+            const view = this.map.getView();
+            const resolution = view.getResolution();
+            const offsetDist = resolution * 40; // 40 pixels offset
+
+            Object.entries(featuresByCoord).forEach(([coordStr, features]) => {
+                const trueCoord = coordStr.split(",").map(Number);
+
+                if (features.length === 1) {
+                    this.markerSource.addFeature(features[0]);
+                } else {
+                    features.forEach((feature, index) => {
+                        const angle = (index / features.length) * 2 * Math.PI;
+                        const offsetCoord = [
+                            trueCoord[0] + Math.cos(angle) * offsetDist,
+                            trueCoord[1] + Math.sin(angle) * offsetDist,
+                        ];
+
+                        // Move the marker to offset position
+                        feature.setGeometry(new Point(offsetCoord));
+                        this.markerSource.addFeature(feature);
+
+                        // Draw dashed line to true position
+                        const lineFeature = new Feature({
+                            geometry: new LineString([offsetCoord, trueCoord]),
+                        });
+                        lineFeature.setStyle(
+                            new Style({
+                                stroke: new Stroke({
+                                    color: "rgba(59, 130, 246, 0.6)",
+                                    width: 1.5,
+                                    lineDash: [4, 4],
+                                }),
+                            })
+                        );
+                        this.markerSource.addFeature(lineFeature);
+                    });
+                }
+            });
         },
         createMarkerStyle({ iconColor, bgColor, label, isStale, iconPath }) {
             const cacheKey = `${iconColor}-${bgColor}-${label}-${isStale}-${iconPath || "default"}`;
@@ -3041,6 +3140,59 @@ export default {
                 name: "messages",
                 params: { destinationHash: hash },
             });
+        },
+        async mapDiscoveredNodes() {
+            try {
+                const response = await window.axios.get("/api/v1/reticulum/discovered-interfaces");
+                const discovered = response.data?.interfaces ?? [];
+                const nodesWithLoc = discovered.filter((n) => n.latitude != null && n.longitude != null);
+
+                if (nodesWithLoc.length === 0) {
+                    ToastUtils.info("No discovered nodes with location found");
+                    return;
+                }
+
+                const extent = createEmptyExtent();
+                this.discoveredMarkers = [];
+
+                for (const node of nodesWithLoc) {
+                    const coord = fromLonLat([node.longitude, node.latitude]);
+                    extendExtent(extent, coord);
+
+                    // Add markers
+                    const feature = new Feature({
+                        geometry: new Point(coord),
+                        discovered: node,
+                    });
+                    feature.setStyle(
+                        this.createMarkerStyle({
+                            iconColor: "#10b981", // emerald-500
+                            bgColor: "#d1fae5", // emerald-100
+                            label: node.name,
+                            isStale: false,
+                            iconPath: null,
+                        })
+                    );
+                    this.discoveredMarkers.push(feature);
+                }
+
+                // refresh all markers
+                this.updateMarkers();
+
+                // Fit view to all discovered nodes if extent is valid
+                if (!isExtentEmpty(extent)) {
+                    this.map.getView().fit(extent, {
+                        padding: [100, 100, 100, 100],
+                        maxZoom: 12,
+                        duration: 1000,
+                    });
+                }
+
+                ToastUtils.success(`Mapped ${nodesWithLoc.length} discovered nodes`);
+            } catch (e) {
+                console.error("Failed to map discovered nodes", e);
+                ToastUtils.error("Failed to fetch discovered nodes for mapping");
+            }
         },
     },
 };

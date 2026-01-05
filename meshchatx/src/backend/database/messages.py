@@ -63,11 +63,27 @@ class MessageDAO:
             (message_hash,),
         )
 
+    def delete_lxmf_messages_by_hashes(self, message_hashes):
+        if not message_hashes:
+            return
+        placeholders = ", ".join(["?"] * len(message_hashes))
+        self.provider.execute(
+            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",
+            tuple(message_hashes),
+        )
+
     def delete_lxmf_message_by_hash(self, message_hash):
         self.provider.execute(
             "DELETE FROM lxmf_messages WHERE hash = ?",
             (message_hash,),
         )
+
+    def delete_all_lxmf_messages(self):
+        self.provider.execute("DELETE FROM lxmf_messages")
+        self.provider.execute("DELETE FROM lxmf_conversation_read_state")
+
+    def get_all_lxmf_messages(self):
+        return self.provider.fetchall("SELECT * FROM lxmf_messages")
 
     def get_conversation_messages(self, destination_hash, limit=100, offset=0):
         return self.provider.fetchall(
@@ -102,6 +118,22 @@ class MessageDAO:
             """,
             (destination_hash, now, now, now),
         )
+
+    def mark_conversations_as_read(self, destination_hashes):
+        if not destination_hashes:
+            return
+        now = datetime.now(UTC).isoformat()
+        for destination_hash in destination_hashes:
+            self.provider.execute(
+                """
+                INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at) 
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(destination_hash) DO UPDATE SET 
+                    last_read_at = EXCLUDED.last_read_at,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (destination_hash, now, now, now),
+            )
 
     def is_conversation_unread(self, destination_hash):
         row = self.provider.fetchone(
@@ -290,3 +322,56 @@ class MessageDAO:
             last_viewed_at = last_viewed_at.replace(tzinfo=UTC)
 
         return message_timestamp <= last_viewed_at.timestamp()
+
+    # Folders
+    def get_all_folders(self):
+        return self.provider.fetchall("SELECT * FROM lxmf_folders ORDER BY name ASC")
+
+    def create_folder(self, name):
+        now = datetime.now(UTC).isoformat()
+        return self.provider.execute(
+            "INSERT INTO lxmf_folders (name, created_at, updated_at) VALUES (?, ?, ?)",
+            (name, now, now),
+        )
+
+    def rename_folder(self, folder_id, new_name):
+        now = datetime.now(UTC).isoformat()
+        self.provider.execute(
+            "UPDATE lxmf_folders SET name = ?, updated_at = ? WHERE id = ?",
+            (new_name, now, folder_id),
+        )
+
+    def delete_folder(self, folder_id):
+        self.provider.execute("DELETE FROM lxmf_folders WHERE id = ?", (folder_id,))
+
+    def get_conversation_folder(self, peer_hash):
+        return self.provider.fetchone(
+            "SELECT * FROM lxmf_conversation_folders WHERE peer_hash = ?",
+            (peer_hash,),
+        )
+
+    def move_conversation_to_folder(self, peer_hash, folder_id):
+        now = datetime.now(UTC).isoformat()
+        if folder_id is None:
+            self.provider.execute(
+                "DELETE FROM lxmf_conversation_folders WHERE peer_hash = ?",
+                (peer_hash,),
+            )
+        else:
+            self.provider.execute(
+                """
+                INSERT INTO lxmf_conversation_folders (peer_hash, folder_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(peer_hash) DO UPDATE SET
+                    folder_id = EXCLUDED.folder_id,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (peer_hash, folder_id, now, now),
+            )
+
+    def move_conversations_to_folder(self, peer_hashes, folder_id):
+        for peer_hash in peer_hashes:
+            self.move_conversation_to_folder(peer_hash, folder_id)
+
+    def get_all_conversation_folders(self):
+        return self.provider.fetchall("SELECT * FROM lxmf_conversation_folders")
