@@ -2,7 +2,6 @@ import os
 import asyncio
 import threading
 import RNS
-import LXMF
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.integrity_manager import IntegrityManager
 from meshchatx.src.backend.config_manager import ConfigManager
@@ -21,6 +20,7 @@ from meshchatx.src.backend.rnpath_handler import RNPathHandler
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.translator_handler import TranslatorHandler
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
+from meshchatx.src.backend.meshchat_utils import create_lxmf_router
 from meshchatx.src.backend.announce_handler import AnnounceHandler
 from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
 
@@ -168,7 +168,7 @@ class IdentityContext:
 
         # 4. Initialize LXMF Router
         propagation_stamp_cost = self.config.lxmf_propagation_node_stamp_cost.get()
-        self.message_router = LXMF.LXMRouter(
+        self.message_router = create_lxmf_router(
             identity=self.identity,
             storagepath=self.lxmf_router_path,
             propagation_cost=propagation_stamp_cost,

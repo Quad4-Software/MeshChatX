@@ -1,9 +1,37 @@
 import base64
 import json
+import signal
+import threading
 
 import LXMF
 import RNS.vendor.umsgpack as msgpack
 from LXMF import LXMRouter
+
+
+def create_lxmf_router(identity, storagepath, propagation_cost=None):
+    """
+    Creates an LXMF.LXMRouter instance safely, avoiding signal handler crashes
+    when called from non-main threads.
+    """
+    if threading.current_thread() != threading.main_thread():
+        # signal.signal can only be called from the main thread in Python
+        # We monkeypatch it temporarily to avoid the ValueError
+        original_signal = signal.signal
+        try:
+            signal.signal = lambda s, h: None
+            return LXMF.LXMRouter(
+                identity=identity,
+                storagepath=storagepath,
+                propagation_cost=propagation_cost,
+            )
+        finally:
+            signal.signal = original_signal
+    else:
+        return LXMF.LXMRouter(
+            identity=identity,
+            storagepath=storagepath,
+            propagation_cost=propagation_cost,
+        )
 
 
 def parse_bool_query_param(value: str | None) -> bool:

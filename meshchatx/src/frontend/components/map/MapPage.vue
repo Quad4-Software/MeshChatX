@@ -1520,7 +1520,10 @@ export default {
                             throw new Error(`HTTP ${response.status}`);
                         }
                         const blob = await response.blob();
-                        tile.getImage().src = URL.createObjectURL(blob);
+                        const url = URL.createObjectURL(blob);
+                        tile.getImage().src = url;
+                        // Cleanup to prevent memory leaks
+                        setTimeout(() => URL.revokeObjectURL(url), 10000);
                     } catch {
                         tile.setState(3);
                     }
@@ -1535,7 +1538,9 @@ export default {
                     try {
                         const cached = await TileCache.getTile(src);
                         if (cached) {
-                            tile.getImage().src = URL.createObjectURL(cached);
+                            const url = URL.createObjectURL(cached);
+                            tile.getImage().src = url;
+                            setTimeout(() => URL.revokeObjectURL(url), 10000);
                             return;
                         }
 
@@ -1544,8 +1549,12 @@ export default {
                             throw new Error(`HTTP ${response.status}`);
                         }
                         const blob = await response.blob();
-                        await TileCache.setTile(src, blob);
-                        tile.getImage().src = URL.createObjectURL(blob);
+                        const url = URL.createObjectURL(blob);
+                        tile.getImage().src = url;
+                        setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+                        // Background cache write to avoid blocking UI
+                        TileCache.setTile(src, blob).catch(() => {});
                     } catch {
                         originalTileLoadFunction(tile, src);
                     }
