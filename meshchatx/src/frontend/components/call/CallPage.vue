@@ -516,6 +516,12 @@
                                             :label="$t('call.allow_calls_from_contacts_only')"
                                             @update:model-value="toggleAllowCallsFromContactsOnly"
                                         />
+                                        <Toggle
+                                            id="web-audio-toggle"
+                                            :model-value="config?.telephone_web_audio_enabled"
+                                            label="Browser/Electron Audio"
+                                            @update:model-value="onToggleWebAudio"
+                                        />
                                     </div>
                                     <div class="flex flex-col gap-2 shrink-0">
                                         <!-- <Toggle
@@ -548,6 +554,66 @@
                                                     {{ audioProfile.name }}
                                                 </option>
                                             </select>
+                                        </div>
+
+                                        <!-- Web Audio Device Selection -->
+                                        <div
+                                            v-if="config?.telephone_web_audio_enabled"
+                                            class="flex flex-col gap-2 mt-2"
+                                        >
+                                            <div class="flex flex-col gap-1">
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                >
+                                                    Microphone
+                                                </div>
+                                                <select
+                                                    v-model="selectedAudioInputId"
+                                                    class="input-field !py-1 !px-2 !text-[10px] !rounded-lg !border-gray-200 dark:!border-zinc-800 min-w-[120px]"
+                                                    @change="
+                                                        stopWebAudio();
+                                                        startWebAudio();
+                                                    "
+                                                >
+                                                    <option
+                                                        v-for="d in audioInputDevices"
+                                                        :key="d.deviceId"
+                                                        :value="d.deviceId"
+                                                    >
+                                                        {{ d.label || "Microphone" }}
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <div class="flex flex-col gap-1">
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                >
+                                                    Speaker
+                                                </div>
+                                                <select
+                                                    v-model="selectedAudioOutputId"
+                                                    class="input-field !py-1 !px-2 !text-[10px] !rounded-lg !border-gray-200 dark:!border-zinc-800 min-w-[120px]"
+                                                    @change="
+                                                        stopWebAudio();
+                                                        startWebAudio();
+                                                    "
+                                                >
+                                                    <option
+                                                        v-for="d in audioOutputDevices"
+                                                        :key="d.deviceId"
+                                                        :value="d.deviceId"
+                                                    >
+                                                        {{ d.label || "Speaker" }}
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            <button
+                                                class="text-[10px] bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                                type="button"
+                                                @click="requestAudioPermission"
+                                            >
+                                                Refresh Devices
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -2113,6 +2179,18 @@ export default {
             initiationStatus: null,
             initiationTargetHash: null,
             initiationTargetName: null,
+            audioWs: null,
+            audioCtx: null,
+            audioStream: null,
+            audioProcessor: null,
+            audioWorkletNode: null,
+            audioSilentGain: null,
+            audioFrameMs: 60,
+            audioInputDevices: [],
+            audioOutputDevices: [],
+            selectedAudioInputId: null,
+            selectedAudioOutputId: null,
+            remoteAudioEl: null,
         };
     },
     computed: {
@@ -2254,6 +2332,7 @@ export default {
             this.audioPlayer.pause();
             this.audioPlayer = null;
         }
+        this.stopWebAudio();
     },
     methods: {
         formatDestinationHash(hash) {
@@ -2270,6 +2349,183 @@ export default {
         },
         formatDuration(seconds) {
             return Utils.formatMinutesSeconds(seconds);
+        },
+        async ensureWebAudio(webAudioStatus) {
+            if (!this.config?.telephone_web_audio_enabled) {
+                this.stopWebAudio();
+                return;
+            }
+            if (this.activeCall && webAudioStatus?.enabled) {
+                this.audioFrameMs = webAudioStatus.frame_ms || 60;
+                await this.startWebAudio();
+            } else {
+                this.stopWebAudio();
+            }
+        },
+        async onToggleWebAudio(newVal) {
+            if (!this.config) return;
+            this.config.telephone_web_audio_enabled = newVal;
+            try {
+                await this.updateConfig({ telephone_web_audio_enabled: newVal });
+                if (newVal) {
+                    await this.requestAudioPermission();
+                    await this.startWebAudio();
+                } else {
+                    this.stopWebAudio();
+                }
+            } catch (e) {
+                // revert on failure
+                this.config.telephone_web_audio_enabled = !newVal;
+            }
+        },
+        async startWebAudio() {
+            if (this.audioWs) {
+                return;
+            }
+            try {
+                const constraints = this.selectedAudioInputId
+                    ? { audio: { deviceId: { exact: this.selectedAudioInputId } } }
+                    : { audio: true };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                this.audioStream = stream;
+
+                if (!this.audioCtx) {
+                    this.audioCtx = new AudioContext({ sampleRate: 48000 });
+                }
+
+                const source = this.audioCtx.createMediaStreamSource(stream);
+                const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+                const url = `${wsProtocol}//${window.location.host}/ws/telephone/audio`;
+
+                const workletLoaded = false; // disabled to avoid CSP violations from blob worklets
+                if (!workletLoaded) {
+                    const processor = this.audioCtx.createScriptProcessor(1024, 1, 1);
+                    processor.onaudioprocess = (event) => {
+                        if (!this.audioWs || this.audioWs.readyState !== WebSocket.OPEN) return;
+                        const input = event.inputBuffer.getChannelData(0);
+                        const pcm = new Int16Array(input.length);
+                        for (let i = 0; i < input.length; i += 1) {
+                            pcm[i] = Math.max(-1, Math.min(1, input[i])) * 0x7fff;
+                        }
+                        this.audioWs.send(pcm.buffer);
+                    };
+                    source.connect(processor);
+                    this.audioProcessor = processor;
+                }
+
+                const ws = new WebSocket(url);
+                ws.binaryType = "arraybuffer";
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ type: "attach" }));
+                };
+                ws.onmessage = (event) => {
+                    if (typeof event.data === "string") {
+                        return;
+                    }
+                    this.playRemotePcm(event.data);
+                };
+                ws.onerror = () => {
+                    this.stopWebAudio();
+                };
+                ws.onclose = () => {
+                    this.stopWebAudio();
+                };
+                this.audioWs = ws;
+                this.refreshAudioDevices();
+            } catch (err) {
+                console.error("Web audio failed", err);
+                ToastUtils.error("Web audio not available");
+                this.stopWebAudio();
+            }
+        },
+        async requestAudioPermission() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach((t) => t.stop());
+                await this.refreshAudioDevices();
+            } catch (e) {
+                console.error("Permission or device request failed", e);
+            }
+        },
+        async refreshAudioDevices() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                this.audioInputDevices = devices.filter((d) => d.kind === "audioinput");
+                this.audioOutputDevices = devices.filter((d) => d.kind === "audiooutput");
+                if (!this.selectedAudioInputId && this.audioInputDevices.length) {
+                    this.selectedAudioInputId = this.audioInputDevices[0].deviceId;
+                }
+                if (!this.selectedAudioOutputId && this.audioOutputDevices.length) {
+                    this.selectedAudioOutputId = this.audioOutputDevices[0].deviceId;
+                }
+            } catch (e) {
+                console.error("Failed to enumerate audio devices", e);
+            }
+        },
+        playRemotePcm(arrayBuffer) {
+            if (!this.audioCtx) {
+                return;
+            }
+            const pcm = new Int16Array(arrayBuffer);
+            if (pcm.length === 0) return;
+            const floatBuf = new Float32Array(pcm.length);
+            for (let i = 0; i < pcm.length; i += 1) {
+                floatBuf[i] = pcm[i] / 0x7fff;
+            }
+            const audioBuffer = this.audioCtx.createBuffer(1, floatBuf.length, 48000);
+            audioBuffer.copyToChannel(floatBuf, 0);
+            const bufferSource = this.audioCtx.createBufferSource();
+            bufferSource.buffer = audioBuffer;
+            if (this.selectedAudioOutputId && "setSinkId" in HTMLMediaElement.prototype) {
+                if (!this.remoteAudioEl) {
+                    this.remoteAudioEl = new Audio();
+                    this.remoteAudioEl.autoplay = true;
+                }
+                const dest = this.audioCtx.createMediaStreamDestination();
+                bufferSource.connect(dest);
+                bufferSource.start();
+                this.remoteAudioEl.srcObject = dest.stream;
+                this.remoteAudioEl
+                    .setSinkId(this.selectedAudioOutputId)
+                    .catch((err) => console.warn("setSinkId failed", err));
+            } else {
+                bufferSource.connect(this.audioCtx.destination);
+                bufferSource.start();
+            }
+        },
+        stopWebAudio() {
+            if (this.audioProcessor) {
+                try {
+                    this.audioProcessor.disconnect();
+                } catch (_) {}
+                this.audioProcessor = null;
+            }
+            if (this.audioStream) {
+                this.audioStream.getTracks().forEach((t) => t.stop());
+                this.audioStream = null;
+            }
+            if (this.audioWs) {
+                try {
+                    this.audioWs.close();
+                } catch (_) {}
+                this.audioWs = null;
+            }
+            if (this.remoteAudioEl) {
+                this.remoteAudioEl.srcObject = null;
+                this.remoteAudioEl = null;
+            }
+            if (this.audioWorkletNode) {
+                try {
+                    this.audioWorkletNode.disconnect();
+                } catch (_) {}
+                this.audioWorkletNode = null;
+            }
+            if (this.audioSilentGain) {
+                try {
+                    this.audioSilentGain.disconnect();
+                } catch (_) {}
+                this.audioSilentGain = null;
+            }
         },
         async getConfig() {
             try {
@@ -2324,6 +2580,10 @@ export default {
 
                 if (response.data.voicemail) {
                     this.unreadVoicemailsCount = response.data.voicemail.unread_count;
+                }
+
+                if (response.data.web_audio) {
+                    await this.ensureWebAudio(response.data.web_audio);
                 }
 
                 // If call just ended, refresh history and show ended state
