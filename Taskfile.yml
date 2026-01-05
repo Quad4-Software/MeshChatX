@@ -310,6 +310,7 @@ tasks:
             - rm -rf python-dist
             - rm -rf meshchatx/public
             - rm -rf build-dir
+            - rm -rf out
             - task: android-clean
 
     build-docker:
