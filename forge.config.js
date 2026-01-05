@@ -3,9 +3,10 @@ const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 
 module.exports = {
     packagerConfig: {
-        asar: {
-            unpack: "build/exe/**/*",
-        },
+        asar: true,
+        extraResource: [
+            "build/exe",
+        ],
         executableName: "reticulum-meshchatx",
         name: "Reticulum MeshChatX",
         appBundleId: "com.sudoivan.reticulummeshchatx",
