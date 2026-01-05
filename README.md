@@ -3,6 +3,14 @@
 > [!IMPORTANT]  
 > v4 coming soon with release builds for Linux and Windows (Appimage and EXE portable/installer). As well as updated container images and wheel packages. You can test v4 using container by replacing normal image with `git.quad4.io/rns-things/meshchatx-dev:dev`
 
+Contact me for issues, ideas and how to get an account for this gitea instance:
+
+```
+LXMF: 7cc8d66b4f6a0e0e49d34af7f6077b5a
+XMPP: ivan@chat.quad4.io
+Email: ivan@quad4.io
+```
+
 [![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
 [![Tests](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml)
 [![Build](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml)
