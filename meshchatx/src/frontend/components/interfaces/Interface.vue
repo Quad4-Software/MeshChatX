@@ -42,6 +42,7 @@
                     <span :class="statusChipClass">{{
                         isInterfaceEnabled(iface) ? $t("app.enabled") : $t("app.disabled")
                     }}</span>
+                    <span v-if="isDiscoverable()" class="discoverable-chip">Discoverable</span>
                 </div>
                 <div class="text-sm text-gray-600 dark:text-gray-300">
                     {{ description }}
@@ -244,6 +245,13 @@ export default {
         onIFACSignatureClick: function (ifacSignature) {
             DialogUtils.alert(ifacSignature);
         },
+        isDiscoverable() {
+            const value = this.iface.discoverable;
+            if (typeof value === "string") {
+                return ["true", "yes", "1", "on"].includes(value.toLowerCase());
+            }
+            return Boolean(value);
+        },
         isInterfaceEnabled: function (iface) {
             return Utils.isInterfaceEnabled(iface);
         },
@@ -291,6 +299,9 @@ export default {
 }
 .ifac-line {
     @apply text-xs flex flex-wrap items-center gap-1;
+}
+.discoverable-chip {
+    @apply inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-xs font-semibold dark:bg-blue-900/50 dark:text-blue-200;
 }
 .detail-grid {
     @apply grid gap-3 sm:grid-cols-2;

@@ -182,13 +182,13 @@ describe("AboutPage.vue", () => {
         });
         mountAboutPage();
 
-        expect(axiosMock.get).toHaveBeenCalledTimes(4); // info, config, health, snapshots
+        expect(axiosMock.get).toHaveBeenCalledTimes(5); // info, config, health, snapshots, backups
 
         vi.advanceTimersByTime(5000);
-        expect(axiosMock.get).toHaveBeenCalledTimes(5);
+        expect(axiosMock.get).toHaveBeenCalledTimes(6); // +1 from updateInterval
 
         vi.advanceTimersByTime(5000);
-        expect(axiosMock.get).toHaveBeenCalledTimes(6);
+        expect(axiosMock.get).toHaveBeenCalledTimes(7); // +2 from updateInterval
     });
 
     it("handles vacuum database action", async () => {

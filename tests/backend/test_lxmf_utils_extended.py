@@ -3,10 +3,11 @@ import json
 from unittest.mock import MagicMock
 
 import LXMF
+
 from meshchatx.src.backend.lxmf_utils import (
+    convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_state_to_string,
-    convert_db_lxmf_message_to_dict,
 )
 
 
@@ -129,9 +130,9 @@ def test_convert_db_lxmf_message_to_dict():
                     {
                         "file_name": "f.txt",
                         "file_bytes": base64.b64encode(b"file").decode(),
-                    }
+                    },
                 ],
-            }
+            },
         ),
         "timestamp": 1234567890,
         "rssi": -60,

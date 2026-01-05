@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 34
+    LATEST_VERSION = 35
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -63,21 +63,20 @@ class DatabaseSchema:
 
                 # Use the connection directly to avoid any middle-ware issues
                 res = self._safe_execute(
-                    f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}"
+                    f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}",
                 )
                 return res is not None
             except Exception as e:
                 # Log but don't crash, we might be able to continue
                 print(
-                    f"Unexpected error adding column {column_name} to {table_name}: {e}"
+                    f"Unexpected error adding column {column_name} to {table_name}: {e}",
                 )
                 return False
         return True
         return True
 
     def _sync_table_columns(self, table_name, create_sql):
-        """
-        Parses a CREATE TABLE statement and ensures all columns exist in the actual table.
+        """Parses a CREATE TABLE statement and ensures all columns exist in the actual table.
         This is a robust way to handle legacy tables that are missing columns.
         """
         # Find the first '(' and the last ')'
@@ -111,7 +110,7 @@ class DatabaseSchema:
             definition = definition.strip()
             # Skip table-level constraints
             if not definition or definition.upper().startswith(
-                ("PRIMARY KEY", "FOREIGN KEY", "UNIQUE", "CHECK")
+                ("PRIMARY KEY", "FOREIGN KEY", "UNIQUE", "CHECK"),
             ):
                 continue
 
@@ -365,6 +364,8 @@ class DatabaseSchema:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT,
                     remote_identity_hash TEXT UNIQUE,
+                    lxmf_address TEXT,
+                    lxst_address TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
@@ -921,6 +922,15 @@ class DatabaseSchema:
             # Add updated_at to crawl_tasks
             self._safe_execute(
                 "ALTER TABLE crawl_tasks ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP",
+            )
+
+        if current_version < 35:
+            # Add lxmf_address and lxst_address to contacts
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN lxmf_address TEXT DEFAULT NULL",
+            )
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN lxst_address TEXT DEFAULT NULL",
             )
 
         # Update version in config

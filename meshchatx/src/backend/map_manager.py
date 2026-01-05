@@ -191,9 +191,9 @@ class MapManager:
         for z in zoom_levels:
             x1, y1 = self._lonlat_to_tile(min_lon, max_lat, z)
             x2, y2 = self._lonlat_to_tile(max_lon, min_lat, z)
-            for x in range(x1, x2 + 1):
-                for y in range(y1, y2 + 1):
-                    tiles_to_download.append((z, x, y))
+            tiles_to_download.extend(
+                (z, x, y) for x in range(x1, x2 + 1) for y in range(y1, y2 + 1)
+            )
 
         total_tiles = len(tiles_to_download)
         self._export_progress[export_id]["total"] = total_tiles
@@ -265,7 +265,7 @@ class MapManager:
                 return None
 
             with concurrent.futures.ThreadPoolExecutor(
-                max_workers=max_workers
+                max_workers=max_workers,
             ) as executor:
                 future_to_tile = {
                     executor.submit(download_tile, tile): tile
@@ -299,7 +299,8 @@ class MapManager:
                     ):
                         try:
                             cursor.executemany(
-                                "INSERT INTO tiles VALUES (?, ?, ?, ?)", batch_data
+                                "INSERT INTO tiles VALUES (?, ?, ?, ?)",
+                                batch_data,
                             )
                             conn.commit()
                             batch_data = []

@@ -1,11 +1,13 @@
+import asyncio
+import json
 import shutil
 import tempfile
-import pytest
-import json
 from unittest.mock import MagicMock, patch
-from meshchatx.meshchat import ReticulumMeshChat
+
+import pytest
 import RNS
-import asyncio
+
+from meshchatx.meshchat import ReticulumMeshChat
 
 
 @pytest.fixture

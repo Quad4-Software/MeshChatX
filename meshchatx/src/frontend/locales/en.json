@@ -1,4 +1,31 @@
 {
+    "bots": {
+        "title": "LXMFy Bots",
+        "description": "Manage automated bots for echo, notes, and reminders using LXMFy.",
+        "bot_framework": "Bot Framework",
+        "lxmfy_not_detected": "LXMFy not detected",
+        "lxmfy_not_detected_desc": "To use bots, you must install the LXMFy package:",
+        "install_via_pip": "Install via pip",
+        "create_new_bot": "Create New Bot",
+        "running_bots": "Running Bots",
+        "no_bots_running": "No bots are currently running.",
+        "select": "Select",
+        "start_bot": "Start Bot",
+        "stop_bot": "Stop Bot",
+        "restart_bot": "Restart Bot",
+        "saved_bots": "Saved Bots",
+        "bot_name": "Bot Name",
+        "cancel": "Cancel",
+        "bot_started": "Bot started successfully",
+        "bot_stopped": "Bot stopped",
+        "failed_to_start": "Failed to start bot",
+        "failed_to_stop": "Failed to stop bot",
+        "delete_bot": "Delete Bot",
+        "export_identity": "Export Identity",
+        "bot_deleted": "Bot deleted successfully",
+        "failed_to_delete": "Failed to delete bot",
+        "more_bots_coming": "More bots coming soon!"
+    },
     "app": {
         "name": "Reticulum MeshChatX",
         "sync_messages": "Sync Messages",
@@ -183,7 +210,9 @@
         "shutdown": "Shutdown",
         "acknowledge_reset": "Acknowledge & Reset",
         "confirm": "Confirm",
-        "delete_confirm": "Are you sure you want to delete this? This cannot be undone."
+        "delete_confirm": "Are you sure you want to delete this? This cannot be undone.",
+        "search": "Search tools...",
+        "no_results": "No tools found"
     },
     "identities": {
         "title": "Identities",
@@ -665,6 +694,10 @@
         "paper_message": {
             "title": "Paper Message",
             "description": "Generate and read LXMF signed paper messages via QR codes."
+        },
+        "bots": {
+            "title": "LXMFy Bots",
+            "description": "Manage automated bots for echo, notes, and reminders using LXMFy."
         }
     },
     "ping": {

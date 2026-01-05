@@ -69,13 +69,12 @@ class DatabaseProvider:
             self.connection.commit()
         elif commit is False:
             pass
-        else:
-            # Default behavior: if we're in a manual transaction, don't commit automatically
-            if not self.connection.in_transaction:
-                # In autocommit mode, non-DML statements don't start transactions.
-                # DML statements might if they are part of a BEGIN block.
-                # Actually, in isolation_level=None, NOTHING starts a transaction unless we say BEGIN.
-                pass
+        # Default behavior: if we're in a manual transaction, don't commit automatically
+        elif not self.connection.in_transaction:
+            # In autocommit mode, non-DML statements don't start transactions.
+            # DML statements might if they are part of a BEGIN block.
+            # Actually, in isolation_level=None, NOTHING starts a transaction unless we say BEGIN.
+            pass
         return cursor
 
     def begin(self):

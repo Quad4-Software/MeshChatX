@@ -9,8 +9,7 @@ class AsyncUtils:
 
     @staticmethod
     def apply_asyncio_313_patch():
-        """
-        Apply a patch for asyncio on Python 3.13 to avoid a bug in sendfile with SSL.
+        """Apply a patch for asyncio on Python 3.13 to avoid a bug in sendfile with SSL.
         See: https://github.com/python/cpython/issues/124448
         And: https://github.com/aio-libs/aiohttp/issues/8863
         """
@@ -23,14 +22,25 @@ class AsyncUtils:
             original_sendfile = asyncio.base_events.BaseEventLoop.sendfile
 
             async def patched_sendfile(
-                self, transport, file, offset=0, count=None, *, fallback=True
+                self,
+                transport,
+                file,
+                offset=0,
+                count=None,
+                *,
+                fallback=True,
             ):
                 if transport.get_extra_info("sslcontext"):
                     raise NotImplementedError(
-                        "sendfile is broken on SSL transports in Python 3.13"
+                        "sendfile is broken on SSL transports in Python 3.13",
                     )
                 return await original_sendfile(
-                    self, transport, file, offset, count, fallback=fallback
+                    self,
+                    transport,
+                    file,
+                    offset,
+                    count,
+                    fallback=fallback,
                 )
 
             asyncio.base_events.BaseEventLoop.sendfile = patched_sendfile

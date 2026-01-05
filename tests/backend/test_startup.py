@@ -34,12 +34,16 @@ def mock_rns():
         patch("meshchatx.meshchat.get_file_path", return_value="/tmp/mock_path"),
         patch.object(ReticulumMeshChat, "announce_loop", return_value=None),
         patch.object(
-            ReticulumMeshChat, "announce_sync_propagation_nodes", return_value=None
+            ReticulumMeshChat,
+            "announce_sync_propagation_nodes",
+            return_value=None,
         ),
         patch.object(ReticulumMeshChat, "crawler_loop", return_value=None),
         patch.object(ReticulumMeshChat, "auto_backup_loop", return_value=None),
         patch.object(
-            ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
+            ReticulumMeshChat,
+            "send_config_to_websocket_clients",
+            return_value=None,
         ),
     ):
         # Setup mock instance
@@ -51,7 +55,9 @@ def mock_rns():
             patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance),
             patch.object(MockIdentityClass, "recall", return_value=mock_id_instance),
             patch.object(
-                MockIdentityClass, "from_bytes", return_value=mock_id_instance
+                MockIdentityClass,
+                "from_bytes",
+                return_value=mock_id_instance,
             ),
         ):
             # Setup mock transport
@@ -83,7 +89,7 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
     with (
         patch("meshchatx.src.backend.identity_context.Database") as mock_db_class,
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager"
+            "meshchatx.src.backend.identity_context.ConfigManager",
         ) as mock_config_class,
         patch("meshchatx.src.backend.identity_context.MessageHandler"),
         patch("meshchatx.src.backend.identity_context.AnnounceManager"),
@@ -152,7 +158,7 @@ def test_reticulum_meshchat_init_with_auth(mock_rns, temp_dir):
     with (
         patch("meshchatx.src.backend.identity_context.Database"),
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager"
+            "meshchatx.src.backend.identity_context.ConfigManager",
         ) as mock_config_class,
         patch("meshchatx.src.backend.identity_context.MessageHandler"),
         patch("meshchatx.src.backend.identity_context.AnnounceManager"),

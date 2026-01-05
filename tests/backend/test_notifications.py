@@ -1,7 +1,7 @@
 import os
 import time
-from unittest.mock import MagicMock, patch
 from contextlib import ExitStack
+from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
@@ -49,33 +49,33 @@ def mock_app(db, tmp_path):
         stack.enter_context(patch("RNS.Transport"))
         stack.enter_context(patch("LXMF.LXMRouter"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager")
+            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager")
+            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager")
+            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler")
+            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler")
+            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler")
+            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager")
+            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler")
+            patch("meshchatx.src.backend.identity_context.MessageHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager")
+            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         )
         stack.enter_context(patch("threading.Thread"))
 
@@ -83,44 +83,52 @@ def mock_app(db, tmp_path):
         mock_id.get_private_key = MagicMock(return_value=b"test_private_key")
 
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_file", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_file", return_value=mock_id),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "recall", return_value=mock_id)
+            patch.object(MockIdentityClass, "recall", return_value=mock_id),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id),
         )
 
         # Patch background threads and other heavy init
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None)
-            )
+                ReticulumMeshChat,
+                "announce_loop",
+                new=MagicMock(return_value=None),
+            ),
         )
         stack.enter_context(
             patch.object(
                 ReticulumMeshChat,
                 "announce_sync_propagation_nodes",
                 new=MagicMock(return_value=None),
-            )
+            ),
         )
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
-            )
+                ReticulumMeshChat,
+                "crawler_loop",
+                new=MagicMock(return_value=None),
+            ),
         )
 
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "auto_backup_loop", new=MagicMock(return_value=None)
-            )
+                ReticulumMeshChat,
+                "auto_backup_loop",
+                new=MagicMock(return_value=None),
+            ),
         )
         # Prevent JSON serialization issues with MagicMocks
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
-            )
+                ReticulumMeshChat,
+                "send_config_to_websocket_clients",
+                return_value=None,
+            ),
         )
 
         app = ReticulumMeshChat(
@@ -262,7 +270,10 @@ async def test_notifications_api(mock_app):
     # Let's test a spike of notifications
     for i in range(100):
         mock_app.database.misc.add_notification(
-            f"type{i}", f"hash{i}", f"title{i}", f"content{i}"
+            f"type{i}",
+            f"hash{i}",
+            f"title{i}",
+            f"content{i}",
         )
 
     notifications = mock_app.database.misc.get_notifications(limit=50)
@@ -295,7 +306,10 @@ def test_voicemail_notification_fuzzing(mock_app, remote_hash, remote_name, dura
     call_was_established=st.booleans(),
 )
 def test_missed_call_notification_fuzzing(
-    mock_app, remote_hash, status_code, call_was_established
+    mock_app,
+    remote_hash,
+    status_code,
+    call_was_established,
 ):
     """Fuzz missed call notification triggering."""
     mock_app.database.misc.provider.execute("DELETE FROM notifications")

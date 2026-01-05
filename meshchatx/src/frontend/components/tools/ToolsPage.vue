@@ -3,7 +3,7 @@
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
         <div class="flex-1 overflow-y-auto w-full">
-            <div class="space-y-4 p-4 md:p-6 max-w-5xl mx-auto w-full">
+            <div class="space-y-4 p-4 md:p-6 lg:p-8 w-full">
                 <div class="glass-card space-y-3">
                     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                         {{ $t("tools.utilities") }}
@@ -16,184 +16,61 @@
                     </div>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-2">
-                    <RouterLink :to="{ name: 'ping' }" class="tool-card glass-card">
-                        <div class="tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200">
-                            <MaterialDesignIcon icon-name="radar" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.ping.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.ping.description") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
+                <div class="glass-card">
+                    <div class="relative">
+                        <MaterialDesignIcon
+                            icon-name="magnify"
+                            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                        />
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            :placeholder="$t('common.search')"
+                            class="w-full pl-10 pr-4 py-3 bg-white/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                        />
+                    </div>
+                </div>
 
-                    <RouterLink :to="{ name: 'rnprobe' }" class="tool-card glass-card">
-                        <div
-                            class="tool-card__icon bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-200"
-                        >
-                            <MaterialDesignIcon icon-name="radar" class="w-6 h-6" />
+                <div class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <RouterLink
+                        v-for="tool in filteredTools"
+                        :key="tool.name"
+                        :to="tool.route"
+                        :class="['tool-card', 'glass-card', tool.customClass].filter(Boolean)"
+                    >
+                        <div :class="tool.iconBg">
+                            <MaterialDesignIcon v-if="tool.icon" :icon-name="tool.icon" class="w-6 h-6" />
+                            <img
+                                v-else-if="tool.image"
+                                :src="tool.image"
+                                :class="tool.imageClass"
+                                :alt="tool.imageAlt"
+                            />
                         </div>
                         <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.rnprobe.title") }}</div>
+                            <div class="tool-card__title">{{ tool.title }}</div>
                             <div class="tool-card__description">
-                                {{ $t("tools.rnprobe.description") }}
+                                {{ tool.description }}
                             </div>
                         </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'rncp' }" class="tool-card glass-card">
-                        <div
-                            class="tool-card__icon bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-200"
-                        >
-                            <MaterialDesignIcon icon-name="swap-horizontal" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.rncp.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.rncp.description") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'rnstatus' }" class="tool-card glass-card">
-                        <div
-                            class="tool-card__icon bg-orange-50 text-orange-500 dark:bg-orange-900/30 dark:text-orange-200"
-                        >
-                            <MaterialDesignIcon icon-name="chart-line" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.rnstatus.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.rnstatus.description") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'rnpath' }" class="tool-card glass-card">
-                        <div
-                            class="tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200"
-                        >
-                            <MaterialDesignIcon icon-name="route" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.rnpath.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.rnpath.description") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'translator' }" class="tool-card glass-card">
-                        <div
-                            class="tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200"
-                        >
-                            <MaterialDesignIcon icon-name="translate" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.translator.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.translator.description") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'forwarder' }" class="tool-card glass-card">
-                        <div class="tool-card__icon bg-rose-50 text-rose-500 dark:bg-rose-900/30 dark:text-rose-200">
-                            <MaterialDesignIcon icon-name="email-send-outline" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.forwarder.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.forwarder.description") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'documentation' }" class="tool-card glass-card">
-                        <div class="tool-card__icon bg-cyan-50 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-200">
-                            <MaterialDesignIcon icon-name="book-open-variant" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("docs.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("docs.subtitle") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'micron-editor' }" class="tool-card glass-card">
-                        <div class="tool-card__icon bg-teal-50 text-teal-500 dark:bg-teal-900/30 dark:text-teal-200">
-                            <MaterialDesignIcon icon-name="code-tags" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.micron_editor.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.micron_editor.description") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'paper-message' }" class="tool-card glass-card">
-                        <div class="tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200">
-                            <MaterialDesignIcon icon-name="qrcode" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.paper_message.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.paper_message.description") }}
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
-
-                    <RouterLink :to="{ name: 'rnode-flasher' }" class="tool-card glass-card">
-                        <div
-                            class="tool-card__icon bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-200"
-                        >
-                            <img :src="rnodeLogoPath" class="w-8 h-8 rounded-full" alt="RNode" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">{{ $t("tools.rnode_flasher.title") }}</div>
-                            <div class="tool-card__description">
-                                {{ $t("tools.rnode_flasher.description") }}
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
+                        <div v-if="tool.extraAction" class="flex items-center gap-2">
                             <a
-                                href="/rnode-flasher/index.html"
-                                target="_blank"
+                                :href="tool.extraAction.href"
+                                :target="tool.extraAction.target"
                                 class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-blue-500"
                                 @click.stop
                             >
-                                <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
+                                <MaterialDesignIcon :icon-name="tool.extraAction.icon" class="size-5" />
                             </a>
                             <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
                         </div>
+                        <MaterialDesignIcon v-else icon-name="chevron-right" class="tool-card__chevron" />
                     </RouterLink>
+                </div>
 
-                    <RouterLink :to="{ name: 'debug-logs' }" class="tool-card glass-card border-dashed border-2">
-                        <div class="tool-card__icon bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                            <MaterialDesignIcon icon-name="console" class="w-6 h-6" />
-                        </div>
-                        <div class="flex-1">
-                            <div class="tool-card__title">Debug Logs</div>
-                            <div class="tool-card__description">
-                                View and export internal system logs for troubleshooting.
-                            </div>
-                        </div>
-                        <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
-                    </RouterLink>
+                <div v-if="filteredTools.length === 0" class="glass-card text-center py-12">
+                    <MaterialDesignIcon icon-name="magnify" class="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <div class="text-gray-600 dark:text-gray-400">{{ $t("common.no_results") }}</div>
                 </div>
             </div>
         </div>
@@ -210,7 +87,147 @@ export default {
     data() {
         return {
             rnodeLogoPath: "/rnode-flasher/reticulum_logo_512.png",
+            searchQuery: "",
+            tools: [
+                {
+                    name: "ping",
+                    route: { name: "ping" },
+                    icon: "radar",
+                    iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
+                    titleKey: "tools.ping.title",
+                    descriptionKey: "tools.ping.description",
+                },
+                {
+                    name: "rnprobe",
+                    route: { name: "rnprobe" },
+                    icon: "radar",
+                    iconBg: "tool-card__icon bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-200",
+                    titleKey: "tools.rnprobe.title",
+                    descriptionKey: "tools.rnprobe.description",
+                },
+                {
+                    name: "rncp",
+                    route: { name: "rncp" },
+                    icon: "swap-horizontal",
+                    iconBg: "tool-card__icon bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-200",
+                    titleKey: "tools.rncp.title",
+                    descriptionKey: "tools.rncp.description",
+                },
+                {
+                    name: "rnstatus",
+                    route: { name: "rnstatus" },
+                    icon: "chart-line",
+                    iconBg: "tool-card__icon bg-orange-50 text-orange-500 dark:bg-orange-900/30 dark:text-orange-200",
+                    titleKey: "tools.rnstatus.title",
+                    descriptionKey: "tools.rnstatus.description",
+                },
+                {
+                    name: "rnpath",
+                    route: { name: "rnpath" },
+                    icon: "route",
+                    iconBg: "tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200",
+                    titleKey: "tools.rnpath.title",
+                    descriptionKey: "tools.rnpath.description",
+                },
+                {
+                    name: "translator",
+                    route: { name: "translator" },
+                    icon: "translate",
+                    iconBg: "tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200",
+                    titleKey: "tools.translator.title",
+                    descriptionKey: "tools.translator.description",
+                },
+                {
+                    name: "bots",
+                    route: { name: "bots" },
+                    icon: "robot",
+                    iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
+                    titleKey: "tools.bots.title",
+                    descriptionKey: "tools.bots.description",
+                },
+                {
+                    name: "forwarder",
+                    route: { name: "forwarder" },
+                    icon: "email-send-outline",
+                    iconBg: "tool-card__icon bg-rose-50 text-rose-500 dark:bg-rose-900/30 dark:text-rose-200",
+                    titleKey: "tools.forwarder.title",
+                    descriptionKey: "tools.forwarder.description",
+                },
+                {
+                    name: "documentation",
+                    route: { name: "documentation" },
+                    icon: "book-open-variant",
+                    iconBg: "tool-card__icon bg-cyan-50 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-200",
+                    titleKey: "docs.title",
+                    descriptionKey: "docs.subtitle",
+                },
+                {
+                    name: "micron-editor",
+                    route: { name: "micron-editor" },
+                    icon: "code-tags",
+                    iconBg: "tool-card__icon bg-teal-50 text-teal-500 dark:bg-teal-900/30 dark:text-teal-200",
+                    titleKey: "tools.micron_editor.title",
+                    descriptionKey: "tools.micron_editor.description",
+                },
+                {
+                    name: "paper-message",
+                    route: { name: "paper-message" },
+                    icon: "qrcode",
+                    iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
+                    titleKey: "tools.paper_message.title",
+                    descriptionKey: "tools.paper_message.description",
+                },
+                {
+                    name: "rnode-flasher",
+                    route: { name: "rnode-flasher" },
+                    icon: null,
+                    image: "/rnode-flasher/reticulum_logo_512.png",
+                    imageClass: "w-8 h-8 rounded-full",
+                    imageAlt: "RNode",
+                    iconBg: "tool-card__icon bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-200",
+                    titleKey: "tools.rnode_flasher.title",
+                    descriptionKey: "tools.rnode_flasher.description",
+                    extraAction: {
+                        href: "/rnode-flasher/index.html",
+                        target: "_blank",
+                        icon: "open-in-new",
+                    },
+                },
+                {
+                    name: "debug-logs",
+                    route: { name: "debug-logs" },
+                    icon: "console",
+                    iconBg: "tool-card__icon bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+                    titleKey: null,
+                    title: "Debug Logs",
+                    descriptionKey: null,
+                    description: "View and export internal system logs for troubleshooting.",
+                    customClass: "border-dashed border-2",
+                },
+            ],
         };
+    },
+    computed: {
+        filteredTools() {
+            const toolsWithTranslations = this.tools.map((tool) => ({
+                ...tool,
+                title: tool.title || (tool.titleKey ? this.$t(tool.titleKey) : ""),
+                description: tool.description || (tool.descriptionKey ? this.$t(tool.descriptionKey) : ""),
+            }));
+
+            if (!this.searchQuery.trim()) {
+                return toolsWithTranslations;
+            }
+
+            const query = this.searchQuery.toLowerCase().trim();
+            return toolsWithTranslations.filter((tool) => {
+                return (
+                    tool.title.toLowerCase().includes(query) ||
+                    tool.description.toLowerCase().includes(query) ||
+                    tool.name.toLowerCase().includes(query)
+                );
+            });
+        },
     },
 };
 </script>

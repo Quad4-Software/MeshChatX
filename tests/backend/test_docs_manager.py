@@ -141,7 +141,7 @@ def create_mock_zip(zip_path, file_list):
 )
 @given(
     root_folder_name=st.text(min_size=1, max_size=50).filter(
-        lambda x: "/" not in x and x not in [".", ".."]
+        lambda x: "/" not in x and x not in [".", ".."],
     ),
     docs_file=st.text(min_size=1, max_size=50).filter(lambda x: "/" not in x),
 )

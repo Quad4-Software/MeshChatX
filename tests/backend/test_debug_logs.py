@@ -1,8 +1,10 @@
-import time
-import pytest
 import logging
-from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
+import time
+
+import pytest
+
 from meshchatx.src.backend.database import Database
+from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 
 
 @pytest.fixture

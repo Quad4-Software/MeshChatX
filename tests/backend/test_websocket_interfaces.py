@@ -1,11 +1,12 @@
+import socket
 import unittest
 from unittest.mock import MagicMock, patch
-import socket
-from meshchatx.src.backend.interfaces.WebsocketServerInterface import (
-    WebsocketServerInterface,
-)
+
 from meshchatx.src.backend.interfaces.WebsocketClientInterface import (
     WebsocketClientInterface,
+)
+from meshchatx.src.backend.interfaces.WebsocketServerInterface import (
+    WebsocketServerInterface,
 )
 
 
@@ -43,7 +44,7 @@ class TestWebsocketInterfaces(unittest.TestCase):
 
         # We don't want it to actually try connecting in this basic test
         with patch(
-            "meshchatx.src.backend.interfaces.WebsocketClientInterface.threading.Thread"
+            "meshchatx.src.backend.interfaces.WebsocketClientInterface.threading.Thread",
         ):
             client = WebsocketClientInterface(self.owner, config)
             self.assertEqual(client.name, "test_ws_client")

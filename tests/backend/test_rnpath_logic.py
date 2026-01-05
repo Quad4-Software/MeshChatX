@@ -1,8 +1,10 @@
-import pytest
 import json
-from unittest.mock import MagicMock, patch, AsyncMock
-from meshchatx.meshchat import ReticulumMeshChat
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 import RNS
+
+from meshchatx.meshchat import ReticulumMeshChat
 
 
 @pytest.fixture

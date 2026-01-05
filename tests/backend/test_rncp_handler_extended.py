@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
+
 from meshchatx.src.backend.rncp_handler import RNCPHandler
 
 
@@ -40,7 +41,9 @@ def mock_rns():
             patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance),
             patch.object(MockIdentityClass, "recall", return_value=mock_id_instance),
             patch.object(
-                MockIdentityClass, "from_bytes", return_value=mock_id_instance
+                MockIdentityClass,
+                "from_bytes",
+                return_value=mock_id_instance,
             ),
         ):
             mock_dest_instance = MagicMock()
@@ -85,7 +88,9 @@ def test_setup_receive_destination(mock_rns, temp_dir):
 
     mock_rns["Reticulum"].identitypath = temp_dir
     _ = handler.setup_receive_destination(
-        allowed_hashes=["abc123def456"], fetch_allowed=True, fetch_jail=temp_dir
+        allowed_hashes=["abc123def456"],
+        fetch_allowed=True,
+        fetch_jail=temp_dir,
     )
 
     assert handler.receive_destination is not None

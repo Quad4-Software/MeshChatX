@@ -1,10 +1,12 @@
+import json
 import shutil
 import tempfile
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-import json
-from unittest.mock import MagicMock, patch, AsyncMock
-from meshchatx.meshchat import ReticulumMeshChat
 import RNS
+
+from meshchatx.meshchat import ReticulumMeshChat
 
 
 @pytest.fixture
@@ -74,7 +76,7 @@ async def test_banish_identity_with_blackhole(mock_rns_minimal, temp_dir):
 
         # Verify DB call
         app_instance.database.misc.add_blocked_destination.assert_called_with(
-            target_hash
+            target_hash,
         )
 
         # Verify RNS blackhole call
@@ -100,7 +102,7 @@ async def test_banish_identity_with_resolution(mock_rns_minimal, temp_dir):
 
         # Mock identity resolution
         app_instance.database.announces.get_announce_by_hash.return_value = {
-            "identity_hash": ident_hash
+            "identity_hash": ident_hash,
         }
 
         request = MagicMock()
@@ -147,7 +149,7 @@ async def test_banish_identity_disabled_integration(mock_rns_minimal, temp_dir):
 
         # DB call should still happen
         app_instance.database.misc.add_blocked_destination.assert_called_with(
-            target_hash
+            target_hash,
         )
 
         # RNS blackhole call should NOT happen
@@ -189,7 +191,7 @@ async def test_lift_banishment(mock_rns_minimal, temp_dir):
 
         # Verify DB call
         app_instance.database.misc.delete_blocked_destination.assert_called_with(
-            target_hash
+            target_hash,
         )
 
         # Verify RNS unblackhole call
@@ -213,7 +215,7 @@ async def test_get_blackhole_list(mock_rns_minimal, temp_dir):
                 "source": b"\x02" * 32,
                 "until": 1234567890,
                 "reason": "Spam",
-            }
+            },
         }
 
         request = MagicMock()

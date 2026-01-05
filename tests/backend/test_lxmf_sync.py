@@ -1,11 +1,13 @@
+import json
 import shutil
 import tempfile
-import pytest
-import json
 from unittest.mock import MagicMock, patch
-from meshchatx.meshchat import ReticulumMeshChat
-import RNS
+
 import LXMF
+import pytest
+import RNS
+
+from meshchatx.meshchat import ReticulumMeshChat
 
 # Store original constants
 PR_IDLE = LXMF.LXMRouter.PR_IDLE
@@ -48,7 +50,7 @@ def mock_app(temp_dir):
         mock_rns_inst.transport_enabled.return_value = False
 
         with patch(
-            "meshchatx.src.backend.meshchat_utils.LXMRouter"
+            "meshchatx.src.backend.meshchat_utils.LXMRouter",
         ) as mock_utils_router:
             mock_utils_router.PR_IDLE = PR_IDLE
             mock_utils_router.PR_COMPLETE = PR_COMPLETE
@@ -62,7 +64,9 @@ def mock_app(temp_dir):
             app.current_context.message_router = mock_router
 
             with patch.object(
-                app, "send_config_to_websocket_clients", return_value=None
+                app,
+                "send_config_to_websocket_clients",
+                return_value=None,
             ):
                 yield app
 
@@ -117,13 +121,13 @@ async def test_specific_node_hash_validation(mock_app):
     with patch.object(mock_app, "send_config_to_websocket_clients", return_value=None):
         # Set the preferred propagation node
         await mock_app.update_config(
-            {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex}
+            {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex},
         )
 
     # Verify it was set on the router correctly as 16 bytes
     expected_bytes = bytes.fromhex(node_hash_hex)
     mock_app.current_context.message_router.set_outbound_propagation_node.assert_called_with(
-        expected_bytes
+        expected_bytes,
     )
 
     # Trigger sync

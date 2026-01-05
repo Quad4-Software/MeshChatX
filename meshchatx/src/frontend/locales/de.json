@@ -1,4 +1,31 @@
 {
+    "bots": {
+        "title": "LXMFy-Bots",
+        "description": "Verwalten Sie automatisierte Bots für Echo, Notizen und Erinnerungen mit LXMFy.",
+        "bot_framework": "Bot-Framework",
+        "lxmfy_not_detected": "LXMFy nicht erkannt",
+        "lxmfy_not_detected_desc": "Um Bots zu verwenden, müssen Sie das LXMFy-Paket installieren:",
+        "install_via_pip": "Über pip installieren",
+        "create_new_bot": "Neuen Bot erstellen",
+        "running_bots": "Laufende Bots",
+        "no_bots_running": "Derzeit laufen keine Bots.",
+        "select": "Auswählen",
+        "start_bot": "Bot starten",
+        "stop_bot": "Bot stoppen",
+        "restart_bot": "Bot neu starten",
+        "saved_bots": "Gespeicherte Bots",
+        "bot_name": "Bot-Name",
+        "cancel": "Abbrechen",
+        "bot_started": "Bot erfolgreich gestartet",
+        "bot_stopped": "Bot gestoppt",
+        "failed_to_start": "Bot konnte nicht gestartet werden",
+        "failed_to_stop": "Bot konnte nicht gestoppt werden",
+        "delete_bot": "Bot löschen",
+        "export_identity": "Identität exportieren",
+        "bot_deleted": "Bot erfolgreich gelöscht",
+        "failed_to_delete": "Bot konnte nicht gelöscht werden",
+        "more_bots_coming": "Weitere Bots folgen in Kürze!"
+    },
     "app": {
         "name": "Reticulum MeshChatX",
         "sync_messages": "Nachrichten synchronisieren",
@@ -183,7 +210,9 @@
         "shutdown": "Ausschalten",
         "acknowledge_reset": "Bestätigen & Zurücksetzen",
         "confirm": "Bestätigen",
-        "delete_confirm": "Sind Sie sicher, dass Sie dies löschen möchten? Dies kann nicht rückgängig gemacht werden."
+        "delete_confirm": "Sind Sie sicher, dass Sie dies löschen möchten? Dies kann nicht rückgängig gemacht werden.",
+        "search": "Werkzeuge suchen...",
+        "no_results": "Keine Werkzeuge gefunden"
     },
     "identities": {
         "title": "Identitäten",
@@ -665,6 +694,10 @@
         "paper_message": {
             "title": "Papiernachricht",
             "description": "Erstellen und lesen Sie LXMF-signierte Papiernachrichten über QR-Codes."
+        },
+        "bots": {
+            "title": "LXMFy-Bots",
+            "description": "Verwalten Sie automatisierte Bots für Echo, Notizen und Erinnerungen mit LXMFy."
         }
     },
     "ping": {

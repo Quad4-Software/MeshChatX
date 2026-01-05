@@ -516,12 +516,18 @@
                                             :label="$t('call.allow_calls_from_contacts_only')"
                                             @update:model-value="toggleAllowCallsFromContactsOnly"
                                         />
-                                        <Toggle
-                                            id="web-audio-toggle"
-                                            :model-value="config?.telephone_web_audio_enabled"
-                                            label="Browser/Electron Audio"
-                                            @update:model-value="onToggleWebAudio"
-                                        />
+                                        <div class="flex flex-col gap-1">
+                                            <Toggle
+                                                id="web-audio-toggle"
+                                                :model-value="config?.telephone_web_audio_enabled"
+                                                label="Web Audio Bridge"
+                                                @update:model-value="onToggleWebAudio"
+                                            />
+                                            <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
+                                                Web audio bridge allows web/electron to hook into LXST backend for
+                                                passing microphone and audio streams to active telephone calls.
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="flex flex-col gap-2 shrink-0">
                                         <!-- <Toggle
@@ -676,6 +682,7 @@
                                         <div class="relative shrink-0">
                                             <LxmfUserIcon
                                                 :custom-image="
+                                                    entry.contact_image ||
                                                     getContactByHash(entry.remote_identity_hash)?.custom_image
                                                 "
                                                 :icon-name="entry.remote_icon ? entry.remote_icon.icon_name : ''"
@@ -845,18 +852,12 @@
                                     <div class="flex items-center space-x-4">
                                         <div class="shrink-0">
                                             <LxmfUserIcon
-                                                v-if="announce.lxmf_user_icon"
-                                                :icon-name="announce.lxmf_user_icon.icon_name"
-                                                :icon-foreground-colour="announce.lxmf_user_icon.foreground_colour"
-                                                :icon-background-colour="announce.lxmf_user_icon.background_colour"
+                                                :custom-image="announce.contact_image"
+                                                :icon-name="announce.lxmf_user_icon?.icon_name"
+                                                :icon-foreground-colour="announce.lxmf_user_icon?.foreground_colour"
+                                                :icon-background-colour="announce.lxmf_user_icon?.background_colour"
                                                 class="size-10"
                                             />
-                                            <div
-                                                v-else
-                                                class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center font-bold shrink-0"
-                                            >
-                                                {{ (announce.display_name || "A")[0].toUpperCase() }}
-                                            </div>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center justify-between">
@@ -1461,16 +1462,34 @@
                                                 </div>
                                             </div>
                                             <div class="flex items-center justify-between mt-1">
-                                                <span
-                                                    class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
-                                                    :title="contact.remote_identity_hash"
-                                                    @click.stop="copyHash(contact.remote_identity_hash)"
-                                                >
-                                                    {{ formatDestinationHash(contact.remote_identity_hash) }}
-                                                </span>
+                                                <div class="flex flex-col min-w-0">
+                                                    <span
+                                                        class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                                        :title="contact.remote_identity_hash"
+                                                        @click.stop="copyHash(contact.remote_identity_hash)"
+                                                    >
+                                                        ID: {{ formatDestinationHash(contact.remote_identity_hash) }}
+                                                    </span>
+                                                    <span
+                                                        v-if="contact.lxmf_address"
+                                                        class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                                        :title="contact.lxmf_address"
+                                                        @click.stop="copyHash(contact.lxmf_address)"
+                                                    >
+                                                        LXMF: {{ formatDestinationHash(contact.lxmf_address) }}
+                                                    </span>
+                                                    <span
+                                                        v-if="contact.lxst_address"
+                                                        class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate cursor-pointer hover:text-blue-500 transition-colors"
+                                                        :title="contact.lxst_address"
+                                                        @click.stop="copyHash(contact.lxst_address)"
+                                                    >
+                                                        LXST: {{ formatDestinationHash(contact.lxst_address) }}
+                                                    </span>
+                                                </div>
                                                 <button
                                                     type="button"
-                                                    class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                                                    class="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors shrink-0"
                                                     @click="
                                                         destinationHash =
                                                             contact.remote_telephony_hash ||
@@ -2043,6 +2062,34 @@
                             class="input-field font-mono text-sm"
                             placeholder="e.g. a39610c89d18bb48c73e429582423c24"
                         />
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1"
+                            >
+                                {{ $t("app.lxmf_address") }}
+                            </label>
+                            <input
+                                v-model="contactForm.lxmf_address"
+                                type="text"
+                                class="input-field font-mono text-xs"
+                                placeholder="Optional"
+                            />
+                        </div>
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 ml-1"
+                            >
+                                LXST Address
+                            </label>
+                            <input
+                                v-model="contactForm.lxst_address"
+                                type="text"
+                                class="input-field font-mono text-xs"
+                                placeholder="Optional"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label
@@ -2944,6 +2991,8 @@ export default {
             this.contactForm = {
                 name: "",
                 remote_identity_hash: "",
+                lxmf_address: "",
+                lxst_address: "",
                 preferred_ringtone_id: null,
                 custom_image: null,
             };
@@ -2955,6 +3004,8 @@ export default {
                 id: contact.id,
                 name: contact.name,
                 remote_identity_hash: contact.remote_identity_hash,
+                lxmf_address: contact.lxmf_address || "",
+                lxst_address: contact.lxst_address || "",
                 preferred_ringtone_id: contact.preferred_ringtone_id,
                 custom_image: contact.custom_image,
             };

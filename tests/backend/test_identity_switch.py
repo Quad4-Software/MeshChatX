@@ -1,8 +1,9 @@
 import os
 import shutil
 import tempfile
-from unittest.mock import AsyncMock, MagicMock, patch
 from contextlib import ExitStack
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 import RNS
 
@@ -64,17 +65,19 @@ def mock_rns():
         # Mock class methods on MockIdentityClass
         mock_id_instance = MockIdentityClass()
         mock_id_instance.get_private_key = MagicMock(
-            return_value=b"initial_private_key"
+            return_value=b"initial_private_key",
         )
 
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance)
+            patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "recall", return_value=mock_id_instance)
+            patch.object(MockIdentityClass, "recall", return_value=mock_id_instance),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id_instance)
+            patch.object(
+                MockIdentityClass, "from_bytes", return_value=mock_id_instance
+            ),
         )
 
         # Access specifically the ones we need to configure
@@ -118,7 +121,7 @@ async def test_hotswap_identity_success(mock_rns, temp_dir):
     # Mock methods
     app.teardown_identity = MagicMock()
     app.setup_identity = MagicMock(
-        side_effect=lambda id: setattr(app, "current_context", mock_context)
+        side_effect=lambda id: setattr(app, "current_context", mock_context),
     )
     app.websocket_broadcast = AsyncMock()
 
@@ -164,7 +167,7 @@ async def test_hotswap_identity_keep_alive(mock_rns, temp_dir):
     # Mock methods
     app.teardown_identity = MagicMock()
     app.setup_identity = MagicMock(
-        side_effect=lambda id: setattr(app, "current_context", mock_context)
+        side_effect=lambda id: setattr(app, "current_context", mock_context),
     )
     app.websocket_broadcast = AsyncMock()
 

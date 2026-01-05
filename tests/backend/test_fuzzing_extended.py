@@ -29,39 +29,39 @@ def mock_app(temp_dir):
     with ExitStack() as stack:
         stack.enter_context(patch("meshchatx.src.backend.identity_context.Database"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ConfigManager")
+            patch("meshchatx.src.backend.identity_context.ConfigManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler")
+            patch("meshchatx.src.backend.identity_context.MessageHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager")
+            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager")
+            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager")
+            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager")
+            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager")
+            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler")
+            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler")
+            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler")
+            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager")
+            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         )
         stack.enter_context(patch("meshchatx.meshchat.AsyncUtils"))
         stack.enter_context(patch("LXMF.LXMRouter"))
@@ -76,31 +76,37 @@ def mock_app(temp_dir):
         stack.enter_context(patch("threading.Thread"))
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None)
-            )
+                ReticulumMeshChat,
+                "announce_loop",
+                new=MagicMock(return_value=None),
+            ),
         )
         stack.enter_context(
             patch.object(
                 ReticulumMeshChat,
                 "announce_sync_propagation_nodes",
                 new=MagicMock(return_value=None),
-            )
+            ),
         )
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
-            )
+                ReticulumMeshChat,
+                "crawler_loop",
+                new=MagicMock(return_value=None),
+            ),
         )
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "auto_backup_loop", new=MagicMock(return_value=None)
-            )
+                ReticulumMeshChat,
+                "auto_backup_loop",
+                new=MagicMock(return_value=None),
+            ),
         )
 
         mock_id = MockIdentityClass()
         mock_id.get_private_key = MagicMock(return_value=b"test_private_key")
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_file", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_file", return_value=mock_id),
         )
 
         app = ReticulumMeshChat(
@@ -136,9 +142,10 @@ def mock_app(temp_dir):
     data=st.recursive(
         st.one_of(st.none(), st.booleans(), st.floats(), st.text(), st.integers()),
         lambda children: st.one_of(
-            st.lists(children), st.dictionaries(st.text(), children)
+            st.lists(children),
+            st.dictionaries(st.text(), children),
         ),
-    )
+    ),
 )
 @pytest.mark.asyncio
 async def test_websocket_api_recursive_fuzzing(mock_app, data):
@@ -190,7 +197,8 @@ async def test_lxm_uri_parsing_fuzzing(mock_app, uri):
         # Also test it through the websocket interface if it exists there
         mock_client = MagicMock()
         await mock_app.on_websocket_data_received(
-            mock_client, {"type": "lxm.ingest_uri", "uri": uri}
+            mock_client,
+            {"type": "lxm.ingest_uri", "uri": uri},
         )
     except (KeyError, TypeError, ValueError, AttributeError):
         pass
@@ -232,7 +240,8 @@ def test_lxmf_message_construction_fuzzing(mock_app, content, title, fields):
 @given(
     table_name=st.sampled_from(["messages", "announces", "identities", "config"]),
     data=st.dictionaries(
-        st.text(), st.one_of(st.text(), st.integers(), st.binary(), st.none())
+        st.text(),
+        st.one_of(st.text(), st.integers(), st.binary(), st.none()),
     ),
 )
 def test_database_record_fuzzing(mock_app, table_name, data):
@@ -266,10 +275,10 @@ def test_database_record_fuzzing(mock_app, table_name, data):
                 "map_default_lat",
                 "map_default_lon",
                 "lxmf_inbound_stamp_cost",
-            ]
+            ],
         ),
         st.one_of(st.text(), st.integers(), st.booleans(), st.none()),
-    )
+    ),
 )
 @pytest.mark.asyncio
 async def test_config_update_fuzzing(mock_app, config_updates):
@@ -288,7 +297,10 @@ async def test_config_update_fuzzing(mock_app, config_updates):
 @given(destination_hash=st.text(), content=st.text(), title=st.text())
 @pytest.mark.asyncio
 async def test_lxm_generate_paper_uri_fuzzing(
-    mock_app, destination_hash, content, title
+    mock_app,
+    destination_hash,
+    content,
+    title,
 ):
     """Fuzz lxm.generate_paper_uri WebSocket handler."""
     mock_client = MagicMock()
@@ -410,7 +422,10 @@ def test_on_lxmf_delivery_fuzzing(mock_app, content, title):
     app_data=st.binary(min_size=0, max_size=1000),
 )
 def test_on_lxmf_announce_received_fuzzing(
-    mock_app, aspect, destination_hash, app_data
+    mock_app,
+    aspect,
+    destination_hash,
+    app_data,
 ):
     """Fuzz the announce received handler."""
     try:
@@ -457,7 +472,10 @@ def test_telemeter_roundtrip_fuzzing(battery, uptime, load, temperature):
 
     try:
         t = Telemeter(
-            battery=battery, uptime=uptime, load=load, temperature=temperature
+            battery=battery,
+            uptime=uptime,
+            load=load,
+            temperature=temperature,
         )
         packed = t.pack()
         unpacked = Telemeter.from_packed(packed)

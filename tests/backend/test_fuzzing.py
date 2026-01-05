@@ -12,6 +12,11 @@ from hypothesis import strategies as st
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
+from meshchatx.src.backend.lxmf_message_fields import (
+    LxmfAudioField,
+    LxmfFileAttachment,
+    LxmfImageField,
+)
 from meshchatx.src.backend.meshchat_utils import (
     parse_lxmf_display_name,
     parse_nomadnetwork_node_display_name,
@@ -19,11 +24,6 @@ from meshchatx.src.backend.meshchat_utils import (
 from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
     convert_nomadnet_string_data_to_map,
-)
-from meshchatx.src.backend.lxmf_message_fields import (
-    LxmfAudioField,
-    LxmfFileAttachment,
-    LxmfImageField,
 )
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
@@ -122,39 +122,39 @@ def mock_app(temp_dir):
         # Mock database and other managers to avoid heavy initialization
         stack.enter_context(patch("meshchatx.src.backend.identity_context.Database"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ConfigManager")
+            patch("meshchatx.src.backend.identity_context.ConfigManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler")
+            patch("meshchatx.src.backend.identity_context.MessageHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager")
+            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager")
+            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager")
+            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager")
+            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager")
+            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler")
+            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler")
+            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler")
+            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager")
+            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         )
         mock_async_utils = stack.enter_context(patch("meshchatx.meshchat.AsyncUtils"))
         stack.enter_context(patch("LXMF.LXMRouter"))
@@ -171,7 +171,9 @@ def mock_app(temp_dir):
         stack.enter_context(patch("threading.Thread"))
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "announce_loop", new=MagicMock(return_value=None)
+                ReticulumMeshChat,
+                "announce_loop",
+                new=MagicMock(return_value=None),
             ),
         )
         stack.enter_context(
@@ -183,12 +185,16 @@ def mock_app(temp_dir):
         )
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "crawler_loop", new=MagicMock(return_value=None)
+                ReticulumMeshChat,
+                "crawler_loop",
+                new=MagicMock(return_value=None),
             ),
         )
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "auto_backup_loop", new=MagicMock(return_value=None)
+                ReticulumMeshChat,
+                "auto_backup_loop",
+                new=MagicMock(return_value=None),
             ),
         )
 
@@ -196,13 +202,13 @@ def mock_app(temp_dir):
         mock_id.get_private_key = MagicMock(return_value=b"test_private_key")
 
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_file", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_file", return_value=mock_id),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "recall", return_value=mock_id)
+            patch.object(MockIdentityClass, "recall", return_value=mock_id),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id),
         )
 
         # Make run_async a no-op that doesn't trigger coroutine warnings

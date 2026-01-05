@@ -1,13 +1,14 @@
+import html
+import io
 import logging
 import os
 import re
 import shutil
 import threading
 import zipfile
-import io
-import html
 
 import requests
+
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 
 
@@ -46,12 +47,13 @@ class DocsManager:
                 self._update_current_link()
 
         except OSError as e:
-            logging.error(f"Failed to create documentation directories: {e}")
+            logging.exception(f"Failed to create documentation directories: {e}")
             self.last_error = str(e)
 
         # Initial population of MeshChatX docs
         if os.path.exists(self.meshchatx_docs_dir) and os.access(
-            self.meshchatx_docs_dir, os.W_OK
+            self.meshchatx_docs_dir,
+            os.W_OK,
         ):
             self.populate_meshchatx_docs()
 
@@ -115,7 +117,7 @@ class DocsManager:
         version_file = os.path.join(self.docs_dir, ".version")
         if os.path.exists(version_file):
             try:
-                with open(version_file, "r") as f:
+                with open(version_file) as f:
                     return f.read().strip()
             except OSError:
                 pass
@@ -142,7 +144,7 @@ class DocsManager:
         # Project root is 3 levels up
         this_dir = os.path.dirname(os.path.abspath(__file__))
         search_paths.append(
-            os.path.abspath(os.path.join(this_dir, "..", "..", "..", "docs"))
+            os.path.abspath(os.path.join(this_dir, "..", "..", "..", "docs")),
         )
 
         src_docs = None
@@ -163,13 +165,13 @@ class DocsManager:
 
                     # Only copy if source and destination are different
                     if os.path.abspath(src_path) != os.path.abspath(
-                        dest_path
+                        dest_path,
                     ) and os.access(self.meshchatx_docs_dir, os.W_OK):
                         shutil.copy2(src_path, dest_path)
 
                     # Also pre-render to HTML for easy sharing/viewing
                     try:
-                        with open(src_path, "r", encoding="utf-8") as f:
+                        with open(src_path, encoding="utf-8") as f:
                             content = f.read()
 
                         html_content = MarkdownRenderer.render(content)
@@ -199,9 +201,9 @@ class DocsManager:
                         ) as f:
                             f.write(full_html)
                     except Exception as e:
-                        logging.error(f"Failed to render {file} to HTML: {e}")
+                        logging.exception(f"Failed to render {file} to HTML: {e}")
         except Exception as e:
-            logging.error(f"Failed to populate MeshChatX docs: {e}")
+            logging.exception(f"Failed to populate MeshChatX docs: {e}")
 
     def get_status(self):
         return {
@@ -228,15 +230,15 @@ class DocsManager:
         if not os.path.exists(self.meshchatx_docs_dir):
             return docs
 
-        for file in os.listdir(self.meshchatx_docs_dir):
-            if file.endswith((".md", ".txt")):
-                docs.append(
-                    {
-                        "name": file,
-                        "path": file,
-                        "type": "markdown" if file.endswith(".md") else "text",
-                    }
-                )
+        docs.extend(
+            {
+                "name": file,
+                "path": file,
+                "type": "markdown" if file.endswith(".md") else "text",
+            }
+            for file in os.listdir(self.meshchatx_docs_dir)
+            if file.endswith((".md", ".txt"))
+        )
         return sorted(docs, key=lambda x: x["name"])
 
     def get_doc_content(self, path):
@@ -244,7 +246,7 @@ class DocsManager:
         if not os.path.exists(full_path):
             return None
 
-        with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+        with open(full_path, encoding="utf-8", errors="ignore") as f:
             content = f.read()
 
         if path.endswith(".md"):
@@ -253,12 +255,11 @@ class DocsManager:
                 "html": MarkdownRenderer.render(content),
                 "type": "markdown",
             }
-        else:
-            return {
-                "content": content,
-                "html": f"<pre class='whitespace-pre-wrap font-mono'>{html.escape(content)}</pre>",
-                "type": "text",
-            }
+        return {
+            "content": content,
+            "html": f"<pre class='whitespace-pre-wrap font-mono'>{html.escape(content)}</pre>",
+            "type": "text",
+        }
 
     def export_docs(self):
         """Creates a zip of all docs and returns the bytes."""
@@ -269,7 +270,8 @@ class DocsManager:
                 for file in files:
                     file_path = os.path.join(root, file)
                     rel_path = os.path.join(
-                        "reticulum-docs", os.path.relpath(file_path, self.docs_dir)
+                        "reticulum-docs",
+                        os.path.relpath(file_path, self.docs_dir),
                     )
                     zip_file.write(file_path, rel_path)
 
@@ -300,7 +302,9 @@ class DocsManager:
                     file_path = os.path.join(self.meshchatx_docs_dir, file)
                     try:
                         with open(
-                            file_path, "r", encoding="utf-8", errors="ignore"
+                            file_path,
+                            encoding="utf-8",
+                            errors="ignore",
                         ) as f:
                             content = f.read()
                             if query in content.lower():
@@ -320,10 +324,10 @@ class DocsManager:
                                         "path": f"/meshchatx-docs/{file}",
                                         "snippet": snippet,
                                         "source": "MeshChatX",
-                                    }
+                                    },
                                 )
                     except Exception as e:
-                        logging.error(f"Error searching MeshChatX doc {file}: {e}")
+                        logging.exception(f"Error searching MeshChatX doc {file}: {e}")
 
         # 2. Search Reticulum Docs
         if self.has_docs():
@@ -405,7 +409,7 @@ class DocsManager:
                                     "path": f"/reticulum-docs/{rel_path}",
                                     "snippet": snippet,
                                     "source": "Reticulum",
-                                }
+                                },
                             )
 
                             if len(results) >= 25:  # Limit results
@@ -469,7 +473,7 @@ class DocsManager:
                             downloaded_size += len(chunk)
                             if total_size > 0:
                                 self.download_progress = int(
-                                    (downloaded_size / total_size) * 90
+                                    (downloaded_size / total_size) * 90,
                                 )
 
                 # Extract

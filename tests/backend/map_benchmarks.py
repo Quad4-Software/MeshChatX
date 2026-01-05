@@ -1,13 +1,15 @@
+import gc
+import json
 import os
+import random
+import secrets
 import shutil
 import tempfile
 import time
-import random
-import secrets
-import psutil
-import gc
-import json
 from unittest.mock import MagicMock
+
+import psutil
+
 from meshchatx.src.backend.database import Database
 
 
@@ -72,7 +74,9 @@ class MapBenchmarker:
                     )
 
         self.record_benchmark(
-            f"Telemetry Insertion ({count} entries)", run_telemetry, count
+            f"Telemetry Insertion ({count} entries)",
+            run_telemetry,
+            count,
         )
 
     def benchmark_telemetry_retrieval(self, count=100):
@@ -90,7 +94,9 @@ class MapBenchmarker:
                 self.db.telemetry.get_telemetry_history(dest_hash, limit=100)
 
         self.record_benchmark(
-            f"Telemetry History Retrieval ({count} calls)", run_retrieval, count
+            f"Telemetry History Retrieval ({count} calls)",
+            run_retrieval,
+            count,
         )
 
     def benchmark_drawing_storage(self, count=500):
@@ -112,7 +118,7 @@ class MapBenchmarker:
                     }
                     for i in range(100)
                 ],
-            }
+            },
         )
 
         def run_drawings():
@@ -125,7 +131,9 @@ class MapBenchmarker:
                     )
 
         self.record_benchmark(
-            f"Map Drawing Insertion ({count} layers)", run_drawings, count
+            f"Map Drawing Insertion ({count} layers)",
+            run_drawings,
+            count,
         )
 
     def benchmark_drawing_listing(self, count=100):
@@ -154,7 +162,9 @@ class MapBenchmarker:
                 mm.list_mbtiles()
 
         self.record_benchmark(
-            f"MBTiles Listing ({count} calls, 5 files)", run_list, count
+            f"MBTiles Listing ({count} calls, 5 files)",
+            run_list,
+            count,
         )
 
 
@@ -173,7 +183,7 @@ def main():
         print("-" * 80)
         for r in bench.results:
             print(
-                f"{r['name']:40} | {r['duration_ms']:8.2f} ms | {r['memory_growth_mb']:8.2f} MB"
+                f"{r['name']:40} | {r['duration_ms']:8.2f} ms | {r['memory_growth_mb']:8.2f} MB",
             )
         print("=" * 80)
 

@@ -45,7 +45,9 @@ def mock_rns():
             new=MagicMock(return_value=None),
         ),
         patch.object(
-            ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
+            ReticulumMeshChat,
+            "send_config_to_websocket_clients",
+            return_value=None,
         ),
     ):
         # Setup mock instance
@@ -57,10 +59,14 @@ def mock_rns():
             patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance),
             patch.object(MockIdentityClass, "recall", return_value=mock_id_instance),
             patch.object(
-                MockIdentityClass, "from_bytes", return_value=mock_id_instance
+                MockIdentityClass,
+                "from_bytes",
+                return_value=mock_id_instance,
             ),
             patch.object(
-                MockIdentityClass, "full_hash", return_value=b"full_hash_bytes"
+                MockIdentityClass,
+                "full_hash",
+                return_value=b"full_hash_bytes",
             ),
         ):
             # Setup mock transport
@@ -263,7 +269,7 @@ async def test_hotswap_identity(mock_rns, temp_dir):
     with (
         patch("meshchatx.src.backend.identity_context.Database"),
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager"
+            "meshchatx.src.backend.identity_context.ConfigManager",
         ) as mock_config_class,
         patch("meshchatx.src.backend.identity_context.MessageHandler"),
         patch("meshchatx.src.backend.identity_context.AnnounceManager"),

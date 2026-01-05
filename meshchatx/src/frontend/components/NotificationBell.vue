@@ -24,13 +24,23 @@
                 <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
                     <div class="flex items-center justify-between">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                        <button
-                            type="button"
-                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                            @click="closeDropdown"
-                        >
-                            <MaterialDesignIcon icon-name="close" class="w-5 h-5" />
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button
+                                v-if="notifications.length > 0"
+                                type="button"
+                                class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                                @click.stop="clearAllNotifications"
+                            >
+                                Clear
+                            </button>
+                            <button
+                                type="button"
+                                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                @click="closeDropdown"
+                            >
+                                <MaterialDesignIcon icon-name="close" class="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -139,6 +149,7 @@ export default {
             },
         },
     },
+    emits: ["notifications-cleared"],
     data() {
         return {
             isDropdownOpen: false,
@@ -231,6 +242,37 @@ export default {
                 });
             } catch (e) {
                 console.error("Failed to mark notifications as viewed", e);
+            }
+        },
+        async clearAllNotifications() {
+            try {
+                await window.axios.post("/api/v1/notifications/mark-as-viewed", {
+                    destination_hashes: [],
+                    notification_ids: [],
+                });
+
+                const response = await window.axios.get("/api/v1/lxmf/conversations");
+                const conversations = response.data.conversations || [];
+
+                for (const conversation of conversations) {
+                    if (conversation.is_unread) {
+                        try {
+                            await window.axios.get(
+                                `/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`
+                            );
+                        } catch (e) {
+                            console.error(`Failed to mark conversation as read: ${conversation.destination_hash}`, e);
+                        }
+                    }
+                }
+
+                const GlobalState = (await import("../js/GlobalState")).default;
+                GlobalState.unreadConversationsCount = 0;
+
+                await this.loadNotifications();
+                this.$emit("notifications-cleared");
+            } catch (e) {
+                console.error("Failed to clear notifications", e);
             }
         },
         onNotificationClick(notification) {

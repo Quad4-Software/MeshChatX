@@ -60,6 +60,8 @@ class ConfigManager:
             "lxmf_preferred_propagation_node_last_synced_at",
             None,
         )
+        self.lxmf_address_hash = self.StringConfig(self, "lxmf_address_hash", None)
+        self.lxst_address_hash = self.StringConfig(self, "lxst_address_hash", None)
         self.lxmf_local_propagation_node_enabled = self.BoolConfig(
             self,
             "lxmf_local_propagation_node_enabled",
@@ -119,7 +121,9 @@ class ConfigManager:
             False,
         )
         self.gitea_base_url = self.StringConfig(
-            self, "gitea_base_url", "https://git.quad4.io"
+            self,
+            "gitea_base_url",
+            "https://git.quad4.io",
         )
         self.docs_download_urls = self.StringConfig(
             self,
@@ -159,7 +163,9 @@ class ConfigManager:
         self.voicemail_tts_speed = self.IntConfig(self, "voicemail_tts_speed", 130)
         self.voicemail_tts_pitch = self.IntConfig(self, "voicemail_tts_pitch", 45)
         self.voicemail_tts_voice = self.StringConfig(
-            self, "voicemail_tts_voice", "en-us+f3"
+            self,
+            "voicemail_tts_voice",
+            "en-us+f3",
         )
         self.voicemail_tts_word_gap = self.IntConfig(self, "voicemail_tts_word_gap", 5)
 

@@ -630,6 +630,7 @@ export default {
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
     },
     mounted() {
         // listen for websocket messages
@@ -649,6 +650,8 @@ export default {
         GlobalEmitter.on("sync-propagation-node", () => {
             this.syncPropagationNode();
         });
+
+        GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
 
         GlobalEmitter.on("keyboard-shortcut", (action) => {
             this.handleKeyboardShortcut(action);
@@ -691,6 +694,12 @@ export default {
         }, 15000);
     },
     methods: {
+        onConfigUpdatedExternally(newConfig) {
+            if (!newConfig) return;
+            this.config = newConfig;
+            GlobalState.config = newConfig;
+            this.displayName = newConfig.display_name;
+        },
         applyThemePreference(theme) {
             const mode = theme === "dark" ? "dark" : "light";
             if (typeof document !== "undefined") {

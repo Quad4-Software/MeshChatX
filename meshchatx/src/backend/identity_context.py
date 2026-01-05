@@ -1,28 +1,31 @@
-import os
 import asyncio
+import os
 import threading
+
 import RNS
-from meshchatx.src.backend.database import Database
-from meshchatx.src.backend.integrity_manager import IntegrityManager
-from meshchatx.src.backend.config_manager import ConfigManager
-from meshchatx.src.backend.message_handler import MessageHandler
+
+from meshchatx.src.backend.announce_handler import AnnounceHandler
 from meshchatx.src.backend.announce_manager import AnnounceManager
 from meshchatx.src.backend.archiver_manager import ArchiverManager
-from meshchatx.src.backend.map_manager import MapManager
+from meshchatx.src.backend.bot_handler import BotHandler
+from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
+from meshchatx.src.backend.config_manager import ConfigManager
+from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.docs_manager import DocsManager
+from meshchatx.src.backend.forwarding_manager import ForwardingManager
+from meshchatx.src.backend.integrity_manager import IntegrityManager
+from meshchatx.src.backend.map_manager import MapManager
+from meshchatx.src.backend.meshchat_utils import create_lxmf_router
+from meshchatx.src.backend.message_handler import MessageHandler
 from meshchatx.src.backend.nomadnet_utils import NomadNetworkManager
-from meshchatx.src.backend.telephone_manager import TelephoneManager
-from meshchatx.src.backend.voicemail_manager import VoicemailManager
 from meshchatx.src.backend.ringtone_manager import RingtoneManager
 from meshchatx.src.backend.rncp_handler import RNCPHandler
-from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 from meshchatx.src.backend.rnpath_handler import RNPathHandler
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
+from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+from meshchatx.src.backend.telephone_manager import TelephoneManager
 from meshchatx.src.backend.translator_handler import TranslatorHandler
-from meshchatx.src.backend.forwarding_manager import ForwardingManager
-from meshchatx.src.backend.meshchat_utils import create_lxmf_router
-from meshchatx.src.backend.announce_handler import AnnounceHandler
-from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
+from meshchatx.src.backend.voicemail_manager import VoicemailManager
 
 
 class IdentityContext:
@@ -71,12 +74,15 @@ class IdentityContext:
         self.rnstatus_handler = None
         self.rnprobe_handler = None
         self.translator_handler = None
+        self.bot_handler = None
         self.forwarding_manager = None
         self.community_interfaces_manager = None
         self.local_lxmf_destination = None
         self.announce_handlers = []
         self.integrity_manager = IntegrityManager(
-            self.storage_path, self.database_path, self.identity_hash
+            self.storage_path,
+            self.database_path,
+            self.identity_hash,
         )
 
         self.running = False
@@ -102,7 +108,7 @@ class IdentityContext:
             is_ok, issues = self.integrity_manager.check_integrity()
             if not is_ok:
                 print(
-                    f"INTEGRITY WARNING for {self.identity_hash}: {', '.join(issues)}"
+                    f"INTEGRITY WARNING for {self.identity_hash}: {', '.join(issues)}",
                 )
                 if not hasattr(self.app, "integrity_issues"):
                     self.app.integrity_issues = []
@@ -120,7 +126,7 @@ class IdentityContext:
             if not self.app.auto_recover and not getattr(self.app, "emergency", False):
                 raise
             print(
-                f"Database initialization failed for {self.identity_hash}, attempting recovery: {exc}"
+                f"Database initialization failed for {self.identity_hash}, attempting recovery: {exc}",
             )
             if not getattr(self.app, "emergency", False):
                 self.app._run_startup_auto_recovery()
@@ -151,8 +157,8 @@ class IdentityContext:
             self.app.get_public_path(),
             project_root=os.path.dirname(
                 os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                )
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                ),
             ),
             storage_dir=self.storage_path,
         )
@@ -197,7 +203,7 @@ class IdentityContext:
 
         # Register delivery callback
         self.message_router.register_delivery_callback(
-            lambda msg: self.app.on_lxmf_delivery(msg, context=self)
+            lambda msg: self.app.on_lxmf_delivery(msg, context=self),
         )
 
         # 5. Initialize Handlers and Managers
@@ -224,6 +230,15 @@ class IdentityContext:
             enabled=translator_enabled,
         )
 
+        self.bot_handler = BotHandler(
+            identity_path=self.storage_path,
+            config_manager=self.config,
+        )
+        try:
+            self.bot_handler.restore_enabled_bots()
+        except Exception as exc:
+            print(f"Failed to restore bots: {exc}")
+
         # Initialize managers
         self.telephone_manager = TelephoneManager(
             self.identity,
@@ -236,17 +251,19 @@ class IdentityContext:
         )
         self.telephone_manager.on_initiation_status_callback = (
             lambda status, target: self.app.on_telephone_initiation_status(
-                status, target, context=self
+                status,
+                target,
+                context=self,
             )
         )
         self.telephone_manager.register_ringing_callback(
-            lambda call: self.app.on_incoming_telephone_call(call, context=self)
+            lambda call: self.app.on_incoming_telephone_call(call, context=self),
         )
         self.telephone_manager.register_established_callback(
-            lambda call: self.app.on_telephone_call_established(call, context=self)
+            lambda call: self.app.on_telephone_call_established(call, context=self),
         )
         self.telephone_manager.register_ended_callback(
-            lambda call: self.app.on_telephone_call_ended(call, context=self)
+            lambda call: self.app.on_telephone_call_ended(call, context=self),
         )
 
         # Only initialize telephone hardware/profile if not in emergency mode
@@ -287,7 +304,7 @@ class IdentityContext:
         ):
             if not self.docs_manager.has_docs():
                 print(
-                    f"Triggering initial documentation download for {self.identity_hash}..."
+                    f"Triggering initial documentation download for {self.identity_hash}...",
                 )
                 self.docs_manager.update_docs()
             self.config.initial_docs_download_attempted.set(True)
@@ -338,13 +355,23 @@ class IdentityContext:
             AnnounceHandler(
                 "lxst.telephony",
                 lambda aspect, dh, ai, ad, aph: self.app.on_telephone_announce_received(
-                    aspect, dh, ai, ad, aph, context=self
+                    aspect,
+                    dh,
+                    ai,
+                    ad,
+                    aph,
+                    context=self,
                 ),
             ),
             AnnounceHandler(
                 "lxmf.delivery",
                 lambda aspect, dh, ai, ad, aph: self.app.on_lxmf_announce_received(
-                    aspect, dh, ai, ad, aph, context=self
+                    aspect,
+                    dh,
+                    ai,
+                    ad,
+                    aph,
+                    context=self,
                 ),
             ),
             AnnounceHandler(
@@ -354,7 +381,12 @@ class IdentityContext:
                 ai,
                 ad,
                 aph: self.app.on_lxmf_propagation_announce_received(
-                    aspect, dh, ai, ad, aph, context=self
+                    aspect,
+                    dh,
+                    ai,
+                    ad,
+                    aph,
+                    context=self,
                 ),
             ),
             AnnounceHandler(
@@ -364,7 +396,12 @@ class IdentityContext:
                 ai,
                 ad,
                 aph: self.app.on_nomadnet_node_announce_received(
-                    aspect, dh, ai, ad, aph, context=self
+                    aspect,
+                    dh,
+                    ai,
+                    ad,
+                    aph,
+                    context=self,
                 ),
             ),
         ]
@@ -389,7 +426,7 @@ class IdentityContext:
             if self.message_router:
                 if hasattr(self.message_router, "delivery_destinations"):
                     for dest_hash in list(
-                        self.message_router.delivery_destinations.keys()
+                        self.message_router.delivery_destinations.keys(),
                     ):
                         dest = self.message_router.delivery_destinations[dest_hash]
                         RNS.Transport.deregister_destination(dest)
@@ -399,7 +436,7 @@ class IdentityContext:
                     and self.message_router.propagation_destination
                 ):
                     RNS.Transport.deregister_destination(
-                        self.message_router.propagation_destination
+                        self.message_router.propagation_destination,
                     )
 
             if self.telephone_manager and self.telephone_manager.telephone:
@@ -408,7 +445,7 @@ class IdentityContext:
                     and self.telephone_manager.telephone.destination
                 ):
                     RNS.Transport.deregister_destination(
-                        self.telephone_manager.telephone.destination
+                        self.telephone_manager.telephone.destination,
                     )
 
             self.app.cleanup_rns_state_for_identity(self.identity.hash)
@@ -423,7 +460,7 @@ class IdentityContext:
                     self.message_router.exit_handler()
             except Exception as e:
                 print(
-                    f"Error while tearing down LXMRouter for {self.identity_hash}: {e}"
+                    f"Error while tearing down LXMRouter for {self.identity_hash}: {e}",
                 )
 
         # 4. Stop telephone and voicemail
@@ -432,8 +469,14 @@ class IdentityContext:
                 self.telephone_manager.teardown()
             except Exception as e:
                 print(
-                    f"Error while tearing down telephone for {self.identity_hash}: {e}"
+                    f"Error while tearing down telephone for {self.identity_hash}: {e}",
                 )
+
+        if self.bot_handler:
+            try:
+                self.bot_handler.stop_all()
+            except Exception as e:
+                print(f"Error while stopping bots for {self.identity_hash}: {e}")
 
         if self.database:
             try:
@@ -441,7 +484,7 @@ class IdentityContext:
                 self.database._checkpoint_and_close()
             except Exception as e:
                 print(
-                    f"Error closing database during teardown for {self.identity_hash}: {e}"
+                    f"Error closing database during teardown for {self.identity_hash}: {e}",
                 )
 
             # 2. Save integrity manifest AFTER closing to capture final stable state

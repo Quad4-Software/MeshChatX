@@ -64,7 +64,8 @@ class PersistentLogHandler(logging.Handler):
         # Regex to extract IP and User-Agent from aiohttp access log
         # Format: IP [date] "GET ..." status size "referer" "User-Agent"
         match = re.search(
-            r"^([\d\.\:]+) .* \"[^\"]+\" \d+ \d+ \"[^\"]*\" \"([^\"]+)\"", message
+            r"^([\d\.\:]+) .* \"[^\"]+\" \d+ \d+ \"[^\"]*\" \"([^\"]+)\"",
+            message,
         )
         if match:
             ip = match.group(1)
@@ -180,7 +181,13 @@ class PersistentLogHandler(logging.Handler):
             self.flush_lock.release()
 
     def get_logs(
-        self, limit=100, offset=0, search=None, level=None, module=None, is_anomaly=None
+        self,
+        limit=100,
+        offset=0,
+        search=None,
+        level=None,
+        module=None,
+        is_anomaly=None,
     ):
         if self.database:
             # Flush current buffer first to ensure we have latest logs
@@ -196,34 +203,33 @@ class PersistentLogHandler(logging.Handler):
                     module=module,
                     is_anomaly=is_anomaly,
                 )
-            else:
-                # Fallback to in-memory buffer if DB not yet available
-                logs = list(self.logs_buffer)
-                if search:
-                    logs = [
-                        log
-                        for log in logs
-                        if search.lower() in log["message"].lower()
-                        or search.lower() in log["module"].lower()
-                    ]
-                if level:
-                    logs = [log for log in logs if log["level"] == level]
-                if is_anomaly is not None:
-                    logs = [
-                        log
-                        for log in logs
-                        if log["is_anomaly"] == (1 if is_anomaly else 0)
-                    ]
+            # Fallback to in-memory buffer if DB not yet available
+            logs = list(self.logs_buffer)
+            if search:
+                logs = [
+                    log
+                    for log in logs
+                    if search.lower() in log["message"].lower()
+                    or search.lower() in log["module"].lower()
+                ]
+            if level:
+                logs = [log for log in logs if log["level"] == level]
+            if is_anomaly is not None:
+                logs = [
+                    log for log in logs if log["is_anomaly"] == (1 if is_anomaly else 0)
+                ]
 
-                # Sort descending
-                logs.sort(key=lambda x: x["timestamp"], reverse=True)
-                return logs[offset : offset + limit]
+            # Sort descending
+            logs.sort(key=lambda x: x["timestamp"], reverse=True)
+            return logs[offset : offset + limit]
 
     def get_total_count(self, search=None, level=None, module=None, is_anomaly=None):
         with self.lock:
             if self.database:
                 return self.database.debug_logs.get_total_count(
-                    search=search, level=level, module=module, is_anomaly=is_anomaly
+                    search=search,
+                    level=level,
+                    module=module,
+                    is_anomaly=is_anomaly,
                 )
-            else:
-                return len(self.logs_buffer)
+            return len(self.logs_buffer)

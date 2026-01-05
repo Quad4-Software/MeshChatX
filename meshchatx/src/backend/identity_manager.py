@@ -50,7 +50,7 @@ class IdentityManager:
             metadata = None
             if os.path.exists(metadata_path):
                 try:
-                    with open(metadata_path, "r") as f:
+                    with open(metadata_path) as f:
                         metadata = json.load(f)
                 except Exception:
                     pass
@@ -62,10 +62,10 @@ class IdentityManager:
                         "display_name": metadata.get("display_name", "Anonymous Peer"),
                         "icon_name": metadata.get("icon_name"),
                         "icon_foreground_colour": metadata.get(
-                            "icon_foreground_colour"
+                            "icon_foreground_colour",
                         ),
                         "icon_background_colour": metadata.get(
-                            "icon_background_colour"
+                            "icon_background_colour",
                         ),
                         "lxmf_address": metadata.get("lxmf_address"),
                         "lxst_address": metadata.get("lxst_address"),
@@ -137,14 +137,17 @@ class IdentityManager:
 
     def create_identity(self, display_name=None):
         new_identity = RNS.Identity(create_keys=True)
-        identity_hash = new_identity.hash.hex()
+        return self._save_new_identity(new_identity, display_name or "Anonymous Peer")
+
+    def _save_new_identity(self, identity, display_name):
+        identity_hash = identity.hash.hex()
 
         identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
         os.makedirs(identity_dir, exist_ok=True)
 
         identity_file = os.path.join(identity_dir, "identity")
         with open(identity_file, "wb") as f:
-            f.write(new_identity.get_private_key())
+            f.write(identity.get_private_key())
 
         db_path = os.path.join(identity_dir, "database.db")
 
@@ -160,7 +163,7 @@ class IdentityManager:
 
         # Save metadata
         metadata = {
-            "display_name": display_name or "Anonymous Peer",
+            "display_name": display_name,
             "icon_name": None,
             "icon_foreground_colour": None,
             "icon_background_colour": None,
@@ -171,7 +174,7 @@ class IdentityManager:
 
         return {
             "hash": identity_hash,
-            "display_name": display_name or "Anonymous Peer",
+            "display_name": display_name,
         }
 
     def update_metadata_cache(self, identity_hash: str, metadata: dict):
@@ -185,7 +188,7 @@ class IdentityManager:
         existing_metadata = {}
         if os.path.exists(metadata_path):
             try:
-                with open(metadata_path, "r") as f:
+                with open(metadata_path) as f:
                     existing_metadata = json.load(f)
             except Exception:
                 pass
@@ -206,20 +209,20 @@ class IdentityManager:
         return False
 
     def restore_identity_from_bytes(self, identity_bytes: bytes) -> dict:
-        target_path = self.identity_file_path or os.path.join(
-            self.storage_dir,
-            "identity",
-        )
-        os.makedirs(os.path.dirname(target_path), exist_ok=True)
-        with open(target_path, "wb") as f:
-            f.write(identity_bytes)
-        return {"path": target_path, "size": os.path.getsize(target_path)}
+        try:
+            # We use RNS.Identity.from_bytes to validate and get the hash
+            identity = RNS.Identity.from_bytes(identity_bytes)
+            if not identity:
+                raise ValueError("Could not load identity from bytes")
+
+            return self._save_new_identity(identity, "Restored Identity")
+        except Exception as exc:
+            raise ValueError(f"Failed to restore identity: {exc}")
 
     def restore_identity_from_base32(self, base32_value: str) -> dict:
         try:
             identity_bytes = base64.b32decode(base32_value, casefold=True)
+            return self.restore_identity_from_bytes(identity_bytes)
         except Exception as exc:
             msg = f"Invalid base32 identity: {exc}"
             raise ValueError(msg) from exc
-
-        return self.restore_identity_from_bytes(identity_bytes)

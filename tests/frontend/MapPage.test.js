@@ -45,6 +45,10 @@ vi.mock("ol/Map", () => ({
         forEachFeatureAtPixel: vi.fn(),
         setTarget: vi.fn(),
         updateSize: vi.fn(),
+        getViewport: vi.fn().mockReturnValue({
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }),
     })),
 }));
 
@@ -63,6 +67,7 @@ vi.mock("ol/source/Vector", () => ({
         addFeature: vi.fn(),
         addFeatures: vi.fn(),
         getFeatures: vi.fn().mockReturnValue([]),
+        on: vi.fn(),
     })),
 }));
 vi.mock("ol/proj", () => ({
@@ -75,11 +80,30 @@ vi.mock("ol/control", () => ({
 vi.mock("ol/interaction/Draw", () => ({
     default: vi.fn().mockImplementation(() => ({
         on: vi.fn(),
+        setActive: vi.fn(),
     })),
 }));
 vi.mock("ol/interaction/Modify", () => ({
     default: vi.fn().mockImplementation(() => ({
         on: vi.fn(),
+        setActive: vi.fn(),
+    })),
+}));
+vi.mock("ol/interaction/Select", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+        setActive: vi.fn(),
+        getFeatures: vi.fn().mockReturnValue({
+            getArray: vi.fn().mockReturnValue([]),
+            clear: vi.fn(),
+            push: vi.fn(),
+        }),
+    })),
+}));
+vi.mock("ol/interaction/Translate", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+        setActive: vi.fn(),
     })),
 }));
 vi.mock("ol/interaction/Snap", () => ({
@@ -105,6 +129,29 @@ vi.mock("ol/format/GeoJSON", () => ({
         writeFeatures: vi.fn().mockReturnValue('{"type":"FeatureCollection","features":[]}'),
         readFeatures: vi.fn().mockReturnValue([]),
     })),
+}));
+vi.mock("ol/style", () => ({
+    Style: vi.fn().mockImplementation(() => ({})),
+    Text: vi.fn().mockImplementation(() => ({})),
+    Fill: vi.fn().mockImplementation(() => ({})),
+    Stroke: vi.fn().mockImplementation(() => ({})),
+    Circle: vi.fn().mockImplementation(() => ({})),
+    Icon: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock("ol/sphere", () => ({
+    getArea: vi.fn(),
+    getLength: vi.fn(),
+}));
+vi.mock("ol/geom", () => ({
+    LineString: vi.fn(),
+    Polygon: vi.fn(),
+    Circle: vi.fn(),
+}));
+vi.mock("ol/geom/Polygon", () => ({
+    fromCircle: vi.fn(),
+}));
+vi.mock("ol/Observable", () => ({
+    unByKey: vi.fn(),
 }));
 
 import MapPage from "@/components/map/MapPage.vue";

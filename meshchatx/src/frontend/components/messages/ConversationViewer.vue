@@ -180,6 +180,18 @@
                                 <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate">
                                     {{ contact.remote_identity_hash }}
                                 </div>
+                                <div
+                                    v-if="contact.lxmf_address"
+                                    class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate"
+                                >
+                                    LXMF: {{ contact.lxmf_address }}
+                                </div>
+                                <div
+                                    v-if="contact.lxst_address"
+                                    class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate"
+                                >
+                                    LXST: {{ contact.lxst_address }}
+                                </div>
                             </div>
                         </button>
                     </div>
@@ -264,11 +276,17 @@
                                         <span class="text-sm font-bold">Contact Shared</span>
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <div
-                                            class="size-10 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-200 font-bold"
-                                        >
-                                            {{ getParsedItems(chatItem).contact.name.charAt(0).toUpperCase() }}
-                                        </div>
+                                        <LxmfUserIcon
+                                            :custom-image="getParsedItems(chatItem).contact.custom_image"
+                                            :icon-name="getParsedItems(chatItem).contact.lxmf_user_icon?.icon_name"
+                                            :icon-foreground-colour="
+                                                getParsedItems(chatItem).contact.lxmf_user_icon?.foreground_colour
+                                            "
+                                            :icon-background-colour="
+                                                getParsedItems(chatItem).contact.lxmf_user_icon?.background_colour
+                                            "
+                                            icon-class="size-10"
+                                        />
                                         <div class="flex-1 min-w-0">
                                             <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
                                                 {{ getParsedItems(chatItem).contact.name }}
@@ -278,6 +296,18 @@
                                             >
                                                 {{ getParsedItems(chatItem).contact.hash }}
                                             </div>
+                                            <div
+                                                v-if="getParsedItems(chatItem).contact.lxmf_address"
+                                                class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                            >
+                                                LXMF: {{ getParsedItems(chatItem).contact.lxmf_address }}
+                                            </div>
+                                            <div
+                                                v-if="getParsedItems(chatItem).contact.lxst_address"
+                                                class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                            >
+                                                LXST: {{ getParsedItems(chatItem).contact.lxst_address }}
+                                            </div>
                                         </div>
                                     </div>
                                     <button
@@ -286,7 +316,9 @@
                                         @click="
                                             addContact(
                                                 getParsedItems(chatItem).contact.name,
-                                                getParsedItems(chatItem).contact.hash
+                                                getParsedItems(chatItem).contact.hash,
+                                                getParsedItems(chatItem).contact.lxmf_address,
+                                                getParsedItems(chatItem).contact.lxst_address
                                             )
                                         "
                                     >
@@ -1858,12 +1890,30 @@ export default {
                 paperMessage: null,
             };
 
-            // Parse contact: Contact: ivan <ca314c30b27eacec5f6ca6ac504e94c9>
-            const contactMatch = content.match(/^Contact:\s+(.+?)\s+<([a-fA-F0-9]{32})>$/i);
+            // Parse contact: Contact: ivan <ca314c30b27eacec5f6ca6ac504e94c9> [LXMF: ...] [LXST: ...]
+            const contactMatch = content.match(
+                /^Contact:\s+(.+?)\s+<([a-fA-F0-9]{32})>(?:\s+\[LXMF:\s+([a-fA-F0-9]{32})\])?(?:\s+\[LXST:\s+([a-fA-F0-9]{32})\])?/i
+            );
             if (contactMatch) {
+                const contactHash = contactMatch[2];
+                const lxmfAddress = contactMatch[3];
+                const lxstAddress = contactMatch[4];
+
+                // try to find enriched info from existing conversations/peers
+                const existing = this.conversations.find(
+                    (c) =>
+                        c.destination_hash === contactHash ||
+                        c.destination_hash === lxmfAddress ||
+                        c.destination_hash === lxstAddress
+                );
+
                 items.contact = {
                     name: contactMatch[1],
-                    hash: contactMatch[2],
+                    hash: contactHash,
+                    lxmf_address: lxmfAddress,
+                    lxst_address: lxstAddress,
+                    custom_image: existing?.contact_image,
+                    lxmf_user_icon: existing?.lxmf_user_icon,
                 };
             }
 
@@ -1881,7 +1931,7 @@ export default {
 
             return items;
         },
-        async addContact(name, hash) {
+        async addContact(name, hash, lxmf_address = null, lxst_address = null) {
             try {
                 // Check if contact already exists
                 const checkResponse = await window.axios.get(`/api/v1/telephone/contacts/check/${hash}`);
@@ -1893,6 +1943,8 @@ export default {
                 await window.axios.post("/api/v1/telephone/contacts", {
                     name: name,
                     remote_identity_hash: hash,
+                    lxmf_address: lxmf_address,
+                    lxst_address: lxst_address,
                 });
                 ToastUtils.success(`Added ${name} to contacts`);
             } catch (e) {
@@ -2539,10 +2591,13 @@ export default {
                 ToastUtils.error("Failed to load contacts");
             }
         },
-        async shareContact(contact) {
-            this.newMessageText = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
+        shareContact(contact) {
+            let sharedString = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
+            if (contact.lxmf_address) sharedString += ` [LXMF: ${contact.lxmf_address}]`;
+            if (contact.lxst_address) sharedString += ` [LXST: ${contact.lxst_address}]`;
+            this.newMessageText = sharedString;
             this.isShareContactModalOpen = false;
-            await this.sendMessage();
+            this.sendMessage();
         },
         shareAsPaperMessage(chatItem) {
             this.paperMessageHash = chatItem.lxmf_message.hash;

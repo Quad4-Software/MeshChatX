@@ -52,28 +52,37 @@ class AnnounceManager:
         limit=None,
         offset=0,
     ):
-        sql = "SELECT * FROM announces WHERE 1=1"
+        sql = """
+            SELECT a.*, c.custom_image as contact_image 
+            FROM announces a
+            LEFT JOIN contacts c ON (
+                a.identity_hash = c.remote_identity_hash OR 
+                a.destination_hash = c.lxmf_address OR 
+                a.destination_hash = c.lxst_address
+            )
+            WHERE 1=1
+        """
         params = []
 
         if aspect:
-            sql += " AND aspect = ?"
+            sql += " AND a.aspect = ?"
             params.append(aspect)
         if identity_hash:
-            sql += " AND identity_hash = ?"
+            sql += " AND a.identity_hash = ?"
             params.append(identity_hash)
         if destination_hash:
-            sql += " AND destination_hash = ?"
+            sql += " AND a.destination_hash = ?"
             params.append(destination_hash)
         if query:
             like_term = f"%{query}%"
-            sql += " AND (destination_hash LIKE ? OR identity_hash LIKE ?)"
+            sql += " AND (a.destination_hash LIKE ? OR a.identity_hash LIKE ?)"
             params.extend([like_term, like_term])
         if blocked_identity_hashes:
             placeholders = ", ".join(["?"] * len(blocked_identity_hashes))
-            sql += f" AND identity_hash NOT IN ({placeholders})"
+            sql += f" AND a.identity_hash NOT IN ({placeholders})"
             params.extend(blocked_identity_hashes)
 
-        sql += " ORDER BY updated_at DESC"
+        sql += " ORDER BY a.updated_at DESC"
 
         if limit is not None:
             sql += " LIMIT ? OFFSET ?"

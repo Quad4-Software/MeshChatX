@@ -120,7 +120,115 @@
                     <div class="text-sm">{{ $t("interfaces.no_interfaces_description") }}</div>
                 </div>
 
-                <div v-else class="grid gap-4 xl:grid-cols-2">
+                <div class="glass-card space-y-4">
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="flex-1">
+                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                Discovery
+                            </div>
+                            <div class="text-xl font-semibold text-gray-900 dark:text-white">Interface Discovery</div>
+                            <div class="text-sm text-gray-600 dark:text-gray-300">
+                                Publish your interfaces for others to find, or listen for announced entrypoints and
+                                auto-connect to them.
+                            </div>
+                        </div>
+                        <RouterLink :to="{ name: 'interfaces.add' }" class="secondary-chip text-sm">
+                            <MaterialDesignIcon icon-name="lan" class="w-4 h-4" />
+                            Configure Per-Interface
+                        </RouterLink>
+                    </div>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                            <div class="font-semibold text-gray-900 dark:text-white">Publish (Server)</div>
+                            <div>
+                                Enable discovery while adding or editing an interface to broadcast reachable details.
+                                Reticulum will sign and stamp announces automatically.
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                Requires LXMF in the Python environment. Transport is optional for publishing, but
+                                usually recommended so peers can connect back.
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <div class="flex flex-col mr-auto">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                        Discover Interfaces (Peer)
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        Listen for discovery announces and optionally auto-connect to available
+                                        interfaces.
+                                    </div>
+                                </div>
+                                <Toggle v-model="discoveryConfig.discover_interfaces" class="my-auto mx-2" />
+                            </div>
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                <div>
+                                    <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                        Allowed Sources
+                                    </div>
+                                    <input
+                                        v-model="discoveryConfig.interface_discovery_sources"
+                                        type="text"
+                                        placeholder="Comma separated identity hashes"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div>
+                                    <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                        Required Stamp Value
+                                    </div>
+                                    <input
+                                        v-model.number="discoveryConfig.required_discovery_value"
+                                        type="number"
+                                        min="0"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div>
+                                    <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                        Auto-connect Slots
+                                    </div>
+                                    <input
+                                        v-model.number="discoveryConfig.autoconnect_discovered_interfaces"
+                                        type="number"
+                                        min="0"
+                                        class="input-field"
+                                    />
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">0 disables auto-connect.</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                        Network Identity Path
+                                    </div>
+                                    <input
+                                        v-model="discoveryConfig.network_identity"
+                                        type="text"
+                                        placeholder="~/.reticulum/storage/identities/..."
+                                        class="input-field"
+                                    />
+                                </div>
+                            </div>
+                            <div class="flex justify-end">
+                                <button
+                                    type="button"
+                                    class="primary-chip text-xs"
+                                    :disabled="savingDiscovery"
+                                    @click="saveDiscoveryConfig"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="savingDiscovery ? 'progress-clock' : 'content-save'"
+                                        class="w-4 h-4"
+                                        :class="{ 'animate-spin-reverse': savingDiscovery }"
+                                    />
+                                    <span class="ml-1">Save Discovery Settings</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="filteredInterfaces.length !== 0" class="grid gap-4 xl:grid-cols-2">
                     <Interface
                         v-for="iface of filteredInterfaces"
                         :key="iface._name"
@@ -150,10 +258,12 @@ import DownloadUtils from "../../js/DownloadUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import GlobalState from "../../js/GlobalState";
+import Toggle from "../forms/Toggle.vue";
 
 export default {
     name: "InterfacesPage",
     components: {
+        Toggle,
         ImportInterfacesModal,
         Interface,
         MaterialDesignIcon,
@@ -168,6 +278,14 @@ export default {
             typeFilter: "all",
             reloadingRns: false,
             isReticulumRunning: true,
+            discoveryConfig: {
+                discover_interfaces: false,
+                interface_discovery_sources: "",
+                required_discovery_value: null,
+                autoconnect_discovered_interfaces: 0,
+                network_identity: "",
+            },
+            savingDiscovery: false,
         };
     },
     computed: {
@@ -246,6 +364,7 @@ export default {
     mounted() {
         this.loadInterfaces();
         this.updateInterfaceStats();
+        this.loadDiscoveryConfig();
 
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
@@ -385,6 +504,65 @@ export default {
             this.loadInterfaces();
             if (imported) {
                 this.trackInterfaceChange();
+            }
+        },
+        parseBool(value) {
+            if (typeof value === "string") {
+                return ["true", "yes", "1", "y", "on"].includes(value.toLowerCase());
+            }
+            return Boolean(value);
+        },
+        async loadDiscoveryConfig() {
+            try {
+                const response = await window.axios.get(`/api/v1/reticulum/discovery`);
+                const discovery = response.data?.discovery ?? {};
+                this.discoveryConfig.discover_interfaces = this.parseBool(discovery.discover_interfaces);
+                this.discoveryConfig.interface_discovery_sources = discovery.interface_discovery_sources ?? "";
+                this.discoveryConfig.required_discovery_value =
+                    discovery.required_discovery_value !== undefined &&
+                    discovery.required_discovery_value !== null &&
+                    discovery.required_discovery_value !== ""
+                        ? Number(discovery.required_discovery_value)
+                        : null;
+                this.discoveryConfig.autoconnect_discovered_interfaces =
+                    discovery.autoconnect_discovered_interfaces !== undefined &&
+                    discovery.autoconnect_discovered_interfaces !== null &&
+                    discovery.autoconnect_discovered_interfaces !== ""
+                        ? Number(discovery.autoconnect_discovered_interfaces)
+                        : 0;
+                this.discoveryConfig.network_identity = discovery.network_identity ?? "";
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async saveDiscoveryConfig() {
+            if (this.savingDiscovery) return;
+            this.savingDiscovery = true;
+            try {
+                const payload = {
+                    discover_interfaces: this.discoveryConfig.discover_interfaces,
+                    interface_discovery_sources: this.discoveryConfig.interface_discovery_sources || null,
+                    required_discovery_value:
+                        this.discoveryConfig.required_discovery_value === null ||
+                        this.discoveryConfig.required_discovery_value === ""
+                            ? null
+                            : Number(this.discoveryConfig.required_discovery_value),
+                    autoconnect_discovered_interfaces:
+                        this.discoveryConfig.autoconnect_discovered_interfaces === null ||
+                        this.discoveryConfig.autoconnect_discovered_interfaces === ""
+                            ? 0
+                            : Number(this.discoveryConfig.autoconnect_discovered_interfaces),
+                    network_identity: this.discoveryConfig.network_identity || null,
+                };
+
+                await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
+                ToastUtils.success("Discovery settings saved");
+                await this.loadDiscoveryConfig();
+            } catch (e) {
+                ToastUtils.error("Failed to save discovery settings");
+                console.log(e);
+            } finally {
+                this.savingDiscovery = false;
             }
         },
         setStatusFilter(value) {

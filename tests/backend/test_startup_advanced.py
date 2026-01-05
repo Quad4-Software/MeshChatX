@@ -1,11 +1,12 @@
-import shutil
-import tempfile
 import base64
 import secrets
-from unittest.mock import MagicMock, patch, mock_open
+import shutil
+import tempfile
+from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 import RNS
+
 from meshchatx.meshchat import ReticulumMeshChat, main
 
 
@@ -43,12 +44,16 @@ def mock_rns():
         patch("LXMF.LXMRouter"),
         patch.object(ReticulumMeshChat, "announce_loop", return_value=None),
         patch.object(
-            ReticulumMeshChat, "announce_sync_propagation_nodes", return_value=None
+            ReticulumMeshChat,
+            "announce_sync_propagation_nodes",
+            return_value=None,
         ),
         patch.object(ReticulumMeshChat, "crawler_loop", return_value=None),
         patch.object(ReticulumMeshChat, "auto_backup_loop", return_value=None),
         patch.object(
-            ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
+            ReticulumMeshChat,
+            "send_config_to_websocket_clients",
+            return_value=None,
         ),
     ):
         mock_id_instance = MockIdentityClass()
@@ -57,7 +62,9 @@ def mock_rns():
             patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance),
             patch.object(MockIdentityClass, "recall", return_value=mock_id_instance),
             patch.object(
-                MockIdentityClass, "from_bytes", return_value=mock_id_instance
+                MockIdentityClass,
+                "from_bytes",
+                return_value=mock_id_instance,
             ),
         ):
             yield {
@@ -73,7 +80,7 @@ def test_run_https_logic(mock_rns, temp_dir):
     with (
         patch("meshchatx.src.backend.identity_context.Database"),
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager"
+            "meshchatx.src.backend.identity_context.ConfigManager",
         ) as mock_config_class,
         patch("meshchatx.meshchat.generate_ssl_certificate") as mock_gen_cert,
         patch("ssl.SSLContext") as mock_ssl_context,
@@ -97,7 +104,7 @@ def test_run_https_logic(mock_rns, temp_dir):
         mock_config = mock_config_class.return_value
         # provide a real-looking secret key
         mock_config.auth_session_secret.get.return_value = base64.urlsafe_b64encode(
-            secrets.token_bytes(32)
+            secrets.token_bytes(32),
         ).decode()
         mock_config.display_name.get.return_value = "Test"
         mock_config.lxmf_propagation_node_stamp_cost.get.return_value = 0
@@ -137,7 +144,7 @@ def test_database_integrity_recovery(mock_rns, temp_dir):
     with (
         patch("meshchatx.src.backend.identity_context.Database") as mock_db_class,
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager"
+            "meshchatx.src.backend.identity_context.ConfigManager",
         ) as mock_config_class,
         patch("meshchatx.src.backend.identity_context.MessageHandler"),
         patch("meshchatx.src.backend.identity_context.AnnounceManager"),
@@ -190,7 +197,7 @@ def test_identity_loading_fallback(mock_rns, temp_dir):
     with (
         patch("meshchatx.src.backend.identity_context.Database"),
         patch(
-            "meshchatx.src.backend.identity_context.ConfigManager"
+            "meshchatx.src.backend.identity_context.ConfigManager",
         ) as mock_config_class,
         patch("RNS.Identity") as mock_id_class,
         patch("os.path.exists", return_value=False),  # Pretend files don't exist
@@ -210,7 +217,7 @@ def test_identity_loading_fallback(mock_rns, temp_dir):
         # Mock sys.argv to use default behavior (random generation)
         with patch("sys.argv", ["meshchat.py", "--storage-dir", temp_dir]):
             with patch(
-                "meshchatx.meshchat.ReticulumMeshChat"
+                "meshchatx.meshchat.ReticulumMeshChat",
             ):  # Mock ReticulumMeshChat to avoid full init
                 with patch("aiohttp.web.run_app"):
                     main()
@@ -235,25 +242,25 @@ def test_cli_flags_and_envs(mock_rns, temp_dir):
             "MESHCHAT_AUTH": "1",
             "MESHCHAT_STORAGE_DIR": temp_dir,
         }
-        with patch.dict("os.environ", env):
-            with patch("sys.argv", ["meshchat.py"]):
-                main()
+        with patch.dict("os.environ", env), patch("sys.argv", ["meshchat.py"]):
+            main()
 
-                # Verify ReticulumMeshChat was called with values from ENV
-                args, kwargs = mock_app_class.call_args
-                assert kwargs["auto_recover"] is True
-                assert kwargs["auth_enabled"] is True
+            # Verify ReticulumMeshChat was called with values from ENV
+            args, kwargs = mock_app_class.call_args
+            assert kwargs["auto_recover"] is True
+            assert kwargs["auth_enabled"] is True
 
-                # Verify run was called with host/port from ENV
-                mock_app_instance = mock_app_class.return_value
-                run_args, run_kwargs = mock_app_instance.run.call_args
-                assert run_args[0] == "1.2.3.4"
-                assert run_args[1] == 9000
+            # Verify run was called with host/port from ENV
+            mock_app_instance = mock_app_class.return_value
+            run_args, run_kwargs = mock_app_instance.run.call_args
+            assert run_args[0] == "1.2.3.4"
+            assert run_args[1] == 9000
 
         # Test CLI Flags (override Envs)
         mock_app_class.reset_mock()
-        with patch.dict("os.environ", env):
-            with patch(
+        with (
+            patch.dict("os.environ", env),
+            patch(
                 "sys.argv",
                 [
                     "meshchat.py",
@@ -265,11 +272,12 @@ def test_cli_flags_and_envs(mock_rns, temp_dir):
                     "--storage-dir",
                     temp_dir,
                 ],
-            ):
-                main()
+            ),
+        ):
+            main()
 
-                mock_app_instance = mock_app_class.return_value
-                run_args, run_kwargs = mock_app_instance.run.call_args
-                assert run_args[0] == "5.6.7.8"
-                assert run_args[1] == 7000
-                assert run_kwargs["enable_https"] is False
+            mock_app_instance = mock_app_class.return_value
+            run_args, run_kwargs = mock_app_instance.run.call_args
+            assert run_args[0] == "5.6.7.8"
+            assert run_args[1] == 7000
+            assert run_kwargs["enable_https"] is False

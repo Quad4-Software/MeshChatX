@@ -9,8 +9,7 @@ from LXMF import LXMRouter
 
 
 def create_lxmf_router(identity, storagepath, propagation_cost=None):
-    """
-    Creates an LXMF.LXMRouter instance safely, avoiding signal handler crashes
+    """Creates an LXMF.LXMRouter instance safely, avoiding signal handler crashes
     when called from non-main threads.
     """
     if propagation_cost is None:

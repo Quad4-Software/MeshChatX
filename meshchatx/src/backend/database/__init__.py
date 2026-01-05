@@ -130,7 +130,7 @@ class Database:
                 self._checkpoint_wal()
             except Exception as e:
                 print(
-                    f"Warning: WAL checkpoint during vacuum failed (non-critical): {e}"
+                    f"Warning: WAL checkpoint during vacuum failed (non-critical): {e}",
                 )
 
             self.execute_sql("VACUUM")
@@ -226,7 +226,7 @@ class Database:
         os.makedirs(snapshot_dir, exist_ok=True)
         # Ensure name is safe for filesystem
         safe_name = "".join(
-            [c for c in name if c.isalnum() or c in (" ", ".", "-", "_")]
+            [c for c in name if c.isalnum() or c in (" ", ".", "-", "_")],
         ).strip()
         if not safe_name:
             safe_name = "unnamed_snapshot"
@@ -251,9 +251,10 @@ class Database:
                         "path": full_path,
                         "size": stats.st_size,
                         "created_at": datetime.fromtimestamp(
-                            stats.st_mtime, UTC
+                            stats.st_mtime,
+                            UTC,
                         ).isoformat(),
-                    }
+                    },
                 )
         return sorted(snapshots, key=lambda x: x["created_at"], reverse=True)
 

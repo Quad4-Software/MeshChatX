@@ -55,7 +55,7 @@ class RNPathHandler:
                     "timestamp": entry.get("timestamp"),
                     "announce_hash": announce_hash,
                     "state": state,
-                }
+                },
             )
 
         # Sort: Responsive first, then by hops, then by interface
@@ -64,19 +64,23 @@ class RNPathHandler:
                 0 if e["state"] == RNS.Transport.STATE_RESPONSIVE else 1,
                 e["hops"],
                 e["interface"],
-            )
+            ),
         )
 
         total = len(formatted_table)
         responsive_count = len(
-            [e for e in formatted_table if e["state"] == RNS.Transport.STATE_RESPONSIVE]
+            [
+                e
+                for e in formatted_table
+                if e["state"] == RNS.Transport.STATE_RESPONSIVE
+            ],
         )
         unresponsive_count = len(
             [
                 e
                 for e in formatted_table
                 if e["state"] == RNS.Transport.STATE_UNRESPONSIVE
-            ]
+            ],
         )
 
         # Pagination
@@ -96,17 +100,16 @@ class RNPathHandler:
 
     def get_rate_table(self):
         table = self.reticulum.get_rate_table()
-        formatted_table = []
-        for entry in table:
-            formatted_table.append(
-                {
-                    "hash": entry["hash"].hex(),
-                    "last": entry["last"],
-                    "timestamps": entry["timestamps"],
-                    "rate_violations": entry["rate_violations"],
-                    "blocked_until": entry["blocked_until"],
-                }
-            )
+        formatted_table = [
+            {
+                "hash": entry["hash"].hex(),
+                "last": entry["last"],
+                "timestamps": entry["timestamps"],
+                "rate_violations": entry["rate_violations"],
+                "blocked_until": entry["blocked_until"],
+            }
+            for entry in table
+        ]
         return sorted(formatted_table, key=lambda e: e["last"])
 
     def drop_path(self, destination_hash: str) -> bool:

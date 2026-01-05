@@ -1,10 +1,11 @@
 import shutil
 import tempfile
-from unittest.mock import AsyncMock, MagicMock, patch
 from contextlib import ExitStack
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import LXMF
 import pytest
 import RNS
-import LXMF
 
 from meshchatx.meshchat import ReticulumMeshChat
 
@@ -80,17 +81,19 @@ def mock_rns():
         # Mock class methods on MockIdentityClass
         mock_id_instance = MockIdentityClass()
         mock_id_instance.get_private_key = MagicMock(
-            return_value=b"initial_private_key"
+            return_value=b"initial_private_key",
         )
 
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance)
+            patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "recall", return_value=mock_id_instance)
+            patch.object(MockIdentityClass, "recall", return_value=mock_id_instance),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id_instance)
+            patch.object(
+                MockIdentityClass, "from_bytes", return_value=mock_id_instance
+            ),
         )
 
         # Setup mock LXMessage
@@ -249,7 +252,7 @@ async def test_receive_message_updates_icon(mock_rns, temp_dir):
             "new_icon",
             b"\xff\xff\xff",  # #ffffff
             b"\x00\x00\x00",  # #000000
-        ]
+        ],
     }
 
     # Mock methods

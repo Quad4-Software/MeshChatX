@@ -77,7 +77,11 @@ class MessageHandler:
             ) m2 ON m1.peer_hash = m2.peer_hash AND m1.timestamp = m2.max_ts
             LEFT JOIN announces a ON a.destination_hash = m1.peer_hash
             LEFT JOIN custom_destination_display_names c ON c.destination_hash = m1.peer_hash
-            LEFT JOIN contacts con ON con.remote_identity_hash = m1.peer_hash
+            LEFT JOIN contacts con ON (
+                con.remote_identity_hash = m1.peer_hash OR 
+                con.lxmf_address = m1.peer_hash OR 
+                con.lxst_address = m1.peer_hash
+            )
             LEFT JOIN lxmf_user_icons i ON i.destination_hash = m1.peer_hash
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = m1.peer_hash
         """
@@ -86,7 +90,7 @@ class MessageHandler:
 
         if filter_unread:
             where_clauses.append(
-                "(r.last_read_at IS NULL OR m1.timestamp > strftime('%s', r.last_read_at))"
+                "(r.last_read_at IS NULL OR m1.timestamp > strftime('%s', r.last_read_at))",
             )
 
         if filter_failed:
@@ -94,7 +98,7 @@ class MessageHandler:
 
         if filter_has_attachments:
             where_clauses.append(
-                "(m1.fields IS NOT NULL AND m1.fields != '{}' AND m1.fields != '')"
+                "(m1.fields IS NOT NULL AND m1.fields != '{}' AND m1.fields != '')",
             )
 
         if search:
@@ -105,7 +109,7 @@ class MessageHandler:
                  OR m1.peer_hash IN (SELECT peer_hash FROM lxmf_messages WHERE title LIKE ? OR content LIKE ?))
             """)
             params.extend(
-                [like_term, like_term, like_term, like_term, like_term, like_term]
+                [like_term, like_term, like_term, like_term, like_term, like_term],
             )
 
         if where_clauses:

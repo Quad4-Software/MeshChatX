@@ -267,6 +267,7 @@
 
                         <div class="my-auto mr-2">
                             <LxmfUserIcon
+                                :custom-image="peer.contact_image"
                                 :icon-name="peer.lxmf_user_icon?.icon_name"
                                 :icon-foreground-colour="peer.lxmf_user_icon?.foreground_colour"
                                 :icon-background-colour="peer.lxmf_user_icon?.background_colour"
@@ -456,6 +457,9 @@ export default {
                 const matchesDestinationHash = peer.destination_hash.toLowerCase().includes(search);
                 return matchesDisplayName || matchesCustomDisplayName || matchesDestinationHash;
             });
+        },
+        hasUnreadConversations() {
+            return this.conversations.some((c) => c.is_unread);
         },
     },
     methods: {

@@ -38,7 +38,9 @@ def temp_storage(tmp_path):
 
 def test_telephone_manager_init(mock_identity, mock_config, temp_storage):
     tm = TelephoneManager(
-        mock_identity, config_manager=mock_config, storage_dir=temp_storage
+        mock_identity,
+        config_manager=mock_config,
+        storage_dir=temp_storage,
     )
     assert tm.identity == mock_identity
     assert tm.config_manager == mock_config
@@ -48,7 +50,11 @@ def test_telephone_manager_init(mock_identity, mock_config, temp_storage):
 
 @patch("meshchatx.src.backend.telephone_manager.Telephone")
 def test_call_recording_lifecycle(
-    mock_telephone_class, mock_identity, mock_config, mock_db, temp_storage
+    mock_telephone_class,
+    mock_identity,
+    mock_config,
+    mock_db,
+    temp_storage,
 ):
     # Setup mocks
     mock_telephone = mock_telephone_class.return_value
@@ -63,7 +69,10 @@ def test_call_recording_lifecycle(
     mock_telephone.transmit_mixer = MagicMock()
 
     tm = TelephoneManager(
-        mock_identity, config_manager=mock_config, storage_dir=temp_storage, db=mock_db
+        mock_identity,
+        config_manager=mock_config,
+        storage_dir=temp_storage,
+        db=mock_db,
     )
     tm.get_name_for_identity_hash = MagicMock(return_value="Remote User")
     tm.init_telephone()
@@ -90,7 +99,10 @@ def test_call_recording_lifecycle(
 def test_call_recording_disabled(mock_identity, mock_config, mock_db, temp_storage):
     mock_config.call_recording_enabled.get.return_value = False
     tm = TelephoneManager(
-        mock_identity, config_manager=mock_config, storage_dir=temp_storage, db=mock_db
+        mock_identity,
+        config_manager=mock_config,
+        storage_dir=temp_storage,
+        db=mock_db,
     )
 
     # Mock telephone and active call
@@ -105,13 +117,15 @@ def test_call_recording_disabled(mock_identity, mock_config, mock_db, temp_stora
 
 def test_audio_profile_persistence(mock_identity, mock_config, temp_storage):
     with patch(
-        "meshchatx.src.backend.telephone_manager.Telephone"
+        "meshchatx.src.backend.telephone_manager.Telephone",
     ) as mock_telephone_class:
         mock_telephone = mock_telephone_class.return_value
         mock_config.telephone_audio_profile_id.get.return_value = 4
 
         tm = TelephoneManager(
-            mock_identity, config_manager=mock_config, storage_dir=temp_storage
+            mock_identity,
+            config_manager=mock_config,
+            storage_dir=temp_storage,
         )
         tm.init_telephone()
 
@@ -121,7 +135,11 @@ def test_audio_profile_persistence(mock_identity, mock_config, temp_storage):
 
 @patch("meshchatx.src.backend.telephone_manager.Telephone")
 def test_call_recording_saves_after_disconnect(
-    mock_telephone_class, mock_identity, mock_config, mock_db, temp_storage
+    mock_telephone_class,
+    mock_identity,
+    mock_config,
+    mock_db,
+    temp_storage,
 ):
     # Setup mocks
     mock_telephone = mock_telephone_class.return_value
@@ -136,7 +154,10 @@ def test_call_recording_saves_after_disconnect(
     mock_telephone.transmit_mixer = MagicMock()
 
     tm = TelephoneManager(
-        mock_identity, config_manager=mock_config, storage_dir=temp_storage, db=mock_db
+        mock_identity,
+        config_manager=mock_config,
+        storage_dir=temp_storage,
+        db=mock_db,
     )
     tm.init_telephone()
 
@@ -162,11 +183,16 @@ def test_call_recording_saves_after_disconnect(
 
 @patch("meshchatx.src.backend.telephone_manager.Telephone")
 def test_manual_mute_overrides(
-    mock_telephone_class, mock_identity, mock_config, temp_storage
+    mock_telephone_class,
+    mock_identity,
+    mock_config,
+    temp_storage,
 ):
     mock_telephone = mock_telephone_class.return_value
     tm = TelephoneManager(
-        mock_identity, config_manager=mock_config, storage_dir=temp_storage
+        mock_identity,
+        config_manager=mock_config,
+        storage_dir=temp_storage,
     )
     tm.init_telephone()
 

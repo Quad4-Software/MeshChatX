@@ -1,9 +1,10 @@
 import os
+import random
+import secrets
 import shutil
 import tempfile
 import time
-import random
-import secrets
+
 from meshchatx.src.backend.database import Database
 
 
@@ -68,7 +69,7 @@ def test_db_performance():
     convs = db.messages.get_conversations()
     end_time = time.time()
     print(
-        f"get_conversations() returned {len(convs)} conversations in {end_time - start_time:.4f} seconds"
+        f"get_conversations() returned {len(convs)} conversations in {end_time - start_time:.4f} seconds",
     )
 
     # Test get_conversation_messages for a random peer
@@ -78,7 +79,7 @@ def test_db_performance():
     msgs = db.messages.get_conversation_messages(target_peer, limit=50)
     end_time = time.time()
     print(
-        f"get_conversation_messages() returned {len(msgs)} messages in {end_time - start_time:.4f} seconds"
+        f"get_conversation_messages() returned {len(msgs)} messages in {end_time - start_time:.4f} seconds",
     )
 
     # Test unread states for all peers
@@ -87,7 +88,7 @@ def test_db_performance():
     _ = db.messages.get_conversations_unread_states(peer_hashes)
     end_time = time.time()
     print(
-        f"get_conversations_unread_states() for {len(peer_hashes)} peers took {end_time - start_time:.4f} seconds"
+        f"get_conversations_unread_states() for {len(peer_hashes)} peers took {end_time - start_time:.4f} seconds",
     )
 
     # Test announces performance

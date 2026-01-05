@@ -1,8 +1,9 @@
-import unittest
 import os
+import secrets
 import shutil
 import tempfile
-import secrets
+import unittest
+
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.identity_manager import IdentityManager
 from tests.backend.benchmarking_utils import MemoryTracker
@@ -54,7 +55,9 @@ class TestMemoryProfiling(unittest.TestCase):
         # 10k messages * 512 bytes is ~5MB of raw content.
         # SQLite should handle this efficiently.
         self.assertLess(
-            tracker.mem_delta, 20.0, "Excessive memory growth during DB insertion"
+            tracker.mem_delta,
+            20.0,
+            "Excessive memory growth during DB insertion",
         )
 
     def test_identity_manager_memory(self):
@@ -70,7 +73,9 @@ class TestMemoryProfiling(unittest.TestCase):
             self.assertEqual(len(identities), 50)
 
         self.assertLess(
-            tracker.mem_delta, 10.0, "Identity management consumed too much memory"
+            tracker.mem_delta,
+            10.0,
+            "Identity management consumed too much memory",
         )
 
     def test_large_message_processing(self):
@@ -124,7 +129,9 @@ class TestMemoryProfiling(unittest.TestCase):
                 self.db.announces.upsert_announce(data)
 
         self.assertLess(
-            tracker.mem_delta, 15.0, "Announce updates causing memory bloat"
+            tracker.mem_delta,
+            15.0,
+            "Announce updates causing memory bloat",
         )
 
 

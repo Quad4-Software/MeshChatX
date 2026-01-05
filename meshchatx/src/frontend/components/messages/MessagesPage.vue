@@ -192,6 +192,7 @@ export default {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessage);
+        GlobalEmitter.off("refresh-conversations", this.requestConversationsRefresh);
     },
     mounted() {
         // listen for websocket messages
@@ -371,6 +372,20 @@ export default {
                     this.conversations = newConversations;
                 }
 
+                for (const conversation of newConversations) {
+                    if (!conversation?.destination_hash) continue;
+                    const existingPeer = this.peers[conversation.destination_hash] || {};
+                    this.peers[conversation.destination_hash] = {
+                        ...existingPeer,
+                        destination_hash: conversation.destination_hash,
+                        display_name: conversation.display_name ?? existingPeer.display_name,
+                        custom_display_name: conversation.custom_display_name ?? existingPeer.custom_display_name,
+                        contact_image: conversation.contact_image ?? existingPeer.contact_image,
+                        lxmf_user_icon: conversation.lxmf_user_icon ?? existingPeer.lxmf_user_icon,
+                        updated_at: conversation.updated_at ?? existingPeer.updated_at,
+                    };
+                }
+
                 this.hasLoadedConversations = true;
                 this.hasMoreConversations = newConversations.length === this.pageSize;
             } catch (e) {
@@ -402,7 +417,8 @@ export default {
             return params;
         },
         updatePeerFromAnnounce: function (announce) {
-            this.peers[announce.destination_hash] = announce;
+            const existing = this.peers[announce.destination_hash] || {};
+            this.peers[announce.destination_hash] = { ...existing, ...announce };
         },
         onPeerClick: function (peer) {
             // update selected peer

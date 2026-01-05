@@ -3,6 +3,7 @@ import shutil
 import tempfile
 
 import pytest
+
 from meshchatx.src.backend.database import Database
 
 
@@ -20,7 +21,8 @@ def test_database_snapshot_creation(temp_dir):
 
     # Add some data
     db.execute_sql(
-        "INSERT INTO config (key, value) VALUES (?, ?)", ("test_key", "test_value")
+        "INSERT INTO config (key, value) VALUES (?, ?)",
+        ("test_key", "test_value"),
     )
 
     # Create snapshot

@@ -1,8 +1,8 @@
-import os
 import hashlib
 import json
-from pathlib import Path
+import os
 from datetime import UTC, datetime
+from pathlib import Path
 
 
 class IntegrityManager:
@@ -30,7 +30,7 @@ class IntegrityManager:
             return True, ["Initial run - no manifest yet"]
 
         try:
-            with open(self.manifest_path, "r") as f:
+            with open(self.manifest_path) as f:
                 manifest = json.load(f)
 
             issues = []
@@ -39,7 +39,7 @@ class IntegrityManager:
             db_rel = str(self.database_path.relative_to(self.storage_dir))
             actual_db_hash = self._hash_file(self.database_path)
             if actual_db_hash and actual_db_hash != manifest.get("files", {}).get(
-                db_rel
+                db_rel,
             ):
                 issues.append(f"Database modified: {db_rel}")
 
@@ -70,7 +70,8 @@ class IntegrityManager:
                 m_time = manifest.get("time", "Unknown")
                 m_id = manifest.get("identity", "Unknown")
                 issues.insert(
-                    0, f"Last integrity snapshot: {m_date} {m_time} (Identity: {m_id})"
+                    0,
+                    f"Last integrity snapshot: {m_date} {m_time} (Identity: {m_id})",
                 )
 
                 # Check if identity matches
@@ -84,7 +85,7 @@ class IntegrityManager:
             self.issues = issues
             return len(issues) == 0, issues
         except Exception as e:
-            return False, [f"Integrity check failed: {str(e)}"]
+            return False, [f"Integrity check failed: {e!s}"]
 
     def save_manifest(self):
         """Snapshot the current state of critical files."""

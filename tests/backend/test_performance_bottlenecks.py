@@ -1,12 +1,13 @@
-import unittest
 import os
+import secrets
 import shutil
 import tempfile
 import time
-import secrets
+import unittest
 from unittest.mock import MagicMock
-from meshchatx.src.backend.database import Database
+
 from meshchatx.src.backend.announce_manager import AnnounceManager
+from meshchatx.src.backend.database import Database
 
 
 class TestPerformanceBottlenecks(unittest.TestCase):
@@ -60,7 +61,9 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         for offset in offsets:
             start = time.time()
             msgs = self.db.messages.get_conversation_messages(
-                peer_hash, limit=limit, offset=offset
+                peer_hash,
+                limit=limit,
+                offset=offset,
             )
             duration = (time.time() - start) * 1000
             print(f"Fetch {limit} messages at offset {offset}: {duration:.2f}ms")
@@ -103,7 +106,7 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         duration_total = time.time() - start_total
         avg_duration = (duration_total / num_announces) * 1000
         print(
-            f"Processed {num_announces} announces in {duration_total:.2f}s (Avg: {avg_duration:.2f}ms/announce)"
+            f"Processed {num_announces} announces in {duration_total:.2f}s (Avg: {avg_duration:.2f}ms/announce)",
         )
 
         self.assertLess(avg_duration, 20, "Announce processing is too slow!")
@@ -129,7 +132,9 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         # Benchmark filtered search with pagination
         start = time.time()
         results = self.announce_manager.get_filtered_announces(
-            aspect="lxmf.delivery", limit=50, offset=1000
+            aspect="lxmf.delivery",
+            limit=50,
+            offset=1000,
         )
         duration = (time.time() - start) * 1000
         print(f"Filtered announce pagination (offset 1000): {duration:.2f}ms")
@@ -164,7 +169,7 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         ]
 
         print(
-            f"\nRunning {num_threads} threads inserting {announces_per_thread} announces each..."
+            f"\nRunning {num_threads} threads inserting {announces_per_thread} announces each...",
         )
         start = time.time()
         for t in threads:
@@ -174,7 +179,7 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         duration = time.time() - start
 
         print(
-            f"Concurrent insertion took {duration:.2f}s for {num_threads * announces_per_thread} announces"
+            f"Concurrent insertion took {duration:.2f}s for {num_threads * announces_per_thread} announces",
         )
         self.assertLess(duration, 10.0, "Concurrent announce insertion is too slow!")
 

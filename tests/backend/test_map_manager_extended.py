@@ -1,10 +1,11 @@
 import os
 import shutil
-import tempfile
 import sqlite3
+import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from meshchatx.src.backend.map_manager import MapManager
 
 
@@ -83,11 +84,12 @@ def test_get_tile(mock_config, temp_dir):
 
     conn = sqlite3.connect(db_path)
     conn.execute(
-        "CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)"
+        "CREATE TABLE tiles (zoom_level integer, tile_column integer, tile_row integer, tile_data blob)",
     )
     # Zoom 0, Tile 0,0. TMS y for 0/0/0 is (1<<0)-1-0 = 0
     conn.execute(
-        "INSERT INTO tiles VALUES (0, 0, 0, ?)", (sqlite3.Binary(b"tile_data"),)
+        "INSERT INTO tiles VALUES (0, 0, 0, ?)",
+        (sqlite3.Binary(b"tile_data"),),
     )
     conn.commit()
     conn.close()

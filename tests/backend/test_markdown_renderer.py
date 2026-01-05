@@ -1,4 +1,5 @@
 import unittest
+
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 
 
@@ -24,7 +25,7 @@ class TestMarkdownRenderer(unittest.TestCase):
         # Check for escaped characters
         self.assertTrue(
             "print(&#x27;hello&#x27;)" in rendered
-            or "print(&#039;hello&#039;)" in rendered
+            or "print(&#039;hello&#039;)" in rendered,
         )
 
     def test_lists(self):

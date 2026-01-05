@@ -1,11 +1,13 @@
+import gc
 import os
+import random
+import secrets
 import shutil
 import tempfile
 import time
-import random
-import secrets
+
 import psutil
-import gc
+
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.recovery import CrashRecovery
 
@@ -112,7 +114,9 @@ class PerformanceBenchmarker:
                 recovery.run_diagnosis(file=open(os.devnull, "w"))
 
         self.record_benchmark(
-            "CrashRecovery Diagnosis Overhead (50 runs)", run_recovery_check, 50
+            "CrashRecovery Diagnosis Overhead (50 runs)",
+            run_recovery_check,
+            50,
         )
 
     def benchmark_identity_generation(self, count=20):
@@ -123,7 +127,9 @@ class PerformanceBenchmarker:
                 RNS.Identity(create_keys=True)
 
         self.record_benchmark(
-            f"RNS Identity Generation ({count} identities)", run_gen, count
+            f"RNS Identity Generation ({count} identities)",
+            run_gen,
+            count,
         )
 
     def benchmark_identity_listing(self, count=100):
@@ -142,7 +148,9 @@ class PerformanceBenchmarker:
                 manager.list_identities(current_identity_hash=hashes[0])
 
         self.record_benchmark(
-            f"Identity Listing ({count} runs, 10 identities)", run_list, count
+            f"Identity Listing ({count} runs, 10 identities)",
+            run_list,
+            count,
         )
 
 
@@ -161,7 +169,7 @@ def main():
         print("-" * 80)
         for r in bench.results:
             print(
-                f"{r['name']:40} | {r['duration_ms']:8.2f} ms | {r['memory_growth_mb']:8.2f} MB"
+                f"{r['name']:40} | {r['duration_ms']:8.2f} ms | {r['memory_growth_mb']:8.2f} MB",
             )
         print("=" * 80)
 

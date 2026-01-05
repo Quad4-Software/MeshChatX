@@ -1,4 +1,5 @@
 import json
+
 from meshchatx.src.backend.meshchat_utils import message_fields_have_attachments
 
 
@@ -22,7 +23,7 @@ def test_message_fields_have_attachments():
     # File attachments - with files
     assert (
         message_fields_have_attachments(
-            json.dumps({"file_attachments": [{"file_name": "test.txt"}]})
+            json.dumps({"file_attachments": [{"file_name": "test.txt"}]}),
         )
         is True
     )
@@ -36,8 +37,8 @@ def test_message_fields_have_attachments_mixed():
     assert (
         message_fields_have_attachments(
             json.dumps(
-                {"image": "img", "file_attachments": [{"file_name": "test.txt"}]}
-            )
+                {"image": "img", "file_attachments": [{"file_name": "test.txt"}]},
+            ),
         )
         is True
     )
@@ -45,7 +46,7 @@ def test_message_fields_have_attachments_mixed():
     # Unrelated fields
     assert (
         message_fields_have_attachments(
-            json.dumps({"title": "hello", "content": "world"})
+            json.dumps({"title": "hello", "content": "world"}),
         )
         is False
     )

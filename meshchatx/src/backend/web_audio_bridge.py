@@ -1,7 +1,6 @@
 import asyncio
 import json
 import threading
-from typing import Optional
 
 import numpy as np
 import RNS
@@ -89,9 +88,9 @@ class WebAudioBridge:
         self.telephone_manager = telephone_manager
         self.config_manager = config_manager
         self.clients = set()
-        self.tx_source: Optional[WebAudioSource] = None
-        self.rx_sink: Optional[WebAudioSink] = None
-        self.rx_tee: Optional[Tee] = None
+        self.tx_source: WebAudioSource | None = None
+        self.rx_sink: WebAudioSink | None = None
+        self.rx_tee: Tee | None = None
         self.loop = asyncio.get_event_loop()
         self.lock = threading.Lock()
 
@@ -137,8 +136,8 @@ class WebAudioBridge:
                 {
                     "type": "web_audio.ready",
                     "frame_ms": frame_ms,
-                }
-            )
+                },
+            ),
         )
 
     def push_client_frame(self, pcm_bytes: bytes):
@@ -173,7 +172,8 @@ class WebAudioBridge:
                 tele.transmit_mixer.start()
         except Exception as exc:  # noqa: BLE001
             RNS.log(
-                f"WebAudioBridge: failed to swap transmit path: {exc}", RNS.LOG_ERROR
+                f"WebAudioBridge: failed to swap transmit path: {exc}",
+                RNS.LOG_ERROR,
             )
 
     def _ensure_rx_tee(self, tele):

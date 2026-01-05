@@ -1,8 +1,10 @@
 import os
+
 import pytest
+
+from meshchatx.src.backend.database.contacts import ContactsDAO
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
-from meshchatx.src.backend.database.contacts import ContactsDAO
 
 
 @pytest.fixture
@@ -39,7 +41,8 @@ def test_contacts_with_custom_image(db_provider):
 
     # Test updating contact image
     contacts_dao.update_contact(
-        contact["id"], custom_image="data:image/png;base64,updateddata"
+        contact["id"],
+        custom_image="data:image/png;base64,updateddata",
     )
 
     contact = contacts_dao.get_contact(contact["id"])

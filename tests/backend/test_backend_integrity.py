@@ -1,9 +1,9 @@
-import unittest
+import hashlib
+import json
 import os
 import shutil
 import tempfile
-import json
-import hashlib
+import unittest
 from pathlib import Path
 
 
@@ -55,7 +55,7 @@ class TestBackendIntegrity(unittest.TestCase):
     def test_manifest_generation(self):
         """Test that the build script logic produces a valid manifest."""
         manifest_path = self.generate_manifest()
-        with open(manifest_path, "r") as f:
+        with open(manifest_path) as f:
             manifest = json.load(f)
 
         self.assertEqual(len(manifest["files"]), 2)
@@ -66,7 +66,7 @@ class TestBackendIntegrity(unittest.TestCase):
     def test_tampering_detection_logic(self):
         """Test that modifying a file changes its hash (logic check)."""
         manifest_path = self.generate_manifest()
-        with open(manifest_path, "r") as f:
+        with open(manifest_path) as f:
             manifest = json.load(f)
 
         old_hash = manifest["files"]["ReticulumMeshChatX"]

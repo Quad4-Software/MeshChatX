@@ -41,7 +41,11 @@ class TelephoneManager:
     # 6: STATUS_ESTABLISHED
 
     def __init__(
-        self, identity: RNS.Identity, config_manager=None, storage_dir=None, db=None
+        self,
+        identity: RNS.Identity,
+        config_manager=None,
+        storage_dir=None,
+        db=None,
     ):
         self.identity = identity
         self.config_manager = config_manager
@@ -177,7 +181,8 @@ class TelephoneManager:
                 # Pack display name in LXMF-compatible app data format
                 app_data = msgpack.packb([display_name, None, None])
                 self.telephone.destination.announce(
-                    app_data=app_data, attached_interface=attached_interface
+                    app_data=app_data,
+                    attached_interface=attached_interface,
                 )
                 self.telephone.last_announce = time.time()
             else:
@@ -190,7 +195,8 @@ class TelephoneManager:
         if self.on_initiation_status_callback:
             try:
                 self.on_initiation_status_callback(
-                    self.initiation_status, self.initiation_target_hash
+                    self.initiation_status,
+                    self.initiation_target_hash,
                 )
             except Exception as e:
                 RNS.log(
@@ -229,7 +235,7 @@ class TelephoneManager:
                 if not announce:
                     # 3) By identity_hash field (if user entered identity hash but we missed recall, or other announce types)
                     announces = self.db.announces.get_filtered_announces(
-                        identity_hash=target_hash_hex
+                        identity_hash=target_hash_hex,
                     )
                     if announces:
                         announce = announces[0]
@@ -248,7 +254,7 @@ class TelephoneManager:
                 if announce.get("identity_public_key"):
                     try:
                         return RNS.Identity.from_bytes(
-                            base64.b64decode(announce["identity_public_key"])
+                            base64.b64decode(announce["identity_public_key"]),
                         )
                     except Exception:
                         pass
@@ -297,7 +303,7 @@ class TelephoneManager:
             # Use a thread for the blocking LXST call, but monitor status for early exit
             # if established elsewhere or timed out/hung up
             call_task = asyncio.create_task(
-                asyncio.to_thread(self.telephone.call, destination_identity)
+                asyncio.to_thread(self.telephone.call, destination_identity),
             )
 
             start_wait = time.time()
@@ -340,7 +346,7 @@ class TelephoneManager:
             return self.telephone.active_call
 
         except Exception as e:
-            self._update_initiation_status(f"Failed: {str(e)}")
+            self._update_initiation_status(f"Failed: {e!s}")
             await asyncio.sleep(3)
             raise
         finally:
@@ -379,7 +385,8 @@ class TelephoneManager:
                     self.telephone.audio_input.start()
                 except Exception as e:
                     RNS.log(
-                        f"Failed to start audio input for unmute: {e}", RNS.LOG_ERROR
+                        f"Failed to start audio input for unmute: {e}",
+                        RNS.LOG_ERROR,
                     )
 
             # Still call the internal method just in case
@@ -415,7 +422,8 @@ class TelephoneManager:
                     self.telephone.audio_output.start()
                 except Exception as e:
                     RNS.log(
-                        f"Failed to start audio output for unmute: {e}", RNS.LOG_ERROR
+                        f"Failed to start audio output for unmute: {e}",
+                        RNS.LOG_ERROR,
                     )
 
             # Still call the internal method just in case

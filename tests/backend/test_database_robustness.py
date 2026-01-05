@@ -1,7 +1,8 @@
-import unittest
 import os
-import tempfile
 import shutil
+import tempfile
+import unittest
+
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
 
@@ -42,7 +43,8 @@ class TestDatabaseRobustness(unittest.TestCase):
             )
         """)
         self.provider.execute(
-            "INSERT INTO config (key, value) VALUES (?, ?)", ("database_version", "1")
+            "INSERT INTO config (key, value) VALUES (?, ?)",
+            ("database_version", "1"),
         )
 
         # 3. Attempt initialization.
@@ -77,7 +79,7 @@ class TestDatabaseRobustness(unittest.TestCase):
 
         # 3. Version should now be set to LATEST
         row = self.provider.fetchone(
-            "SELECT value FROM config WHERE key = 'database_version'"
+            "SELECT value FROM config WHERE key = 'database_version'",
         )
         self.assertEqual(int(row["value"]), self.schema.LATEST_VERSION)
 

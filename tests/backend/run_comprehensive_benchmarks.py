@@ -1,18 +1,19 @@
 import os
-import sys
-import time
-import shutil
-import tempfile
 import random
 import secrets
+import shutil
+import sys
+import tempfile
+import time
 
 # Ensure we can import meshchatx
 sys.path.append(os.getcwd())
 
 import json
+
 from meshchatx.src.backend.database import Database
-from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.database.telephone import TelephoneDAO
+from meshchatx.src.backend.identity_manager import IdentityManager
 from tests.backend.benchmarking_utils import (
     benchmark,
     get_memory_usage_mb,
@@ -76,7 +77,7 @@ class BackendBenchmarker:
                             "delivery_attempts": 1,
                             "title": f"Extreme Msg {b + i}",
                             "content": secrets.token_bytes(
-                                1024
+                                1024,
                             ).hex(),  # 2KB hex string
                             "fields": json.dumps({"test": "data" * 10}),
                             "timestamp": time.time() - (total_messages - (b + i)),
@@ -87,13 +88,15 @@ class BackendBenchmarker:
                         }
                         self.db.messages.upsert_lxmf_message(msg)
                 print(
-                    f"  Progress: {b + batch_size}/{total_messages} messages inserted..."
+                    f"  Progress: {b + batch_size}/{total_messages} messages inserted...",
                 )
 
         @benchmark("EXTREME: Search 100k Messages (Wildcard)", iterations=5)
         def run_extreme_search():
             return self.db.messages.get_conversation_messages(
-                peer_hashes[0], limit=100, offset=50000
+                peer_hashes[0],
+                limit=100,
+                offset=50000,
             )
 
         _, res_flood = run_extreme_flood()
@@ -115,7 +118,7 @@ class BackendBenchmarker:
                         data = {
                             "destination_hash": secrets.token_hex(16),
                             "aspect": random.choice(
-                                ["lxmf.delivery", "lxst.telephony", "group.chat"]
+                                ["lxmf.delivery", "lxst.telephony", "group.chat"],
                             ),
                             "identity_hash": secrets.token_hex(16),
                             "identity_public_key": secrets.token_hex(32),
@@ -130,7 +133,9 @@ class BackendBenchmarker:
         @benchmark("EXTREME: Filter 50k Announces (Complex)", iterations=10)
         def run_ann_filter():
             return self.db.announces.get_filtered_announces(
-                aspect="lxmf.delivery", limit=100, offset=25000
+                aspect="lxmf.delivery",
+                limit=100,
+                offset=25000,
             )
 
         _, res_flood = run_ann_flood()
@@ -164,7 +169,8 @@ class BackendBenchmarker:
         @benchmark("Database Initialization", iterations=5)
         def run():
             tmp_db_path = os.path.join(
-                self.temp_dir, f"init_test_{random.randint(0, 1000)}.db"
+                self.temp_dir,
+                f"init_test_{random.randint(0, 1000)}.db",
             )
             db = Database(tmp_db_path)
             db.initialize()
@@ -210,7 +216,9 @@ class BackendBenchmarker:
         @benchmark("Get Messages for Conversation (offset 500)", iterations=20)
         def get_messages():
             return self.db.messages.get_conversation_messages(
-                peer_hashes[0], limit=50, offset=500
+                peer_hashes[0],
+                limit=50,
+                offset=500,
             )
 
         _, res = upsert_batch()
@@ -295,7 +303,7 @@ class BackendBenchmarker:
         print(f"{'-' * 40}-|-{'-' * 10}-|-{'-' * 10}")
         for r in self.results:
             print(
-                f"{r.name:40} | {r.duration_ms:8.2f} ms | {r.memory_delta_mb:8.2f} MB"
+                f"{r.name:40} | {r.duration_ms:8.2f} ms | {r.memory_delta_mb:8.2f} MB",
             )
         print(f"{'=' * 59}")
         print(f"Final Memory Usage: {get_memory_usage_mb():.2f} MB")
@@ -306,7 +314,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="MeshChatX Backend Benchmarker")
     parser.add_argument(
-        "--extreme", action="store_true", help="Run extreme stress tests"
+        "--extreme",
+        action="store_true",
+        help="Run extreme stress tests",
     )
     args = parser.parse_args()
 

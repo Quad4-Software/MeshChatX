@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+
 from .provider import DatabaseProvider
 
 
@@ -24,7 +25,13 @@ class DebugLogsDAO:
         )
 
     def get_logs(
-        self, limit=100, offset=0, search=None, level=None, module=None, is_anomaly=None
+        self,
+        limit=100,
+        offset=0,
+        search=None,
+        level=None,
+        module=None,
+        is_anomaly=None,
     ):
         sql = "SELECT * FROM debug_logs WHERE 1=1"
         params = []
@@ -83,7 +90,8 @@ class DebugLogsDAO:
             if row:
                 cutoff_ts = row["timestamp"]
                 self.provider.execute(
-                    "DELETE FROM debug_logs WHERE timestamp < ?", (cutoff_ts,)
+                    "DELETE FROM debug_logs WHERE timestamp < ?",
+                    (cutoff_ts,),
                 )
 
     def get_anomalies(self, limit=50):

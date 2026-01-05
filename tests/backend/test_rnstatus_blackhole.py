@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+
+import pytest
 import RNS
+
+from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 
 
 @pytest.fixture
@@ -50,7 +52,7 @@ def test_blackhole_status_missing_api(mock_reticulum_instance):
     # But we can patch the RNS object inside rnstatus_handler module.
 
     with patch(
-        "meshchatx.src.backend.rnstatus_handler.RNS.Reticulum"
+        "meshchatx.src.backend.rnstatus_handler.RNS.Reticulum",
     ) as mock_rns_class:
         del mock_rns_class.publish_blackhole_enabled
 

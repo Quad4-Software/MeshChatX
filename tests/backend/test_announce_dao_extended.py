@@ -1,9 +1,11 @@
 import os
 import tempfile
+
 import pytest
+
+from meshchatx.src.backend.database.announces import AnnounceDAO
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
-from meshchatx.src.backend.database.announces import AnnounceDAO
 
 
 @pytest.fixture
@@ -37,7 +39,7 @@ def test_get_filtered_announces_identity_hash(announce_dao):
             "rssi": -50,
             "snr": 10,
             "quality": 1.0,
-        }
+        },
     )
     announce_dao.upsert_announce(
         {
@@ -49,7 +51,7 @@ def test_get_filtered_announces_identity_hash(announce_dao):
             "rssi": -50,
             "snr": 10,
             "quality": 1.0,
-        }
+        },
     )
     announce_dao.upsert_announce(
         {
@@ -61,7 +63,7 @@ def test_get_filtered_announces_identity_hash(announce_dao):
             "rssi": -50,
             "snr": 10,
             "quality": 1.0,
-        }
+        },
     )
 
     # Test filtering by identity_hash
@@ -71,7 +73,8 @@ def test_get_filtered_announces_identity_hash(announce_dao):
 
     # Test filtering by identity_hash and aspect
     results = announce_dao.get_filtered_announces(
-        identity_hash="ident1", aspect="lxmf.propagation"
+        identity_hash="ident1",
+        aspect="lxmf.propagation",
     )
     assert len(results) == 1
     assert results[0]["destination_hash"] == "dest1"
@@ -89,6 +92,7 @@ def test_get_filtered_announces_robustness(announce_dao):
 
     # Test with multiple filters that yield no results
     results = announce_dao.get_filtered_announces(
-        identity_hash="ident1", aspect="non_existent_aspect"
+        identity_hash="ident1",
+        aspect="non_existent_aspect",
     )
     assert len(results) == 0

@@ -1,11 +1,13 @@
+import json
 import shutil
 import tempfile
-import pytest
-import json
 from unittest.mock import MagicMock, patch
-from meshchatx.meshchat import ReticulumMeshChat
-import RNS
+
 import LXMF
+import pytest
+import RNS
+
+from meshchatx.meshchat import ReticulumMeshChat
 
 # Store original constants
 PR_IDLE = LXMF.LXMRouter.PR_IDLE
@@ -58,7 +60,7 @@ def mock_app(temp_dir):
         mock_rns_inst.transport_enabled.return_value = False
 
         with patch(
-            "meshchatx.src.backend.meshchat_utils.LXMRouter"
+            "meshchatx.src.backend.meshchat_utils.LXMRouter",
         ) as mock_utils_router:
             mock_utils_router.PR_IDLE = PR_IDLE
             mock_utils_router.PR_PATH_REQUESTED = PR_PATH_REQUESTED
@@ -76,7 +78,9 @@ def mock_app(temp_dir):
             app.current_context.message_router = mock_router
 
             with patch.object(
-                app, "send_config_to_websocket_clients", return_value=None
+                app,
+                "send_config_to_websocket_clients",
+                return_value=None,
             ):
                 yield app
 
@@ -87,11 +91,11 @@ async def test_lxmf_propagation_config(mock_app):
     node_hash_bytes = bytes.fromhex(node_hash_hex)
 
     await mock_app.update_config(
-        {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex}
+        {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex},
     )
 
     mock_app.current_context.message_router.set_outbound_propagation_node.assert_called_with(
-        node_hash_bytes
+        node_hash_bytes,
     )
     assert (
         mock_app.config.lxmf_preferred_propagation_node_destination_hash.get()
@@ -159,7 +163,7 @@ async def test_send_failed_via_prop_node(mock_app):
 @pytest.mark.asyncio
 async def test_auto_sync_interval_config(mock_app):
     await mock_app.update_config(
-        {"lxmf_preferred_propagation_node_auto_sync_interval_seconds": 3600}
+        {"lxmf_preferred_propagation_node_auto_sync_interval_seconds": 3600},
     )
     assert (
         mock_app.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
@@ -198,17 +202,17 @@ async def test_user_provided_node_hash(mock_app):
 
     # Set this node as preferred
     await mock_app.update_config(
-        {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex}
+        {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex},
     )
 
     # Check if the router was updated with the correct bytes
     mock_app.current_context.message_router.set_outbound_propagation_node.assert_called_with(
-        bytes.fromhex(node_hash_hex)
+        bytes.fromhex(node_hash_hex),
     )
 
     # Trigger a sync request
     mock_app.current_context.message_router.get_outbound_propagation_node.return_value = bytes.fromhex(
-        node_hash_hex
+        node_hash_hex,
     )
     sync_handler = next(
         r.handler
@@ -219,5 +223,5 @@ async def test_user_provided_node_hash(mock_app):
 
     # Verify the router was told to sync for our identity
     mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_with(
-        mock_app.current_context.identity
+        mock_app.current_context.identity,
     )

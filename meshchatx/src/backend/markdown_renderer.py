@@ -1,5 +1,5 @@
-import re
 import html
+import re
 
 
 class MarkdownRenderer:
@@ -24,12 +24,15 @@ class MarkdownRenderer:
             code = match.group(2)
             placeholder = f"[[CB{len(code_blocks)}]]"
             code_blocks.append(
-                f'<pre class="bg-gray-800 dark:bg-zinc-900 text-zinc-100 dark:text-zinc-100 p-4 rounded-lg my-4 overflow-x-auto border border-gray-700 dark:border-zinc-800 font-mono text-sm"><code class="language-{lang} text-inherit">{code}</code></pre>'
+                f'<pre class="bg-gray-800 dark:bg-zinc-900 text-zinc-100 dark:text-zinc-100 p-4 rounded-lg my-4 overflow-x-auto border border-gray-700 dark:border-zinc-800 font-mono text-sm"><code class="language-{lang} text-inherit">{code}</code></pre>',
             )
             return placeholder
 
         text = re.sub(
-            r"```(\w+)?\n(.*?)\n```", code_block_placeholder, text, flags=re.DOTALL
+            r"```(\w+)?\n(.*?)\n```",
+            code_block_placeholder,
+            text,
+            flags=re.DOTALL,
         )
 
         # Horizontal Rules
@@ -134,7 +137,10 @@ class MarkdownRenderer:
             return f'<ul class="my-4 space-y-1">{html_items}</ul>'
 
         text = re.sub(
-            r"((?:^[*-] .*\n?)+)", unordered_list_repl, text, flags=re.MULTILINE
+            r"((?:^[*-] .*\n?)+)",
+            unordered_list_repl,
+            text,
+            flags=re.MULTILINE,
         )
 
         def ordered_list_repl(match):
@@ -146,7 +152,10 @@ class MarkdownRenderer:
             return f'<ol class="my-4 space-y-1">{html_items}</ol>'
 
         text = re.sub(
-            r"((?:^\d+\. .*\n?)+)", ordered_list_repl, text, flags=re.MULTILINE
+            r"((?:^\d+\. .*\n?)+)",
+            ordered_list_repl,
+            text,
+            flags=re.MULTILINE,
         )
 
         # Paragraphs - double newline to p tag
@@ -169,7 +178,7 @@ class MarkdownRenderer:
                 # Replace single newlines with <br> for line breaks within paragraphs
                 part = part.replace("\n", "<br>")
                 processed_parts.append(
-                    f'<p class="my-4 leading-relaxed text-gray-800 dark:text-zinc-200">{part}</p>'
+                    f'<p class="my-4 leading-relaxed text-gray-800 dark:text-zinc-200">{part}</p>',
                 )
 
         text = "\n".join(processed_parts)

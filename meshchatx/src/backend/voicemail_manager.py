@@ -556,7 +556,8 @@ class VoicemailManager:
                 os.remove(filepath)
                 os.rename(temp_path, filepath)
                 RNS.log(
-                    f"Voicemail: Fixed recording format for {filepath}", RNS.LOG_DEBUG
+                    f"Voicemail: Fixed recording format for {filepath}",
+                    RNS.LOG_DEBUG,
                 )
             else:
                 RNS.log(

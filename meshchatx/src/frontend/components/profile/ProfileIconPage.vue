@@ -212,6 +212,8 @@ import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ColourPickerDropdown from "../ColourPickerDropdown.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 export default {
     name: "ProfileIconPage",
@@ -324,6 +326,8 @@ export default {
             try {
                 const response = await window.axios.patch("/api/v1/config", config);
                 this.config = response.data.config;
+                GlobalState.config = response.data.config;
+                GlobalEmitter.emit("config-updated", response.data.config);
                 this.saveOriginalValues();
 
                 if (!silent) {

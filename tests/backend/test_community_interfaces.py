@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
 from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 
@@ -42,7 +44,7 @@ async def test_rnstatus_integration_simulated():
                 "rxb": 0,
                 "txb": 0,
             },
-        ]
+        ],
     }
 
     handler = RNStatusHandler(mock_reticulum)

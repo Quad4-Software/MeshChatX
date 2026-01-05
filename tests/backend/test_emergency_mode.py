@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
+
 from meshchatx.meshchat import ReticulumMeshChat
 
 
@@ -39,7 +40,9 @@ def mock_rns():
             patch.object(MockIdentityClass, "from_file", return_value=mock_id_instance),
             patch.object(MockIdentityClass, "recall", return_value=mock_id_instance),
             patch.object(
-                MockIdentityClass, "from_bytes", return_value=mock_id_instance
+                MockIdentityClass,
+                "from_bytes",
+                return_value=mock_id_instance,
             ),
         ):
             mock_transport.interfaces = []
@@ -73,7 +76,7 @@ def test_emergency_mode_startup_logic(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.DocsManager"),
         patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
         patch(
-            "meshchatx.src.backend.identity_context.TelephoneManager"
+            "meshchatx.src.backend.identity_context.TelephoneManager",
         ) as mock_tel_class,
         patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         patch("meshchatx.src.backend.identity_context.RingtoneManager"),
@@ -83,10 +86,10 @@ def test_emergency_mode_startup_logic(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
-            "meshchatx.src.backend.identity_context.IntegrityManager"
+            "meshchatx.src.backend.identity_context.IntegrityManager",
         ) as mock_integrity_class,
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads"
+            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
         ),
     ):
         # Initialize app in emergency mode
@@ -139,7 +142,7 @@ def test_emergency_mode_env_var(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads"
+            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
         ),
     ):
         # We need to simulate the argparse processing that happens in main()
@@ -170,7 +173,7 @@ def test_normal_mode_startup_logic(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.DocsManager"),
         patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
         patch(
-            "meshchatx.src.backend.identity_context.TelephoneManager"
+            "meshchatx.src.backend.identity_context.TelephoneManager",
         ) as mock_tel_class,
         patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         patch("meshchatx.src.backend.identity_context.RingtoneManager"),
@@ -180,10 +183,10 @@ def test_normal_mode_startup_logic(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
-            "meshchatx.src.backend.identity_context.IntegrityManager"
+            "meshchatx.src.backend.identity_context.IntegrityManager",
         ) as mock_integrity_class,
         patch(
-            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads"
+            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
         ),
     ):
         # Configure mocks BEFORE instantiating app

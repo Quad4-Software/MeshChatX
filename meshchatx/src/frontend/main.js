@@ -190,6 +190,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/translator/TranslatorPage.vue")),
         },
         {
+            name: "bots",
+            path: "/bots",
+            component: defineAsyncComponent(() => import("./components/tools/BotsPage.vue")),
+        },
+        {
             name: "forwarder",
             path: "/forwarder",
             component: defineAsyncComponent(() => import("./components/forwarder/ForwarderPage.vue")),

@@ -1,8 +1,9 @@
-import os
-import psutil
 import gc
+import os
 import time
 from functools import wraps
+
+import psutil
 
 
 def get_memory_usage_mb():
@@ -81,5 +82,5 @@ class MemoryTracker:
         self.duration_ms = (self.end_time - self.start_time) * 1000
         self.mem_delta = self.end_mem - self.start_mem
         print(
-            f"TRACKER [{self.name}]: {self.duration_ms:.2f}ms, {self.mem_delta:.2f}MB"
+            f"TRACKER [{self.name}]: {self.duration_ms:.2f}ms, {self.mem_delta:.2f}MB",
         )

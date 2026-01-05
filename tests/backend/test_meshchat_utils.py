@@ -1,8 +1,8 @@
 import os
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
 from contextlib import ExitStack
+from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
@@ -31,36 +31,36 @@ def mock_app(temp_dir):
     with ExitStack() as stack:
         stack.enter_context(patch("meshchatx.src.backend.identity_context.Database"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ConfigManager")
+            patch("meshchatx.src.backend.identity_context.ConfigManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler")
+            patch("meshchatx.src.backend.identity_context.MessageHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager")
+            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager")
+            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager")
+            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager")
+            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager")
+            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler")
+            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler")
+            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler")
+            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         )
         stack.enter_context(patch("LXMF.LXMRouter"))
         stack.enter_context(patch("RNS.Identity", MockIdentityClass))
@@ -72,34 +72,34 @@ def mock_app(temp_dir):
                 ReticulumMeshChat,
                 "announce_loop",
                 new=MagicMock(return_value=None),
-            )
+            ),
         )
         stack.enter_context(
             patch.object(
                 ReticulumMeshChat,
                 "announce_sync_propagation_nodes",
                 new=MagicMock(return_value=None),
-            )
+            ),
         )
         stack.enter_context(
             patch.object(
                 ReticulumMeshChat,
                 "crawler_loop",
                 new=MagicMock(return_value=None),
-            )
+            ),
         )
 
         mock_id = MockIdentityClass()
         mock_id.get_private_key = MagicMock(return_value=b"test_private_key")
 
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_file", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_file", return_value=mock_id),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "recall", return_value=mock_id)
+            patch.object(MockIdentityClass, "recall", return_value=mock_id),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id),
         )
 
         app = ReticulumMeshChat(

@@ -1,6 +1,6 @@
+import base64
 import os
 import time
-import base64
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
 
@@ -27,39 +27,39 @@ def mock_app():
         # Mock core dependencies that interact with the system/network
         stack.enter_context(patch("meshchatx.src.backend.identity_context.Database"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ConfigManager")
+            patch("meshchatx.src.backend.identity_context.ConfigManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler")
+            patch("meshchatx.src.backend.identity_context.MessageHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager")
+            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager")
+            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager")
+            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager")
+            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager")
+            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler")
+            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler")
+            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler")
+            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager")
+            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         )
 
         mock_async_utils = stack.enter_context(patch("meshchatx.meshchat.AsyncUtils"))
@@ -72,36 +72,40 @@ def mock_app():
 
         # Stop background loops
         stack.enter_context(
-            patch.object(ReticulumMeshChat, "announce_loop", return_value=None)
+            patch.object(ReticulumMeshChat, "announce_loop", return_value=None),
         )
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "announce_sync_propagation_nodes", return_value=None
-            )
+                ReticulumMeshChat,
+                "announce_sync_propagation_nodes",
+                return_value=None,
+            ),
         )
         stack.enter_context(
-            patch.object(ReticulumMeshChat, "crawler_loop", return_value=None)
+            patch.object(ReticulumMeshChat, "crawler_loop", return_value=None),
         )
         stack.enter_context(
-            patch.object(ReticulumMeshChat, "auto_backup_loop", return_value=None)
+            patch.object(ReticulumMeshChat, "auto_backup_loop", return_value=None),
         )
         stack.enter_context(
             patch.object(
-                ReticulumMeshChat, "send_config_to_websocket_clients", return_value=None
-            )
+                ReticulumMeshChat,
+                "send_config_to_websocket_clients",
+                return_value=None,
+            ),
         )
 
         mock_id = MockIdentityClass()
         mock_id.get_private_key = MagicMock(return_value=b"test_private_key")
 
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_file", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_file", return_value=mock_id),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "recall", return_value=mock_id)
+            patch.object(MockIdentityClass, "recall", return_value=mock_id),
         )
         stack.enter_context(
-            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id)
+            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id),
         )
 
         def mock_run_async(coro):
@@ -117,10 +121,10 @@ def mock_app():
             return MagicMock()
 
         mock_telephone_manager = stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager")
+            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
         )
         mock_telephone_manager.return_value.initiate = MagicMock(
-            side_effect=mock_initiate
+            side_effect=mock_initiate,
         )
 
         app = ReticulumMeshChat(
@@ -1015,7 +1019,11 @@ def test_telemetry_unpack_location_fuzzing(mock_app, packed_location):
     bearing=st.one_of(st.floats(allow_nan=True, allow_infinity=True), st.integers()),
     accuracy=st.one_of(st.floats(allow_nan=True, allow_infinity=True), st.integers()),
     last_update=st.one_of(
-        st.integers(), st.floats(), st.text(), st.binary(), st.none()
+        st.integers(),
+        st.floats(),
+        st.text(),
+        st.binary(),
+        st.none(),
     ),
 )
 def test_telemetry_pack_location_fuzzing(
@@ -1052,12 +1060,15 @@ def test_telemetry_pack_location_fuzzing(
         st.none(),
     ),
     data=st.one_of(
-        st.text(), st.binary(), st.dictionaries(keys=st.text(), values=st.text())
+        st.text(),
+        st.binary(),
+        st.dictionaries(keys=st.text(), values=st.text()),
     ),
     received_from=st.one_of(st.text(), st.binary(), st.none()),
     physical_link=st.one_of(
         st.dictionaries(
-            keys=st.text(), values=st.one_of(st.integers(), st.floats(), st.text())
+            keys=st.text(),
+            values=st.one_of(st.integers(), st.floats(), st.text()),
         ),
         st.text(),
         st.binary(),
@@ -1456,7 +1467,9 @@ def test_lxst_audio_frame_handling_fuzzing(mock_app, audio_frame):
     caller_identity_hash=st.binary(min_size=0, max_size=100),
 )
 def test_lxst_call_state_transitions_fuzzing(
-    mock_app, call_status, caller_identity_hash
+    mock_app,
+    call_status,
+    caller_identity_hash,
 ):
     """Fuzz LXST call state transitions with invalid states."""
     try:
@@ -1490,7 +1503,7 @@ def test_lxst_call_state_transitions_fuzzing(
             "2400",
             "3200",
             "invalid",
-        ]
+        ],
     ),
 )
 def test_codec2_decode_fuzzing(mock_app, codec2_data, codec_mode):
@@ -1577,7 +1590,8 @@ def test_lxst_profile_switching_fuzzing(mock_app, profile_id):
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
     destination_hash=st.one_of(
-        st.binary(min_size=0, max_size=100), st.text(min_size=0, max_size=100)
+        st.binary(min_size=0, max_size=100),
+        st.text(min_size=0, max_size=100),
     ),
     timeout=st.one_of(
         st.integers(min_value=-100, max_value=1000),
@@ -1612,7 +1626,8 @@ def test_lxst_call_initiation_fuzzing(mock_app, destination_hash, timeout):
 
         loop.run_until_complete(
             mock_app.telephone_manager.initiate(
-                dest_hash_bytes, timeout_seconds=timeout_int
+                dest_hash_bytes,
+                timeout_seconds=timeout_int,
             ),
         )
     finally:
@@ -1716,16 +1731,21 @@ def test_lxmf_message_unpacking_fuzzing(mock_app, lxmf_message_data):
     pipeline_config=st.dictionaries(
         keys=st.text(),
         values=st.one_of(
-            st.text(), st.binary(), st.integers(), st.floats(), st.booleans(), st.none()
+            st.text(),
+            st.binary(),
+            st.integers(),
+            st.floats(),
+            st.booleans(),
+            st.none(),
         ),
     ),
 )
 def test_lxst_pipeline_config_fuzzing(mock_app, pipeline_config):
     """Fuzz LXST Pipeline configuration."""
-    from LXST.Pipeline import Pipeline
     from LXST.Codecs import Null
-    from LXST.Sources import Source
+    from LXST.Pipeline import Pipeline
     from LXST.Sinks import Sink
+    from LXST.Sources import Source
 
     class DummySource(Source):
         pass
@@ -1748,7 +1768,8 @@ def test_lxst_pipeline_config_fuzzing(mock_app, pipeline_config):
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
     sink_data=st.one_of(
-        st.binary(min_size=0, max_size=10000), st.text(min_size=0, max_size=1000)
+        st.binary(min_size=0, max_size=10000),
+        st.text(min_size=0, max_size=1000),
     ),
 )
 def test_lxst_sink_handling_fuzzing(mock_app, sink_data):
@@ -1784,7 +1805,8 @@ def test_telemetry_packing_invariants_regression():
     }
 
     packed = Telemeter.pack(
-        time_utc=original_data["time"]["utc"], location=original_data["location"]
+        time_utc=original_data["time"]["utc"],
+        location=original_data["location"],
     )
     unpacked = Telemeter.from_packed(packed)
 

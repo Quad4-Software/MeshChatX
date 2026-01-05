@@ -20,7 +20,7 @@ def main():
         sys.exit(1)
 
     try:
-        with open(en_path, "r", encoding="utf-8") as f:
+        with open(en_path, encoding="utf-8") as f:
             en_data = json.load(f)
 
         template = clear_values(en_data)
@@ -29,7 +29,7 @@ def main():
             json.dump(template, f, indent=4, ensure_ascii=False)
 
         print(
-            f"Successfully generated {out_path} with all keys from {en_path} (empty values)."
+            f"Successfully generated {out_path} with all keys from {en_path} (empty values).",
         )
     except Exception as e:
         print(f"Error generating locale template: {e}")

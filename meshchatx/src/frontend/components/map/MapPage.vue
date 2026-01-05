@@ -116,6 +116,22 @@
                     >
                         <v-icon icon="mdi-trash-can-outline" size="18" class="sm:!size-5"></v-icon>
                     </button>
+                    <button
+                        v-if="selectedFeature"
+                        class="p-1.5 sm:p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 transition-all hover:scale-110 active:scale-90"
+                        title="Edit note"
+                        @click="startEditingNote(selectedFeature)"
+                    >
+                        <v-icon icon="mdi-note-edit-outline" size="18" class="sm:!size-5"></v-icon>
+                    </button>
+                    <button
+                        v-if="selectedFeature && !selectedFeature.get('telemetry')"
+                        class="p-1.5 sm:p-2 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 transition-all hover:scale-110 active:scale-90 animate-pulse"
+                        title="Delete selected item"
+                        @click="deleteSelectedFeature"
+                    >
+                        <v-icon icon="mdi-selection-remove" size="18" class="sm:!size-5"></v-icon>
+                    </button>
                     <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-0.5 sm:mx-1"></div>
                     <button
                         class="p-1.5 sm:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
@@ -211,18 +227,27 @@
 
             <!-- note hover tooltip -->
             <div
-                v-if="hoveredNote && !editingFeature"
+                v-if="
+                    hoveredFeature &&
+                    (hoveredFeature.get('note') ||
+                        (hoveredFeature.get('telemetry') && hoveredFeature.get('telemetry').note)) &&
+                    !editingFeature
+                "
                 class="absolute pointer-events-none z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl p-2 text-sm text-gray-900 dark:text-zinc-100 max-w-xs transform -translate-x-1/2 -translate-y-full mb-4"
                 :style="{
-                    left: map.getPixelFromCoordinate(hoveredNote.getGeometry().getCoordinates())[0] + 'px',
-                    top: map.getPixelFromCoordinate(hoveredNote.getGeometry().getCoordinates())[1] + 'px',
+                    left: map.getPixelFromCoordinate(hoveredFeature.getGeometry().getCoordinates())[0] + 'px',
+                    top: map.getPixelFromCoordinate(hoveredFeature.getGeometry().getCoordinates())[1] + 'px',
                 }"
             >
                 <div class="font-bold flex items-center gap-1 mb-1 text-amber-500">
                     <MaterialDesignIcon icon-name="note-text" class="size-4" />
-                    <span>Note</span>
+                    <span>{{
+                        hoveredFeature.get("telemetry") ? hoveredFeature.get("peer")?.display_name || "Peer" : "Note"
+                    }}</span>
                 </div>
-                <div class="whitespace-pre-wrap break-words">{{ hoveredNote.get("note") || "Empty note" }}</div>
+                <div class="whitespace-pre-wrap break-words">
+                    {{ hoveredFeature.get("note") || hoveredFeature.get("telemetry")?.note }}
+                </div>
             </div>
 
             <!-- inline note editor (overlay) -->
@@ -263,6 +288,58 @@
                             Save
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- context menu -->
+            <div
+                v-if="showContextMenu"
+                class="fixed z-[120] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-2xl overflow-hidden text-sm text-gray-900 dark:text-zinc-100"
+                :style="{ left: contextMenuPos.x + 'px', top: contextMenuPos.y + 'px' }"
+            >
+                <div class="px-3 py-2 font-bold border-b border-gray-100 dark:border-zinc-800">
+                    {{ contextMenuFeature ? "Feature actions" : "Map actions" }}
+                </div>
+                <div class="flex flex-col">
+                    <button
+                        v-if="contextMenuFeature"
+                        class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800 text-left"
+                        @click="contextSelectFeature"
+                    >
+                        <MaterialDesignIcon icon-name="cursor-default" class="size-4" />
+                        <span>Select / Move</span>
+                    </button>
+                    <button
+                        v-if="contextMenuFeature"
+                        class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800 text-left"
+                        @click="contextAddNote"
+                    >
+                        <MaterialDesignIcon icon-name="note-edit" class="size-4" />
+                        <span>Add / Edit Note</span>
+                    </button>
+                    <button
+                        v-if="contextMenuFeature && !contextMenuFeature.get('telemetry')"
+                        class="flex items-center gap-2 px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-left text-red-600"
+                        @click="contextDeleteFeature"
+                    >
+                        <MaterialDesignIcon icon-name="delete" class="size-4" />
+                        <span>Delete</span>
+                    </button>
+                    <button
+                        class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800 text-left"
+                        @click="contextCopyCoords"
+                    >
+                        <MaterialDesignIcon icon-name="crosshairs-gps" class="size-4" />
+                        <span>Copy coords</span>
+                    </button>
+                    <button
+                        v-if="!contextMenuFeature"
+                        class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-zinc-800 text-left"
+                        @click="contextClearMap"
+                    >
+                        <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
+                        <span>Clear drawings</span>
+                    </button>
                 </div>
             </div>
 
@@ -550,11 +627,11 @@
                 >
                     <div class="flex justify-between space-x-4">
                         <span class="opacity-50 uppercase tracking-tighter">Lat</span>
-                        <span class="text-gray-900 dark:text-zinc-100">{{ currentCenter[1].toFixed(6) }}</span>
+                        <span class="text-gray-900 dark:text-zinc-100">{{ displayCoords[1].toFixed(6) }}</span>
                     </div>
                     <div class="flex justify-between space-x-4">
                         <span class="opacity-50 uppercase tracking-tighter">Lon</span>
-                        <span class="text-gray-900 dark:text-zinc-100">{{ currentCenter[0].toFixed(6) }}</span>
+                        <span class="text-gray-900 dark:text-zinc-100">{{ displayCoords[0].toFixed(6) }}</span>
                     </div>
                 </div>
             </div>
@@ -710,11 +787,11 @@
                         </div>
                         <div class="flex justify-between">
                             <span>Lat:</span>
-                            <span class="font-mono">{{ currentCenter[1].toFixed(5) }}</span>
+                            <span class="font-mono">{{ displayCoords[1].toFixed(5) }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span>Lon:</span>
-                            <span class="font-mono">{{ currentCenter[0].toFixed(5) }}</span>
+                            <span class="font-mono">{{ displayCoords[0].toFixed(5) }}</span>
                         </div>
                     </div>
                 </div>
@@ -967,15 +1044,18 @@ import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
-import { Style, Text, Fill, Stroke, Circle as CircleStyle } from "ol/style";
+import { Style, Text, Fill, Stroke, Circle as CircleStyle, Icon } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
 import DragBox from "ol/interaction/DragBox";
 import Draw from "ol/interaction/Draw";
 import Modify from "ol/interaction/Modify";
 import Snap from "ol/interaction/Snap";
+import Select from "ol/interaction/Select";
+import Translate from "ol/interaction/Translate";
 import { getArea, getLength } from "ol/sphere";
-import { LineString, Polygon } from "ol/geom";
+import { LineString, Polygon, Circle } from "ol/geom";
+import { fromCircle } from "ol/geom/Polygon";
 import { unByKey } from "ol/Observable";
 import Overlay from "ol/Overlay";
 import GeoJSON from "ol/format/GeoJSON";
@@ -1001,6 +1081,7 @@ export default {
             isSettingsOpen: false,
             currentCenter: [0, 0],
             currentZoom: 2,
+            cursorCoords: null,
             config: null,
             peers: {},
 
@@ -1059,8 +1140,8 @@ export default {
             drawType: null, // 'Point', 'LineString', 'Polygon', 'Circle' or null
             isDrawing: false,
             drawingTools: [
+                { type: "Select", icon: "cursor-default" },
                 { type: "Point", icon: "map-marker-plus" },
-                { type: "Note", icon: "note-text-outline" },
                 { type: "LineString", icon: "vector-line" },
                 { type: "Polygon", icon: "vector-polygon" },
                 { type: "Circle", icon: "circle-outline" },
@@ -1074,6 +1155,7 @@ export default {
             helpTooltip: null,
             measureTooltipElement: null,
             measureTooltip: null,
+            measurementOverlays: [],
 
             // drawing storage
             savedDrawings: [],
@@ -1081,13 +1163,22 @@ export default {
             // note editing
             editingFeature: null,
             noteText: "",
-            hoveredNote: null,
+            hoveredFeature: null,
             noteOverlay: null,
             showNoteModal: false,
             showSaveDrawingModal: false,
             newDrawingName: "",
             isLoadingDrawings: false,
             showLoadDrawingModal: false,
+            styleCache: {},
+            selectedFeature: null,
+            select: null,
+            translate: null,
+            // context menu
+            showContextMenu: false,
+            contextMenuPos: { x: 0, y: 0 },
+            contextMenuFeature: null,
+            contextMenuCoord: null,
         };
     },
     computed: {
@@ -1103,6 +1194,9 @@ export default {
                 total += (Math.abs(x2 - x1) + 1) * (Math.abs(y2 - y1) + 1);
             }
             return total;
+        },
+        displayCoords() {
+            return this.cursorCoords || this.currentCenter;
         },
     },
     watch: {
@@ -1148,7 +1242,9 @@ export default {
                     dataProjection: "EPSG:4326",
                     featureProjection: "EPSG:3857",
                 });
+                console.log("Restoring persisted drawings, count:", features.length);
                 this.drawSource.addFeatures(features);
+                this.rebuildMeasurementOverlays();
             } catch (e) {
                 console.error("Failed to restore persisted drawings", e);
             }
@@ -1201,6 +1297,19 @@ export default {
         }, 30000);
     },
     beforeUnmount() {
+        if (this.map && this.map.getViewport()) {
+            this.map.getViewport().removeEventListener("contextmenu", this.onContextMenu);
+        }
+        document.removeEventListener("click", this.handleGlobalClick);
+        if (this._saveStateTimer) {
+            clearTimeout(this._saveStateTimer);
+            this._saveStateTimer = null;
+        }
+        if (this._pendingSaveResolvers && this._pendingSaveResolvers.length > 0) {
+            const pending = this._pendingSaveResolvers.slice();
+            this._pendingSaveResolvers = [];
+            this.saveMapStateImmediate().then(() => pending.forEach((p) => p.resolve()));
+        }
         if (this.reloadInterval) clearInterval(this.reloadInterval);
         if (this.exportInterval) clearInterval(this.exportInterval);
         if (this.searchTimeout) clearTimeout(this.searchTimeout);
@@ -1209,17 +1318,37 @@ export default {
         WebSocketConnection.off("message", this.onWebsocketMessage);
     },
     methods: {
-        async saveMapState() {
+        saveMapState() {
+            if (!this._pendingSaveResolvers) {
+                this._pendingSaveResolvers = [];
+            }
+            return new Promise((resolve, reject) => {
+                this._pendingSaveResolvers.push({ resolve, reject });
+                if (this._saveStateTimer) clearTimeout(this._saveStateTimer);
+                this._saveStateTimer = setTimeout(async () => {
+                    const pending = this._pendingSaveResolvers.slice();
+                    this._pendingSaveResolvers = [];
+                    this._saveStateTimer = null;
+                    try {
+                        await this.saveMapStateImmediate();
+                        pending.forEach((p) => p.resolve());
+                    } catch (e) {
+                        pending.forEach((p) => p.reject(e));
+                    }
+                }, 150);
+            });
+        },
+        async saveMapStateImmediate() {
             try {
-                // Serialize drawings
                 let drawings = null;
                 if (this.drawSource) {
                     const format = new GeoJSON();
-                    drawings = format.writeFeatures(this.drawSource.getFeatures());
+                    const features = this.serializeFeatures(this.drawSource.getFeatures());
+                    drawings = format.writeFeatures(features, {
+                        dataProjection: "EPSG:4326",
+                        featureProjection: "EPSG:3857",
+                    });
                 }
-
-                // Use JSON.parse/stringify to strip Vue Proxies and ensure plain objects/arrays
-                // This prevents DataCloneError when saving to IndexedDB
                 const state = JSON.parse(
                     JSON.stringify({
                         center: this.currentCenter,
@@ -1231,6 +1360,7 @@ export default {
                     })
                 );
                 await TileCache.setMapState("last_view", state);
+                console.log("Map state persisted to cache, drawings size:", drawings ? drawings.length : 0);
             } catch (e) {
                 console.error("Failed to save map state", e);
             }
@@ -1340,20 +1470,19 @@ export default {
                 source: this.drawSource,
                 style: (feature) => {
                     const type = feature.get("type");
-                    if (type === "note") {
-                        return new Style({
-                            image: new CircleStyle({
-                                radius: 10,
-                                fill: new Fill({
-                                    color: "#f59e0b",
-                                }),
-                                stroke: new Stroke({
-                                    color: "#ffffff",
-                                    width: 2,
-                                }),
-                            }),
-                            // Use a simple circle for now as custom fonts in canvas can be tricky
-                            // or use the built-in Text style if we are sure it works
+                    const geometry = feature.getGeometry();
+                    const geomType = geometry ? geometry.getType() : null;
+
+                    if (type === "note" || geomType === "Point") {
+                        const isNote = type === "note";
+                        return this.createMarkerStyle({
+                            iconColor: isNote ? "#f59e0b" : "#3b82f6",
+                            bgColor: "#ffffff",
+                            label: isNote && feature.get("note") ? "Note" : "",
+                            isStale: false,
+                            iconPath: isNote
+                                ? "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"
+                                : null,
                         });
                     }
                     return new Style({
@@ -1375,6 +1504,7 @@ export default {
                 zIndex: 50,
             });
             this.map.addLayer(this.drawLayer);
+            this.attachDrawPersistence();
 
             this.noteOverlay = new Overlay({
                 element: this.$refs.noteOverlayElement,
@@ -1387,16 +1517,83 @@ export default {
             this.map.addOverlay(this.noteOverlay);
 
             this.modify = new Modify({ source: this.drawSource });
-            this.modify.on("modifyend", () => this.saveMapState());
+            this.modify.on("modifystart", (e) => {
+                const feats = (e.features && e.features.getArray()) || this.select.getFeatures().getArray();
+                feats.forEach((f) => this.clearMeasurementOverlay(f));
+            });
+            this.modify.on("modifyend", (e) => {
+                const feats = (e.features && e.features.getArray()) || this.select.getFeatures().getArray();
+                feats.forEach((f) => this.finalizeMeasurementOverlay(f));
+                this.saveMapState();
+            });
             this.map.addInteraction(this.modify);
+
+            this.select = new Select({
+                layers: [this.drawLayer],
+                hitTolerance: 15, // High tolerance for touch/offgrid
+                style: null, // Keep original feature style
+            });
+            this.select.on("select", (e) => {
+                this.selectedFeature = e.selected[0] || null;
+            });
+            this.map.addInteraction(this.select);
+
+            this.translate = new Translate({
+                features: this.select.getFeatures(),
+                layers: [this.drawLayer], // Only move drawing layer items, not telemetry
+            });
+            this.translate.on("translateend", (e) => {
+                const feats = (e.features && e.features.getArray()) || this.select.getFeatures().getArray();
+                feats.forEach((f) => this.finalizeMeasurementOverlay(f));
+                this.saveMapState();
+            });
+            this.map.addInteraction(this.translate);
+
+            // Default to Select tool
+            this.drawType = "Select";
+            this.select.setActive(true);
+            this.translate.setActive(true);
+            this.modify.setActive(true);
 
             this.snap = new Snap({ source: this.drawSource });
             this.map.addInteraction(this.snap);
+
+            // Right-click context menu
+            this.map.getViewport().addEventListener("contextmenu", this.onContextMenu);
 
             // setup telemetry markers
             this.markerSource = new VectorSource();
             this.markerLayer = new VectorLayer({
                 source: this.markerSource,
+                style: (feature) => {
+                    const t = feature.get("telemetry");
+                    const peer = feature.get("peer");
+                    const displayName = peer?.display_name || t.destination_hash.substring(0, 8);
+
+                    // Calculate staleness
+                    const now = Date.now();
+                    const updatedAt = t.updated_at
+                        ? new Date(t.updated_at).getTime()
+                        : t.timestamp
+                          ? t.timestamp * 1000
+                          : now;
+                    const isStale = now - updatedAt > 10 * 60 * 1000;
+
+                    let iconColor = "#2563eb";
+                    let bgColor = "#ffffff";
+
+                    if (peer?.lxmf_user_icon) {
+                        iconColor = peer.lxmf_user_icon.foreground_colour || iconColor;
+                        bgColor = peer.lxmf_user_icon.background_colour || bgColor;
+                    }
+
+                    return this.createMarkerStyle({
+                        iconColor,
+                        bgColor,
+                        label: displayName,
+                        isStale,
+                    });
+                },
                 zIndex: 100,
             });
             this.map.addLayer(this.markerLayer);
@@ -1404,11 +1601,18 @@ export default {
             this.map.on("pointermove", this.handleMapPointerMove);
             this.map.on("click", (evt) => {
                 this.handleMapClick(evt);
+                this.closeContextMenu();
                 const feature = this.map.forEachFeatureAtPixel(evt.pixel, (f) => f);
                 if (feature && feature.get("telemetry")) {
                     this.onMarkerClick(feature);
                 } else {
                     this.selectedMarker = null;
+                }
+
+                // Deselect drawing if clicking empty space
+                if (!feature && this.select) {
+                    this.select.getFeatures().clear();
+                    this.selectedFeature = null;
                 }
             });
 
@@ -1431,6 +1635,9 @@ export default {
 
             this.map.addInteraction(this.dragBox);
             this.isMapLoaded = true;
+
+            // Close context menu when clicking elsewhere
+            document.addEventListener("click", this.handleGlobalClick);
         },
         isLocalUrl(url) {
             if (!url) return false;
@@ -2057,10 +2264,29 @@ export default {
             }
         },
 
+        attachDrawPersistence() {
+            if (!this.drawSource) return;
+            const persist = () => this.saveMapState();
+            this.drawSource.on("addfeature", persist);
+            this.drawSource.on("removefeature", persist);
+            this.drawSource.on("changefeature", persist);
+            this.drawSource.on("clear", persist);
+        },
+
+        deleteSelectedFeature() {
+            if (this.selectedFeature && this.drawSource) {
+                this.clearMeasurementOverlay(this.selectedFeature);
+                this.drawSource.removeFeature(this.selectedFeature);
+                if (this.select) this.select.getFeatures().clear();
+                this.selectedFeature = null;
+                this.saveMapState();
+            }
+        },
+
         // Drawing methods
         toggleDraw(type) {
             if (!this.map) return;
-            if (this.drawType === type && !this.isMeasuring) {
+            if (this.drawType === type && !this.isDrawing) {
                 this.stopDrawing();
                 return;
             }
@@ -2069,27 +2295,79 @@ export default {
             this.isMeasuring = false;
             this.drawType = type;
 
+            if (type === "Select") {
+                if (this.select) this.select.setActive(true);
+                if (this.translate) this.translate.setActive(true);
+                if (this.modify) this.modify.setActive(true);
+                return;
+            }
+
+            // Disable selection/translation while drawing
+            if (this.select) this.select.setActive(false);
+            if (this.translate) this.translate.setActive(false);
+            if (this.modify) this.modify.setActive(false);
+
             this.draw = new Draw({
                 source: this.drawSource,
-                type: type === "Note" ? "Point" : type,
+                type: type,
             });
 
-            this.draw.on("drawstart", () => {
+            this.draw.on("drawstart", (evt) => {
                 this.isDrawing = true;
+                this.sketch = evt.feature;
+
+                // For LineString, Polygon, and Circle, show measure tooltip while drawing
+                if (type === "LineString" || type === "Polygon" || type === "Circle") {
+                    this.createMeasureTooltip();
+                    this._drawListener = this.sketch.getGeometry().on("change", (e) => {
+                        const geom = e.target;
+                        let output;
+                        let tooltipCoord;
+                        if (geom instanceof Polygon) {
+                            output = this.formatArea(geom);
+                            tooltipCoord = geom.getInteriorPoint().getCoordinates();
+                        } else if (geom instanceof LineString) {
+                            output = this.formatLength(geom);
+                            tooltipCoord = geom.getLastCoordinate();
+                        } else if (geom instanceof Circle) {
+                            const radius = geom.getRadius();
+                            const center = geom.getCenter();
+                            // Calculate radius distance in projection (sphere-aware)
+                            const edge = [center[0] + radius, center[1]];
+                            const line = new LineString([center, edge]);
+                            output = `Radius: ${this.formatLength(line)}`;
+                            tooltipCoord = edge;
+                        }
+                        if (output) {
+                            this.measureTooltipElement.innerHTML = output;
+                            this.measureTooltip.setPosition(tooltipCoord);
+                        }
+                    });
+                }
             });
 
             this.draw.on("drawend", (evt) => {
                 this.isDrawing = false;
                 const feature = evt.feature;
-                if (type === "Note") {
-                    feature.set("type", "note");
-                    feature.set("note", "");
-                    // Open edit box after a short delay to let the feature settle
-                    setTimeout(() => {
-                        this.startEditingNote(feature);
-                    }, 200);
+                feature.set("type", "draw"); // Tag as custom drawing for styling
+
+                // Clean up sketch listener and tooltips unless it was the Measure tool
+                if (this._drawListener) {
+                    unByKey(this._drawListener);
+                    this._drawListener = null;
                 }
-                // Use setTimeout to ensure the feature is actually in the source before saving
+                this.sketch = null;
+
+                // Finalize measurement overlay for the drawn feature
+                this.finalizeMeasurementOverlay(feature);
+                this.cleanupMeasureTooltip();
+
+                // Re-enable select/translate/modify after drawing
+                if (this.select) this.select.setActive(true);
+                if (this.translate) this.translate.setActive(true);
+                if (this.modify) this.modify.setActive(true);
+                this.drawType = "Select";
+
                 setTimeout(() => this.saveMapState(), 100);
             });
 
@@ -2098,7 +2376,8 @@ export default {
 
         startEditingNote(feature) {
             this.editingFeature = feature;
-            this.noteText = feature.get("note") || "";
+            const telemetry = feature.get("telemetry");
+            this.noteText = telemetry ? telemetry.note || "" : feature.get("note") || "";
             if (this.isMobileScreen) {
                 this.showNoteModal = true;
             } else {
@@ -2109,13 +2388,29 @@ export default {
         updateNoteOverlay() {
             if (!this.editingFeature || !this.map) return;
             const geometry = this.editingFeature.getGeometry();
-            const coord = geometry.getCoordinates();
+            let coord;
+            if (geometry instanceof Point) {
+                coord = geometry.getCoordinates();
+            } else if (geometry instanceof LineString) {
+                coord = geometry.getCoordinateAt(0.5); // Middle of line
+            } else if (geometry instanceof Polygon) {
+                coord = geometry.getInteriorPoint().getCoordinates();
+            } else if (geometry instanceof Circle) {
+                coord = geometry.getCenter();
+            } else {
+                coord = this.map.getView().getCenter();
+            }
             this.noteOverlay.setPosition(coord);
         },
 
         saveNote() {
             if (this.editingFeature) {
-                this.editingFeature.set("note", this.noteText);
+                const telemetry = this.editingFeature.get("telemetry");
+                if (telemetry) {
+                    telemetry.note = this.noteText;
+                } else {
+                    this.editingFeature.set("note", this.noteText);
+                }
                 this.saveMapState();
             }
             this.closeNoteEditor();
@@ -2144,19 +2439,190 @@ export default {
             this.closeNoteEditor();
         },
 
+        // Measurement helpers
+        cleanupMeasureTooltip() {
+            if (this.measureTooltipElement && this.measureTooltipElement.parentNode) {
+                this.measureTooltipElement.parentNode.removeChild(this.measureTooltipElement);
+            }
+            if (this.measureTooltip) {
+                this.map.removeOverlay(this.measureTooltip);
+            }
+            this.measureTooltipElement = null;
+            this.measureTooltip = null;
+        },
+        getMeasurementForGeometry(geom) {
+            if (geom instanceof Polygon) {
+                return {
+                    text: this.formatArea(geom),
+                    coord: geom.getInteriorPoint().getCoordinates(),
+                };
+            }
+            if (geom instanceof LineString) {
+                return {
+                    text: this.formatLength(geom),
+                    coord: geom.getLastCoordinate(),
+                };
+            }
+            if (geom instanceof Circle) {
+                const center = geom.getCenter();
+                const edge = [center[0] + geom.getRadius(), center[1]];
+                const line = new LineString([center, edge]);
+                return {
+                    text: `Radius: ${this.formatLength(line)}`,
+                    coord: edge,
+                };
+            }
+            return null;
+        },
+        clearMeasurementOverlay(feature) {
+            const overlay = feature.get("_measureOverlay");
+            if (overlay) {
+                this.map.removeOverlay(overlay);
+                feature.unset("_measureOverlay", true);
+            }
+        },
+        finalizeMeasurementOverlay(feature) {
+            if (!this.map) return;
+            this.clearMeasurementOverlay(feature);
+            const geom = feature.getGeometry();
+            const measurement = this.getMeasurementForGeometry(geom);
+            if (!measurement) return;
+            const el = document.createElement("div");
+            el.className = "ol-tooltip ol-tooltip-static";
+            el.innerHTML = measurement.text;
+            const overlay = new Overlay({
+                element: el,
+                offset: [0, -7],
+                positioning: "bottom-center",
+            });
+            overlay.set("isMeasureTooltip", true);
+            this.map.addOverlay(overlay);
+            overlay.setPosition(measurement.coord);
+            feature.set("_measureOverlay", overlay);
+        },
+        rebuildMeasurementOverlays() {
+            if (!this.drawSource || !this.map) return;
+            // Remove all existing measure overlays
+            const overlays = this.map.getOverlays().getArray();
+            for (let i = overlays.length - 1; i >= 0; i--) {
+                const ov = overlays[i];
+                if (ov.get && ov.get("isMeasureTooltip")) {
+                    this.map.removeOverlay(ov);
+                }
+            }
+            // Rebuild for all features
+            this.drawSource.getFeatures().forEach((f) => {
+                f.unset("_measureOverlay", true);
+                this.finalizeMeasurementOverlay(f);
+            });
+        },
+        serializeFeatures(features) {
+            return features.map((f) => {
+                const clone = f.clone();
+                clone.unset("_measureOverlay", true); // avoid circular refs
+                const geom = clone.getGeometry();
+                if (geom instanceof Circle) {
+                    clone.setGeometry(fromCircle(geom, 128));
+                }
+                return clone;
+            });
+        },
+        // Context menu handlers
+        onContextMenu(evt) {
+            if (!this.map) return;
+            evt.preventDefault();
+            const pixel = this.map.getEventPixel(evt);
+            const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f);
+            this.contextMenuFeature = feature || null;
+            this.contextMenuCoord = toLonLat(this.map.getCoordinateFromPixel(pixel));
+            this.contextMenuPos = { x: evt.clientX, y: evt.clientY };
+            if (feature && this.select) {
+                this.select.getFeatures().clear();
+                this.select.getFeatures().push(feature);
+                this.selectedFeature = feature;
+            }
+            this.showContextMenu = true;
+        },
+        closeContextMenu() {
+            this.showContextMenu = false;
+        },
+        contextSelectFeature() {
+            if (!this.contextMenuFeature || !this.select || !this.translate) {
+                this.closeContextMenu();
+                return;
+            }
+            this.select.setActive(true);
+            this.translate.setActive(true);
+            this.modify?.setActive(true);
+            this.select.getFeatures().clear();
+            this.select.getFeatures().push(this.contextMenuFeature);
+            this.selectedFeature = this.contextMenuFeature;
+            this.drawType = "Select";
+            this.closeContextMenu();
+        },
+        contextDeleteFeature() {
+            if (this.contextMenuFeature && !this.contextMenuFeature.get("telemetry")) {
+                this.drawSource.removeFeature(this.contextMenuFeature);
+                this.saveMapState();
+            }
+            this.closeContextMenu();
+        },
+        contextAddNote() {
+            if (this.contextMenuFeature) {
+                this.startEditingNote(this.contextMenuFeature);
+            }
+            this.closeContextMenu();
+        },
+        async contextCopyCoords() {
+            if (!this.contextMenuCoord) {
+                this.closeContextMenu();
+                return;
+            }
+            const [lon, lat] = this.contextMenuCoord;
+            const text = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+            try {
+                if (navigator?.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    ToastUtils.success("Copied coordinates");
+                } else {
+                    ToastUtils.success(text);
+                }
+            } catch (e) {
+                console.error("Copy failed", e);
+                ToastUtils.warning(text);
+            }
+            this.closeContextMenu();
+        },
+        contextClearMap() {
+            this.clearDrawings();
+            this.closeContextMenu();
+        },
+        // Clear all overlays on escape/context close
+        handleGlobalClick() {
+            if (this.showContextMenu) {
+                this.closeContextMenu();
+            }
+        },
+
         handleMapPointerMove(evt) {
+            if (!this.map) return;
+            const lonLat = toLonLat(evt.coordinate);
+            this.cursorCoords = [lonLat[0], lonLat[1]];
             if (evt.dragging || this.isDrawing || this.isMeasuring) return;
 
             const pixel = this.map.getEventPixel(evt.originalEvent);
-            const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f, {
-                layerFilter: (l) => l === this.drawLayer,
-            });
+            const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f);
 
-            if (feature && feature.get("type") === "note") {
-                this.hoveredNote = feature;
+            if (feature) {
+                const hasNote = feature.get("note") || (feature.get("telemetry") && feature.get("telemetry").note);
+                if (hasNote) {
+                    this.hoveredFeature = feature;
+                } else {
+                    this.hoveredFeature = null;
+                }
                 this.map.getTargetElement().style.cursor = "pointer";
             } else {
-                this.hoveredNote = null;
+                this.hoveredFeature = null;
                 this.map.getTargetElement().style.cursor = "";
             }
         },
@@ -2181,6 +2647,9 @@ export default {
                 this.map.removeInteraction(this.draw);
                 this.draw = null;
             }
+            if (this.select) this.select.setActive(true);
+            if (this.translate) this.translate.setActive(true);
+            if (this.modify) this.modify.setActive(true);
             this.drawType = null;
             this.isDrawing = false;
             this.stopMeasuring();
@@ -2402,8 +2871,11 @@ export default {
             }
 
             const format = new GeoJSON();
-            const features = this.drawSource.getFeatures();
-            const json = format.writeFeatures(features);
+            const features = this.serializeFeatures(this.drawSource.getFeatures());
+            const json = format.writeFeatures(features, {
+                dataProjection: "EPSG:4326",
+                featureProjection: "EPSG:3857",
+            });
 
             try {
                 await window.axios.post("/api/v1/map/drawings", {
@@ -2426,6 +2898,7 @@ export default {
             });
             this.drawSource.clear();
             this.drawSource.addFeatures(features);
+            await this.saveMapState();
             this.showLoadDrawingModal = false;
             ToastUtils.success(`Loaded "${drawing.name}"`);
         },
@@ -2493,43 +2966,46 @@ export default {
                 const loc = t.telemetry?.location;
                 if (!loc || loc.latitude === undefined || loc.longitude === undefined) continue;
 
-                const peer = this.peers[t.destination_hash];
-                const displayName = peer?.display_name || t.destination_hash.substring(0, 8);
-
                 const feature = new Feature({
                     geometry: new Point(fromLonLat([loc.longitude, loc.latitude])),
                     telemetry: t,
-                    peer: peer,
+                    peer: this.peers[t.destination_hash],
                 });
-
-                // Default style
-                let iconColor = "#3b82f6";
-                let bgColor = "#ffffff";
-
-                if (peer?.lxmf_user_icon) {
-                    iconColor = peer.lxmf_user_icon.foreground_colour || iconColor;
-                    bgColor = peer.lxmf_user_icon.background_colour || bgColor;
-                }
-
-                feature.setStyle(
-                    new Style({
-                        image: new CircleStyle({
-                            radius: 8,
-                            fill: new Fill({ color: bgColor }),
-                            stroke: new Stroke({ color: iconColor, width: 2 }),
-                        }),
-                        text: new Text({
-                            text: displayName,
-                            offsetY: -15,
-                            font: "bold 11px sans-serif",
-                            fill: new Fill({ color: "#000" }),
-                            stroke: new Stroke({ color: "#fff", width: 2 }),
-                        }),
-                    })
-                );
 
                 this.markerSource.addFeature(feature);
             }
+        },
+        createMarkerStyle({ iconColor, bgColor, label, isStale, iconPath }) {
+            const cacheKey = `${iconColor}-${bgColor}-${label}-${isStale}-${iconPath || "default"}`;
+            if (this.styleCache[cacheKey]) return this.styleCache[cacheKey];
+
+            const markerFill = isStale ? "#d1d5db" : bgColor;
+            const markerStroke = isStale ? "#9ca3af" : iconColor;
+            const path =
+                iconPath ||
+                "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z";
+
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/></svg>`;
+            const src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+
+            const style = new Style({
+                image: new Icon({
+                    src: src,
+                    anchor: [0.5, 1],
+                    scale: 1.6, // Reduced from 2.5
+                    imgSize: [24, 24],
+                }),
+                text: new Text({
+                    text: label,
+                    offsetY: -45, // Adjusted from -60
+                    font: "bold 12px sans-serif",
+                    fill: new Fill({ color: isStale ? "#6b7280" : "#111827" }),
+                    stroke: new Stroke({ color: "#ffffff", width: 3 }),
+                }),
+            });
+
+            this.styleCache[cacheKey] = style;
+            return style;
         },
         onMarkerClick(feature) {
             this.selectedMarker = {

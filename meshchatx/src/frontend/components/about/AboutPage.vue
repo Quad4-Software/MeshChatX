@@ -556,6 +556,48 @@
                                 </div>
                             </div>
 
+                            <!-- Auto Backups -->
+                            <div v-if="autoBackups.length > 0" class="space-y-6">
+                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div class="space-y-1">
+                                        <div
+                                            class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
+                                        >
+                                            <v-icon icon="mdi-history" size="16" class="text-blue-500"></v-icon>
+                                            Automatic Backups
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            Automated daily snapshots of your database.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div
+                                        v-for="backup in autoBackups"
+                                        :key="backup.path"
+                                        class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-blue-500/20 transition-all group"
+                                    >
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="font-black text-gray-900 dark:text-white text-xs truncate max-w-[150px]"
+                                                >{{ backup.name }}</span
+                                            >
+                                            <span class="text-[10px] font-bold text-gray-400 mt-1 tabular-nums"
+                                                >{{ formatBytes(backup.size) }} • {{ backup.created_at }}</span
+                                            >
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="secondary-chip !px-3 !py-1 !text-[10px] opacity-0 group-hover:opacity-100"
+                                            @click="restoreFromSnapshot(backup.path)"
+                                        >
+                                            Restore
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Identity Section -->
                             <div class="bg-red-500/5 p-6 rounded-2xl border border-red-500/10 space-y-6">
                                 <div class="flex items-center gap-4 text-red-500">
@@ -686,6 +728,7 @@ export default {
             snapshotInProgress: false,
             snapshotMessage: "",
             snapshotError: "",
+            autoBackups: [],
             identityBackupMessage: "",
             identityBackupError: "",
             identityBase32: "",
@@ -713,6 +756,7 @@ export default {
         this.getConfig();
         this.getDatabaseHealth();
         this.listSnapshots();
+        this.listAutoBackups();
         // Update stats every 5 seconds
         this.updateInterval = setInterval(() => {
             this.getAppInfo();
@@ -736,6 +780,14 @@ export default {
                 this.snapshots = response.data;
             } catch (e) {
                 console.log("Failed to list snapshots", e);
+            }
+        },
+        async listAutoBackups() {
+            try {
+                const response = await window.axios.get("/api/v1/database/backups");
+                this.autoBackups = response.data;
+            } catch (e) {
+                console.log("Failed to list auto-backups", e);
             }
         },
         async createSnapshot() {
@@ -1071,7 +1123,7 @@ export default {
                 const response = await window.axios.post("/api/v1/identity/restore", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                this.identityRestoreMessage = response.data.message || "Identity restored. Restart app.";
+                this.identityRestoreMessage = response.data.message || "Identity imported.";
             } catch (e) {
                 this.identityRestoreError = "Identity restore failed";
                 console.log(e);
@@ -1094,7 +1146,7 @@ export default {
                 const response = await window.axios.post("/api/v1/identity/restore", {
                     base32: this.identityRestoreBase32.trim(),
                 });
-                this.identityRestoreMessage = response.data.message || "Identity restored. Restart app.";
+                this.identityRestoreMessage = response.data.message || "Identity imported.";
             } catch (e) {
                 this.identityRestoreError = "Identity restore failed";
                 console.log(e);

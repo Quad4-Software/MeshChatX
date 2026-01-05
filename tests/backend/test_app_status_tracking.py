@@ -1,9 +1,11 @@
 import shutil
 import tempfile
-import pytest
 from unittest.mock import MagicMock, patch
-from meshchatx.meshchat import ReticulumMeshChat
+
+import pytest
 import RNS
+
+from meshchatx.meshchat import ReticulumMeshChat
 
 
 @pytest.fixture
@@ -36,43 +38,43 @@ async def test_app_status_endpoints(mock_rns_minimal, temp_dir):
     with ExitStack() as stack:
         # Patch all dependencies
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler")
+            patch("meshchatx.src.backend.identity_context.MessageHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager")
+            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager")
+            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
         stack.enter_context(patch("meshchatx.src.backend.identity_context.DocsManager"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.NomadNetworkManager")
+            patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager")
+            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager")
+            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager")
+            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler")
+            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler")
+            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler")
+            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager")
+            patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         )
         stack.enter_context(
-            patch("meshchatx.src.backend.sideband_commands.SidebandCommands")
+            patch("meshchatx.src.backend.sideband_commands.SidebandCommands"),
         )
         stack.enter_context(patch("meshchatx.meshchat.Telemeter"))
         stack.enter_context(patch("meshchatx.meshchat.CrashRecovery"))

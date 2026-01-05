@@ -1,16 +1,16 @@
-import sys
 import os
-import traceback
 import platform
 import shutil
 import sqlite3
+import sys
+import traceback
+
 import psutil
 import RNS
 
 
 class CrashRecovery:
-    """
-    A diagnostic utility that intercepts application crashes and provides
+    """A diagnostic utility that intercepts application crashes and provides
     meaningful error reports and system state analysis.
     """
 
@@ -33,18 +33,14 @@ class CrashRecovery:
             self.enabled = False
 
     def install(self):
-        """
-        Installs the crash recovery exception hook into the system.
-        """
+        """Installs the crash recovery exception hook into the system."""
         if not self.enabled:
             return
 
         sys.excepthook = self.handle_exception
 
     def disable(self):
-        """
-        Disables the crash recovery system manually.
-        """
+        """Disables the crash recovery system manually."""
         self.enabled = False
 
     def update_paths(
@@ -54,9 +50,7 @@ class CrashRecovery:
         public_dir=None,
         reticulum_config_dir=None,
     ):
-        """
-        Updates the internal paths used for system diagnosis.
-        """
+        """Updates the internal paths used for system diagnosis."""
         if storage_dir:
             self.storage_dir = storage_dir
         if database_path:
@@ -67,9 +61,7 @@ class CrashRecovery:
             self.reticulum_config_dir = reticulum_config_dir
 
     def handle_exception(self, exc_type, exc_value, exc_traceback):
-        """
-        Intercepts unhandled exceptions to provide a detailed diagnosis report.
-        """
+        """Intercepts unhandled exceptions to provide a detailed diagnosis report."""
         # Let keyboard interrupts pass through normally
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -100,13 +92,13 @@ class CrashRecovery:
         out.write("Recovery Suggestions:\n")
         out.write("  1. Review the 'System Environment Diagnosis' section above.\n")
         out.write(
-            "  2. Verify that all dependencies are installed (poetry install or pip install -r requirements.txt).\n"
+            "  2. Verify that all dependencies are installed (poetry install or pip install -r requirements.txt).\n",
         )
         out.write(
-            "  3. If database corruption is suspected, try starting with --auto-recover.\n"
+            "  3. If database corruption is suspected, try starting with --auto-recover.\n",
         )
         out.write(
-            "  4. If the issue persists, report it to Ivan over another LXMF client: 7cc8d66b4f6a0e0e49d34af7f6077b5a\n"
+            "  4. If the issue persists, report it to Ivan over another LXMF client: 7cc8d66b4f6a0e0e49d34af7f6077b5a\n",
         )
         out.write("=" * 70 + "\n\n")
         out.flush()
@@ -115,12 +107,10 @@ class CrashRecovery:
         sys.exit(1)
 
     def run_diagnosis(self, file=sys.stderr):
-        """
-        Performs a series of OS-agnostic checks on the application's environment.
-        """
+        """Performs a series of OS-agnostic checks on the application's environment."""
         # Basic System Info
         file.write(
-            f"- OS: {platform.system()} {platform.release()} ({platform.machine()})\n"
+            f"- OS: {platform.system()} {platform.release()} ({platform.machine()})\n",
         )
         file.write(f"- Python: {sys.version.split()[0]}\n")
 
@@ -128,7 +118,7 @@ class CrashRecovery:
         try:
             mem = psutil.virtual_memory()
             file.write(
-                f"- Memory: {mem.percent}% used ({mem.available / (1024**2):.1f} MB available)\n"
+                f"- Memory: {mem.percent}% used ({mem.available / (1024**2):.1f} MB available)\n",
             )
             if mem.percent > 95:
                 file.write("  [CRITICAL] System memory is dangerously low!\n")
@@ -140,12 +130,12 @@ class CrashRecovery:
             file.write(f"- Storage Path: {self.storage_dir}\n")
             if not os.path.exists(self.storage_dir):
                 file.write(
-                    "  [ERROR] Storage path does not exist. Check MESHCHAT_STORAGE_DIR.\n"
+                    "  [ERROR] Storage path does not exist. Check MESHCHAT_STORAGE_DIR.\n",
                 )
             else:
                 if not os.access(self.storage_dir, os.W_OK):
                     file.write(
-                        "  [ERROR] Storage path is NOT writable. Check filesystem permissions.\n"
+                        "  [ERROR] Storage path is NOT writable. Check filesystem permissions.\n",
                     )
 
                 try:
@@ -154,7 +144,7 @@ class CrashRecovery:
                     file.write(f"  - Disk Space: {free_mb:.1f} MB free\n")
                     if free_mb < 50:
                         file.write(
-                            "  [CRITICAL] Disk space is critically low (< 50MB)!\n"
+                            "  [CRITICAL] Disk space is critically low (< 50MB)!\n",
                         )
                 except Exception:
                     pass
@@ -165,27 +155,28 @@ class CrashRecovery:
             if os.path.exists(self.database_path):
                 if os.path.getsize(self.database_path) == 0:
                     file.write(
-                        "  [WARNING] Database file exists but is empty (0 bytes).\n"
+                        "  [WARNING] Database file exists but is empty (0 bytes).\n",
                     )
                 else:
                     try:
                         # Open in read-only mode for safety during crash handling
                         conn = sqlite3.connect(
-                            f"file:{self.database_path}?mode=ro", uri=True
+                            f"file:{self.database_path}?mode=ro",
+                            uri=True,
                         )
                         cursor = conn.cursor()
                         cursor.execute("PRAGMA integrity_check")
                         res = cursor.fetchone()[0]
                         if res != "ok":
                             file.write(
-                                f"  [ERROR] Database corruption detected: {res}\n"
+                                f"  [ERROR] Database corruption detected: {res}\n",
                             )
                         else:
                             file.write("  - Integrity: OK\n")
                         conn.close()
                     except sqlite3.DatabaseError as e:
                         file.write(
-                            f"  [ERROR] Database is unreadable or not a SQLite file: {e}\n"
+                            f"  [ERROR] Database is unreadable or not a SQLite file: {e}\n",
                         )
                     except Exception as e:
                         file.write(f"  [ERROR] Database check failed: {e}\n")
@@ -197,13 +188,13 @@ class CrashRecovery:
             file.write(f"- Frontend Assets: {self.public_dir}\n")
             if not os.path.exists(self.public_dir):
                 file.write(
-                    "  [ERROR] Frontend directory is missing. Web interface will fail to load.\n"
+                    "  [ERROR] Frontend directory is missing. Web interface will fail to load.\n",
                 )
             else:
                 index_path = os.path.join(self.public_dir, "index.html")
                 if not os.path.exists(index_path):
                     file.write(
-                        "  [ERROR] index.html not found in frontend directory!\n"
+                        "  [ERROR] index.html not found in frontend directory!\n",
                     )
                 else:
                     file.write("  - Frontend Status: Assets verified\n")
@@ -212,9 +203,7 @@ class CrashRecovery:
         self.run_reticulum_diagnosis(file=file)
 
     def run_reticulum_diagnosis(self, file=sys.stderr):
-        """
-        Diagnoses the Reticulum Network Stack environment.
-        """
+        """Diagnoses the Reticulum Network Stack environment."""
         file.write("- Reticulum Network Stack:\n")
 
         # Check config directory
@@ -231,11 +220,11 @@ class CrashRecovery:
         else:
             try:
                 # Basic config validation
-                with open(config_file, "r") as f:
+                with open(config_file) as f:
                     content = f.read()
                     if "[reticulum]" not in content:
                         file.write(
-                            "  [ERROR] Reticulum config file is invalid (missing [reticulum] section).\n"
+                            "  [ERROR] Reticulum config file is invalid (missing [reticulum] section).\n",
                         )
                     else:
                         file.write("  - Config File: OK\n")
@@ -255,7 +244,7 @@ class CrashRecovery:
             if os.path.exists(logfile):
                 file.write(f"  - Recent Log Entries ({logfile}):\n")
                 try:
-                    with open(logfile, "r") as f:
+                    with open(logfile) as f:
                         lines = f.readlines()
                         if not lines:
                             file.write("    (Log file is empty)\n")
@@ -283,7 +272,7 @@ class CrashRecovery:
                     file.write(f"    > {iface} [{status}]\n")
             else:
                 file.write(
-                    "  - Active Interfaces: None registered (Reticulum may not be initialized yet)\n"
+                    "  - Active Interfaces: None registered (Reticulum may not be initialized yet)\n",
                 )
         except Exception:
             pass
@@ -295,7 +284,7 @@ class CrashRecovery:
                 for conn in psutil.net_connections():
                     if conn.laddr.port == port and conn.status == "LISTEN":
                         file.write(
-                            f"  [ALERT] Port {port} is already in use by PID {conn.pid}. Potential conflict.\n"
+                            f"  [ALERT] Port {port} is already in use by PID {conn.pid}. Potential conflict.\n",
                         )
             except Exception:
                 pass

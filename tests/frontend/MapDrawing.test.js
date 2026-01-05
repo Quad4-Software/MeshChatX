@@ -45,6 +45,10 @@ vi.mock("ol/Map", () => ({
         forEachFeatureAtPixel: vi.fn(),
         setTarget: vi.fn(),
         updateSize: vi.fn(),
+        getViewport: vi.fn().mockReturnValue({
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }),
     })),
 }));
 
@@ -63,6 +67,7 @@ vi.mock("ol/source/Vector", () => ({
         addFeature: vi.fn(),
         addFeatures: vi.fn(),
         getFeatures: vi.fn().mockReturnValue([]),
+        on: vi.fn(),
     })),
 }));
 vi.mock("ol/proj", () => ({
@@ -75,11 +80,30 @@ vi.mock("ol/control", () => ({
 vi.mock("ol/interaction/Draw", () => ({
     default: vi.fn().mockImplementation(() => ({
         on: vi.fn(),
+        setActive: vi.fn(),
     })),
 }));
 vi.mock("ol/interaction/Modify", () => ({
     default: vi.fn().mockImplementation(() => ({
         on: vi.fn(),
+        setActive: vi.fn(),
+    })),
+}));
+vi.mock("ol/interaction/Select", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+        setActive: vi.fn(),
+        getFeatures: vi.fn().mockReturnValue({
+            getArray: vi.fn().mockReturnValue([]),
+            clear: vi.fn(),
+            push: vi.fn(),
+        }),
+    })),
+}));
+vi.mock("ol/interaction/Translate", () => ({
+    default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+        setActive: vi.fn(),
     })),
 }));
 vi.mock("ol/interaction/Snap", () => ({
@@ -105,6 +129,29 @@ vi.mock("ol/format/GeoJSON", () => ({
         writeFeatures: vi.fn().mockReturnValue('{"type":"FeatureCollection","features":[]}'),
         readFeatures: vi.fn().mockReturnValue([]),
     })),
+}));
+vi.mock("ol/style", () => ({
+    Style: vi.fn().mockImplementation(() => ({})),
+    Text: vi.fn().mockImplementation(() => ({})),
+    Fill: vi.fn().mockImplementation(() => ({})),
+    Stroke: vi.fn().mockImplementation(() => ({})),
+    Circle: vi.fn().mockImplementation(() => ({})),
+    Icon: vi.fn().mockImplementation(() => ({})),
+}));
+vi.mock("ol/sphere", () => ({
+    getArea: vi.fn(),
+    getLength: vi.fn(),
+}));
+vi.mock("ol/geom", () => ({
+    LineString: vi.fn(),
+    Polygon: vi.fn(),
+    Circle: vi.fn(),
+}));
+vi.mock("ol/geom/Polygon", () => ({
+    fromCircle: vi.fn(),
+}));
+vi.mock("ol/Observable", () => ({
+    unByKey: vi.fn(),
 }));
 
 describe("MapPage.vue - Drawing and Measurement Tools", () => {
@@ -196,13 +243,18 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
         const wrapper = mountMapPage();
         await wrapper.vm.$nextTick();
         await new Promise((resolve) => setTimeout(resolve, 50)); // wait for initMap
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.map).toBeDefined();
 
         const pointTool = wrapper.find('button[title="map.tool_point"]');
         await pointTool.trigger("click");
+        await wrapper.vm.$nextTick();
         expect(wrapper.vm.drawType).toBe("Point");
         expect(wrapper.vm.draw).not.toBeNull();
 
         await pointTool.trigger("click");
+        await wrapper.vm.$nextTick();
         expect(wrapper.vm.drawType).toBeNull();
         expect(wrapper.vm.draw).toBeNull();
     });
@@ -211,13 +263,18 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
         const wrapper = mountMapPage();
         await wrapper.vm.$nextTick();
         await new Promise((resolve) => setTimeout(resolve, 50)); // wait for initMap
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.map).toBeDefined();
 
         const measureTool = wrapper.find('button[title="map.tool_measure"]');
         await measureTool.trigger("click");
+        await wrapper.vm.$nextTick();
         expect(wrapper.vm.isMeasuring).toBe(true);
         expect(wrapper.vm.drawType).toBe("LineString");
 
         await measureTool.trigger("click");
+        await wrapper.vm.$nextTick();
         expect(wrapper.vm.isMeasuring).toBe(false);
         expect(wrapper.vm.drawType).toBeNull();
     });
