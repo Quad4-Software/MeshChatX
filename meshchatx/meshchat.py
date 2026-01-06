@@ -8603,15 +8603,21 @@ class ReticulumMeshChat:
             self.config.banished_color.set(data["banished_color"])
 
         if "message_font_size" in data:
-            self.config.message_font_size.set(int(data["message_font_size"]))
+            try:
+                value = int(data["message_font_size"])
+            except (TypeError, ValueError):
+                value = None
+            if value is not None:
+                self.config.message_font_size.set(value)
 
         if "message_icon_size" in data:
             try:
                 value = int(data["message_icon_size"])
             except (TypeError, ValueError):
-                value = self.config.message_icon_size.default_value
-            value = max(12, min(value, 96))
-            self.config.message_icon_size.set(value)
+                value = None
+            if value is not None:
+                value = max(12, min(value, 96))
+                self.config.message_icon_size.set(value)
 
         # update desktop settings
         if "desktop_open_calls_in_separate_window" in data:
