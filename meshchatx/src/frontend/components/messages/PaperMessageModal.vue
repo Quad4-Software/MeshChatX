@@ -250,7 +250,7 @@ export default {
                 }
             } catch (err) {
                 console.error("Failed to render QR code:", err);
-                ToastUtils.error("Failed to render QR code");
+                ToastUtils.error(this.$t("messages.failed_render_qr"));
             }
         },
         close() {
@@ -259,9 +259,9 @@ export default {
         async copyUri() {
             try {
                 await navigator.clipboard.writeText(this.uri);
-                ToastUtils.success("URI copied to clipboard");
+                ToastUtils.success(this.$t("messages.uri_copied"));
             } catch {
-                ToastUtils.error("Failed to copy URI");
+                ToastUtils.error(this.$t("messages.failed_copy_uri"));
             }
         },
         downloadQRCode() {
@@ -309,14 +309,14 @@ export default {
                 });
 
                 if (response.data.status === "success") {
-                    ToastUtils.success("Paper message sent successfully");
+                    ToastUtils.success(this.$t("messages.paper_message_sent"));
                     this.close();
                 } else {
                     ToastUtils.error(response.data.message || "Failed to send paper message");
                 }
             } catch (err) {
                 console.error("Failed to send paper message:", err);
-                ToastUtils.error("Failed to send paper message");
+                ToastUtils.error(this.$t("messages.failed_send_paper"));
             } finally {
                 this.isSending = false;
             }

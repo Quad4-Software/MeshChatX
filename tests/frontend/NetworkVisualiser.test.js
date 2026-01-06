@@ -125,6 +125,16 @@ describe("NetworkVisualiser.vue", () => {
     const mountVisualiser = () => {
         return mount(NetworkVisualiser, {
             global: {
+                mocks: {
+                    $t: (msg) => {
+                        const translations = {
+                            "visualiser.reticulum_mesh": "Reticulum Mesh",
+                            "visualiser.total_nodes": "Nodes",
+                            "visualiser.total_edges": "Links",
+                        };
+                        return translations[msg] || msg;
+                    },
+                },
                 stubs: {
                     Toggle: {
                         template:

@@ -3,23 +3,24 @@
         <v-card color="warning" class="pa-4">
             <v-card-title class="headline text-white">
                 <v-icon start icon="mdi-alert-decagram" class="mr-2"></v-icon>
-                Security Integrity Warning
+                {{ $t("about.security_integrity") }}
             </v-card-title>
 
             <v-card-text class="text-white mt-2">
                 <p v-if="integrity.backend && !integrity.backend.ok">
-                    <strong>Backend Tampering Detected!</strong><br />
-                    The application backend binary (unpacked from ASAR) appears to have been modified or replaced. This
-                    could indicate a malicious actor trying to compromise your mesh communication.
+                    <strong>{{ $t("about.tampering_detected") }}</strong
+                    ><br />
+                    {{ $t("about.integrity_backend_error") }}
                 </p>
 
                 <p v-if="integrity.data && !integrity.data.ok" class="mt-2">
-                    <strong>Data Tampering Detected!</strong><br />
-                    Your identities or database files appear to have been modified while the app was closed.
+                    <strong>{{ $t("about.tampering_detected") }}</strong
+                    ><br />
+                    {{ $t("about.integrity_data_error") }}
                 </p>
 
                 <v-expansion-panels v-if="issues.length > 0" variant="inset" class="mt-4">
-                    <v-expansion-panel title="Technical Details" bg-color="warning-darken-1">
+                    <v-expansion-panel :title="$t('about.technical_issues')" bg-color="warning-darken-1">
                         <v-expansion-panel-text>
                             <ul class="text-caption">
                                 <li v-for="(issue, index) in issues" :key="index">{{ issue }}</li>
@@ -29,21 +30,20 @@
                 </v-expansion-panels>
 
                 <p class="mt-4 text-caption">
-                    Proceed with caution. If you did not manually update or modify these files, your installation may be
-                    compromised.
+                    {{ $t("about.integrity_warning_footer") }}
                 </p>
             </v-card-text>
 
             <v-card-actions>
                 <v-checkbox
                     v-model="dontShowAgain"
-                    label="I understand, do not show again for this version"
+                    :label="$t('app.do_not_show_again')"
                     density="compact"
                     hide-details
                     class="text-white"
                 ></v-checkbox>
                 <v-spacer></v-spacer>
-                <v-btn variant="text" color="white" @click="close"> Continue Anyway </v-btn>
+                <v-btn variant="text" color="white" @click="close"> {{ $t("common.continue") }} </v-btn>
                 <v-btn
                     v-if="integrity.data && !integrity.data.ok"
                     variant="flat"
@@ -51,7 +51,7 @@
                     class="text-warning font-bold"
                     @click="acknowledgeAndReset"
                 >
-                    Acknowledge & Reset
+                    {{ $t("common.acknowledge_reset") }}
                 </v-btn>
             </v-card-actions>
         </v-card>
@@ -104,10 +104,10 @@ export default {
         async acknowledgeAndReset() {
             try {
                 await window.axios.post("/api/v1/app/integrity/acknowledge");
-                ToastUtils.success("Integrity issues acknowledged and manifest reset");
+                ToastUtils.success(this.$t("about.integrity_acknowledged_reset"));
                 this.visible = false;
             } catch (e) {
-                ToastUtils.error("Failed to acknowledge integrity issues");
+                ToastUtils.error(this.$t("about.failed_acknowledge_integrity"));
                 console.error(e);
             }
         },

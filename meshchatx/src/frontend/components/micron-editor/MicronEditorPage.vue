@@ -127,6 +127,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MicronParser from "micron-parser";
 import { micronStorage } from "../../js/MicronStorage";
+import DialogUtils from "../../js/DialogUtils";
 
 export default {
     name: "MicronEditorPage",
@@ -247,8 +248,8 @@ export default {
             this.activeTabIndex = this.tabs.length - 1;
             this.saveContent();
         },
-        removeTab(index) {
-            if (confirm(this.$t("tools.micron_editor.confirm_delete_tab"))) {
+        async removeTab(index) {
+            if (await DialogUtils.confirm(this.$t("tools.micron_editor.confirm_delete_tab"))) {
                 this.tabs.splice(index, 1);
                 if (this.activeTabIndex >= this.tabs.length) {
                     this.activeTabIndex = Math.max(0, this.tabs.length - 1);
@@ -275,7 +276,7 @@ export default {
             }
         },
         async resetAll() {
-            if (confirm(this.$t("tools.micron_editor.confirm_reset"))) {
+            if (await DialogUtils.confirm(this.$t("tools.micron_editor.confirm_reset"))) {
                 await micronStorage.clearAll();
                 this.tabs = [this.createDefaultTab(), this.createGuideTab(Date.now() + 1)];
                 this.activeTabIndex = 0;

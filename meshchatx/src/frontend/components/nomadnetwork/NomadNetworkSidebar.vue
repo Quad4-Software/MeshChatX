@@ -27,85 +27,230 @@
                     v-model="favouritesSearchTerm"
                     type="text"
                     :placeholder="$t('nomadnet.search_favourites_placeholder', { count: favourites.length })"
-                    class="input-field"
+                    class="input-field w-full rounded-none"
                 />
             </div>
+            <div
+                class="flex items-center justify-between px-3 pt-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400"
+            >
+                <span class="font-semibold">Sections</span>
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                    @click="createSection"
+                >
+                    <MaterialDesignIcon icon-name="plus" class="size-4" />
+                    <span>Add Section</span>
+                </button>
+            </div>
             <div class="flex-1 overflow-y-auto px-2 pb-4">
-                <div v-if="searchedFavourites.length > 0" class="space-y-2 pt-2">
-                    <div
-                        v-for="favourite of searchedFavourites"
-                        :key="favourite.destination_hash"
-                        class="favourite-card relative"
-                        :class="[
-                            favourite.destination_hash === selectedDestinationHash ? 'favourite-card--active' : '',
-                            draggingFavouriteHash === favourite.destination_hash ? 'favourite-card--dragging' : '',
-                        ]"
-                        draggable="true"
-                        @click="onFavouriteClick(favourite)"
-                        @dragstart="onFavouriteDragStart($event, favourite)"
-                        @dragover.prevent="onFavouriteDragOver($event)"
-                        @drop.prevent="onFavouriteDrop($event, favourite)"
-                        @dragend="onFavouriteDragEnd"
-                    >
-                        <!-- banished overlay -->
-                        <div
-                            v-if="GlobalState.config.banished_effect_enabled && isBlocked(favourite.destination_hash)"
-                            class="banished-overlay"
-                            :style="{ background: GlobalState.config.banished_color + '33' }"
-                        >
-                            <span
-                                class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
-                                :style="{ 'background-color': GlobalState.config.banished_color }"
-                                >{{ GlobalState.config.banished_text }}</span
-                            >
-                        </div>
-
-                        <div class="favourite-card__icon flex-shrink-0">
-                            <MaterialDesignIcon icon-name="server-network" class="w-5 h-5" />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div
-                                class="text-sm font-semibold text-gray-900 dark:text-white truncate"
-                                :title="favourite.display_name"
-                            >
-                                {{ favourite.display_name }}
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ formatDestinationHash(favourite.destination_hash) }}
-                            </div>
-                        </div>
-                        <DropDownMenu>
-                            <template #button>
-                                <IconButton>
-                                    <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
-                                </IconButton>
-                            </template>
-                            <template #items>
-                                <DropDownMenuItem @click="onRenameFavourite(favourite)">
-                                    <MaterialDesignIcon icon-name="pencil" class="w-5 h-5" />
-                                    <span>{{ $t("nomadnet.rename") }}</span>
-                                </DropDownMenuItem>
-                                <DropDownMenuItem @click="onRemoveFavourite(favourite)">
-                                    <MaterialDesignIcon icon-name="trash-can" class="w-5 h-5 text-red-500" />
-                                    <span class="text-red-500">{{ $t("nomadnet.remove") }}</span>
-                                </DropDownMenuItem>
-                                <div v-if="isBlocked(favourite.destination_hash)" class="border-t">
-                                    <DropDownMenuItem @click.stop="onUnblockNode(favourite.destination_hash)">
-                                        <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
-                                        <span class="text-green-500">Lift Banishment</span>
-                                    </DropDownMenuItem>
-                                </div>
-                            </template>
-                        </DropDownMenu>
-                    </div>
-                </div>
-                <div v-else class="empty-state">
+                <div v-if="favourites.length === 0" class="empty-state">
                     <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
                     <div class="font-semibold">{{ $t("nomadnet.no_favourites") }}</div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">
                         {{ $t("nomadnet.add_nodes_from_announces") }}
                     </div>
                 </div>
+                <div v-else-if="hasFavouriteResults" class="space-y-3 pt-2">
+                    <div
+                        v-for="section in sectionsWithFavourites"
+                        :key="section.id"
+                        class="rounded-xl"
+                        :class="[
+                            dragOverSectionId === section.id
+                                ? 'ring-1 ring-blue-400 dark:ring-blue-600 bg-blue-50/40 dark:bg-blue-900/10'
+                                : '',
+                            draggingSectionOverId === section.id
+                                ? 'ring-1 ring-blue-300 dark:ring-blue-700 bg-blue-50/30 dark:bg-blue-900/5'
+                                : '',
+                        ]"
+                        @dragover.prevent="onSectionDragOver(section.id)"
+                        @dragleave="onSectionDragLeave"
+                        @drop.prevent="onDropOnSection(section.id)"
+                    >
+                        <div
+                            class="flex items-center justify-between px-2 py-1 cursor-pointer select-none"
+                            draggable="true"
+                            @click="toggleSectionCollapse(section.id)"
+                            @contextmenu.prevent="openSectionContextMenu($event, section)"
+                            @dragstart="onSectionDragStart(section.id)"
+                            @dragover.prevent="onSectionReorderDragOver(section.id)"
+                            @drop.prevent="onSectionDrop(section.id)"
+                            @dragend="onSectionDragEnd"
+                        >
+                            <div class="flex items-center gap-2">
+                                <MaterialDesignIcon
+                                    :icon-name="section.collapsed ? 'chevron-right' : 'chevron-down'"
+                                    class="size-4 text-gray-400"
+                                />
+                                <span
+                                    class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300"
+                                >
+                                    {{ section.name }}
+                                </span>
+                                <span
+                                    v-if="section.collapsed"
+                                    class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full"
+                                >
+                                    {{ section.favourites.length }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-1" @click.stop>
+                                <button
+                                    type="button"
+                                    class="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition"
+                                    @click="openSectionContextMenu($event, section)"
+                                >
+                                    <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <div class="h-px bg-gray-200 dark:bg-zinc-800 mx-1"></div>
+                        <div v-if="!section.collapsed" class="space-y-2 pt-2 pb-1 px-1">
+                            <div
+                                v-for="favourite of section.favourites"
+                                :key="favourite.destination_hash"
+                                class="favourite-card relative"
+                                :class="[
+                                    favourite.destination_hash === selectedDestinationHash
+                                        ? 'favourite-card--active'
+                                        : '',
+                                    draggingFavouriteHash === favourite.destination_hash
+                                        ? 'favourite-card--dragging'
+                                        : '',
+                                ]"
+                                draggable="true"
+                                @click="onFavouriteClick(favourite)"
+                                @contextmenu.prevent="openFavouriteContextMenu($event, favourite, section.id)"
+                                @dragstart="onFavouriteDragStart($event, favourite, section.id)"
+                                @dragover.prevent="onFavouriteDragOver($event)"
+                                @drop.prevent="onFavouriteDrop($event, section.id, favourite)"
+                                @dragend="onFavouriteDragEnd"
+                            >
+                                <div
+                                    v-if="
+                                        GlobalState.config.banished_effect_enabled &&
+                                        isBlocked(favourite.destination_hash)
+                                    "
+                                    class="banished-overlay"
+                                    :style="{ background: GlobalState.config.banished_color + '33' }"
+                                >
+                                    <span
+                                        class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                        :style="{ 'background-color': GlobalState.config.banished_color }"
+                                        >{{ GlobalState.config.banished_text }}</span
+                                    >
+                                </div>
+
+                                <div class="favourite-card__icon flex-shrink-0">
+                                    <MaterialDesignIcon icon-name="server-network" class="w-5 h-5" />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div
+                                        class="text-sm font-semibold text-gray-900 dark:text-white truncate"
+                                        :title="favourite.display_name"
+                                    >
+                                        {{ favourite.display_name }}
+                                    </div>
+                                    <div
+                                        class="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer inline-flex items-center"
+                                        :title="$t('common.copy_to_clipboard')"
+                                        @click.stop="copyToClipboard(favourite.destination_hash, 'Address')"
+                                    >
+                                        {{ formatDestinationHash(favourite.destination_hash) }}
+                                    </div>
+                                </div>
+                                <IconButton
+                                    class="text-gray-500 dark:text-gray-300"
+                                    @click.stop="openFavouriteContextMenu($event, favourite, section.id)"
+                                >
+                                    <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
+                                </IconButton>
+                            </div>
+                            <div
+                                v-if="section.favourites.length === 0"
+                                class="text-xs text-gray-500 dark:text-gray-400 px-3 pb-2 italic"
+                            >
+                                No favourites in this section.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-else class="empty-state">
+                    <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
+                    <div class="font-semibold">No favourites match your search</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Try a different search term.</div>
+                </div>
+            </div>
+
+            <!-- Favourite Context Menu -->
+            <div
+                v-if="favouriteContextMenu.show"
+                v-click-outside="{ handler: closeContextMenus, capture: true }"
+                class="fixed z-[100] min-w-[220px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                :style="{ top: favouriteContextMenu.y + 'px', left: favouriteContextMenu.x + 'px' }"
+            >
+                <button
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                    @click="renameFavouriteFromContext"
+                >
+                    <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
+                    <span class="font-medium">{{ $t("nomadnet.rename") }}</span>
+                </button>
+                <button
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                    @click="removeFavouriteFromContext"
+                >
+                    <MaterialDesignIcon icon-name="trash-can" class="size-4 text-red-400" />
+                    <span class="font-medium">{{ $t("nomadnet.remove") }}</span>
+                </button>
+                <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                <div
+                    class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
+                >
+                    Move to Section
+                </div>
+                <div class="max-h-56 overflow-y-auto custom-scrollbar">
+                    <button
+                        v-for="section in sectionsWithFavourites"
+                        :key="section.id + '-move'"
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
+                        @click="moveContextFavouriteToSection(section.id)"
+                    >
+                        <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
+                        <span class="truncate">{{ section.name }}</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section Context Menu -->
+            <div
+                v-if="sectionContextMenu.show"
+                v-click-outside="{ handler: closeContextMenus, capture: true }"
+                class="fixed z-[100] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                :style="{ top: sectionContextMenu.y + 'px', left: sectionContextMenu.x + 'px' }"
+            >
+                <button
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                    @click="renameSectionFromContext"
+                >
+                    <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
+                    <span class="font-medium">Rename Section</span>
+                </button>
+                <button
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                    :disabled="sectionContextMenu.sectionId === defaultSectionId"
+                    :class="sectionContextMenu.sectionId === defaultSectionId ? 'opacity-50 cursor-not-allowed' : ''"
+                    @click="removeSectionFromContext"
+                >
+                    <MaterialDesignIcon icon-name="delete" class="size-4 text-red-400" />
+                    <span class="font-medium">Delete Section</span>
+                </button>
             </div>
         </div>
 
@@ -115,7 +260,7 @@
                     :value="nodesSearchTerm"
                     type="text"
                     :placeholder="$t('nomadnet.search_placeholder_announces', { count: totalNodesCount })"
-                    class="input-field"
+                    class="input-field w-full rounded-none"
                     @input="onNodesSearchInput"
                 />
             </div>
@@ -151,8 +296,17 @@
                                 >
                                     {{ node.display_name }}
                                 </div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $t("nomadnet.announced_time_ago", { time: formatTimeAgo(node.updated_at) }) }}
+                                <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5">
+                                    <span class="truncate">{{
+                                        $t("nomadnet.announced_time_ago", { time: formatTimeAgo(node.updated_at) })
+                                    }}</span>
+                                    <span
+                                        class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400 inline-flex items-center"
+                                        :title="$t('common.copy_to_clipboard')"
+                                        @click.stop="copyToClipboard(node.destination_hash, 'Address')"
+                                    >
+                                        {{ formatDestinationHash(node.destination_hash) }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -199,6 +353,7 @@ import DropDownMenuItem from "../DropDownMenuItem.vue";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "NomadNetworkSidebar",
@@ -239,8 +394,28 @@ export default {
             GlobalState,
             tab: "favourites",
             favouritesSearchTerm: "",
-            favouritesOrder: [],
+            defaultSectionId: "default",
+            sections: [],
+            sectionOrder: [],
+            favouritesBySection: {},
             draggingFavouriteHash: null,
+            draggingFavouriteSectionId: null,
+            dragOverSectionId: null,
+            draggingSectionId: null,
+            draggingSectionOverId: null,
+            favouriteContextMenu: {
+                show: false,
+                x: 0,
+                y: 0,
+                targetHash: null,
+                targetSectionId: null,
+            },
+            sectionContextMenu: {
+                show: false,
+                x: 0,
+                y: 0,
+                sectionId: null,
+            },
         };
     },
     computed: {
@@ -267,37 +442,155 @@ export default {
                 return matchesDisplayName || matchesDestinationHash;
             });
         },
-        orderedFavourites() {
-            return [...this.favourites].sort((a, b) => {
-                return (
-                    this.favouritesOrder.indexOf(a.destination_hash) - this.favouritesOrder.indexOf(b.destination_hash)
-                );
+        orderedSections() {
+            const map = {};
+            this.sections.forEach((section) => {
+                map[section.id] = section;
+            });
+            const ids = this.sectionOrder.length > 0 ? this.sectionOrder : this.sections.map((section) => section.id);
+            return ids.map((id) => map[id]).filter((section) => section);
+        },
+        sectionsWithFavourites() {
+            const search = this.favouritesSearchTerm.toLowerCase();
+            return this.orderedSections.map((section) => {
+                const hashes = this.favouritesBySection[section.id] || [];
+                const favourites = hashes
+                    .map((hash) => this.favourites.find((fav) => fav.destination_hash === hash))
+                    .filter((fav) => fav)
+                    .filter((fav) => this.matchesFavouriteSearch(fav, search));
+                return { ...section, favourites };
             });
         },
-        searchedFavourites() {
-            return this.orderedFavourites.filter((favourite) => {
-                const search = this.favouritesSearchTerm.toLowerCase();
-                const matchesDisplayName = favourite.display_name.toLowerCase().includes(search);
-                const matchesCustomDisplayName =
-                    favourite.custom_display_name?.toLowerCase()?.includes(search) === true;
-                const matchesDestinationHash = favourite.destination_hash.toLowerCase().includes(search);
-                return matchesDisplayName || matchesCustomDisplayName || matchesDestinationHash;
-            });
+        hasFavouriteResults() {
+            if (this.favourites.length === 0) {
+                return false;
+            }
+            if (this.favouritesSearchTerm.trim() === "") {
+                return true;
+            }
+            return this.sectionsWithFavourites.some((section) => section.favourites.length > 0);
         },
     },
     watch: {
         favourites: {
             handler() {
-                this.ensureFavouriteOrder();
+                this.ensureFavouriteLayout();
             },
             deep: true,
         },
     },
     mounted() {
-        this.loadFavouriteOrder();
-        this.ensureFavouriteOrder();
+        this.loadFavouriteLayout();
+        this.ensureFavouriteLayout();
     },
     methods: {
+        matchesFavouriteSearch(favourite, searchTerm = this.favouritesSearchTerm.toLowerCase()) {
+            const matchesDisplayName = favourite.display_name.toLowerCase().includes(searchTerm);
+            const matchesCustomDisplayName =
+                favourite.custom_display_name?.toLowerCase()?.includes(searchTerm) === true;
+            const matchesDestinationHash = favourite.destination_hash.toLowerCase().includes(searchTerm);
+            return matchesDisplayName || matchesCustomDisplayName || matchesDestinationHash;
+        },
+        buildDefaultSection() {
+            return {
+                id: this.defaultSectionId,
+                name: this.$t("nomadnet.favourites"),
+                collapsed: false,
+            };
+        },
+        resetDefaultSections() {
+            const defaultSection = this.buildDefaultSection();
+            this.sections = [defaultSection];
+            this.sectionOrder = [defaultSection.id];
+            this.favouritesBySection = { [defaultSection.id]: [] };
+        },
+        loadFavouriteLayout() {
+            try {
+                const stored = localStorage.getItem("meshchat.nomadnet.favourites.layout");
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    this.sections = parsed.sections || [];
+                    this.sectionOrder =
+                        parsed.sectionOrder ||
+                        (parsed.sections ? parsed.sections.map((section) => section.id) : this.sectionOrder);
+                    this.favouritesBySection = parsed.favouritesBySection || {};
+                    return;
+                }
+                const legacyOrder = localStorage.getItem("meshchat.nomadnet.favourites");
+                if (legacyOrder) {
+                    const parsedOrder = JSON.parse(legacyOrder);
+                    const defaultSection = this.buildDefaultSection();
+                    this.sections = [defaultSection];
+                    this.sectionOrder = [defaultSection.id];
+                    this.favouritesBySection = { [defaultSection.id]: parsedOrder };
+                }
+            } catch (e) {
+                console.log(e);
+            }
+            if (this.sections.length === 0) {
+                this.resetDefaultSections();
+            }
+        },
+        persistFavouriteLayout() {
+            try {
+                localStorage.setItem(
+                    "meshchat.nomadnet.favourites.layout",
+                    JSON.stringify({
+                        sections: this.sections,
+                        sectionOrder: this.sectionOrder,
+                        favouritesBySection: this.favouritesBySection,
+                    })
+                );
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        ensureFavouriteLayout() {
+            if (this.sections.length === 0) {
+                this.resetDefaultSections();
+            }
+            const hashes = this.favourites.map((fav) => fav.destination_hash);
+            const sectionIds = new Set();
+            const sanitizedSections = [];
+            this.sections.forEach((section) => {
+                if (!section || !section.id || sectionIds.has(section.id)) {
+                    return;
+                }
+                sectionIds.add(section.id);
+                sanitizedSections.push({
+                    id: section.id,
+                    name: section.name || this.$t("nomadnet.favourites"),
+                    collapsed: section.collapsed === true ? true : false,
+                });
+            });
+            if (!sectionIds.has(this.defaultSectionId)) {
+                const defaultSection = this.buildDefaultSection();
+                sanitizedSections.unshift(defaultSection);
+                sectionIds.add(defaultSection.id);
+            }
+            this.sections = sanitizedSections;
+            const existingOrder = Array.isArray(this.sectionOrder) ? this.sectionOrder : [];
+            const filteredOrder = existingOrder.filter((id) => sectionIds.has(id));
+            const remaining = sanitizedSections
+                .map((section) => section.id)
+                .filter((id) => !filteredOrder.includes(id));
+            this.sectionOrder = [...filteredOrder, ...remaining];
+
+            const nextFavouritesBySection = {};
+            sanitizedSections.forEach((section) => {
+                const existing = this.favouritesBySection[section.id] || [];
+                nextFavouritesBySection[section.id] = existing.filter((hash) => hashes.includes(hash));
+            });
+            const assigned = new Set(Object.values(nextFavouritesBySection).flat());
+            hashes.forEach((hash) => {
+                if (!assigned.has(hash)) {
+                    nextFavouritesBySection[this.defaultSectionId].push(hash);
+                    assigned.add(hash);
+                }
+            });
+            this.favouritesBySection = nextFavouritesBySection;
+            this.persistFavouriteLayout();
+        },
         isBlocked(identityHash) {
             return this.blockedDestinations.some((b) => b.destination_hash === identityHash);
         },
@@ -321,9 +614,9 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/blocked-destinations/${identityHash}`);
                 GlobalEmitter.emit("block-status-changed");
-                DialogUtils.alert("Banishment lifted successfully");
+                DialogUtils.alert(this.$t("nomadnet.banishment_lifted"));
             } catch (e) {
-                DialogUtils.alert("Failed to lift banishment");
+                DialogUtils.alert(this.$t("nomadnet.failed_lift_banishment"));
                 console.log(e);
             }
         },
@@ -345,33 +638,7 @@ export default {
         onRemoveFavourite(favourite) {
             this.$emit("remove-favourite", favourite);
         },
-        loadFavouriteOrder() {
-            try {
-                const stored = localStorage.getItem("meshchat.nomadnet.favourites");
-                if (stored) {
-                    this.favouritesOrder = JSON.parse(stored);
-                }
-            } catch (e) {
-                console.log(e);
-            }
-        },
-        persistFavouriteOrder() {
-            localStorage.setItem("meshchat.nomadnet.favourites", JSON.stringify(this.favouritesOrder));
-        },
-        ensureFavouriteOrder() {
-            const hashes = this.favourites.map((fav) => fav.destination_hash);
-            const nextOrder = this.favouritesOrder.filter((hash) => hashes.includes(hash));
-            hashes.forEach((hash) => {
-                if (!nextOrder.includes(hash)) {
-                    nextOrder.push(hash);
-                }
-            });
-            if (JSON.stringify(nextOrder) !== JSON.stringify(this.favouritesOrder)) {
-                this.favouritesOrder = nextOrder;
-                this.persistFavouriteOrder();
-            }
-        },
-        onFavouriteDragStart(event, favourite) {
+        onFavouriteDragStart(event, favourite, sectionId) {
             try {
                 if (event?.dataTransfer) {
                     event.dataTransfer.effectAllowed = "move";
@@ -381,36 +648,225 @@ export default {
                 // ignore for browsers that prevent setting drag meta
             }
             this.draggingFavouriteHash = favourite.destination_hash;
+            this.draggingFavouriteSectionId = sectionId;
         },
         onFavouriteDragOver(event) {
             if (event?.dataTransfer) {
                 event.dataTransfer.dropEffect = "move";
             }
         },
-        onFavouriteDrop(event, targetFavourite) {
+        onFavouriteDrop(event, targetSectionId, targetFavourite) {
             if (!this.draggingFavouriteHash || this.draggingFavouriteHash === targetFavourite.destination_hash) {
                 return;
             }
-            const fromIndex = this.favouritesOrder.indexOf(this.draggingFavouriteHash);
-            const toIndex = this.favouritesOrder.indexOf(targetFavourite.destination_hash);
-            if (fromIndex === -1 || toIndex === -1) {
-                return;
-            }
-            const updated = [...this.favouritesOrder];
-            updated.splice(fromIndex, 1);
-            updated.splice(toIndex, 0, this.draggingFavouriteHash);
-            this.favouritesOrder = updated;
-            this.persistFavouriteOrder();
-            this.draggingFavouriteHash = null;
+            this.moveFavouriteToSection(this.draggingFavouriteHash, targetSectionId, targetFavourite.destination_hash);
         },
         onFavouriteDragEnd() {
             this.draggingFavouriteHash = null;
+            this.draggingFavouriteSectionId = null;
+            this.dragOverSectionId = null;
+        },
+        onSectionDragOver(sectionId) {
+            this.dragOverSectionId = sectionId;
+        },
+        onSectionDragLeave() {
+            this.dragOverSectionId = null;
+        },
+        onDropOnSection(sectionId) {
+            if (!this.draggingFavouriteHash) {
+                return;
+            }
+            this.moveFavouriteToSection(this.draggingFavouriteHash, sectionId);
+        },
+        onSectionDragStart(sectionId) {
+            this.draggingSectionId = sectionId;
+        },
+        onSectionReorderDragOver(sectionId) {
+            if (!this.draggingSectionId || this.draggingSectionId === sectionId) {
+                return;
+            }
+            this.draggingSectionOverId = sectionId;
+        },
+        onSectionDrop(targetSectionId) {
+            if (!this.draggingSectionId || this.draggingSectionId === targetSectionId) {
+                this.onSectionDragEnd();
+                return;
+            }
+            const currentOrder = [...this.sectionOrder];
+            const fromIndex = currentOrder.indexOf(this.draggingSectionId);
+            const toIndex = currentOrder.indexOf(targetSectionId);
+            if (fromIndex === -1 || toIndex === -1) {
+                this.onSectionDragEnd();
+                return;
+            }
+            currentOrder.splice(fromIndex, 1);
+            currentOrder.splice(toIndex, 0, this.draggingSectionId);
+            this.sectionOrder = currentOrder;
+            this.persistFavouriteLayout();
+            this.onSectionDragEnd();
+        },
+        onSectionDragEnd() {
+            this.draggingSectionId = null;
+            this.draggingSectionOverId = null;
+        },
+        moveFavouriteToSection(hash, targetSectionId, beforeHash = null) {
+            if (!hash || !targetSectionId) {
+                return;
+            }
+            const updated = {};
+            Object.keys(this.favouritesBySection).forEach((sectionKey) => {
+                updated[sectionKey] = (this.favouritesBySection[sectionKey] || []).filter((value) => value !== hash);
+            });
+
+            if (!updated[targetSectionId]) {
+                updated[targetSectionId] = [];
+            }
+            const targetList = [...updated[targetSectionId]];
+            if (beforeHash) {
+                const insertIndex = targetList.indexOf(beforeHash);
+                if (insertIndex === -1) {
+                    targetList.push(hash);
+                } else {
+                    targetList.splice(insertIndex, 0, hash);
+                }
+            } else {
+                targetList.push(hash);
+            }
+            updated[targetSectionId] = targetList;
+            this.favouritesBySection = updated;
+            this.persistFavouriteLayout();
+            this.draggingFavouriteHash = null;
+            this.draggingFavouriteSectionId = null;
+            this.dragOverSectionId = null;
+        },
+        openFavouriteContextMenu(event, favourite, sectionId) {
+            this.favouriteContextMenu = {
+                show: true,
+                x: event.pageX || event.clientX,
+                y: event.pageY || event.clientY,
+                targetHash: favourite.destination_hash,
+                targetSectionId: sectionId,
+            };
+            this.sectionContextMenu.show = false;
+        },
+        openSectionContextMenu(event, section) {
+            this.sectionContextMenu = {
+                show: true,
+                x: event.pageX || event.clientX,
+                y: event.pageY || event.clientY,
+                sectionId: section.id,
+            };
+            this.favouriteContextMenu.show = false;
+        },
+        closeContextMenus() {
+            this.favouriteContextMenu.show = false;
+            this.sectionContextMenu.show = false;
+        },
+        getFavouriteByHash(hash) {
+            return this.favourites.find((fav) => fav.destination_hash === hash);
+        },
+        renameFavouriteFromContext() {
+            const favourite = this.getFavouriteByHash(this.favouriteContextMenu.targetHash);
+            if (!favourite) {
+                this.closeContextMenus();
+                return;
+            }
+            this.closeContextMenus();
+            this.onRenameFavourite(favourite);
+        },
+        removeFavouriteFromContext() {
+            const favourite = this.getFavouriteByHash(this.favouriteContextMenu.targetHash);
+            if (!favourite) {
+                this.closeContextMenus();
+                return;
+            }
+            this.closeContextMenus();
+            this.onRemoveFavourite(favourite);
+        },
+        moveContextFavouriteToSection(sectionId) {
+            if (!this.favouriteContextMenu.targetHash) {
+                return;
+            }
+            this.moveFavouriteToSection(this.favouriteContextMenu.targetHash, sectionId);
+            this.closeContextMenus();
+        },
+        toggleSectionCollapse(sectionId) {
+            const idx = this.sections.findIndex((section) => section.id === sectionId);
+            if (idx === -1) {
+                return;
+            }
+            const updated = [...this.sections];
+            const section = { ...updated[idx] };
+            section.collapsed = !section.collapsed;
+            updated[idx] = section;
+            this.sections = updated;
+            this.persistFavouriteLayout();
+        },
+        async createSection() {
+            const name = await DialogUtils.prompt(
+                this.$t("nomadnet.enter_section_name"),
+                this.$t("nomadnet.new_section")
+            );
+            if (!name) {
+                return;
+            }
+            const section = {
+                id: `section-${Date.now()}`,
+                name,
+                collapsed: false,
+            };
+            this.sections = [...this.sections, section];
+            this.sectionOrder = [...this.sectionOrder, section.id];
+            this.favouritesBySection = { ...this.favouritesBySection, [section.id]: [] };
+            this.persistFavouriteLayout();
+        },
+        async renameSectionFromContext() {
+            const section = this.sections.find((sec) => sec.id === this.sectionContextMenu.sectionId);
+            if (!section) {
+                this.closeContextMenus();
+                return;
+            }
+            const name = await DialogUtils.prompt(this.$t("nomadnet.rename_section"), section.name);
+            if (!name || name === section.name) {
+                this.closeContextMenus();
+                return;
+            }
+            this.sections = this.sections.map((sec) => (sec.id === section.id ? { ...sec, name } : sec));
+            this.persistFavouriteLayout();
+            this.closeContextMenus();
+        },
+        async removeSectionFromContext() {
+            const sectionId = this.sectionContextMenu.sectionId;
+            if (!sectionId || sectionId === this.defaultSectionId) {
+                this.closeContextMenus();
+                return;
+            }
+            const confirmed = await DialogUtils.confirm(this.$t("nomadnet.delete_section_confirm"));
+            if (!confirmed) {
+                this.closeContextMenus();
+                return;
+            }
+            const retainedSections = this.sections.filter((section) => section.id !== sectionId);
+            const migrated = this.favouritesBySection[sectionId] || [];
+            const nextMap = { ...this.favouritesBySection };
+            delete nextMap[sectionId];
+            nextMap[this.defaultSectionId] = [...(nextMap[this.defaultSectionId] || []), ...migrated];
+            this.sections = retainedSections;
+            this.sectionOrder = this.sectionOrder.filter((id) => id !== sectionId);
+            this.favouritesBySection = nextMap;
+            this.persistFavouriteLayout();
+            this.closeContextMenus();
         },
         formatTimeAgo: function (datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
         },
         formatDestinationHash: function (destinationHash) {
             return Utils.formatDestinationHash(destinationHash);
+        },
+        copyToClipboard(text, label) {
+            if (!text) return;
+            navigator.clipboard.writeText(text);
+            ToastUtils.success(`${label} copied to clipboard`);
         },
         onNodesSearchInput(event) {
             this.$emit("nodes-search-changed", event.target.value);

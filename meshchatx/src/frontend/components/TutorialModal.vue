@@ -1405,12 +1405,12 @@ export default {
                     autoconnect_discovered_interfaces: 3, // default to 3 slots
                 };
                 await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
-                ToastUtils.success("Community discovery enabled");
+                ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.discoveryOption = "yes";
                 this.nextStep();
             } catch (e) {
                 console.error("Failed to enable discovery:", e);
-                ToastUtils.error("Failed to enable discovery");
+                ToastUtils.error(this.$t("tutorial.failed_enable_discovery"));
             } finally {
                 this.savingDiscovery = false;
             }
@@ -1527,7 +1527,7 @@ export default {
                 ElectronUtils.relaunch();
             } else {
                 if (this.interfaceAddedViaTutorial) {
-                    ToastUtils.info("Restart the application/container to apply changes.");
+                    ToastUtils.info(this.$t("tutorial.ready_desc"));
                 }
                 this.visible = false;
             }

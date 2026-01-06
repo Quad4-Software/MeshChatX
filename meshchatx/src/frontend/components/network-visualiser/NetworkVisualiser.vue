@@ -33,7 +33,7 @@
                         v-if="totalBatches > 0"
                         class="flex justify-between items-center text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider"
                     >
-                        <span>Batch {{ currentBatch }} / {{ totalBatches }}</span>
+                        <span>{{ $t("visualiser.batch") }} {{ currentBatch }} / {{ totalBatches }}</span>
                         <span>{{ Math.round((loadedNodesCount / totalNodesToLoad) * 100) }}%</span>
                     </div>
                 </div>
@@ -53,12 +53,12 @@
                     @click="isShowingControls = !isShowingControls"
                 >
                     <div class="flex-1 flex flex-col min-w-0 mr-2">
-                        <span class="font-bold text-gray-900 dark:text-zinc-100 tracking-tight truncate"
-                            >Reticulum Mesh</span
-                        >
+                        <span class="font-bold text-gray-900 dark:text-zinc-100 tracking-tight truncate">{{
+                            $t("visualiser.reticulum_mesh")
+                        }}</span>
                         <span
                             class="text-[10px] uppercase font-bold text-gray-500 dark:text-zinc-500 tracking-widest truncate"
-                            >Network Visualizer</span
+                            >{{ $t("visualiser.network_visualizer") }}</span
                         >
                     </div>
                     <div class="flex items-center gap-2">
@@ -281,7 +281,9 @@ export default {
             isLoading: false,
             enablePhysics: true,
             enableOrbit: false,
+            enableBouncingBalls: false,
             orbitAnimationFrame: null,
+            bouncingBallsAnimationFrame: null,
             loadingStatus: "Initializing...",
             loadedNodesCount: 0,
             totalNodesToLoad: 0,
@@ -323,9 +325,18 @@ export default {
         },
         enableOrbit(val) {
             if (val) {
+                this.enableBouncingBalls = false;
                 this.startOrbit();
             } else {
                 this.stopOrbit();
+            }
+        },
+        enableBouncingBalls(val) {
+            if (val) {
+                this.enableOrbit = false;
+                this.startBouncingBalls();
+            } else {
+                this.stopBouncingBalls();
             }
         },
         searchQuery() {
@@ -337,7 +348,11 @@ export default {
         if (this._toggleOrbitHandler) {
             GlobalEmitter.off("toggle-orbit", this._toggleOrbitHandler);
         }
+        if (this._toggleBouncingBallsHandler) {
+            GlobalEmitter.off("toggle-bouncing-balls", this._toggleBouncingBallsHandler);
+        }
         this.stopOrbit();
+        this.stopBouncingBalls();
         clearInterval(this.reloadInterval);
         if (this.network) {
             this.network.destroy();
@@ -358,6 +373,11 @@ export default {
             this.enableOrbit = !this.enableOrbit;
         };
         GlobalEmitter.on("toggle-orbit", this._toggleOrbitHandler);
+
+        this._toggleBouncingBallsHandler = () => {
+            this.enableBouncingBalls = !this.enableBouncingBalls;
+        };
+        GlobalEmitter.on("toggle-bouncing-balls", this._toggleBouncingBallsHandler);
 
         this.init();
     },
@@ -541,6 +561,7 @@ export default {
         startOrbit() {
             if (!this.network) return;
             this.stopOrbit();
+            this.stopBouncingBalls();
 
             // Disable physics while orbiting
             this.network.setOptions({ physics: { enabled: false } });
@@ -582,6 +603,19 @@ export default {
                 const mePos = positions["me"] || { x: 0, y: 0 };
 
                 const updates = this._orbitNodes.map((data) => {
+                    if (data.id === this._draggingNodeId) {
+                        // If dragging, update our internal radius/angle to match new position
+                        const nodePositions = this.network.getPositions([data.id]);
+                        const pos = nodePositions[data.id];
+                        if (pos) {
+                            const dx = pos.x - mePos.x;
+                            const dy = pos.y - mePos.y;
+                            data.radius = Math.sqrt(dx * dx + dy * dy);
+                            data.angle = Math.atan2(dy, dx);
+                        }
+                        return { id: data.id, x: pos.x, y: pos.y };
+                    }
+
                     data.angle += data.speed;
                     return {
                         id: data.id,
@@ -600,6 +634,127 @@ export default {
             if (this.orbitAnimationFrame) {
                 cancelAnimationFrame(this.orbitAnimationFrame);
                 this.orbitAnimationFrame = null;
+            }
+
+            // Restore edges visibility
+            const edges = this.edges.get();
+            const updatedEdges = edges.map((edge) => ({ id: edge.id, hidden: false }));
+            this.edges.update(updatedEdges);
+
+            // Re-enable physics if it was enabled
+            if (this.network) {
+                this.network.setOptions({ physics: { enabled: this.enablePhysics } });
+            }
+        },
+        startBouncingBalls() {
+            if (!this.network) return;
+            this.stopBouncingBalls();
+            this.stopOrbit();
+
+            // Disable physics
+            this.network.setOptions({ physics: { enabled: false } });
+
+            // Hide edges
+            const edges = this.edges.get();
+            const updatedEdges = edges.map((edge) => ({ id: edge.id, hidden: true }));
+            this.edges.update(updatedEdges);
+
+            const container = document.getElementById("network");
+            if (!container) return;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const scale = this.network.getScale();
+            const viewPosition = this.network.getViewPosition();
+
+            const halfWidth = width / scale / 2;
+            const halfHeight = height / scale / 2;
+            const topBound = viewPosition.y - halfHeight;
+            const leftBound = viewPosition.x - halfWidth;
+            const rightBound = viewPosition.x + halfWidth;
+
+            const nodeIds = this.nodes.getIds();
+            this._bouncingNodes = nodeIds.map((id) => {
+                const node = this.nodes.get(id);
+                // Get current canvas position if available, otherwise randomize
+                const currentPos = this.network.getPositions([id])[id] || {
+                    x: leftBound + Math.random() * (rightBound - leftBound),
+                    y: topBound - Math.random() * 800 - 100,
+                };
+                return {
+                    id: id,
+                    x: currentPos.x,
+                    y: currentPos.y < topBound ? currentPos.y : topBound - Math.random() * 800 - 100, // ensure they start above or at their current high pos
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: Math.random() * 10,
+                    radius: (node.size || 25) * 1.5, // approximate collision radius
+                };
+            });
+
+            const gravity = 0.45;
+            const friction = 0.99;
+            const bounce = 0.75;
+
+            const animate = () => {
+                if (!this.enableBouncingBalls) return;
+
+                // Re-calculate boundaries in case of zoom/pan
+                const scale = this.network.getScale();
+                const viewPosition = this.network.getViewPosition();
+                const halfWidth = width / scale / 2;
+                const halfHeight = height / scale / 2;
+                const bottomBound = viewPosition.y + halfHeight;
+                const leftBound = viewPosition.x - halfWidth;
+                const rightBound = viewPosition.x + halfWidth;
+
+                const updates = this._bouncingNodes.map((node) => {
+                    if (node.id === this._draggingNodeId) {
+                        return {
+                            id: node.id,
+                            x: node.x,
+                            y: node.y,
+                        };
+                    }
+
+                    node.vy += gravity;
+                    node.vx *= friction;
+                    node.vy *= friction;
+                    node.x += node.vx;
+                    node.y += node.vy;
+
+                    // Bounce off bottom
+                    if (node.y + node.radius > bottomBound) {
+                        node.y = bottomBound - node.radius;
+                        node.vy *= -bounce;
+                        node.vx += (Math.random() - 0.5) * 4;
+                    }
+
+                    // Bounce off sides
+                    if (node.x - node.radius < leftBound) {
+                        node.x = leftBound + node.radius;
+                        node.vx *= -bounce;
+                    } else if (node.x + node.radius > rightBound) {
+                        node.x = rightBound - node.radius;
+                        node.vx *= -bounce;
+                    }
+
+                    return {
+                        id: node.id,
+                        x: node.x,
+                        y: node.y,
+                    };
+                });
+
+                this.nodes.update(updates);
+                this.bouncingBallsAnimationFrame = requestAnimationFrame(animate);
+            };
+
+            this.bouncingBallsAnimationFrame = requestAnimationFrame(animate);
+        },
+        stopBouncingBalls() {
+            if (this.bouncingBallsAnimationFrame) {
+                cancelAnimationFrame(this.bouncingBallsAnimationFrame);
+                this.bouncingBallsAnimationFrame = null;
             }
 
             // Restore edges visibility
@@ -698,6 +853,36 @@ export default {
                         params: { destinationHash: announce.destination_hash },
                     });
                 }
+            });
+
+            this.network.on("dragStart", (params) => {
+                if ((this.enableBouncingBalls || this.enableOrbit) && params.nodes.length > 0) {
+                    this._draggingNodeId = params.nodes[0];
+                    this.network.setOptions({ physics: { enabled: false } });
+                }
+            });
+
+            this.network.on("dragging", (params) => {
+                if (this._draggingNodeId) {
+                    const canvasPos = params.pointer.canvas;
+                    if (this.enableBouncingBalls) {
+                        const node = this._bouncingNodes.find((n) => n.id === this._draggingNodeId);
+                        if (node) {
+                            node.vx = (canvasPos.x - node.x) * 0.5;
+                            node.vy = (canvasPos.y - node.y) * 0.5;
+                            node.x = canvasPos.x;
+                            node.y = canvasPos.y;
+                        }
+                    } else if (this.enableOrbit) {
+                        // For orbit mode, just update the node position in vis-network DataSet
+                        // though it might be overwritten by orbit animation loop
+                        this.nodes.update({ id: this._draggingNodeId, x: canvasPos.x, y: canvasPos.y });
+                    }
+                }
+            });
+
+            this.network.on("dragEnd", () => {
+                this._draggingNodeId = null;
             });
 
             await this.manualUpdate();

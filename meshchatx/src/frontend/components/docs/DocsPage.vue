@@ -691,7 +691,7 @@ export default {
                 await this.updateDocs();
             } catch (error) {
                 console.error("Failed to add alternate source:", error);
-                ToastUtils.error("Failed to update documentation sources");
+                ToastUtils.error(this.$t("docs.failed_update_docs"));
             }
         },
         async switchVersion(version) {
@@ -743,10 +743,10 @@ export default {
             navigator.clipboard
                 .writeText(url)
                 .then(() => {
-                    ToastUtils.success("Documentation link copied to clipboard");
+                    ToastUtils.success(this.$t("docs.docs_link_copied"));
                 })
                 .catch(() => {
-                    ToastUtils.error("Failed to copy link");
+                    ToastUtils.error(this.$t("docs.failed_copy_link"));
                 });
         },
         async setLanguage(langCode) {

@@ -288,6 +288,14 @@ export default {
                     action: "toggle-orbit",
                 },
                 {
+                    id: "action-bouncing-balls",
+                    title: "action_bouncing_balls",
+                    description: "action_bouncing_balls_desc",
+                    icon: "bounce",
+                    type: "action",
+                    action: "toggle-bouncing-balls",
+                },
+                {
                     id: "action-getting-started",
                     title: "action_getting_started",
                     description: "action_getting_started_desc",
@@ -457,6 +465,8 @@ export default {
                     });
                 } else if (result.action === "toggle-orbit") {
                     GlobalEmitter.emit("toggle-orbit");
+                } else if (result.action === "toggle-bouncing-balls") {
+                    GlobalEmitter.emit("toggle-bouncing-balls");
                 } else if (result.action === "show-tutorial") {
                     GlobalEmitter.emit("show-tutorial");
                 } else if (result.action === "show-changelog") {

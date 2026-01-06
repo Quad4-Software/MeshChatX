@@ -46,9 +46,7 @@
                         </div>
                     </div>
 
-                    <div
-                        class="mt-10 pt-8 border-t border-gray-100 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-6"
-                    >
+                    <div class="mt-10 pt-8 border-t border-gray-100 dark:border-zinc-800 flex flex-col gap-6">
                         <div class="text-gray-600 dark:text-zinc-400 max-w-xl text-lg leading-relaxed">
                             A secure, resilient, and beautiful communications platform powered by the
                             <a
@@ -58,6 +56,81 @@
                                 >Reticulum Network Stack</a
                             >.
                         </div>
+
+                        <!-- Contact Developer Card -->
+                        <div class="glass-card !p-5 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div
+                                    class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-zinc-500"
+                                >
+                                    Contact Developer
+                                </div>
+                                <v-icon
+                                    :icon="showContactDev ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                                    size="18"
+                                ></v-icon>
+                            </div>
+                            <button
+                                class="w-full text-left flex items-center justify-between px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all"
+                                @click="showContactDev = !showContactDev"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <v-icon icon="mdi-account-card-details" size="18"></v-icon>
+                                    <span class="text-xs font-black uppercase tracking-widest">Details</span>
+                                </div>
+                            </button>
+
+                            <transition name="fade">
+                                <div
+                                    v-if="showContactDev"
+                                    class="mt-4 p-5 rounded-2xl bg-white/50 dark:bg-zinc-950/50 border border-gray-100 dark:border-zinc-800 space-y-4"
+                                >
+                                    <div class="space-y-1">
+                                        <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                            LXMF Address
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <code
+                                                class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all"
+                                                >7cc8d66b4f6a0e0e49d34af7f6077b5a</code
+                                            >
+                                            <button
+                                                class="p-1 hover:text-blue-500 transition"
+                                                @click="copyValue('7cc8d66b4f6a0e0e49d34af7f6077b5a', 'LXMF Address')"
+                                            >
+                                                <v-icon icon="mdi-content-copy" size="14"></v-icon>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                            Alternate
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <code
+                                                class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all"
+                                                >43d3309adf27fc446556121b553b56a6</code
+                                            >
+                                            <button
+                                                class="p-1 hover:text-blue-500 transition"
+                                                @click="
+                                                    copyValue('43d3309adf27fc446556121b553b56a6', 'Alternate Address')
+                                                "
+                                            >
+                                                <v-icon icon="mdi-content-copy" size="14"></v-icon>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="text-xs font-bold text-gray-500 dark:text-white italic bg-blue-500/5 p-3 rounded-xl border border-blue-500/10 flex items-center gap-2"
+                                    >
+                                        <v-icon icon="mdi-information-outline" size="14" class="text-blue-500"></v-icon>
+                                        Send to propagation node if you cant reach me!
+                                    </div>
+                                </div>
+                            </transition>
+                        </div>
+
                         <div class="flex items-center gap-6 shrink-0">
                             <div class="text-right">
                                 <div
@@ -869,6 +942,7 @@ export default {
             chromeVersion: null,
             nodeVersion: null,
             showIdentityPaste: false,
+            showContactDev: false,
         };
     },
     computed: {
@@ -928,23 +1002,23 @@ export default {
             }
         },
         async deleteSnapshot(filename) {
-            if (!(await DialogUtils.confirm("Are you sure you want to delete this snapshot?"))) return;
+            if (!(await DialogUtils.confirm(this.$t("about.delete_snapshot_confirm")))) return;
             try {
                 await window.axios.delete(`/api/v1/database/snapshots/${filename}`);
-                ToastUtils.success("Snapshot deleted");
+                ToastUtils.success(this.$t("about.snapshot_deleted"));
                 await this.listSnapshots();
             } catch {
-                ToastUtils.error("Failed to delete snapshot");
+                ToastUtils.error(this.$t("about.failed_delete_snapshot"));
             }
         },
         async deleteBackup(filename) {
-            if (!(await DialogUtils.confirm("Are you sure you want to delete this backup?"))) return;
+            if (!(await DialogUtils.confirm(this.$t("about.delete_backup_confirm")))) return;
             try {
                 await window.axios.delete(`/api/v1/database/backups/${filename}`);
-                ToastUtils.success("Backup deleted");
+                ToastUtils.success(this.$t("about.backup_deleted"));
                 await this.listAutoBackups();
             } catch {
-                ToastUtils.error("Failed to delete backup");
+                ToastUtils.error(this.$t("about.failed_delete_backup"));
             }
         },
         async nextSnapshots() {
@@ -990,23 +1064,19 @@ export default {
             }
         },
         async restoreFromSnapshot(path) {
-            if (
-                !(await DialogUtils.confirm(
-                    "Are you sure you want to restore this snapshot? This will overwrite the current database and require an app relaunch."
-                ))
-            ) {
+            if (!(await DialogUtils.confirm(this.$t("about.restore_snapshot_confirm")))) {
                 return;
             }
             try {
                 const response = await window.axios.post("/api/v1/database/restore", { path });
                 if (response.data.status === "success") {
-                    ToastUtils.success("Database restored. Relaunching...");
+                    ToastUtils.success(this.$t("about.database_restored"));
                     if (this.isElectron) {
                         setTimeout(() => ElectronUtils.relaunch(), 2000);
                     }
                 }
             } catch {
-                ToastUtils.error("Failed to restore snapshot");
+                ToastUtils.error(this.$t("about.failed_restore_snapshot"));
             }
         },
         async getAppInfo() {
@@ -1026,17 +1096,13 @@ export default {
             }
         },
         async acknowledgeIntegrity() {
-            if (
-                await DialogUtils.confirm(
-                    "Are you sure you want to acknowledge these integrity issues? This will update the security manifest to match the current state of your files."
-                )
-            ) {
+            if (await DialogUtils.confirm(this.$t("about.integrity_acknowledge_confirm"))) {
                 try {
                     await window.axios.post("/api/v1/app/integrity/acknowledge");
-                    ToastUtils.success("Integrity issues acknowledged");
+                    ToastUtils.success(this.$t("about.integrity_acknowledged"));
                     await this.getAppInfo();
                 } catch {
-                    ToastUtils.error("Failed to acknowledge integrity issues");
+                    ToastUtils.error(this.$t("about.failed_acknowledge_integrity"));
                 }
             }
         },
@@ -1196,7 +1262,7 @@ export default {
                 if (this.isElectron) {
                     ElectronUtils.shutdown();
                 } else {
-                    ToastUtils.success("Shutdown command sent to server.");
+                    ToastUtils.success(this.$t("about.shutdown_sent"));
                 }
             }
         },
@@ -1253,7 +1319,7 @@ export default {
                 link.remove();
                 window.URL.revokeObjectURL(url);
                 this.identityBackupMessage = "Identity downloaded. Keep it secret.";
-                ToastUtils.success("Identity key file exported");
+                ToastUtils.success(this.$t("about.identity_exported"));
             } catch {
                 this.identityBackupError = "Failed to download identity";
             }
@@ -1270,7 +1336,7 @@ export default {
                 }
                 await navigator.clipboard.writeText(this.identityBase32);
                 this.identityBase32Message = "Identity copied. Clear your clipboard after use.";
-                ToastUtils.success("Identity Base32 key copied to clipboard");
+                ToastUtils.success(this.$t("about.identity_copied"));
             } catch {
                 this.identityBase32Error = "Failed to copy identity";
             }

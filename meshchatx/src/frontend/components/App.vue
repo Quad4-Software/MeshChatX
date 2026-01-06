@@ -133,7 +133,7 @@
                         ]"
                     >
                         <div
-                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200/70 bg-white dark:border-zinc-800 dark:bg-zinc-900 backdrop-blur"
+                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200/70 bg-white dark:border-zinc-800 dark:bg-zinc-900 backdrop-blur pt-16 sm:pt-0"
                         >
                             <!-- toggle button for desktop -->
                             <div class="hidden sm:flex justify-end p-2 border-b border-gray-100 dark:border-zinc-800">
@@ -353,8 +353,9 @@
                                         <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
                                             <div>{{ $t("app.identity_hash") }}</div>
                                             <div
-                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono"
+                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono cursor-pointer"
                                                 :title="config.identity_hash"
+                                                @click="copyValue(config.identity_hash, $t('app.identity_hash'))"
                                             >
                                                 {{ config.identity_hash }}
                                             </div>
@@ -362,10 +363,21 @@
                                         <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
                                             <div>{{ $t("app.lxmf_address") }}</div>
                                             <div
-                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono"
+                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono cursor-pointer"
                                                 :title="config.lxmf_address_hash"
+                                                @click="copyValue(config.lxmf_address_hash, $t('app.lxmf_address'))"
                                             >
                                                 {{ config.lxmf_address_hash }}
+                                            </div>
+                                            <div class="flex items-center justify-end pt-1">
+                                                <button
+                                                    type="button"
+                                                    class="p-1 rounded-lg text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                                    :title="$t('app.show_qr')"
+                                                    @click.stop="openLxmfQr"
+                                                >
+                                                    <MaterialDesignIcon icon-name="qrcode" class="size-4" />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -461,6 +473,51 @@
         <ChangelogModal ref="changelogModal" :app-version="appInfo?.version" />
         <TutorialModal ref="tutorialModal" />
 
+        <!-- LXMF QR modal -->
+        <div
+            v-if="showLxmfQr"
+            class="fixed inset-0 z-[190] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            @click.self="showLxmfQr = false"
+        >
+            <div class="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">LXMF Address QR</h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                        @click="showLxmfQr = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="flex justify-center">
+                        <img
+                            v-if="lxmfQrDataUrl"
+                            :src="lxmfQrDataUrl"
+                            alt="LXMF QR"
+                            class="w-48 h-48 bg-white rounded-xl border border-gray-200 dark:border-zinc-800"
+                        />
+                    </div>
+                    <div
+                        v-if="config?.lxmf_address_hash"
+                        class="text-xs font-mono text-gray-700 dark:text-zinc-200 text-center break-words"
+                    >
+                        {{ config.lxmf_address_hash }}
+                    </div>
+                    <div class="flex justify-center">
+                        <button
+                            type="button"
+                            class="px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                            @click="copyValue(config?.lxmf_address_hash, $t('app.lxmf_address'))"
+                        >
+                            {{ $t("common.copy") }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- identity switching overlay -->
         <transition name="fade-blur">
             <div
@@ -500,6 +557,7 @@ import Toast from "./Toast.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import ToastUtils from "../js/ToastUtils";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+import QRCode from "qrcode";
 import NotificationBell from "./NotificationBell.vue";
 import LanguageSelector from "./LanguageSelector.vue";
 import CallOverlay from "./call/CallOverlay.vue";
@@ -553,6 +611,9 @@ export default {
             config: null,
             appInfo: null,
             hasCheckedForModals: false,
+
+            showLxmfQr: false,
+            lxmfQrDataUrl: null,
 
             activeCall: null,
             propagationNodeStatus: null,
@@ -893,12 +954,31 @@ export default {
             try {
                 await window.axios.get(`/api/v1/announce`);
             } catch (e) {
-                ToastUtils.error("failed to announce");
+                ToastUtils.error(this.$t("app.failed_announce"));
                 console.log(e);
             }
 
             // fetch config so it updates last announced timestamp
             await this.getConfig();
+        },
+        async copyValue(value, label) {
+            if (!value) return;
+            try {
+                await navigator.clipboard.writeText(value);
+                ToastUtils.success(`${label} copied`);
+            } catch {
+                ToastUtils.success(value);
+            }
+        },
+        async openLxmfQr() {
+            if (!this.config?.lxmf_address_hash) return;
+            try {
+                const uri = `lxmf://${this.config.lxmf_address_hash}`;
+                this.lxmfQrDataUrl = await QRCode.toDataURL(uri, { margin: 1, scale: 6 });
+                this.showLxmfQr = true;
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
         },
         async updateConfig(config, label = null) {
             try {

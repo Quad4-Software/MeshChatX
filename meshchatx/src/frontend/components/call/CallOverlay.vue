@@ -409,7 +409,7 @@ export default {
             try {
                 await window.axios.get("/api/v1/telephone/answer");
             } catch {
-                ToastUtils.error("Failed to answer call");
+                ToastUtils.error(this.$t("call.failed_to_answer_call"));
             }
         },
         async hangupCall() {
@@ -417,15 +417,15 @@ export default {
                 this.$emit("hangup");
                 await window.axios.get("/api/v1/telephone/hangup");
             } catch {
-                ToastUtils.error("Failed to hangup call");
+                ToastUtils.error(this.$t("call.failed_to_hangup_call"));
             }
         },
         async sendToVoicemail() {
             try {
                 await window.axios.get("/api/v1/telephone/send-to-voicemail");
-                ToastUtils.success("Call sent to voicemail");
+                ToastUtils.success(this.$t("call.call_sent_to_voicemail"));
             } catch {
-                ToastUtils.error("Failed to send call to voicemail");
+                ToastUtils.error(this.$t("call.failed_to_send_to_voicemail"));
             }
         },
         async toggleMicrophone() {
@@ -449,7 +449,7 @@ export default {
                 this.isMicMuting = false;
                 // Revert on error
                 this.localMicMuted = !this.localMicMuted;
-                ToastUtils.error("Failed to toggle microphone");
+                ToastUtils.error(this.$t("call.failed_to_toggle_microphone"));
             }
         },
         async toggleSpeaker() {
@@ -473,7 +473,7 @@ export default {
                 this.isSpeakerMuting = false;
                 // Revert on error
                 this.localSpeakerMuted = !this.localSpeakerMuted;
-                ToastUtils.error("Failed to toggle speaker");
+                ToastUtils.error(this.$t("call.failed_to_toggle_speaker"));
             }
         },
         async playLatestVoicemail() {

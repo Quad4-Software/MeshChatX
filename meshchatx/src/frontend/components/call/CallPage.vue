@@ -2481,7 +2481,7 @@ export default {
                 this.refreshAudioDevices();
             } catch (err) {
                 console.error("Web audio failed", err);
-                ToastUtils.error("Web audio not available");
+                ToastUtils.error(this.$t("call.web_audio_not_available"));
                 this.stopWebAudio();
             }
         },
@@ -2596,9 +2596,9 @@ export default {
                 if (response.data?.config) {
                     this.config = response.data.config;
                 }
-                ToastUtils.success("Settings saved");
+                ToastUtils.success(this.$t("call.settings_saved"));
             } catch {
-                ToastUtils.error("Failed to save settings");
+                ToastUtils.error(this.$t("call.failed_to_save_settings"));
             }
         },
         async getAudioProfiles() {
@@ -2640,6 +2640,8 @@ export default {
                 if (response.data.web_audio) {
                     await this.ensureWebAudio(response.data.web_audio);
                 }
+
+                this.hydrateContactVisuals();
 
                 // If call just ended, refresh history and show ended state
                 if (oldCall != null && this.activeCall == null) {
@@ -2706,6 +2708,7 @@ export default {
                 }
 
                 this.hasMoreCallHistory = newItems.length === this.callHistoryLimit;
+                this.hydrateContactVisuals();
             } catch (e) {
                 console.log(e);
             }
@@ -2769,7 +2772,7 @@ export default {
                 }
                 ToastUtils.success(value ? "Do Not Disturb enabled" : "Do Not Disturb disabled");
             } catch {
-                ToastUtils.error("Failed to update Do Not Disturb status");
+                ToastUtils.error(this.$t("call.failed_to_update_dnd"));
             }
         },
         async toggleAllowCallsFromContactsOnly(value) {
@@ -2782,7 +2785,7 @@ export default {
                 }
                 ToastUtils.success(value ? "Calls limited to contacts" : "Calls allowed from everyone");
             } catch {
-                ToastUtils.error("Failed to update call settings");
+                ToastUtils.error(this.$t("call.failed_to_update_call_settings"));
             }
         },
         async toggleCallRecording(value) {
@@ -2795,7 +2798,7 @@ export default {
                 }
                 ToastUtils.success(value ? "Call recording enabled" : "Call recording disabled");
             } catch {
-                ToastUtils.error("Failed to update call recording status");
+                ToastUtils.error(this.$t("call.failed_to_update_recording_status"));
             }
         },
         async clearHistory() {
@@ -2803,10 +2806,10 @@ export default {
             try {
                 await window.axios.delete("/api/v1/telephone/history");
                 this.callHistory = [];
-                ToastUtils.success("Call history cleared");
+                ToastUtils.success(this.$t("call.call_history_cleared"));
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to clear call history");
+                ToastUtils.error(this.$t("call.failed_to_clear_call_history"));
             }
         },
         async blockIdentity(hash) {
@@ -2815,10 +2818,10 @@ export default {
                 await window.axios.post("/api/v1/blocked-destinations", {
                     destination_hash: hash,
                 });
-                ToastUtils.success("Identity banished");
+                ToastUtils.success(this.$t("call.identity_banished"));
                 this.getHistory();
             } catch {
-                ToastUtils.error("Failed to banish identity");
+                ToastUtils.error(this.$t("call.failed_to_banish_identity"));
             }
         },
         async getVoicemailStatus() {
@@ -2976,6 +2979,7 @@ export default {
                     params: { search: this.contactsSearch },
                 });
                 this.contacts = response.data.contacts || (Array.isArray(response.data) ? response.data : []);
+                this.hydrateContactVisuals();
             } catch (e) {
                 console.log(e);
             }
@@ -2985,6 +2989,40 @@ export default {
             this.searchDebounceTimeout = setTimeout(() => {
                 this.getContacts();
             }, 300);
+        },
+        hydrateContactVisuals() {
+            const map = {};
+            this.contacts.forEach((c) => {
+                if (!c) return;
+                const image = c.custom_image;
+                const keys = [c.remote_identity_hash, c.lxmf_address, c.lxst_address].filter(Boolean);
+                keys.forEach((k) => {
+                    map[k] = image;
+                });
+            });
+
+            const applyImage = (target) => {
+                if (!target) return;
+                const key =
+                    target.remote_identity_hash || target.remote_destination_hash || target.remote_telephony_hash;
+                if (key && map[key]) {
+                    target.custom_image = map[key];
+                }
+            };
+
+            applyImage(this.activeCall);
+            applyImage(this.lastCall);
+
+            if (Array.isArray(this.callHistory) && this.callHistory.length > 0) {
+                this.callHistory = this.callHistory.map((entry) => {
+                    const key =
+                        entry.remote_identity_hash || entry.remote_destination_hash || entry.remote_telephony_hash;
+                    if (key && map[key]) {
+                        return { ...entry, contact_image: map[key] };
+                    }
+                    return entry;
+                });
+            }
         },
         openAddContactModal() {
             this.editingContact = null;
@@ -3013,7 +3051,7 @@ export default {
         },
         async saveContact(contact) {
             if (!contact.name || !contact.remote_identity_hash) {
-                ToastUtils.error("Name and identity hash required");
+                ToastUtils.error(this.$t("call.name_and_hash_required"));
                 return;
             }
             try {
@@ -3023,10 +3061,10 @@ export default {
                         contact.clear_image = true;
                     }
                     await window.axios.patch(`/api/v1/telephone/contacts/${contact.id}`, contact);
-                    ToastUtils.success("Contact updated");
+                    ToastUtils.success(this.$t("call.contact_updated"));
                 } else {
                     await window.axios.post("/api/v1/telephone/contacts", contact);
-                    ToastUtils.success("Contact added");
+                    ToastUtils.success(this.$t("call.contact_added"));
                 }
                 this.isContactModalOpen = false;
                 this.getContacts();
@@ -3038,10 +3076,10 @@ export default {
             if (!confirm("Are you sure you want to delete this contact?")) return;
             try {
                 await window.axios.delete(`/api/v1/telephone/contacts/${contactId}`);
-                ToastUtils.success("Contact deleted");
+                ToastUtils.success(this.$t("call.contact_deleted"));
                 this.getContacts();
             } catch {
-                ToastUtils.error("Failed to delete contact");
+                ToastUtils.error(this.$t("call.failed_to_delete_contact"));
             }
         },
         onContactImageChange(event) {
@@ -3069,17 +3107,17 @@ export default {
         async copyHash(hash) {
             try {
                 await navigator.clipboard.writeText(hash);
-                ToastUtils.success("Hash copied to clipboard");
+                ToastUtils.success(this.$t("call.hash_copied"));
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to copy hash");
+                ToastUtils.error(this.$t("call.failed_to_copy_hash"));
             }
         },
         async generateGreeting() {
             this.isGeneratingGreeting = true;
             try {
                 await window.axios.post("/api/v1/telephone/voicemail/generate-greeting");
-                ToastUtils.success("Greeting generated successfully");
+                ToastUtils.success(this.$t("call.greeting_generated_successfully"));
                 await this.getVoicemailStatus();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || "Failed to generate greeting");
@@ -3101,7 +3139,7 @@ export default {
                         "Content-Type": "multipart/form-data",
                     },
                 });
-                ToastUtils.success("Greeting uploaded successfully");
+                ToastUtils.success(this.$t("call.greeting_uploaded_successfully"));
                 await this.getVoicemailStatus();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || "Failed to upload greeting");
@@ -3115,10 +3153,10 @@ export default {
 
             try {
                 await window.axios.delete("/api/v1/telephone/voicemail/greeting");
-                ToastUtils.success("Greeting deleted");
+                ToastUtils.success(this.$t("call.greeting_deleted"));
                 await this.getVoicemailStatus();
             } catch {
-                ToastUtils.error("Failed to delete greeting");
+                ToastUtils.error(this.$t("call.failed_to_delete_greeting"));
             }
         },
         async startRecordingGreetingMic() {
@@ -3126,16 +3164,16 @@ export default {
                 await window.axios.post("/api/v1/telephone/voicemail/greeting/record/start");
                 await this.getVoicemailStatus();
             } catch {
-                ToastUtils.error("Failed to start recording greeting");
+                ToastUtils.error(this.$t("call.failed_to_start_recording_greeting"));
             }
         },
         async stopRecordingGreetingMic() {
             try {
                 await window.axios.post("/api/v1/telephone/voicemail/greeting/record/stop");
                 await this.getVoicemailStatus();
-                ToastUtils.success("Greeting recorded from mic");
+                ToastUtils.success(this.$t("call.greeting_recorded_from_mic"));
             } catch {
-                ToastUtils.error("Failed to stop recording greeting");
+                ToastUtils.error(this.$t("call.failed_to_stop_recording_greeting"));
             }
         },
         async playVoicemail(voicemail) {
@@ -3195,9 +3233,9 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/telephone/voicemails/${voicemailId}`);
                 this.getVoicemails();
-                ToastUtils.success("Voicemail deleted");
+                ToastUtils.success(this.$t("call.voicemail_deleted"));
             } catch {
-                ToastUtils.error("Failed to delete voicemail");
+                ToastUtils.error(this.$t("call.failed_to_delete_voicemail"));
             }
         },
         async getRecordings() {
@@ -3244,7 +3282,7 @@ export default {
                 await this.audioPlayer.play();
             } catch (e) {
                 console.error("Failed to play recording:", e);
-                ToastUtils.error("Failed to load recording audio");
+                ToastUtils.error(this.$t("call.failed_to_load_recording"));
                 this.playingRecordingId = null;
                 this.playingSide = null;
             }
@@ -3254,9 +3292,9 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/telephone/recordings/${recordingId}`);
                 this.getRecordings();
-                ToastUtils.success("Recording deleted");
+                ToastUtils.success(this.$t("call.recording_deleted"));
             } catch {
-                ToastUtils.error("Failed to delete recording");
+                ToastUtils.error(this.$t("call.failed_to_delete_recording"));
             }
         },
         async playGreeting() {
@@ -3282,7 +3320,7 @@ export default {
         },
         async call(identityHash) {
             if (!identityHash) {
-                ToastUtils.error("Enter an identity to call");
+                ToastUtils.error(this.$t("call.enter_identity_hash_to_call_error"));
                 return;
             }
 
@@ -3360,7 +3398,7 @@ export default {
             try {
                 await window.axios.get("/api/v1/telephone/answer");
             } catch {
-                ToastUtils.error("Failed to answer call");
+                ToastUtils.error(this.$t("call.failed_to_answer_call"));
             }
         },
         async hangupCall() {
@@ -3370,22 +3408,22 @@ export default {
                 }
                 await window.axios.get("/api/v1/telephone/hangup");
             } catch {
-                ToastUtils.error("Failed to hangup call");
+                ToastUtils.error(this.$t("call.failed_to_hangup_call"));
             }
         },
         async sendToVoicemail() {
             try {
                 await window.axios.get("/api/v1/telephone/send-to-voicemail");
-                ToastUtils.success("Call sent to voicemail");
+                ToastUtils.success(this.$t("call.call_sent_to_voicemail"));
             } catch {
-                ToastUtils.error("Failed to send call to voicemail");
+                ToastUtils.error(this.$t("call.failed_to_send_to_voicemail"));
             }
         },
         async switchAudioProfile(audioProfileId) {
             try {
                 await window.axios.get(`/api/v1/telephone/switch-audio-profile/${audioProfileId}`);
             } catch {
-                ToastUtils.error("Failed to switch audio profile");
+                ToastUtils.error(this.$t("call.failed_to_switch_audio_profile"));
             }
         },
         async toggleMicrophone() {
@@ -3412,7 +3450,7 @@ export default {
                 this.isMicMuting = false;
                 // Revert on error
                 this.localMicMuted = !this.localMicMuted;
-                ToastUtils.error("Failed to toggle microphone");
+                ToastUtils.error(this.$t("call.failed_to_toggle_microphone"));
             }
         },
         async toggleSpeaker() {
@@ -3439,7 +3477,7 @@ export default {
                 this.isSpeakerMuting = false;
                 // Revert on error
                 this.localSpeakerMuted = !this.localSpeakerMuted;
-                ToastUtils.error("Failed to toggle speaker");
+                ToastUtils.error(this.$t("call.failed_to_toggle_speaker"));
             }
         },
     },

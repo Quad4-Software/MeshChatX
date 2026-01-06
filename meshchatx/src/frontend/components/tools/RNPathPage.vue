@@ -374,7 +374,7 @@ export default {
                 this.interfaces = Object.keys(ifaceRes.data.interfaces);
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to fetch path data");
+                ToastUtils.error(this.$t("tools.rnpath.failed_fetch"));
             } finally {
                 this.isLoading = false;
             }
@@ -421,13 +421,13 @@ export default {
             try {
                 const res = await window.axios.post("/api/v1/rnpath/drop", { destination_hash: hash });
                 if (res.data.success) {
-                    ToastUtils.success("Path dropped");
+                    ToastUtils.success(this.$t("tools.rnpath.path_dropped"));
                     this.refreshAll();
                 } else {
-                    ToastUtils.error("Could not drop path");
+                    ToastUtils.error(this.$t("tools.rnpath.failed_drop"));
                 }
             } catch {
-                ToastUtils.error("Error dropping path");
+                ToastUtils.error(this.$t("tools.rnpath.error_drop"));
             }
         },
         async requestPath() {
@@ -437,7 +437,7 @@ export default {
                 this.requestHash = "";
                 // Path requests take time, don't refresh immediately
             } catch {
-                ToastUtils.error("Failed to request path");
+                ToastUtils.error(this.$t("tools.rnpath.failed_request"));
             }
         },
         async dropAllVia() {
@@ -449,23 +449,23 @@ export default {
                     transport_instance_hash: this.dropViaHash,
                 });
                 if (res.data.success) {
-                    ToastUtils.success("Paths dropped");
+                    ToastUtils.success(this.$t("tools.rnpath.paths_dropped"));
                     this.dropViaHash = "";
                     this.refreshAll();
                 }
             } catch {
-                ToastUtils.error("Failed to drop paths");
+                ToastUtils.error(this.$t("tools.rnpath.failed_drop_paths"));
             }
         },
         async dropAnnounceQueues() {
-            if (!(await DialogUtils.confirm("Purge all announce queues? This cannot be undone."))) {
+            if (!(await DialogUtils.confirm(this.$t("tools.rnpath.purge_confirm")))) {
                 return;
             }
             try {
                 await window.axios.post("/api/v1/rnpath/drop-queues");
-                ToastUtils.success("Announce queues purged");
+                ToastUtils.success(this.$t("tools.rnpath.queues_purged"));
             } catch {
-                ToastUtils.error("Failed to purge queues");
+                ToastUtils.error(this.$t("tools.rnpath.failed_purge"));
             }
         },
         calculateRate(rate) {

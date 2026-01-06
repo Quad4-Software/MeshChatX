@@ -105,10 +105,55 @@
                     </div>
                 </div>
 
+                <!-- search bar -->
+                <div class="sticky top-0 z-10 py-4">
+                    <div class="relative max-w-6xl mx-auto">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                        </div>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            class="w-full bg-white/80 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all shadow-sm"
+                            :placeholder="$t('app.search_settings') || 'Search settings...'"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            @click="searchQuery = ''"
+                        >
+                            <MaterialDesignIcon icon-name="close-circle" class="size-5" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- no results -->
+                <div
+                    v-if="searchQuery && !hasSearchResults"
+                    class="flex flex-col items-center justify-center py-12 text-center"
+                >
+                    <div
+                        class="p-4 bg-white/50 dark:bg-zinc-800/50 rounded-full mb-4 border border-gray-100 dark:border-zinc-800"
+                    >
+                        <MaterialDesignIcon icon-name="magnify-close" class="size-8 text-gray-400" />
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">No results found</h3>
+                    <p class="text-gray-500 dark:text-gray-400">No settings match "{{ searchQuery }}"</p>
+                    <button
+                        class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold text-sm"
+                        @click="searchQuery = ''"
+                    >
+                        Clear search
+                    </button>
+                </div>
+
                 <!-- settings grid -->
-                <div class="columns-1 lg:columns-2 gap-4 space-y-4">
+                <div v-show="hasSearchResults" class="columns-1 lg:columns-2 gap-4 space-y-4">
                     <!-- Banishment -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.banishment)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Visuals</div>
@@ -174,7 +219,10 @@
                     </section>
 
                     <!-- Maintenance & Data -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.maintenance)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Maintenance</div>
@@ -335,7 +383,11 @@
                     </section>
 
                     <!-- Desktop / Electron Settings -->
-                    <section v-if="ElectronUtils.isElectron()" class="glass-card break-inside-avoid">
+                    <section
+                        v-if="ElectronUtils.isElectron()"
+                        v-show="matchesSearch(...sectionKeywords.desktop)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Desktop</div>
@@ -381,7 +433,7 @@
                     </section>
 
                     <!-- Page Archiver -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.archiver)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Browsing</div>
@@ -448,7 +500,7 @@
                     </section>
 
                     <!-- Smart Crawler -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.crawler)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Discovery</div>
@@ -523,7 +575,10 @@
                     </section>
 
                     <!-- Appearance -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.appearance)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Personalise</div>
@@ -581,7 +636,19 @@
                     </section>
 
                     <!-- Language -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="
+                            matchesSearch(
+                                'i18n',
+                                'app.language',
+                                'app.select_language',
+                                'English',
+                                'Deutsch',
+                                'Русский'
+                            )
+                        "
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">i18n</div>
@@ -599,7 +666,17 @@
                     </section>
 
                     <!-- Network Security -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="
+                            matchesSearch(
+                                'RNS Security',
+                                'Network Security',
+                                'app.blackhole_integration_enabled',
+                                'app.blackhole_integration_description'
+                            )
+                        "
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">RNS Security</div>
@@ -633,7 +710,7 @@
                     </section>
 
                     <!-- Transport -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.transport)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Reticulum</div>
@@ -660,7 +737,10 @@
                     </section>
 
                     <!-- Interfaces -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.interfaces)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Adapters</div>
@@ -686,7 +766,10 @@
                     </section>
 
                     <!-- Blocked -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch('Privacy', 'Banished', 'Manage Banished users and nodes')"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Privacy</div>
@@ -704,7 +787,7 @@
                     </section>
 
                     <!-- Authentication -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.auth)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Security</div>
@@ -736,7 +819,10 @@
                     </section>
 
                     <!-- Translator -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.translator)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">i18n</div>
@@ -778,7 +864,10 @@
                     </section>
 
                     <!-- Sources & Infrastructure -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.infrastructure)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Infrastructure</div>
@@ -819,7 +908,7 @@
                     </section>
 
                     <!-- Messages -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.messages)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">{{ $t("app.reliability") }}</div>
@@ -888,7 +977,10 @@
                     </section>
 
                     <!-- Propagation nodes -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.propagation)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">LXMF</div>
@@ -1021,7 +1113,7 @@
                 </div>
 
                 <!-- Keyboard Shortcuts (Full width at bottom) -->
-                <div class="mt-4">
+                <div v-show="matchesSearch(...sectionKeywords.shortcuts)" class="mt-4">
                     <section class="glass-card">
                         <div class="glass-card__header">
                             <div class="flex items-center gap-3">
@@ -1113,9 +1205,126 @@ export default {
             saveTimeouts: {},
             shortcuts: [],
             reloadingRns: false,
+            searchQuery: "",
+            sectionKeywords: {
+                banishment: [
+                    "Visuals",
+                    "app.banishment",
+                    "app.banishment_description",
+                    "app.banished_effect_enabled",
+                    "app.banished_effect_description",
+                    "app.banished_text_label",
+                    "app.banished_text_description",
+                    "app.banished_color_label",
+                    "app.banished_color_description",
+                ],
+                maintenance: [
+                    "Maintenance",
+                    "maintenance.title",
+                    "maintenance.description",
+                    "maintenance.clear_messages",
+                    "maintenance.clear_messages_desc",
+                    "maintenance.clear_announces",
+                    "maintenance.clear_announces_desc",
+                    "maintenance.clear_nomadnet_favs",
+                    "maintenance.clear_nomadnet_favs_desc",
+                    "maintenance.clear_archives",
+                    "maintenance.clear_archives_desc",
+                    "maintenance.export_messages",
+                    "maintenance.export_messages_desc",
+                    "maintenance.import_messages",
+                    "maintenance.import_messages_desc",
+                    "Automatic Backup Limit",
+                    "Export Folders",
+                    "Import Folders",
+                ],
+                desktop: [
+                    "Desktop",
+                    "App Behaviour",
+                    "app.desktop_open_calls_in_separate_window",
+                    "app.desktop_open_calls_in_separate_window_description",
+                    "app.desktop_hardware_acceleration_enabled",
+                    "app.desktop_hardware_acceleration_enabled_description",
+                ],
+                archiver: ["Browsing", "Page Archiver", "archiver", "archive", "versions", "storage", "flush"],
+                crawler: ["Discovery", "Smart Crawler", "crawler", "crawl", "retries", "delay", "concurrent"],
+                appearance: [
+                    "Personalise",
+                    "app.appearance",
+                    "app.appearance_description",
+                    "app.theme",
+                    "app.light_theme",
+                    "app.dark_theme",
+                    "Message Font Size",
+                    "app.live_preview",
+                    "app.realtime",
+                ],
+                language: ["i18n", "app.language", "app.select_language", "English", "Deutsch", "Русский"],
+                networkSecurity: [
+                    "RNS Security",
+                    "Network Security",
+                    "app.blackhole_integration_enabled",
+                    "app.blackhole_integration_description",
+                ],
+                transport: [
+                    "Reticulum",
+                    "app.transport_mode",
+                    "app.transport_description",
+                    "app.enable_transport_mode",
+                    "app.transport_toggle_description",
+                ],
+                interfaces: [
+                    "Adapters",
+                    "app.interfaces",
+                    "app.show_community_interfaces",
+                    "app.community_interfaces_description",
+                ],
+                blocked: ["Privacy", "Banished", "Manage Banished users and nodes"],
+                auth: ["Security", "Authentication", "password", "Protect your instance with a password"],
+                translator: [
+                    "i18n",
+                    "app.translator",
+                    "translator.description",
+                    "app.translator_enabled",
+                    "app.translator_description",
+                    "app.libretranslate_url",
+                    "app.libretranslate_url_description",
+                ],
+                infrastructure: ["Infrastructure", "Sources & Mirroring", "gitea", "documentation", "download", "urls"],
+                messages: [
+                    "reliability",
+                    "app.messages",
+                    "app.messages_description",
+                    "app.auto_resend_title",
+                    "app.auto_resend_description",
+                    "app.retry_attachments_title",
+                    "app.retry_attachments_description",
+                    "app.auto_fallback_title",
+                    "app.auto_fallback_description",
+                    "app.inbound_stamp_cost",
+                    "app.inbound_stamp_description",
+                ],
+                propagation: [
+                    "LXMF",
+                    "app.propagation_nodes",
+                    "app.propagation_nodes_description",
+                    "app.browse_nodes",
+                    "app.run_local_node",
+                    "app.run_local_node_description",
+                    "app.preferred_propagation_node",
+                    "app.auto_sync_interval",
+                    "app.propagation_stamp_cost",
+                    "app.propagation_stamp_description",
+                ],
+                shortcuts: ["Keyboard Shortcuts", "actions", "workflow"],
+            },
         };
     },
     computed: {
+        hasSearchResults() {
+            if (!this.searchQuery) return true;
+            return Object.values(this.sectionKeywords).some((keywords) => this.matchesSearch(...keywords));
+        },
         safeConfig() {
             if (!this.config) {
                 return {
@@ -1140,6 +1349,16 @@ export default {
         this.getConfig();
     },
     methods: {
+        matchesSearch(...texts) {
+            if (!this.searchQuery) return true;
+            const query = this.searchQuery.toLowerCase();
+            return texts.some((text) => {
+                if (!text) return false;
+                // If it looks like a translation key, translate it
+                const content = text.includes(".") ? this.$t(text) : text;
+                return content.toLowerCase().includes(query);
+            });
+        },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
             switch (json.type) {
@@ -1184,11 +1403,11 @@ export default {
         },
         async saveShortcut(action, keys) {
             await KeyboardShortcuts.saveShortcut(action, keys);
-            ToastUtils.success("Shortcut saved");
+            ToastUtils.success(this.$t("settings.shortcut_saved"));
         },
         async deleteShortcut(action) {
             await KeyboardShortcuts.deleteShortcut(action);
-            ToastUtils.success("Shortcut deleted");
+            ToastUtils.success(this.$t("settings.shortcut_deleted"));
         },
         async updateConfig(config, label = null) {
             try {
@@ -1198,7 +1417,7 @@ export default {
                     ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
                 }
             } catch (e) {
-                ToastUtils.error("Failed to save config!");
+                ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
             }
         },
@@ -1498,7 +1717,7 @@ export default {
                     type: "nomadnet.page.archive.flush",
                 })
             );
-            ToastUtils.success("Archived pages flushed.");
+            ToastUtils.success(this.$t("settings.archived_pages_flushed"));
         },
         async onIsTransportEnabledChangeWrapper(value) {
             this.config.is_transport_enabled = value;
@@ -1509,13 +1728,13 @@ export default {
                 try {
                     await window.axios.post("/api/v1/reticulum/enable-transport");
                 } catch {
-                    ToastUtils.error("Failed to enable transport mode!");
+                    ToastUtils.error(this.$t("settings.failed_enable_transport"));
                 }
             } else {
                 try {
                     await window.axios.post("/api/v1/reticulum/disable-transport");
                 } catch {
-                    ToastUtils.error("Failed to disable transport mode!");
+                    ToastUtils.error(this.$t("settings.failed_disable_transport"));
                 }
             }
         },
@@ -1527,7 +1746,7 @@ export default {
                 const response = await window.axios.post("/api/v1/reticulum/reload");
                 ToastUtils.success(response.data.message);
             } catch {
-                ToastUtils.error("Failed to reload Reticulum!");
+                ToastUtils.error(this.$t("settings.failed_reload_reticulum"));
             } finally {
                 this.reloadingRns = false;
             }
@@ -1622,9 +1841,9 @@ export default {
                 linkElement.setAttribute("href", dataUri);
                 linkElement.setAttribute("download", exportFileDefaultName);
                 linkElement.click();
-                ToastUtils.success("Folders exported");
+                ToastUtils.success(this.$t("settings.folders_exported"));
             } catch {
-                ToastUtils.error("Failed to export folders");
+                ToastUtils.error(this.$t("settings.failed_export_folders"));
             }
         },
         triggerFolderImport() {
@@ -1641,9 +1860,9 @@ export default {
                     if (!data.folders || !data.mappings) throw new Error("Invalid file format");
 
                     await window.axios.post("/api/v1/lxmf/folders/import", data);
-                    ToastUtils.success("Folders and mappings imported successfully");
+                    ToastUtils.success(this.$t("settings.folders_imported"));
                 } catch {
-                    ToastUtils.error("Failed to import folders");
+                    ToastUtils.error(this.$t("settings.failed_import_folders"));
                 }
             };
             reader.readAsText(file);

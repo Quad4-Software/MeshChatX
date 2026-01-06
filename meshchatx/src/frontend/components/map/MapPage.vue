@@ -10,22 +10,6 @@
             </div>
 
             <div class="ml-auto flex items-center space-x-2">
-                <!-- export tool toggle -->
-                <button
-                    v-if="!offlineEnabled"
-                    ref="exportButton"
-                    class="p-2 rounded-lg transition-colors"
-                    :class="
-                        isExportMode
-                            ? 'bg-blue-500 text-white shadow-sm'
-                            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800'
-                    "
-                    :title="$t('map.export_area')"
-                    @click="toggleExportMode"
-                >
-                    <MaterialDesignIcon icon-name="crop-free" class="size-5" />
-                </button>
-
                 <!-- offline/online toggle -->
                 <div class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
                     <button
@@ -92,6 +76,7 @@
                     <button
                         v-for="tool in drawingTools"
                         :key="tool.type"
+                        :ref="tool.type === 'Export' ? 'exportToolButton' : null"
                         class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                         :class="[
                             (drawType === tool.type && !isMeasuring) || (tool.type === 'Export' && isExportMode)
@@ -1430,9 +1415,9 @@ export default {
                 await window.axios.post("/api/v1/map/mbtiles/active", { filename });
                 await this.checkOfflineMap();
                 await this.loadMBTilesList();
-                ToastUtils.success("Map source updated");
+                ToastUtils.success(this.$t("map.source_updated"));
             } catch {
-                ToastUtils.error("Failed to set active map");
+                ToastUtils.error(this.$t("map.failed_set_active"));
             }
         },
         async deleteMBTiles(filename) {
@@ -1443,9 +1428,9 @@ export default {
                 if (this.metadata && this.metadata.path && this.metadata.path.endsWith(filename)) {
                     await this.checkOfflineMap();
                 }
-                ToastUtils.success("File deleted");
+                ToastUtils.success(this.$t("map.file_deleted"));
             } catch {
-                ToastUtils.error("Failed to delete file");
+                ToastUtils.error(this.$t("map.failed_delete_file"));
             }
         },
         async saveMBTilesDir() {
@@ -1453,10 +1438,10 @@ export default {
                 await window.axios.patch("/api/v1/config", {
                     map_mbtiles_dir: this.mbtilesDir,
                 });
-                ToastUtils.success("Storage directory saved");
+                ToastUtils.success(this.$t("map.storage_saved"));
                 this.loadMBTilesList();
             } catch {
-                ToastUtils.error("Failed to save directory");
+                ToastUtils.error(this.$t("map.failed_save_storage"));
             }
         },
         initMap() {
@@ -1937,9 +1922,9 @@ export default {
                 await window.axios.delete(`/api/v1/map/export/${this.exportId}`);
                 this.exportStatus = null;
                 this.exportId = null;
-                ToastUtils.success("Export cancelled");
+                ToastUtils.success(this.$t("map.export_cancelled"));
             } catch {
-                ToastUtils.error("Failed to cancel export");
+                ToastUtils.error(this.$t("map.failed_cancel_export"));
             }
         },
         async startExport() {
@@ -1957,7 +1942,7 @@ export default {
                 this.selectedBbox = null;
                 this.pollExportStatus();
             } catch {
-                ToastUtils.error("Failed to start export");
+                ToastUtils.error(this.$t("map.failed_start_export"));
                 this.isExporting = false;
             }
         },
@@ -1991,7 +1976,7 @@ export default {
             if (!file) return;
 
             if (!file.name.endsWith(".mbtiles")) {
-                ToastUtils.error("Please select an .mbtiles file");
+                ToastUtils.error(this.$t("map.select_mbtiles_error"));
                 return;
             }
 
@@ -2042,9 +2027,9 @@ export default {
                     map_default_lon: center[0],
                     map_default_zoom: zoom,
                 });
-                ToastUtils.success("Default view saved");
+                ToastUtils.success(this.$t("map.view_saved"));
             } catch {
-                ToastUtils.error("Failed to save default view");
+                ToastUtils.error(this.$t("map.failed_save_view"));
             }
         },
         async clearCache() {
@@ -2052,7 +2037,7 @@ export default {
                 await TileCache.clear();
                 ToastUtils.success(this.$t("map.cache_cleared"));
             } catch {
-                ToastUtils.error("Failed to clear cache");
+                ToastUtils.error(this.$t("map.failed_clear_cache"));
             }
         },
         async saveTileServerUrl() {
@@ -2064,7 +2049,7 @@ export default {
                 ToastUtils.success(this.$t("map.tile_server_saved"));
                 await this.saveMapState();
             } catch {
-                ToastUtils.error("Failed to save tile server URL");
+                ToastUtils.error(this.$t("map.failed_save_tile_server"));
             }
         },
         setTileServer(type) {
@@ -2080,7 +2065,7 @@ export default {
                 });
                 ToastUtils.success(this.$t("map.nominatim_api_saved"));
             } catch {
-                ToastUtils.error("Failed to save Nominatim API URL");
+                ToastUtils.error(this.$t("map.failed_save_nominatim"));
             }
         },
         checkOnboardingTooltip() {
@@ -2094,9 +2079,11 @@ export default {
         },
         positionOnboardingTooltip() {
             this.$nextTick(() => {
-                if (!this.$refs.exportButton || !this.$refs.tooltipElement) return;
+                if (!this.$refs.exportToolButton || !this.$refs.tooltipElement) return;
 
-                const exportButton = this.$refs.exportButton;
+                const exportButton = Array.isArray(this.$refs.exportToolButton)
+                    ? this.$refs.exportToolButton[0]
+                    : this.$refs.exportToolButton;
                 const tooltip = this.$refs.tooltipElement;
                 const buttonRect = exportButton.getBoundingClientRect();
                 const tooltipRect = tooltip.getBoundingClientRect();
@@ -2617,7 +2604,7 @@ export default {
             try {
                 if (navigator?.clipboard?.writeText) {
                     await navigator.clipboard.writeText(text);
-                    ToastUtils.success("Copied coordinates");
+                    ToastUtils.success(this.$t("map.copied_coordinates"));
                 } else {
                     ToastUtils.success(text);
                 }
@@ -2891,7 +2878,7 @@ export default {
                 const response = await window.axios.get("/api/v1/map/drawings");
                 this.savedDrawings = response.data.drawings;
             } catch {
-                ToastUtils.error("Failed to load drawings");
+                ToastUtils.error(this.$t("map.failed_load_drawings"));
             } finally {
                 this.isLoadingDrawings = false;
             }
@@ -2900,7 +2887,7 @@ export default {
         async saveDrawing() {
             if (!this.newDrawingName.trim()) return;
             if (!this.drawSource) {
-                ToastUtils.error("Map not initialized");
+                ToastUtils.error(this.$t("map.not_initialized"));
                 return;
             }
 
@@ -2916,11 +2903,11 @@ export default {
                     name: this.newDrawingName,
                     data: json,
                 });
-                ToastUtils.success("Drawing saved");
+                ToastUtils.success(this.$t("map.drawing_saved"));
                 this.showSaveDrawingModal = false;
                 this.newDrawingName = "";
             } catch {
-                ToastUtils.error("Failed to save drawing");
+                ToastUtils.error(this.$t("map.failed_save_drawing"));
             }
         },
 
@@ -2942,9 +2929,9 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/map/drawings/${drawing.id}`);
                 this.savedDrawings = this.savedDrawings.filter((d) => d.id !== drawing.id);
-                ToastUtils.success("Deleted");
+                ToastUtils.success(this.$t("map.deleted"));
             } catch {
-                ToastUtils.error("Failed to delete");
+                ToastUtils.error(this.$t("map.failed_delete"));
             }
         },
 
@@ -2975,11 +2962,11 @@ export default {
                     },
                     (err) => {
                         console.error("Geolocation failed", err);
-                        ToastUtils.warning("Could not determine your location");
+                        ToastUtils.warning(this.$t("map.location_not_determined"));
                     }
                 );
             } else {
-                ToastUtils.warning("Geolocation is not supported by your browser");
+                ToastUtils.warning(this.$t("map.geolocation_not_supported"));
             }
         },
         async fetchTelemetryMarkers() {
@@ -3148,7 +3135,7 @@ export default {
                 const nodesWithLoc = discovered.filter((n) => n.latitude != null && n.longitude != null);
 
                 if (nodesWithLoc.length === 0) {
-                    ToastUtils.info("No discovered nodes with location found");
+                    ToastUtils.info(this.$t("map.no_nodes_location"));
                     return;
                 }
 
@@ -3191,7 +3178,7 @@ export default {
                 ToastUtils.success(`Mapped ${nodesWithLoc.length} discovered nodes`);
             } catch (e) {
                 console.error("Failed to map discovered nodes", e);
-                ToastUtils.error("Failed to fetch discovered nodes for mapping");
+                ToastUtils.error(this.$t("map.failed_fetch_nodes"));
             }
         },
     },

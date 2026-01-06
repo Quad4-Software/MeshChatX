@@ -256,7 +256,7 @@ export default {
             }
 
             if (destinationHash.length !== 32) {
-                DialogUtils.alert("Invalid Address");
+                DialogUtils.alert(this.$t("common.invalid_address"));
                 return;
             }
 
@@ -422,18 +422,18 @@ export default {
             try {
                 await window.axios.post("/api/v1/lxmf/folders", { name });
                 await this.getFolders();
-                ToastUtils.success("Folder created");
+                ToastUtils.success(this.$t("messages.folder_created"));
             } catch {
-                ToastUtils.error("Failed to create folder");
+                ToastUtils.error(this.$t("messages.failed_create_folder"));
             }
         },
         async onRenameFolder({ id, name }) {
             try {
                 await window.axios.patch(`/api/v1/lxmf/folders/${id}`, { name });
                 await this.getFolders();
-                ToastUtils.success("Folder renamed");
+                ToastUtils.success(this.$t("messages.folder_renamed"));
             } catch {
-                ToastUtils.error("Failed to rename folder");
+                ToastUtils.error(this.$t("messages.failed_rename_folder"));
             }
         },
         async onDeleteFolder(id) {
@@ -444,9 +444,9 @@ export default {
                 }
                 await this.getFolders();
                 await this.getConversations();
-                ToastUtils.success("Folder deleted");
+                ToastUtils.success(this.$t("messages.folder_deleted"));
             } catch {
-                ToastUtils.error("Failed to delete folder");
+                ToastUtils.error(this.$t("messages.failed_delete_folder"));
             }
         },
         async onMoveToFolder({ peer_hashes, folder_id }) {
@@ -458,9 +458,9 @@ export default {
                     folder_id: targetFolderId,
                 });
                 await this.getConversations();
-                ToastUtils.success("Moved to folder");
+                ToastUtils.success(this.$t("messages.moved_to_folder"));
             } catch {
-                ToastUtils.error("Failed to move to folder");
+                ToastUtils.error(this.$t("messages.failed_move_folder"));
             }
         },
         async onBulkMarkAsRead(destination_hashes) {
@@ -469,9 +469,9 @@ export default {
                     destination_hashes,
                 });
                 await this.getConversations();
-                ToastUtils.success("Marked as read");
+                ToastUtils.success(this.$t("messages.marked_read"));
             } catch {
-                ToastUtils.error("Failed to mark as read");
+                ToastUtils.error(this.$t("messages.failed_mark_read"));
             }
         },
         async onBulkDelete(destination_hashes) {
@@ -486,9 +486,9 @@ export default {
                     destination_hashes,
                 });
                 await this.getConversations();
-                ToastUtils.success("Conversations deleted");
+                ToastUtils.success(this.$t("messages.conversations_deleted"));
             } catch {
-                ToastUtils.error("Failed to delete conversations");
+                ToastUtils.error(this.$t("messages.failed_delete_conversations"));
             }
         },
         async onExportFolders() {
@@ -503,7 +503,7 @@ export default {
                 a.click();
                 URL.revokeObjectURL(url);
             } catch {
-                ToastUtils.error("Failed to export folders");
+                ToastUtils.error(this.$t("messages.failed_export_folders"));
             }
         },
         async onImportFolders() {
@@ -520,9 +520,9 @@ export default {
                         await window.axios.post("/api/v1/lxmf/folders/import", data);
                         await this.getFolders();
                         await this.getConversations();
-                        ToastUtils.success("Folders imported");
+                        ToastUtils.success(this.$t("messages.folders_imported"));
                     } catch {
-                        ToastUtils.error("Failed to import folders");
+                        ToastUtils.error(this.$t("messages.failed_import_folders"));
                     }
                 };
                 reader.readAsText(file);
@@ -641,7 +641,7 @@ export default {
             try {
                 this.ingestUri = await navigator.clipboard.readText();
             } catch {
-                ToastUtils.error("Failed to read from clipboard");
+                ToastUtils.error(this.$t("messages.failed_read_clipboard"));
             }
         },
         async ingestPaperMessage() {
@@ -656,7 +656,7 @@ export default {
                 );
                 this.isIngestModalOpen = false;
             } catch {
-                ToastUtils.error("Failed to send ingest request");
+                ToastUtils.error(this.$t("messages.failed_send_ingest"));
             }
         },
         getHashPopoutValue() {

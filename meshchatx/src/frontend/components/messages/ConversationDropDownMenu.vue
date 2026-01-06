@@ -94,10 +94,10 @@ export default {
                     destination_hash: this.peer.destination_hash,
                 });
                 GlobalEmitter.emit("block-status-changed");
-                DialogUtils.alert("User banished successfully");
+                DialogUtils.alert(this.$t("messages.user_banished"));
                 this.$emit("block-status-changed");
             } catch (e) {
-                DialogUtils.alert("Failed to banish user");
+                DialogUtils.alert(this.$t("messages.failed_banish_user"));
                 console.log(e);
             }
         },
@@ -105,20 +105,16 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
                 GlobalEmitter.emit("block-status-changed");
-                DialogUtils.alert("Banishment lifted successfully");
+                DialogUtils.alert(this.$t("banishment.banishment_lifted"));
                 this.$emit("block-status-changed");
             } catch (e) {
-                DialogUtils.alert("Failed to lift banishment");
+                DialogUtils.alert(this.$t("banishment.failed_lift_banishment"));
                 console.log(e);
             }
         },
         async onDeleteMessageHistory() {
             // ask user to confirm deleting conversation history
-            if (
-                !(await DialogUtils.confirm(
-                    "Are you sure you want to delete all messages in this conversation? This can not be undone!"
-                ))
-            ) {
+            if (!(await DialogUtils.confirm(this.$t("messages.delete_history_confirm")))) {
                 return;
             }
 
@@ -126,7 +122,7 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/lxmf-messages/conversation/${this.peer.destination_hash}`);
             } catch (e) {
-                DialogUtils.alert("failed to delete conversation");
+                DialogUtils.alert(this.$t("messages.failed_delete_history"));
                 console.log(e);
             }
 
@@ -138,13 +134,13 @@ export default {
         },
         async onPingDestination() {
             if (!this.peer || !this.peer.destination_hash) {
-                DialogUtils.alert("Invalid destination hash");
+                DialogUtils.alert(this.$t("messages.invalid_destination_hash"));
                 return;
             }
 
             const destinationHash = this.peer.destination_hash;
             if (destinationHash.length !== 32 || !/^[0-9a-fA-F]+$/.test(destinationHash)) {
-                DialogUtils.alert("Invalid destination hash format");
+                DialogUtils.alert(this.$t("messages.invalid_destination_hash_format"));
                 return;
             }
 
@@ -161,32 +157,32 @@ export default {
                 const rttDurationString = `${rttMilliseconds} ms`;
 
                 const info = [
-                    `Valid reply from ${destinationHash}`,
-                    `Duration: ${rttDurationString}`,
-                    `Hops There: ${pingResult.hops_there}`,
-                    `Hops Back: ${pingResult.hops_back}`,
+                    this.$t("messages.ping_reply_from", { hash: destinationHash }),
+                    this.$t("messages.duration", { duration: rttDurationString }),
+                    this.$t("messages.hops_there", { count: pingResult.hops_there }),
+                    this.$t("messages.hops_back", { count: pingResult.hops_back }),
                 ];
 
                 // add signal quality if available
                 if (pingResult.quality != null) {
-                    info.push(`Signal Quality: ${pingResult.quality}%`);
+                    info.push(this.$t("messages.signal_quality", { quality: pingResult.quality }));
                 }
 
                 // add rssi if available
                 if (pingResult.rssi != null) {
-                    info.push(`RSSI: ${pingResult.rssi}dBm`);
+                    info.push(this.$t("messages.rssi_val", { rssi: pingResult.rssi }));
                 }
 
                 // add snr if available
                 if (pingResult.snr != null) {
-                    info.push(`SNR: ${pingResult.snr}dB`);
+                    info.push(this.$t("messages.snr_val", { snr: pingResult.snr }));
                 }
 
                 // show result
                 DialogUtils.alert(info.join("\n"));
             } catch (e) {
                 console.log(e);
-                const message = e.response?.data?.message ?? "Ping failed. Try again later";
+                const message = e.response?.data?.message ?? this.$t("messages.ping_failed");
                 DialogUtils.alert(message);
             }
         },

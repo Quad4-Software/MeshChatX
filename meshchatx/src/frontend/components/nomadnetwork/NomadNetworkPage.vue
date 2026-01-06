@@ -1230,7 +1230,7 @@ export default {
             }
 
             // unsupported url
-            ToastUtils.warning("unsupported url: " + url);
+            ToastUtils.warning(this.$t("nomadnet.unsupported_url") + url);
         },
         downloadFileFromBase64: async function (fileName, fileBytesBase64) {
             // create blob from base64 encoded file bytes
@@ -1288,7 +1288,7 @@ export default {
                 await this.getFavourites();
             } catch (e) {
                 console.log(e);
-                ToastUtils.error("Failed to rename favourite");
+                ToastUtils.error(this.$t("nomadnet.failed_rename_favourite"));
             }
         },
         async onRemoveFavourite(favourite) {

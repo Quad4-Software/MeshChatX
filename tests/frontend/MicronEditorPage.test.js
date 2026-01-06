@@ -2,6 +2,15 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import MicronEditorPage from "@/components/micron-editor/MicronEditorPage.vue";
 import { micronStorage } from "@/js/MicronStorage";
+import DialogUtils from "@/js/DialogUtils";
+
+// Mock DialogUtils
+vi.mock("@/js/DialogUtils", () => ({
+    default: {
+        confirm: vi.fn().mockResolvedValue(true),
+        alert: vi.fn().mockResolvedValue(),
+    },
+}));
 
 // Mock micronStorage
 vi.mock("@/js/MicronStorage", () => ({
@@ -127,8 +136,10 @@ describe("MicronEditorPage.vue", () => {
         // Find reset button
         const resetButton = wrapper.find('.mdi-stub[data-icon-name="refresh"]').element.parentElement;
         await resetButton.click();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick(); // Wait for async resetAll to complete
 
-        expect(window.confirm).toHaveBeenCalled();
+        expect(DialogUtils.confirm).toHaveBeenCalled();
         expect(micronStorage.clearAll).toHaveBeenCalled();
         expect(wrapper.vm.tabs.length).toBe(2); // Resets to Main + Guide
         expect(wrapper.vm.activeTabIndex).toBe(0);

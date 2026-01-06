@@ -242,12 +242,12 @@ export default {
                 this.identities = response.data.identities;
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to load identities");
+                ToastUtils.error(this.$t("identities.failed_load"));
             }
         },
         async createIdentity() {
             if (!this.newIdentityName) {
-                ToastUtils.warning("Please enter a display name");
+                ToastUtils.warning(this.$t("identities.enter_display_name_warning"));
                 return;
             }
 
@@ -256,13 +256,13 @@ export default {
                 await window.axios.post("/api/v1/identities/create", {
                     display_name: this.newIdentityName,
                 });
-                ToastUtils.success("Identity created successfully");
+                ToastUtils.success(this.$t("identities.created"));
                 this.showCreateModal = false;
                 this.newIdentityName = "";
                 await this.getIdentities();
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to create identity");
+                ToastUtils.error(this.$t("identities.failed_create"));
             } finally {
                 this.isCreating = false;
             }
@@ -286,14 +286,15 @@ export default {
                     // Success is handled by GlobalEmitter "identity-switched" which we listen to
                     ToastUtils.success(this.$t("identities.switched") || "Identity switched successfully");
                 } else {
-                    ToastUtils.info("Switch scheduled. Reloading application...");
+                    ToastUtils.info(this.$t("identities.switch_scheduled"));
                     setTimeout(() => {
                         window.location.reload();
                     }, 2000);
                 }
             } catch (e) {
                 console.error(e);
-                const errorMsg = e.response?.data?.message || "Failed to switch identity";
+                const errorMsg =
+                    e.response?.data?.message || this.$t("identities.failed_switch") || "Failed to switch identity";
                 ToastUtils.error(errorMsg);
                 this.isCreating = false;
 
@@ -313,7 +314,7 @@ export default {
                 await this.getIdentities();
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to delete identity");
+                ToastUtils.error(this.$t("identities.failed_delete"));
             }
         },
     },

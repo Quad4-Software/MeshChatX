@@ -175,28 +175,30 @@
             <!-- search + filters -->
             <div
                 v-if="conversations.length > 0 || isFilterActive"
-                class="p-1 border-b border-gray-300 dark:border-zinc-700 space-y-2"
+                class="p-1 border-b border-gray-300 dark:border-zinc-700 space-y-1.5"
             >
-                <div class="flex gap-1">
+                <div class="flex gap-2">
                     <input
                         :value="conversationSearchTerm"
                         type="text"
                         :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
-                        class="input-field flex-1"
+                        class="input-field flex-1 w-full rounded-none"
                         @input="onConversationSearchInput"
                     />
+                </div>
+                <div class="flex items-center justify-end gap-1 px-1 text-gray-500 dark:text-gray-400">
                     <button
                         type="button"
-                        class="p-2 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                        class="p-1 rounded-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                         title="Selection Mode"
-                        :class="{ 'text-blue-500 bg-blue-50 dark:bg-blue-900/20': selectionMode }"
+                        :class="{ 'text-blue-500 dark:text-blue-400': selectionMode }"
                         @click="toggleSelectionMode"
                     >
                         <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
                     </button>
                     <button
                         type="button"
-                        class="p-2 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                        class="p-1 rounded-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                         title="Ingest Paper Message"
                         @click="openIngestPaperMessageModal"
                     >
@@ -866,13 +868,16 @@ export default {
             this.draggedHash = null;
         },
         async createFolder() {
-            const name = await DialogUtils.prompt("Enter folder name", "New Folder");
+            const name = await DialogUtils.prompt(
+                this.$t("messages.enter_folder_name"),
+                this.$t("messages.new_folder")
+            );
             if (name) {
                 this.$emit("create-folder", name);
             }
         },
         async renameFolder(folder) {
-            const name = await DialogUtils.prompt("Rename folder", folder.name);
+            const name = await DialogUtils.prompt(this.$t("messages.rename_folder"), folder.name);
             if (name && name !== folder.name) {
                 this.$emit("rename-folder", { id: folder.id, name });
             }

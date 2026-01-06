@@ -61,7 +61,17 @@ describe("BlockedPage.vue (Banished UI)", () => {
         return mount(BlockedPage, {
             global: {
                 mocks: {
-                    $t: (key) => key,
+                    $t: (key) => {
+                        const translations = {
+                            "banishment.title": "Banished",
+                            "banishment.description": "Manage Banished users and nodes",
+                            "banishment.lift_banishment": "Lift Banishment",
+                            "banishment.user": "User",
+                            "banishment.node": "Node",
+                            "banishment.banished_at": "Banished at",
+                        };
+                        return translations[key] || key;
+                    },
                 },
                 stubs: {
                     MaterialDesignIcon: {

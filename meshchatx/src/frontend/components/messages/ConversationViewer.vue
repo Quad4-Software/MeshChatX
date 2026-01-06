@@ -1681,10 +1681,10 @@ export default {
         async copyMyAddress() {
             try {
                 await navigator.clipboard.writeText(this.myLxmfAddressHash);
-                ToastUtils.success("Your LXMF address copied to clipboard");
+                ToastUtils.success(this.$t("messages.address_copied"));
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to copy address");
+                ToastUtils.error(this.$t("messages.failed_copy_address"));
             }
         },
         focusComposeInput() {
@@ -1737,7 +1737,7 @@ export default {
                 }
             } catch (e) {
                 console.error("Translation failed:", e);
-                ToastUtils.error("Translation failed");
+                ToastUtils.error(this.$t("messages.translation_failed"));
             } finally {
                 this.isSendingMessage = false;
             }
@@ -1949,7 +1949,7 @@ export default {
                 ToastUtils.success(`Added ${name} to contacts`);
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to add contact");
+                ToastUtils.error(this.$t("messages.failed_add_contact"));
             }
         },
         async ingestPaperMessage(uri) {
@@ -1960,10 +1960,10 @@ export default {
                         uri: uri,
                     })
                 );
-                ToastUtils.info("Ingesting paper message...");
+                ToastUtils.info(this.$t("messages.ingesting_paper_message"));
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to ingest paper message");
+                ToastUtils.error(this.$t("messages.failed_ingest_paper"));
             }
         },
         async generatePaperMessageFromComposition() {
@@ -2099,7 +2099,7 @@ export default {
                 destinationHash = destinationHash.replace("lxmf@", "");
             }
             if (destinationHash.length !== 32) {
-                DialogUtils.alert("Invalid Address");
+                DialogUtils.alert(this.$t("common.invalid_address"));
                 return;
             }
             GlobalEmitter.emit("compose-new-message", destinationHash);
@@ -2310,7 +2310,7 @@ export default {
             }
 
             // ask user for new display name
-            const displayName = await DialogUtils.prompt("Enter a custom display name");
+            const displayName = await DialogUtils.prompt(this.$t("messages.enter_display_name"));
             if (displayName == null) {
                 return;
             }
@@ -2331,7 +2331,7 @@ export default {
                 this.$emit("reload-conversations");
             } catch (error) {
                 console.log(error);
-                DialogUtils.alert("Failed to update display name");
+                DialogUtils.alert(this.$t("messages.failed_update_display_name"));
             }
         },
         async onConversationDeleted() {
@@ -2394,7 +2394,7 @@ export default {
                 }
             } catch (e) {
                 console.error("Failed to download or decode audio:", e);
-                DialogUtils.alert("Failed to load audio attachment.");
+                DialogUtils.alert(this.$t("messages.failed_load_audio"));
             } finally {
                 this.isDownloadingAudio[chatItem.lxmf_message.hash] = false;
             }
@@ -2581,14 +2581,14 @@ export default {
                 this.contacts = response.data;
 
                 if (this.contacts.length === 0) {
-                    ToastUtils.info("No contacts found in telephone");
+                    ToastUtils.info(this.$t("messages.no_contacts_telephone"));
                     return;
                 }
 
                 this.isShareContactModalOpen = true;
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to load contacts");
+                ToastUtils.error(this.$t("messages.failed_load_contacts"));
             }
         },
         shareContact(contact) {
@@ -2838,7 +2838,7 @@ export default {
         async shareLocation() {
             try {
                 if (!navigator.geolocation) {
-                    DialogUtils.alert("Geolocation is not supported by your browser");
+                    DialogUtils.alert(this.$t("map.geolocation_not_supported"));
                     return;
                 }
 
@@ -2885,10 +2885,10 @@ export default {
                     },
                 });
 
-                ToastUtils.success("Location request sent");
+                ToastUtils.success(this.$t("messages.location_request_sent"));
             } catch (e) {
                 console.log(e);
-                ToastUtils.error("Failed to send location request");
+                ToastUtils.error(this.$t("messages.failed_send_location_request"));
             }
         },
         viewLocationOnMap(location) {
@@ -2911,10 +2911,10 @@ export default {
         async copyHash(hash) {
             try {
                 await navigator.clipboard.writeText(hash);
-                ToastUtils.success("Hash copied to clipboard");
+                ToastUtils.success(this.$t("messages.hash_copied"));
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to copy hash");
+                ToastUtils.error(this.$t("messages.failed_to_copy_hash"));
             }
         },
         formatBytes: function (bytes) {
@@ -2966,7 +2966,7 @@ export default {
                 }
             } catch (err) {
                 console.error("Failed to read clipboard contents: ", err);
-                ToastUtils.error("Failed to read from clipboard");
+                ToastUtils.error(this.$t("messages.failed_read_clipboard"));
             }
         },
         onFileInputChange: function (event) {
@@ -2979,7 +2979,7 @@ export default {
         },
         async removeImageAttachment(index) {
             // ask user to confirm removing image attachment
-            if (!(await DialogUtils.confirm("Are you sure you want to remove this image attachment?"))) {
+            if (!(await DialogUtils.confirm(this.$t("messages.remove_image_confirm")))) {
                 return;
             }
 
@@ -3037,7 +3037,7 @@ export default {
 
                     // alert if failed to start recording
                     if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert("failed to start recording");
+                        DialogUtils.alert(this.$t("messages.failed_start_recording"));
                     }
 
                     break;
@@ -3059,7 +3059,7 @@ export default {
 
                     // alert if failed to start recording
                     if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert("failed to start recording");
+                        DialogUtils.alert(this.$t("messages.failed_start_recording"));
                     }
 
                     break;
@@ -3146,7 +3146,7 @@ export default {
         },
         async removeAudioAttachment() {
             // ask user to confirm removing audio attachment
-            if (!(await DialogUtils.confirm("Are you sure you want to remove this audio attachment?"))) {
+            if (!(await DialogUtils.confirm(this.$t("messages.remove_audio_confirm")))) {
                 return;
             }
 

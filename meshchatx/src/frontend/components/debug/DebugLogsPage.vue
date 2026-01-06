@@ -208,7 +208,7 @@ export default {
                 this.total = response.data.total;
             } catch (e) {
                 console.log("Failed to fetch logs", e);
-                if (!silent) ToastUtils.error("Failed to fetch logs");
+                if (!silent) ToastUtils.error(this.$t("debug.failed_fetch_logs"));
             } finally {
                 if (!silent) this.loading = false;
             }
@@ -259,9 +259,9 @@ export default {
                 .join("\n");
             try {
                 await navigator.clipboard.writeText(logText);
-                ToastUtils.success("Logs on this page copied to clipboard");
+                ToastUtils.success(this.$t("debug.logs_copied"));
             } catch {
-                ToastUtils.error("Failed to copy logs");
+                ToastUtils.error(this.$t("debug.failed_copy_logs"));
             }
         },
     },

@@ -29,7 +29,7 @@
 
                 <!-- content -->
                 <div class="flex-1 mr-2 text-sm font-medium text-gray-900 dark:text-zinc-100">
-                    {{ toast.message }}
+                    {{ $t(toast.message) }}
                 </div>
 
                 <!-- close button -->

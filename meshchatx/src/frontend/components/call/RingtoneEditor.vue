@@ -217,7 +217,7 @@ export default {
                 });
             } catch (e) {
                 console.error("Failed to load audio:", e);
-                ToastUtils.error("Failed to load audio for editing");
+                ToastUtils.error(this.$t("call.failed_load_audio_edit"));
                 this.$emit("close");
             } finally {
                 this.loading = false;
@@ -418,12 +418,12 @@ export default {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
 
-                ToastUtils.success("Ringtone saved successfully");
+                ToastUtils.success(this.$t("call.ringtone_saved"));
                 this.$emit("saved");
                 this.$emit("close");
             } catch (e) {
                 console.error("Failed to save ringtone:", e);
-                ToastUtils.error("Failed to save edited ringtone");
+                ToastUtils.error(this.$t("call.failed_save_ringtone"));
             } finally {
                 this.saving = false;
             }

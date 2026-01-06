@@ -152,6 +152,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import DialogUtils from "../../js/DialogUtils";
 
 export default {
     name: "ForwarderPage",
@@ -206,8 +207,8 @@ export default {
             this.newRule.forward_to_hash = "";
             this.newRule.source_filter_hash = "";
         },
-        deleteRule(id) {
-            if (confirm(this.$t("forwarder.delete_confirm"))) {
+        async deleteRule(id) {
+            if (await DialogUtils.confirm(this.$t("forwarder.delete_confirm"))) {
                 WebSocketConnection.send(
                     JSON.stringify({
                         type: "lxmf.forwarding.rule.delete",

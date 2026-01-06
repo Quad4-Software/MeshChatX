@@ -694,7 +694,7 @@ export default {
                 });
                 this.trackInterfaceChange(interfaceName);
             } catch (e) {
-                DialogUtils.alert("failed to enable interface");
+                DialogUtils.alert(this.$t("interfaces.failed_enable"));
                 console.log(e);
             }
 
@@ -709,7 +709,7 @@ export default {
                 });
                 this.trackInterfaceChange(interfaceName);
             } catch (e) {
-                DialogUtils.alert("failed to disable interface");
+                DialogUtils.alert(this.$t("interfaces.failed_disable"));
                 console.log(e);
             }
 
@@ -726,9 +726,7 @@ export default {
         },
         async deleteInterface(interfaceName) {
             // ask user to confirm deleting conversation history
-            if (
-                !(await DialogUtils.confirm("Are you sure you want to delete this interface? This can not be undone!"))
-            ) {
+            if (!(await DialogUtils.confirm(this.$t("interfaces.delete_confirm")))) {
                 return;
             }
 
@@ -739,7 +737,7 @@ export default {
                 });
                 this.trackInterfaceChange(interfaceName);
             } catch (e) {
-                DialogUtils.alert("failed to delete interface");
+                DialogUtils.alert(this.$t("interfaces.failed_delete"));
                 console.log(e);
             }
 
@@ -754,7 +752,7 @@ export default {
                 // download file to browser
                 DownloadUtils.downloadFile("meshchat_interfaces.txt", new Blob([response.data]));
             } catch (e) {
-                DialogUtils.alert("Failed to export interfaces");
+                DialogUtils.alert(this.$t("interfaces.failed_export_all"));
                 console.error(e);
             }
         },
@@ -768,7 +766,7 @@ export default {
                 // download file to browser
                 DownloadUtils.downloadFile(`${interfaceName}.txt`, new Blob([response.data]));
             } catch (e) {
-                DialogUtils.alert("Failed to export interface");
+                DialogUtils.alert(this.$t("interfaces.failed_export_single"));
                 console.error(e);
             }
         },
@@ -903,10 +901,10 @@ export default {
                 };
 
                 await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
-                ToastUtils.success("Discovery settings saved");
+                ToastUtils.success(this.$t("interfaces.discovery_settings_saved"));
                 await this.loadDiscoveryConfig();
             } catch (e) {
-                ToastUtils.error("Failed to save discovery settings");
+                ToastUtils.error(this.$t("interfaces.failed_save_discovery"));
                 console.log(e);
             } finally {
                 this.savingDiscovery = false;
@@ -962,7 +960,7 @@ export default {
                 GlobalState.modifiedInterfaceNames.clear();
                 await this.loadInterfaces();
             } catch (e) {
-                ToastUtils.error(e.response?.data?.error || "Failed to reload Reticulum!");
+                ToastUtils.error(e.response?.data?.error || this.$t("interfaces.failed_reload"));
                 console.error(e);
             } finally {
                 this.reloadingRns = false;

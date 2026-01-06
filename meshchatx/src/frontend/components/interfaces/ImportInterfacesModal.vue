@@ -193,7 +193,7 @@ export default {
                 // ensure there are some interfaces available to import
                 if (!response.data.interfaces || response.data.interfaces.length === 0) {
                     this.clearSelectedFile();
-                    DialogUtils.alert("No interfaces were found in the selected configuration file");
+                    DialogUtils.alert(this.$t("interfaces.no_interfaces_found_config"));
                     return;
                 }
 
@@ -204,7 +204,7 @@ export default {
                 this.selectAllInterfaces();
             } catch (e) {
                 this.clearSelectedFile();
-                DialogUtils.alert("Failed to parse configuration file");
+                DialogUtils.alert(this.$t("interfaces.failed_parse_config"));
                 console.error(e);
             }
         },
@@ -237,13 +237,13 @@ export default {
         async importSelectedInterfaces() {
             // ensure user selected a file to import from
             if (!this.selectedFile) {
-                DialogUtils.alert("Please select a configuration file");
+                DialogUtils.alert(this.$t("interfaces.select_config_file"));
                 return;
             }
 
             // ensure user selected some interfaces
             if (this.selectedInterfaces.length === 0) {
-                DialogUtils.alert("Please select at least one interface to import");
+                DialogUtils.alert(this.$t("interfaces.select_at_least_one"));
                 return;
             }
 
@@ -258,11 +258,9 @@ export default {
                 this.dismiss(true);
 
                 // tell user interfaces were imported
-                DialogUtils.alert(
-                    "Interfaces imported successfully. MeshChat must be restarted for these changes to take effect."
-                );
+                DialogUtils.alert(this.$t("interfaces.import_success"));
             } catch (e) {
-                const message = e.response?.data?.message || "Failed to import interfaces";
+                const message = e.response?.data?.message || this.$t("interfaces.failed_import_all");
                 DialogUtils.alert(message);
                 console.error(e);
             }

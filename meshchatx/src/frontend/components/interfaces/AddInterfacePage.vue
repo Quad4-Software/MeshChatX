@@ -1505,7 +1505,7 @@ export default {
                 const response = await window.axios.patch("/api/v1/config", config);
                 this.config = response.data.config;
             } catch (e) {
-                ToastUtils.error("Failed to save config!");
+                ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
             }
         },
@@ -1560,10 +1560,10 @@ export default {
                 };
 
                 await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
-                ToastUtils.success("Discovery settings saved");
+                ToastUtils.success(this.$t("interfaces.discovery_settings_saved"));
                 await this.loadReticulumDiscoveryConfig();
             } catch (e) {
-                ToastUtils.error("Failed to save discovery settings");
+                ToastUtils.error(this.$t("interfaces.failed_save_discovery"));
                 console.log(e);
             } finally {
                 this.savingDiscovery = false;
@@ -1594,7 +1594,7 @@ export default {
                 // find interface, else show error and redirect to interfaces
                 const iface = interfaces[interfaceName];
                 if (!iface) {
-                    DialogUtils.alert("The selected interface for editing could not be found.");
+                    DialogUtils.alert(this.$t("interfaces.interface_not_found"));
                     this.$router.push({
                         name: "interfaces",
                     });

@@ -10,6 +10,9 @@ describe("Toast.vue", () => {
         vi.useFakeTimers();
         wrapper = mount(Toast, {
             global: {
+                mocks: {
+                    $t: (msg) => msg,
+                },
                 stubs: {
                     TransitionGroup: { template: "<div><slot /></div>" },
                     MaterialDesignIcon: {

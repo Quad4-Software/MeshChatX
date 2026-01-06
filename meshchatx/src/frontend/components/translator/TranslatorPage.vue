@@ -453,14 +453,12 @@ export default {
                 this.hasArgos = response.data.has_argos;
             } catch (e) {
                 console.error(e);
-                DialogUtils.alert(
-                    "Failed to load languages. Make sure LibreTranslate is running or Argos Translate is installed."
-                );
+                DialogUtils.alert(this.$t("translator.failed_load_languages"));
             }
         },
         copyToClipboard(text) {
             navigator.clipboard.writeText(text);
-            ToastUtils.success("Copied to clipboard");
+            ToastUtils.success(this.$t("common.copied"));
         },
         async translateText() {
             if (!this.canTranslate || this.isTranslating) {
@@ -468,12 +466,12 @@ export default {
             }
 
             if (!this.sourceLang || !this.targetLang) {
-                this.error = "Please select both source and target languages.";
+                this.error = this.$t("translator.select_languages_warning");
                 return;
             }
 
             if (this.translationMode === "argos" && this.sourceLang === "auto") {
-                this.error = "Auto-detection is not supported with Argos Translate. Please select a source language.";
+                this.error = this.$t("translator.auto_detect_not_supported");
                 return;
             }
 
@@ -499,9 +497,7 @@ export default {
                 }
             } catch (e) {
                 console.error(e);
-                this.error =
-                    e.response?.data?.message ||
-                    "Translation failed. Make sure LibreTranslate is running or Argos Translate is installed.";
+                this.error = e.response?.data?.message || this.$t("translator.failed_translate");
             } finally {
                 this.isTranslating = false;
             }

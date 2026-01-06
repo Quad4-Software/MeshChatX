@@ -374,7 +374,7 @@ export default {
                 const response = await window.axios.patch("/api/v1/config", config);
                 this.config = response.data.config;
             } catch (e) {
-                ToastUtils.error("Failed to save config!");
+                ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
             }
         },

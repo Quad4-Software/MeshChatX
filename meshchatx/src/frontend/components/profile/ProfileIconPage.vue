@@ -318,7 +318,7 @@ export default {
                 const response = await window.axios.get("/api/v1/config");
                 this.config = response.data.config;
             } catch (e) {
-                ToastUtils.error("Failed to load configuration");
+                ToastUtils.error(this.$t("messages.failed_load_config"));
                 console.error(e);
             }
         },
@@ -331,12 +331,12 @@ export default {
                 this.saveOriginalValues();
 
                 if (!silent) {
-                    ToastUtils.success("Profile icon saved successfully");
+                    ToastUtils.success(this.$t("messages.profile_icon_saved"));
                 }
                 return true;
             } catch (e) {
                 if (!silent) {
-                    ToastUtils.error("Failed to save profile icon");
+                    ToastUtils.error(this.$t("messages.failed_save_profile_icon"));
                 }
                 console.error(e);
                 return false;
@@ -348,12 +348,12 @@ export default {
             }
 
             if (!this.iconForegroundColour || !this.iconBackgroundColour) {
-                ToastUtils.warning("Please select both background and icon colors");
+                ToastUtils.warning(this.$t("messages.select_colors_warning"));
                 return;
             }
 
             if (!this.iconName) {
-                ToastUtils.warning("Please select an icon");
+                ToastUtils.warning(this.$t("messages.select_icon_warning"));
                 return;
             }
 
@@ -370,7 +370,7 @@ export default {
                 );
 
                 if (success && !silent) {
-                    ToastUtils.success("Profile icon saved successfully");
+                    ToastUtils.success(this.$t("messages.profile_icon_saved"));
                 }
             } finally {
                 this.isSaving = false;
@@ -385,7 +385,7 @@ export default {
             this.iconForegroundColour = this.originalIconForegroundColour;
             this.iconBackgroundColour = this.originalIconBackgroundColour;
 
-            ToastUtils.info("Changes reset to saved values");
+            ToastUtils.info(this.$t("messages.changes_reset"));
         },
         onIconClick(iconName) {
             this.iconName = iconName;
@@ -401,7 +401,7 @@ export default {
                 });
 
                 if (success) {
-                    ToastUtils.success("Profile icon removed successfully");
+                    ToastUtils.success(this.$t("messages.profile_icon_removed"));
                 }
             } finally {
                 this.isSaving = false;
