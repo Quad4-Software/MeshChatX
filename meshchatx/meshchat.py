@@ -4038,6 +4038,12 @@ class ReticulumMeshChat:
             self.database.misc.delete_archived_pages()
             return web.json_response({"message": "All archived pages cleared"})
 
+        # maintenance - clear LXMF icons
+        @routes.delete("/api/v1/maintenance/lxmf-icons")
+        async def maintenance_clear_lxmf_icons(request):
+            self.database.misc.delete_all_user_icons()
+            return web.json_response({"message": "All LXMF icons cleared"})
+
         # maintenance - export messages
         @routes.get("/api/v1/maintenance/messages/export")
         async def maintenance_export_messages(request):
@@ -8519,6 +8525,14 @@ class ReticulumMeshChat:
                 int(data["archives_max_storage_gb"]),
             )
 
+        if "backup_max_count" in data:
+            try:
+                value = int(data["backup_max_count"])
+            except (TypeError, ValueError):
+                value = self.config.backup_max_count.default_value
+            value = max(1, min(value, 50))
+            self.config.backup_max_count.set(value)
+
         # update crawler settings
         if "crawler_enabled" in data:
             self.config.crawler_enabled.set(self._parse_bool(data["crawler_enabled"]))
@@ -8590,6 +8604,14 @@ class ReticulumMeshChat:
 
         if "message_font_size" in data:
             self.config.message_font_size.set(int(data["message_font_size"]))
+
+        if "message_icon_size" in data:
+            try:
+                value = int(data["message_icon_size"])
+            except (TypeError, ValueError):
+                value = self.config.message_icon_size.default_value
+            value = max(12, min(value, 96))
+            self.config.message_icon_size.set(value)
 
         # update desktop settings
         if "desktop_open_calls_in_separate_window" in data:
@@ -9534,6 +9556,7 @@ class ReticulumMeshChat:
             "page_archiver_enabled": ctx.config.page_archiver_enabled.get(),
             "page_archiver_max_versions": ctx.config.page_archiver_max_versions.get(),
             "archives_max_storage_gb": ctx.config.archives_max_storage_gb.get(),
+            "backup_max_count": ctx.config.backup_max_count.get(),
             "crawler_enabled": ctx.config.crawler_enabled.get(),
             "crawler_max_retries": ctx.config.crawler_max_retries.get(),
             "crawler_retry_delay_seconds": ctx.config.crawler_retry_delay_seconds.get(),
@@ -9569,6 +9592,7 @@ class ReticulumMeshChat:
             "banished_text": ctx.config.banished_text.get(),
             "banished_color": ctx.config.banished_color.get(),
             "message_font_size": ctx.config.message_font_size.get(),
+            "message_icon_size": ctx.config.message_icon_size.get(),
             "translator_enabled": ctx.config.translator_enabled.get(),
             "libretranslate_url": ctx.config.libretranslate_url.get(),
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
@@ -10011,13 +10035,50 @@ class ReticulumMeshChat:
                     icon_name = icon_appearance[0]
                     foreground_colour = "#" + icon_appearance[1].hex()
                     background_colour = "#" + icon_appearance[2].hex()
-                    self.update_lxmf_user_icon(
-                        lxmf_message.source_hash.hex(),
-                        icon_name,
-                        foreground_colour,
-                        background_colour,
-                        context=ctx,
+
+                    local_hash = (
+                        ctx.local_lxmf_destination.hexhash
+                        if ctx.local_lxmf_destination
+                        else None
                     )
+                    source_hash = lxmf_message.source_hash.hex()
+
+                    # ignore our own icon and empty payloads to avoid overwriting peers with our appearance
+                    if source_hash and local_hash and source_hash == local_hash:
+                        pass
+                    elif (
+                        not icon_name or not foreground_colour or not background_colour
+                    ):
+                        pass
+                    else:
+                        local_icon_name = ctx.config.lxmf_user_icon_name.get()
+                        local_icon_fg = (
+                            ctx.config.lxmf_user_icon_foreground_colour.get()
+                        )
+                        local_icon_bg = (
+                            ctx.config.lxmf_user_icon_background_colour.get()
+                        )
+
+                        # if incoming icon matches our own, skip storing and clear any mistaken stored copy
+                        # for now, but this will need to be updated later if two users do have the same icon
+                        # FIXME
+                        if (
+                            local_icon_name
+                            and local_icon_fg
+                            and local_icon_bg
+                            and icon_name == local_icon_name
+                            and foreground_colour == local_icon_fg
+                            and background_colour == local_icon_bg
+                        ):
+                            ctx.database.misc.delete_user_icon(source_hash)
+                        else:
+                            self.update_lxmf_user_icon(
+                                source_hash,
+                                icon_name,
+                                foreground_colour,
+                                background_colour,
+                                context=ctx,
+                            )
             except Exception as e:
                 print("failed to update lxmf user icon from lxmf message")
                 print(e)

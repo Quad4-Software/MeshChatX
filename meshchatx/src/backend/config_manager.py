@@ -270,6 +270,7 @@ class ConfigManager:
             "#dc2626",
         )
         self.message_font_size = self.IntConfig(self, "message_font_size", 14)
+        self.message_icon_size = self.IntConfig(self, "message_icon_size", 28)
 
         # blackhole integration config
         self.blackhole_integration_enabled = self.BoolConfig(

@@ -80,30 +80,66 @@ class BotHandler:
                     logger.warning("Failed to restore bot %s: %s", entry.get("id"), exc)
 
     def get_status(self):
-        bots = []
-        for bot_id, bot_info in self.running_bots.items():
-            instance = bot_info["instance"]
+        bots: list[dict] = []
+
+        for entry in self.bots_state:
+            bot_id = entry.get("id")
+            template = entry.get("template_id") or entry.get("template")
+            name = entry.get("name") or "Unknown"
+            pid = entry.get("pid")
+
+            running = False
+            if bot_id in self.running_bots:
+                running = True
+            elif pid:
+                running = self._is_pid_alive(pid)
+
+            address_pretty = None
+            address_full = None
+
+            # Try running instance first
+            instance = self.running_bots.get(bot_id, {}).get("instance")
+            if (
+                instance
+                and getattr(instance, "bot", None)
+                and getattr(instance.bot, "local", None)
+            ):
+                try:
+                    address_pretty = RNS.prettyhexrep(instance.bot.local.hash)
+                    address_full = RNS.hexrep(instance.bot.local.hash, delimit=False)
+                except Exception:
+                    pass
+
+            # Fallback to identity file on disk
+            if address_full is None:
+                identity = self._load_identity_for_bot(bot_id)
+                if identity:
+                    try:
+                        destination = RNS.Destination(identity, "lxmf", "delivery")
+                        address_full = destination.hash.hex()
+                        address_pretty = RNS.prettyhexrep(destination.hash)
+                    except Exception:
+                        pass
+
             bots.append(
                 {
                     "id": bot_id,
-                    "template": bot_info["template"],
-                    "name": instance.bot.config.name
-                    if instance and instance.bot
-                    else "Unknown",
-                    "address": RNS.prettyhexrep(instance.bot.local.hash)
-                    if instance and instance.bot and instance.bot.local
-                    else "Unknown",
-                    "full_address": RNS.hexrep(instance.bot.local.hash, delimit=False)
-                    if instance and instance.bot and instance.bot.local
-                    else None,
+                    "template": template,
+                    "template_id": template,
+                    "name": name,
+                    "address": address_pretty or "Unknown",
+                    "full_address": address_full,
+                    "running": running,
+                    "pid": pid,
+                    "storage_dir": entry.get("storage_dir"),
                 },
             )
 
         return {
             "has_lxmfy": True,
             "detection_error": None,
-            "running_bots": bots,
-            "bots": self.bots_state,
+            "running_bots": [b for b in bots if b["running"]],
+            "bots": bots,
         }
 
     def start_bot(self, template_id, name=None, bot_id=None, storage_dir=None):
@@ -274,7 +310,31 @@ class BotHandler:
         if os.path.exists(id_path_alt):
             return id_path_alt
 
+        # LXMFy may nest inside config/lxmf
+        id_path_lxmf = os.path.join(storage_dir, "config", "lxmf", "identity")
+        if os.path.exists(id_path_lxmf):
+            return id_path_lxmf
+
         return None
+
+    def _load_identity_for_bot(self, bot_id):
+        identity_path = self.get_bot_identity_path(bot_id)
+        if not identity_path:
+            return None
+        try:
+            return RNS.Identity.from_file(identity_path)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _is_pid_alive(pid):
+        if not pid:
+            return False
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
 
     def stop_all(self):
         for bot_id in list(self.running_bots.keys()):

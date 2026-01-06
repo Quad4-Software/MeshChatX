@@ -206,6 +206,16 @@ class IdentityContext:
             lambda msg: self.app.on_lxmf_delivery(msg, context=self),
         )
 
+        # Restore preferred propagation node on startup
+        try:
+            preferred_node = (
+                self.config.lxmf_preferred_propagation_node_destination_hash.get()
+            )
+            if preferred_node:
+                self.app.set_active_propagation_node(preferred_node, context=self)
+        except Exception:
+            pass
+
         # 5. Initialize Handlers and Managers
         self.rncp_handler = RNCPHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),

@@ -99,6 +99,15 @@ class MiscDAO:
             tuple(destination_hashes),
         )
 
+    def delete_user_icon(self, destination_hash):
+        self.provider.execute(
+            "DELETE FROM lxmf_user_icons WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+
+    def delete_all_user_icons(self):
+        self.provider.execute("DELETE FROM lxmf_user_icons")
+
     # Forwarding Rules
     def get_forwarding_rules(self, identity_hash=None, active_only=False):
         query = "SELECT * FROM lxmf_forwarding_rules WHERE 1=1"
