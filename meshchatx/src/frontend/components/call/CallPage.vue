@@ -2411,18 +2411,26 @@ export default {
         },
         async onToggleWebAudio(newVal) {
             if (!this.config) return;
+            const previousValue = this.config.telephone_web_audio_enabled;
             this.config.telephone_web_audio_enabled = newVal;
             try {
+                if (newVal) {
+                    const permitted = await this.requestAudioPermission();
+                    if (!permitted) {
+                        this.config.telephone_web_audio_enabled = false;
+                        await this.updateConfig({ telephone_web_audio_enabled: false });
+                        return;
+                    }
+                }
                 await this.updateConfig({ telephone_web_audio_enabled: newVal });
                 if (newVal) {
-                    await this.requestAudioPermission();
                     await this.startWebAudio();
                 } else {
                     this.stopWebAudio();
                 }
             } catch {
                 // revert on failure
-                this.config.telephone_web_audio_enabled = !newVal;
+                this.config.telephone_web_audio_enabled = previousValue;
             }
         },
         async startWebAudio() {
@@ -2430,7 +2438,18 @@ export default {
                 return;
             }
             try {
-                const constraints = this.selectedAudioInputId
+                await this.refreshAudioDevices();
+                const hasInputDevices = (this.audioInputDevices || []).length > 0;
+                if (!hasInputDevices) {
+                    ToastUtils.error(this.$t("call.no_audio_input_found"));
+                    this.config.telephone_web_audio_enabled = false;
+                    await this.updateConfig({ telephone_web_audio_enabled: false });
+                    return;
+                }
+
+                const validDeviceIds = new Set((this.audioInputDevices || []).map((d) => d.deviceId));
+                const hasSelectedDevice = this.selectedAudioInputId && validDeviceIds.has(this.selectedAudioInputId);
+                const constraints = hasSelectedDevice
                     ? { audio: { deviceId: { exact: this.selectedAudioInputId } } }
                     : { audio: true };
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -2481,17 +2500,44 @@ export default {
                 this.refreshAudioDevices();
             } catch (err) {
                 console.error("Web audio failed", err);
-                ToastUtils.error(this.$t("call.web_audio_not_available"));
+                const errorKey =
+                    err?.name === "NotFoundError" || err?.name === "OverconstrainedError"
+                        ? "call.no_audio_input_found"
+                        : err?.name === "NotAllowedError"
+                          ? "call.microphone_permission_denied"
+                          : "call.web_audio_not_available";
+                ToastUtils.error(this.$t(errorKey));
+                this.config.telephone_web_audio_enabled = false;
+                await this.updateConfig({ telephone_web_audio_enabled: false });
                 this.stopWebAudio();
             }
         },
         async requestAudioPermission() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const hasAudioInput = devices.some((d) => d.kind === "audioinput");
+                if (devices.length > 0 && !hasAudioInput) {
+                    ToastUtils.error(this.$t("call.no_audio_input_found"));
+                    return false;
+                }
+
+                const constraints = this.selectedAudioInputId
+                    ? { audio: { deviceId: { exact: this.selectedAudioInputId } } }
+                    : { audio: true };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 stream.getTracks().forEach((t) => t.stop());
                 await this.refreshAudioDevices();
+                return true;
             } catch (e) {
                 console.error("Permission or device request failed", e);
+                const errorKey =
+                    e?.name === "NotFoundError" || e?.name === "OverconstrainedError"
+                        ? "call.no_audio_input_found"
+                        : e?.name === "NotAllowedError"
+                          ? "call.microphone_permission_denied"
+                          : "call.web_audio_not_available";
+                ToastUtils.error(this.$t(errorKey));
+                return false;
             }
         },
         async refreshAudioDevices() {

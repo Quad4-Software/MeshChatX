@@ -35,7 +35,8 @@
                     :icon-background-colour="
                         selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.background_colour : ''
                     "
-                    icon-class="size-11"
+                    icon-class="shrink-0"
+                    :icon-style="messageIconStyle"
                 />
             </div>
 
@@ -956,7 +957,7 @@
                         <MaterialDesignIcon
                             icon-name="sync"
                             class="size-6"
-                            :class="{ 'animate-spin-reverse': isSyncingPropagationNode }"
+                            :class="{ 'animate-spin': isSyncingPropagationNode }"
                         />
                     </div>
                     <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">{{
@@ -1482,6 +1483,15 @@ export default {
         };
     },
     computed: {
+        messageIconStyle() {
+            const size = Number(this.config?.message_icon_size) || 28;
+            return {
+                width: `${size}px`,
+                height: `${size}px`,
+                minWidth: `${size}px`,
+                minHeight: `${size}px`,
+            };
+        },
         isSyncingPropagationNode() {
             return [
                 "path_requested",

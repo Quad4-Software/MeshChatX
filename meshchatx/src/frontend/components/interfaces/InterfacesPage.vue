@@ -164,8 +164,8 @@
                                         Recently Heard Announces
                                     </div>
                                     <div class="text-sm text-gray-600 dark:text-gray-300">
-                                        Cards appear/disappear as announces are heard. Connected entries show a green
-                                        pill; disconnected entries are dimmed with a red label.
+                                        Discovery runs continually; heard announces stay listed. Connected entries show
+                                        a green pill; disconnected entries are dimmed with a red label.
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
@@ -193,7 +193,7 @@
                                 v-if="sortedDiscoveredInterfaces.length === 0"
                                 class="text-sm text-gray-500 dark:text-gray-300"
                             >
-                                No discovered interfaces yet.
+                                {{ discoveredEmptyMessage }}
                             </div>
 
                             <div
@@ -627,6 +627,15 @@ export default {
             });
             return set;
         },
+        discoveredEmptyMessage() {
+            if (!this.isReticulumRunning) {
+                return "LXMF/Reticulum is not running; discovery cannot listen for announces.";
+            }
+            if (!this.discoveryConfig.discover_interfaces) {
+                return "Discovery is disabled. Enable it to start listening for announces.";
+            }
+            return "Discovery is working, be patient while it waits for announces.";
+        },
     },
     beforeUnmount() {
         clearInterval(this.reloadInterval);
@@ -783,11 +792,39 @@ export default {
         async loadDiscoveredInterfaces() {
             try {
                 const response = await window.axios.get(`/api/v1/reticulum/discovered-interfaces`);
-                this.discoveredInterfaces = response.data?.interfaces ?? [];
-                this.discoveredActive = response.data?.active ?? [];
+                const incoming = response.data?.interfaces ?? [];
+                const active = response.data?.active ?? [];
+
+                const merged = new Map();
+                const addOrUpdate = (iface, isNew = false) => {
+                    const key = this.discoveryKey(iface);
+                    const existing =
+                        merged.get(key) || this.discoveredInterfaces.find((i) => this.discoveryKey(i) === key);
+                    const lastHeard = iface.last_heard ?? existing?.last_heard ?? Math.floor(Date.now() / 1000);
+                    merged.set(key, {
+                        ...existing,
+                        ...iface,
+                        last_heard: lastHeard,
+                        __isNew: isNew || existing?.__isNew,
+                    });
+                };
+
+                this.discoveredInterfaces.forEach((iface) => addOrUpdate(iface, false));
+                incoming.forEach((iface) => addOrUpdate(iface, true));
+
+                this.discoveredInterfaces = Array.from(merged.values());
+                this.discoveredActive = active;
             } catch (e) {
                 console.log(e);
             }
+        },
+        discoveryKey(iface) {
+            return (
+                iface.discovery_hash ||
+                `${iface.reachable_on || iface.target_host || iface.remote || iface.listen_ip || iface.name || "unknown"}:${
+                    iface.port || iface.target_port || iface.listen_port || ""
+                }`
+            );
         },
         formatLastHeard(ts) {
             const seconds = Math.max(0, Math.floor(Date.now() / 1000 - ts));

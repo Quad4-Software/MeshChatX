@@ -85,7 +85,7 @@
                                     <MaterialDesignIcon
                                         icon-name="refresh"
                                         class="size-6"
-                                        :class="{ 'animate-spin-reverse': isSyncingPropagationNode }"
+                                        :class="{ 'animate-spin': isSyncingPropagationNode }"
                                     />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
                                         isSyncingPropagationNode

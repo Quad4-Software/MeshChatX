@@ -14,28 +14,20 @@
                             <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 {{ $t("app.profile") }}
                             </div>
-                            <div class="text-2xl font-semibold text-gray-900 dark:text-white">
-                                {{ config.display_name }}
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <input
+                                        v-model="config.display_name"
+                                        type="text"
+                                        :placeholder="$t('app.display_name_placeholder')"
+                                        class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-base font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500 outline-none transition"
+                                        @input="onDisplayNameChange"
+                                    />
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                    {{ $t("app.manage_identity") }}
+                                </div>
                             </div>
-                            <div class="text-sm text-gray-600 dark:text-gray-300">{{ $t("app.manage_identity") }}</div>
-                        </div>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <button
-                                type="button"
-                                class="inline-flex items-center justify-center gap-x-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-zinc-100 shadow-sm hover:border-blue-400 dark:hover:border-blue-400/70 transition"
-                                @click="copyValue(config.identity_hash, $t('app.identity_hash'))"
-                            >
-                                <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
-                                {{ $t("app.identity_hash") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="inline-flex items-center justify-center gap-x-2 rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow hover:shadow-md transition"
-                                @click="copyValue(config.lxmf_address_hash, $t('app.lxmf_address'))"
-                            >
-                                <MaterialDesignIcon icon-name="account-plus" class="w-4 h-4" />
-                                {{ $t("app.lxmf_address") }}
-                            </button>
                         </div>
                     </div>
                     <transition name="fade">
@@ -276,6 +268,22 @@
                                         </div>
                                         <div class="text-xs opacity-80">
                                             {{ $t("maintenance.clear_nomadnet_favs_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
+                                    @click="clearLxmfIcons"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="account-off" class="size-4" />
+                                            {{ $t("maintenance.clear_lxmf_icons") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_lxmf_icons_desc") }}
                                         </div>
                                     </div>
                                 </button>
@@ -621,15 +629,59 @@
                                 </div>
                             </div>
 
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Icon Size</div>
+                                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                                        {{ config.message_icon_size || 28 }}px
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <MaterialDesignIcon icon-name="account-outline" class="text-gray-400" />
+                                    <input
+                                        v-model.number="config.message_icon_size"
+                                        type="range"
+                                        min="16"
+                                        max="64"
+                                        step="1"
+                                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                        @input="onMessageIconSizeChange"
+                                    />
+                                    <MaterialDesignIcon icon-name="account" class="text-gray-500 dark:text-gray-300" />
+                                </div>
+                            </div>
+
                             <div
-                                class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-2xl px-3 py-2"
+                                class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-2xl px-3 py-2"
                             >
-                                <div>{{ $t("app.live_preview") }}</div>
+                                <div
+                                    :style="messageIconPreviewStyle"
+                                    class="flex items-center justify-center shrink-0 rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
+                                >
+                                    <LxmfUserIcon
+                                        :key="config.message_icon_size"
+                                        icon-name="account"
+                                        icon-class="w-full h-full"
+                                        icon-foreground-colour="#374151"
+                                        icon-background-colour="#e5e7eb"
+                                    />
+                                </div>
+                                <div class="flex-1 min-w-0 space-y-0.5">
+                                    <div
+                                        class="font-semibold text-gray-900 dark:text-gray-100"
+                                        :style="previewTextStyle"
+                                    >
+                                        Preview Name
+                                    </div>
+                                    <div class="text-gray-600 dark:text-gray-400 truncate" :style="previewTextStyle">
+                                        Hey there, this is how text and icons will look.
+                                    </div>
+                                </div>
                                 <span
                                     class="inline-flex items-center gap-1 text-blue-500 dark:text-blue-300 text-xs font-semibold uppercase"
                                 >
                                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                    {{ $t("app.realtime") }}
+                                    {{ $t("app.live_preview") }}
                                 </span>
                             </div>
                         </div>
@@ -1168,6 +1220,7 @@ import Toggle from "../forms/Toggle.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
 
 export default {
     name: "SettingsPage",
@@ -1175,6 +1228,7 @@ export default {
         MaterialDesignIcon,
         Toggle,
         ShortcutRecorder,
+        LxmfUserIcon,
     },
     data() {
         return {
@@ -1193,10 +1247,13 @@ export default {
                 lxmf_local_propagation_node_enabled: null,
                 lxmf_preferred_propagation_node_destination_hash: null,
                 archives_max_storage_gb: 1,
+                backup_max_count: 5,
                 banished_effect_enabled: true,
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
                 blackhole_integration_enabled: true,
+                message_font_size: 14,
+                message_icon_size: 28,
                 telephone_tone_generator_enabled: true,
                 telephone_tone_generator_volume: 50,
                 gitea_base_url: "https://git.quad4.io",
@@ -1256,6 +1313,7 @@ export default {
                     "app.light_theme",
                     "app.dark_theme",
                     "Message Font Size",
+                    "Icon Size",
                     "app.live_preview",
                     "app.realtime",
                 ],
@@ -1336,6 +1394,20 @@ export default {
                 };
             }
             return this.config;
+        },
+        previewTextStyle() {
+            const size = this.config?.message_font_size || 14;
+            return { "font-size": `${size}px` };
+        },
+        messageIconPreviewStyle() {
+            const size = Number(this.config?.message_icon_size) || 28;
+            return {
+                width: `${size}px`,
+                height: `${size}px`,
+                minWidth: `${size}px`,
+                minHeight: `${size}px`,
+                transition: "width 120ms linear, height 120ms linear",
+            };
         },
     },
     beforeUnmount() {
@@ -1449,6 +1521,28 @@ export default {
                         message_font_size: this.config.message_font_size,
                     },
                     "message_font_size"
+                );
+            }, 1000);
+        },
+        async onDisplayNameChange() {
+            if (this.saveTimeouts.display_name) clearTimeout(this.saveTimeouts.display_name);
+            this.saveTimeouts.display_name = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        display_name: this.config.display_name,
+                    },
+                    "display_name"
+                );
+            }, 600);
+        },
+        async onMessageIconSizeChange() {
+            if (this.saveTimeouts.message_icon_size) clearTimeout(this.saveTimeouts.message_icon_size);
+            this.saveTimeouts.message_icon_size = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        message_icon_size: this.config.message_icon_size,
+                    },
+                    "message_icon_size"
                 );
             }, 1000);
         },
@@ -1776,6 +1870,15 @@ export default {
                     params: { aspect: "nomadnetwork.node" },
                 });
                 ToastUtils.success(this.$t("maintenance.favourites_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearLxmfIcons() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/lxmf-icons");
+                ToastUtils.success(this.$t("maintenance.lxmf_icons_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
             }

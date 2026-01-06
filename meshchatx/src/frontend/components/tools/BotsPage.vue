@@ -83,7 +83,7 @@
                                         <div>
                                             <div class="font-bold text-gray-900 dark:text-white">{{ bot.name }}</div>
                                             <div class="text-xs font-mono text-gray-500">
-                                                {{ runningMap[bot.id]?.address || "Not running" }}
+                                                {{ bot.address || runningMap[bot.id]?.address || "Not running" }}
                                             </div>
                                             <div class="text-[10px] text-gray-400">
                                                 {{ bot.template_id || bot.template }}
@@ -277,7 +277,7 @@ export default {
             try {
                 await window.axios.post("/api/v1/bots/start", {
                     bot_id: bot.id,
-                    template_id: bot.template_id,
+                    template_id: bot.template_id || bot.template,
                     name: bot.name,
                 });
                 ToastUtils.success(this.$t("bots.bot_started"));

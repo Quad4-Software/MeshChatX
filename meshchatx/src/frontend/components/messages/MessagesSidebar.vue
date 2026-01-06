@@ -290,7 +290,7 @@
                 <div v-if="isLoading" class="w-full divide-y divide-gray-100 dark:divide-zinc-800">
                     <div v-for="i in 6" :key="i" class="p-3 animate-pulse">
                         <div class="flex gap-3">
-                            <div class="size-10 rounded bg-gray-200 dark:bg-zinc-800"></div>
+                            <div class="rounded bg-gray-200 dark:bg-zinc-800" :style="messageIconStyle"></div>
                             <div class="flex-1 space-y-2 py-1">
                                 <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded w-3/4"></div>
                                 <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded w-1/2"></div>
@@ -366,7 +366,8 @@
                                 :icon-background-colour="
                                     conversation.lxmf_user_icon ? conversation.lxmf_user_icon.background_colour : ''
                                 "
-                                icon-class="size-7"
+                                icon-class="shrink-0"
+                                :icon-style="messageIconStyle"
                             />
                         </div>
                         <div class="mr-auto w-full pr-2 min-w-0">
@@ -559,7 +560,8 @@
                                 :icon-name="peer.lxmf_user_icon?.icon_name"
                                 :icon-foreground-colour="peer.lxmf_user_icon?.foreground_colour"
                                 :icon-background-colour="peer.lxmf_user_icon?.background_colour"
-                                icon-class="size-7"
+                                icon-class="shrink-0"
+                                :icon-style="messageIconStyle"
                             />
                         </div>
                         <div class="min-w-0 flex-1">
@@ -794,6 +796,10 @@ export default {
         },
         allSelected() {
             return this.conversations.length > 0 && this.selectedHashes.size === this.conversations.length;
+        },
+        messageIconStyle() {
+            const size = GlobalState.config?.message_icon_size || 28;
+            return { width: `${size}px`, height: `${size}px` };
         },
     },
     watch: {
