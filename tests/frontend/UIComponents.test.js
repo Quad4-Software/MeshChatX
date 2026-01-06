@@ -403,7 +403,11 @@ describe("SettingsPage Component", () => {
         await wrapper.vm.getConfig();
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.text()).toContain("Test User");
+        expect(wrapper.vm.config).toBeDefined();
+        expect(wrapper.vm.config.display_name).toBe("Test User");
+        const displayNameInput = wrapper.find('input[type="text"]');
+        expect(displayNameInput.exists()).toBe(true);
+        expect(displayNameInput.element.value).toBe("Test User");
     });
 
     it("renders copy buttons for identity and lxmf address", async () => {
