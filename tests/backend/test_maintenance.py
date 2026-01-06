@@ -45,6 +45,10 @@ class TestMaintenance(unittest.TestCase):
         self.misc_dao.delete_archived_pages()
         self.provider.execute.assert_called_with("DELETE FROM archived_pages")
 
+    def test_delete_all_user_icons(self):
+        self.misc_dao.delete_all_user_icons()
+        self.provider.execute.assert_called_with("DELETE FROM lxmf_user_icons")
+
     def test_upsert_lxmf_message(self):
         msg_data = {
             "hash": "test_hash",
