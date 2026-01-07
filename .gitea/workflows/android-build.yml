@@ -57,7 +57,7 @@ jobs:
             - name: Install pnpm
               uses: https://git.quad4.io/actions/setup-pnpm@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
               with:
-                  version: 10.0.0
+                  version: 10.27.0
 
             - name: Install system dependencies
               run: |
