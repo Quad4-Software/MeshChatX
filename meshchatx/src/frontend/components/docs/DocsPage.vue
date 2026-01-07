@@ -571,6 +571,7 @@ export default {
             meshchatxDocs: [],
             selectedDocPath: null,
             selectedDocContent: null,
+            selectedReticulumPath: null,
             alternateDocsUrl: "",
             languages: {
                 en: "English",
@@ -591,6 +592,9 @@ export default {
             return this.$i18n.locale;
         },
         localDocsUrl() {
+            if (this.selectedReticulumPath) {
+                return `/reticulum-docs/${this.selectedReticulumPath}`;
+            }
             const lang = this.currentLang;
             if (lang === "en") return "/reticulum-docs/index.html";
             if (Object.keys(this.languages).includes(lang)) {
@@ -698,10 +702,11 @@ export default {
             try {
                 await window.axios.post("/api/v1/docs/switch", { version });
                 this.showVersions = false;
+                this.selectedReticulumPath = null;
                 this.fetchStatus();
                 // reload iframe if in reticulum tab
                 if (this.activeTab === "reticulum") {
-                    const iframe = this.$refs.docsIframe;
+                    const iframe = this.$refs.docsFrame;
                     if (iframe) {
                         iframe.contentWindow.location.reload();
                     }
@@ -752,6 +757,7 @@ export default {
         async setLanguage(langCode) {
             try {
                 this.showLanguages = false;
+                this.selectedReticulumPath = null;
                 await window.axios.patch("/api/v1/config", {
                     language: langCode,
                 });
@@ -799,10 +805,7 @@ export default {
             } else {
                 this.activeTab = "reticulum";
                 const cleanPath = path.replace("/reticulum-docs/", "");
-                const iframe = this.$refs.docsFrame;
-                if (iframe) {
-                    iframe.src = `/reticulum-docs/${cleanPath}`;
-                }
+                this.selectedReticulumPath = cleanPath;
             }
             this.clearSearch();
         },
