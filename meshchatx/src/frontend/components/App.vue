@@ -866,6 +866,18 @@ export default {
                     }
                     break;
                 }
+                case "lxm.ingest_uri.result": {
+                    if (json.status === "success") {
+                        ToastUtils.success(json.message);
+                    } else if (json.status === "error") {
+                        ToastUtils.error(json.message);
+                    } else if (json.status === "warning") {
+                        ToastUtils.warning(json.message);
+                    } else {
+                        ToastUtils.info(json.message);
+                    }
+                    break;
+                }
                 case "identity_switched": {
                     ToastUtils.success(`Switched to identity: ${json.display_name}`);
 
