@@ -329,6 +329,11 @@ export default {
             if (!dataUrl) return;
 
             const printWindow = window.open("", "_blank");
+            if (!printWindow) {
+                ToastUtils.error("Pop-up blocked. Please allow pop-ups to print.");
+                return;
+            }
+
             printWindow.document.write(`
                 <html>
                     <head>

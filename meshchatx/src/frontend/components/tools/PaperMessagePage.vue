@@ -354,30 +354,29 @@ export default {
             }
         },
         async sendPaperMessage() {
-            const canvas = this.$refs.qrcode;
-            if (!canvas || !this.destinationHash || !this.generatedUri) return;
+            if (!this.destinationHash || !this.generatedUri) return;
 
             try {
                 this.isSending = true;
 
-                // get data url from canvas (format: data:image/png;base64,iVBORw0KG...)
-                const dataUrl = canvas.toDataURL("image/png");
-
-                // extract base64 data by removing the prefix
-                const imageBytes = dataUrl.split(",")[1];
-
                 // build lxmf message
                 const lxmf_message = {
                     destination_hash: this.destinationHash,
-                    content: this.generatedUri,
-                    fields: {
-                        image: {
-                            image_type: "png",
-                            image_bytes: imageBytes,
-                            name: "qrcode.png",
-                        },
-                    },
+                    content: `Please scan the attached Paper Message or manually ingest this URI: ${this.generatedUri}`,
+                    fields: {},
                 };
+
+                // get data url from canvas if available
+                const canvas = this.$refs.qrcode;
+                if (canvas) {
+                    const dataUrl = canvas.toDataURL("image/png");
+                    const imageBytes = dataUrl.split(",")[1];
+                    lxmf_message.fields.image = {
+                        image_type: "png",
+                        image_bytes: imageBytes,
+                        name: "paper_message_qr.png",
+                    };
+                }
 
                 // send message
                 const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
@@ -409,6 +408,11 @@ export default {
             if (!dataUrl) return;
 
             const printWindow = window.open("", "_blank");
+            if (!printWindow) {
+                ToastUtils.error("Pop-up blocked. Please allow pop-ups to print.");
+                return;
+            }
+
             printWindow.document.write(`
                 <html>
                     <head>
