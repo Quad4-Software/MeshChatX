@@ -105,6 +105,16 @@
 
             <!-- dropdown menu -->
             <div class="ml-auto flex items-center gap-1">
+                <!-- retry all failed messages -->
+                <IconButton
+                    v-if="hasFailedOrCancelledMessages"
+                    title="Retry all failed/cancelled messages"
+                    class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    @click="retryAllFailedOrCancelledMessages"
+                >
+                    <MaterialDesignIcon icon-name="refresh" class="size-6" />
+                </IconButton>
+
                 <ConversationDropDownMenu
                     v-if="selectedPeer"
                     :peer="selectedPeer"
@@ -582,7 +592,10 @@
                                     >cancel?</a
                                 >
                                 <a
-                                    v-if="chatItem.lxmf_message.state === 'failed'"
+                                    v-if="
+                                        chatItem.lxmf_message.state === 'failed' ||
+                                        chatItem.lxmf_message.state === 'cancelled'
+                                    "
                                     class="ml-1 cursor-pointer underline text-blue-500"
                                     @click="retrySendingMessage(chatItem)"
                                     >retry?</a
@@ -1612,6 +1625,11 @@ export default {
             }
 
             return null;
+        },
+        hasFailedOrCancelledMessages() {
+            return this.selectedPeerChatItems.some(
+                (item) => item.is_outbound && ["failed", "cancelled"].includes(item.lxmf_message?.state)
+            );
         },
     },
     watch: {
@@ -2843,6 +2861,24 @@ export default {
                 const message = e.response?.data?.message ?? "failed to send message";
                 DialogUtils.alert(message);
                 console.log(e);
+            }
+        },
+        async retryAllFailedOrCancelledMessages() {
+            const failedItems = this.selectedPeerChatItems.filter(
+                (item) => item.is_outbound && ["failed", "cancelled"].includes(item.lxmf_message?.state)
+            );
+            if (failedItems.length === 0) return;
+
+            if (
+                !(await DialogUtils.confirm(
+                    `Are you sure you want to retry sending all ${failedItems.length} failed/cancelled messages?`
+                ))
+            ) {
+                return;
+            }
+
+            for (const item of failedItems) {
+                await this.retrySendingMessage(item);
             }
         },
         async shareLocation() {
