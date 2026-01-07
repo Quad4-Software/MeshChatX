@@ -19,7 +19,7 @@ export default class ToneGenerator {
     _initAudioContext() {
         if (!this.audioCtx) {
             this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
+
             // Create a high-quality output chain
             this.masterCompressor = this.audioCtx.createDynamicsCompressor();
             this.masterCompressor.threshold.setValueAtTime(-24, this.audioCtx.currentTime);
@@ -48,7 +48,7 @@ export default class ToneGenerator {
             const osc1 = this.audioCtx.createOscillator();
             const osc2 = this.audioCtx.createOscillator();
             const sub = this.audioCtx.createOscillator();
-            
+
             const panner1 = this.audioCtx.createStereoPanner();
             const panner2 = this.audioCtx.createStereoPanner();
             const gain = this.audioCtx.createGain();
@@ -57,7 +57,7 @@ export default class ToneGenerator {
             // Main frequencies
             osc1.type = "sine";
             osc1.frequency.setValueAtTime(440, this.audioCtx.currentTime);
-            
+
             osc2.type = "sine";
             osc2.frequency.setValueAtTime(480, this.audioCtx.currentTime);
 
@@ -74,7 +74,7 @@ export default class ToneGenerator {
             panner1.connect(gain);
             osc2.connect(panner2);
             panner2.connect(gain);
-            
+
             sub.connect(subGain);
             subGain.connect(gain);
 
