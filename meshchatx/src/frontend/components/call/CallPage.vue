@@ -218,9 +218,7 @@
                                                     class="animate-pulse"
                                                     >Ringing...</span
                                                 >
-                                                <span v-else-if="activeCall && activeCall.status === 5">
-                                                    {{ $t("call.establishing_link") }}
-                                                </span>
+                                                <span v-else-if="activeCall && activeCall.status === 5">{{ $t("call.establishing_link") }}</span>
                                                 <span
                                                     v-else-if="activeCall && activeCall.status === 6"
                                                     class="text-green-500 flex items-center gap-2"
