@@ -29,6 +29,16 @@
                     <div
                         v-for="identity in identities"
                         :key="identity.hash"
+                        v-memo="[
+                            identity.hash,
+                            identity.is_current,
+                            identity.display_name,
+                            identity.lxmf_address,
+                            identity.lxst_address,
+                            identity.icon_name,
+                            identity.icon_background_colour,
+                            identity.icon_foreground_colour,
+                        ]"
                         class="glass-card overflow-hidden group transition-all duration-300"
                         :class="{
                             'ring-2 ring-blue-500/50 dark:ring-blue-400/40 bg-blue-50/30 dark:bg-blue-900/10':

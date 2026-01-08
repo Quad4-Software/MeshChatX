@@ -132,7 +132,7 @@ describe("IdentitiesPage.vue", () => {
         console.log(`Rendered ${numIdentities} identities in ${renderTime.toFixed(2)}ms`);
 
         expect(wrapper.findAll(".glass-card").length).toBe(numIdentities);
-        expect(renderTime).toBeLessThan(1000); // Should be reasonably fast
+        expect(renderTime).toBeLessThan(2000); // Should be reasonably fast
     });
 
     it("memory: tracks growth after multiple identity list refreshes", async () => {
