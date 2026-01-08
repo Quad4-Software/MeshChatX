@@ -28,14 +28,17 @@
                                 <!-- eslint-disable vue/no-v-html -->
                                 <p
                                     class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
                                     v-html="renderMarkdown($t('rncp.step_1'))"
                                 ></p>
                                 <p
                                     class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
                                     v-html="renderMarkdown($t('rncp.step_2'))"
                                 ></p>
                                 <p
                                     class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
                                     v-html="renderMarkdown($t('rncp.step_3'))"
                                 ></p>
                                 <!-- eslint-enable vue/no-v-html -->
@@ -336,6 +339,7 @@
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import MarkdownRenderer from "../../js/MarkdownRenderer";
 
 export default {
     name: "RNCPPage",
@@ -520,8 +524,23 @@ export default {
             this.listenResult = null;
         },
         renderMarkdown(text) {
-            if (!text) return "";
-            return text.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+            return MarkdownRenderer.render(text);
+        },
+        handleMessageClick(event) {
+            const nomadnetLink = event.target.closest(".nomadnet-link");
+            if (nomadnetLink) {
+                event.preventDefault();
+                const url = nomadnetLink.getAttribute("data-nomadnet-url");
+                if (url) {
+                    const [hash, ...pathParts] = url.split(":");
+                    const path = pathParts.join(":");
+                    this.$router.push({
+                        name: "nomadnetwork",
+                        params: { destinationHash: hash },
+                        query: { path: path },
+                    });
+                }
+            }
         },
     },
 };

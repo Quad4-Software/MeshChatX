@@ -216,6 +216,14 @@ export default {
                     route: { name: "rnpath" },
                 },
                 {
+                    id: "nav-rnpath-trace",
+                    title: "nav_rnpath_trace",
+                    description: "nav_rnpath_trace_desc",
+                    icon: "map-marker-path",
+                    type: "navigation",
+                    route: { name: "rnpath-trace" },
+                },
+                {
                     id: "nav-translator",
                     title: "nav_translator",
                     description: "nav_translator_desc",

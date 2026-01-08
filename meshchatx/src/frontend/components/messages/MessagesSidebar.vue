@@ -390,27 +390,37 @@
                             </div>
                             <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
                                 {{
-                                    conversation.latest_message_preview ??
-                                    conversation.latest_message_title ??
-                                    "No messages yet"
+                                    stripMarkdown(
+                                        conversation.latest_message_preview ?? conversation.latest_message_title
+                                    ) ?? "No messages yet"
                                 }}
                             </div>
                         </div>
-                        <div class="flex items-center space-x-1">
-                            <div v-if="conversation.has_attachments" class="text-gray-500 dark:text-gray-300">
-                                <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
+                        <div class="flex flex-col items-center justify-between ml-1 py-1 shrink-0">
+                            <div class="flex items-center space-x-1">
+                                <div v-if="conversation.has_attachments" class="text-gray-500 dark:text-gray-300">
+                                    <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
+                                </div>
+                                <div
+                                    v-if="
+                                        conversation.is_unread &&
+                                        conversation.destination_hash !== selectedDestinationHash
+                                    "
+                                    class="my-auto ml-1"
+                                >
+                                    <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
+                                </div>
+                                <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
+                                    <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+                                </div>
                             </div>
-                            <div
-                                v-if="
-                                    conversation.is_unread && conversation.destination_hash !== selectedDestinationHash
-                                "
-                                class="my-auto ml-1"
+                            <button
+                                type="button"
+                                class="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-all"
+                                @click.stop="onRightClick($event, conversation.destination_hash)"
                             >
-                                <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
-                            </div>
-                            <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
-                                <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
-                            </div>
+                                <MaterialDesignIcon icon-name="dots-vertical" class="size-4 text-gray-400" />
+                            </button>
                         </div>
                     </div>
 
@@ -430,6 +440,31 @@
                             <span class="font-medium">Mark as Read</span>
                         </button>
                         <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                        <button
+                            v-if="GlobalState.config.telemetry_enabled"
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="toggleTelemetryTrust(contextMenu.targetHash)"
+                        >
+                            <MaterialDesignIcon
+                                :icon-name="
+                                    contextMenu.targetContact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'
+                                "
+                                :class="
+                                    contextMenu.targetContact?.is_telemetry_trusted ? 'text-blue-500' : 'text-gray-400'
+                                "
+                                class="size-4"
+                            />
+                            <span class="font-medium">{{
+                                contextMenu.targetContact?.is_telemetry_trusted
+                                    ? "Revoke Telemetry Trust"
+                                    : "Trust for Telemetry"
+                            }}</span>
+                        </button>
+                        <div
+                            v-if="GlobalState.config.telemetry_enabled"
+                            class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"
+                        ></div>
                         <div
                             class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
                         >
@@ -634,6 +669,8 @@ import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
+import MarkdownRenderer from "../../js/MarkdownRenderer";
 
 export default {
     name: "MessagesSidebar",
@@ -749,6 +786,7 @@ export default {
                 x: 0,
                 y: 0,
                 targetHash: null,
+                targetContact: null,
             },
             draggedHash: null,
             dragOverFolderId: null,
@@ -813,7 +851,35 @@ export default {
             }
         },
     },
+    mounted() {
+        // listen for contact updates
+        GlobalEmitter.on("contact-updated", this.onContactUpdated);
+    },
+    unmounted() {
+        GlobalEmitter.off("contact-updated", this.onContactUpdated);
+    },
     methods: {
+        onContactUpdated(data) {
+            // update local contact info if context menu is showing this peer
+            if (this.contextMenu.show && this.contextMenu.targetHash === data.remote_identity_hash) {
+                this.fetchContactForContextMenu(data.remote_identity_hash);
+            }
+        },
+        async fetchContactForContextMenu(hash) {
+            try {
+                const response = await window.axios.get(`/api/v1/telephone/contacts/check/${hash}`);
+                if (response.data.is_contact) {
+                    this.contextMenu.targetContact = response.data.contact;
+                } else {
+                    this.contextMenu.targetContact = null;
+                }
+            } catch (e) {
+                console.error("Failed to fetch contact for context menu", e);
+            }
+        },
+        stripMarkdown(text) {
+            return MarkdownRenderer.strip(text);
+        },
         toggleSelectionMode() {
             this.selectionMode = !this.selectionMode;
             if (!this.selectionMode) {
@@ -834,7 +900,7 @@ export default {
                 this.selectedHashes.add(hash);
             }
         },
-        onRightClick(event, hash) {
+        async onRightClick(event, hash) {
             event.preventDefault();
             if (this.selectionMode && !this.selectedHashes.has(hash)) {
                 this.selectedHashes.add(hash);
@@ -843,6 +909,10 @@ export default {
             this.contextMenu.y = event.clientY;
             this.contextMenu.targetHash = hash;
             this.contextMenu.show = true;
+            this.contextMenu.targetContact = null;
+
+            // fetch contact info for trust status
+            await this.fetchContactForContextMenu(hash);
         },
         onFolderContextMenu(event) {
             event.preventDefault();
@@ -895,6 +965,38 @@ export default {
             );
             if (confirmed) {
                 this.$emit("delete-folder", folder.id);
+            }
+        },
+        async toggleTelemetryTrust(hash) {
+            const contact = this.contextMenu.targetContact;
+            const newStatus = !contact?.is_telemetry_trusted;
+            try {
+                if (!contact) {
+                    // find display name from conversations
+                    const conv = this.conversations.find((c) => c.destination_hash === hash);
+                    await window.axios.post("/api/v1/telephone/contacts", {
+                        name: conv?.display_name || hash.substring(0, 8),
+                        remote_identity_hash: hash,
+                        is_telemetry_trusted: true,
+                    });
+                } else {
+                    await window.axios.patch(`/api/v1/telephone/contacts/${contact.id}`, {
+                        is_telemetry_trusted: newStatus,
+                    });
+                }
+                GlobalEmitter.emit("contact-updated", {
+                    remote_identity_hash: hash,
+                    is_telemetry_trusted: newStatus,
+                });
+                this.contextMenu.show = false;
+                DialogUtils.alert(
+                    newStatus
+                        ? this.$t("app.telemetry_trust_granted_alert")
+                        : this.$t("app.telemetry_trust_revoked_alert")
+                );
+            } catch (e) {
+                DialogUtils.alert(this.$t("app.telemetry_trust_failed"));
+                console.error(e);
             }
         },
         bulkMarkAsRead() {

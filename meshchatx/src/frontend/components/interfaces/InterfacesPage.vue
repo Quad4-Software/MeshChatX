@@ -26,20 +26,18 @@
                     </button>
                 </div>
 
-                <div class="glass-card space-y-4">
-                    <div class="flex flex-wrap gap-3 items-center">
-                        <div class="flex-1 min-w-0">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                {{ $t("interfaces.manage") }}
-                            </div>
-                            <div class="text-xl font-semibold text-gray-900 dark:text-white truncate">
-                                {{ $t("interfaces.title") }}
-                            </div>
-                            <div class="text-sm text-gray-600 dark:text-gray-300">
-                                {{ $t("interfaces.description") }}
-                            </div>
+                <div class="glass-card flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8">
+                    <div class="space-y-3 flex-1 min-w-0">
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {{ $t("interfaces.manage") }}
                         </div>
-                        <div class="flex flex-wrap gap-2">
+                        <div class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                            {{ $t("interfaces.title") }}
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
+                            {{ $t("interfaces.description") }}
+                        </div>
+                        <div class="flex flex-wrap gap-2 pt-2">
                             <RouterLink :to="{ name: 'interfaces.add' }" class="primary-chip px-4 py-2 text-sm">
                                 <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
                                 {{ $t("interfaces.add_interface") }}
@@ -52,56 +50,34 @@
                                 <MaterialDesignIcon icon-name="export" class="w-4 h-4" />
                                 {{ $t("interfaces.export_all") }}
                             </button>
-                            <!--
-                        <button
-                            type="button"
-                            class="secondary-chip text-sm bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30"
-                            :disabled="reloadingRns"
-                            @click="reloadRns"
-                        >
-                            <MaterialDesignIcon
-                                :icon-name="reloadingRns ? 'refresh' : 'restart'"
-                                class="w-4 h-4"
-                                :class="{ 'animate-spin-reverse': reloadingRns }"
-                            />
-                            {{ reloadingRns ? $t("app.reloading_rns") : $t("app.reload_rns") }}
-                        </button>
-                        --></div>
+                        </div>
                     </div>
-                    <div class="flex flex-wrap gap-3 items-center">
-                        <div class="flex-1">
+
+                    <div class="w-full md:w-96 shrink-0 space-y-4">
+                        <div class="relative group">
+                            <MaterialDesignIcon
+                                icon-name="magnify"
+                                class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                            />
                             <input
                                 v-model="searchTerm"
                                 type="text"
                                 :placeholder="$t('interfaces.search_placeholder')"
-                                class="input-field"
+                                class="w-full pl-12 pr-4 py-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 shadow-sm"
                             />
-                        </div>
-                        <div class="flex gap-2 flex-wrap">
                             <button
-                                type="button"
-                                :class="filterChipClass(statusFilter === 'all')"
-                                @click="setStatusFilter('all')"
+                                v-if="searchTerm"
+                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                @click="searchTerm = ''"
                             >
-                                {{ $t("interfaces.all") }}
-                            </button>
-                            <button
-                                type="button"
-                                :class="filterChipClass(statusFilter === 'enabled')"
-                                @click="setStatusFilter('enabled')"
-                            >
-                                {{ $t("app.enabled") }}
-                            </button>
-                            <button
-                                type="button"
-                                :class="filterChipClass(statusFilter === 'disabled')"
-                                @click="setStatusFilter('disabled')"
-                            >
-                                {{ $t("app.disabled") }}
+                                <MaterialDesignIcon icon-name="close-circle" class="size-5" />
                             </button>
                         </div>
-                        <div class="w-full sm:w-60">
-                            <select v-model="typeFilter" class="input-field">
+                        <div>
+                            <select
+                                v-model="typeFilter"
+                                class="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-gray-900 dark:text-white"
+                            >
                                 <option value="all">{{ $t("interfaces.all_types") }}</option>
                                 <option v-for="type in sortedInterfaceTypes" :key="type" :value="type">
                                     {{ type }}
@@ -127,10 +103,47 @@
 
                     <div v-if="activeTab === 'overview'" class="space-y-4">
                         <div class="glass-card space-y-3">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Configured
+                            <div class="flex flex-wrap items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                        Configured
+                                    </div>
+                                    <div class="text-xl font-semibold text-gray-900 dark:text-white">
+                                        Interfaces
+                                        <span
+                                            v-if="filteredInterfaces.length > 0"
+                                            class="ml-2 text-sm font-medium text-gray-400"
+                                            >({{ filteredInterfaces.length }})</span
+                                        >
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 flex-wrap">
+                                    <button
+                                        type="button"
+                                        :class="filterChipClass(statusFilter === 'all')"
+                                        class="!py-1 !px-3"
+                                        @click="setStatusFilter('all')"
+                                    >
+                                        {{ $t("interfaces.all") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        :class="filterChipClass(statusFilter === 'enabled')"
+                                        class="!py-1 !px-3"
+                                        @click="setStatusFilter('enabled')"
+                                    >
+                                        {{ $t("app.enabled") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        :class="filterChipClass(statusFilter === 'disabled')"
+                                        class="!py-1 !px-3"
+                                        @click="setStatusFilter('disabled')"
+                                    >
+                                        {{ $t("app.disabled") }}
+                                    </button>
+                                </div>
                             </div>
-                            <div class="text-xl font-semibold text-gray-900 dark:text-white">Interfaces</div>
                             <div
                                 v-if="filteredInterfaces.length !== 0"
                                 class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 4xl:grid-cols-5"
@@ -162,13 +175,36 @@
                                     </div>
                                     <div class="text-xl font-semibold text-gray-900 dark:text-white">
                                         Recently Heard Announces
+                                        <span
+                                            v-if="sortedDiscoveredInterfaces.length > 0"
+                                            class="ml-2 text-sm font-medium text-gray-400"
+                                            >({{ sortedDiscoveredInterfaces.length }})</span
+                                        >
                                     </div>
                                     <div class="text-sm text-gray-600 dark:text-gray-300">
                                         Discovery runs continually; heard announces stay listed. Connected entries show
                                         a green pill; disconnected entries are dimmed with a red label.
                                     </div>
                                 </div>
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 flex-wrap items-center">
+                                    <div class="flex gap-1.5 mr-2">
+                                        <button
+                                            type="button"
+                                            :class="filterChipClass(discoveredStatusFilter === 'all')"
+                                            class="!py-1 !px-3"
+                                            @click="discoveredStatusFilter = 'all'"
+                                        >
+                                            {{ $t("interfaces.all") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            :class="filterChipClass(discoveredStatusFilter === 'connected')"
+                                            class="!py-1 !px-3"
+                                            @click="discoveredStatusFilter = 'connected'"
+                                        >
+                                            {{ $t("interfaces.connected_only") }}
+                                        </button>
+                                    </div>
                                     <button
                                         v-if="interfacesWithLocation.length > 0"
                                         type="button"
@@ -213,7 +249,8 @@
                                             class="absolute inset-0 z-10 flex items-center justify-center bg-white/20 dark:bg-zinc-900/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
                                         >
                                             <div
-                                                class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider animate-pulse"
+                                                class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+                                                :class="{ 'animate-pulse': shouldAnimatePulse(iface) }"
                                             >
                                                 <MaterialDesignIcon icon-name="lan-disconnect" class="w-3.5 h-3.5" />
                                                 <span>{{ $t("app.disabled") }}</span>
@@ -522,6 +559,7 @@ export default {
             savingDiscovery: false,
             discoveredInterfaces: [],
             discoveredActive: [],
+            discoveredStatusFilter: "all",
             discoveryInterval: null,
             activeTab: "overview",
         };
@@ -596,7 +634,31 @@ export default {
             return Array.from(types).sort();
         },
         sortedDiscoveredInterfaces() {
-            return [...this.discoveredInterfaces].sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
+            const search = this.searchTerm.toLowerCase().trim();
+            let list = [...this.discoveredInterfaces];
+            if (this.discoveredStatusFilter === "connected") {
+                list = list.filter((iface) => this.isDiscoveredConnected(iface));
+            }
+            if (this.typeFilter !== "all") {
+                list = list.filter((iface) => iface.type === this.typeFilter);
+            }
+            if (search) {
+                list = list.filter((iface) => {
+                    const haystack = [
+                        iface.name,
+                        iface.type,
+                        iface.reachable_on,
+                        iface.port,
+                        iface.transport_id,
+                        iface.network_id,
+                    ]
+                        .filter(Boolean)
+                        .join(" ")
+                        .toLowerCase();
+                    return haystack.includes(search);
+                });
+            }
+            return list.sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
         },
         interfacesWithLocation() {
             return this.discoveredInterfaces.filter((iface) => iface.latitude != null && iface.longitude != null);
@@ -806,6 +868,7 @@ export default {
                         ...iface,
                         last_heard: lastHeard,
                         __isNew: isNew || existing?.__isNew,
+                        disconnected_at: existing?.disconnected_at ?? null,
                     });
                 };
 
@@ -814,6 +877,18 @@ export default {
 
                 this.discoveredInterfaces = Array.from(merged.values());
                 this.discoveredActive = active;
+
+                // Track disconnection time for animation control
+                const now = Date.now();
+                this.discoveredInterfaces.forEach((iface) => {
+                    if (!this.isDiscoveredConnected(iface)) {
+                        if (iface.disconnected_at === null) {
+                            iface.disconnected_at = now;
+                        }
+                    } else {
+                        iface.disconnected_at = null;
+                    }
+                });
             } catch (e) {
                 console.log(e);
             }
@@ -850,6 +925,13 @@ export default {
                     (s.listen_port && port && Number(s.listen_port) === Number(port));
                 return hostMatch && portMatch && (s.connected || s.online);
             });
+        },
+        shouldAnimatePulse(iface) {
+            if (this.isDiscoveredConnected(iface)) return false;
+            if (!iface.disconnected_at) return true;
+            // only pulse for the first 30 seconds of being disconnected
+            // to avoid continuous UI animation lag on many disconnected items
+            return Date.now() - iface.disconnected_at < 30000;
         },
         goToMap(iface) {
             if (iface.latitude == null || iface.longitude == null) return;

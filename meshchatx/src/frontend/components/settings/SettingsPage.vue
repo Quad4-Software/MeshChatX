@@ -106,7 +106,7 @@
                         <input
                             v-model="searchQuery"
                             type="text"
-                            class="w-full bg-white/80 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all shadow-sm"
+                            class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all shadow-sm"
                             :placeholder="$t('app.search_settings') || 'Search settings...'"
                         />
                         <button
@@ -687,6 +687,165 @@
                         </div>
                     </section>
 
+                    <!-- Location -->
+                    <section v-show="matchesSearch(...sectionKeywords.location)" class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Privacy</div>
+                                <h2>Location</h2>
+                                <p>Manage how your location is shared.</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Location Source</div>
+                                <select
+                                    v-model="config.location_source"
+                                    class="input-field"
+                                    @change="
+                                        updateConfig({ location_source: config.location_source }, 'location_source')
+                                    "
+                                >
+                                    <option value="browser">Automatic (Browser)</option>
+                                    <option value="manual">Manual</option>
+                                </select>
+                                <div
+                                    v-if="config.location_source === 'browser'"
+                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                >
+                                    Uses your browser's geolocation API. Note: In the desktop app, this can use Google
+                                    services, which is blocked by CORS so you would need to specifically allow it.
+                                </div>
+                                <div
+                                    v-if="config.location_source === 'manual'"
+                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                >
+                                    Use manually entered coordinates for maximum privacy.
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="config.location_source === 'manual'"
+                                class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                            >
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.location_manual_lat") }}
+                                    </div>
+                                    <input
+                                        v-model="config.location_manual_lat"
+                                        type="text"
+                                        class="input-field"
+                                        placeholder="0.0"
+                                        @input="
+                                            updateConfig(
+                                                { location_manual_lat: config.location_manual_lat },
+                                                'location_manual_lat'
+                                            )
+                                        "
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.location_manual_lon") }}
+                                    </div>
+                                    <input
+                                        v-model="config.location_manual_lon"
+                                        type="text"
+                                        class="input-field"
+                                        placeholder="0.0"
+                                        @input="
+                                            updateConfig(
+                                                { location_manual_lon: config.location_manual_lon },
+                                                'location_manual_lon'
+                                            )
+                                        "
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.location_manual_alt") }}
+                                    </div>
+                                    <input
+                                        v-model="config.location_manual_alt"
+                                        type="text"
+                                        class="input-field"
+                                        placeholder="0.0"
+                                        @input="
+                                            updateConfig(
+                                                { location_manual_alt: config.location_manual_alt },
+                                                'location_manual_alt'
+                                            )
+                                        "
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-4">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="telemetry-enabled"
+                                        v-model="config.telemetry_enabled"
+                                        @update:model-value="
+                                            updateConfig(
+                                                { telemetry_enabled: config.telemetry_enabled },
+                                                'telemetry_enabled'
+                                            )
+                                        "
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.telemetry_enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.telemetry_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div
+                                v-if="config.telemetry_enabled"
+                                class="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-4"
+                            >
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.telemetry_trusted_peers") }}
+                                </div>
+                                <div v-if="trustedTelemetryPeers.length === 0" class="text-xs text-gray-500 italic">
+                                    {{ $t("app.telemetry_no_trusted_peers") }}
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <div
+                                        v-for="peer in trustedTelemetryPeers"
+                                        :key="peer.id"
+                                        class="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700"
+                                    >
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center"
+                                            >
+                                                <MaterialDesignIcon icon-name="account" class="size-5" />
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                    {{ peer.name }}
+                                                </div>
+                                                <div class="text-[10px] text-gray-500 font-mono truncate">
+                                                    {{ peer.remote_identity_hash }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                            :title="$t('app.telemetry_revoke_trust')"
+                                            @click="revokeTelemetryTrust(peer)"
+                                        >
+                                            <MaterialDesignIcon icon-name="shield-off-outline" class="size-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Language -->
                     <section
                         v-show="
@@ -713,6 +872,7 @@
                                 <option value="en">English</option>
                                 <option value="de">Deutsch</option>
                                 <option value="ru">Русский</option>
+                                <option value="it">Italiano</option>
                             </select>
                         </div>
                     </section>
@@ -954,6 +1114,98 @@
                                 ></textarea>
                                 <div class="text-xs text-gray-600 dark:text-gray-400">
                                     List of ZIP URLs to try when downloading documentation. One URL per line.
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Content Security Policy (CSP) -->
+                    <section v-show="matchesSearch(...sectionKeywords.csp)" class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Security</div>
+                                <h2>{{ $t("app.csp_settings") }}</h2>
+                                <p>{{ $t("app.csp_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_connect_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_connect_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://api.example.com, wss://socket.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_connect_src_description") }}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_img_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_img_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://tiles.example.com, https://cdn.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_img_src_description") }}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_frame_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_frame_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://video.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_frame_src_description") }}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_script_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_script_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://scripts.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_script_src_description") }}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_style_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_style_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://fonts.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_style_src_description") }}
                                 </div>
                             </div>
                         </div>
@@ -1256,13 +1508,24 @@ export default {
                 message_icon_size: 28,
                 telephone_tone_generator_enabled: true,
                 telephone_tone_generator_volume: 50,
+                location_source: "browser",
+                location_manual_lat: "0.0",
+                location_manual_lon: "0.0",
+                location_manual_alt: "0.0",
+                telemetry_enabled: false,
                 gitea_base_url: "https://git.quad4.io",
                 docs_download_urls: "",
+                csp_extra_connect_src: "",
+                csp_extra_img_src: "",
+                csp_extra_frame_src: "",
+                csp_extra_script_src: "",
+                csp_extra_style_src: "",
             },
             saveTimeouts: {},
             shortcuts: [],
             reloadingRns: false,
             searchQuery: "",
+            trustedTelemetryPeers: [],
             sectionKeywords: {
                 banishment: [
                     "Visuals",
@@ -1305,6 +1568,18 @@ export default {
                 ],
                 archiver: ["Browsing", "Page Archiver", "archiver", "archive", "versions", "storage", "flush"],
                 crawler: ["Discovery", "Smart Crawler", "crawler", "crawl", "retries", "delay", "concurrent"],
+                csp: [
+                    "Security",
+                    "app.csp_settings",
+                    "app.csp_description",
+                    "app.csp_extra_connect_src",
+                    "app.csp_extra_img_src",
+                    "app.csp_extra_frame_src",
+                    "app.csp_extra_script_src",
+                    "app.csp_extra_style_src",
+                    "CSP",
+                    "Content Security Policy",
+                ],
                 appearance: [
                     "Personalise",
                     "app.appearance",
@@ -1374,6 +1649,17 @@ export default {
                     "app.propagation_stamp_cost",
                     "app.propagation_stamp_description",
                 ],
+                location: [
+                    "Location",
+                    "GPS",
+                    "Privacy",
+                    "manual",
+                    "latitude",
+                    "longitude",
+                    "altitude",
+                    "telemetry",
+                    "trusted peers",
+                ],
                 shortcuts: ["Keyboard Shortcuts", "actions", "workflow"],
             },
         };
@@ -1391,6 +1677,10 @@ export default {
                     lxmf_address_hash: "",
                     theme: "dark",
                     is_transport_enabled: false,
+                    location_source: "browser",
+                    location_manual_lat: "0.0",
+                    location_manual_lon: "0.0",
+                    location_manual_alt: "0.0",
                 };
             }
             return this.config;
@@ -1419,8 +1709,29 @@ export default {
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
         this.getConfig();
+        this.getTrustedTelemetryPeers();
     },
     methods: {
+        async getTrustedTelemetryPeers() {
+            try {
+                const response = await window.axios.get("/api/v1/telemetry/trusted-peers");
+                this.trustedTelemetryPeers = response.data.trusted_peers;
+            } catch (e) {
+                console.error("Failed to fetch trusted telemetry peers", e);
+            }
+        },
+        async revokeTelemetryTrust(peer) {
+            try {
+                await window.axios.patch(`/api/v1/telephone/contacts/${peer.id}`, {
+                    is_telemetry_trusted: false,
+                });
+                this.getTrustedTelemetryPeers();
+                ToastUtils.success(this.$t("app.telemetry_trust_revoked", { name: peer.name }));
+            } catch (e) {
+                ToastUtils.error("Failed to revoke telemetry trust");
+                console.error(e);
+            }
+        },
         matchesSearch(...texts) {
             if (!this.searchQuery) return true;
             const query = this.searchQuery.toLowerCase();
@@ -1784,6 +2095,21 @@ export default {
                         docs_download_urls: this.config.docs_download_urls,
                     },
                     "Infrastructure"
+                );
+            }, 1000);
+        },
+        async onCspConfigChange() {
+            if (this.saveTimeouts.csp) clearTimeout(this.saveTimeouts.csp);
+            this.saveTimeouts.csp = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        csp_extra_connect_src: this.config.csp_extra_connect_src,
+                        csp_extra_img_src: this.config.csp_extra_img_src,
+                        csp_extra_frame_src: this.config.csp_extra_frame_src,
+                        csp_extra_script_src: this.config.csp_extra_script_src,
+                        csp_extra_style_src: this.config.csp_extra_style_src,
+                    },
+                    "csp_settings"
                 );
             }, 1000);
         },

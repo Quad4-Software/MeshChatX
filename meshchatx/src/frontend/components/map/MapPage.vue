@@ -23,7 +23,7 @@
                         :class="
                             !offlineEnabled
                                 ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400'
-                                : 'text-gray-500 dark:text-zinc-400'
+                                : 'text-gray-500 dark:text-gray-300'
                         "
                         class="px-3 py-1 text-sm font-medium rounded-md transition-all"
                         @click="toggleOffline(false)"
@@ -34,7 +34,7 @@
                         :class="
                             offlineEnabled
                                 ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400'
-                                : 'text-gray-500 dark:text-zinc-400'
+                                : 'text-gray-500 dark:text-gray-300'
                         "
                         class="px-3 py-1 text-sm font-medium rounded-md transition-all"
                         :disabled="!hasOfflineMap"
@@ -56,7 +56,7 @@
 
                 <!-- settings button -->
                 <button
-                    class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                    class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
                     @click="isSettingsOpen = !isSettingsOpen"
                 >
                     <MaterialDesignIcon icon-name="cog" class="size-5" />
@@ -81,7 +81,7 @@
                         :class="[
                             (drawType === tool.type && !isMeasuring) || (tool.type === 'Export' && isExportMode)
                                 ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-                                : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400',
+                                : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300',
                         ]"
                         :title="tool.type === 'Export' ? 'MBTiles exporter' : $t(`map.tool_${tool.type.toLowerCase()}`)"
                         @click="tool.type === 'Export' ? toggleExportMode() : toggleDraw(tool.type)"
@@ -94,7 +94,7 @@
                         :class="[
                             isMeasuring
                                 ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                                : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400',
+                                : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300',
                         ]"
                         :title="$t('map.tool_measure')"
                         @click="toggleMeasure"
@@ -350,6 +350,7 @@
                 <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div
+                            v-if="selectedMarker.telemetry || selectedMarker.peer"
                             class="size-8 rounded-full flex items-center justify-center border-2"
                             :style="{
                                 color: selectedMarker.peer?.lxmf_user_icon?.foreground_colour || '#3b82f6',
@@ -362,79 +363,166 @@
                                 size="18"
                             ></v-icon>
                         </div>
+                        <div
+                            v-else-if="selectedMarker.discovered"
+                            class="size-8 rounded-full flex items-center justify-center border-2 border-emerald-500 bg-emerald-50 text-emerald-600"
+                        >
+                            <v-icon icon="mdi-router-wireless" size="18"></v-icon>
+                        </div>
                         <div>
                             <h3 class="font-bold text-gray-900 dark:text-zinc-100 truncate w-40">
                                 {{
+                                    selectedMarker.discovered?.name ||
                                     selectedMarker.peer?.display_name ||
-                                    selectedMarker.telemetry.destination_hash.substring(0, 8)
+                                    selectedMarker.telemetry?.destination_hash.substring(0, 8)
                                 }}
                             </h3>
-                            <div class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter">
+                            <div
+                                v-if="selectedMarker.telemetry"
+                                class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter"
+                            >
                                 {{ selectedMarker.telemetry.destination_hash }}
                             </div>
+                            <div
+                                v-else-if="selectedMarker.discovered"
+                                class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter"
+                            >
+                                Discovered Interface
+                            </div>
                         </div>
                     </div>
-                    <button
-                        class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300"
-                        @click="selectedMarker = null"
-                    >
-                        <v-icon icon="mdi-close" size="20"></v-icon>
-                    </button>
+                    <div class="flex items-center gap-1">
+                        <button
+                            v-if="selectedMarker.telemetry"
+                            class="p-2 rounded-full transition-colors"
+                            :class="
+                                selectedMarker.telemetry.is_tracking
+                                    ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300'
+                            "
+                            :title="selectedMarker.telemetry.is_tracking ? 'Stop Tracking' : 'Live Track Peer'"
+                            @click="toggleTracking(selectedMarker.telemetry.destination_hash)"
+                        >
+                            <v-icon
+                                :icon="selectedMarker.telemetry.is_tracking ? 'mdi-radar' : 'mdi-crosshairs'"
+                                size="20"
+                            ></v-icon>
+                        </button>
+                        <button
+                            class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300 p-1"
+                            @click="selectedMarker = null"
+                        >
+                            <v-icon icon="mdi-close" size="20"></v-icon>
+                        </button>
+                    </div>
                 </div>
                 <div class="p-4 space-y-3">
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                Latitude
+                    <!-- Discovered Node Details -->
+                    <div v-if="selectedMarker.discovered" class="space-y-3">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                    Latitude
+                                </div>
+                                <div class="font-mono">
+                                    {{ selectedMarker.discovered.latitude.toFixed(6) }}
+                                </div>
                             </div>
-                            <div class="font-mono">
-                                {{ selectedMarker.telemetry.telemetry.location.latitude.toFixed(6) }}
+                            <div>
+                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                    Longitude
+                                </div>
+                                <div class="font-mono">
+                                    {{ selectedMarker.discovered.longitude.toFixed(6) }}
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                Longitude
+
+                        <div class="pt-2 border-t border-gray-100 dark:border-zinc-800 space-y-2">
+                            <div v-if="selectedMarker.discovered.interface" class="flex justify-between items-center">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase">Interface</span>
+                                <span class="text-xs font-mono">{{ selectedMarker.discovered.interface }}</span>
                             </div>
-                            <div class="font-mono">
-                                {{ selectedMarker.telemetry.telemetry.location.longitude.toFixed(6) }}
+                            <div v-if="selectedMarker.discovered.via" class="flex justify-between items-center">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase">Via</span>
+                                <span class="text-xs font-mono">{{ selectedMarker.discovered.via }}</span>
                             </div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                Altitude
+                            <div
+                                v-if="selectedMarker.discovered.hops != null"
+                                class="flex justify-between items-center"
+                            >
+                                <span class="text-[10px] font-bold text-gray-400 uppercase">Hops</span>
+                                <span class="text-xs">{{ selectedMarker.discovered.hops }}</span>
                             </div>
-                            <div>{{ selectedMarker.telemetry.telemetry.location.altitude.toFixed(1) }}m</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Speed</div>
-                            <div>{{ selectedMarker.telemetry.telemetry.location.speed.toFixed(1) }}km/h</div>
                         </div>
                     </div>
 
-                    <div
-                        v-if="selectedMarker.telemetry.physical_link"
-                        class="pt-2 border-t border-gray-100 dark:border-zinc-800"
-                    >
-                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Signal</div>
-                        <div class="flex gap-4 text-xs font-mono">
-                            <span>RSSI: {{ selectedMarker.telemetry.physical_link.rssi }}</span>
-                            <span>SNR: {{ selectedMarker.telemetry.physical_link.snr }}</span>
-                            <span>Q: {{ selectedMarker.telemetry.physical_link.q }}%</span>
+                    <!-- Telemetry Details -->
+                    <div v-if="selectedMarker.telemetry" class="space-y-3">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                    Latitude
+                                </div>
+                                <div class="font-mono">
+                                    {{ selectedMarker.telemetry.telemetry.location.latitude.toFixed(6) }}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                    Longitude
+                                </div>
+                                <div class="font-mono">
+                                    {{ selectedMarker.telemetry.telemetry.location.longitude.toFixed(6) }}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                    Altitude
+                                </div>
+                                <div>{{ selectedMarker.telemetry.telemetry.location.altitude.toFixed(1) }}m</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                                    Speed
+                                </div>
+                                <div>{{ selectedMarker.telemetry.telemetry.location.speed.toFixed(1) }}km/h</div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="selectedMarker.telemetry.physical_link"
+                            class="pt-2 border-t border-gray-100 dark:border-zinc-800"
+                        >
+                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Signal</div>
+                            <div class="flex gap-4 text-xs font-mono">
+                                <span>RSSI: {{ selectedMarker.telemetry.physical_link.rssi }}</span>
+                                <span>SNR: {{ selectedMarker.telemetry.physical_link.snr }}</span>
+                                <span>Q: {{ selectedMarker.telemetry.physical_link.q }}%</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 text-[10px] text-gray-400 flex items-center gap-1">
+                            <v-icon icon="mdi-clock-outline" size="12"></v-icon>
+                            Updated: {{ formatTimestamp(selectedMarker.telemetry.timestamp) }}
+                        </div>
+
+                        <div class="border-t border-gray-100 dark:border-zinc-800 pt-3">
+                            <button
+                                class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 rounded-lg font-bold transition-all text-sm flex items-center justify-center gap-2 mb-2"
+                                @click="isMiniChatOpen = !isMiniChatOpen"
+                            >
+                                <v-icon
+                                    :icon="isMiniChatOpen ? 'mdi-chevron-up' : 'mdi-message-text'"
+                                    size="16"
+                                ></v-icon>
+                                {{ isMiniChatOpen ? "Hide Mini-Chat" : "Show Mini-Chat" }}
+                            </button>
+                            <div v-if="isMiniChatOpen">
+                                <MiniChat :destination-hash="selectedMarker.telemetry.destination_hash" />
+                            </div>
                         </div>
                     </div>
-
-                    <div class="pt-2 text-[10px] text-gray-400 flex items-center gap-1">
-                        <v-icon icon="mdi-clock-outline" size="12"></v-icon>
-                        Updated: {{ formatTimestamp(selectedMarker.telemetry.timestamp) }}
-                    </div>
-
-                    <button
-                        class="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-colors text-sm flex items-center justify-center gap-2"
-                        @click="openChat(selectedMarker.telemetry.destination_hash)"
-                    >
-                        <v-icon icon="mdi-message-text" size="16"></v-icon>
-                        Open Chat
-                    </button>
                 </div>
             </div>
 
@@ -545,14 +633,21 @@
                     </div>
                 </div>
 
-                <div v-if="exportStatus.status === 'completed'">
+                <div v-if="exportStatus.status === 'completed'" class="flex flex-col gap-2">
                     <a
                         :href="`/api/v1/map/export/${exportId}/download`"
-                        class="flex items-center justify-center space-x-2 w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold transition-colors shadow-md"
+                        class="flex items-center justify-center space-x-2 w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold transition-colors shadow-md text-xs"
                     >
                         <MaterialDesignIcon icon-name="download" class="size-4" />
                         <span>{{ $t("map.download_now") }}</span>
                     </a>
+                    <button
+                        class="flex items-center justify-center space-x-2 w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-colors shadow-md text-xs"
+                        @click="isSettingsOpen = true"
+                    >
+                        <MaterialDesignIcon icon-name="map-check" class="size-4" />
+                        <span>Show in Offline Maps</span>
+                    </button>
                 </div>
 
                 <div
@@ -628,162 +723,322 @@
                 </div>
             </div>
 
+            // controls overlay -->
             <!-- controls overlay -->
             <div
                 v-if="isSettingsOpen"
-                class="absolute top-14 right-4 z-20 w-64 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                class="absolute top-14 right-4 z-20 w-72 max-h-[calc(100vh-5rem)] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
             >
-                <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-900 dark:text-zinc-100">{{ $t("app.settings") }}</h3>
+                <div
+                    class="p-3 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-gray-50/50 dark:bg-zinc-800/50"
+                >
+                    <div class="flex items-center space-x-2">
+                        <MaterialDesignIcon icon-name="cog" class="size-4 text-gray-500 dark:text-gray-300" />
+                        <h3 class="font-bold text-gray-900 dark:text-zinc-100 text-xs uppercase tracking-widest">
+                            {{ $t("app.settings") }}
+                        </h3>
+                    </div>
                     <button
-                        class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300"
+                        class="p-1 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-gray-500 dark:text-gray-300"
                         @click="isSettingsOpen = false"
                     >
-                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                        <MaterialDesignIcon icon-name="close" class="size-4" />
                     </button>
                 </div>
-                <div class="p-4 space-y-4">
-                    <div>
+
+                <div class="p-3 space-y-4 overflow-y-auto scrollbar-thin flex-1">
+                    <!-- Quick Actions -->
+                    <div class="grid grid-cols-2 gap-2">
                         <button
-                            class="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-900 dark:text-zinc-100 rounded-lg transition-colors text-sm font-medium"
+                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-sm active:scale-95"
                             @click="setAsDefaultView"
                         >
-                            <MaterialDesignIcon icon-name="pin" class="size-4" />
-                            <span>{{ $t("map.set_as_default") }}</span>
+                            <MaterialDesignIcon icon-name="pin" class="size-3" />
+                            <span>Set Default</span>
+                        </button>
+
+                        <button
+                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight active:scale-95"
+                            @click="clearCache"
+                        >
+                            <MaterialDesignIcon icon-name="trash-can-outline" class="size-3" />
+                            <span>Clear Cache</span>
                         </button>
                     </div>
 
-                    <div v-if="!offlineEnabled" class="border-t border-gray-100 dark:border-zinc-800 pt-4 space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Preset Servers</label>
-                            <div class="grid grid-cols-1 gap-2 mb-4">
-                                <button
-                                    class="px-3 py-2 text-xs font-semibold rounded-lg transition-all border"
-                                    :class="
-                                        tileServerUrl.includes('openstreetmap.org')
-                                            ? 'bg-blue-500 border-blue-600 text-white shadow-sm'
-                                            : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                                    "
-                                    @click="setTileServer('osm')"
-                                >
-                                    {{ $t("map.tile_server_openstreetmap") }}
-                                </button>
-                            </div>
+                    <!-- Map Style Presets -->
+                    <div v-if="!offlineEnabled" class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                                >Map Styles</label
+                            >
+                            <div class="h-px flex-1 bg-gray-100 dark:bg-zinc-800 ml-3"></div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <button
+                                v-for="style in [
+                                    { id: 'osm', label: 'OSM' },
+                                    { id: 'carto-dark', label: 'Dark' },
+                                    { id: 'carto-voyager', label: 'Voy' },
+                                    { id: 'carto-light', label: 'Lite' },
+                                ]"
+                                :key="style.id"
+                                class="py-1.5 text-[8px] font-bold uppercase rounded-md transition-all border leading-tight"
+                                :class="
+                                    (style.id === 'osm' && tileServerUrl.includes('openstreetmap.org')) ||
+                                    (style.id === 'carto-dark' &&
+                                        tileServerUrl.includes('basemaps.cartocdn.com/dark_all')) ||
+                                    (style.id === 'carto-voyager' && tileServerUrl.includes('rastertiles/voyager')) ||
+                                    (style.id === 'carto-light' &&
+                                        tileServerUrl.includes('basemaps.cartocdn.com/light_all'))
+                                        ? 'bg-blue-500 border-blue-600 text-white shadow-sm ring-2 ring-blue-500/20'
+                                        : 'bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800'
+                                "
+                                @click="setTileServer(style.id)"
+                            >
+                                {{ style.label }}
+                            </button>
+                        </div>
 
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{
-                                $t("map.tile_server_url")
-                            }}</label>
+                        <div class="space-y-1">
+                            <label
+                                class="text-[9px] font-bold text-gray-500 dark:text-zinc-500 uppercase flex items-center"
+                            >
+                                <MaterialDesignIcon icon-name="link-variant" class="size-3 mr-1" />
+                                Tile Server URL
+                            </label>
                             <input
                                 v-model="tileServerUrl"
                                 type="text"
-                                class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm dark:text-zinc-100"
+                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-none"
                                 :placeholder="$t('map.tile_server_url_placeholder')"
                                 @blur="saveTileServerUrl"
                             />
-                            <p class="text-xs text-gray-500 dark:text-zinc-500 mt-1">
-                                {{ $t("map.tile_server_url_hint") }}
-                            </p>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{
-                                $t("map.nominatim_api_url")
-                            }}</label>
+
+                        <div class="space-y-1">
+                            <label
+                                class="text-[9px] font-bold text-gray-500 dark:text-zinc-500 uppercase flex items-center"
+                            >
+                                <MaterialDesignIcon icon-name="magnify" class="size-3 mr-1" />
+                                Geocoder API
+                            </label>
                             <input
                                 v-model="nominatimApiUrl"
                                 type="text"
-                                class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm dark:text-zinc-100"
+                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-none"
                                 :placeholder="$t('map.nominatim_api_url_placeholder')"
                                 @blur="saveNominatimApiUrl"
                             />
-                            <p class="text-xs text-gray-500 dark:text-zinc-500 mt-1">
-                                {{ $t("map.nominatim_api_url_hint") }}
-                            </p>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between py-2 border-t border-gray-100 dark:border-zinc-800">
-                        <span class="text-sm text-gray-700 dark:text-zinc-300">{{ $t("map.caching_enabled") }}</span>
-                        <Toggle :model-value="cachingEnabled" @update:model-value="toggleCaching" />
+                    <!-- Live Tracking -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                                >Live Tracking</label
+                            >
+                            <div class="h-px flex-1 bg-gray-100 dark:bg-zinc-800 ml-3"></div>
+                        </div>
+                        <div v-if="trackedPeers.length === 0" class="text-[10px] text-gray-500 italic px-2">
+                            No peers currently being tracked.
+                        </div>
+                        <div v-else class="space-y-1">
+                            <div
+                                v-for="peer in trackedPeers"
+                                :key="peer.destination_hash"
+                                class="flex items-center justify-between p-2 bg-gray-50 dark:bg-zinc-800/50 rounded-lg group"
+                            >
+                                <div class="flex flex-col min-w-0">
+                                    <span class="text-[10px] font-bold text-gray-900 dark:text-zinc-100 truncate">
+                                        {{
+                                            peers[peer.destination_hash]?.display_name ||
+                                            peer.destination_hash.substring(0, 8)
+                                        }}
+                                    </span>
+                                    <span class="text-[8px] text-gray-500 font-mono">
+                                        {{ peer.destination_hash }}
+                                    </span>
+                                </div>
+                                <button
+                                    class="p-1 text-red-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Stop Tracking"
+                                    @click="toggleTracking(peer.destination_hash)"
+                                >
+                                    <MaterialDesignIcon icon-name="close-circle" class="size-3" />
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="border-t border-gray-100 dark:border-zinc-800 pt-4 space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1"
-                                >MBTiles Storage Directory</label
+                    <!-- MBTiles Section -->
+                    <div class="space-y-3 pt-1">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                                >Offline Maps</label
                             >
+                            <div class="h-px flex-1 bg-gray-100 dark:bg-zinc-800 ml-3"></div>
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between py-1 px-2 bg-gray-50/50 dark:bg-zinc-800/30 rounded-lg border border-gray-100 dark:border-zinc-800"
+                        >
+                            <span
+                                class="text-[10px] font-bold text-gray-600 dark:text-zinc-400 uppercase tracking-tight"
+                                >Tile Caching</span
+                            >
+                            <Toggle :model-value="cachingEnabled" @update:model-value="toggleCaching" />
+                        </div>
+
+                        <div class="space-y-1">
+                            <label
+                                class="text-[9px] font-bold text-gray-500 dark:text-zinc-500 uppercase flex items-center"
+                            >
+                                <MaterialDesignIcon icon-name="folder-outline" class="size-3 mr-1" />
+                                Storage Path
+                            </label>
                             <input
                                 v-model="mbtilesDir"
                                 type="text"
-                                class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm dark:text-zinc-100"
-                                placeholder="Default storage directory"
+                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-none"
+                                placeholder="Default storage"
                                 @blur="saveMBTilesDir"
                             />
                         </div>
 
-                        <div v-if="mbtilesList.length > 0" class="space-y-2">
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Available Maps</label>
-                            <div class="max-h-48 overflow-y-auto space-y-1">
+                        <div v-if="mbtilesList.length > 0" class="space-y-1.5">
+                            <div class="flex items-center space-x-2 pb-0.5">
+                                <MaterialDesignIcon icon-name="database-outline" class="size-3 text-blue-500" />
+                                <span
+                                    class="text-[10px] font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-tight"
+                                    >MBTiles Library</span
+                                >
+                            </div>
+                            <div class="space-y-1 max-h-40 overflow-y-auto pr-1 scrollbar-thin">
                                 <div
                                     v-for="file in mbtilesList"
                                     :key="file.name"
-                                    class="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-800"
+                                    class="flex items-center justify-between p-2 rounded-xl"
+                                    :class="
+                                        file.is_active
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50'
+                                            : 'bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm'
+                                    "
                                 >
                                     <div class="flex flex-col min-w-0 flex-1 mr-2">
                                         <span
-                                            class="text-xs font-medium text-gray-900 dark:text-zinc-100 truncate"
+                                            class="text-[10px] font-bold text-gray-900 dark:text-zinc-100 truncate leading-none mb-1"
                                             :title="file.name"
                                             >{{ file.name }}</span
                                         >
-                                        <span class="text-[10px] text-gray-500"
-                                            >{{ (file.size / 1024 / 1024).toFixed(1) }} MB</span
-                                        >
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-[8px] font-black text-gray-400 uppercase tabular-nums"
+                                                >{{ (file.size / 1024 / 1024).toFixed(1) }} MB</span
+                                            >
+                                            <span
+                                                v-if="file.is_active"
+                                                class="text-[8px] font-black text-blue-500 uppercase"
+                                                >Active</span
+                                            >
+                                        </div>
                                     </div>
                                     <div class="flex items-center space-x-1">
                                         <button
                                             v-if="!file.is_active"
-                                            class="p-1 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                            class="p-1.5 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all active:scale-90"
                                             title="Set as active"
                                             @click="setActiveMBTiles(file.name)"
                                         >
-                                            <MaterialDesignIcon icon-name="check" class="size-4" />
+                                            <MaterialDesignIcon icon-name="check" class="size-3.5" />
                                         </button>
-                                        <div v-else class="p-1 text-emerald-500" title="Active">
-                                            <MaterialDesignIcon icon-name="check-circle" class="size-4" />
-                                        </div>
                                         <button
-                                            class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                            class="p-1.5 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all active:scale-90"
                                             title="Delete"
                                             @click="deleteMBTiles(file.name)"
                                         >
-                                            <MaterialDesignIcon icon-name="delete" class="size-4" />
+                                            <MaterialDesignIcon icon-name="delete-outline" class="size-3.5" />
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <button
-                        class="w-full px-3 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-colors text-xs font-bold uppercase tracking-wider"
-                        @click="clearCache"
-                    >
-                        {{ $t("map.clear_cache") }}
-                    </button>
+                <!-- Footer Stats -->
+                <div
+                    class="p-2.5 bg-gray-50 dark:bg-zinc-800/50 border-t border-gray-200 dark:border-zinc-800 shrink-0"
+                >
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="flex flex-col items-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"
+                                >Zoom</span
+                            >
+                            <span
+                                class="text-[10px] font-mono font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
+                                >{{ currentZoom.toFixed(1) }}</span
+                            >
+                        </div>
+                        <div class="flex flex-col items-center border-x border-gray-200 dark:border-zinc-700">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"
+                                >Lat</span
+                            >
+                            <span
+                                class="text-[10px] font-mono font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
+                                >{{ displayCoords[1].toFixed(4) }}</span
+                            >
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-tighter mb-0.5"
+                                >Lon</span
+                            >
+                            <span
+                                class="text-[10px] font-mono font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
+                                >{{ displayCoords[0].toFixed(4) }}</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    <div
-                        class="text-xs text-gray-500 dark:text-zinc-500 space-y-1 pt-2 border-t border-gray-100 dark:border-zinc-800"
-                    >
-                        <div class="flex justify-between">
-                            <span>{{ $t("map.zoom") }}:</span>
-                            <span class="font-mono">{{ currentZoom.toFixed(1) }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Lat:</span>
-                            <span class="font-mono">{{ displayCoords[1].toFixed(5) }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Lon:</span>
-                            <span class="font-mono">{{ displayCoords[0].toFixed(5) }}</span>
+            <!-- offline warning overlay -->
+            <div
+                v-if="showOfflineHint"
+                class="absolute top-14 left-1/2 -translate-x-1/2 z-30 w-full max-w-sm px-4 animate-in fade-in slide-in-from-top-4 duration-500"
+            >
+                <div
+                    class="bg-amber-500 text-white rounded-xl shadow-2xl p-4 flex items-start space-x-3 border-2 border-amber-600/50"
+                >
+                    <MaterialDesignIcon icon-name="wifi-off" class="size-6 shrink-0 mt-0.5" />
+                    <div class="flex-1 space-y-2">
+                        <p class="text-xs font-bold leading-tight">
+                            Failed to fetch map tiles. You appear to be offline or off-grid.
+                        </p>
+                        <p class="text-[10px] opacity-90 font-medium leading-relaxed">
+                            Please use an
+                            <strong
+                                class="font-bold text-white underline decoration-white/30 decoration-2 underline-offset-2"
+                                >Offline Map</strong
+                            >
+                            with MBTiles, or configure a local tile/geocoder server in the map settings.
+                        </p>
+                        <div class="flex space-x-2 pt-1">
+                            <button
+                                class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-bold uppercase transition-colors border border-white/20"
+                                @click="
+                                    isSettingsOpen = true;
+                                    showOfflineHint = false;
+                                "
+                            >
+                                Open Settings
+                            </button>
+                            <button
+                                class="px-3 py-1 bg-black/10 hover:bg-black/20 rounded-lg text-[10px] font-bold uppercase transition-colors"
+                                @click="showOfflineHint = false"
+                            >
+                                Dismiss
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1036,6 +1291,7 @@ import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
+import * as mdi from "@mdi/js";
 import { Style, Text, Fill, Stroke, Circle as CircleStyle, Icon } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
@@ -1057,12 +1313,14 @@ import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
 import Toggle from "../forms/Toggle.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import MiniChat from "./MiniChat.vue";
 
 export default {
     name: "MapPage",
     components: {
         MaterialDesignIcon,
         Toggle,
+        MiniChat,
     },
     data() {
         return {
@@ -1082,7 +1340,10 @@ export default {
             telemetryList: [],
             markerSource: null,
             markerLayer: null,
+            historySource: null,
+            historyLayer: null,
             selectedMarker: null,
+            isMiniChatOpen: false,
             queryMarker: null,
             discoveredMarkers: [],
 
@@ -1125,6 +1386,8 @@ export default {
             mbtilesList: [],
             mbtilesDir: "",
             isMapLoaded: false,
+            tileErrorCount: 0,
+            showOfflineHint: false,
 
             // drawing tools
             draw: null,
@@ -1159,6 +1422,7 @@ export default {
             editingFeature: null,
             noteText: "",
             hoveredFeature: null,
+            hoveredMarker: null,
             noteOverlay: null,
             showNoteModal: false,
             showSaveDrawingModal: false,
@@ -1177,6 +1441,9 @@ export default {
         };
     },
     computed: {
+        trackedPeers() {
+            return this.telemetryList.filter((t) => t.is_tracking);
+        },
         estimatedTiles() {
             if (!this.selectedBbox) return 0;
             const [minLon, minLat, maxLon, maxLat] = this.selectedBbox;
@@ -1195,6 +1462,12 @@ export default {
         },
     },
     watch: {
+        selectedMarker(newVal, oldVal) {
+            // Close mini-chat if the selected peer changed
+            if (!newVal || !oldVal || newVal.telemetry?.destination_hash !== oldVal.telemetry?.destination_hash) {
+                this.isMiniChatOpen = false;
+            }
+        },
         showSaveDrawingModal(val) {
             if (val) {
                 this.$nextTick(() => {
@@ -1273,6 +1546,7 @@ export default {
                 // add a temporary marker for the query target
                 const feature = new Feature({
                     geometry: new Point(fromLonLat([lon, lat])),
+                    originalCoord: fromLonLat([lon, lat]),
                 });
                 feature.setStyle(
                     this.createMarkerStyle({
@@ -1294,9 +1568,11 @@ export default {
         if (this.map) {
             this.map.on("moveend", () => {
                 const view = this.map.getView();
-                this.currentCenter = toLonLat(view.getCenter());
-                this.currentZoom = view.getZoom();
+                this.currentCenter =
+                    view && typeof view.getCenter === "function" ? toLonLat(view.getCenter()) : this.currentCenter;
+                this.currentZoom = view && typeof view.getZoom === "function" ? view.getZoom() : this.currentZoom;
                 this.saveMapState();
+                this.updateMarkers();
             });
         }
 
@@ -1580,38 +1856,79 @@ export default {
             // Right-click context menu
             this.map.getViewport().addEventListener("contextmenu", this.onContextMenu);
 
+            // setup history layer (trail)
+            this.historySource = new VectorSource();
+            this.historyLayer = new VectorLayer({
+                source: this.historySource,
+                style: new Style({
+                    stroke: new Stroke({
+                        color: "rgba(234, 179, 8, 0.6)", // yellow-500 light
+                        width: 3,
+                        lineDash: [10, 10], // dashed trail
+                    }),
+                }),
+                zIndex: 40,
+            });
+            this.map.addLayer(this.historyLayer);
+
             // setup telemetry markers
             this.markerSource = new VectorSource();
             this.markerLayer = new VectorLayer({
                 source: this.markerSource,
                 style: (feature) => {
+                    const isHovered = this.hoveredMarker === feature;
+                    const scale = isHovered ? 2.0 : 1.6;
+                    const zIndex = isHovered ? 1000 : 100;
+
                     const t = feature.get("telemetry");
                     const peer = feature.get("peer");
-                    const displayName = peer?.display_name || t.destination_hash.substring(0, 8);
+                    const disc = feature.get("discovered");
 
-                    // Calculate staleness
-                    const now = Date.now();
-                    const updatedAt = t.updated_at
-                        ? new Date(t.updated_at).getTime()
-                        : t.timestamp
-                          ? t.timestamp * 1000
-                          : now;
-                    const isStale = now - updatedAt > 10 * 60 * 1000;
-
+                    let displayName = "";
+                    let isStale = false;
                     let iconColor = "#2563eb";
                     let bgColor = "#ffffff";
+                    let iconPath = null;
 
-                    if (peer?.lxmf_user_icon) {
-                        iconColor = peer.lxmf_user_icon.foreground_colour || iconColor;
-                        bgColor = peer.lxmf_user_icon.background_colour || bgColor;
+                    if (t) {
+                        displayName = peer?.display_name || t.destination_hash.substring(0, 8);
+                        // Calculate staleness
+                        const now = Date.now();
+                        const updatedAt = t.updated_at
+                            ? new Date(t.updated_at).getTime()
+                            : t.timestamp
+                              ? t.timestamp * 1000
+                              : now;
+                        isStale = now - updatedAt > 10 * 60 * 1000;
+
+                        if (peer?.lxmf_user_icon) {
+                            iconColor = peer.lxmf_user_icon.foreground_colour || iconColor;
+                            bgColor = peer.lxmf_user_icon.background_colour || bgColor;
+                            if (peer.lxmf_user_icon.icon_name) {
+                                iconPath = this.getMdiPath(peer.lxmf_user_icon.icon_name);
+                            }
+                        }
+                    } else if (disc) {
+                        displayName = disc.name;
+                        iconColor = "#10b981"; // emerald-500
+                        bgColor = "#d1fae5"; // emerald-100
+                        iconPath = "M12 2L2 7L12 12L22 7L12 2Z M2 17L12 22L22 17 M2 12L12 17L22 12"; // router-wireless style path
+                    } else if (feature === this.queryMarker) {
+                        displayName = "Search Result";
+                        iconColor = "#ef4444";
                     }
 
-                    return this.createMarkerStyle({
+                    const style = this.createMarkerStyle({
                         iconColor,
                         bgColor,
                         label: displayName,
                         isStale,
+                        iconPath,
+                        scale,
+                        isTracking: t ? t.is_tracking : false,
                     });
+                    style.setZIndex(zIndex);
+                    return style;
                 },
                 zIndex: 100,
             });
@@ -1622,7 +1939,7 @@ export default {
                 this.handleMapClick(evt);
                 this.closeContextMenu();
                 const feature = this.map.forEachFeatureAtPixel(evt.pixel, (f) => f);
-                if (feature && feature.get("telemetry")) {
+                if (feature && (feature.get("telemetry") || feature.get("discovered"))) {
                     this.onMarkerClick(feature);
                 } else {
                     this.selectedMarker = null;
@@ -1676,14 +1993,21 @@ export default {
                 return url.startsWith("/") || url.startsWith("./") || !url.startsWith("http");
             }
         },
-        isDefaultOnlineUrl(url, type) {
+        isDefaultOnlineUrl(url) {
             if (!url) return false;
-            if (type === "tile") {
-                return url.includes("tile.openstreetmap.org") || url.includes("openstreetmap.org");
-            } else if (type === "nominatim") {
-                return url.includes("nominatim.openstreetmap.org") || url.includes("openstreetmap.org");
-            }
-            return false;
+            const onlinePatterns = [
+                "openstreetmap.org",
+                "cartocdn.com",
+                "thunderforest.com",
+                "stamen.com",
+                "google.com",
+                "mapbox.com",
+                "arcgisonline.com",
+                "wmflabs.org",
+                "maptiler.com",
+            ];
+            const lowerUrl = url.toLowerCase();
+            return onlinePatterns.some((pattern) => lowerUrl.includes(pattern));
         },
         async checkApiConnection(url) {
             if (!url || this.isLocalUrl(url)) {
@@ -1714,13 +2038,22 @@ export default {
             const defaultTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
             const customTileUrl = this.tileServerUrl || defaultTileUrl;
             const isCustomLocal = this.isLocalUrl(customTileUrl);
-            const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl, "tile");
+            const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl);
 
             let tileUrl;
             if (isOffline) {
-                if (isCustomLocal || (!isDefaultOnline && customTileUrl !== defaultTileUrl)) {
+                // If it's a known online URL, force offline tiles from MBTiles
+                if (isDefaultOnline) {
+                    tileUrl = "/api/v1/map/tiles/{z}/{x}/{y}.png";
+                } else if (isCustomLocal) {
+                    // It's a local/mesh URL, allow it
+                    tileUrl = customTileUrl;
+                } else if (customTileUrl !== defaultTileUrl) {
+                    // It's a custom URL that isn't a known online one,
+                    // assume it might be a local mesh server with a domain.
                     tileUrl = customTileUrl;
                 } else {
+                    // Fallback to offline MBTiles
                     tileUrl = "/api/v1/map/tiles/{z}/{x}/{y}.png";
                 }
             } else {
@@ -1731,6 +2064,24 @@ export default {
                 url: tileUrl,
                 crossOrigin: "anonymous",
             });
+
+            // Track tile load errors to notify user if they appear to be offline
+            if (source && typeof source.on === "function") {
+                source.on("tileloaderror", () => {
+                    if (!isOffline) {
+                        this.tileErrorCount++;
+                        if (this.tileErrorCount > 5) {
+                            this.showOfflineHint = true;
+                            // Reset count after showing hint to avoid multiple triggers
+                            this.tileErrorCount = 0;
+                            // Auto-hide hint after 30 seconds
+                            setTimeout(() => {
+                                this.showOfflineHint = false;
+                            }, 30000);
+                        }
+                    }
+                });
+            }
 
             const originalTileLoadFunction = source.getTileLoadFunction();
 
@@ -1847,16 +2198,19 @@ export default {
                 return;
             }
 
+            this.tileErrorCount = 0;
+            this.showOfflineHint = false;
+
             if (enabled) {
                 const defaultTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
                 const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
 
                 const isCustomTileLocal = this.isLocalUrl(this.tileServerUrl);
-                const isDefaultTileOnline = this.isDefaultOnlineUrl(this.tileServerUrl, "tile");
+                const isDefaultTileOnline = this.isDefaultOnlineUrl(this.tileServerUrl);
                 const hasCustomTile = this.tileServerUrl && this.tileServerUrl !== defaultTileUrl;
 
                 const isCustomNominatimLocal = this.isLocalUrl(this.nominatimApiUrl);
-                const isDefaultNominatimOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl, "nominatim");
+                const isDefaultNominatimOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl);
                 const hasCustomNominatim = this.nominatimApiUrl && this.nominatimApiUrl !== defaultNominatimUrl;
 
                 if (hasCustomTile && !isCustomTileLocal && !isDefaultTileOnline) {
@@ -1895,6 +2249,8 @@ export default {
         },
         async toggleCaching(enabled) {
             this.cachingEnabled = enabled;
+            this.tileErrorCount = 0;
+            this.showOfflineHint = false;
             try {
                 await window.axios.patch("/api/v1/config", {
                     map_tile_cache_enabled: enabled,
@@ -1955,6 +2311,9 @@ export default {
                     if (this.exportStatus.status === "completed" || this.exportStatus.status === "failed") {
                         clearInterval(this.exportInterval);
                         this.isExporting = false;
+                        if (this.exportStatus.status === "completed") {
+                            this.loadMBTilesList();
+                        }
                     }
                 } catch {
                     clearInterval(this.exportInterval);
@@ -2053,8 +2412,16 @@ export default {
             }
         },
         setTileServer(type) {
+            this.tileErrorCount = 0;
+            this.showOfflineHint = false;
             if (type === "osm") {
                 this.tileServerUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+            } else if (type === "carto-dark") {
+                this.tileServerUrl = "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+            } else if (type === "carto-voyager") {
+                this.tileServerUrl = "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+            } else if (type === "carto-light") {
+                this.tileServerUrl = "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
             }
             this.saveTileServerUrl();
         },
@@ -2171,7 +2538,7 @@ export default {
 
             const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
             const isCustomLocal = this.isLocalUrl(this.nominatimApiUrl);
-            const isDefaultOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl, "nominatim");
+            const isDefaultOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl);
 
             if (this.offlineEnabled) {
                 if (isCustomLocal || (!isDefaultOnline && this.nominatimApiUrl !== defaultNominatimUrl)) {
@@ -2223,6 +2590,7 @@ export default {
                 console.error("Search error:", e);
                 if (e.message.includes("Failed to fetch") || e.message.includes("NetworkError")) {
                     this.searchError = this.$t("map.search_connection_error");
+                    this.showOfflineHint = true;
                 } else {
                     this.searchError = this.$t("map.search_error") + ": " + e.message;
                 }
@@ -2641,9 +3009,25 @@ export default {
                 } else {
                     this.hoveredFeature = null;
                 }
+
+                // Handle marker hover effects
+                const isMarker = feature.get("telemetry") || feature.get("discovered");
+                if (isMarker && this.hoveredMarker !== feature) {
+                    const oldHovered = this.hoveredMarker;
+                    this.hoveredMarker = feature;
+                    // Trigger style refresh
+                    feature.changed();
+                    if (oldHovered) oldHovered.changed();
+                }
+
                 this.map.getTargetElement().style.cursor = "pointer";
             } else {
                 this.hoveredFeature = null;
+                if (this.hoveredMarker) {
+                    const oldHovered = this.hoveredMarker;
+                    this.hoveredMarker = null;
+                    oldHovered.changed();
+                }
                 this.map.getTargetElement().style.cursor = "";
             }
         },
@@ -2936,7 +3320,21 @@ export default {
         },
 
         goToMyLocation() {
-            // Priority 1: Use telemetry data if available for our own hash
+            // Priority 1: Use manual location if configured
+            if (this.config?.location_source === "manual") {
+                const lat = parseFloat(this.config.location_manual_lat);
+                const lon = parseFloat(this.config.location_manual_lon);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    this.map.getView().animate({
+                        center: fromLonLat([lon, lat]),
+                        zoom: 15,
+                        duration: 1000,
+                    });
+                    return;
+                }
+            }
+
+            // Priority 2: Use telemetry data if available for our own hash
             if (this.config && this.config.identity_hash) {
                 const myTelemetry = this.telemetryList.find((t) => t.destination_hash === this.config.identity_hash);
                 if (myTelemetry && myTelemetry.telemetry?.location) {
@@ -3003,66 +3401,60 @@ export default {
                     geometry: new Point(coord),
                     telemetry: t,
                     peer: this.peers[t.destination_hash],
+                    originalCoord: coord,
                 });
                 addFeatureToGroup(coord, feature);
             }
 
             // Process query marker
             if (this.queryMarker) {
-                const coord = this.queryMarker.getGeometry().getCoordinates();
+                const coord = this.queryMarker.get("originalCoord") || this.queryMarker.getGeometry().getCoordinates();
+                if (!this.queryMarker.get("originalCoord")) this.queryMarker.set("originalCoord", coord);
                 addFeatureToGroup(coord, this.queryMarker);
             }
 
             // Process discovered markers
             if (this.discoveredMarkers && this.discoveredMarkers.length > 0) {
                 for (const feature of this.discoveredMarkers) {
-                    const coord = feature.getGeometry().getCoordinates();
+                    const coord = feature.get("originalCoord") || feature.getGeometry().getCoordinates();
+                    if (!feature.get("originalCoord")) feature.set("originalCoord", coord);
                     addFeatureToGroup(coord, feature);
                 }
             }
 
-            // Now handle groups (Marker Explosion)
+            // Now handle groups (Marker Clustering)
             const view = this.map.getView();
-            const resolution = view.getResolution();
-            const offsetDist = resolution * 40; // 40 pixels offset
+            const resolution = view && typeof view.getResolution === "function" ? view.getResolution() : 1;
+            const offsetDist = resolution * 8; // Small 8 pixel offset to show they are separate
 
             Object.entries(featuresByCoord).forEach(([coordStr, features]) => {
                 const trueCoord = coordStr.split(",").map(Number);
 
                 if (features.length === 1) {
-                    this.markerSource.addFeature(features[0]);
+                    const feature = features[0];
+                    const originalCoord = feature.get("originalCoord");
+                    if (originalCoord) {
+                        feature.setGeometry(new Point(originalCoord));
+                    }
+                    this.markerSource.addFeature(feature);
                 } else {
                     features.forEach((feature, index) => {
                         const angle = (index / features.length) * 2 * Math.PI;
+                        const originalCoord = feature.get("originalCoord") || trueCoord;
                         const offsetCoord = [
-                            trueCoord[0] + Math.cos(angle) * offsetDist,
-                            trueCoord[1] + Math.sin(angle) * offsetDist,
+                            originalCoord[0] + Math.cos(angle) * offsetDist,
+                            originalCoord[1] + Math.sin(angle) * offsetDist,
                         ];
 
                         // Move the marker to offset position
                         feature.setGeometry(new Point(offsetCoord));
                         this.markerSource.addFeature(feature);
-
-                        // Draw dashed line to true position
-                        const lineFeature = new Feature({
-                            geometry: new LineString([offsetCoord, trueCoord]),
-                        });
-                        lineFeature.setStyle(
-                            new Style({
-                                stroke: new Stroke({
-                                    color: "rgba(59, 130, 246, 0.6)",
-                                    width: 1.5,
-                                    lineDash: [4, 4],
-                                }),
-                            })
-                        );
-                        this.markerSource.addFeature(lineFeature);
                     });
                 }
             });
         },
-        createMarkerStyle({ iconColor, bgColor, label, isStale, iconPath }) {
-            const cacheKey = `${iconColor}-${bgColor}-${label}-${isStale}-${iconPath || "default"}`;
+        createMarkerStyle({ iconColor, bgColor, label, isStale, iconPath, scale = 1.6, isTracking = false }) {
+            const cacheKey = `${iconColor}-${bgColor}-${label}-${isStale}-${iconPath || "default"}-${scale}-${isTracking}`;
             if (this.styleCache[cacheKey]) return this.styleCache[cacheKey];
 
             const markerFill = isStale ? "#d1d5db" : bgColor;
@@ -3071,19 +3463,37 @@ export default {
                 iconPath ||
                 "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z";
 
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/></svg>`;
+            let svg = "";
+            if (isTracking) {
+                // Add a MeshChatX specific pulsing ring for tracking
+                svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                    <circle cx="16" cy="16" r="10" fill="none" stroke="#3b82f6" stroke-width="2">
+                        <animate attributeName="r" from="10" to="15" dur="1.5s" repeatCount="indefinite" />
+                        <animate attributeName="stroke-opacity" from="1" to="0" dur="1.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="16" cy="16" r="10" fill="#3b82f6" fill-opacity="0.2">
+                        <animate attributeName="r" from="8" to="12" dur="1.5s" repeatCount="indefinite" />
+                    </circle>
+                    <g transform="translate(4,4)">
+                        <path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/>
+                    </g>
+                </svg>`;
+            } else {
+                svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/></svg>`;
+            }
+
             const src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
 
             const style = new Style({
                 image: new Icon({
                     src: src,
                     anchor: [0.5, 1],
-                    scale: 1.6, // Reduced from 2.5
-                    imgSize: [24, 24],
+                    scale: scale,
+                    imgSize: isTracking ? [32, 32] : [24, 24],
                 }),
                 text: new Text({
                     text: label,
-                    offsetY: -45, // Adjusted from -60
+                    offsetY: isTracking ? -35 - scale * 12 : -25 - scale * 12, // Dynamic offset based on scale
                     font: "bold 12px sans-serif",
                     fill: new Fill({ color: isStale ? "#6b7280" : "#111827" }),
                     stroke: new Stroke({ color: "#ffffff", width: 3 }),
@@ -3097,18 +3507,67 @@ export default {
             this.selectedMarker = {
                 telemetry: feature.get("telemetry"),
                 peer: feature.get("peer"),
+                discovered: feature.get("discovered"),
             };
+
+            // draw path for telemetry markers
+            if (this.selectedMarker.telemetry) {
+                this.drawTelemetryPath(this.selectedMarker.telemetry.destination_hash);
+            } else {
+                this.clearTelemetryPath();
+            }
+        },
+        async drawTelemetryPath(hash) {
+            this.clearTelemetryPath();
+            try {
+                const response = await window.axios.get(`/api/v1/telemetry/history/${hash}?limit=50`);
+                const history = response.data.telemetry;
+                if (!history || history.length < 2) return;
+
+                // collect coordinates
+                const coords = [];
+                for (const entry of history) {
+                    const loc = entry.telemetry?.location;
+                    if (loc && loc.latitude !== undefined && loc.longitude !== undefined) {
+                        coords.push(fromLonLat([loc.longitude, loc.latitude]));
+                    }
+                }
+
+                if (coords.length < 2) return;
+
+                // create line feature
+                const line = new LineString(coords);
+                const feature = new Feature({
+                    geometry: line,
+                    type: "history_trail",
+                });
+
+                if (this.historySource) {
+                    this.historySource.addFeature(feature);
+                }
+            } catch (e) {
+                console.error("Failed to draw telemetry path", e);
+            }
+        },
+        clearTelemetryPath() {
+            if (this.historySource) {
+                this.historySource.clear();
+            }
         },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
             if (json.type === "lxmf.telemetry") {
                 // Find and update or add to telemetryList
                 const index = this.telemetryList.findIndex((t) => t.destination_hash === json.destination_hash);
+                const oldEntry = index !== -1 ? this.telemetryList[index] : null;
                 const entry = {
                     destination_hash: json.destination_hash,
                     timestamp: json.timestamp,
                     telemetry: json.telemetry,
                     updated_at: new Date().toISOString(),
+                    is_tracking:
+                        json.is_tracking !== undefined ? json.is_tracking : oldEntry ? oldEntry.is_tracking : false,
+                    physical_link: json.physical_link || oldEntry?.physical_link,
                 };
 
                 if (index !== -1) {
@@ -3116,17 +3575,68 @@ export default {
                 } else {
                     this.telemetryList.push(entry);
                 }
+
+                // Show notification for tracked peers
+                if (entry.telemetry?.location) {
+                    const peer = this.peers[json.destination_hash];
+                    const name = peer?.display_name || json.destination_hash.substring(0, 8);
+                    const isTracked = this.telemetryList.find(
+                        (t) => t.destination_hash === json.destination_hash
+                    )?.is_tracking;
+
+                    if (isTracked) {
+                        ToastUtils.info(
+                            `Live update: ${name} is at ${entry.telemetry.location.latitude.toFixed(4)}, ${entry.telemetry.location.longitude.toFixed(4)}`
+                        );
+                    }
+
+                    // Update trail if this marker is currently selected
+                    if (this.selectedMarker?.telemetry?.destination_hash === json.destination_hash) {
+                        this.drawTelemetryPath(json.destination_hash);
+                    }
+                }
+
                 this.updateMarkers();
             }
         },
         formatTimestamp(ts) {
             return new Date(ts * 1000).toLocaleString();
         },
+        getMdiPath(iconName) {
+            if (!iconName) return null;
+            // same logic as MaterialDesignIcon.vue
+            const mdiName =
+                "mdi" +
+                iconName
+                    .split("-")
+                    .filter((word) => word.length > 0)
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join("");
+            return mdi[mdiName] || null;
+        },
         openChat(hash) {
             this.$router.push({
                 name: "messages",
                 params: { destinationHash: hash },
             });
+        },
+        async toggleTracking(hash) {
+            try {
+                const response = await window.axios.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
+                    is_tracking: this.selectedMarker.telemetry.is_tracking ? false : true,
+                });
+                if (this.selectedMarker && this.selectedMarker.telemetry.destination_hash === hash) {
+                    this.selectedMarker.telemetry.is_tracking = response.data.is_tracking;
+                }
+                // Also update in telemetryList
+                const t = this.telemetryList.find((t) => t.destination_hash === hash);
+                if (t) t.is_tracking = response.data.is_tracking;
+
+                ToastUtils.success(response.data.is_tracking ? "Live tracking enabled" : "Live tracking disabled");
+            } catch (e) {
+                console.error("Failed to toggle tracking", e);
+                ToastUtils.error("Failed to update tracking status");
+            }
         },
         async mapDiscoveredNodes() {
             try {
@@ -3149,6 +3659,7 @@ export default {
                     // Add markers
                     const feature = new Feature({
                         geometry: new Point(coord),
+                        originalCoord: coord,
                         discovered: node,
                     });
                     feature.setStyle(

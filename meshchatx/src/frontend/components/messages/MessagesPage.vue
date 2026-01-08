@@ -50,6 +50,7 @@
                 :selected-peer="selectedPeer"
                 :conversations="conversations"
                 @update:selected-peer="onPeerClick"
+                @update-peer-tracking="onUpdatePeerTracking"
                 @close="onCloseConversationViewer"
                 @reload-conversations="getConversations"
             />
@@ -293,16 +294,21 @@ export default {
                     await this.getConversations();
                     break;
                 }
+                case "lxmf.telemetry": {
+                    // update tracking status if peer matches
+                    const destHash = json.destination_hash;
+                    if (this.peers[destHash]) {
+                        this.peers[destHash].is_tracking = json.is_tracking;
+                    }
+                    if (this.selectedPeer && this.selectedPeer.destination_hash === destHash) {
+                        this.selectedPeer.is_tracking = json.is_tracking;
+                    }
+                    break;
+                }
                 case "lxm.ingest_uri.result": {
                     if (json.status === "success") {
-                        ToastUtils.success(json.message);
+                        this.ingestUri = "";
                         await this.getConversations();
-                    } else if (json.status === "error") {
-                        ToastUtils.error(json.message);
-                    } else if (json.status === "warning") {
-                        ToastUtils.warning(json.message);
-                    } else {
-                        ToastUtils.info(json.message);
                     }
                     break;
                 }
@@ -398,6 +404,7 @@ export default {
                         contact_image: conversation.contact_image ?? existingPeer.contact_image,
                         lxmf_user_icon: conversation.lxmf_user_icon ?? existingPeer.lxmf_user_icon,
                         updated_at: conversation.updated_at ?? existingPeer.updated_at,
+                        is_tracking: conversation.is_tracking ?? existingPeer.is_tracking,
                     };
                 }
 
@@ -560,6 +567,14 @@ export default {
         updatePeerFromAnnounce: function (announce) {
             const existing = this.peers[announce.destination_hash] || {};
             this.peers[announce.destination_hash] = { ...existing, ...announce };
+        },
+        onUpdatePeerTracking({ destination_hash, is_tracking }) {
+            if (this.peers[destination_hash]) {
+                this.peers[destination_hash].is_tracking = is_tracking;
+            }
+            if (this.selectedPeer && this.selectedPeer.destination_hash === destination_hash) {
+                this.selectedPeer.is_tracking = is_tracking;
+            }
         },
         onPeerClick: function (peer) {
             // update selected peer

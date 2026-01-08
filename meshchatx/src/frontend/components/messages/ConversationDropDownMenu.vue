@@ -2,7 +2,7 @@
     <DropDownMenu>
         <template #button>
             <IconButton>
-                <MaterialDesignIcon icon-name="dots-vertical" class="size-6" />
+                <MaterialDesignIcon icon-name="dots-vertical" class="size-7" />
             </IconButton>
         </template>
         <template #items>
@@ -43,6 +43,22 @@
                     <span class="text-red-500">Delete Message History</span>
                 </DropDownMenuItem>
             </div>
+
+            <!-- telemetry trust toggle -->
+            <div v-if="GlobalState.config.telemetry_enabled" class="border-t">
+                <DropDownMenuItem @click="onToggleTelemetryTrust">
+                    <MaterialDesignIcon
+                        :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
+                        :class="contact?.is_telemetry_trusted ? 'text-blue-500' : 'text-gray-500'"
+                        class="size-5"
+                    />
+                    <span>{{
+                        contact?.is_telemetry_trusted
+                            ? $t("app.telemetry_trust_revoke")
+                            : $t("app.telemetry_trust_grant")
+                    }}</span>
+                </DropDownMenuItem>
+            </div>
         </template>
     </DropDownMenu>
 </template>
@@ -70,7 +86,18 @@ export default {
             required: true,
         },
     },
-    emits: ["conversation-deleted", "set-custom-display-name", "block-status-changed", "popout"],
+    emits: [
+        "conversation-deleted",
+        "set-custom-display-name",
+        "block-status-changed",
+        "popout",
+        "view-telemetry-history",
+    ],
+    data() {
+        return {
+            contact: null,
+        };
+    },
     computed: {
         isBlocked() {
             if (!this.peer) {
@@ -79,7 +106,72 @@ export default {
             return GlobalState.blockedDestinations.some((b) => b.destination_hash === this.peer.destination_hash);
         },
     },
+    watch: {
+        peer: {
+            immediate: true,
+            handler() {
+                this.fetchContact();
+            },
+        },
+    },
+    mounted() {
+        GlobalEmitter.on("contact-updated", this.onContactUpdated);
+    },
+    unmounted() {
+        GlobalEmitter.off("contact-updated", this.onContactUpdated);
+    },
     methods: {
+        onContactUpdated(data) {
+            if (this.peer?.destination_hash === data.remote_identity_hash) {
+                this.fetchContact();
+            }
+        },
+        async fetchContact() {
+            if (!this.peer || !this.peer.destination_hash) return;
+            try {
+                const response = await window.axios.get(
+                    `/api/v1/telephone/contacts/check/${this.peer.destination_hash}`
+                );
+                if (response.data.is_contact) {
+                    this.contact = response.data.contact;
+                } else {
+                    this.contact = null;
+                }
+            } catch (e) {
+                console.error("Failed to fetch contact", e);
+            }
+        },
+        async onToggleTelemetryTrust() {
+            const newStatus = !this.contact?.is_telemetry_trusted;
+            try {
+                if (!this.contact) {
+                    // create contact first
+                    await window.axios.post("/api/v1/telephone/contacts", {
+                        name: this.peer.display_name,
+                        remote_identity_hash: this.peer.destination_hash,
+                        is_telemetry_trusted: true,
+                    });
+                    await this.fetchContact();
+                } else {
+                    await window.axios.patch(`/api/v1/telephone/contacts/${this.contact.id}`, {
+                        is_telemetry_trusted: newStatus,
+                    });
+                    this.contact.is_telemetry_trusted = newStatus;
+                }
+                GlobalEmitter.emit("contact-updated", {
+                    remote_identity_hash: this.peer.destination_hash,
+                    is_telemetry_trusted: newStatus,
+                });
+                DialogUtils.alert(
+                    newStatus
+                        ? this.$t("app.telemetry_trust_granted_alert")
+                        : this.$t("app.telemetry_trust_revoked_alert")
+                );
+            } catch (e) {
+                DialogUtils.alert(this.$t("app.telemetry_trust_failed"));
+                console.error(e);
+            }
+        },
         async onBlockDestination() {
             if (
                 !(await DialogUtils.confirm(

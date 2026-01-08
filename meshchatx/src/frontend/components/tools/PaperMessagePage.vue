@@ -267,12 +267,7 @@ export default {
                 }
             } else if (json.type === "lxm.ingest_uri.result") {
                 if (json.status === "success") {
-                    ToastUtils.success(json.message);
                     this.ingestUri = "";
-                } else if (json.status === "error") {
-                    ToastUtils.error(json.message);
-                } else {
-                    ToastUtils.warning(json.message);
                 }
             }
         },
@@ -384,7 +379,7 @@ export default {
                     lxmf_message: lxmf_message,
                 });
 
-                if (response.data.status === "success") {
+                if (response.data.lxmf_message) {
                     ToastUtils.success(this.$t("messages.paper_message_sent"));
                     this.generatedUri = null;
                     this.destinationHash = "";

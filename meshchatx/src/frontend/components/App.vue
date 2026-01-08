@@ -129,7 +129,7 @@
                         class="fixed inset-y-0 left-0 z-[70] transform transition-all duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
                         :class="[
                             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-                            isSidebarCollapsed ? 'w-16' : 'w-72',
+                            isSidebarCollapsed ? 'w-16' : 'w-80',
                         ]"
                     >
                         <div

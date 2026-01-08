@@ -70,6 +70,7 @@ export default {
                 { code: "en", name: "English" },
                 { code: "de", name: "Deutsch" },
                 { code: "ru", name: "Русский" },
+                { code: "it", name: "Italiano" },
             ],
         };
     },

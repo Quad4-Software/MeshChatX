@@ -57,24 +57,32 @@
                         {{ selectedPeer.custom_display_name ?? selectedPeer.display_name }}
                     </div>
                 </div>
-                <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2 min-w-0">
                     <!-- destination hash -->
-                    <div class="inline-block mr-1">
-                        <div
-                            class="cursor-pointer hover:text-blue-500 transition-colors"
-                            :title="selectedPeer.destination_hash"
-                            @click="copyHash(selectedPeer.destination_hash)"
-                        >
-                            {{ formatDestinationHash(selectedPeer.destination_hash) }}
-                        </div>
+                    <div
+                        class="cursor-pointer hover:text-blue-500 transition-colors truncate max-w-[120px] sm:max-w-none shrink-0"
+                        :title="selectedPeer.destination_hash"
+                        @click="copyHash(selectedPeer.destination_hash)"
+                    >
+                        {{ formatDestinationHash(selectedPeer.destination_hash) }}
                     </div>
 
-                    <div class="inline-block">
-                        <div class="flex space-x-1">
+                    <div
+                        v-if="
+                            selectedPeerPath ||
+                            selectedPeerSignalMetrics?.snr != null ||
+                            selectedPeerLxmfStampInfo?.stamp_cost
+                        "
+                        class="flex items-center gap-2 min-w-0"
+                    >
+                        <span class="text-gray-300 dark:text-zinc-700 shrink-0">•</span>
+
+                        <div class="flex items-center gap-2 truncate">
                             <!-- hops away -->
                             <span
                                 v-if="selectedPeerPath"
-                                class="flex my-auto cursor-pointer"
+                                class="flex items-center cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200 shrink-0"
+                                title="Path information"
                                 @click="onDestinationPathClick(selectedPeerPath)"
                             >
                                 <span v-if="selectedPeerPath.hops === 0 || selectedPeerPath.hops === 1">{{
@@ -84,19 +92,30 @@
                             </span>
 
                             <!-- snr -->
-                            <span v-if="selectedPeerSignalMetrics?.snr != null" class="flex my-auto space-x-1">
-                                <span v-if="selectedPeerPath">•</span>
-                                <span class="cursor-pointer" @click="onSignalMetricsClick(selectedPeerSignalMetrics)">{{
-                                    $t("messages.snr", { snr: selectedPeerSignalMetrics.snr })
-                                }}</span>
+                            <span
+                                v-if="selectedPeerSignalMetrics?.snr != null"
+                                class="flex items-center gap-2 shrink-0"
+                            >
+                                <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
+                                <span
+                                    class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
+                                    title="Signal quality"
+                                    @click="onSignalMetricsClick(selectedPeerSignalMetrics)"
+                                    >{{ $t("messages.snr", { snr: selectedPeerSignalMetrics.snr }) }}</span
+                                >
                             </span>
 
                             <!-- stamp cost -->
-                            <span v-if="selectedPeerLxmfStampInfo?.stamp_cost" class="flex my-auto space-x-1">
-                                <span v-if="selectedPeerPath || selectedPeerSignalMetrics?.snr != null">•</span>
-                                <span class="cursor-pointer" @click="onStampInfoClick(selectedPeerLxmfStampInfo)">{{
-                                    $t("messages.stamp_cost", { cost: selectedPeerLxmfStampInfo.stamp_cost })
-                                }}</span>
+                            <span v-if="selectedPeerLxmfStampInfo?.stamp_cost" class="flex items-center gap-2 shrink-0">
+                                <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
+                                <span
+                                    class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
+                                    title="LXMF stamp requirement"
+                                    @click="onStampInfoClick(selectedPeerLxmfStampInfo)"
+                                    >{{
+                                        $t("messages.stamp_cost", { cost: selectedPeerLxmfStampInfo.stamp_cost })
+                                    }}</span
+                                >
                             </span>
                         </div>
                     </div>
@@ -104,7 +123,7 @@
             </div>
 
             <!-- dropdown menu -->
-            <div class="ml-auto flex items-center gap-1">
+            <div class="ml-auto flex items-center gap-1.5">
                 <!-- retry all failed messages -->
                 <IconButton
                     v-if="hasFailedOrCancelledMessages"
@@ -112,7 +131,22 @@
                     class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                     @click="retryAllFailedOrCancelledMessages"
                 >
-                    <MaterialDesignIcon icon-name="refresh" class="size-6" />
+                    <MaterialDesignIcon icon-name="refresh" class="size-7" />
+                </IconButton>
+
+                <!-- telemetry history button -->
+                <IconButton title="View Telemetry History" @click="isTelemetryHistoryModalOpen = true">
+                    <MaterialDesignIcon icon-name="satellite-variant" class="size-7" />
+                </IconButton>
+
+                <!-- call button -->
+                <IconButton title="Start a Call" @click="onStartCall">
+                    <MaterialDesignIcon icon-name="phone" class="size-7" />
+                </IconButton>
+
+                <!-- share contact button -->
+                <IconButton title="Share Contact" @click="openShareContactModal">
+                    <MaterialDesignIcon icon-name="notebook-outline" class="size-7" />
                 </IconButton>
 
                 <ConversationDropDownMenu
@@ -123,20 +157,148 @@
                     @popout="openConversationPopout"
                 />
 
-                <!-- call button -->
-                <IconButton title="Start a Call" @click="onStartCall">
-                    <MaterialDesignIcon icon-name="phone" class="size-6" />
-                </IconButton>
-
-                <!-- share contact button -->
-                <IconButton title="Share Contact" @click="openShareContactModal">
-                    <MaterialDesignIcon icon-name="notebook-outline" class="size-6" />
-                </IconButton>
-
                 <!-- close button -->
                 <IconButton title="Close" @click="close">
-                    <MaterialDesignIcon icon-name="close" class="size-6" />
+                    <MaterialDesignIcon icon-name="close" class="size-7" />
                 </IconButton>
+            </div>
+        </div>
+
+        <!-- Telemetry History Modal -->
+        <div
+            v-if="isTelemetryHistoryModalOpen"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            @click.self="isTelemetryHistoryModalOpen = false"
+        >
+            <div
+                class="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <MaterialDesignIcon icon-name="satellite-variant" class="size-6 text-blue-500" />
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Telemetry History</h3>
+                    </div>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        @click="isTelemetryHistoryModalOpen = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div v-if="selectedPeerTelemetryItems.length === 0" class="text-center py-8 text-gray-400">
+                        No telemetry history found for this peer.
+                    </div>
+                    <div
+                        v-for="item in selectedPeerTelemetryItems"
+                        :key="item.lxmf_message.hash"
+                        class="p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30"
+                    >
+                        <div class="flex justify-between items-start mb-2">
+                            <span
+                                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+                            >
+                                {{ item.is_outbound ? "Sent" : "Received" }}
+                            </span>
+                            <span class="text-[10px] text-gray-400">{{
+                                formatTimeAgo(item.lxmf_message.created_at)
+                            }}</span>
+                        </div>
+
+                        <!-- location -->
+                        <div v-if="item.lxmf_message.fields?.telemetry?.location" class="flex items-center gap-2 mb-2">
+                            <button
+                                type="button"
+                                class="flex items-center gap-2 text-xs font-mono text-blue-600 dark:text-blue-400 hover:underline"
+                                @click="viewLocationOnMap(item.lxmf_message.fields.telemetry.location)"
+                            >
+                                <MaterialDesignIcon icon-name="map-marker" class="size-4" />
+                                {{ item.lxmf_message.fields.telemetry.location.latitude.toFixed(6) }},
+                                {{ item.lxmf_message.fields.telemetry.location.longitude.toFixed(6) }}
+                            </button>
+                        </div>
+
+                        <!-- sensors -->
+                        <div
+                            v-if="item.lxmf_message.fields?.telemetry"
+                            class="flex flex-wrap gap-3 text-[10px] text-gray-500"
+                        >
+                            <span v-if="item.lxmf_message.fields.telemetry.battery" class="flex items-center gap-1">
+                                <MaterialDesignIcon icon-name="battery" class="size-3" />
+                                Battery: {{ item.lxmf_message.fields.telemetry.battery.charge_percent }}%
+                            </span>
+                            <span
+                                v-if="item.lxmf_message.fields.telemetry.physical_link"
+                                class="flex items-center gap-1"
+                            >
+                                <MaterialDesignIcon icon-name="antenna" class="size-3" />
+                                SNR: {{ item.lxmf_message.fields.telemetry.physical_link.snr }}dB
+                            </span>
+                        </div>
+
+                        <!-- commands -->
+                        <div
+                            v-if="item.lxmf_message.fields?.commands?.some((c) => c['0x01'])"
+                            class="flex items-center gap-2 text-[10px] text-emerald-600 dark:text-emerald-400 mt-1"
+                        >
+                            <MaterialDesignIcon icon-name="crosshairs-question" class="size-3" />
+                            <span>Location Request</span>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 bg-gray-50/30 dark:bg-zinc-900/20 flex flex-col gap-4"
+                >
+                    <div v-if="telemetryBatteryHistory.length > 1" class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                                >Battery Level (%)</span
+                            >
+                            <span class="text-[10px] text-gray-500"
+                                >{{ telemetryBatteryHistory[0].y }}% →
+                                {{ telemetryBatteryHistory[telemetryBatteryHistory.length - 1].y }}%</span
+                            >
+                        </div>
+                        <svg class="w-full h-12 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <path
+                                :d="batterySparklinePath"
+                                fill="none"
+                                stroke="#3b82f6"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                            <circle
+                                :cx="100"
+                                :cy="100 - telemetryBatteryHistory[telemetryBatteryHistory.length - 1].y"
+                                r="3"
+                                fill="#3b82f6"
+                            />
+                        </svg>
+                    </div>
+
+                    <div class="flex justify-between items-center w-full">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input
+                                v-model="showTelemetryInChat"
+                                type="checkbox"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span
+                                class="text-xs font-medium text-gray-600 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-zinc-200"
+                                >Show telemetry in main chat</span
+                            >
+                        </label>
+                        <button
+                            type="button"
+                            class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                            @click="isTelemetryHistoryModalOpen = false"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -264,15 +426,54 @@
                             </div>
 
                             <!-- content -->
+                            <!-- eslint-disable vue/no-v-html -->
                             <div
                                 v-if="chatItem.lxmf_message.content && !getParsedItems(chatItem)?.isOnlyPaperMessage"
-                                class="leading-relaxed whitespace-pre-wrap break-words [word-break:break-word] min-w-0"
+                                class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
                                 :style="{
                                     'font-family': 'inherit',
                                     'font-size': (config?.message_font_size || 14) + 'px',
                                 }"
+                                @click="handleMessageClick"
+                                v-html="renderMarkdown(chatItem.lxmf_message.content)"
+                            ></div>
+                            <!-- eslint-enable vue/no-v-html -->
+
+                            <!-- telemetry placeholder for empty content messages -->
+                            <div
+                                v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry"
+                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
                             >
-                                {{ chatItem.lxmf_message.content }}
+                                <MaterialDesignIcon icon-name="satellite-variant" class="size-4 opacity-60" />
+                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                    {{ chatItem.is_outbound ? "Telemetry update sent" : "Telemetry update received" }}
+                                </span>
+                            </div>
+
+                            <div
+                                v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry_stream"
+                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                            >
+                                <MaterialDesignIcon icon-name="database-sync" class="size-4 opacity-60" />
+                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
+                                    >Telemetry stream received ({{
+                                        chatItem.lxmf_message.fields.telemetry_stream.length
+                                    }}
+                                    entries)</span
+                                >
+                            </div>
+
+                            <div
+                                v-if="
+                                    !chatItem.lxmf_message.content &&
+                                    chatItem.lxmf_message.fields?.commands?.some((c) => c['0x01'] || c['1'] || c['0x1'])
+                                "
+                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                            >
+                                <MaterialDesignIcon icon-name="crosshairs-question" class="size-4 opacity-60" />
+                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                    {{ chatItem.is_outbound ? "Location Request Sent" : "Location Request Received" }}
+                                </span>
                             </div>
 
                             <!-- parsed items (contacts / paper messages) -->
@@ -481,29 +682,120 @@
                                 </a>
                             </div>
 
-                            <!-- telemetry / location field -->
-                            <div v-if="chatItem.lxmf_message.fields?.telemetry?.location" class="pb-1 mt-1">
-                                <button
-                                    type="button"
-                                    class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                    :class="
-                                        chatItem.is_outbound
-                                            ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
-                                            : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                                    "
-                                    @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
-                                >
-                                    <MaterialDesignIcon icon-name="map-marker" class="size-5" />
-                                    <div class="text-left">
-                                        <div class="font-bold text-xs uppercase tracking-wider opacity-80">
-                                            Location
-                                        </div>
-                                        <div class="text-[10px] font-mono opacity-70">
-                                            {{ chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(6) }},
-                                            {{ chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(6) }}
+                            <!-- commands -->
+                            <div v-if="chatItem.lxmf_message.fields?.commands" class="space-y-2 mt-1">
+                                <div v-for="(command, index) in chatItem.lxmf_message.fields.commands" :key="index">
+                                    <div
+                                        v-if="command['0x01'] || command['1'] || command['0x1']"
+                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                        :class="
+                                            chatItem.is_outbound
+                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                        "
+                                    >
+                                        <MaterialDesignIcon icon-name="crosshairs-question" class="size-5" />
+                                        <div class="text-left">
+                                            <div class="font-bold text-xs uppercase tracking-wider opacity-80">
+                                                {{ $t("messages.location_requested") }}
+                                            </div>
+                                            <div v-if="!chatItem.is_outbound" class="text-[10px] opacity-70">
+                                                Peer is requesting your location
+                                            </div>
                                         </div>
                                     </div>
-                                </button>
+                                </div>
+                            </div>
+
+                            <!-- telemetry / location field -->
+                            <div v-if="chatItem.lxmf_message.fields?.telemetry" class="pb-1 mt-1 space-y-2">
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        v-if="chatItem.lxmf_message.fields.telemetry.location"
+                                        type="button"
+                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                        :class="
+                                            chatItem.is_outbound
+                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                        "
+                                        @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
+                                    >
+                                        <MaterialDesignIcon icon-name="map-marker" class="size-5" />
+                                        <div class="text-left">
+                                            <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
+                                                Location
+                                            </div>
+                                            <div class="text-[9px] font-mono opacity-70">
+                                                {{
+                                                    chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(6)
+                                                }},
+                                                {{
+                                                    chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(6)
+                                                }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <!-- Live Track Toggle Button (only for incoming) -->
+                                    <button
+                                        v-if="!chatItem.is_outbound"
+                                        type="button"
+                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                        :class="[
+                                            selectedPeer?.is_tracking
+                                                ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-inner'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                        ]"
+                                        @click="toggleTracking()"
+                                    >
+                                        <MaterialDesignIcon
+                                            :icon-name="selectedPeer?.is_tracking ? 'radar' : 'crosshairs'"
+                                            class="size-5"
+                                            :class="{ 'animate-pulse text-blue-500': selectedPeer?.is_tracking }"
+                                        />
+                                        <div class="text-left">
+                                            <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
+                                                {{ selectedPeer?.is_tracking ? "Tracking Active" : "Live Track" }}
+                                            </div>
+                                            <div class="text-[9px] opacity-70">
+                                                {{
+                                                    selectedPeer?.is_tracking
+                                                        ? "Auto-requesting location"
+                                                        : "Enable live tracking"
+                                                }}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                <!-- other sensor data if available -->
+                                <div
+                                    v-if="
+                                        chatItem.lxmf_message.fields.telemetry.battery ||
+                                        chatItem.lxmf_message.fields.telemetry.physical_link
+                                    "
+                                    class="flex gap-3 px-1"
+                                >
+                                    <div
+                                        v-if="chatItem.lxmf_message.fields.telemetry.battery"
+                                        class="flex items-center gap-1 opacity-60 text-[10px]"
+                                    >
+                                        <MaterialDesignIcon icon-name="battery" class="size-3" />
+                                        <span
+                                            >{{ chatItem.lxmf_message.fields.telemetry.battery.charge_percent }}%</span
+                                        >
+                                    </div>
+                                    <div
+                                        v-if="chatItem.lxmf_message.fields.telemetry.physical_link"
+                                        class="flex items-center gap-1 opacity-60 text-[10px]"
+                                    >
+                                        <MaterialDesignIcon icon-name="antenna" class="size-3" />
+                                        <span
+                                            >SNR: {{ chatItem.lxmf_message.fields.telemetry.physical_link.snr }}dB</span
+                                        >
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1395,6 +1687,7 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
 import GlobalState from "../../js/GlobalState";
+import MarkdownRenderer from "../../js/MarkdownRenderer";
 
 export default {
     name: "ConversationViewer",
@@ -1428,7 +1721,7 @@ export default {
             required: true,
         },
     },
-    emits: ["close", "reload-conversations", "update:selectedPeer"],
+    emits: ["close", "reload-conversations", "update:selectedPeer", "update-peer-tracking"],
     data() {
         return {
             GlobalState,
@@ -1493,6 +1786,9 @@ export default {
             translatorLanguages: [],
             propagationNodeStatus: null,
             propagationStatusInterval: null,
+
+            showTelemetryInChat: false,
+            isTelemetryHistoryModalOpen: false,
         };
     },
     computed: {
@@ -1605,7 +1901,15 @@ export default {
                             chatItem.lxmf_message.source_hash === this.selectedPeer.destination_hash;
                         const isToSelectedPeer =
                             chatItem.lxmf_message.destination_hash === this.selectedPeer.destination_hash;
-                        return isFromSelectedPeer || isToSelectedPeer;
+
+                        if (!(isFromSelectedPeer || isToSelectedPeer)) return false;
+
+                        // filter telemetry if disabled
+                        if (!this.showTelemetryInChat && this.isTelemetryOnly(chatItem.lxmf_message)) {
+                            return false;
+                        }
+
+                        return true;
                     }
 
                     return false;
@@ -1614,6 +1918,24 @@ export default {
 
             // no peer, so no chat items!
             return [];
+        },
+        selectedPeerTelemetryItems() {
+            if (!this.selectedPeer) return [];
+            return this.chatItems
+                .filter((chatItem) => {
+                    if (chatItem.type === "lxmf_message") {
+                        const isFromSelectedPeer =
+                            chatItem.lxmf_message.source_hash === this.selectedPeer.destination_hash;
+                        const isToSelectedPeer =
+                            chatItem.lxmf_message.destination_hash === this.selectedPeer.destination_hash;
+
+                        if (!(isFromSelectedPeer || isToSelectedPeer)) return false;
+
+                        return this.isTelemetryOnly(chatItem.lxmf_message);
+                    }
+                    return false;
+                })
+                .reverse();
         },
         selectedPeerChatItemsReversed() {
             // ensure a copy of the array is returned in reverse order
@@ -1630,6 +1952,31 @@ export default {
             return this.selectedPeerChatItems.some(
                 (item) => item.is_outbound && ["failed", "cancelled"].includes(item.lxmf_message?.state)
             );
+        },
+        telemetryBatteryHistory() {
+            return this.selectedPeerTelemetryItems
+                .filter((item) => item.lxmf_message.fields?.telemetry?.battery)
+                .map((item) => ({
+                    x: item.lxmf_message.timestamp,
+                    y: item.lxmf_message.fields.telemetry.battery.charge_percent,
+                }))
+                .sort((a, b) => a.x - b.x);
+        },
+        batterySparklinePath() {
+            const history = this.telemetryBatteryHistory;
+            if (history.length < 2) return "";
+
+            const minX = history[0].x;
+            const maxX = history[history.length - 1].x;
+            const rangeX = maxX - minX || 1;
+
+            return history
+                .map((p, i) => {
+                    const x = ((p.x - minX) / rangeX) * 100;
+                    const y = 100 - p.y; // SVG y is top-down
+                    return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+                })
+                .join(" ");
         },
     },
     watch: {
@@ -1695,6 +2042,26 @@ export default {
         }, 2000);
     },
     methods: {
+        renderMarkdown(text) {
+            return MarkdownRenderer.render(text);
+        },
+        handleMessageClick(event) {
+            const nomadnetLink = event.target.closest(".nomadnet-link");
+            if (nomadnetLink) {
+                event.preventDefault();
+                const url = nomadnetLink.getAttribute("data-nomadnet-url");
+                if (url) {
+                    const [hash, ...pathParts] = url.split(":");
+                    const path = pathParts.join(":");
+                    const routeName = this.$route.meta.isPopout ? "nomadnetwork-popout" : "nomadnetwork";
+                    this.$router.push({
+                        name: routeName,
+                        params: { destinationHash: hash },
+                        query: { path: path },
+                    });
+                }
+            }
+        },
         async updatePropagationNodeStatus() {
             try {
                 const response = await window.axios.get("/api/v1/lxmf/propagation-node/status");
@@ -2048,13 +2415,7 @@ export default {
                     break;
                 }
                 case "lxm.ingest_uri.result": {
-                    if (json.status === "success") {
-                        ToastUtils.success(json.message);
-                    } else if (json.status === "error") {
-                        ToastUtils.error(json.message);
-                    } else {
-                        ToastUtils.warning(json.message);
-                    }
+                    // Handled in App.vue or MessagesPage.vue
                     break;
                 }
             }
@@ -2661,6 +3022,7 @@ export default {
                         fileAttachmentsTotalSize += file.size;
                         fileAttachments.push({
                             file_name: file.name,
+                            file_size: file.size,
                             file_bytes: Utils.arrayBufferToBase64(await file.arrayBuffer()),
                         });
                     }
@@ -2675,6 +3037,7 @@ export default {
                         imageTotalSize += image.size;
                         images.push({
                             image_type: image.type.replace("image/", ""),
+                            image_size: image.size,
                             image_bytes: Utils.arrayBufferToBase64(await image.arrayBuffer()),
                             name: image.name,
                         });
@@ -2687,6 +3050,7 @@ export default {
                     audioTotalSize = this.newMessageAudio.size;
                     fields["audio"] = {
                         audio_mode: this.newMessageAudio.audio_mode,
+                        audio_size: this.newMessageAudio.size,
                         audio_bytes: Utils.arrayBufferToBase64(await this.newMessageAudio.audio_blob.arrayBuffer()),
                     };
                 }
@@ -2882,11 +3246,38 @@ export default {
             }
         },
         async shareLocation() {
+            const toastKey = "location_share";
             try {
+                if (this.config?.location_source === "manual") {
+                    const lat = parseFloat(this.config.location_manual_lat);
+                    const lon = parseFloat(this.config.location_manual_lon);
+                    const alt = parseFloat(this.config.location_manual_alt);
+
+                    if (isNaN(lat) || isNaN(lon)) {
+                        ToastUtils.error("Invalid manual coordinates in settings", 5000, toastKey);
+                        return;
+                    }
+
+                    this.newMessageTelemetry = {
+                        latitude: lat,
+                        longitude: lon,
+                        altitude: isNaN(alt) ? 0 : alt,
+                        speed: 0,
+                        bearing: 0,
+                        accuracy: 0,
+                        last_update: Math.floor(Date.now() / 1000),
+                    };
+                    this.sendMessage();
+                    ToastUtils.success(this.$t("messages.location_sent"), 3000, toastKey);
+                    return;
+                }
+
                 if (!navigator.geolocation) {
                     DialogUtils.alert(this.$t("map.geolocation_not_supported"));
                     return;
                 }
+
+                ToastUtils.loading(this.$t("messages.fetching_location"), 0, toastKey);
 
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -2894,15 +3285,20 @@ export default {
                             latitude: position.coords.latitude,
                             longitude: position.coords.longitude,
                             altitude: position.coords.altitude || 0,
-                            speed: (position.coords.speed || 0) * 3.6, // m/s to km/h to match Sideband
+                            speed: (position.coords.speed || 0) * 3.6, // m/s to km/h
                             bearing: position.coords.heading || 0,
                             accuracy: position.coords.accuracy || 0,
                             last_update: Math.floor(Date.now() / 1000),
                         };
                         this.sendMessage();
+                        ToastUtils.success(this.$t("messages.location_sent"), 3000, toastKey);
                     },
                     (error) => {
-                        DialogUtils.alert(`Failed to get location: ${error.message}`);
+                        ToastUtils.error(
+                            `Failed to get location: ${error.message}. Try setting location manually in Settings.`,
+                            5000,
+                            toastKey
+                        );
                     },
                     {
                         enableHighAccuracy: true,
@@ -2912,6 +3308,7 @@ export default {
                 );
             } catch (e) {
                 console.log(e);
+                ToastUtils.error(`Error: ${e.message}`, 5000, toastKey);
             }
         },
         async requestLocation() {
@@ -2924,9 +3321,7 @@ export default {
                         destination_hash: this.selectedPeer.destination_hash,
                         content: "",
                         fields: {
-                            commands: [
-                                { "0x01": Math.floor(Date.now() / 1000) }, // Sideband TELEMETRY_REQUEST
-                            ],
+                            commands: [{ "0x01": Math.floor(Date.now() / 1000) }],
                         },
                     },
                 });
@@ -2947,6 +3342,32 @@ export default {
                     zoom: 15,
                 },
             });
+        },
+        isTelemetryOnly(msg) {
+            const hasContent = msg.content && msg.content.trim() !== "";
+            const hasAttachments = msg.fields?.image || msg.fields?.audio || msg.fields?.file_attachments;
+            const hasTelemetry = msg.fields?.telemetry || msg.fields?.telemetry_stream;
+            const hasCommands = msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"]);
+
+            return !hasContent && !hasAttachments && (hasTelemetry || hasCommands);
+        },
+        async toggleTracking() {
+            if (!this.selectedPeer) return;
+            const hash = this.selectedPeer.destination_hash;
+            try {
+                const response = await window.axios.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
+                    is_tracking: !this.selectedPeer.is_tracking,
+                });
+                // Emit event to parent to update peer status
+                this.$emit("update-peer-tracking", {
+                    destination_hash: hash,
+                    is_tracking: response.data.is_tracking,
+                });
+                ToastUtils.success(response.data.is_tracking ? "Live tracking enabled" : "Live tracking disabled");
+            } catch (e) {
+                console.error("Failed to toggle tracking", e);
+                ToastUtils.error("Failed to update tracking status");
+            }
         },
         formatTimeAgo: function (datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
@@ -3386,5 +3807,30 @@ export default {
 
 .dark .audio-controls-dark {
     filter: invert(1) hue-rotate(180deg);
+}
+.markdown-content :deep(p) {
+    margin: 0.5rem 0;
+}
+
+.markdown-content :deep(strong) {
+    font-weight: 700;
+}
+
+.markdown-content :deep(em) {
+    font-style: italic;
+}
+
+.markdown-content :deep(pre) {
+    margin: 0.75rem 0;
+}
+
+.markdown-content :deep(code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.markdown-content :deep(h1),
+.markdown-content :deep(h2),
+.markdown-content :deep(h3) {
+    line-height: 1.2;
 }
 </style>

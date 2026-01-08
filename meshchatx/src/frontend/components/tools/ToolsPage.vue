@@ -4,30 +4,41 @@
     >
         <div class="flex-1 overflow-y-auto w-full">
             <div class="space-y-4 p-4 md:p-6 lg:p-8 w-full">
-                <div class="glass-card space-y-3">
-                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        {{ $t("tools.utilities") }}
+                <div class="glass-card flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8">
+                    <div class="space-y-3 flex-1 min-w-0">
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {{ $t("tools.utilities") }}
+                        </div>
+                        <div class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                            {{ $t("tools.power_tools") }}
+                        </div>
+                        <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
+                            {{ $t("tools.diagnostics_description") }}
+                        </div>
                     </div>
-                    <div class="text-2xl font-semibold text-gray-900 dark:text-white">
-                        {{ $t("tools.power_tools") }}
-                    </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-300">
-                        {{ $t("tools.diagnostics_description") }}
-                    </div>
-                </div>
 
-                <div class="glass-card">
-                    <div class="relative">
-                        <MaterialDesignIcon
-                            icon-name="magnify"
-                            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-                        />
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            :placeholder="$t('common.search')"
-                            class="w-full pl-10 pr-4 py-3 bg-white/50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                        />
+                    <div class="w-full md:w-80 shrink-0">
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <MaterialDesignIcon
+                                    icon-name="magnify"
+                                    class="size-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                                />
+                            </div>
+                            <input
+                                v-model="searchQuery"
+                                type="text"
+                                :placeholder="$t('common.search')"
+                                class="w-full pl-12 pr-10 py-3.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 shadow-sm transition-all text-sm"
+                            />
+                            <button
+                                v-if="searchQuery"
+                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                @click="searchQuery = ''"
+                            >
+                                <MaterialDesignIcon icon-name="close-circle" class="size-5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -146,6 +157,14 @@ export default {
                     iconBg: "tool-card__icon bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-200",
                     titleKey: "tools.rnpath.title",
                     descriptionKey: "tools.rnpath.description",
+                },
+                {
+                    name: "rnpath-trace",
+                    route: { name: "rnpath-trace" },
+                    icon: "map-marker-path",
+                    iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
+                    titleKey: "tools.rnpath_trace.title",
+                    descriptionKey: "tools.rnpath_trace.description",
                 },
                 {
                     name: "translator",

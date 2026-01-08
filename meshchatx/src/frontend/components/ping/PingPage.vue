@@ -171,6 +171,14 @@ export default {
     beforeUnmount() {
         this.stop();
     },
+    mounted() {
+        if (this.$route.query.hash) {
+            this.destinationHash = this.$route.query.hash;
+            if (this.$route.query.autostart === "1" || this.$route.query.autostart === "true") {
+                this.start();
+            }
+        }
+    },
     methods: {
         async start() {
             // do nothing if already running

@@ -277,30 +277,29 @@ export default {
             }
         },
         async sendPaperMessage() {
-            const canvas = this.$refs.qrcode;
-            if (!canvas || !this.recipientHash || !this.uri) return;
+            if (!this.recipientHash || !this.uri) return;
 
             try {
                 this.isSending = true;
 
-                // get data url from canvas (format: data:image/png;base64,iVBORw0KG...)
-                const dataUrl = canvas.toDataURL("image/png");
-
-                // extract base64 data by removing the prefix
-                const imageBytes = dataUrl.split(",")[1];
-
                 // build lxmf message
                 const lxmf_message = {
                     destination_hash: this.recipientHash,
-                    content: this.uri,
-                    fields: {
-                        image: {
-                            image_type: "png",
-                            image_bytes: imageBytes,
-                            name: "qrcode.png",
-                        },
-                    },
+                    content: `Please scan the attached Paper Message or manually ingest this URI: ${this.uri}`,
+                    fields: {},
                 };
+
+                // get data url from canvas if available
+                const canvas = this.$refs.qrcode;
+                if (canvas) {
+                    const dataUrl = canvas.toDataURL("image/png");
+                    const imageBytes = dataUrl.split(",")[1];
+                    lxmf_message.fields.image = {
+                        image_type: "png",
+                        image_bytes: imageBytes,
+                        name: "paper_message_qr.png",
+                    };
+                }
 
                 // send message
                 const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
@@ -308,7 +307,7 @@ export default {
                     lxmf_message: lxmf_message,
                 });
 
-                if (response.data.status === "success") {
+                if (response.data.lxmf_message) {
                     ToastUtils.success(this.$t("messages.paper_message_sent"));
                     this.close();
                 } else {

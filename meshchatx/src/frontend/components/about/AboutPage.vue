@@ -402,7 +402,7 @@
                                             >
                                                 {{
                                                     appInfo.is_connected_to_shared_instance
-                                                        ? "Shared Instance"
+                                                        ? `Shared Instance: ${appInfo.shared_instance_address || "unknown"}`
                                                         : "Main Instance"
                                                 }}
                                             </div>
@@ -661,6 +661,14 @@
                                             >
                                                 <button
                                                     type="button"
+                                                    class="primary-chip !px-3 !py-1 !text-[10px]"
+                                                    @click="downloadSnapshot(snapshot.name)"
+                                                >
+                                                    <v-icon icon="mdi-download" size="12" start></v-icon>
+                                                    Download
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     class="secondary-chip !px-3 !py-1 !text-[10px]"
                                                     @click="restoreFromSnapshot(snapshot.path)"
                                                 >
@@ -742,6 +750,14 @@
                                             <div
                                                 class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
+                                                <button
+                                                    type="button"
+                                                    class="primary-chip !px-3 !py-1 !text-[10px]"
+                                                    @click="downloadBackupFile(backup.name)"
+                                                >
+                                                    <v-icon icon="mdi-download" size="12" start></v-icon>
+                                                    Download
+                                                </button>
                                                 <button
                                                     type="button"
                                                     class="secondary-chip !px-3 !py-1 !text-[10px]"
@@ -999,6 +1015,42 @@ export default {
                 this.autoBackupsTotal = response.data.total;
             } catch {
                 console.log("Failed to list auto-backups");
+            }
+        },
+        async downloadSnapshot(filename) {
+            try {
+                const response = await window.axios.get(`/api/v1/database/snapshots/${filename}/download`, {
+                    responseType: "blob",
+                });
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", filename);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+                ToastUtils.success("Snapshot downloaded");
+            } catch {
+                ToastUtils.error("Failed to download snapshot");
+            }
+        },
+        async downloadBackupFile(filename) {
+            try {
+                const response = await window.axios.get(`/api/v1/database/backups/${filename}/download`, {
+                    responseType: "blob",
+                });
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", filename);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+                ToastUtils.success("Backup downloaded");
+            } catch {
+                ToastUtils.error("Failed to download backup");
             }
         },
         async deleteSnapshot(filename) {
