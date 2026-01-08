@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import en from "../../meshchatx/src/frontend/locales/en.json";
 import de from "../../meshchatx/src/frontend/locales/de.json";
 import ru from "../../meshchatx/src/frontend/locales/ru.json";
+import itLocale from "../../meshchatx/src/frontend/locales/it.json";
 import fs from "fs";
 import path from "path";
 
@@ -21,6 +22,7 @@ describe("i18n Localization Tests", () => {
     const locales = [
         { name: "German", data: de, keys: getKeys(de) },
         { name: "Russian", data: ru, keys: getKeys(ru) },
+        { name: "Italian", data: itLocale, keys: getKeys(itLocale) },
     ];
 
     locales.forEach((locale) => {
