@@ -296,7 +296,7 @@ class TelephoneManager:
                         break
                     await asyncio.sleep(0.5)
 
-            self._update_initiation_status("Dialing...")
+            self._update_initiation_status("Establishing link...", destination_hash_hex)
             self.call_start_time = time.time()
             self.call_is_incoming = False
 
@@ -312,6 +312,17 @@ class TelephoneManager:
             while not call_task.done():
                 if not self.initiation_status:  # Externally cancelled
                     break
+
+                # Update UI status based on current call state
+                if self.telephone.call_status == 2:
+                    self._update_initiation_status("Calling...", destination_hash_hex)
+                elif self.telephone.call_status == 4:
+                    self._update_initiation_status("Ringing...", destination_hash_hex)
+                elif self.telephone.call_status == 5:
+                    self._update_initiation_status(
+                        "Establishing link...", destination_hash_hex,
+                    )
+
                 if self.telephone.call_status in [
                     6,
                     0,
@@ -327,13 +338,28 @@ class TelephoneManager:
             # If the task finished but we're still ringing or connecting,
             # wait a bit more for establishment or definitive failure
             if self.initiation_status and self.telephone.call_status in [
+                2,
                 4,
                 5,
-            ]:  # Ringing, Connecting
+            ]:  # Calling, Ringing, Connecting
                 wait_until = time.time() + timeout_seconds
                 while time.time() < wait_until:
                     if not self.initiation_status:  # Externally cancelled
                         break
+
+                    if self.telephone.call_status == 2:
+                        self._update_initiation_status(
+                            "Calling...", destination_hash_hex,
+                        )
+                    elif self.telephone.call_status == 4:
+                        self._update_initiation_status(
+                            "Ringing...", destination_hash_hex,
+                        )
+                    elif self.telephone.call_status == 5:
+                        self._update_initiation_status(
+                            "Establishing link...", destination_hash_hex,
+                        )
+
                     if self.telephone.call_status in [
                         6,
                         0,
@@ -350,14 +376,23 @@ class TelephoneManager:
             await asyncio.sleep(3)
             raise
         finally:
+            # Wait for either establishment, failure, or a timeout
+            # to ensure the UI has something to show (either active_call or initiation_status)
+            for _ in range(20):  # Max 10 seconds of defensive waiting
+                if self.telephone and (
+                    self.telephone.active_call
+                    or self.telephone.call_status in [0, 1, 3, 6]
+                ):
+                    break
+                await asyncio.sleep(0.5)
+
             # If call was successful, keep status for a moment to prevent UI flicker
             # while the frontend picks up the new active_call state
-            if (
-                self.telephone
-                and self.telephone.active_call
-                and self.telephone.call_status == 6
+            if self.telephone and (
+                (self.telephone.active_call and self.telephone.call_status == 6)
+                or self.telephone.call_status in [2, 4, 5]
             ):
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(2.0)
             self._update_initiation_status(None, None)
 
     def mute_transmit(self):
