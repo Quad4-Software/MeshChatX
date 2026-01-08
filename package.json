@@ -15,6 +15,7 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "test": "vitest run",
+        "test:fuzz": "vitest run -t fuzzing",
         "test:watch": "vitest",
         "electron-postinstall": "electron-builder install-app-deps",
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
