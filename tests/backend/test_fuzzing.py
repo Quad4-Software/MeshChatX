@@ -103,6 +103,38 @@ def test_display_name_parsing_fuzzing(app_data_base64):
         pytest.fail(f"Display name parsing crashed with data {app_data_base64}: {e}")
 
 
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    fields_data=st.dictionaries(
+        st.integers(min_value=0, max_value=255), st.binary(min_size=0, max_size=1000)
+    )
+)
+def test_lxmf_fields_parsing_fuzzing(fields_data):
+    """Fuzz the parsing of LXMF message fields."""
+    try:
+        # This simulates how meshchat.py processes fields in on_lxmf_delivery
+        for field_id, field_data in fields_data.items():
+            if field_id == 0x01:  # FIELD_COMMANDS
+                try:
+                    import umsgpack
+
+                    commands = umsgpack.unpackb(field_data)
+                    if isinstance(commands, list):
+                        for cmd in commands:
+                            if isinstance(cmd, dict):
+                                for k, v in cmd.items():
+                                    pass
+                    elif isinstance(commands, dict):
+                        for k, v in commands.items():
+                            pass
+                except Exception:
+                    pass
+            elif field_id == 0x02:  # FIELD_TELEMETRY
+                Telemeter.from_packed(field_data)
+    except Exception:
+        pass
+
+
 @pytest.fixture
 def temp_dir(tmp_path):
     return str(tmp_path)

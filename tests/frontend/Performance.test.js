@@ -16,6 +16,18 @@ vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
         formatTimeAgo: () => "1 hour ago",
         formatBytes: () => "1 KB",
         formatDestinationHash: (h) => h,
+        escapeHtml: (t) =>
+            t.replace(
+                /[&<>"']/g,
+                (m) =>
+                    ({
+                        "&": "&amp;",
+                        "<": "&lt;",
+                        ">": "&gt;",
+                        '"': "&quot;",
+                        "'": "&#039;",
+                    })[m]
+            ),
     },
 }));
 

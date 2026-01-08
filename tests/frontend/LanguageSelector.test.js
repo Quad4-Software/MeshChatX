@@ -43,10 +43,11 @@ describe("LanguageSelector.vue", () => {
         await wrapper.find("button").trigger("click");
 
         const languageButtons = wrapper.findAll(".fixed button");
-        expect(languageButtons).toHaveLength(3);
+        expect(languageButtons).toHaveLength(4);
         expect(languageButtons[0].text()).toContain("English");
         expect(languageButtons[1].text()).toContain("Deutsch");
         expect(languageButtons[2].text()).toContain("Русский");
+        expect(languageButtons[3].text()).toContain("Italiano");
     });
 
     it("emits language-change when a different language is selected", async () => {
