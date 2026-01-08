@@ -3753,6 +3753,31 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
+        # delete docs version
+        @routes.delete("/api/v1/docs/version/{version}")
+        async def docs_delete_version(request):
+            try:
+                version = request.match_info.get("version")
+                if not version:
+                    return web.json_response(
+                        {"error": "No version provided"},
+                        status=400,
+                    )
+
+                success = self.docs_manager.delete_version(version)
+                return web.json_response({"success": success})
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        # clear reticulum docs
+        @routes.delete("/api/v1/maintenance/docs/reticulum")
+        async def docs_clear(request):
+            try:
+                success = self.docs_manager.clear_reticulum_docs()
+                return web.json_response({"success": success})
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
         # search docs
         @routes.get("/api/v1/docs/search")
         async def docs_search(request):
@@ -8901,7 +8926,7 @@ class ReticulumMeshChat:
 
         if "telemetry_enabled" in data:
             self.config.telemetry_enabled.set(
-                self._parse_bool(data["telemetry_enabled"])
+                self._parse_bool(data["telemetry_enabled"]),
             )
 
         # update banishment settings
@@ -10285,7 +10310,7 @@ class ReticulumMeshChat:
                     commands.extend(val)
                 elif isinstance(val, dict):
                     commands.append(val)
-            if 0x01 in lxmf_fields and 0x01 != LXMF.FIELD_COMMANDS:
+            if 0x01 in lxmf_fields and LXMF.FIELD_COMMANDS != 0x01:
                 val = lxmf_fields[0x01]
                 if isinstance(val, list):
                     commands.extend(val)
@@ -10321,11 +10346,11 @@ class ReticulumMeshChat:
                 else:
                     # Check if peer is trusted
                     contact = ctx.database.contacts.get_contact_by_identity_hash(
-                        source_hash
+                        source_hash,
                     )
                     if not contact or not contact.get("is_telemetry_trusted"):
                         print(
-                            f"Telemetry request from untrusted peer {source_hash}, ignoring"
+                            f"Telemetry request from untrusted peer {source_hash}, ignoring",
                         )
                     else:
                         print(f"Responding to telemetry request from {source_hash}")
@@ -10342,7 +10367,7 @@ class ReticulumMeshChat:
                                 "remote_identity_name": source_hash[:8],
                                 "lxmf_message": convert_db_lxmf_message_to_dict(
                                     ctx.database.messages.get_lxmf_message_by_hash(
-                                        lxmf_message.hash.hex()
+                                        lxmf_message.hash.hex(),
                                     ),
                                     include_attachments=False,
                                 ),

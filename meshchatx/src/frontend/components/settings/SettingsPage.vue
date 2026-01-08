@@ -303,6 +303,22 @@
                                         </div>
                                     </div>
                                 </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
+                                    @click="clearReticulumDocs"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="book-remove" class="size-4" />
+                                            {{ $t("maintenance.clear_reticulum_docs") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_reticulum_docs_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
                             </div>
 
                             <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
@@ -2214,6 +2230,15 @@ export default {
             try {
                 await window.axios.delete("/api/v1/maintenance/archives");
                 ToastUtils.success(this.$t("maintenance.archives_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearReticulumDocs() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/docs/reticulum");
+                ToastUtils.success(this.$t("maintenance.docs_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
             }

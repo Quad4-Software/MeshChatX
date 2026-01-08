@@ -114,7 +114,7 @@
                             <button
                                 v-for="version in status.versions"
                                 :key="version"
-                                class="w-full px-4 py-2 text-left text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between"
+                                class="w-full px-4 py-2 text-left text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between group"
                                 :class="
                                     status.current_version === version
                                         ? 'text-blue-600 dark:text-blue-400 font-bold'
@@ -122,12 +122,23 @@
                                 "
                                 @click="switchVersion(version)"
                             >
-                                <span>{{ version }}</span>
-                                <MaterialDesignIcon
-                                    v-if="status.current_version === version"
-                                    icon-name="check"
-                                    class="w-3.5 h-3.5"
-                                />
+                                <span class="truncate">{{ version }}</span>
+                                <div class="flex items-center space-x-1">
+                                    <MaterialDesignIcon
+                                        v-if="status.current_version === version"
+                                        icon-name="check"
+                                        class="w-3.5 h-3.5"
+                                    />
+                                    <button
+                                        v-if="status.versions.length > 1"
+                                        type="button"
+                                        class="p-1 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Delete this version"
+                                        @click.stop="deleteVersion(version)"
+                                    >
+                                        <MaterialDesignIcon icon-name="delete" class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                             </button>
                             <div
                                 v-if="status.versions.length === 0"
@@ -713,6 +724,20 @@ export default {
                 }
             } catch (error) {
                 console.error("Failed to switch docs version:", error);
+            }
+        },
+        async deleteVersion(version) {
+            if (!confirm(`Are you sure you want to delete version "${version}"?`)) {
+                return;
+            }
+
+            try {
+                await window.axios.delete(`/api/v1/docs/version/${encodeURIComponent(version)}`);
+                this.fetchStatus();
+                ToastUtils.success(`Version ${version} deleted`);
+            } catch (error) {
+                console.error("Failed to delete docs version:", error);
+                ToastUtils.error("Failed to delete version: " + (error.response?.data?.error || error.message));
             }
         },
         async handleZipUpload(event) {

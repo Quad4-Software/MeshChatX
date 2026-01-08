@@ -134,6 +134,63 @@ class DocsManager:
             return True
         return False
 
+    def delete_version(self, version):
+        """Deletes a specific version of documentation."""
+        if version not in self.get_available_versions():
+            return False
+
+        version_path = os.path.join(self.versions_dir, version)
+        if not os.path.exists(version_path):
+            return False
+
+        try:
+            # If the deleted version is the current one, unlink 'current' first
+            current_version = self.get_current_version()
+            if current_version == version:
+                if os.path.exists(self.docs_dir):
+                    if os.path.islink(self.docs_dir):
+                        os.unlink(self.docs_dir)
+                    else:
+                        shutil.rmtree(self.docs_dir)
+
+            shutil.rmtree(version_path)
+
+            # If we just deleted the current version, try to pick another one as current
+            if current_version == version:
+                self._update_current_link()
+
+            return True
+        except Exception as e:
+            logging.exception(f"Failed to delete docs version {version}: {e}")
+            return False
+
+    def clear_reticulum_docs(self):
+        """Clears all Reticulum documentation and versions."""
+        try:
+            if os.path.exists(self.docs_base_dir):
+                # We don't want to delete the base dir itself, just its contents
+                # except possibly some metadata if we added any.
+                # Actually, deleting everything inside reticulum-docs is fine.
+                for item in os.listdir(self.docs_base_dir):
+                    item_path = os.path.join(self.docs_base_dir, item)
+                    if os.path.islink(item_path):
+                        os.unlink(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                    else:
+                        os.remove(item_path)
+
+                # Re-create required subdirectories
+                for d in [self.versions_dir, self.docs_dir]:
+                    if not os.path.exists(d):
+                        os.makedirs(d)
+
+                self.config.docs_downloaded.set(False)
+                return True
+        except Exception as e:
+            logging.exception(f"Failed to clear Reticulum docs: {e}")
+            return False
+
     def populate_meshchatx_docs(self):
         """Populates meshchatx-docs from the project's docs folder."""
         # Try to find docs folder in several places
