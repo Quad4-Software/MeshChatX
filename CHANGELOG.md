@@ -9,7 +9,7 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
 ### New Features
 
 - **Banishment System (formerly Blocked):** 
-    - Renamed all instances of "Blocked" to **"Banished"**, you can now banish people to the shadow realm.
+    - Renamed all instances of "Blocked" to **"Banished"**, you can now banish really annoying people to the shadow realm.
     - **Blackhole Integration:** Automatically blackholes identities at the RNS transport layer when they are banished in MeshChatX. This prevents their traffic from being relayed through your node and publishes the update to your interfaces (trusted interfaces will pull and enforce the banishment).
     - Integrated RNS 1.1.0 Blackhole to display publishing status, sources, and current blackhole counts in the RNStatus page.
 - **RNPath Management Tool:** New UI tool to manage the Reticulum path table, monitor announce rates (with rate-limit detection), and perform manual path requests or purges directly from the app.
@@ -18,6 +18,12 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
     - Added support for custom ringtones and a brand-new ringtone editor.
     - New **Audio Waveform Visualization** for voice messages, providing interactive playback with a visual waveform representation.
 - **Paper Messages:** Introduced a tool for generating and scanning paper-based messages with built-in QR code generation for easy sharing.
+- **LXMF Telemetry & Live Tracking**: 
+    - Full implementation of Sideband-compatible (Still need to test Columba) telemetry (FIELD_TELEMETRY & FIELD_TELEMETRY_STREAM).
+    - Live tracking with real-time map updates, distinct blue pulsing animations, and historical path tracing (breadcrumb trails).
+    - Mini-chat integrated into map markers for quick communication with telemetry peers.
+    - Privacy controls with global telemetry toggle and per-peer "Trust for Telemetry" settings.
+    - Detailed telemetry history timeline with interactive battery voltage/percentage sparkline charts.
 - **Documentation:** You can now read all the project guides and help docs directly inside the app.
 - **Reliability:**
     - If the app ever crashes, it's now much better at picking up right where it left off without losing your data.
@@ -40,7 +46,7 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
     *   **Power Management:** Automatically prevents system sleep during active audio calls to maintain RNS path stability.
 - **Added Web Audio Bridge** which allows web/electron to hook into LXST backend for passing microphone and audio streams to active telephone calls.
 - **Added LXMFy** for running bots.
-- **Added RNS Discoverable Interfaces** https://markqvist.github.io/Reticulum/manual/interfaces.html#discoverable-interfaces
+- **Added RNS Discoverable Interfaces** https://markqvist.github.io/Reticulum/manual/interfaces.html#discoverable-interfaces and ability to map them (ones with a location).
 
 ### Improvements
 
@@ -52,10 +58,16 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
     - **Smoother Settings:** Changing settings now uses "smart saving" (debouncing) to prevent unnecessary disk work and keep the interface responsive.
     - **Backend Efficiency:** A massive core refactor and new database optimizations make message handling and search nearly instantaneous. Added pagination to announce and discovery lists to improve performance in large networks.
 - **Calling:** The call screen and overlays have been completely redesigned to look better and work more smoothly.
-- **Messaging:** We've polished the message lists and archive views to make them easier to navigate.
+- **Messaging:** 
+    - Polished the message lists and archive views to make them easier to navigate.
+    - Added "Retry All" functionality for failed or cancelled messages in conversation views.
+    - Improved handling of `lxm.ingest_uri.result` with detailed notifications for success/error/warning states.
+- **Maintenance Tools:** Added new maintenance utilities to clear LXMF user icon caches and manage backup configurations.
 - **Network View:** The visualizer that shows your network connections is now much clearer and easier to understand.
-- **Languages:** Updated translations for English, German, and Russian. Added a toggle to easily enable or disable translation services.
+- **Languages:** Updated translations for English, German, and Russian. Added **Italian (it-IT)** localization. Added a toggle to easily enable or disable translation services.
 - **Search:** The command palette (quick search) and notification bell are now more useful.
+- **CartoDB Tiles** - some more styles if OSM is not enough for you, MBtiles will export tiles from the selected one.
+- **Basic Markdown in Messages** - Support for basic markdown in messages
 
 ### Bug Fixes
 
@@ -90,8 +102,11 @@ Season 1 Episode 1 - A MASSIVE REFACTOR
 - **Infrastructure:**
     - Added `Dockerfile.build` for multi-stage container builds.
     - Introduced `gen_checksums.sh` for release artifact integrity.
-    - Expanded test coverage with 40+ new unit and integration tests across `tests/backend/` and `tests/frontend/`.
-        - Updated core dependencies: `rns`, `lxmf`, `aiohttp`, and `websockets`.
+    - **Comprehensive Testing Suite:**
+        - Added 80+ new unit, integration, and fuzz tests across `tests/backend/` and `tests/frontend/`.
+        - Implemented property-based fuzzing for LXMF message parsing and telemetry packing using `hypothesis`.
+        - Updated CI coverage for telemetry and network interface logic.
+    - Updated core dependencies: `rns`, `lxmf`, `aiohttp`, and `websockets`.
     - **Developer Tools & CI:**
         - New `task` commands: `bench-backend` (Standard suite), `bench-extreme` (Breaking Time and Space), `profile-memory` (Leak testing), and `bench` (Full run).
         - Added Gitea Actions workflow (`bench.yml`) for automated performance regression tracking on every push.
