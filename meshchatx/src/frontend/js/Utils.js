@@ -183,6 +183,20 @@ class Utils {
         const value = rawValue?.toString()?.toLowerCase();
         return value === "on" || value === "yes" || value === "true";
     }
+
+    static escapeHtml(text) {
+        if (!text) return "";
+        const map = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;",
+        };
+        return text.replace(/[&<>"']/g, function (m) {
+            return map[m];
+        });
+    }
 }
 
 export default Utils;

@@ -12,6 +12,7 @@ import App from "./components/App.vue";
 import en from "./locales/en.json";
 import de from "./locales/de.json";
 import ru from "./locales/ru.json";
+import it from "./locales/it.json";
 
 // init i18n
 const i18n = createI18n({
@@ -22,6 +23,7 @@ const i18n = createI18n({
         en,
         de,
         ru,
+        it,
     },
 });
 
@@ -178,6 +180,11 @@ const router = createRouter({
             name: "rnpath",
             path: "/rnpath",
             component: defineAsyncComponent(() => import("./components/tools/RNPathPage.vue")),
+        },
+        {
+            name: "rnpath-trace",
+            path: "/rnpath-trace",
+            component: defineAsyncComponent(() => import("./components/tools/RNPathTracePage.vue")),
         },
         {
             name: "rnprobe",
