@@ -1,7 +1,7 @@
 ARG NODE_IMAGE=node:22-alpine
 ARG NODE_HASH=sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf
-ARG PYTHON_IMAGE=python:3.13-alpine
-ARG PYTHON_HASH=sha256:e7e041128ffc3e3600509f508e44d34ab08ff432bdb62ec508d01dfc5ca459f7
+ARG PYTHON_IMAGE=python:3.12.12-alpine3.23
+ARG PYTHON_HASH=sha256:68d81cd281ee785f48cdadecb6130d05ec6957f1249814570dc90e5100d3b146
 
 # Stage 1: Build Frontend
 FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
@@ -33,14 +33,14 @@ COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
 RUN pip install . && \
     # Trigger LXST filter compilation while build tools are still present
     python -c "import LXST.Filters; print('LXST Filters compiled successfully')" && \
-    python -m compileall /opt/venv/lib/python3.13/site-packages
+    python -m compileall /opt/venv/lib/python3.12/site-packages
 
 # Stage 3: Final Runtime Image
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 WORKDIR /app
 # Install runtime dependencies only
 # We keep py3-setuptools because CFFI/LXST might need it at runtime on Python 3.12+
-RUN apk add --no-cache ffmpeg opusfile libffi su-exec py3-setuptools && \
+RUN apk add --no-cache ffmpeg opusfile libffi su-exec py3-setuptools espeak-ng && \
     addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
     mkdir -p /config && chown meshchat:meshchat /config
 
