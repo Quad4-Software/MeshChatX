@@ -33,7 +33,7 @@ To provide everything you need for Reticulum, LXMF, and LXST in one beautiful an
 - Desktop app (Linux, Windows, macOS)
 - Self-host on your server easily with or without containers
 - Mobile app (one can dream)
-- Reliable, "secure", fast and easy to use.
+- Reliable, secure, fast and easy to use.
 
 Note on macOS: You will need to manually build or use containers since I do not have a macOS machine or runner.
 
