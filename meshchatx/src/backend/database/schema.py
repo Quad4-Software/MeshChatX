@@ -2,7 +2,7 @@ from .provider import DatabaseProvider
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 36
+    LATEST_VERSION = 37
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -346,6 +346,17 @@ class DatabaseSchema:
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(destination_hash, timestamp)
+                )
+            """,
+            "telemetry_tracking": """
+                CREATE TABLE IF NOT EXISTS telemetry_tracking (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    destination_hash TEXT UNIQUE,
+                    is_tracking INTEGER DEFAULT 1,
+                    interval_seconds INTEGER DEFAULT 60,
+                    last_request_at REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """,
             "ringtones": """
@@ -975,6 +986,17 @@ class DatabaseSchema:
             )
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_folders_folder_id ON lxmf_conversation_folders(folder_id)",
+            )
+
+        if current_version < 37:
+            # Add is_telemetry_trusted to contacts
+            self._safe_execute(
+                "ALTER TABLE contacts ADD COLUMN is_telemetry_trusted INTEGER DEFAULT 0",
+            )
+            # Ensure telemetry_enabled exists in config and is false by default
+            self._safe_execute(
+                "INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)",
+                ("telemetry_enabled", "false"),
             )
 
         # Update version in config

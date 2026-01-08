@@ -13,17 +13,19 @@ class ContactsDAO:
         lxst_address=None,
         preferred_ringtone_id=None,
         custom_image=None,
+        is_telemetry_trusted=0,
     ):
         self.provider.execute(
             """
-            INSERT INTO contacts (name, remote_identity_hash, lxmf_address, lxst_address, preferred_ringtone_id, custom_image)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO contacts (name, remote_identity_hash, lxmf_address, lxst_address, preferred_ringtone_id, custom_image, is_telemetry_trusted)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(remote_identity_hash) DO UPDATE SET
                 name = EXCLUDED.name,
                 lxmf_address = COALESCE(EXCLUDED.lxmf_address, contacts.lxmf_address),
                 lxst_address = COALESCE(EXCLUDED.lxst_address, contacts.lxst_address),
                 preferred_ringtone_id = EXCLUDED.preferred_ringtone_id,
                 custom_image = EXCLUDED.custom_image,
+                is_telemetry_trusted = EXCLUDED.is_telemetry_trusted,
                 updated_at = CURRENT_TIMESTAMP
             """,
             (
@@ -33,6 +35,7 @@ class ContactsDAO:
                 lxst_address,
                 preferred_ringtone_id,
                 custom_image,
+                is_telemetry_trusted,
             ),
         )
 
@@ -74,6 +77,7 @@ class ContactsDAO:
         preferred_ringtone_id=None,
         custom_image=None,
         clear_image=False,
+        is_telemetry_trusted=None,
     ):
         updates = []
         params = []
@@ -93,6 +97,9 @@ class ContactsDAO:
         if preferred_ringtone_id is not None:
             updates.append("preferred_ringtone_id = ?")
             params.append(preferred_ringtone_id)
+        if is_telemetry_trusted is not None:
+            updates.append("is_telemetry_trusted = ?")
+            params.append(1 if is_telemetry_trusted else 0)
         if clear_image:
             updates.append("custom_image = NULL")
         elif custom_image is not None:

@@ -116,29 +116,59 @@ def convert_db_favourite_to_dict(favourite):
 
 
 def parse_lxmf_display_name(
-    app_data_base64: str | None,
+    app_data_base64: str | bytes | None,
     default_value: str | None = "Anonymous Peer",
 ):
     if app_data_base64 is None:
         return default_value
 
     try:
-        app_data_bytes = base64.b64decode(app_data_base64)
-        display_name = LXMF.display_name_from_app_data(app_data_bytes)
-        if display_name is not None:
-            return display_name
+        if isinstance(app_data_base64, bytes):
+            app_data_bytes = app_data_base64
+        else:
+            app_data_bytes = base64.b64decode(app_data_base64)
+
+        # Try using the library first
+        try:
+            display_name = LXMF.display_name_from_app_data(app_data_bytes)
+            if display_name is not None:
+                return display_name
+        except (AttributeError, Exception):
+            # Handle cases where library might fail or has the 'str' object has no attribute 'decode' bug
+            pass
+
+        # Fallback manual parsing if library failed or returned None
+        if len(app_data_bytes) > 0:
+            # Version 0.5.0+ announce format (msgpack list)
+            if (
+                app_data_bytes[0] >= 0x90 and app_data_bytes[0] <= 0x9F
+            ) or app_data_bytes[0] == 0xDC:
+                try:
+                    peer_data = msgpack.unpackb(app_data_bytes)
+                    if isinstance(peer_data, list) and len(peer_data) >= 1:
+                        dn = peer_data[0]
+                        if dn is not None:
+                            if isinstance(dn, bytes):
+                                return dn.decode("utf-8")
+                            return str(dn)
+                except Exception:
+                    pass
     except Exception as e:
         print(f"Failed to parse LXMF display name: {e}")
 
     return default_value
 
 
-def parse_lxmf_stamp_cost(app_data_base64: str | None):
+def parse_lxmf_stamp_cost(app_data_base64: str | bytes | None):
     if app_data_base64 is None:
         return None
 
     try:
-        app_data_bytes = base64.b64decode(app_data_base64)
+        if isinstance(app_data_base64, bytes):
+            app_data_bytes = app_data_base64
+        else:
+            app_data_bytes = base64.b64decode(app_data_base64)
+
         return LXMF.stamp_cost_from_app_data(app_data_bytes)
     except Exception as e:
         print(f"Failed to parse LXMF stamp cost: {e}")
@@ -146,26 +176,34 @@ def parse_lxmf_stamp_cost(app_data_base64: str | None):
 
 
 def parse_nomadnetwork_node_display_name(
-    app_data_base64: str | None,
+    app_data_base64: str | bytes | None,
     default_value: str | None = "Anonymous Node",
 ):
     if app_data_base64 is None:
         return default_value
 
     try:
-        app_data_bytes = base64.b64decode(app_data_base64)
+        if isinstance(app_data_base64, bytes):
+            app_data_bytes = app_data_base64
+        else:
+            app_data_bytes = base64.b64decode(app_data_base64)
+
         return app_data_bytes.decode("utf-8")
     except Exception as e:
         print(f"Failed to parse NomadNetwork display name: {e}")
         return default_value
 
 
-def parse_lxmf_propagation_node_app_data(app_data_base64: str | None):
+def parse_lxmf_propagation_node_app_data(app_data_base64: str | bytes | None):
     if app_data_base64 is None:
         return None
 
     try:
-        app_data_bytes = base64.b64decode(app_data_base64)
+        if isinstance(app_data_base64, bytes):
+            app_data_bytes = app_data_base64
+        else:
+            app_data_bytes = base64.b64decode(app_data_base64)
+
         data = msgpack.unpackb(app_data_bytes)
 
         if not isinstance(data, list) or len(data) < 4:

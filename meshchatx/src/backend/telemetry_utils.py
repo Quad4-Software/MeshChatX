@@ -70,7 +70,7 @@ class Telemeter:
                 struct.pack("!I", int(round(speed, 2) * 1e2)),
                 struct.pack("!i", int(round(bearing, 2) * 1e2)),
                 struct.pack("!H", int(round(accuracy, 2) * 1e2)),
-                int(last_update or time.time()),
+                int(last_update) if last_update is not None else int(time.time()),
             ]
         except Exception:
             return None
@@ -84,15 +84,33 @@ class Telemeter:
                 res["time"] = {"utc": p[Sensor.SID_TIME]}
             if Sensor.SID_LOCATION in p:
                 res["location"] = Telemeter.unpack_location(p[Sensor.SID_LOCATION])
+            if Sensor.SID_PHYSICAL_LINK in p:
+                pl = p[Sensor.SID_PHYSICAL_LINK]
+                if isinstance(pl, (list, tuple)) and len(pl) >= 3:
+                    res["physical_link"] = {"rssi": pl[0], "snr": pl[1], "q": pl[2]}
+            if Sensor.SID_BATTERY in p:
+                b = p[Sensor.SID_BATTERY]
+                if isinstance(b, (list, tuple)) and len(b) >= 2:
+                    res["battery"] = {"charge_percent": b[0], "charging": b[1]}
             # Add other sensors as needed
             return res
         except Exception:
             return None
 
     @staticmethod
-    def pack(time_utc=None, location=None):
+    def pack(time_utc=None, location=None, battery=None, physical_link=None):
         p = {}
         p[Sensor.SID_TIME] = int(time_utc or time.time())
         if location:
             p[Sensor.SID_LOCATION] = Telemeter.pack_location(**location)
+        if battery:
+            # battery should be [charge_percent, charging]
+            p[Sensor.SID_BATTERY] = [battery["charge_percent"], battery["charging"]]
+        if physical_link:
+            # physical_link should be [rssi, snr, q]
+            p[Sensor.SID_PHYSICAL_LINK] = [
+                physical_link["rssi"],
+                physical_link["snr"],
+                physical_link["q"],
+            ]
         return umsgpack.packb(p)

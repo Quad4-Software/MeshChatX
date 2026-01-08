@@ -26,6 +26,7 @@ import traceback
 import webbrowser
 from datetime import UTC, datetime, timedelta
 from logging.handlers import RotatingFileHandler
+from urllib.parse import urlparse
 
 import aiohttp
 import bcrypt
@@ -436,6 +437,17 @@ class ReticulumMeshChat:
             self.current_context.rnpath_handler = value
 
     @property
+    def rnpath_trace_handler(self):
+        return (
+            self.current_context.rnpath_trace_handler if self.current_context else None
+        )
+
+    @rnpath_trace_handler.setter
+    def rnpath_trace_handler(self, value):
+        if self.current_context:
+            self.current_context.rnpath_trace_handler = value
+
+    @property
     def rnprobe_handler(self):
         return self.current_context.rnprobe_handler if self.current_context else None
 
@@ -793,7 +805,6 @@ class ReticulumMeshChat:
             # Wait another moment for sockets to definitely be released by OS
             # Also give some time for the RPC listener port to settle
             print("Waiting for ports to settle...")
-            # We add a settle time here similar to Sideband's logic
             await asyncio.sleep(4)
 
             # Detect RPC type from reticulum instance if possible, otherwise default to both
@@ -2292,6 +2303,64 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
+        @routes.get("/api/v1/database/backups/{filename}/download")
+        async def download_db_backup(request):
+            try:
+                filename = request.match_info.get("filename")
+                if not filename.endswith(".zip"):
+                    filename += ".zip"
+                backup_dir = os.path.join(self.storage_dir, "database-backups")
+                full_path = os.path.join(backup_dir, filename)
+
+                if not os.path.exists(full_path) or not full_path.startswith(
+                    backup_dir,
+                ):
+                    return web.json_response(
+                        {"status": "error", "message": "Backup not found"},
+                        status=404,
+                    )
+
+                return web.FileResponse(
+                    path=full_path,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}"',
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"status": "error", "message": str(e)},
+                    status=500,
+                )
+
+        @routes.get("/api/v1/database/snapshots/{filename}/download")
+        async def download_db_snapshot(request):
+            try:
+                filename = request.match_info.get("filename")
+                if not filename.endswith(".zip"):
+                    filename += ".zip"
+                snapshot_dir = os.path.join(self.storage_dir, "snapshots")
+                full_path = os.path.join(snapshot_dir, filename)
+
+                if not os.path.exists(full_path) or not full_path.startswith(
+                    snapshot_dir,
+                ):
+                    return web.json_response(
+                        {"status": "error", "message": "Snapshot not found"},
+                        status=404,
+                    )
+
+                return web.FileResponse(
+                    path=full_path,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}"',
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"status": "error", "message": str(e)},
+                    status=500,
+                )
+
         @routes.get("/api/v1/status")
         async def status(request):
             return web.json_response(
@@ -3366,12 +3435,78 @@ class ReticulumMeshChat:
 
             # Get total paths
             total_paths = 0
+            is_connected_to_shared_instance = False
+            shared_instance_address = None
             if hasattr(self, "reticulum") and self.reticulum:
                 try:
                     path_table = self.reticulum.get_path_table()
                     total_paths = len(path_table)
                 except Exception:  # noqa: S110
                     pass
+
+                is_connected_to_shared_instance = getattr(
+                    self.reticulum,
+                    "is_connected_to_shared_instance",
+                    False,
+                )
+
+                if is_connected_to_shared_instance:
+                    # Try to find the shared instance address from active connections
+                    try:
+                        for conn in process.connections(kind="all"):
+                            if conn.status == psutil.CONN_ESTABLISHED and conn.raddr:
+                                # Check for common Reticulum shared instance ports or UNIX sockets
+                                if (
+                                    isinstance(conn.raddr, tuple)
+                                    and conn.raddr[1] == 37428
+                                ):
+                                    shared_instance_address = (
+                                        f"{conn.raddr[0]}:{conn.raddr[1]}"
+                                    )
+                                    break
+                                if (
+                                    isinstance(conn.raddr, str)
+                                    and (
+                                        "rns" in conn.raddr or "reticulum" in conn.raddr
+                                    )
+                                    and ".sock" in conn.raddr
+                                ):
+                                    shared_instance_address = conn.raddr
+                                    break
+                    except Exception:  # noqa: S110
+                        pass
+
+                    # Fallback to reading config if not found via connections
+                    if not shared_instance_address:
+                        try:
+                            config_dir = getattr(self, "reticulum_config_dir", None)
+                            if not config_dir:
+                                config_dir = getattr(
+                                    RNS.Reticulum,
+                                    "configdir",
+                                    os.path.expanduser("~/.reticulum"),
+                                )
+
+                            config_path = os.path.join(config_dir, "config")
+                            if os.path.isfile(config_path):
+                                cp = configparser.ConfigParser()
+                                cp.read(config_path)
+                                if cp.has_section("reticulum"):
+                                    shared_port = cp.getint(
+                                        "reticulum",
+                                        "shared_instance_port",
+                                        fallback=37428,
+                                    )
+                                    shared_bind = cp.get(
+                                        "reticulum",
+                                        "shared_instance_bind",
+                                        fallback="127.0.0.1",
+                                    )
+                                    shared_instance_address = (
+                                        f"{shared_bind}:{shared_port}"
+                                    )
+                        except Exception:  # noqa: S110
+                            pass
 
             # Calculate announce rates
             current_time = time.time()
@@ -3453,15 +3588,8 @@ class ReticulumMeshChat:
                             if hasattr(self, "reticulum") and self.reticulum
                             else None
                         ),
-                        "is_connected_to_shared_instance": (
-                            getattr(
-                                self.reticulum,
-                                "is_connected_to_shared_instance",
-                                False,
-                            )
-                            if hasattr(self, "reticulum") and self.reticulum
-                            else False
-                        ),
+                        "is_connected_to_shared_instance": is_connected_to_shared_instance,
+                        "shared_instance_address": shared_instance_address,
                         "is_transport_enabled": (
                             self.reticulum.transport_enabled()
                             if hasattr(self, "reticulum") and self.reticulum
@@ -5245,6 +5373,7 @@ class ReticulumMeshChat:
             lxst_address = data.get("lxst_address")
             preferred_ringtone_id = data.get("preferred_ringtone_id")
             custom_image = data.get("custom_image")
+            is_telemetry_trusted = data.get("is_telemetry_trusted", 0)
 
             if not name:
                 return web.json_response(
@@ -5278,6 +5407,7 @@ class ReticulumMeshChat:
                 lxst_address=lxst_address,
                 preferred_ringtone_id=preferred_ringtone_id,
                 custom_image=custom_image,
+                is_telemetry_trusted=is_telemetry_trusted,
             )
             return web.json_response({"message": "Contact added"})
 
@@ -5292,6 +5422,7 @@ class ReticulumMeshChat:
             preferred_ringtone_id = data.get("preferred_ringtone_id")
             custom_image = data.get("custom_image")
             clear_image = data.get("clear_image", False)
+            is_telemetry_trusted = data.get("is_telemetry_trusted")
 
             self.database.contacts.update_contact(
                 contact_id,
@@ -5302,6 +5433,7 @@ class ReticulumMeshChat:
                 preferred_ringtone_id=preferred_ringtone_id,
                 custom_image=custom_image,
                 clear_image=clear_image,
+                is_telemetry_trusted=is_telemetry_trusted,
             )
             return web.json_response({"message": "Contact updated"})
 
@@ -6374,6 +6506,31 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
 
+        @routes.get("/api/v1/rnpath/trace/{destination_hash}")
+        async def rnpath_trace(request):
+            destination_hash = request.match_info.get("destination_hash")
+            if not destination_hash:
+                return web.json_response(
+                    {"error": "destination_hash is required"},
+                    status=400,
+                )
+            try:
+                if not self.rnpath_trace_handler:
+                    return web.json_response(
+                        {
+                            "error": "RNPathTraceHandler not initialized for current context",
+                        },
+                        status=503,
+                    )
+                result = await self.rnpath_trace_handler.trace_path(destination_hash)
+                return web.json_response(result)
+            except Exception as e:
+                import traceback
+
+                error_msg = f"Trace route failed: {e}\n{traceback.format_exc()}"
+                print(error_msg)
+                return web.json_response({"error": error_msg}, status=500)
+
         @routes.post("/api/v1/rnprobe")
         async def rnprobe(request):
             data = await request.json()
@@ -7219,6 +7376,9 @@ class ReticulumMeshChat:
                         "contact_image": contact_image,
                         "destination_hash": other_user_hash,
                         "is_unread": is_unread,
+                        "is_tracking": self.database.telemetry.is_tracking(
+                            other_user_hash,
+                        ),
                         "failed_messages_count": row["failed_count"],
                         "has_attachments": message_fields_have_attachments(
                             row["fields"],
@@ -7866,9 +8026,39 @@ class ReticulumMeshChat:
                         if r["physical_link"]
                         else None,
                         "updated_at": r["updated_at"],
+                        "is_tracking": self.database.telemetry.is_tracking(
+                            r["destination_hash"],
+                        ),
                     },
                 )
             return web.json_response({"telemetry": telemetry_list})
+
+        @routes.get("/api/v1/telemetry/trusted-peers")
+        async def telemetry_trusted_peers_get(request):
+            # get all contacts that are telemetry trusted
+            contacts = self.database.provider.fetchall(
+                "SELECT * FROM contacts WHERE is_telemetry_trusted = 1 ORDER BY name ASC",
+            )
+            return web.json_response({"trusted_peers": [dict(c) for c in contacts]})
+
+        # toggle telemetry tracking for a destination
+        @routes.post("/api/v1/telemetry/tracking/{destination_hash}/toggle")
+        async def toggle_telemetry_tracking(request):
+            destination_hash = request.match_info["destination_hash"]
+            data = await request.json()
+            is_tracking = data.get("is_tracking")
+
+            new_status = self.database.telemetry.toggle_tracking(
+                destination_hash,
+                is_tracking,
+            )
+            return web.json_response({"status": "ok", "is_tracking": new_status})
+
+        # get all tracked peers
+        @routes.get("/api/v1/telemetry/tracking")
+        async def get_tracked_peers(request):
+            results = self.database.telemetry.get_tracked_peers()
+            return web.json_response({"tracked_peers": results})
 
         # get telemetry history for a destination
         @routes.get("/api/v1/telemetry/history/{destination_hash}")
@@ -8088,10 +8278,7 @@ class ReticulumMeshChat:
             response.headers["X-XSS-Protection"] = "1; mode=block"
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
-            # CSP: allow localhost for development and Electron, websockets, and blob URLs
-            # Add 'unsafe-inline' and 'unsafe-eval' for some legacy doc scripts if needed,
-            # and allow framing ourselves for the docs page.
-            gitea_url = "https://git.quad4.io"
+            # CSP base configuration
             connect_sources = [
                 "'self'",
                 "ws://localhost:*",
@@ -8100,13 +8287,47 @@ class ReticulumMeshChat:
                 "https://*.tile.openstreetmap.org",
                 "https://tile.openstreetmap.org",
                 "https://nominatim.openstreetmap.org",
+                "https://*.cartocdn.com",
             ]
 
+            img_sources = [
+                "'self'",
+                "data:",
+                "blob:",
+                "https://*.tile.openstreetmap.org",
+                "https://tile.openstreetmap.org",
+                "https://*.cartocdn.com",
+            ]
+
+            frame_sources = [
+                "'self'",
+                "https://reticulum.network",
+            ]
+
+            script_sources = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
+            style_sources = ["'self'", "'unsafe-inline'"]
+
             if self.current_context and self.current_context.config:
+                # Helper to add domain from URL
+                def add_domain_from_url(url, target_list):
+                    if not url:
+                        return None
+                    try:
+                        parsed = urlparse(url)
+                        if parsed.netloc:
+                            domain = f"{parsed.scheme}://{parsed.netloc}"
+                            if domain not in target_list:
+                                target_list.append(domain)
+                            return domain
+                    except Exception:  # noqa: S110
+                        pass
+                    return None
+
                 # Add configured Gitea base URL
-                gitea_url = self.current_context.config.gitea_base_url.get()
-                if gitea_url not in connect_sources:
-                    connect_sources.append(gitea_url)
+                add_domain_from_url(
+                    self.current_context.config.gitea_base_url.get(),
+                    connect_sources,
+                )
 
                 # Add configured docs download URLs domains
                 docs_urls_str = self.current_context.config.docs_download_urls.get()
@@ -8116,33 +8337,67 @@ class ReticulumMeshChat:
                     if u.strip()
                 ]
                 for url in docs_urls:
-                    try:
-                        from urllib.parse import urlparse
+                    domain = add_domain_from_url(url, connect_sources)
+                    if domain and "github.com" in domain:
+                        content_domain = "https://objects.githubusercontent.com"
+                        if content_domain not in connect_sources:
+                            connect_sources.append(content_domain)
 
-                        parsed = urlparse(url)
-                        if parsed.netloc:
-                            domain = f"{parsed.scheme}://{parsed.netloc}"
-                            if domain not in connect_sources:
-                                connect_sources.append(domain)
+                # Add map tile server domain
+                map_tile_url = self.current_context.config.map_tile_server_url.get()
+                add_domain_from_url(map_tile_url, img_sources)
+                add_domain_from_url(map_tile_url, connect_sources)
 
-                            # If GitHub is used, also allow objects.githubusercontent.com for redirects
-                            if "github.com" in domain:
-                                content_domain = "https://objects.githubusercontent.com"
-                                if content_domain not in connect_sources:
-                                    connect_sources.append(content_domain)
-                    except Exception:  # noqa: S110
-                        pass
+                # Add nominatim API domain
+                nominatim_url = self.current_context.config.map_nominatim_api_url.get()
+                add_domain_from_url(nominatim_url, connect_sources)
+
+                # Add custom CSP sources from config
+                def add_extra_sources(extra_str, target_list):
+                    if not extra_str:
+                        return
+                    sources = [
+                        s.strip()
+                        for s in extra_str.replace("\n", ",")
+                        .replace(";", ",")
+                        .split(",")
+                        if s.strip()
+                    ]
+                    for s in sources:
+                        if s not in target_list:
+                            target_list.append(s)
+
+                add_extra_sources(
+                    self.current_context.config.csp_extra_connect_src.get(),
+                    connect_sources,
+                )
+                add_extra_sources(
+                    self.current_context.config.csp_extra_img_src.get(),
+                    img_sources,
+                )
+                add_extra_sources(
+                    self.current_context.config.csp_extra_frame_src.get(),
+                    frame_sources,
+                )
+                add_extra_sources(
+                    self.current_context.config.csp_extra_script_src.get(),
+                    script_sources,
+                )
+                add_extra_sources(
+                    self.current_context.config.csp_extra_style_src.get(),
+                    style_sources,
+                )
 
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-                "style-src 'self' 'unsafe-inline'; "
-                "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org; "
+                f"script-src {' '.join(script_sources)}; "
+                f"style-src {' '.join(style_sources)}; "
+                f"img-src {' '.join(img_sources)}; "
                 "font-src 'self' data:; "
                 f"connect-src {' '.join(connect_sources)}; "
                 "media-src 'self' blob:; "
                 "worker-src 'self' blob:; "
-                "frame-src 'self' https://reticulum.network; "
+                f"frame-src {' '.join(frame_sources)}; "
                 "object-src 'none'; "
                 "base-uri 'self';"
             )
@@ -8328,6 +8583,47 @@ class ReticulumMeshChat:
 
             # Sleep for 12 hours
             await asyncio.sleep(12 * 3600)
+
+    async def telemetry_tracking_loop(self, session_id, context=None):
+        ctx = context or self.current_context
+        if not ctx:
+            return
+
+        while self.running and ctx.running and ctx.session_id == session_id:
+            try:
+                # Only run if telemetry is enabled globally
+                if not ctx.config.telemetry_enabled.get():
+                    await asyncio.sleep(60)
+                    continue
+
+                # Get all tracked peers
+                tracked_peers = ctx.database.telemetry.get_tracked_peers()
+                now = time.time()
+
+                for peer in tracked_peers:
+                    dest_hash = peer["destination_hash"]
+                    interval = peer.get("interval_seconds", 60)
+                    last_req = peer.get("last_request_at")
+
+                    if last_req is None or now - last_req >= interval:
+                        print(f"Sending telemetry request to tracked peer: {dest_hash}")
+                        # Send telemetry request
+                        await self.send_message(
+                            destination_hash=dest_hash,
+                            content="",
+                            commands=[{SidebandCommands.TELEMETRY_REQUEST: 0}],
+                            delivery_method="opportunistic",
+                            no_display=False,
+                            context=ctx,
+                        )
+                        # Update last request time
+                        ctx.database.telemetry.update_last_request_at(dest_hash, now)
+
+            except Exception as e:
+                print(f"Telemetry tracking loop error: {e}")
+
+            # Check every 10 seconds
+            await asyncio.sleep(10)
 
     # handle announcing
     async def announce(self, context=None):
@@ -8590,6 +8886,24 @@ class ReticulumMeshChat:
         if "map_nominatim_api_url" in data:
             self.config.map_nominatim_api_url.set(data["map_nominatim_api_url"])
 
+        # update location settings
+        if "location_source" in data:
+            self.config.location_source.set(data["location_source"])
+
+        if "location_manual_lat" in data:
+            self.config.location_manual_lat.set(str(data["location_manual_lat"]))
+
+        if "location_manual_lon" in data:
+            self.config.location_manual_lon.set(str(data["location_manual_lon"]))
+
+        if "location_manual_alt" in data:
+            self.config.location_manual_alt.set(str(data["location_manual_alt"]))
+
+        if "telemetry_enabled" in data:
+            self.config.telemetry_enabled.set(
+                self._parse_bool(data["telemetry_enabled"])
+            )
+
         # update banishment settings
         if "banished_effect_enabled" in data:
             self.config.banished_effect_enabled.set(
@@ -8643,6 +8957,18 @@ class ReticulumMeshChat:
         if "blackhole_integration_enabled" in data:
             value = self._parse_bool(data["blackhole_integration_enabled"])
             self.config.blackhole_integration_enabled.set(value)
+
+        # update csp extra sources
+        if "csp_extra_connect_src" in data:
+            self.config.csp_extra_connect_src.set(data["csp_extra_connect_src"])
+        if "csp_extra_img_src" in data:
+            self.config.csp_extra_img_src.set(data["csp_extra_img_src"])
+        if "csp_extra_frame_src" in data:
+            self.config.csp_extra_frame_src.set(data["csp_extra_frame_src"])
+        if "csp_extra_script_src" in data:
+            self.config.csp_extra_script_src.set(data["csp_extra_script_src"])
+        if "csp_extra_style_src" in data:
+            self.config.csp_extra_style_src.set(data["csp_extra_style_src"])
 
         # update voicemail settings
         if "voicemail_enabled" in data:
@@ -9604,8 +9930,18 @@ class ReticulumMeshChat:
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
             "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),
+            "csp_extra_connect_src": ctx.config.csp_extra_connect_src.get(),
+            "csp_extra_img_src": ctx.config.csp_extra_img_src.get(),
+            "csp_extra_frame_src": ctx.config.csp_extra_frame_src.get(),
+            "csp_extra_script_src": ctx.config.csp_extra_script_src.get(),
+            "csp_extra_style_src": ctx.config.csp_extra_style_src.get(),
             "telephone_tone_generator_enabled": ctx.config.telephone_tone_generator_enabled.get(),
             "telephone_tone_generator_volume": ctx.config.telephone_tone_generator_volume.get(),
+            "location_source": ctx.config.location_source.get(),
+            "location_manual_lat": ctx.config.location_manual_lat.get(),
+            "location_manual_lon": ctx.config.location_manual_lon.get(),
+            "location_manual_alt": ctx.config.location_manual_alt.get(),
+            "telemetry_enabled": ctx.config.telemetry_enabled.get(),
         }
 
     # try and get a name for the provided identity hash
@@ -9938,18 +10274,82 @@ class ReticulumMeshChat:
                 print(f"Rejecting LXMF message from blocked source: {source_hash}")
                 return
 
-            # check if this lxmf message contains a telemetry request command from sideband
             is_sideband_telemetry_request = False
             lxmf_fields = lxmf_message.get_fields()
+
+            # check both standard LXMF.FIELD_COMMANDS (9) and FIELD_COMMANDS (1)
+            commands = []
             if LXMF.FIELD_COMMANDS in lxmf_fields:
-                for command in lxmf_fields[LXMF.FIELD_COMMANDS]:
-                    if SidebandCommands.TELEMETRY_REQUEST in command:
+                val = lxmf_fields[LXMF.FIELD_COMMANDS]
+                if isinstance(val, list):
+                    commands.extend(val)
+                elif isinstance(val, dict):
+                    commands.append(val)
+            if 0x01 in lxmf_fields and 0x01 != LXMF.FIELD_COMMANDS:
+                val = lxmf_fields[0x01]
+                if isinstance(val, list):
+                    commands.extend(val)
+                elif isinstance(val, dict):
+                    commands.append(val)
+
+            if commands:
+                for command in commands:
+                    if (
+                        (
+                            isinstance(command, dict)
+                            and (
+                                SidebandCommands.TELEMETRY_REQUEST in command
+                                or str(SidebandCommands.TELEMETRY_REQUEST) in command
+                                or f"0x{SidebandCommands.TELEMETRY_REQUEST:02x}"
+                                in command
+                            )
+                        )
+                        or (
+                            isinstance(command, (list, tuple))
+                            and SidebandCommands.TELEMETRY_REQUEST in command
+                        )
+                        or command == SidebandCommands.TELEMETRY_REQUEST
+                        or str(command) == str(SidebandCommands.TELEMETRY_REQUEST)
+                    ):
                         is_sideband_telemetry_request = True
 
-            # respond to telemetry requests from sideband
+            # respond to telemetry requests
             if is_sideband_telemetry_request:
-                print(f"Responding to telemetry request from {source_hash}")
-                self.handle_telemetry_request(source_hash)
+                # Check if telemetry is enabled globally
+                if not ctx.config.telemetry_enabled.get():
+                    print(f"Telemetry is disabled, ignoring request from {source_hash}")
+                else:
+                    # Check if peer is trusted
+                    contact = ctx.database.contacts.get_contact_by_identity_hash(
+                        source_hash
+                    )
+                    if not contact or not contact.get("is_telemetry_trusted"):
+                        print(
+                            f"Telemetry request from untrusted peer {source_hash}, ignoring"
+                        )
+                    else:
+                        print(f"Responding to telemetry request from {source_hash}")
+                        self.handle_telemetry_request(source_hash)
+
+                self.db_upsert_lxmf_message(lxmf_message, context=ctx)
+
+                # broadcast notification
+                AsyncUtils.run_async(
+                    self.websocket_broadcast(
+                        json.dumps(
+                            {
+                                "type": "lxmf.delivery",
+                                "remote_identity_name": source_hash[:8],
+                                "lxmf_message": convert_db_lxmf_message_to_dict(
+                                    ctx.database.messages.get_lxmf_message_by_hash(
+                                        lxmf_message.hash.hex()
+                                    ),
+                                    include_attachments=False,
+                                ),
+                            },
+                        ),
+                    ),
+                )
                 return
 
             # check for spam keywords
@@ -9989,47 +10389,39 @@ class ReticulumMeshChat:
             # handle telemetry
             try:
                 message_fields = lxmf_message.get_fields()
+
+                # Single telemetry entry
                 if LXMF.FIELD_TELEMETRY in message_fields:
-                    telemetry_data = message_fields[LXMF.FIELD_TELEMETRY]
-                    # unpack to get timestamp
-                    unpacked = Telemeter.from_packed(telemetry_data)
-                    if unpacked and "time" in unpacked:
-                        timestamp = unpacked["time"]["utc"]
+                    self.process_incoming_telemetry(
+                        source_hash,
+                        message_fields[LXMF.FIELD_TELEMETRY],
+                        lxmf_message,
+                        context=ctx,
+                    )
 
-                        # physical link info
-                        physical_link = {
-                            "rssi": self.reticulum.get_packet_rssi(lxmf_message.hash)
-                            if hasattr(self, "reticulum") and self.reticulum
-                            else None,
-                            "snr": self.reticulum.get_packet_snr(lxmf_message.hash)
-                            if hasattr(self, "reticulum") and self.reticulum
-                            else None,
-                            "q": self.reticulum.get_packet_q(lxmf_message.hash)
-                            if hasattr(self, "reticulum") and self.reticulum
-                            else None,
-                        }
-
-                        ctx.database.telemetry.upsert_telemetry(
-                            destination_hash=source_hash,
-                            timestamp=timestamp,
-                            data=telemetry_data,
-                            received_from=ctx.local_lxmf_destination.hexhash,
-                            physical_link=physical_link,
-                        )
-
-                        # broadcast telemetry update via websocket
-                        AsyncUtils.run_async(
-                            self.websocket_broadcast(
-                                json.dumps(
-                                    {
-                                        "type": "lxmf.telemetry",
-                                        "destination_hash": source_hash,
-                                        "timestamp": timestamp,
-                                        "telemetry": unpacked,
-                                    },
-                                ),
-                            ),
-                        )
+                # Telemetry stream (multiple entries)
+                if (
+                    hasattr(LXMF, "FIELD_TELEMETRY_STREAM")
+                    and LXMF.FIELD_TELEMETRY_STREAM in message_fields
+                ):
+                    stream = message_fields[LXMF.FIELD_TELEMETRY_STREAM]
+                    if isinstance(stream, (list, tuple)):
+                        for entry in stream:
+                            if isinstance(entry, (list, tuple)) and len(entry) >= 3:
+                                entry_source = (
+                                    entry[0].hex()
+                                    if isinstance(entry[0], bytes)
+                                    else entry[0]
+                                )
+                                entry_timestamp = entry[1]
+                                entry_data = entry[2]
+                                self.process_incoming_telemetry(
+                                    entry_source,
+                                    entry_data,
+                                    lxmf_message,
+                                    timestamp_override=entry_timestamp,
+                                    context=ctx,
+                                )
             except Exception as e:
                 print(f"Failed to handle telemetry in LXMF message: {e}")
 
@@ -10050,9 +10442,7 @@ class ReticulumMeshChat:
                     source_hash = lxmf_message.source_hash.hex()
 
                     # ignore our own icon and empty payloads to avoid overwriting peers with our appearance
-                    if source_hash and local_hash and source_hash == local_hash:
-                        pass
-                    elif (
+                    if (source_hash and local_hash and source_hash == local_hash) or (
                         not icon_name or not foreground_colour or not background_colour
                     ):
                         pass
@@ -10560,6 +10950,66 @@ class ReticulumMeshChat:
         data = f"{name}|{fg}|{bg}"
         return hashlib.sha256(data.encode()).hexdigest()
 
+    def process_incoming_telemetry(
+        self,
+        source_hash,
+        telemetry_data,
+        lxmf_message,
+        timestamp_override=None,
+        context=None,
+    ):
+        ctx = context or self.current_context
+        if not ctx:
+            return
+
+        try:
+            unpacked = Telemeter.from_packed(telemetry_data)
+            if unpacked:
+                timestamp = timestamp_override or (
+                    unpacked["time"]["utc"] if "time" in unpacked else int(time.time())
+                )
+
+                # physical link info
+                physical_link = {
+                    "rssi": self.reticulum.get_packet_rssi(lxmf_message.hash)
+                    if hasattr(self, "reticulum") and self.reticulum
+                    else None,
+                    "snr": self.reticulum.get_packet_snr(lxmf_message.hash)
+                    if hasattr(self, "reticulum") and self.reticulum
+                    else None,
+                    "q": self.reticulum.get_packet_q(lxmf_message.hash)
+                    if hasattr(self, "reticulum") and self.reticulum
+                    else None,
+                }
+
+                ctx.database.telemetry.upsert_telemetry(
+                    destination_hash=source_hash,
+                    timestamp=timestamp,
+                    data=telemetry_data,
+                    received_from=ctx.local_lxmf_destination.hexhash,
+                    physical_link=physical_link,
+                )
+
+                # broadcast telemetry update via websocket
+                AsyncUtils.run_async(
+                    self.websocket_broadcast(
+                        json.dumps(
+                            {
+                                "type": "lxmf.telemetry",
+                                "destination_hash": source_hash,
+                                "timestamp": timestamp,
+                                "telemetry": unpacked,
+                                "physical_link": physical_link,
+                                "is_tracking": ctx.database.telemetry.is_tracking(
+                                    source_hash,
+                                ),
+                            },
+                        ),
+                    ),
+                )
+        except Exception as e:
+            print(f"Error processing incoming telemetry: {e}")
+
     def handle_telemetry_request(self, to_addr_hash: str):
         # get our location from config
         lat = self.database.config.get("map_default_lat")
@@ -10584,15 +11034,13 @@ class ReticulumMeshChat:
 
             telemetry_data = Telemeter.pack(location=location)
 
-            # send as an LXMF message with no content, only telemetry field
-            # use no_display=True to avoid showing in chat UI
             AsyncUtils.run_async(
                 self.send_message(
                     destination_hash=to_addr_hash,
                     content="",
                     telemetry_data=telemetry_data,
                     delivery_method="opportunistic",
-                    no_display=True,
+                    no_display=False,
                 ),
             )
         except Exception as e:
@@ -10672,7 +11120,7 @@ class ReticulumMeshChat:
                 f" ({display_name})"
                 if (
                     display_name := parse_lxmf_display_name(
-                        base64.b64encode(app_data).decode() if app_data else None,
+                        app_data,
                         None,
                     )
                 )

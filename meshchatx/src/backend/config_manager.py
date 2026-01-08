@@ -245,6 +245,9 @@ class ConfigManager:
             "https://nominatim.openstreetmap.org",
         )
 
+        # telemetry config
+        self.telemetry_enabled = self.BoolConfig(self, "telemetry_enabled", False)
+
         # translator config
         self.translator_enabled = self.BoolConfig(self, "translator_enabled", False)
         self.libretranslate_url = self.StringConfig(
@@ -252,6 +255,12 @@ class ConfigManager:
             "libretranslate_url",
             "http://localhost:5000",
         )
+
+        # location config
+        self.location_source = self.StringConfig(self, "location_source", "browser")
+        self.location_manual_lat = self.StringConfig(self, "location_manual_lat", "0.0")
+        self.location_manual_lon = self.StringConfig(self, "location_manual_lon", "0.0")
+        self.location_manual_alt = self.StringConfig(self, "location_manual_alt", "0.0")
 
         # banishment config
         self.banished_effect_enabled = self.BoolConfig(
@@ -278,6 +287,17 @@ class ConfigManager:
             "blackhole_integration_enabled",
             True,
         )
+
+        # csp config so users can set extra CSP sources for local offgrid environments (tile servers, etc.)
+        self.csp_extra_connect_src = self.StringConfig(
+            self,
+            "csp_extra_connect_src",
+            "",
+        )
+        self.csp_extra_img_src = self.StringConfig(self, "csp_extra_img_src", "")
+        self.csp_extra_frame_src = self.StringConfig(self, "csp_extra_frame_src", "")
+        self.csp_extra_script_src = self.StringConfig(self, "csp_extra_script_src", "")
+        self.csp_extra_style_src = self.StringConfig(self, "csp_extra_style_src", "")
 
     def get(self, key: str, default_value=None) -> str | None:
         return self.db.config.get(key, default_value)

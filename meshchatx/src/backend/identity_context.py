@@ -21,6 +21,7 @@ from meshchatx.src.backend.nomadnet_utils import NomadNetworkManager
 from meshchatx.src.backend.ringtone_manager import RingtoneManager
 from meshchatx.src.backend.rncp_handler import RNCPHandler
 from meshchatx.src.backend.rnpath_handler import RNPathHandler
+from meshchatx.src.backend.rnpath_trace_handler import RNPathTraceHandler
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 from meshchatx.src.backend.telephone_manager import TelephoneManager
@@ -72,6 +73,8 @@ class IdentityContext:
         self.ringtone_manager = None
         self.rncp_handler = None
         self.rnstatus_handler = None
+        self.rnpath_handler = None
+        self.rnpath_trace_handler = None
         self.rnprobe_handler = None
         self.translator_handler = None
         self.bot_handler = None
@@ -228,6 +231,10 @@ class IdentityContext:
         self.rnpath_handler = RNPathHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),
         )
+        self.rnpath_trace_handler = RNPathTraceHandler(
+            reticulum_instance=getattr(self.app, "reticulum", None),
+            identity=self.identity,
+        )
         self.rnprobe_handler = RNProbeHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),
             identity=self.identity,
@@ -360,6 +367,14 @@ class IdentityContext:
         thread.daemon = True
         thread.start()
 
+        # start background thread for telemetry tracking loop
+        thread = threading.Thread(
+            target=asyncio.run,
+            args=(self.app.telemetry_tracking_loop(self.session_id, context=self),),
+        )
+        thread.daemon = True
+        thread.start()
+
     def register_announce_handlers(self):
         handlers = [
             AnnounceHandler(
@@ -468,6 +483,11 @@ class IdentityContext:
                 self.message_router.jobs = lambda: None
                 if hasattr(self.message_router, "exit_handler"):
                     self.message_router.exit_handler()
+
+                # Give LXMF/RNS a moment to finish any final disk writes
+                import time
+
+                time.sleep(1.0)
             except Exception as e:
                 print(
                     f"Error while tearing down LXMRouter for {self.identity_hash}: {e}",

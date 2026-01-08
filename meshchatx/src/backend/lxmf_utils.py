@@ -23,15 +23,17 @@ def convert_lxmf_message_to_dict(
             file_attachments = []
             for file_attachment in value:
                 file_name = file_attachment[0]
+                file_data = file_attachment[1]
                 file_bytes = None
                 if include_attachments:
-                    file_bytes = base64.b64encode(file_attachment[1]).decode(
+                    file_bytes = base64.b64encode(file_data).decode(
                         "utf-8",
                     )
 
                 file_attachments.append(
                     {
                         "file_name": file_name,
+                        "file_size": len(file_data),
                         "file_bytes": file_bytes,
                     },
                 )
@@ -42,30 +44,87 @@ def convert_lxmf_message_to_dict(
         # handle image field
         if field_type == LXMF.FIELD_IMAGE:
             image_type = value[0]
+            image_data = value[1]
             image_bytes = None
             if include_attachments:
-                image_bytes = base64.b64encode(value[1]).decode("utf-8")
+                image_bytes = base64.b64encode(image_data).decode("utf-8")
 
             fields["image"] = {
                 "image_type": image_type,
+                "image_size": len(image_data),
                 "image_bytes": image_bytes,
             }
 
         # handle audio field
         if field_type == LXMF.FIELD_AUDIO:
             audio_mode = value[0]
+            audio_data = value[1]
             audio_bytes = None
             if include_attachments:
-                audio_bytes = base64.b64encode(value[1]).decode("utf-8")
+                audio_bytes = base64.b64encode(audio_data).decode("utf-8")
 
             fields["audio"] = {
                 "audio_mode": audio_mode,
+                "audio_size": len(audio_data),
                 "audio_bytes": audio_bytes,
             }
 
         # handle telemetry field
         if field_type == LXMF.FIELD_TELEMETRY:
             fields["telemetry"] = Telemeter.from_packed(value)
+
+        # handle commands field
+        if field_type == LXMF.FIELD_COMMANDS or field_type == 0x01:
+            # value is usually a list of dicts, or a single dict
+            if isinstance(value, dict):
+                # convert dict keys back to ints if they look like hex or int strings
+                new_cmd = {}
+                for k, v in value.items():
+                    try:
+                        ki = None
+                        if isinstance(k, int):
+                            ki = k
+                        elif isinstance(k, str):
+                            if k.startswith("0x"):
+                                ki = int(k, 16)
+                            else:
+                                ki = int(k)
+
+                        if ki is not None:
+                            new_cmd[f"0x{ki:02x}"] = v
+                        else:
+                            new_cmd[str(k)] = v
+                    except (ValueError, TypeError):
+                        new_cmd[str(k)] = v
+                fields["commands"] = [new_cmd]
+            elif isinstance(value, list):
+                processed_commands = []
+                for cmd in value:
+                    if isinstance(cmd, dict):
+                        new_cmd = {}
+                        for k, v in cmd.items():
+                            try:
+                                ki = None
+                                if isinstance(k, int):
+                                    ki = k
+                                elif isinstance(k, str):
+                                    if k.startswith("0x"):
+                                        ki = int(k, 16)
+                                    else:
+                                        ki = int(k)
+
+                                if ki is not None:
+                                    new_cmd[f"0x{ki:02x}"] = v
+                                else:
+                                    new_cmd[str(k)] = v
+                            except (ValueError, TypeError):
+                                new_cmd[str(k)] = v
+                        processed_commands.append(new_cmd)
+                    else:
+                        processed_commands.append(cmd)
+                fields["commands"] = processed_commands
+            else:
+                fields["commands"] = value
 
     # convert 0.0-1.0 progress to 0.00-100 percentage
     progress_percentage = round(lxmf_message.progress * 100, 2)
@@ -164,13 +223,44 @@ def convert_db_lxmf_message_to_dict(
     if not isinstance(fields, dict):
         fields = {}
 
+    # normalize commands if present
+    if "commands" in fields:
+        cmds = fields["commands"]
+        if isinstance(cmds, list):
+            new_cmds = []
+            for cmd in cmds:
+                if isinstance(cmd, dict):
+                    new_cmd = {}
+                    for k, v in cmd.items():
+                        # normalize key to 0xXX format if it's a number string
+                        try:
+                            ki = None
+                            if isinstance(k, int):
+                                ki = k
+                            elif isinstance(k, str):
+                                if k.startswith("0x"):
+                                    ki = int(k, 16)
+                                else:
+                                    ki = int(k)
+
+                            if ki is not None:
+                                new_cmd[f"0x{ki:02x}"] = v
+                            else:
+                                new_cmd[str(k)] = v
+                        except (ValueError, TypeError):
+                            new_cmd[str(k)] = v
+                    new_cmds.append(new_cmd)
+                else:
+                    new_cmds.append(cmd)
+            fields["commands"] = new_cmds
+
     # strip attachments if requested
     if not include_attachments:
         if "image" in fields:
             # keep type but strip bytes
-            image_size = 0
+            image_size = fields["image"].get("image_size") or 0
             b64_bytes = fields["image"].get("image_bytes")
-            if b64_bytes:
+            if not image_size and b64_bytes:
                 # Optimized size calculation without full decoding
                 image_size = (len(b64_bytes) * 3) // 4
                 if b64_bytes.endswith("=="):
@@ -184,9 +274,9 @@ def convert_db_lxmf_message_to_dict(
             }
         if "audio" in fields:
             # keep mode but strip bytes
-            audio_size = 0
+            audio_size = fields["audio"].get("audio_size") or 0
             b64_bytes = fields["audio"].get("audio_bytes")
-            if b64_bytes:
+            if not audio_size and b64_bytes:
                 audio_size = (len(b64_bytes) * 3) // 4
                 if b64_bytes.endswith("=="):
                     audio_size -= 2
@@ -200,9 +290,9 @@ def convert_db_lxmf_message_to_dict(
         if "file_attachments" in fields:
             # keep file names but strip bytes
             for i in range(len(fields["file_attachments"])):
-                file_size = 0
+                file_size = fields["file_attachments"][i].get("file_size") or 0
                 b64_bytes = fields["file_attachments"][i].get("file_bytes")
-                if b64_bytes:
+                if not file_size and b64_bytes:
                     file_size = (len(b64_bytes) * 3) // 4
                     if b64_bytes.endswith("=="):
                         file_size -= 2
