@@ -30,7 +30,16 @@
                                     : activeCall && activeCall.status === 6
                                       ? $t("call.active_call")
                                       : initiationStatus
-                                        ? $t("call.initiation")
+                                        ? initiationStatus === "Initiating..." ||
+                                          initiationStatus === "Resolving identity..." ||
+                                          initiationStatus === "Discovering path/identity..." ||
+                                          initiationStatus === "Requesting path..." ||
+                                          initiationStatus === "Dialing..." ||
+                                          initiationStatus === "Calling..." ||
+                                          initiationStatus === "Ringing..." ||
+                                          initiationStatus === "Establishing link..."
+                                            ? initiationStatus
+                                            : $t("call.initiation")
                                         : $t("call.call_status")
                         }}
                     </span>
@@ -131,7 +140,7 @@
                     <span v-else-if="activeCall && activeCall.status === 2">{{ $t("call.calling") }}</span>
                     <span v-else-if="activeCall && activeCall.status === 3">{{ $t("call.available") }}</span>
                     <span v-else-if="activeCall && activeCall.status === 4">{{ $t("call.ringing") }}</span>
-                    <span v-else-if="activeCall && activeCall.status === 5">{{ $t("call.connecting") }}</span>
+                    <span v-else-if="activeCall && activeCall.status === 5">{{ $t("call.establishing_link") }}</span>
                     <span v-else-if="activeCall && activeCall.status === 6">{{ $t("call.connected") }}</span>
                     <span v-else-if="activeCall">{{ $t("call.status") }}: {{ activeCall.status }}</span>
                 </div>
