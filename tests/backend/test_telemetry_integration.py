@@ -1,7 +1,6 @@
 import pytest
 import time
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
@@ -108,10 +107,6 @@ async def test_telemetry_request_parsing(mock_app):
     mock_app.current_context.config.telemetry_enabled.get.return_value = True
     mock_app.database.contacts.get_contact_by_identity_hash.return_value = {"is_telemetry_trusted": True}
     mock_app.database.messages.get_lxmf_message_by_hash.return_value = {} # To avoid JSON error
-    
-    # Also need SidebandCommands
-    from meshchatx.src.backend.sideband_commands import SidebandCommands
-    # (SidebandCommands is likely already imported in meshchat.py)
     
     # Call it
     mock_app.on_lxmf_delivery(mock_lxmf_message)
