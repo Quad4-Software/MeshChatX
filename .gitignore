@@ -87,3 +87,5 @@ out/
 /packaging/arch/*.pkg.tar.zst
 /packaging/arch/MeshChatX/
 /packaging/arch/reticulum-meshchatx/
+
+electron/backend-manifest.json
