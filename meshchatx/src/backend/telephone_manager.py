@@ -320,7 +320,8 @@ class TelephoneManager:
                     self._update_initiation_status("Ringing...", destination_hash_hex)
                 elif self.telephone.call_status == 5:
                     self._update_initiation_status(
-                        "Establishing link...", destination_hash_hex,
+                        "Establishing link...",
+                        destination_hash_hex,
                     )
 
                 if self.telephone.call_status in [
@@ -349,15 +350,18 @@ class TelephoneManager:
 
                     if self.telephone.call_status == 2:
                         self._update_initiation_status(
-                            "Calling...", destination_hash_hex,
+                            "Calling...",
+                            destination_hash_hex,
                         )
                     elif self.telephone.call_status == 4:
                         self._update_initiation_status(
-                            "Ringing...", destination_hash_hex,
+                            "Ringing...",
+                            destination_hash_hex,
                         )
                     elif self.telephone.call_status == 5:
                         self._update_initiation_status(
-                            "Establishing link...", destination_hash_hex,
+                            "Establishing link...",
+                            destination_hash_hex,
                         )
 
                     if self.telephone.call_status in [
