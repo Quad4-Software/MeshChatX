@@ -32,7 +32,7 @@ dependencies = [
   "requests>=2.32.5,<3.0.0",
   "audioop-lts>=0.2.2; python_version >= '3.13'",
   "ply>=3.11,<4.0",
-  "lxst",
+  "lxst>=0.4.6",
 ]
 
 [project.scripts]
@@ -47,6 +47,7 @@ packages = [{include = "meshchatx"}]
 [tool.poetry.dependencies]
 python = ">=3.11"
 lxmfy = {git = "https://git.quad4.io/LXMFy/LXMFy.git"}
+lxst = ">=0.4.6"
 
 [tool.poetry.group.dev.dependencies]
 cx-freeze = ">=7.0.0"

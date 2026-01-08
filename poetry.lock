@@ -1952,14 +1952,14 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "rns"
-version = "1.1.1"
+version = "1.1.2"
 description = "Self-configuring, encrypted and resilient mesh networking stack for LoRa, packet radio, WiFi and everything in between"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "rns-1.1.1-py3-none-any.whl", hash = "sha256:d991c4ade4ce737c3f654aa216e18dc71a03546f71ea82ef06d5ac96f30bd086"},
-    {file = "rns-1.1.1.tar.gz", hash = "sha256:112ad19a284afa2723a23e4966ddd9d39a89f0347091e298a81c08fb2ae7a34c"},
+    {file = "rns-1.1.2-py3-none-any.whl", hash = "sha256:8a153d97a02b4b326556b7f5926c37029767b70c9093b5f00c53c72105bc2091"},
+    {file = "rns-1.1.2.tar.gz", hash = "sha256:ff2af56490c065adcc5f38aef07081b19bb355101406d10d768ec54f783a30c3"},
 ]
 
 [package.dependencies]
@@ -2273,4 +2273,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "dec7422181899d6946be5ce2ce97aef45a806a408ea1d4fd83278afc324e4d34"
+content-hash = "cf4375df2e3a86e2a1095e6446971d35421704c286f725ae9a3e22f7ead15241"
