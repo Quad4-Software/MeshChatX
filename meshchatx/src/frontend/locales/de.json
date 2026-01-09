@@ -103,6 +103,8 @@
         "preferred_propagation_node": "Bevorzugter Propagationsknoten",
         "preferred_node_placeholder": "Ziel-Hash, z.B. a39610c89d18bb48c73e429582423c24",
         "fallback_node_description": "Nachrichten weichen auf diesen Knoten aus, wenn die direkte Zustellung fehlschlägt.",
+        "auto_select_node": "Besten Knoten automatisch auswählen",
+        "auto_select_node_description": "Automatisch den besten verfügbaren Propagationsknoten basierend auf den Netzwerkhops finden und dorthin wechseln.",
         "auto_sync_interval": "Automatisches Synchronisierungsintervall",
         "last_synced": "Zuletzt synchronisiert vor {time}.",
         "last_synced_never": "Zuletzt synchronisiert: Nie.",
@@ -1359,8 +1361,17 @@
         "discovery_desc": "Dies ermöglicht es MeshChatX, automatisch öffentliche Community-Knoten in Ihrer Nähe oder im Internet zu finden und sich mit ihnen zu verbinden.",
         "yes": "Ja, Erkennung verwenden",
         "no": "Nein, manuelle Einrichtung",
-        "discovery_enabled": "Community discovery enabled",
-        "failed_enable_discovery": "Failed to enable discovery"
+        "discovery_enabled": "Community-Entdeckung aktiviert",
+        "failed_enable_discovery": "Aktivierung der Community-Entdeckung fehlgeschlagen",
+        "propagation": "Propagationsknoten",
+        "propagation_question": "Möchten Sie den Propagationsmodus automatisch konfigurieren?",
+        "propagation_desc": "Propagationsknoten ermöglichen es Ihnen, Nachrichten zu empfangen, auch wenn Sie offline sind. Sie speichern Nachrichten für Sie und stellen sie zu, wenn Sie wieder online sind.",
+        "propagation_auto": "Die automatische Konfiguration wird versuchen, den besten Propagationsknoten zu finden, zu dem eine Verbindung hergestellt werden kann. Wenn noch kein Propagationsknoten im Netzwerk angekündigt wurde, wird auf einen gewartet. Während dieser Zeit können Sie keine Nachrichten von einem Propagationsknoten synchronisieren.",
+        "propagation_manual": "Oder manuell konfigurieren?",
+        "propagation_manual_desc": "Sie können einen Propagationsknoten später manuell in den Einstellungen konfigurieren oder das Feld leer lassen, wenn Sie keinen verwenden möchten.",
+        "propagation_enable_auto": "Automatische Konfiguration aktivieren",
+        "propagation_skip_auto": "Manuelle Konfiguration",
+        "auto_propagation_enabled": "Auto-Propagation aktiviert"
     },
     "command_palette": {
         "search_placeholder": "Befehle suchen, navigieren oder Peers finden...",

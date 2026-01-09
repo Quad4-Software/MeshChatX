@@ -105,6 +105,8 @@
         "preferred_propagation_node": "Preferred Propagation Node",
         "preferred_node_placeholder": "Destination hash, e.g. a39610c89d18bb48c73e429582423c24",
         "fallback_node_description": "Messages fallback to this node whenever direct delivery fails.",
+        "auto_select_node": "Auto-select best node",
+        "auto_select_node_description": "Automatically find and switch to the best available propagation node based on network hops.",
         "auto_sync_interval": "Auto Sync Interval",
         "last_synced": "Last synced {time} ago.",
         "last_synced_never": "Last synced: never.",
@@ -1449,7 +1451,16 @@
         "yes": "Yes, use discovery",
         "no": "No, manual setup",
         "discovery_enabled": "Community discovery enabled",
-        "failed_enable_discovery": "Failed to enable discovery"
+        "failed_enable_discovery": "Failed to enable discovery",
+        "propagation": "Propagation Node",
+        "propagation_question": "Do you want to auto-configure propagation mode?",
+        "propagation_desc": "Propagation nodes act like an always-on mailbox for your messages. They securely store messages while you are offline and deliver them as soon as you reconnect to the network.",
+        "propagation_auto": "Auto-configure will automatically find and connect to the most reliable propagation node available. If no node is currently available, MeshChatX will wait for one to appear. Until then, offline message syncing will be unavailable.",
+        "propagation_manual": "Or manually configure?",
+        "propagation_manual_desc": "You can manually configure a propagation node later in settings, or leave it empty if you don't want to use one.",
+        "propagation_enable_auto": "Enable Auto-Configuration",
+        "propagation_skip_auto": "Configure Manually / Skip",
+        "auto_propagation_enabled": "Auto-propagation enabled"
     },
     "command_palette": {
         "search_placeholder": "Search commands, navigate, or find peers...",

@@ -105,6 +105,8 @@
         "preferred_propagation_node": "Nodo di Propagazione Preferito",
         "preferred_node_placeholder": "Hash di destinazione, es. a39610c89d18bb48c73e429582423c24",
         "fallback_node_description": "I messaggi ripiegano su questo nodo ogni volta che la consegna diretta fallisce.",
+        "auto_select_node": "Selezione automatica del miglior nodo",
+        "auto_select_node_description": "Trova e passa automaticamente al miglior nodo di propagazione disponibile in base agli hop di rete.",
         "auto_sync_interval": "Intervallo Sincronizzazione Automatica",
         "last_synced": "Ultima sincronizzazione {time} fa.",
         "last_synced_never": "Ultima sincronizzazione: mai.",
@@ -1449,7 +1451,16 @@
         "yes": "Sì, usa la scoperta",
         "no": "No, configurazione manuale",
         "discovery_enabled": "Scoperta della comunità abilitata",
-        "failed_enable_discovery": "Impossibile abilitare la scoperta"
+        "failed_enable_discovery": "Impossibile abilitare la scoperta",
+        "propagation": "Nodo di propagazione",
+        "propagation_question": "Vuoi configurare automaticamente la modalità di propagazione?",
+        "propagation_desc": "I nodi di propagazione ti consentono di ricevere messaggi anche quando sei offline. Memorizzano i messaggi per te e li consegnano quando ti riconnetti.",
+        "propagation_auto": "La configurazione automatica cercherà di trovare il miglior nodo di propagazione a cui può stabilire un collegamento. Se nessun nodo di propagazione è stato annunciato sulla rete, attenderà che ne venga annunciato uno. Durante questo periodo, non sarai in grado di sincronizzare i messaggi da un nodo di propagazione.",
+        "propagation_manual": "O configurare manualmente?",
+        "propagation_manual_desc": "Puoi configurare manualmente un nodo di propagazione in seguito nelle impostazioni, oppure lasciare vuoto se non desideri utilizzarne uno.",
+        "propagation_enable_auto": "Abilita configurazione automatica",
+        "propagation_skip_auto": "Configurazione manuale",
+        "auto_propagation_enabled": "Auto-propagazione abilitata"
     },
     "command_palette": {
         "search_placeholder": "Cerca comandi, naviga o trova peer...",
