@@ -48,6 +48,11 @@ class ConfigManager:
             "lxmf_preferred_propagation_node_destination_hash",
             None,
         )
+        self.lxmf_preferred_propagation_node_auto_select = self.BoolConfig(
+            self,
+            "lxmf_preferred_propagation_node_auto_select",
+            False,
+        )
         self.lxmf_preferred_propagation_node_auto_sync_interval_seconds = (
             self.IntConfig(
                 self,
