@@ -7,6 +7,7 @@ import RNS
 from meshchatx.src.backend.announce_handler import AnnounceHandler
 from meshchatx.src.backend.announce_manager import AnnounceManager
 from meshchatx.src.backend.archiver_manager import ArchiverManager
+from meshchatx.src.backend.auto_propagation_manager import AutoPropagationManager
 from meshchatx.src.backend.bot_handler import BotHandler
 from meshchatx.src.backend.community_interfaces import CommunityInterfacesManager
 from meshchatx.src.backend.config_manager import ConfigManager
@@ -71,6 +72,7 @@ class IdentityContext:
         self.telephone_manager = None
         self.voicemail_manager = None
         self.ringtone_manager = None
+        self.auto_propagation_manager = None
         self.rncp_handler = None
         self.rnstatus_handler = None
         self.rnpath_handler = None
@@ -307,6 +309,11 @@ class IdentityContext:
 
         self.community_interfaces_manager = CommunityInterfacesManager()
 
+        self.auto_propagation_manager = AutoPropagationManager(
+            app=self.app,
+            context=self,
+        )
+
         # 6. Register Announce Handlers
         self.register_announce_handlers()
 
@@ -375,6 +382,14 @@ class IdentityContext:
         thread.daemon = True
         thread.start()
 
+        # start background thread for auto propagation node selection
+        thread = threading.Thread(
+            target=asyncio.run,
+            args=(self.auto_propagation_manager._run(),),
+        )
+        thread.daemon = True
+        thread.start()
+
     def register_announce_handlers(self):
         handlers = [
             AnnounceHandler(
@@ -437,6 +452,8 @@ class IdentityContext:
     def teardown(self):
         print(f"Tearing down Identity Context for {self.identity_hash}...")
         self.running = False
+        if self.auto_propagation_manager:
+            self.auto_propagation_manager.stop()
 
         # 1. Deregister announce handlers
         for handler in self.announce_handlers:
