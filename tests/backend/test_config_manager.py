@@ -83,3 +83,10 @@ def test_telephony_config(db):
     assert config.call_recording_enabled.get() is False
     config.call_recording_enabled.set(True)
     assert config.call_recording_enabled.get() is True
+
+
+def test_auto_propagation_config(db):
+    config = ConfigManager(db)
+    assert config.lxmf_preferred_propagation_node_auto_select.get() is False
+    config.lxmf_preferred_propagation_node_auto_select.set(True)
+    assert config.lxmf_preferred_propagation_node_auto_select.get() is True
