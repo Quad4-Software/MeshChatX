@@ -403,8 +403,66 @@
                         </div>
                     </div>
 
-                    <!-- Step 3: Documentation & Tools -->
+                    <!-- Step 3: Propagation Mode -->
                     <div v-else-if="currentStep === 3" key="step3" class="space-y-6">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                {{ $t("tutorial.propagation") }}
+                            </h2>
+                            <p class="text-gray-600 dark:text-zinc-400 text-base">
+                                {{ $t("tutorial.propagation_desc") }}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-col items-center gap-6 py-4">
+                            <div
+                                class="bg-blue-500/10 dark:bg-blue-500/20 p-6 rounded-[2rem] text-center space-y-4 border border-blue-500/20 max-w-md"
+                            >
+                                <v-icon icon="mdi-server-network" color="blue" size="48"></v-icon>
+                                <div class="text-lg font-bold text-gray-900 dark:text-white">
+                                    {{ $t("tutorial.propagation_question") }}
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-zinc-400">
+                                    {{ $t("tutorial.propagation_auto") }}
+                                </p>
+                                <div class="flex flex-col gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        class="w-full px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg transition-all transform hover:scale-[1.02]"
+                                        :disabled="savingPropagation"
+                                        @click="enableAutoPropagation"
+                                    >
+                                        <v-progress-circular
+                                            v-if="savingPropagation"
+                                            indeterminate
+                                            size="20"
+                                            width="2"
+                                            class="mr-2"
+                                        ></v-progress-circular>
+                                        {{ $t("tutorial.propagation_enable_auto") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="w-full px-6 py-3 rounded-2xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold shadow-sm transition-all transform hover:scale-[1.02]"
+                                        @click="nextStep"
+                                    >
+                                        {{ $t("tutorial.propagation_skip_auto") }}
+                                    </button>
+                                </div>
+                                <div class="mt-6 pt-6 border-t border-gray-200 dark:border-zinc-800">
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                                        {{ $t("tutorial.propagation_manual") }}
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-zinc-500">
+                                        {{ $t("tutorial.propagation_manual_desc") }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Documentation & Tools -->
+                    <div v-else-if="currentStep === 4" key="step4" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.learn_create") }}
@@ -530,10 +588,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Finish -->
+                    <!-- Step 5: Finish -->
                     <div
-                        v-else-if="currentStep === 4"
-                        key="step4"
+                        v-else-if="currentStep === 5"
+                        key="step5"
                         class="flex flex-col items-center text-center space-y-8 py-10"
                     >
                         <div class="w-32 h-32 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -641,7 +699,7 @@
                     <!-- Step 1: Welcome -->
                     <div
                         v-if="currentStep === 1"
-                        key="step1"
+                        key="page-step1"
                         class="flex flex-col items-center text-center space-y-8 py-10"
                     >
                         <div class="relative">
@@ -773,7 +831,7 @@
                     </div>
 
                     <!-- Step 2: Add Interface -->
-                    <div v-else-if="currentStep === 2" key="step2" class="space-y-6 py-8">
+                    <div v-else-if="currentStep === 2" key="page-step2" class="space-y-6 py-8">
                         <div class="text-center space-y-2">
                             <h2 class="text-3xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.connect") }}
@@ -1068,8 +1126,67 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Step 3: Documentation & Tools -->
-                    <div v-else-if="currentStep === 3" key="step3" class="space-y-8 py-10">
+
+                    <!-- Step 3: Propagation Mode -->
+                    <div v-else-if="currentStep === 3" key="page-step3" class="space-y-8 py-12">
+                        <div class="text-center space-y-4">
+                            <h2 class="text-4xl font-black text-gray-900 dark:text-white">
+                                {{ $t("tutorial.propagation") }}
+                            </h2>
+                            <p class="text-xl text-gray-600 dark:text-zinc-400 max-w-2xl mx-auto">
+                                {{ $t("tutorial.propagation_desc") }}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-col items-center gap-10 py-12">
+                            <div
+                                class="bg-blue-500/10 dark:bg-blue-500/20 p-12 rounded-[3rem] text-center space-y-8 border border-blue-500/20 max-w-2xl shadow-2xl"
+                            >
+                                <v-icon icon="mdi-server-network" color="blue" size="80"></v-icon>
+                                <div class="text-3xl font-black text-gray-900 dark:text-white">
+                                    {{ $t("tutorial.propagation_question") }}
+                                </div>
+                                <p class="text-xl text-gray-600 dark:text-zinc-400">
+                                    {{ $t("tutorial.propagation_auto") }}
+                                </p>
+                                <div class="flex flex-col gap-4 pt-4">
+                                    <button
+                                        type="button"
+                                        class="px-10 py-4 text-xl rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-xl transition-all transform hover:scale-105"
+                                        :disabled="savingPropagation"
+                                        @click="enableAutoPropagation"
+                                    >
+                                        <v-progress-circular
+                                            v-if="savingPropagation"
+                                            indeterminate
+                                            size="24"
+                                            width="3"
+                                            class="mr-3"
+                                        ></v-progress-circular>
+                                        {{ $t("tutorial.propagation_enable_auto") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="px-10 py-4 text-xl rounded-2xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-black shadow-lg transition-all transform hover:scale-105"
+                                        @click="nextStep"
+                                    >
+                                        {{ $t("tutorial.propagation_skip_auto") }}
+                                    </button>
+                                </div>
+                                <div class="mt-8 pt-8 border-t-2 border-gray-200 dark:border-zinc-800">
+                                    <div class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                        {{ $t("tutorial.propagation_manual") }}
+                                    </div>
+                                    <p class="text-base text-gray-500 dark:text-zinc-500">
+                                        {{ $t("tutorial.propagation_manual_desc") }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Documentation & Tools -->
+                    <div v-else-if="currentStep === 4" key="page-step4" class="space-y-8 py-10">
                         <div class="text-center space-y-4">
                             <h2 class="text-4xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.learn_create") }}
@@ -1195,10 +1312,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Finish -->
+                    <!-- Step 5: Finish -->
                     <div
-                        v-else-if="currentStep === 4"
-                        key="step4"
+                        v-else-if="currentStep === 5"
+                        key="page-step5"
                         class="flex flex-col items-center text-center space-y-10 py-20"
                     >
                         <div class="w-48 h-48 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -1292,7 +1409,7 @@ export default {
         return {
             visible: false,
             currentStep: 1,
-            totalSteps: 4,
+            totalSteps: 5,
             logoUrl,
             communityInterfaces: [],
             loadingInterfaces: false,
@@ -1302,6 +1419,7 @@ export default {
             discoveredActive: [],
             loadingDiscovered: false,
             savingDiscovery: false,
+            savingPropagation: false,
             discoveryInterval: null,
         };
     },
@@ -1413,6 +1531,21 @@ export default {
                 ToastUtils.error(this.$t("tutorial.failed_enable_discovery"));
             } finally {
                 this.savingDiscovery = false;
+            }
+        },
+        async enableAutoPropagation() {
+            this.savingPropagation = true;
+            try {
+                await window.axios.patch("/api/v1/config", {
+                    lxmf_preferred_propagation_node_auto_select: true,
+                });
+                ToastUtils.success("Auto-propagation enabled");
+                this.nextStep();
+            } catch (e) {
+                console.error("Failed to enable auto-propagation:", e);
+                ToastUtils.error("Failed to enable auto-propagation");
+            } finally {
+                this.savingPropagation = false;
             }
         },
         getDiscoveryIcon(iface) {

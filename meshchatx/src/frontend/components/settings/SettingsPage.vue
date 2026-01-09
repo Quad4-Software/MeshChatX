@@ -1335,6 +1335,19 @@
                                     }}</span>
                                 </span>
                             </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="auto-select-propagation-node"
+                                    v-model="config.lxmf_preferred_propagation_node_auto_select"
+                                    @update:model-value="onLxmfPreferredPropagationNodeAutoSelectChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.auto_select_node") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.auto_select_node_description")
+                                    }}</span>
+                                </span>
+                            </label>
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {{ $t("app.preferred_propagation_node") }}
@@ -1514,6 +1527,7 @@ export default {
                 show_suggested_community_interfaces: null,
                 lxmf_local_propagation_node_enabled: null,
                 lxmf_preferred_propagation_node_destination_hash: null,
+                lxmf_preferred_propagation_node_auto_select: null,
                 archives_max_storage_gb: 1,
                 backup_max_count: 5,
                 banished_effect_enabled: true,
@@ -1943,6 +1957,15 @@ export default {
                     "preferred_node"
                 );
             }, 1000);
+        },
+        async onLxmfPreferredPropagationNodeAutoSelectChange() {
+            await this.updateConfig(
+                {
+                    lxmf_preferred_propagation_node_auto_select:
+                        this.config.lxmf_preferred_propagation_node_auto_select,
+                },
+                "auto_select_node"
+            );
         },
         async onLxmfLocalPropagationNodeEnabledChangeWrapper(value) {
             this.config.lxmf_local_propagation_node_enabled = value;
