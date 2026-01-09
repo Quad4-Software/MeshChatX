@@ -8756,6 +8756,12 @@ class ReticulumMeshChat:
             # update active propagation node
             self.set_active_propagation_node(value)
 
+        if "lxmf_preferred_propagation_node_auto_select" in data:
+            value = self._parse_bool(
+                data["lxmf_preferred_propagation_node_auto_select"],
+            )
+            self.config.lxmf_preferred_propagation_node_auto_select.set(value)
+
         # update inbound stamp cost (for direct delivery messages)
         if "lxmf_inbound_stamp_cost" in data:
             value = int(data["lxmf_inbound_stamp_cost"])
@@ -9903,6 +9909,7 @@ class ReticulumMeshChat:
             "lxmf_local_propagation_node_enabled": ctx.config.lxmf_local_propagation_node_enabled.get(),
             "lxmf_local_propagation_node_address_hash": ctx.message_router.propagation_destination.hexhash,
             "lxmf_preferred_propagation_node_destination_hash": ctx.config.lxmf_preferred_propagation_node_destination_hash.get(),
+            "lxmf_preferred_propagation_node_auto_select": ctx.config.lxmf_preferred_propagation_node_auto_select.get(),
             "lxmf_preferred_propagation_node_auto_sync_interval_seconds": ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get(),
             "lxmf_preferred_propagation_node_last_synced_at": ctx.config.lxmf_preferred_propagation_node_last_synced_at.get(),
             "lxmf_user_icon_name": ctx.config.lxmf_user_icon_name.get(),
