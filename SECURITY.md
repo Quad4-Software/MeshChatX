@@ -4,9 +4,7 @@
 
 If you discover a security vulnerability or have concerns about the security of Reticulum MeshChatX, please contact the lead developer using the following methods in order of preference:
 
-1. **LXMF**: `7cc8d66b4f6a0e0e49d34af7f6077b5a` (Ideally)
-2. **XMPP**: `ivan@chat.quad4.io`
-3. **Email**: `ivan@quad4.io`
+1. **LXMF**: `7cc8d66b4f6a0e0e49d34af7f6077b5a`
 
 ## Security Overview
 
@@ -17,7 +15,7 @@ Reticulum MeshChatX is designed with a high degree of security in mind, leveragi
 - **ASAR Integrity Validation**: Utilizes Electron 39 features to protect the application against tampering.
 - **Backend Binary Verification**: Generates a SHA-256 manifest of the unpacked Python backend during build and verifies it on every startup.
 - **Data-at-Rest Integrity Monitoring**: Snapshots the state of identities and database files on clean shutdown and warns if they were modified while the app was closed.
-- **3-Layer CSP Hardening**: Multi-layered Content Security Policy protection across the entire application stack:
+- **Redundant CSP Hardening**: Multi-layered Content Security Policy protection across the entire application stack:
     1. **Backend Server CSP**: Applied via security middleware to all HTTP responses.
     2. **Electron Session CSP**: Shell-level fallback CSP applied via `webRequest.onHeadersReceived`.
     3. **Loading Screen CSP**: Bootloader CSP defined in HTML meta tags.
