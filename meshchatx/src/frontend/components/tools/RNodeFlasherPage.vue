@@ -59,6 +59,50 @@
                             <div class="space-y-1">
                                 <label
                                     class="text-xs font-semibold text-gray-500 dark:text-zinc-500 uppercase tracking-wider"
+                                    >{{ $t("tools.rnode_flasher.connection_method") }}</label
+                                >
+                                <div class="flex gap-2">
+                                    <button
+                                        class="flex-1 py-2 px-3 rounded-xl border text-sm font-bold transition-all"
+                                        :class="
+                                            connectionMethod === 'serial'
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300'
+                                        "
+                                        @click="connectionMethod = 'serial'"
+                                    >
+                                        {{ $t("tools.rnode_flasher.serial") }}
+                                    </button>
+                                    <button
+                                        class="flex-1 py-2 px-3 rounded-xl border text-sm font-bold transition-all"
+                                        :class="
+                                            connectionMethod === 'wifi'
+                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300'
+                                        "
+                                        @click="connectionMethod = 'wifi'"
+                                    >
+                                        {{ $t("tools.rnode_flasher.wifi") }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div v-if="connectionMethod === 'wifi'" class="space-y-1">
+                                <label
+                                    class="text-xs font-semibold text-gray-500 dark:text-zinc-500 uppercase tracking-wider"
+                                    >{{ $t("tools.rnode_flasher.ip_address") }}</label
+                                >
+                                <input
+                                    v-model="wifiIpAddress"
+                                    type="text"
+                                    class="w-full bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2.5 transition-all"
+                                    :placeholder="$t('tools.rnode_flasher.ip_address_placeholder')"
+                                />
+                            </div>
+
+                            <div class="space-y-1">
+                                <label
+                                    class="text-xs font-semibold text-gray-500 dark:text-zinc-500 uppercase tracking-wider"
                                     >{{ $t("tools.rnode_flasher.product") }}</label
                                 >
                                 <select
@@ -439,6 +483,8 @@ export default {
             isEnteringDfuMode: false,
             rnodeDisplayImage: null,
             showAdvanced: false,
+            connectionMethod: "serial",
+            wifiIpAddress: "",
             selectedProduct: null,
             selectedModel: null,
             products: products,
@@ -632,6 +678,11 @@ export default {
             }
         },
         async flash() {
+            if (this.connectionMethod === "wifi") {
+                await this.flashWifi();
+                return;
+            }
+
             switch (this.selectedProduct?.platform) {
                 case ROM.PLATFORM_ESP32:
                     await this.flashEsp32();
@@ -643,6 +694,103 @@ export default {
                     ToastUtils.error(this.$t("tools.rnode_flasher.errors.select_product_first"));
                     break;
             }
+        },
+        async flashWifi() {
+            this.flashError = null;
+            const file = this.$refs["file"].files[0];
+            if (!file) {
+                this.flashError = this.$t("tools.rnode_flasher.errors.select_firmware_first");
+                ToastUtils.error(this.flashError);
+                return;
+            }
+
+            if (!this.wifiIpAddress) {
+                this.flashError = "Please enter an IP address";
+                ToastUtils.error(this.flashError);
+                return;
+            }
+
+            this.isFlashing = true;
+            this.flashingProgress = 0;
+            this.flashingStatus = "Preparing firmware for WiFi upload...";
+
+            try {
+                const blobReader = new window.zip.BlobReader(file);
+                const zipReader = new window.zip.ZipReader(blobReader);
+                const zipEntries = await zipReader.getEntries();
+
+                // Find the main .bin file (usually the one at 0x10000 in flash_config)
+                const flashConfig = this.selectedModel?.flash_config ?? this.selectedProduct?.flash_config;
+                let mainBinFilename = null;
+                if (flashConfig && flashConfig.flash_files) {
+                    mainBinFilename = flashConfig.flash_files["0x10000"];
+                }
+
+                // fallback: find any .bin file that isn't bootloader or partitions if flash_config is missing
+                if (!mainBinFilename) {
+                    const binEntry = zipEntries.find(
+                        (e) =>
+                            e.filename.endsWith(".bin") &&
+                            !e.filename.includes("bootloader") &&
+                            !e.filename.includes("partitions")
+                    );
+                    if (binEntry) mainBinFilename = binEntry.filename;
+                }
+
+                if (!mainBinFilename) {
+                    throw new Error("Could not find main firmware .bin in ZIP file.");
+                }
+
+                const entry = zipEntries.find((e) => e.filename === mainBinFilename);
+                if (!entry) throw new Error(`Firmware file ${mainBinFilename} not found in ZIP.`);
+
+                const binBlob = await entry.getData(new window.zip.BlobWriter());
+
+                this.flashingStatus = `Uploading ${mainBinFilename} to ${this.wifiIpAddress}...`;
+
+                await this.uploadOta(this.wifiIpAddress, binBlob);
+
+                ToastUtils.success(this.$t("tools.rnode_flasher.alerts.flash_success"));
+            } catch (e) {
+                this.flashError = this.$t("tools.rnode_flasher.errors.failed_ota", { error: e.message || e });
+                ToastUtils.error(this.flashError);
+            } finally {
+                this.isFlashing = false;
+                this.flashingStatus = "";
+            }
+        },
+        async uploadOta(ip, blob) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                // We use http here because devices usually don't have https
+                xhr.open("POST", `http://${ip}/update`, true);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        this.flashingProgress = Math.floor((e.loaded / e.total) * 100);
+                        this.flashingStatus = `Uploading: ${this.flashingProgress}%`;
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
+                    }
+                };
+
+                xhr.onerror = () =>
+                    reject(
+                        new Error(
+                            "Network error occurred during upload. Check if IP is correct and device is reachable."
+                        )
+                    );
+
+                const formData = new FormData();
+                formData.append("update", blob, "firmware.bin");
+                xhr.send(formData);
+            });
         },
         async flashNrf52() {
             this.flashError = null;
