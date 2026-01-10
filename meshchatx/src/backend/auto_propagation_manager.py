@@ -99,7 +99,6 @@ class AutoPropagationManager:
                 hasattr(self.context, "rnprobe_handler")
                 and self.context.rnprobe_handler
             ):
-
                 # Re-using the logic from RNProbeHandler but simplified
                 if not RNS.Transport.has_path(destination_hash):
                     RNS.Transport.request_path(destination_hash)
