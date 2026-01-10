@@ -89,3 +89,5 @@ out/
 /packaging/arch/reticulum-meshchatx/
 
 electron/backend-manifest.json
+
+scripts/private/
