@@ -3,12 +3,10 @@
 > [!IMPORTANT]  
 > v4 coming soon with release builds for Linux and Windows (Appimage and EXE portable/installer). As well as updated container images and wheel packages. You can test v4 using container by replacing normal image with `git.quad4.io/rns-things/meshchatx-dev:dev`
 
-Contact me for issues, ideas and how to get an account for this gitea instance:
+Contact me for any issues or ideas:
 
 ```
 LXMF: 7cc8d66b4f6a0e0e49d34af7f6077b5a
-XMPP: ivan@chat.quad4.io
-Email: ivan@quad4.io
 ```
 
 [![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
@@ -62,15 +60,16 @@ Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-bui
 ## Major Features
 
 - **Full LXST Support**: Custom voicemail, phonebook, contact sharing, and ringtone support.
+- **Interface Discovery and auto-connecting** - Discover interfaces, auto-connect or connect to trusted ones, map them all!
 - **Multi-Identity**: Switch between multiple Reticulum identities seamlessly.
 - **Modern UI/UX**: A completely redesigned, intuitive interface.
 - **Integrated Maps**: OpenLayers with MBTiles support for offline maps.
 - **Security**: Read more about it in the [Security](#security) section.
 - **Offline Docs**: Access Reticulum documentation without an internet connection.
-- **Expanded Tools**: Includes RNStatus, RNProbe, RNCP, Micron Editor, Paper Message Generator and a Translator.
+- **Expanded Tools**: Includes dozens of more tools.
 - **Page Archiving**: Built-in crawler and browser for archived pages offline.
-- **Banishment**: Banish LXMF users, Telephony, and NomadNet Nodes. (and unbanish them)
-- **i18n**: Support for English, German, and Russian.
+- **Banishment**: Banish LXMF users, Telephony, and NomadNet Nodes.
+- **i18n**: Support for English, German, Italian, and Russian.
 
 ## Screenshots
 
@@ -231,15 +230,15 @@ We use [Task](https://taskfile.dev/) for automation.
 
 ## Security
 
-- [ASAR Integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity) (Electron 39)
+- [ASAR Integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity) (Stable as of Electron 39)
 - Built-in automatic integrity checks on all files (frontend and backend)
 - HTTPS by default (automated locally generated certs)
-- 3-layer redundant CORS protection (loading.html, python backend server, electron main.js)
+- Redundant CORS protection (loading.html, python backend server, electron main.js)
 - Updated dependencies and daily scanning (OSV)
 - Container image scanning (Trivy)
-- SBOM for dependency observability and tracking (soon)
+- SBOM for dependency observability and tracking
 - Extensive testing and fuzzing. 
-- Rootless docker images (soon)
+- Rootless docker images
 - Pinned actions and container images (supply chain security and deterministic builds)
 
 ## Credits
