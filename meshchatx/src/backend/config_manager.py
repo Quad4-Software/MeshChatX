@@ -48,6 +48,11 @@ class ConfigManager:
             "lxmf_preferred_propagation_node_destination_hash",
             None,
         )
+        self.lxmf_preferred_propagation_node_auto_select = self.BoolConfig(
+            self,
+            "lxmf_preferred_propagation_node_auto_select",
+            False,
+        )
         self.lxmf_preferred_propagation_node_auto_sync_interval_seconds = (
             self.IntConfig(
                 self,
@@ -60,6 +65,8 @@ class ConfigManager:
             "lxmf_preferred_propagation_node_last_synced_at",
             None,
         )
+        self.lxmf_address_hash = self.StringConfig(self, "lxmf_address_hash", None)
+        self.lxst_address_hash = self.StringConfig(self, "lxst_address_hash", None)
         self.lxmf_local_propagation_node_enabled = self.BoolConfig(
             self,
             "lxmf_local_propagation_node_enabled",
@@ -101,6 +108,7 @@ class ConfigManager:
             "archives_max_storage_gb",
             1,
         )
+        self.backup_max_count = self.IntConfig(self, "backup_max_count", 5)
         self.crawler_enabled = self.BoolConfig(self, "crawler_enabled", False)
         self.crawler_max_retries = self.IntConfig(self, "crawler_max_retries", 3)
         self.crawler_retry_delay_seconds = self.IntConfig(
@@ -112,6 +120,34 @@ class ConfigManager:
         self.auth_enabled = self.BoolConfig(self, "auth_enabled", False)
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
+        self.docs_downloaded = self.BoolConfig(self, "docs_downloaded", False)
+        self.initial_docs_download_attempted = self.BoolConfig(
+            self,
+            "initial_docs_download_attempted",
+            False,
+        )
+        self.gitea_base_url = self.StringConfig(
+            self,
+            "gitea_base_url",
+            "https://git.quad4.io",
+        )
+        self.docs_download_urls = self.StringConfig(
+            self,
+            "docs_download_urls",
+            "https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip,https://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip",
+        )
+
+        # desktop config
+        self.desktop_open_calls_in_separate_window = self.BoolConfig(
+            self,
+            "desktop_open_calls_in_separate_window",
+            False,
+        )
+        self.desktop_hardware_acceleration_enabled = self.BoolConfig(
+            self,
+            "desktop_hardware_acceleration_enabled",
+            True,
+        )
 
         # voicemail config
         self.voicemail_enabled = self.BoolConfig(self, "voicemail_enabled", False)
@@ -130,6 +166,14 @@ class ConfigManager:
             "voicemail_max_recording_seconds",
             60,
         )
+        self.voicemail_tts_speed = self.IntConfig(self, "voicemail_tts_speed", 130)
+        self.voicemail_tts_pitch = self.IntConfig(self, "voicemail_tts_pitch", 45)
+        self.voicemail_tts_voice = self.StringConfig(
+            self,
+            "voicemail_tts_voice",
+            "en-us+f3",
+        )
+        self.voicemail_tts_word_gap = self.IntConfig(self, "voicemail_tts_word_gap", 5)
 
         # ringtone config
         self.custom_ringtone_enabled = self.BoolConfig(
@@ -138,6 +182,8 @@ class ConfigManager:
             False,
         )
         self.ringtone_filename = self.StringConfig(self, "ringtone_filename", None)
+        self.ringtone_preferred_id = self.IntConfig(self, "ringtone_preferred_id", 0)
+        self.ringtone_volume = self.IntConfig(self, "ringtone_volume", 100)
 
         # telephony config
         self.do_not_disturb_enabled = self.BoolConfig(
@@ -149,6 +195,36 @@ class ConfigManager:
             self,
             "telephone_allow_calls_from_contacts_only",
             False,
+        )
+        self.telephone_audio_profile_id = self.IntConfig(
+            self,
+            "telephone_audio_profile_id",
+            2,  # Default to Voice (profile 2)
+        )
+        self.telephone_web_audio_enabled = self.BoolConfig(
+            self,
+            "telephone_web_audio_enabled",
+            False,
+        )
+        self.telephone_web_audio_allow_fallback = self.BoolConfig(
+            self,
+            "telephone_web_audio_allow_fallback",
+            True,
+        )
+        self.call_recording_enabled = self.BoolConfig(
+            self,
+            "call_recording_enabled",
+            False,
+        )
+        self.telephone_tone_generator_enabled = self.BoolConfig(
+            self,
+            "telephone_tone_generator_enabled",
+            True,
+        )
+        self.telephone_tone_generator_volume = self.IntConfig(
+            self,
+            "telephone_tone_generator_volume",
+            50,
         )
 
         # map config
@@ -173,6 +249,60 @@ class ConfigManager:
             "map_nominatim_api_url",
             "https://nominatim.openstreetmap.org",
         )
+
+        # telemetry config
+        self.telemetry_enabled = self.BoolConfig(self, "telemetry_enabled", False)
+
+        # translator config
+        self.translator_enabled = self.BoolConfig(self, "translator_enabled", False)
+        self.libretranslate_url = self.StringConfig(
+            self,
+            "libretranslate_url",
+            "http://localhost:5000",
+        )
+
+        # location config
+        self.location_source = self.StringConfig(self, "location_source", "browser")
+        self.location_manual_lat = self.StringConfig(self, "location_manual_lat", "0.0")
+        self.location_manual_lon = self.StringConfig(self, "location_manual_lon", "0.0")
+        self.location_manual_alt = self.StringConfig(self, "location_manual_alt", "0.0")
+
+        # banishment config
+        self.banished_effect_enabled = self.BoolConfig(
+            self,
+            "banished_effect_enabled",
+            True,
+        )
+        self.banished_text = self.StringConfig(
+            self,
+            "banished_text",
+            "BANISHED",
+        )
+        self.banished_color = self.StringConfig(
+            self,
+            "banished_color",
+            "#dc2626",
+        )
+        self.message_font_size = self.IntConfig(self, "message_font_size", 14)
+        self.message_icon_size = self.IntConfig(self, "message_icon_size", 28)
+
+        # blackhole integration config
+        self.blackhole_integration_enabled = self.BoolConfig(
+            self,
+            "blackhole_integration_enabled",
+            True,
+        )
+
+        # csp config so users can set extra CSP sources for local offgrid environments (tile servers, etc.)
+        self.csp_extra_connect_src = self.StringConfig(
+            self,
+            "csp_extra_connect_src",
+            "",
+        )
+        self.csp_extra_img_src = self.StringConfig(self, "csp_extra_img_src", "")
+        self.csp_extra_frame_src = self.StringConfig(self, "csp_extra_frame_src", "")
+        self.csp_extra_script_src = self.StringConfig(self, "csp_extra_script_src", "")
+        self.csp_extra_style_src = self.StringConfig(self, "csp_extra_style_src", "")
 
     def get(self, key: str, default_value=None) -> str | None:
         return self.db.config.get(key, default_value)

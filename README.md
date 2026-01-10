@@ -32,7 +32,7 @@ To provide everything you need for Reticulum, LXMF, and LXST in one beautiful an
 - Mobile app (one can dream)
 - Reliable, secure, fast and easy to use.
 
-Note on macOS: You will need to manually build or use containers since I do not have a macOS machine or runner. 
+Note on macOS: You will need to manually build or use containers since I do not have a macOS machine or runner.
 
 ## Quick Start (Docker - Recommended)
 
@@ -192,41 +192,39 @@ MeshChatX can be configured via command-line arguments or environment variables.
 | `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Data directory       |
 | `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | -           | Frontend files path  |
 
-
 ## Development
 
 We use [Task](https://taskfile.dev/) for automation.
 
-| Task                    | Description                                    |
-| :---------------------- | :--------------------------------------------- |
-| `task install`          | Install all dependencies                       |
-| `task run`              | Run the application                            |
-| `task dev`              | Run the application in development mode        |
-| `task lint`             | Run all linters (Python & Frontend)            |
-| `task lint-python`      | Lint Python code only                          |
-| `task lint-frontend`    | Lint frontend code only                        |
-| `task format`           | Format all code (Python & Frontend)            |
-| `task format-python`    | Format Python code only                        |
-| `task format-frontend`  | Format frontend code only                      |
-| `task test`             | Run all tests                                  |
-| `task test:cov`         | Run tests with coverage reports                |
-| `task test-python`      | Run Python tests only                          |
-| `task test-frontend`    | Run frontend tests only                        |
-| `task build`            | Build frontend and backend                     |
-| `task build-frontend`   | Build only the frontend                        |
-| `task wheel`            | Build Python wheel package                     |
-| `task compile`          | Compile Python code to check for syntax errors |
-| `task build-docker`     | Build Docker image using buildx                |
-| `task run-docker`       | Run Docker container using docker-compose      |
-| `task build-appimage`   | Build Linux AppImage                           |
-| `task build-exe`        | Build Windows portable executable              |
-| `task build-electron-linux` | Build Linux Electron app                   |
-| `task build-electron-windows` | Build Windows Electron apps              |
-| `task android-prepare`  | Prepare Android build                          |
-| `task android-build`    | Build Android APK                              |
-| `task build-flatpak`    | Build Flatpak package                          |
-| `task clean`            | Clean build artifacts and dependencies         |
-
+| Task                          | Description                                    |
+| :---------------------------- | :--------------------------------------------- |
+| `task install`                | Install all dependencies                       |
+| `task run`                    | Run the application                            |
+| `task dev`                    | Run the application in development mode        |
+| `task lint`                   | Run all linters (Python & Frontend)            |
+| `task lint-python`            | Lint Python code only                          |
+| `task lint-frontend`          | Lint frontend code only                        |
+| `task format`                 | Format all code (Python & Frontend)            |
+| `task format-python`          | Format Python code only                        |
+| `task format-frontend`        | Format frontend code only                      |
+| `task test`                   | Run all tests                                  |
+| `task test:cov`               | Run tests with coverage reports                |
+| `task test-python`            | Run Python tests only                          |
+| `task test-frontend`          | Run frontend tests only                        |
+| `task build`                  | Build frontend and backend                     |
+| `task build-frontend`         | Build only the frontend                        |
+| `task wheel`                  | Build Python wheel package                     |
+| `task compile`                | Compile Python code to check for syntax errors |
+| `task build-docker`           | Build Docker image using buildx                |
+| `task run-docker`             | Run Docker container using docker-compose      |
+| `task build-appimage`         | Build Linux AppImage                           |
+| `task build-exe`              | Build Windows portable executable              |
+| `task build-electron-linux`   | Build Linux Electron app                       |
+| `task build-electron-windows` | Build Windows Electron apps                    |
+| `task android-prepare`        | Prepare Android build                          |
+| `task android-build`          | Build Android APK                              |
+| `task build-flatpak`          | Build Flatpak package                          |
+| `task clean`                  | Clean build artifacts and dependencies         |
 
 ## Security
 
@@ -237,7 +235,7 @@ We use [Task](https://taskfile.dev/) for automation.
 - Updated dependencies and daily scanning (OSV)
 - Container image scanning (Trivy)
 - SBOM for dependency observability and tracking
-- Extensive testing and fuzzing. 
+- Extensive testing and fuzzing.
 - Rootless docker images
 - Pinned actions and container images (supply chain security and deterministic builds)
 
@@ -246,4 +244,3 @@ We use [Task](https://taskfile.dev/) for automation.
 - [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - [micron-parser-js](https://github.com/RFnexus/micron-parser-js)
 - [Marqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
-

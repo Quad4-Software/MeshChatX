@@ -16,8 +16,10 @@ class DialogUtils {
             // running inside electron, use ipc confirm
             return window.electron.confirm(message);
         } else {
-            // running inside normal browser, use browser alert
-            return window.confirm(message);
+            // running inside normal browser, use custom confirm dialog
+            return new Promise((resolve) => {
+                GlobalEmitter.emit("confirm", { message, resolve });
+            });
         }
     }
 

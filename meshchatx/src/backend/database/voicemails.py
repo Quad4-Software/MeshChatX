@@ -75,3 +75,9 @@ class VoicemailDAO:
             "SELECT COUNT(*) as count FROM voicemails WHERE is_read = 0",
         )
         return row["count"] if row else 0
+
+    def get_latest_voicemail_id(self):
+        row = self.provider.fetchone(
+            "SELECT id FROM voicemails ORDER BY timestamp DESC LIMIT 1",
+        )
+        return row["id"] if row else None

@@ -53,9 +53,6 @@
             gradle
             openjdk17
 
-            # Flatpak Packaging
-            flatpak-builder
-
             # Containerization
             docker
             docker-compose
@@ -77,7 +74,7 @@
         # Simple package definition for the backend
         packages.default = pkgs.python312Packages.buildPythonPackage {
           pname = "reticulum-meshchatx";
-          version = "3.3.2";
+          version = "4.0.0";
           src = ./.;
           format = "pyproject";
 

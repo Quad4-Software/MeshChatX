@@ -27,7 +27,7 @@
                             <MaterialDesignIcon
                                 icon-name="refresh"
                                 class="w-4 h-4"
-                                :class="{ 'animate-spin': isLoading }"
+                                :class="{ 'animate-spin-reverse': isLoading }"
                             />
                             Refresh
                         </button>
@@ -48,11 +48,36 @@
                         </div>
                     </div>
 
-                    <div
-                        v-if="linkCount !== null"
-                        class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                    >
-                        <div class="font-semibold">Active Links: {{ linkCount }}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div
+                            v-if="linkCount !== null"
+                            class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                        >
+                            <div class="font-semibold">Active Links: {{ linkCount }}</div>
+                        </div>
+
+                        <div
+                            v-if="blackholeEnabled !== null"
+                            class="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
+                        >
+                            <div class="font-semibold flex justify-between items-center">
+                                <span>Blackhole: {{ blackholeEnabled ? "Publishing" : "Active" }}</span>
+                                <span class="text-sm opacity-80"> {{ blackholeCount }} Identities </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="blackholeSources.length > 0" class="glass-card space-y-3">
+                    <div class="font-semibold text-lg text-gray-900 dark:text-white">Blackhole Sources</div>
+                    <div class="grid gap-2">
+                        <div
+                            v-for="source in blackholeSources"
+                            :key="source"
+                            class="text-sm font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded truncate"
+                        >
+                            {{ source }}
+                        </div>
                     </div>
                 </div>
 
@@ -189,6 +214,9 @@ export default {
             linkCount: null,
             includeLinkStats: false,
             sorting: "",
+            blackholeEnabled: null,
+            blackholeSources: [],
+            blackholeCount: 0,
         };
     },
     watch: {
@@ -215,6 +243,9 @@ export default {
                 const response = await window.axios.get("/api/v1/rnstatus", { params });
                 this.interfaces = response.data.interfaces || [];
                 this.linkCount = response.data.link_count;
+                this.blackholeEnabled = response.data.blackhole_enabled;
+                this.blackholeSources = response.data.blackhole_sources || [];
+                this.blackholeCount = response.data.blackhole_count || 0;
             } catch (e) {
                 console.error(e);
             } finally {

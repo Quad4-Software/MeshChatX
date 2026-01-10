@@ -24,12 +24,17 @@
                         icon-name="alert"
                         class="h-6 w-6 text-amber-500"
                     />
+                    <MaterialDesignIcon
+                        v-else-if="toast.type === 'loading'"
+                        icon-name="loading"
+                        class="h-6 w-6 text-blue-500 animate-spin"
+                    />
                     <MaterialDesignIcon v-else icon-name="information" class="h-6 w-6 text-blue-500" />
                 </div>
 
                 <!-- content -->
                 <div class="flex-1 mr-2 text-sm font-medium text-gray-900 dark:text-zinc-100">
-                    {{ toast.message }}
+                    {{ $t(toast.message) }}
                 </div>
 
                 <!-- close button -->
@@ -60,33 +65,68 @@ export default {
         };
     },
     mounted() {
-        GlobalEmitter.on("toast", (toast) => {
+        this.toastHandler = (toast) => {
             this.add(toast);
-        });
+        };
+        GlobalEmitter.on("toast", this.toastHandler);
     },
     beforeUnmount() {
-        GlobalEmitter.off("toast");
+        GlobalEmitter.off("toast", this.toastHandler);
     },
     methods: {
         add(toast) {
+            // Check if a toast with the same key already exists
+            if (toast.key) {
+                const existingIndex = this.toasts.findIndex((t) => t.key === toast.key);
+                if (existingIndex !== -1) {
+                    const existingToast = this.toasts[existingIndex];
+
+                    // Clear existing timeout if it exists
+                    if (existingToast.timer) {
+                        clearTimeout(existingToast.timer);
+                    }
+
+                    // Update existing toast
+                    existingToast.message = toast.message;
+                    existingToast.type = toast.type || "info";
+                    existingToast.duration = toast.duration !== undefined ? toast.duration : 5000;
+
+                    if (existingToast.duration > 0) {
+                        existingToast.timer = setTimeout(() => {
+                            this.remove(existingToast.id);
+                        }, existingToast.duration);
+                    } else {
+                        existingToast.timer = null;
+                    }
+                    return;
+                }
+            }
+
             const id = this.counter++;
             const newToast = {
                 id,
+                key: toast.key,
                 message: toast.message,
                 type: toast.type || "info",
-                duration: toast.duration || 5000,
+                duration: toast.duration !== undefined ? toast.duration : 5000,
+                timer: null,
             };
-            this.toasts.push(newToast);
 
             if (newToast.duration > 0) {
-                setTimeout(() => {
+                newToast.timer = setTimeout(() => {
                     this.remove(id);
                 }, newToast.duration);
             }
+
+            this.toasts.push(newToast);
         },
         remove(id) {
             const index = this.toasts.findIndex((t) => t.id === id);
             if (index !== -1) {
+                const toast = this.toasts[index];
+                if (toast.timer) {
+                    clearTimeout(toast.timer);
+                }
                 this.toasts.splice(index, 1);
             }
         },

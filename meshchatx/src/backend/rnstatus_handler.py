@@ -1,6 +1,8 @@
 import time
 from typing import Any
 
+import RNS
+
 
 def size_str(num, suffix="B"):
     units = ["", "K", "M", "G", "T", "P", "E", "Z"]
@@ -52,6 +54,19 @@ class RNStatusHandler:
                 "interfaces": [],
                 "link_count": link_count,
             }
+
+        blackhole_enabled = False
+        blackhole_sources = []
+        blackhole_count = 0
+        try:
+            blackhole_enabled = RNS.Reticulum.publish_blackhole_enabled()
+            blackhole_sources = [s.hex() for s in RNS.Reticulum.blackhole_sources()]
+
+            # Get count of blackholed identities
+            if self.reticulum and hasattr(self.reticulum, "get_blackholed_identities"):
+                blackhole_count = len(self.reticulum.get_blackholed_identities())
+        except Exception:
+            pass
 
         interfaces = stats.get("interfaces", [])
 
@@ -211,4 +226,7 @@ class RNStatusHandler:
             "interfaces": formatted_interfaces,
             "link_count": link_count,
             "timestamp": time.time(),
+            "blackhole_enabled": blackhole_enabled,
+            "blackhole_sources": blackhole_sources,
+            "blackhole_count": blackhole_count,
         }

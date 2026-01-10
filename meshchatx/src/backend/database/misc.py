@@ -90,6 +90,24 @@ class MiscDAO:
             (destination_hash,),
         )
 
+    def get_user_icons(self, destination_hashes):
+        if not destination_hashes:
+            return []
+        placeholders = ", ".join(["?"] * len(destination_hashes))
+        return self.provider.fetchall(
+            f"SELECT * FROM lxmf_user_icons WHERE destination_hash IN ({placeholders})",  # noqa: S608
+            tuple(destination_hashes),
+        )
+
+    def delete_user_icon(self, destination_hash):
+        self.provider.execute(
+            "DELETE FROM lxmf_user_icons WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+
+    def delete_all_user_icons(self):
+        self.provider.execute("DELETE FROM lxmf_user_icons")
+
     # Forwarding Rules
     def get_forwarding_rules(self, identity_hash=None, active_only=False):
         query = "SELECT * FROM lxmf_forwarding_rules WHERE 1=1"
@@ -165,8 +183,14 @@ class MiscDAO:
         sql += " ORDER BY created_at DESC"
         return self.provider.fetchall(sql, params)
 
-    def delete_archived_pages(self, destination_hash=None, page_path=None):
-        if destination_hash and page_path:
+    def delete_archived_pages(self, destination_hash=None, page_path=None, ids=None):
+        if ids:
+            placeholders = ", ".join(["?"] * len(ids))
+            self.provider.execute(
+                f"DELETE FROM archived_pages WHERE id IN ({placeholders})",  # noqa: S608
+                tuple(ids),
+            )
+        elif destination_hash and page_path:
             self.provider.execute(
                 "DELETE FROM archived_pages WHERE destination_hash = ? AND page_path = ?",
                 (destination_hash, page_path),
@@ -185,13 +209,14 @@ class MiscDAO:
         now = datetime.now(UTC)
         self.provider.execute(
             """
-            INSERT INTO crawl_tasks (destination_hash, page_path, status, retry_count, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO crawl_tasks (destination_hash, page_path, status, retry_count, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(destination_hash, page_path) DO UPDATE SET 
                 status = EXCLUDED.status, 
-                retry_count = EXCLUDED.retry_count
+                retry_count = EXCLUDED.retry_count,
+                updated_at = EXCLUDED.updated_at
         """,
-            (destination_hash, page_path, status, retry_count, now),
+            (destination_hash, page_path, status, retry_count, now, now),
         )
 
     def get_pending_crawl_tasks(self):
@@ -205,6 +230,8 @@ class MiscDAO:
             "page_path",
             "status",
             "retry_count",
+            "last_retry_at",
+            "next_retry_at",
             "updated_at",
         }
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_keys}
@@ -252,7 +279,7 @@ class MiscDAO:
         if notification_ids:
             placeholders = ", ".join(["?"] * len(notification_ids))
             self.provider.execute(
-                f"UPDATE notifications SET is_viewed = 1 WHERE id IN ({placeholders})",
+                f"UPDATE notifications SET is_viewed = 1 WHERE id IN ({placeholders})",  # noqa: S608
                 notification_ids,
             )
         else:
@@ -289,3 +316,25 @@ class MiscDAO:
             "DELETE FROM keyboard_shortcuts WHERE identity_hash = ? AND action = ?",
             (identity_hash, action),
         )
+
+    # Last Sent Icon Hashes
+    def get_last_sent_icon_hash(self, destination_hash):
+        row = self.provider.fetchone(
+            "SELECT icon_hash FROM lxmf_last_sent_icon_hashes WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+        return row["icon_hash"] if row else None
+
+    def update_last_sent_icon_hash(self, destination_hash, icon_hash):
+        now = datetime.now(UTC)
+        self.provider.execute(
+            """
+            INSERT INTO lxmf_last_sent_icon_hashes (destination_hash, icon_hash, created_at, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(destination_hash) DO UPDATE SET icon_hash = EXCLUDED.icon_hash, updated_at = EXCLUDED.updated_at
+        """,
+            (destination_hash, icon_hash, now, now),
+        )
+
+    def clear_last_sent_icon_hashes(self):
+        self.provider.execute("DELETE FROM lxmf_last_sent_icon_hashes")

@@ -1,0 +1,38 @@
+services:
+    reticulum-meshchatx:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: reticulum-meshchatx
+        image: reticulum-meshchatx:local
+        restart: unless-stopped
+        # Permission handling is now automated in the Dockerfile via su-exec
+        # reticulum-meshchatx will run as user 'meshchat' (UID 1000)
+        security_opt:
+            - no-new-privileges:true
+        # Make the meshchat web interface accessible from the host on port 8000
+        ports:
+            - 127.0.0.1:8000:8000
+        volumes:
+            - ./meshchat-config:/config
+        # Uncomment if you have a USB device connected, such as an RNode
+        # devices:
+        #   - /dev/ttyUSB0:/dev/ttyUSB0
+        #
+        # Host network for autointerface:
+        # network_mode: host
+
+# LibreTranslate - optional
+
+# libretranslate:
+#     container_name: libretranslate
+#     image: libretranslate/libretranslate:latest
+#     ports:
+#         - 127.0.0.1:5000:5000
+#     restart: unless-stopped
+#     healthcheck:
+#         test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+#         interval: 10s
+#         timeout: 4s
+#         retries: 4
+#         start_period: 5s

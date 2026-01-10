@@ -38,7 +38,7 @@ class VoicemailManager:
         self.on_new_voicemail_callback = None
 
         # stabilization delay for voicemail greeting
-        self.STABILIZATION_DELAY = 2.5
+        self.STABILIZATION_DELAY = 1.0
 
         # Paths to executables
         self.espeak_path = self._find_espeak()
@@ -141,8 +141,34 @@ class VoicemailManager:
         wav_path = os.path.join(self.greetings_dir, "greeting.wav")
 
         try:
-            # espeak-ng to WAV
-            subprocess.run([self.espeak_path, "-w", wav_path, text], check=True)
+            # espeak-ng to WAV with improved parameters
+            speed = str(self.config.voicemail_tts_speed.get())
+            pitch = str(self.config.voicemail_tts_pitch.get())
+            voice = self.config.voicemail_tts_voice.get()
+            gap = str(self.config.voicemail_tts_word_gap.get())
+
+            cmd = [
+                self.espeak_path,
+                "-s",
+                speed,
+                "-p",
+                pitch,
+                "-g",
+                gap,
+                "-k",
+                "10",
+                "-v",
+                voice,
+                "-w",
+                wav_path,
+                text,
+            ]
+
+            RNS.log(
+                f"Voicemail: Generating greeting with command: {' '.join(cmd)}",
+                RNS.LOG_DEBUG,
+            )
+            subprocess.run(cmd, check=True)  # noqa: S603
 
             # Convert WAV to Opus
             return self.convert_to_greeting(wav_path)
@@ -160,7 +186,7 @@ class VoicemailManager:
         if os.path.exists(opus_path):
             os.remove(opus_path)
 
-        subprocess.run(
+        subprocess.run(  # noqa: S603
             [
                 self.ffmpeg_path,
                 "-i",
@@ -169,6 +195,10 @@ class VoicemailManager:
                 "libopus",
                 "-b:a",
                 "16k",
+                "-ar",
+                "48000",
+                "-ac",
+                "1",
                 "-vbr",
                 "on",
                 opus_path,
@@ -214,11 +244,16 @@ class VoicemailManager:
                 RNS.LOG_DEBUG,
             )
 
+            active_call_remote_identity = (
+                telephone.active_call.get_remote_identity()
+                if (telephone and telephone.active_call)
+                else None
+            )
             if (
                 telephone
                 and telephone.active_call
-                and telephone.active_call.get_remote_identity().hash
-                == caller_identity.hash
+                and active_call_remote_identity
+                and active_call_remote_identity.hash == caller_identity.hash
                 and telephone.call_status == 4  # Ringing
             ):
                 RNS.log(
@@ -232,10 +267,17 @@ class VoicemailManager:
                     RNS.LOG_DEBUG,
                 )
                 if telephone.active_call:
-                    RNS.log(
-                        f"Voicemail: Active call remote: {RNS.prettyhexrep(telephone.active_call.get_remote_identity().hash)}",
-                        RNS.LOG_DEBUG,
-                    )
+                    remote_identity = telephone.active_call.get_remote_identity()
+                    if remote_identity:
+                        RNS.log(
+                            f"Voicemail: Active call remote: {RNS.prettyhexrep(remote_identity.hash)}",
+                            RNS.LOG_DEBUG,
+                        )
+                    else:
+                        RNS.log(
+                            "Voicemail: Active call remote identity not found",
+                            RNS.LOG_DEBUG,
+                        )
 
         threading.Thread(target=voicemail_job, daemon=True).start()
 
@@ -244,13 +286,24 @@ class VoicemailManager:
         if not telephone:
             return
 
-        # Answer the call
-        if not telephone.answer(caller_identity):
+        # Answer the call if it's still ringing
+        if telephone.call_status == 4:  # STATUS_RINGING
+            if not telephone.answer(caller_identity):
+                RNS.log("Voicemail: Failed to answer call", RNS.LOG_ERROR)
+                return
+        elif telephone.call_status != 6:  # STATUS_ESTABLISHED
+            RNS.log(
+                f"Voicemail: Cannot start session, call status is {telephone.call_status}",
+                RNS.LOG_DEBUG,
+            )
             return
 
         # Stop microphone if it's active to prevent local noise being sent or recorded
         if telephone.audio_input:
-            telephone.audio_input.stop()
+            try:
+                telephone.audio_input.stop()
+            except Exception:
+                pass
 
         # Play greeting
         greeting_path = os.path.join(self.greetings_dir, "greeting.opus")
@@ -271,6 +324,13 @@ class VoicemailManager:
                 )
 
         def session_job():
+            prev_receive_muted = self.telephone_manager.receive_muted
+            try:
+                # Prevent remote audio from playing locally while recording voicemail
+                self.telephone_manager.mute_receive()
+            except Exception:
+                pass
+
             try:
                 # Wait for link to stabilize
                 RNS.log(
@@ -356,6 +416,12 @@ class VoicemailManager:
                 RNS.log(f"Error during voicemail session: {e}", RNS.LOG_ERROR)
                 if self.is_recording:
                     self.stop_recording()
+            finally:
+                try:
+                    if not prev_receive_muted:
+                        self.telephone_manager.unmute_receive()
+                except Exception:
+                    pass
 
         threading.Thread(target=session_job, daemon=True).start()
 
@@ -370,17 +436,12 @@ class VoicemailManager:
 
         try:
             self.recording_sink = OpusFileSink(filepath)
-            # Ensure samplerate is set to avoid TypeError in LXST Opus codec
-            # which expects sink to have a valid samplerate attribute
             self.recording_sink.samplerate = 48000
 
-            # Connect the caller's audio source to our sink
-            # active_call.audio_source is a LinkSource that feeds into receive_mixer
-            # We want to record what we receive.
             self.recording_pipeline = Pipeline(
-                source=telephone.active_call.audio_source,
-                codec=Null(),
-                sink=self.recording_sink,
+                telephone.active_call.audio_source,
+                Null(),
+                self.recording_sink,
             )
             self.recording_pipeline.start()
 
@@ -402,26 +463,45 @@ class VoicemailManager:
 
         try:
             duration = int(time.time() - self.recording_start_time)
-            self.recording_pipeline.stop()
+
+            if self.recording_pipeline:
+                self.recording_pipeline.stop()
+
+            if self.recording_sink:
+                self.recording_sink.stop()
+
             self.recording_sink = None
             self.recording_pipeline = None
 
             # Save to database if long enough
             if duration >= 1:
+                filepath = os.path.join(self.recordings_dir, self.recording_filename)
+                self._fix_recording(filepath)
+
+                # If recording is missing or empty (no frames), synthesize a small silence file
+                if (not os.path.exists(filepath)) or os.path.getsize(filepath) == 0:
+                    self._write_silence_file(filepath, max(duration, 1))
+
                 remote_name = self.get_name_for_identity_hash(
                     self.recording_remote_identity.hash.hex(),
                 )
-                self.db.voicemails.add_voicemail(
-                    remote_identity_hash=self.recording_remote_identity.hash.hex(),
-                    remote_identity_name=remote_name,
-                    filename=self.recording_filename,
-                    duration_seconds=duration,
-                    timestamp=self.recording_start_time,
-                )
-                RNS.log(
-                    f"Saved voicemail from {RNS.prettyhexrep(self.recording_remote_identity.hash)} ({duration}s)",
-                    RNS.LOG_DEBUG,
-                )
+                if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                    self.db.voicemails.add_voicemail(
+                        remote_identity_hash=self.recording_remote_identity.hash.hex(),
+                        remote_identity_name=remote_name,
+                        filename=self.recording_filename,
+                        duration_seconds=duration,
+                        timestamp=self.recording_start_time,
+                    )
+                    RNS.log(
+                        f"Saved voicemail from {RNS.prettyhexrep(self.recording_remote_identity.hash)} ({duration}s)",
+                        RNS.LOG_DEBUG,
+                    )
+                else:
+                    RNS.log(
+                        f"Voicemail: Recording missing for {self.recording_filename}, skipping DB insert",
+                        RNS.LOG_ERROR,
+                    )
 
                 if self.on_new_voicemail_callback:
                     self.on_new_voicemail_callback(
@@ -444,6 +524,86 @@ class VoicemailManager:
         except Exception as e:
             RNS.log(f"Error stopping recording: {e}", RNS.LOG_ERROR)
             self.is_recording = False
+
+    def _fix_recording(self, filepath):
+        """Ensures the recording is a valid OGG/Opus file using ffmpeg."""
+        if not self.has_ffmpeg or not os.path.exists(filepath):
+            return
+
+        temp_path = filepath + ".fix"
+        try:
+            # We assume it might be raw opus packets or a slightly broken ogg
+            # ffmpeg can often fix this by just re-wrapping it.
+            # We try to detect if it's already a valid format first.
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                "-i",
+                filepath,
+                "-c:a",
+                "libopus",
+                "-b:a",
+                "16k",
+                "-ar",
+                "48000",
+                "-ac",
+                "1",
+                temp_path,
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603
+
+            if result.returncode == 0 and os.path.exists(temp_path):
+                os.remove(filepath)
+                os.rename(temp_path, filepath)
+                RNS.log(
+                    f"Voicemail: Fixed recording format for {filepath}",
+                    RNS.LOG_DEBUG,
+                )
+            else:
+                RNS.log(
+                    f"Voicemail: ffmpeg failed to fix {filepath}: {result.stderr}",
+                    RNS.LOG_WARNING,
+                )
+        except Exception as e:
+            RNS.log(f"Voicemail: Error fixing recording {filepath}: {e}", RNS.LOG_ERROR)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def _write_silence_file(self, filepath, seconds=1):
+        """Creates a minimal OGG/Opus file with silence if recording is missing."""
+        if not self.has_ffmpeg:
+            return False
+
+        try:
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=r=48000:cl=mono",
+                "-t",
+                str(max(1, seconds)),
+                "-c:a",
+                "libopus",
+                "-b:a",
+                "16k",
+                filepath,
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603
+            if result.returncode == 0 and os.path.exists(filepath):
+                return True
+            RNS.log(
+                f"Voicemail: Failed to create silence file for {filepath}: {result.stderr}",
+                RNS.LOG_ERROR,
+            )
+        except Exception as e:
+            RNS.log(
+                f"Voicemail: Error creating silence file for {filepath}: {e}",
+                RNS.LOG_ERROR,
+            )
+        return False
 
     def start_greeting_recording(self):
         telephone = self.telephone_manager.telephone
@@ -469,11 +629,12 @@ class VoicemailManager:
             self.greeting_recording_sink.samplerate = 48000
 
             self.greeting_recording_pipeline = Pipeline(
-                source=telephone.audio_input,
-                codec=Null(),
-                sink=self.greeting_recording_sink,
+                telephone.audio_input,
+                Null(),
+                self.greeting_recording_sink,
             )
             self.greeting_recording_pipeline.start()
+
             self.is_greeting_recording = True
             RNS.log("Voicemail: Started recording greeting from mic", RNS.LOG_DEBUG)
         except Exception as e:
@@ -487,7 +648,12 @@ class VoicemailManager:
             return
 
         try:
-            self.greeting_recording_pipeline.stop()
+            if self.greeting_recording_pipeline:
+                self.greeting_recording_pipeline.stop()
+
+            if self.greeting_recording_sink:
+                self.greeting_recording_sink.stop()
+
             self.greeting_recording_sink = None
             self.greeting_recording_pipeline = None
             self.is_greeting_recording = False

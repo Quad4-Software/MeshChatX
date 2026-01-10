@@ -3,6 +3,17 @@
         :class="{ dark: config?.theme === 'dark' }"
         class="h-screen w-full flex flex-col bg-slate-50 dark:bg-zinc-950 transition-colors"
     >
+        <!-- emergency banner -->
+        <div
+            v-if="appInfo?.emergency"
+            class="relative z-[100] bg-red-600 text-white px-4 py-2 text-center text-sm font-bold shadow-md animate-pulse"
+        >
+            <div class="flex items-center justify-center gap-2">
+                <MaterialDesignIcon icon-name="alert-decagram" class="size-5" />
+                <span>{{ $t("app.emergency_mode_active") }}</span>
+            </div>
+        </div>
+
         <RouterView v-if="$route.name === 'auth'" />
 
         <template v-else>
@@ -11,11 +22,10 @@
             </div>
 
             <template v-else>
-                <!-- header -->
                 <div
-                    class="relative z-[60] flex bg-white/80 dark:bg-zinc-900/70 backdrop-blur border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors"
+                    class="sticky top-0 z-[100] flex bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors overflow-x-hidden"
                 >
-                    <div class="flex w-full px-4">
+                    <div class="flex w-full px-2 sm:px-4 overflow-x-auto no-scrollbar">
                         <button
                             type="button"
                             class="sm:hidden my-auto mr-4 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
@@ -24,13 +34,14 @@
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
                         </button>
                         <div
-                            class="hidden sm:flex my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner"
+                            class="hidden sm:flex cursor-pointer my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner"
+                            @click="onAppNameClick"
                         >
                             <img class="w-12 h-12 object-contain p-1.5" :src="logoUrl" />
                         </div>
                         <div class="my-auto">
                             <div
-                                class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 tracking-tight text-lg"
+                                class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight text-lg"
                                 @click="onAppNameClick"
                             >
                                 {{ $t("app.name") }}
@@ -39,7 +50,7 @@
                                 {{ $t("app.custom_fork_by") }}
                                 <a
                                     target="_blank"
-                                    href="https://github.com/Sudo-Ivan"
+                                    :href="`${giteaBaseUrl}/Sudo-Ivan`"
                                     class="text-blue-500 dark:text-blue-300 hover:underline"
                                     >Sudo-Ivan</a
                                 >
@@ -71,11 +82,17 @@
                                 <span
                                     class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-sm transition"
                                 >
-                                    <span :class="{ 'animate-spin': isSyncingPropagationNode }">
-                                        <MaterialDesignIcon icon-name="refresh" class="size-6" />
-                                    </span>
+                                    <MaterialDesignIcon
+                                        icon-name="refresh"
+                                        class="size-6"
+                                        :class="{ 'animate-spin': isSyncingPropagationNode }"
+                                    />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
-                                        $t("app.sync_messages")
+                                        isSyncingPropagationNode
+                                            ? $t("app.syncing_node", {
+                                                  state: propagationNodeStatus?.state ?? "...",
+                                              })
+                                            : $t("app.sync_messages")
                                     }}</span>
                                 </span>
                             </button>
@@ -112,11 +129,11 @@
                         class="fixed inset-y-0 left-0 z-[70] transform transition-all duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
                         :class="[
                             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-                            isSidebarCollapsed ? 'w-16' : 'w-72',
+                            isSidebarCollapsed ? 'w-16' : 'w-80',
                         ]"
                     >
                         <div
-                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200/70 bg-white dark:border-zinc-800 dark:bg-zinc-900 backdrop-blur"
+                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200/70 bg-white dark:border-zinc-800 dark:bg-zinc-900 backdrop-blur pt-16 sm:pt-0"
                         >
                             <!-- toggle button for desktop -->
                             <div class="hidden sm:flex justify-end p-2 border-b border-gray-100 dark:border-zinc-800">
@@ -304,6 +321,7 @@
                                                     :icon-name="config?.lxmf_user_icon_name"
                                                     :icon-foreground-colour="config?.lxmf_user_icon_foreground_colour"
                                                     :icon-background-colour="config?.lxmf_user_icon_background_colour"
+                                                    icon-class="size-7"
                                                 />
                                             </RouterLink>
                                         </div>
@@ -335,8 +353,9 @@
                                         <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
                                             <div>{{ $t("app.identity_hash") }}</div>
                                             <div
-                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono"
+                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono cursor-pointer"
                                                 :title="config.identity_hash"
+                                                @click="copyValue(config.identity_hash, $t('app.identity_hash'))"
                                             >
                                                 {{ config.identity_hash }}
                                             </div>
@@ -344,10 +363,21 @@
                                         <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
                                             <div>{{ $t("app.lxmf_address") }}</div>
                                             <div
-                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono"
+                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono cursor-pointer"
                                                 :title="config.lxmf_address_hash"
+                                                @click="copyValue(config.lxmf_address_hash, $t('app.lxmf_address'))"
                                             >
                                                 {{ config.lxmf_address_hash }}
+                                            </div>
+                                            <div class="flex items-center justify-end pt-1">
+                                                <button
+                                                    type="button"
+                                                    class="p-1 rounded-lg text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                                    :title="$t('app.show_qr')"
+                                                    @click.stop="openLxmfQr"
+                                                >
+                                                    <MaterialDesignIcon icon-name="qrcode" class="size-4" />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -419,14 +449,74 @@
             </template>
         </template>
         <CallOverlay
-            v-if="(activeCall || isCallEnded || wasDeclined) && $route.name !== 'call'"
+            v-if="
+                (activeCall || isCallEnded || wasDeclined || initiationStatus) &&
+                !$route.meta.isPopout &&
+                (!['call', 'call-popout'].includes($route.name) || activeCallTab !== 'phone') &&
+                (!config?.desktop_open_calls_in_separate_window || !ElectronUtils.isElectron())
+            "
             :active-call="activeCall || lastCall"
             :is-ended="isCallEnded"
             :was-declined="wasDeclined"
+            :voicemail-status="voicemailStatus"
+            :initiation-status="initiationStatus"
+            :initiation-target-hash="initiationTargetHash"
+            :initiation-target-name="initiationTargetName"
             @hangup="onOverlayHangup"
+            @toggle-mic="onToggleMic"
+            @toggle-speaker="onToggleSpeaker"
         />
         <Toast />
+        <ConfirmDialog />
         <CommandPalette />
+        <IntegrityWarningModal />
+        <ChangelogModal ref="changelogModal" :app-version="appInfo?.version" />
+        <TutorialModal ref="tutorialModal" />
+
+        <!-- LXMF QR modal -->
+        <div
+            v-if="showLxmfQr"
+            class="fixed inset-0 z-[190] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            @click.self="showLxmfQr = false"
+        >
+            <div class="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">LXMF Address QR</h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                        @click="showLxmfQr = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="flex justify-center">
+                        <img
+                            v-if="lxmfQrDataUrl"
+                            :src="lxmfQrDataUrl"
+                            alt="LXMF QR"
+                            class="w-48 h-48 bg-white rounded-xl border border-gray-200 dark:border-zinc-800"
+                        />
+                    </div>
+                    <div
+                        v-if="config?.lxmf_address_hash"
+                        class="text-xs font-mono text-gray-700 dark:text-zinc-200 text-center break-words"
+                    >
+                        {{ config.lxmf_address_hash }}
+                    </div>
+                    <div class="flex justify-center">
+                        <button
+                            type="button"
+                            class="px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                            @click="copyValue(config?.lxmf_address_hash, $t('app.lxmf_address'))"
+                        >
+                            {{ $t("common.copy") }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- identity switching overlay -->
         <transition name="fade-blur">
@@ -454,6 +544,7 @@
 </template>
 
 <script>
+import { useTheme } from "vuetify";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
@@ -463,13 +554,20 @@ import GlobalEmitter from "../js/GlobalEmitter";
 import NotificationUtils from "../js/NotificationUtils";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 import Toast from "./Toast.vue";
+import ConfirmDialog from "./ConfirmDialog.vue";
 import ToastUtils from "../js/ToastUtils";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+import QRCode from "qrcode";
 import NotificationBell from "./NotificationBell.vue";
 import LanguageSelector from "./LanguageSelector.vue";
 import CallOverlay from "./call/CallOverlay.vue";
 import CommandPalette from "./CommandPalette.vue";
+import IntegrityWarningModal from "./IntegrityWarningModal.vue";
+import ChangelogModal from "./ChangelogModal.vue";
+import TutorialModal from "./TutorialModal.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
+import ElectronUtils from "../js/ElectronUtils";
+import ToneGenerator from "../js/ToneGenerator";
 import logoUrl from "../assets/images/logo.png";
 
 export default {
@@ -478,15 +576,26 @@ export default {
         LxmfUserIcon,
         SidebarLink,
         Toast,
+        ConfirmDialog,
         MaterialDesignIcon,
         NotificationBell,
         LanguageSelector,
         CallOverlay,
         CommandPalette,
+        IntegrityWarningModal,
+        ChangelogModal,
+        TutorialModal,
+    },
+    setup() {
+        const vuetifyTheme = useTheme();
+        return {
+            vuetifyTheme,
+        };
     },
     data() {
         return {
             logoUrl,
+            ElectronUtils,
             reloadInterval: null,
             appInfoInterval: null,
 
@@ -501,17 +610,33 @@ export default {
             displayName: "Anonymous Peer",
             config: null,
             appInfo: null,
+            hasCheckedForModals: false,
+
+            showLxmfQr: false,
+            lxmfQrDataUrl: null,
 
             activeCall: null,
             propagationNodeStatus: null,
             isCallEnded: false,
             wasDeclined: false,
             lastCall: null,
+            voicemailStatus: null,
+            isMicMuting: false,
+            isSpeakerMuting: false,
             endedTimeout: null,
             ringtonePlayer: null,
+            toneGenerator: new ToneGenerator(),
+            isFetchingRingtone: false,
+            initiationStatus: null,
+            initiationTargetHash: null,
+            initiationTargetName: null,
+            isCallWindowOpen: false,
         };
     },
     computed: {
+        giteaBaseUrl() {
+            return this.config?.gitea_base_url || "https://git.quad4.io";
+        },
         currentPopoutType() {
             if (this.$route?.meta?.popoutType) {
                 return this.$route.meta.popoutType;
@@ -532,8 +657,10 @@ export default {
                 "request_sent",
                 "receiving",
                 "response_received",
-                "complete",
             ].includes(this.propagationNodeStatus?.state);
+        },
+        activeCallTab() {
+            return GlobalState.activeCallTab;
         },
     },
     watch: {
@@ -548,12 +675,8 @@ export default {
                 if (newConfig && newConfig.custom_ringtone_enabled !== undefined) {
                     this.updateRingtonePlayer();
                 }
-                if (newConfig && newConfig.theme) {
-                    if (newConfig.theme === "dark") {
-                        document.documentElement.classList.add("dark");
-                    } else {
-                        document.documentElement.classList.remove("dark");
-                    }
+                if (newConfig && "theme" in newConfig) {
+                    this.applyThemePreference(newConfig.theme ?? "light");
                 }
             },
             deep: true,
@@ -564,9 +687,11 @@ export default {
         clearInterval(this.appInfoInterval);
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
         this.stopRingtone();
+        this.toneGenerator.stop();
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
     },
     mounted() {
         // listen for websocket messages
@@ -587,16 +712,38 @@ export default {
             this.syncPropagationNode();
         });
 
+        GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
+
         GlobalEmitter.on("keyboard-shortcut", (action) => {
             this.handleKeyboardShortcut(action);
         });
 
+        GlobalEmitter.on("block-status-changed", () => {
+            this.getBlockedDestinations();
+        });
+
+        GlobalEmitter.on("show-changelog", () => {
+            this.$refs.changelogModal.show();
+        });
+
+        GlobalEmitter.on("show-tutorial", () => {
+            this.$refs.tutorialModal.show();
+        });
+
         this.getAppInfo();
         this.getConfig();
+        this.getBlockedDestinations();
         this.getKeyboardShortcuts();
         this.updateRingtonePlayer();
         this.updateTelephoneStatus();
         this.updatePropagationNodeStatus();
+
+        // listen for protocol links in electron
+        if (ElectronUtils.isElectron()) {
+            window.electron.onProtocolLink((url) => {
+                this.handleProtocolLink(url);
+            });
+        }
 
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
@@ -608,6 +755,21 @@ export default {
         }, 15000);
     },
     methods: {
+        onConfigUpdatedExternally(newConfig) {
+            if (!newConfig) return;
+            this.config = newConfig;
+            GlobalState.config = newConfig;
+            this.displayName = newConfig.display_name;
+        },
+        applyThemePreference(theme) {
+            const mode = theme === "dark" ? "dark" : "light";
+            if (typeof document !== "undefined") {
+                document.documentElement.classList.toggle("dark", mode === "dark");
+            }
+            if (this.vuetifyTheme?.global?.name) {
+                this.vuetifyTheme.global.name.value = mode;
+            }
+        },
         getHashPopoutValue() {
             const hash = window.location.hash || "";
             const match = hash.match(/popout=([^&]+)/);
@@ -618,14 +780,8 @@ export default {
             switch (json.type) {
                 case "config": {
                     this.config = json.config;
+                    GlobalState.config = json.config;
                     this.displayName = json.config.display_name;
-                    if (this.config?.theme) {
-                        if (this.config.theme === "dark") {
-                            document.documentElement.classList.add("dark");
-                        } else {
-                            document.documentElement.classList.remove("dark");
-                        }
-                    }
                     break;
                 }
                 case "keyboard_shortcuts": {
@@ -641,6 +797,10 @@ export default {
                     if (this.config?.do_not_disturb_enabled) {
                         break;
                     }
+                    // If we are the caller (outgoing initiation), skip playing the incoming ringtone
+                    if (this.initiationStatus) {
+                        break;
+                    }
                     NotificationUtils.showIncomingCallNotification();
                     this.updateTelephoneStatus();
                     this.playRingtone();
@@ -652,6 +812,21 @@ export default {
                     );
                     break;
                 }
+                case "telephone_initiation_status": {
+                    this.initiationStatus = json.status;
+                    this.initiationTargetHash = json.target_hash;
+                    this.initiationTargetName = json.target_name;
+
+                    if (this.initiationStatus === "Ringing...") {
+                        if (this.config?.telephone_tone_generator_enabled) {
+                            this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                            this.toneGenerator.playRingback();
+                        }
+                    } else if (this.initiationStatus === null) {
+                        this.toneGenerator.stop();
+                    }
+                    break;
+                }
                 case "new_voicemail": {
                     NotificationUtils.showNewVoicemailNotification(
                         json.remote_identity_name || json.remote_identity_hash
@@ -659,10 +834,48 @@ export default {
                     this.updateTelephoneStatus();
                     break;
                 }
-                case "telephone_call_established":
+                case "telephone_call_established": {
+                    this.stopRingtone();
+                    this.ringtonePlayer = null;
+                    this.toneGenerator.stop();
+                    this.updateTelephoneStatus();
+                    break;
+                }
                 case "telephone_call_ended": {
                     this.stopRingtone();
+                    this.ringtonePlayer = null;
+                    if (this.config?.telephone_tone_generator_enabled) {
+                        this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                        this.toneGenerator.playBusyTone();
+                    }
                     this.updateTelephoneStatus();
+                    break;
+                }
+                case "lxmf.delivery": {
+                    if (this.config?.do_not_disturb_enabled) {
+                        break;
+                    }
+
+                    // show notification for new messages if window is not focussed
+                    // only for incoming messages
+                    if (!document.hasFocus() && json.lxmf_message?.is_incoming === true) {
+                        NotificationUtils.showNewMessageNotification(
+                            json.remote_identity_name,
+                            json.lxmf_message?.content
+                        );
+                    }
+                    break;
+                }
+                case "lxm.ingest_uri.result": {
+                    if (json.status === "success") {
+                        ToastUtils.success(json.message);
+                    } else if (json.status === "error") {
+                        ToastUtils.error(json.message);
+                    } else if (json.status === "warning") {
+                        ToastUtils.warning(json.message);
+                    } else {
+                        ToastUtils.info(json.message);
+                    }
                     break;
                 }
                 case "identity_switched": {
@@ -689,6 +902,35 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/app/info`);
                 this.appInfo = response.data.app_info;
+
+                // check URL params for modal triggers
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has("show-guide")) {
+                    this.$refs.tutorialModal.show();
+                    // remove param from URL
+                    urlParams.delete("show-guide");
+                    const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : "");
+                    window.history.replaceState({}, "", newUrl);
+                } else if (urlParams.has("changelog")) {
+                    this.$refs.changelogModal.show();
+                    // remove param from URL
+                    urlParams.delete("changelog");
+                    const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : "");
+                    window.history.replaceState({}, "", newUrl);
+                } else if (!this.hasCheckedForModals) {
+                    // check if we should show tutorial or changelog (only on first load)
+                    this.hasCheckedForModals = true;
+                    if (this.appInfo && !this.appInfo.tutorial_seen) {
+                        this.$refs.tutorialModal.show();
+                    } else if (
+                        this.appInfo &&
+                        this.appInfo.changelog_seen_version !== "999.999.999" &&
+                        this.appInfo.changelog_seen_version !== this.appInfo.version
+                    ) {
+                        // show changelog if version changed and not silenced forever
+                        this.$refs.changelogModal.show();
+                    }
+                }
             } catch (e) {
                 // do nothing if failed to load app info
                 console.log(e);
@@ -698,16 +940,19 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/config`);
                 this.config = response.data.config;
-                if (this.config?.theme) {
-                    if (this.config.theme === "dark") {
-                        document.documentElement.classList.add("dark");
-                    } else {
-                        document.documentElement.classList.remove("dark");
-                    }
-                }
+                GlobalState.config = response.data.config;
+                this.displayName = response.data.config.display_name;
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);
+            }
+        },
+        async getBlockedDestinations() {
+            try {
+                const response = await window.axios.get("/api/v1/blocked-destinations");
+                GlobalState.blockedDestinations = response.data.blocked_destinations || [];
+            } catch (e) {
+                console.log("Failed to load blocked destinations:", e);
             }
         },
         async getKeyboardShortcuts() {
@@ -721,12 +966,31 @@ export default {
             try {
                 await window.axios.get(`/api/v1/announce`);
             } catch (e) {
-                ToastUtils.error("failed to announce");
+                ToastUtils.error(this.$t("app.failed_announce"));
                 console.log(e);
             }
 
             // fetch config so it updates last announced timestamp
             await this.getConfig();
+        },
+        async copyValue(value, label) {
+            if (!value) return;
+            try {
+                await navigator.clipboard.writeText(value);
+                ToastUtils.success(`${label} copied`);
+            } catch {
+                ToastUtils.success(value);
+            }
+        },
+        async openLxmfQr() {
+            if (!this.config?.lxmf_address_hash) return;
+            try {
+                const uri = `lxmf://${this.config.lxmf_address_hash}`;
+                this.lxmfQrDataUrl = await QRCode.toDataURL(uri, { margin: 1, scale: 6 });
+                this.showLxmfQr = true;
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
         },
         async updateConfig(config, label = null) {
             try {
@@ -865,6 +1129,9 @@ export default {
                     if (status.has_custom_ringtone && status.id) {
                         this.ringtonePlayer = new Audio(`/api/v1/telephone/ringtones/${status.id}/audio`);
                         this.ringtonePlayer.loop = true;
+                        if (status.volume !== undefined) {
+                            this.ringtonePlayer.volume = status.volume;
+                        }
                     }
                 } catch (e) {
                     console.error("Failed to update ringtone player:", e);
@@ -873,15 +1140,21 @@ export default {
         },
         playRingtone() {
             if (this.ringtonePlayer) {
-                this.ringtonePlayer.play().catch((e) => {
-                    console.log("Failed to play custom ringtone:", e);
-                });
+                if (this.ringtonePlayer.paused) {
+                    this.ringtonePlayer.play().catch((e) => {
+                        console.log("Failed to play custom ringtone:", e);
+                    });
+                }
             }
         },
         stopRingtone() {
             if (this.ringtonePlayer) {
-                this.ringtonePlayer.pause();
-                this.ringtonePlayer.currentTime = 0;
+                try {
+                    this.ringtonePlayer.pause();
+                    this.ringtonePlayer.currentTime = 0;
+                } catch {
+                    // ignore errors during pause
+                }
             }
         },
         async updateTelephoneStatus() {
@@ -889,22 +1162,31 @@ export default {
                 // fetch status
                 const response = await axios.get("/api/v1/telephone/status");
                 const oldCall = this.activeCall;
+                const newCall = response.data.active_call;
 
                 // update ui
-                this.activeCall = response.data.active_call;
-
-                // Stop ringtone if not ringing anymore
-                if (this.activeCall?.status !== 4) {
-                    this.stopRingtone();
+                this.activeCall = newCall;
+                if (this.activeCall) {
+                    this.toneGenerator.stop();
                 }
+                this.voicemailStatus = response.data.voicemail;
+                this.initiationStatus = response.data.initiation_status;
+                this.initiationTargetHash = response.data.initiation_target_hash;
+                this.initiationTargetName = response.data.initiation_target_name;
 
-                // If call just ended, show ended state for a few seconds
-                if (oldCall != null && this.activeCall == null) {
+                // Update call ended state if needed
+                const justEnded = oldCall != null && this.activeCall == null;
+                if (justEnded) {
                     this.lastCall = oldCall;
+                    if (this.config?.telephone_tone_generator_enabled) {
+                        this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                        this.toneGenerator.playBusyTone();
+                    }
 
-                    if (this.wasDeclined) {
-                        // Already set by hangupCall
-                    } else {
+                    // Trigger history refresh
+                    GlobalEmitter.emit("telephone-history-updated");
+
+                    if (!this.wasDeclined) {
                         this.isCallEnded = true;
                     }
 
@@ -914,6 +1196,90 @@ export default {
                         this.wasDeclined = false;
                         this.lastCall = null;
                     }, 5000);
+                }
+
+                // Handle outgoing ringback tone
+                if (this.initiationStatus === "Ringing...") {
+                    if (this.config?.telephone_tone_generator_enabled) {
+                        this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
+                        this.toneGenerator.playRingback();
+                    }
+                } else if (!this.initiationStatus && !this.activeCall && !this.isCallEnded) {
+                    // Only stop if we're not ringing, in a call, or just finished a call (busy tone playing)
+                    this.toneGenerator.stop();
+                }
+
+                // Handle power management for calls
+                if (ElectronUtils.isElectron()) {
+                    if (this.activeCall) {
+                        window.electron.setPowerSaveBlocker(true);
+                    } else if (!this.initiationStatus) {
+                        window.electron.setPowerSaveBlocker(false);
+                    }
+                }
+
+                // Handle opening call in separate window if enabled
+                if (
+                    (this.activeCall || this.initiationStatus) &&
+                    this.config?.desktop_open_calls_in_separate_window &&
+                    ElectronUtils.isElectron()
+                ) {
+                    if (!this.isCallWindowOpen && !this.$route.meta.isPopout) {
+                        this.isCallWindowOpen = true;
+                        window.open("/call.html", "MeshChatXCallWindow", "width=600,height=800");
+                    }
+                } else {
+                    this.isCallWindowOpen = false;
+                }
+
+                // Handle ringtone (only for incoming ringing)
+                if (this.activeCall?.status === 4 && this.activeCall?.is_incoming) {
+                    // Call is ringing
+                    if (!this.ringtonePlayer && this.config?.custom_ringtone_enabled && !this.isFetchingRingtone) {
+                        this.isFetchingRingtone = true;
+                        try {
+                            const caller_hash = this.activeCall.remote_identity_hash;
+                            const ringResponse = await window.axios.get(
+                                `/api/v1/telephone/ringtones/status?caller_hash=${caller_hash}`
+                            );
+                            const status = ringResponse.data;
+                            if (status.has_custom_ringtone && status.id) {
+                                // Double check if we still need to play it (call might have ended during await)
+                                if (this.activeCall?.status === 4) {
+                                    // Stop any existing player just in case
+                                    this.stopRingtone();
+
+                                    this.ringtonePlayer = new Audio(`/api/v1/telephone/ringtones/${status.id}/audio`);
+                                    this.ringtonePlayer.loop = true;
+                                    if (status.volume !== undefined) {
+                                        this.ringtonePlayer.volume = status.volume;
+                                    }
+                                    this.playRingtone();
+                                }
+                            }
+                        } finally {
+                            this.isFetchingRingtone = false;
+                        }
+                    } else if (this.ringtonePlayer && this.activeCall?.status === 4) {
+                        this.playRingtone();
+                    }
+                } else {
+                    // Not ringing
+                    if (this.ringtonePlayer) {
+                        this.stopRingtone();
+                        this.ringtonePlayer = null;
+                    }
+                }
+
+                // Preserve local mute state if we're currently toggling
+                if (newCall && oldCall) {
+                    newCall.is_mic_muted = oldCall.is_mic_muted;
+                    newCall.is_speaker_muted = oldCall.is_speaker_muted;
+                }
+
+                // If call just ended, show ended state for a few seconds
+                if (justEnded) {
+                    // Handled above
                 } else if (this.activeCall != null) {
                     // if a new call starts, clear ended state
                     this.isCallEnded = false;
@@ -935,13 +1301,46 @@ export default {
                 this.wasDeclined = true;
             }
         },
+        onToggleMic(isMuted) {
+            this.isMicMuting = true;
+            if (this.activeCall) {
+                this.activeCall.is_mic_muted = isMuted;
+            }
+            setTimeout(() => {
+                this.isMicMuting = false;
+            }, 2000);
+        },
+        onToggleSpeaker(isMuted) {
+            this.isSpeakerMuting = true;
+            if (this.activeCall) {
+                this.activeCall.is_speaker_muted = isMuted;
+            }
+            setTimeout(() => {
+                this.isSpeakerMuting = false;
+            }, 2000);
+        },
         onAppNameClick() {
             // user may be on mobile, and is unable to scroll back to sidebar, so let them tap app name to do it
-            this.$refs["middle"].scrollTo({
+            this.$refs["middle"]?.scrollTo({
                 top: 0,
                 left: 0,
                 behavior: "smooth",
             });
+            this.$router.push("/messages");
+        },
+        handleProtocolLink(url) {
+            try {
+                // lxmf://<hash> or rns://<hash>
+                const hash = url.replace("lxmf://", "").replace("rns://", "").split("/")[0].replace("/", "");
+                if (hash && hash.length === 32) {
+                    this.$router.push({
+                        name: "messages",
+                        params: { destinationHash: hash },
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to handle protocol link:", e);
+            }
         },
         handleKeyboardShortcut(action) {
             switch (action) {
@@ -984,7 +1383,25 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
+.banished-overlay {
+    @apply absolute inset-0 z-[100] flex items-center justify-center overflow-hidden pointer-events-none rounded-[inherit];
+    background: rgba(220, 38, 38, 0.12);
+    backdrop-filter: blur(3px) saturate(180%);
+}
+
+.banished-text {
+    @apply font-black tracking-[0.3em] uppercase pointer-events-none opacity-40;
+    font-size: clamp(1.5rem, 8vw, 6rem);
+    color: #dc2626;
+    transform: rotate(-12deg);
+    text-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
+    border: 0.2em solid #dc2626;
+    padding: 0.15em 0.4em;
+    border-radius: 0.15em;
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .fade-blur-enter-active,
 .fade-blur-leave-active {
     transition: all 0.5s ease;

@@ -3,9 +3,7 @@
         <div class="overflow-y-auto">
             <div class="max-w-4xl mx-auto p-4 space-y-6">
                 <!-- Header with Preview -->
-                <div
-                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
-                >
+                <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800">
                     <div class="p-6 border-b border-gray-200 dark:border-zinc-800">
                         <div class="flex items-center justify-between">
                             <div>
@@ -51,10 +49,11 @@
                             <div class="text-sm font-medium text-gray-700 dark:text-zinc-300">Preview</div>
                             <div class="p-8 bg-gray-50 dark:bg-zinc-800 rounded-2xl">
                                 <LxmfUserIcon
+                                    :key="iconName + iconForegroundColour + iconBackgroundColour"
                                     :icon-name="iconName"
                                     :icon-foreground-colour="iconForegroundColour"
                                     :icon-background-colour="iconBackgroundColour"
-                                    icon-class="size-16"
+                                    icon-class="size-24"
                                 />
                             </div>
                             <div class="text-xs text-gray-500 dark:text-zinc-400 text-center max-w-md">
@@ -65,9 +64,7 @@
                 </div>
 
                 <!-- Color Selection -->
-                <div
-                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
-                >
+                <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800">
                     <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Colors</h3>
                     </div>
@@ -146,10 +143,18 @@
                                 @click="onIconClick(mdiIconName)"
                             >
                                 <LxmfUserIcon
+                                    :key="
+                                        mdiIconName +
+                                        (iconName === mdiIconName ? iconForegroundColour + iconBackgroundColour : '')
+                                    "
                                     :icon-name="mdiIconName"
-                                    :icon-foreground-colour="iconForegroundColour"
-                                    :icon-background-colour="iconBackgroundColour"
-                                    icon-class="size-8"
+                                    :icon-foreground-colour="
+                                        iconName === mdiIconName ? iconForegroundColour : '#6b7280'
+                                    "
+                                    :icon-background-colour="
+                                        iconName === mdiIconName ? iconBackgroundColour : '#e5e7eb'
+                                    "
+                                    icon-class="size-12"
                                 />
                                 <div
                                     class="mt-2 text-xs text-center text-gray-600 dark:text-zinc-400 truncate w-full"
@@ -207,6 +212,8 @@ import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ColourPickerDropdown from "../ColourPickerDropdown.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 export default {
     name: "ProfileIconPage",
@@ -252,14 +259,17 @@ export default {
         },
     },
     watch: {
-        config() {
-            if (this.config) {
-                this.iconName = this.config.lxmf_user_icon_name || null;
-                this.iconForegroundColour = this.config.lxmf_user_icon_foreground_colour || "#6b7280";
-                this.iconBackgroundColour = this.config.lxmf_user_icon_background_colour || "#e5e7eb";
+        config: {
+            handler() {
+                if (this.config) {
+                    this.iconName = this.config.lxmf_user_icon_name || null;
+                    this.iconForegroundColour = this.config.lxmf_user_icon_foreground_colour || "#6b7280";
+                    this.iconBackgroundColour = this.config.lxmf_user_icon_background_colour || "#e5e7eb";
 
-                this.saveOriginalValues();
-            }
+                    this.saveOriginalValues();
+                }
+            },
+            immediate: true,
         },
         iconForegroundColour() {
             this.debouncedAutoSave();
@@ -308,7 +318,7 @@ export default {
                 const response = await window.axios.get("/api/v1/config");
                 this.config = response.data.config;
             } catch (e) {
-                ToastUtils.error("Failed to load configuration");
+                ToastUtils.error(this.$t("messages.failed_load_config"));
                 console.error(e);
             }
         },
@@ -316,15 +326,17 @@ export default {
             try {
                 const response = await window.axios.patch("/api/v1/config", config);
                 this.config = response.data.config;
+                GlobalState.config = response.data.config;
+                GlobalEmitter.emit("config-updated", response.data.config);
                 this.saveOriginalValues();
 
                 if (!silent) {
-                    ToastUtils.success("Profile icon saved successfully");
+                    ToastUtils.success(this.$t("messages.profile_icon_saved"));
                 }
                 return true;
             } catch (e) {
                 if (!silent) {
-                    ToastUtils.error("Failed to save profile icon");
+                    ToastUtils.error(this.$t("messages.failed_save_profile_icon"));
                 }
                 console.error(e);
                 return false;
@@ -336,12 +348,12 @@ export default {
             }
 
             if (!this.iconForegroundColour || !this.iconBackgroundColour) {
-                ToastUtils.warning("Please select both background and icon colors");
+                ToastUtils.warning(this.$t("messages.select_colors_warning"));
                 return;
             }
 
             if (!this.iconName) {
-                ToastUtils.warning("Please select an icon");
+                ToastUtils.warning(this.$t("messages.select_icon_warning"));
                 return;
             }
 
@@ -358,7 +370,7 @@ export default {
                 );
 
                 if (success && !silent) {
-                    ToastUtils.success("Profile icon saved successfully");
+                    ToastUtils.success(this.$t("messages.profile_icon_saved"));
                 }
             } finally {
                 this.isSaving = false;
@@ -373,7 +385,7 @@ export default {
             this.iconForegroundColour = this.originalIconForegroundColour;
             this.iconBackgroundColour = this.originalIconBackgroundColour;
 
-            ToastUtils.info("Changes reset to saved values");
+            ToastUtils.info(this.$t("messages.changes_reset"));
         },
         onIconClick(iconName) {
             this.iconName = iconName;
@@ -389,7 +401,7 @@ export default {
                 });
 
                 if (success) {
-                    ToastUtils.success("Profile icon removed successfully");
+                    ToastUtils.success(this.$t("messages.profile_icon_removed"));
                 }
             } finally {
                 this.isSaving = false;

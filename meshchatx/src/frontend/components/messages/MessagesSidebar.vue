@@ -33,24 +33,240 @@
             v-if="tab === 'conversations'"
             class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-700 overflow-hidden min-h-0"
         >
+            <!-- Folders Section -->
+            <div class="border-b border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/50">
+                <div
+                    class="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    @click="foldersExpanded = !foldersExpanded"
+                >
+                    <div class="flex items-center gap-2">
+                        <MaterialDesignIcon
+                            :icon-name="foldersExpanded ? 'chevron-down' : 'chevron-right'"
+                            class="size-4 text-gray-400"
+                        />
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-500">
+                            Folders
+                        </span>
+                    </div>
+                    <div class="flex gap-1" @click.stop>
+                        <button
+                            type="button"
+                            class="p-1 text-gray-400 hover:text-blue-500 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                            title="Create Folder"
+                            @click="createFolder"
+                        >
+                            <MaterialDesignIcon icon-name="folder-plus-outline" class="size-4" />
+                        </button>
+                        <div class="relative">
+                            <button
+                                type="button"
+                                class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                @click="folderMenu.show = !folderMenu.show"
+                            >
+                                <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
+                            </button>
+                            <div
+                                v-if="folderMenu.show"
+                                v-click-outside="{ handler: () => (folderMenu.show = false), capture: true }"
+                                class="absolute right-0 top-full mt-1 z-[60] min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                            >
+                                <button
+                                    type="button"
+                                    class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                    @click="
+                                        $emit('export-folders');
+                                        folderMenu.show = false;
+                                    "
+                                >
+                                    <MaterialDesignIcon icon-name="export" class="size-4" />
+                                    <span>Export Folders</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                    @click="
+                                        $emit('import-folders');
+                                        folderMenu.show = false;
+                                    "
+                                >
+                                    <MaterialDesignIcon icon-name="import" class="size-4" />
+                                    <span>Import Folders</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="foldersExpanded" class="flex flex-col max-h-48 overflow-y-auto pb-1">
+                    <div
+                        class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
+                        :class="[
+                            selectedFolderId === null
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
+                            dragOverFolderId === 'all'
+                                ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
+                                : '',
+                        ]"
+                        @click="$emit('folder-click', null)"
+                        @dragover="onDragOver($event, 'all')"
+                        @dragleave="onDragLeave"
+                        @drop="onDropOnFolder($event, null)"
+                    >
+                        <MaterialDesignIcon icon-name="inbox-outline" class="size-4" />
+                        <span class="truncate flex-1">All Messages</span>
+                    </div>
+                    <div
+                        class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
+                        :class="[
+                            selectedFolderId === 0
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
+                            dragOverFolderId === 0
+                                ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
+                                : '',
+                        ]"
+                        @click="$emit('folder-click', 0)"
+                        @dragover="onDragOver($event, 0)"
+                        @dragleave="onDragLeave"
+                        @drop="onDropOnFolder($event, 0)"
+                    >
+                        <MaterialDesignIcon icon-name="folder-outline" class="size-4" />
+                        <span class="truncate flex-1">Uncategorized</span>
+                    </div>
+                    <div
+                        v-for="folder in folders"
+                        :key="folder.id"
+                        class="group px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
+                        :class="[
+                            selectedFolderId === folder.id
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold'
+                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800',
+                            dragOverFolderId === folder.id
+                                ? 'ring-2 ring-blue-500 ring-inset bg-blue-50 dark:bg-blue-900/20'
+                                : '',
+                        ]"
+                        @click="$emit('folder-click', folder.id)"
+                        @dragover="onDragOver($event, folder.id)"
+                        @dragleave="onDragLeave"
+                        @drop="onDropOnFolder($event, folder.id)"
+                    >
+                        <MaterialDesignIcon icon-name="folder" class="size-4" />
+                        <span class="truncate flex-1">{{ folder.name }}</span>
+                        <div class="hidden group-hover:flex items-center gap-0.5">
+                            <button
+                                type="button"
+                                class="p-1 hover:text-blue-500 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                @click.stop="renameFolder(folder)"
+                            >
+                                <MaterialDesignIcon icon-name="pencil-outline" class="size-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                class="p-1 hover:text-red-500 hover:bg-white dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                @click.stop="deleteFolder(folder)"
+                            >
+                                <MaterialDesignIcon icon-name="trash-can-outline" class="size-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- search + filters -->
-            <div v-if="conversations.length > 0" class="p-1 border-b border-gray-300 dark:border-zinc-700 space-y-2">
-                <div class="flex gap-1">
+            <div
+                v-if="conversations.length > 0 || isFilterActive"
+                class="p-1 border-b border-gray-300 dark:border-zinc-700 space-y-1.5"
+            >
+                <div class="flex gap-2">
                     <input
                         :value="conversationSearchTerm"
                         type="text"
                         :placeholder="$t('messages.search_placeholder', { count: conversations.length })"
-                        class="input-field flex-1"
+                        class="input-field flex-1 w-full rounded-none"
                         @input="onConversationSearchInput"
                     />
+                </div>
+                <div class="flex items-center justify-end gap-1 px-1 text-gray-500 dark:text-gray-400">
                     <button
                         type="button"
-                        class="p-2 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                        class="p-1 rounded-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                        title="Selection Mode"
+                        :class="{ 'text-blue-500 dark:text-blue-400': selectionMode }"
+                        @click="toggleSelectionMode"
+                    >
+                        <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
+                    </button>
+                    <button
+                        type="button"
+                        class="p-1 rounded-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                         title="Ingest Paper Message"
                         @click="openIngestPaperMessageModal"
                     >
                         <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
                     </button>
+                </div>
+                <div
+                    v-if="selectionMode"
+                    class="flex items-center justify-between px-2 py-1 bg-blue-50 dark:bg-blue-900/10 rounded-lg"
+                >
+                    <div class="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            :checked="allSelected"
+                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            @change="toggleSelectAll"
+                        />
+                        <span class="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                            {{ selectedHashes.size }} selected
+                        </span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            type="button"
+                            class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                            @click="bulkMarkAsRead"
+                        >
+                            Mark as read
+                        </button>
+                        <button
+                            type="button"
+                            class="text-xs font-bold text-red-600 dark:text-red-400 hover:underline"
+                            @click="bulkDelete"
+                        >
+                            Delete
+                        </button>
+                        <div class="relative">
+                            <button
+                                type="button"
+                                class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                @click="moveMenu.show = !moveMenu.show"
+                            >
+                                Move to
+                            </button>
+                            <div
+                                v-if="moveMenu.show"
+                                v-click-outside="{ handler: () => (moveMenu.show = false), capture: true }"
+                                class="absolute right-0 top-full mt-1 z-[60] min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                            >
+                                <button
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                    @click="moveSelectedToFolder(null)"
+                                >
+                                    Uncategorized
+                                </button>
+                                <button
+                                    v-for="folder in folders"
+                                    :key="folder.id"
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                    @click="moveSelectedToFolder(folder.id)"
+                                >
+                                    {{ folder.name }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-1">
                     <button type="button" :class="filterChipClasses(filterUnreadOnly)" @click="toggleFilter('unread')">
@@ -70,11 +286,11 @@
             </div>
 
             <!-- conversations -->
-            <div class="flex h-full overflow-y-auto">
+            <div class="flex h-full overflow-y-auto" @scroll="onConversationsScroll">
                 <div v-if="isLoading" class="w-full divide-y divide-gray-100 dark:divide-zinc-800">
                     <div v-for="i in 6" :key="i" class="p-3 animate-pulse">
                         <div class="flex gap-3">
-                            <div class="size-10 rounded bg-gray-200 dark:bg-zinc-800"></div>
+                            <div class="rounded bg-gray-200 dark:bg-zinc-800" :style="messageIconStyle"></div>
                             <div class="flex-1 space-y-2 py-1">
                                 <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded w-3/4"></div>
                                 <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded w-1/2"></div>
@@ -86,34 +302,73 @@
                     <div
                         v-for="conversation of displayedConversations"
                         :key="conversation.destination_hash"
-                        class="flex cursor-pointer p-2 border-l-2"
+                        v-memo="[
+                            conversation.destination_hash,
+                            conversation.updated_at,
+                            conversation.is_unread,
+                            conversation.failed_messages_count,
+                            selectedDestinationHash === conversation.destination_hash,
+                            GlobalState.config.banished_effect_enabled && isBlocked(conversation.destination_hash),
+                            selectionMode,
+                            selectedHashes.has(conversation.destination_hash),
+                        ]"
+                        class="flex cursor-pointer p-2 border-l-2 relative group conversation-item"
                         :class="[
                             conversation.destination_hash === selectedDestinationHash
                                 ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
                                 : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600',
+                            selectedHashes.has(conversation.destination_hash)
+                                ? 'bg-blue-50/50 dark:bg-blue-900/10'
+                                : '',
                         ]"
-                        @click="onConversationClick(conversation)"
+                        draggable="true"
+                        @click="
+                            selectionMode
+                                ? toggleSelectConversation(conversation.destination_hash)
+                                : onConversationClick(conversation)
+                        "
+                        @contextmenu="onRightClick($event, conversation.destination_hash)"
+                        @dragstart="onDragStart($event, conversation.destination_hash)"
                     >
+                        <!-- Selection Checkbox -->
+                        <div v-if="selectionMode" class="my-auto mr-3 px-1">
+                            <input
+                                type="checkbox"
+                                :checked="selectedHashes.has(conversation.destination_hash)"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                @click.stop
+                                @change="toggleSelectConversation(conversation.destination_hash)"
+                            />
+                        </div>
+
+                        <!-- banished overlay -->
+                        <div
+                            v-if="
+                                GlobalState.config.banished_effect_enabled && isBlocked(conversation.destination_hash)
+                            "
+                            class="banished-overlay"
+                            :style="{ background: GlobalState.config.banished_color + '33' }"
+                        >
+                            <span
+                                class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                :style="{ 'background-color': GlobalState.config.banished_color }"
+                                >{{ GlobalState.config.banished_text }}</span
+                            >
+                        </div>
+
                         <div class="my-auto mr-2">
-                            <div
-                                v-if="conversation.lxmf_user_icon"
-                                class="p-2 rounded"
-                                :style="{
-                                    color: conversation.lxmf_user_icon.foreground_colour,
-                                    'background-color': conversation.lxmf_user_icon.background_colour,
-                                }"
-                            >
-                                <MaterialDesignIcon
-                                    :icon-name="conversation.lxmf_user_icon.icon_name"
-                                    class="w-6 h-6"
-                                />
-                            </div>
-                            <div
-                                v-else
-                                class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded"
-                            >
-                                <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6" />
-                            </div>
+                            <LxmfUserIcon
+                                :custom-image="conversation.contact_image"
+                                :icon-name="conversation.lxmf_user_icon ? conversation.lxmf_user_icon.icon_name : ''"
+                                :icon-foreground-colour="
+                                    conversation.lxmf_user_icon ? conversation.lxmf_user_icon.foreground_colour : ''
+                                "
+                                :icon-background-colour="
+                                    conversation.lxmf_user_icon ? conversation.lxmf_user_icon.background_colour : ''
+                                "
+                                icon-class="shrink-0"
+                                :icon-style="messageIconStyle"
+                            />
                         </div>
                         <div class="mr-auto w-full pr-2 min-w-0">
                             <div class="flex justify-between gap-2 min-w-0">
@@ -122,7 +377,9 @@
                                     :title="conversation.custom_display_name ?? conversation.display_name"
                                     :class="{
                                         'font-semibold':
-                                            conversation.is_unread || conversation.failed_messages_count > 0,
+                                            (conversation.is_unread &&
+                                                conversation.destination_hash !== selectedDestinationHash) ||
+                                            conversation.failed_messages_count > 0,
                                     }"
                                 >
                                     {{ conversation.custom_display_name ?? conversation.display_name }}
@@ -133,88 +390,146 @@
                             </div>
                             <div class="text-gray-600 dark:text-gray-400 text-xs mt-0.5 truncate">
                                 {{
-                                    conversation.latest_message_preview ??
-                                    conversation.latest_message_title ??
-                                    "No messages yet"
+                                    stripMarkdown(
+                                        conversation.latest_message_preview ?? conversation.latest_message_title
+                                    ) ?? "No messages yet"
                                 }}
                             </div>
                         </div>
-                        <div class="flex items-center space-x-1">
-                            <div v-if="conversation.has_attachments" class="text-gray-500 dark:text-gray-300">
-                                <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
+                        <div class="flex flex-col items-center justify-between ml-1 py-1 shrink-0">
+                            <div class="flex items-center space-x-1">
+                                <div v-if="conversation.has_attachments" class="text-gray-500 dark:text-gray-300">
+                                    <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
+                                </div>
+                                <div
+                                    v-if="
+                                        conversation.is_unread &&
+                                        conversation.destination_hash !== selectedDestinationHash
+                                    "
+                                    class="my-auto ml-1"
+                                >
+                                    <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
+                                </div>
+                                <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
+                                    <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
+                                </div>
                             </div>
-                            <div v-if="conversation.is_unread" class="my-auto ml-1">
-                                <div class="bg-blue-500 dark:bg-blue-400 rounded-full p-1"></div>
-                            </div>
-                            <div v-else-if="conversation.failed_messages_count" class="my-auto ml-1">
-                                <div class="bg-red-500 dark:bg-red-400 rounded-full p-1"></div>
-                            </div>
+                            <button
+                                type="button"
+                                class="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-all"
+                                @click.stop="onRightClick($event, conversation.destination_hash)"
+                            >
+                                <MaterialDesignIcon icon-name="dots-vertical" class="size-4 text-gray-400" />
+                            </button>
                         </div>
+                    </div>
+
+                    <!-- Context Menu -->
+                    <div
+                        v-if="contextMenu.show"
+                        v-click-outside="{ handler: () => (contextMenu.show = false), capture: true }"
+                        class="fixed z-[100] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                        :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
+                    >
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="bulkMarkAsRead"
+                        >
+                            <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />
+                            <span class="font-medium">Mark as Read</span>
+                        </button>
+                        <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                        <button
+                            v-if="GlobalState.config.telemetry_enabled"
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="toggleTelemetryTrust(contextMenu.targetHash)"
+                        >
+                            <MaterialDesignIcon
+                                :icon-name="
+                                    contextMenu.targetContact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'
+                                "
+                                :class="
+                                    contextMenu.targetContact?.is_telemetry_trusted ? 'text-blue-500' : 'text-gray-400'
+                                "
+                                class="size-4"
+                            />
+                            <span class="font-medium">{{
+                                contextMenu.targetContact?.is_telemetry_trusted
+                                    ? "Revoke Telemetry Trust"
+                                    : "Trust for Telemetry"
+                            }}</span>
+                        </button>
+                        <div
+                            v-if="GlobalState.config.telemetry_enabled"
+                            class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"
+                        ></div>
+                        <div
+                            class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
+                        >
+                            Move to Folder
+                        </div>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
+                            @click="moveSelectedToFolder(null)"
+                        >
+                            <MaterialDesignIcon icon-name="inbox-arrow-down" class="size-4 opacity-70" />
+                            <span>Uncategorized</span>
+                        </button>
+                        <div class="max-h-[200px] overflow-y-auto custom-scrollbar">
+                            <button
+                                v-for="folder in folders"
+                                :key="folder.id"
+                                type="button"
+                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
+                                @click="moveSelectedToFolder(folder.id)"
+                            >
+                                <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
+                                <span class="truncate">{{ folder.name }}</span>
+                            </button>
+                        </div>
+                        <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                            @click="bulkDelete"
+                        >
+                            <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
+                            <span class="font-bold">Delete</span>
+                        </button>
+                    </div>
+
+                    <!-- loading more spinner -->
+                    <div v-if="isLoadingMore" class="p-4 text-center">
+                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
                     </div>
                 </div>
                 <div v-else class="mx-auto my-auto text-center leading-5">
                     <div v-if="isLoading" class="flex flex-col text-gray-900 dark:text-gray-100">
-                        <div class="mx-auto mb-1 animate-spin text-gray-500">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                                />
-                            </svg>
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin" />
                         </div>
                         <div class="font-semibold">{{ $t("messages.loading_conversations") }}</div>
                     </div>
 
                     <!-- no conversations at all -->
-                    <div v-else-if="conversations.length === 0" class="flex flex-col text-gray-900 dark:text-gray-100">
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="size-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z"
-                                />
-                            </svg>
+                    <div
+                        v-else-if="conversations.length === 0 && !isFilterActive"
+                        class="flex flex-col text-gray-900 dark:text-gray-100"
+                    >
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="tray-remove" class="size-6" />
                         </div>
                         <div class="font-semibold">No Conversations</div>
                         <div>Discover peers on the Announces tab</div>
                     </div>
 
-                    <!-- is searching, but no results -->
-                    <div
-                        v-else-if="conversationSearchTerm !== ''"
-                        class="flex flex-col text-gray-900 dark:text-gray-100"
-                    >
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                                />
-                            </svg>
+                    <!-- is searching or filtering, but no results -->
+                    <div v-else-if="isFilterActive" class="flex flex-col text-gray-900 dark:text-gray-100">
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="magnify-close" class="size-6" />
                         </div>
                         <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
                         <div>{{ $t("messages.no_search_results_conversations") }}</div>
@@ -229,22 +544,31 @@
             class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-700 overflow-hidden min-h-0"
         >
             <!-- search -->
-            <div v-if="peersCount > 0" class="p-1 border-b border-gray-300 dark:border-zinc-700">
+            <div class="p-1 border-b border-gray-300 dark:border-zinc-700">
                 <input
-                    v-model="peersSearchTerm"
+                    :value="peersSearchTerm"
                     type="text"
-                    :placeholder="$t('messages.search_placeholder_announces', { count: peersCount })"
+                    :placeholder="$t('messages.search_placeholder_announces', { count: totalPeersCount })"
                     class="input-field"
+                    @input="onPeersSearchInput"
                 />
             </div>
 
             <!-- peers -->
-            <div class="flex h-full overflow-y-auto">
+            <div class="flex h-full overflow-y-auto" @scroll="onPeersScroll">
                 <div v-if="searchedPeers.length > 0" class="w-full">
                     <div
                         v-for="peer of searchedPeers"
                         :key="peer.destination_hash"
-                        class="flex cursor-pointer p-2 border-l-2"
+                        v-memo="[
+                            peer.destination_hash,
+                            peer.updated_at,
+                            peer.hops,
+                            peer.snr,
+                            selectedDestinationHash === peer.destination_hash,
+                            GlobalState.config.banished_effect_enabled && isBlocked(peer.destination_hash),
+                        ]"
+                        class="flex cursor-pointer p-2 border-l-2 relative"
                         :class="[
                             peer.destination_hash === selectedDestinationHash
                                 ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
@@ -252,23 +576,28 @@
                         ]"
                         @click="onPeerClick(peer)"
                     >
+                        <!-- banished overlay -->
+                        <div
+                            v-if="GlobalState.config.banished_effect_enabled && isBlocked(peer.destination_hash)"
+                            class="banished-overlay"
+                            :style="{ background: GlobalState.config.banished_color + '33' }"
+                        >
+                            <span
+                                class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                :style="{ 'background-color': GlobalState.config.banished_color }"
+                                >{{ GlobalState.config.banished_text }}</span
+                            >
+                        </div>
+
                         <div class="my-auto mr-2">
-                            <div
-                                v-if="peer.lxmf_user_icon"
-                                class="p-2 rounded"
-                                :style="{
-                                    color: peer.lxmf_user_icon.foreground_colour,
-                                    'background-color': peer.lxmf_user_icon.background_colour,
-                                }"
-                            >
-                                <MaterialDesignIcon :icon-name="peer.lxmf_user_icon.icon_name" class="w-6 h-6" />
-                            </div>
-                            <div
-                                v-else
-                                class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded"
-                            >
-                                <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6" />
-                            </div>
+                            <LxmfUserIcon
+                                :custom-image="peer.contact_image"
+                                :icon-name="peer.lxmf_user_icon?.icon_name"
+                                :icon-foreground-colour="peer.lxmf_user_icon?.foreground_colour"
+                                :icon-background-colour="peer.lxmf_user_icon?.background_colour"
+                                icon-class="shrink-0"
+                                :icon-style="messageIconStyle"
+                            />
                         </div>
                         <div class="min-w-0 flex-1">
                             <div
@@ -301,25 +630,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- loading more spinner -->
+                    <div v-if="isLoadingMoreAnnounces" class="p-4 text-center">
+                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
+                    </div>
                 </div>
                 <div v-else class="mx-auto my-auto text-center leading-5">
                     <!-- no peers at all -->
                     <div v-if="peersCount === 0" class="flex flex-col text-gray-900 dark:text-gray-100">
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"
-                                />
-                            </svg>
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="account-search-outline" class="size-6" />
                         </div>
                         <div class="font-semibold">{{ $t("messages.no_peers_discovered") }}</div>
                         <div>{{ $t("messages.waiting_for_announce") }}</div>
@@ -330,21 +651,8 @@
                         v-if="peersSearchTerm !== '' && peersCount > 0"
                         class="flex flex-col text-gray-900 dark:text-gray-100"
                     >
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                                />
-                            </svg>
+                        <div class="mx-auto mb-1 text-gray-500">
+                            <MaterialDesignIcon icon-name="account-off-outline" class="size-6" />
                         </div>
                         <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
                         <div>{{ $t("messages.no_search_results_peers") }}</div>
@@ -357,11 +665,16 @@
 
 <script>
 import Utils from "../../js/Utils";
+import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
+import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
+import MarkdownRenderer from "../../js/MarkdownRenderer";
 
 export default {
     name: "MessagesSidebar",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, LxmfUserIcon },
     props: {
         peers: {
             type: Object,
@@ -370,6 +683,14 @@ export default {
         conversations: {
             type: Array,
             required: true,
+        },
+        folders: {
+            type: Array,
+            default: () => [],
+        },
+        selectedFolderId: {
+            type: [Number, String],
+            default: null,
         },
         selectedDestinationHash: {
             type: String,
@@ -395,21 +716,94 @@ export default {
             type: Boolean,
             default: false,
         },
+        isLoadingMore: {
+            type: Boolean,
+            default: false,
+        },
+        hasMoreConversations: {
+            type: Boolean,
+            default: false,
+        },
+        isLoadingMoreAnnounces: {
+            type: Boolean,
+            default: false,
+        },
+        hasMoreAnnounces: {
+            type: Boolean,
+            default: false,
+        },
+        peersSearchTerm: {
+            type: String,
+            default: "",
+        },
+        totalPeersCount: {
+            type: Number,
+            default: 0,
+        },
     },
     emits: [
         "conversation-click",
         "peer-click",
         "conversation-search-changed",
         "conversation-filter-changed",
+        "peers-search-changed",
         "ingest-paper-message",
+        "load-more",
+        "load-more-announces",
+        "folder-click",
+        "create-folder",
+        "rename-folder",
+        "delete-folder",
+        "move-to-folder",
+        "bulk-mark-as-read",
+        "bulk-delete",
+        "export-folders",
+        "import-folders",
     ],
     data() {
+        let foldersExpanded = true;
+        try {
+            if (typeof localStorage !== "undefined") {
+                foldersExpanded = localStorage.getItem("meshchatx_folders_expanded") !== "false";
+            }
+        } catch {
+            // ignore
+        }
         return {
+            GlobalState,
             tab: "conversations",
-            peersSearchTerm: "",
+            foldersExpanded,
+            selectionMode: false,
+            selectedHashes: new Set(),
+            folderMenu: {
+                show: false,
+            },
+            moveMenu: {
+                show: false,
+            },
+            contextMenu: {
+                show: false,
+                x: 0,
+                y: 0,
+                targetHash: null,
+                targetContact: null,
+            },
+            draggedHash: null,
+            dragOverFolderId: null,
         };
     },
     computed: {
+        isFilterActive() {
+            return (
+                this.conversationSearchTerm !== "" ||
+                this.filterUnreadOnly ||
+                this.filterFailedOnly ||
+                this.filterHasAttachmentsOnly
+            );
+        },
+        blockedDestinations() {
+            return GlobalState.blockedDestinations;
+        },
         displayedConversations() {
             return this.conversations;
         },
@@ -418,12 +812,13 @@ export default {
         },
         peersOrderedByLatestAnnounce() {
             const peers = Object.values(this.peers);
-            return peers.sort(function (peerA, peerB) {
-                // order by updated_at desc
-                const peerAUpdatedAt = new Date(peerA.updated_at).getTime();
-                const peerBUpdatedAt = new Date(peerB.updated_at).getTime();
-                return peerBUpdatedAt - peerAUpdatedAt;
-            });
+            // Pre-parse timestamps for sorting performance
+            const timedPeers = peers.map((p) => ({
+                p,
+                t: p._updated_at_ts || (p._updated_at_ts = new Date(p.updated_at).getTime()),
+            }));
+            timedPeers.sort((a, b) => b.t - a.t);
+            return timedPeers.map((tp) => tp.p);
         },
         searchedPeers() {
             return this.peersOrderedByLatestAnnounce.filter((peer) => {
@@ -434,15 +829,216 @@ export default {
                 return matchesDisplayName || matchesCustomDisplayName || matchesDestinationHash;
             });
         },
+        hasUnreadConversations() {
+            return this.conversations.some((c) => c.is_unread);
+        },
+        allSelected() {
+            return this.conversations.length > 0 && this.selectedHashes.size === this.conversations.length;
+        },
+        messageIconStyle() {
+            const size = GlobalState.config?.message_icon_size || 28;
+            return { width: `${size}px`, height: `${size}px` };
+        },
+    },
+    watch: {
+        foldersExpanded(newVal) {
+            try {
+                if (typeof localStorage !== "undefined") {
+                    localStorage.setItem("meshchatx_folders_expanded", newVal);
+                }
+            } catch {
+                // ignore
+            }
+        },
+    },
+    mounted() {
+        // listen for contact updates
+        GlobalEmitter.on("contact-updated", this.onContactUpdated);
+    },
+    unmounted() {
+        GlobalEmitter.off("contact-updated", this.onContactUpdated);
     },
     methods: {
+        onContactUpdated(data) {
+            // update local contact info if context menu is showing this peer
+            if (this.contextMenu.show && this.contextMenu.targetHash === data.remote_identity_hash) {
+                this.fetchContactForContextMenu(data.remote_identity_hash);
+            }
+        },
+        async fetchContactForContextMenu(hash) {
+            try {
+                const response = await window.axios.get(`/api/v1/telephone/contacts/check/${hash}`);
+                if (response.data.is_contact) {
+                    this.contextMenu.targetContact = response.data.contact;
+                } else {
+                    this.contextMenu.targetContact = null;
+                }
+            } catch (e) {
+                console.error("Failed to fetch contact for context menu", e);
+            }
+        },
+        stripMarkdown(text) {
+            return MarkdownRenderer.strip(text);
+        },
+        toggleSelectionMode() {
+            this.selectionMode = !this.selectionMode;
+            if (!this.selectionMode) {
+                this.selectedHashes.clear();
+            }
+        },
+        toggleSelectAll() {
+            if (this.allSelected) {
+                this.selectedHashes.clear();
+            } else {
+                this.conversations.forEach((c) => this.selectedHashes.add(c.destination_hash));
+            }
+        },
+        toggleSelectConversation(hash) {
+            if (this.selectedHashes.has(hash)) {
+                this.selectedHashes.delete(hash);
+            } else {
+                this.selectedHashes.add(hash);
+            }
+        },
+        async onRightClick(event, hash) {
+            event.preventDefault();
+            if (this.selectionMode && !this.selectedHashes.has(hash)) {
+                this.selectedHashes.add(hash);
+            }
+            this.contextMenu.x = event.clientX;
+            this.contextMenu.y = event.clientY;
+            this.contextMenu.targetHash = hash;
+            this.contextMenu.show = true;
+            this.contextMenu.targetContact = null;
+
+            // fetch contact info for trust status
+            await this.fetchContactForContextMenu(hash);
+        },
+        onFolderContextMenu(event) {
+            event.preventDefault();
+            // Show folder management menu
+        },
+        onDragStart(event, hash) {
+            this.draggedHash = hash;
+            event.dataTransfer.setData("text/plain", hash);
+            event.dataTransfer.effectAllowed = "move";
+        },
+        onDragOver(event, folderId) {
+            event.preventDefault();
+            this.dragOverFolderId = folderId;
+            event.dataTransfer.dropEffect = "move";
+        },
+        onDragLeave() {
+            this.dragOverFolderId = null;
+        },
+        onDropOnFolder(event, folderId) {
+            event.preventDefault();
+            this.dragOverFolderId = null;
+            const hash = event.dataTransfer.getData("text/plain");
+            if (hash) {
+                this.$emit("move-to-folder", {
+                    peer_hashes: [hash],
+                    folder_id: folderId,
+                });
+            }
+            this.draggedHash = null;
+        },
+        async createFolder() {
+            const name = await DialogUtils.prompt(
+                this.$t("messages.enter_folder_name"),
+                this.$t("messages.new_folder")
+            );
+            if (name) {
+                this.$emit("create-folder", name);
+            }
+        },
+        async renameFolder(folder) {
+            const name = await DialogUtils.prompt(this.$t("messages.rename_folder"), folder.name);
+            if (name && name !== folder.name) {
+                this.$emit("rename-folder", { id: folder.id, name });
+            }
+        },
+        async deleteFolder(folder) {
+            const confirmed = await DialogUtils.confirm(
+                `Are you sure you want to delete the folder "${folder.name}"? Conversations will be moved to Uncategorized.`,
+                "Delete Folder"
+            );
+            if (confirmed) {
+                this.$emit("delete-folder", folder.id);
+            }
+        },
+        async toggleTelemetryTrust(hash) {
+            const contact = this.contextMenu.targetContact;
+            const newStatus = !contact?.is_telemetry_trusted;
+            try {
+                if (!contact) {
+                    // find display name from conversations
+                    const conv = this.conversations.find((c) => c.destination_hash === hash);
+                    await window.axios.post("/api/v1/telephone/contacts", {
+                        name: conv?.display_name || hash.substring(0, 8),
+                        remote_identity_hash: hash,
+                        is_telemetry_trusted: true,
+                    });
+                } else {
+                    await window.axios.patch(`/api/v1/telephone/contacts/${contact.id}`, {
+                        is_telemetry_trusted: newStatus,
+                    });
+                }
+                GlobalEmitter.emit("contact-updated", {
+                    remote_identity_hash: hash,
+                    is_telemetry_trusted: newStatus,
+                });
+                this.contextMenu.show = false;
+                DialogUtils.alert(
+                    newStatus
+                        ? this.$t("app.telemetry_trust_granted_alert")
+                        : this.$t("app.telemetry_trust_revoked_alert")
+                );
+            } catch (e) {
+                DialogUtils.alert(this.$t("app.telemetry_trust_failed"));
+                console.error(e);
+            }
+        },
+        bulkMarkAsRead() {
+            const hashes = this.selectionMode ? Array.from(this.selectedHashes) : [this.contextMenu.targetHash];
+            this.$emit("bulk-mark-as-read", hashes);
+            this.contextMenu.show = false;
+            this.moveMenu.show = false;
+            this.folderMenu.show = false;
+            if (this.selectionMode) this.toggleSelectionMode();
+        },
+        bulkDelete() {
+            const hashes = this.selectionMode ? Array.from(this.selectedHashes) : [this.contextMenu.targetHash];
+            this.$emit("bulk-delete", hashes);
+            this.contextMenu.show = false;
+            this.moveMenu.show = false;
+            this.folderMenu.show = false;
+            if (this.selectionMode) this.toggleSelectionMode();
+        },
+        moveSelectedToFolder(folderId) {
+            const hashes = this.selectionMode ? Array.from(this.selectedHashes) : [this.contextMenu.targetHash];
+            this.$emit("move-to-folder", { peer_hashes: hashes, folder_id: folderId });
+            this.contextMenu.show = false;
+            this.moveMenu.show = false;
+            this.folderMenu.show = false;
+            if (this.selectionMode) this.toggleSelectionMode();
+        },
+        isBlocked(destinationHash) {
+            return this.blockedDestinations.some((b) => b.destination_hash === destinationHash);
+        },
         openIngestPaperMessageModal() {
             this.$emit("ingest-paper-message");
         },
         onConversationClick(conversation) {
+            if (this.isBlocked(conversation.destination_hash)) {
+                return;
+            }
             this.$emit("conversation-click", conversation);
         },
         onPeerClick(peer) {
+            if (this.isBlocked(peer.destination_hash)) {
+                return;
+            }
             this.$emit("peer-click", peer);
         },
         formatTimeAgo: function (datetimeString) {
@@ -453,6 +1049,27 @@ export default {
         },
         toggleFilter(filterKey) {
             this.$emit("conversation-filter-changed", filterKey);
+        },
+        onConversationsScroll(event) {
+            const element = event.target;
+            // if scrolled near bottom (within 200px)
+            if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
+                if (this.hasMoreConversations && !this.isLoadingMore && !this.isLoading) {
+                    this.$emit("load-more");
+                }
+            }
+        },
+        onPeersScroll(event) {
+            const element = event.target;
+            // if scrolled near bottom (within 200px)
+            if (element.scrollHeight - element.scrollTop - element.clientHeight < 200) {
+                if (this.hasMoreAnnounces && !this.isLoadingMoreAnnounces) {
+                    this.$emit("load-more-announces");
+                }
+            }
+        },
+        onPeersSearchInput(event) {
+            this.$emit("peers-search-changed", event.target.value);
         },
         filterChipClasses(isActive) {
             const base = "px-2 py-1 rounded-full text-xs font-semibold transition-colors";

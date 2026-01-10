@@ -30,7 +30,7 @@ class AnnounceDAO:
         )
 
         query = (
-            f"INSERT INTO announces ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
+            f"INSERT INTO announces ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "  # noqa: S608
             f"ON CONFLICT(destination_hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"
         )
 
@@ -54,10 +54,21 @@ class AnnounceDAO:
             (destination_hash,),
         )
 
+    def delete_all_announces(self, aspect=None):
+        if aspect:
+            self.provider.execute(
+                "DELETE FROM announces WHERE aspect = ?",
+                (aspect,),
+            )
+        else:
+            self.provider.execute("DELETE FROM announces")
+
     def get_filtered_announces(
         self,
         aspect=None,
         search_term=None,
+        identity_hash=None,
+        destination_hash=None,
         limit=None,
         offset=0,
     ):
@@ -66,6 +77,12 @@ class AnnounceDAO:
         if aspect:
             query += " AND aspect = ?"
             params.append(aspect)
+        if identity_hash:
+            query += " AND identity_hash = ?"
+            params.append(identity_hash)
+        if destination_hash:
+            query += " AND destination_hash = ?"
+            params.append(destination_hash)
         if search_term:
             query += " AND (destination_hash LIKE ? OR identity_hash LIKE ?)"
             like_term = f"%{search_term}%"
@@ -129,3 +146,12 @@ class AnnounceDAO:
             "DELETE FROM favourite_destinations WHERE destination_hash = ?",
             (destination_hash,),
         )
+
+    def delete_all_favourites(self, aspect=None):
+        if aspect:
+            self.provider.execute(
+                "DELETE FROM favourite_destinations WHERE aspect = ?",
+                (aspect,),
+            )
+        else:
+            self.provider.execute("DELETE FROM favourite_destinations")

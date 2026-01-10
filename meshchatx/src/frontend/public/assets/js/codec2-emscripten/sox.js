@@ -3997,7 +3997,13 @@ var SOXModule = (() => {
                 }
             },
             indexedDB: () => {
-                return window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+                return (
+                    window.indexedDB ||
+                    window.mozIndexedDB ||
+                    window.webkitIndexedDB ||
+                    window.msIndexedDB ||
+                    globalThis.indexedDB
+                );
             },
             DB_NAME: () => {
                 return "EM_FS_" + window.location.pathname;

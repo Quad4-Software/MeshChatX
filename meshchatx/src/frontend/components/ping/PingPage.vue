@@ -40,28 +40,24 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <button v-if="!isRunning" type="button" class="primary-chip px-4 py-2 text-sm" @click="start">
+                        <button v-if="!isRunning" type="button" class="primary-chip" @click="start">
                             <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
                             {{ $t("ping.start_ping") }}
                         </button>
                         <button
                             v-else
                             type="button"
-                            class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                            class="secondary-chip !text-red-600 dark:!text-red-300 !border-red-200 dark:!border-red-500/50"
                             @click="stop"
                         >
                             <MaterialDesignIcon icon-name="pause" class="w-4 h-4" />
                             {{ $t("ping.stop") }}
                         </button>
-                        <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="clear">
+                        <button type="button" class="secondary-chip" @click="clear">
                             <MaterialDesignIcon icon-name="broom" class="w-4 h-4" />
                             {{ $t("ping.clear_results") }}
                         </button>
-                        <button
-                            type="button"
-                            class="inline-flex items-center gap-2 rounded-full bg-red-600/90 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-red-500 transition"
-                            @click="dropPath"
-                        >
+                        <button type="button" class="danger-chip" @click="dropPath">
                             <MaterialDesignIcon icon-name="link-variant-remove" class="w-4 h-4" />
                             {{ $t("ping.drop_path") }}
                         </button>
@@ -174,6 +170,14 @@ export default {
     },
     beforeUnmount() {
         this.stop();
+    },
+    mounted() {
+        if (this.$route.query.hash) {
+            this.destinationHash = this.$route.query.hash;
+            if (this.$route.query.autostart === "1" || this.$route.query.autostart === "true") {
+                this.start();
+            }
+        }
     },
     methods: {
         async start() {

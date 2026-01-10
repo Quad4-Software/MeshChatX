@@ -37,4 +37,6 @@ jobs:
               run: task install
 
             - name: Run tests
-              run: task test
+              run: |
+                  set -o pipefail
+                  task test 2>&1 | tee test_results.txt

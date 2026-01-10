@@ -1,10 +1,10 @@
 import base64
 import os
 
-import LXMF
 import RNS
 
 from .database import Database
+from .meshchat_utils import create_lxmf_router
 
 
 class ForwardingManager:
@@ -34,7 +34,7 @@ class ForwardingManager:
                 )
                 os.makedirs(router_storage_path, exist_ok=True)
 
-                router = LXMF.LXMRouter(
+                router = create_lxmf_router(
                     identity=alias_identity,
                     storagepath=router_storage_path,
                 )
@@ -79,7 +79,7 @@ class ForwardingManager:
             )
             os.makedirs(router_storage_path, exist_ok=True)
 
-            router = LXMF.LXMRouter(
+            router = create_lxmf_router(
                 identity=alias_identity,
                 storagepath=router_storage_path,
             )

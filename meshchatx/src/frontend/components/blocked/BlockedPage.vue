@@ -8,8 +8,8 @@
                     <MaterialDesignIcon icon-name="block-helper" class="size-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">Blocked</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Manage blocked users and nodes</p>
+                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ $t("banishment.title") }}</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t("banishment.description") }}</p>
                 </div>
             </div>
 
@@ -22,16 +22,20 @@
                         v-model="searchQuery"
                         type="text"
                         class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="Search by hash or display name..."
+                        :placeholder="$t('banishment.search_placeholder')"
                         @input="onSearchInput"
                     />
                 </div>
                 <button
                     class="p-2 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-                    title="Refresh"
+                    :title="$t('common.refresh')"
                     @click="loadBlockedDestinations"
                 >
-                    <MaterialDesignIcon icon-name="refresh" class="size-6" :class="{ 'animate-spin': isLoading }" />
+                    <MaterialDesignIcon
+                        icon-name="refresh"
+                        class="size-6"
+                        :class="{ 'animate-spin-reverse': isLoading }"
+                    />
                 </button>
             </div>
         </div>
@@ -39,7 +43,7 @@
         <div class="flex-1 overflow-y-auto p-4 md:p-6">
             <div v-if="isLoading && blockedItems.length === 0" class="flex flex-col items-center justify-center h-64">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                <p class="text-gray-500 dark:text-gray-400">Loading blocked items...</p>
+                <p class="text-gray-500 dark:text-gray-400">{{ $t("banishment.loading_items") }}</p>
             </div>
 
             <div
@@ -49,13 +53,9 @@
                 <div class="p-4 bg-gray-100 dark:bg-zinc-800 rounded-full mb-4 text-gray-400 dark:text-zinc-600">
                     <MaterialDesignIcon icon-name="check-circle" class="size-12" />
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white">No blocked items</h3>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ $t("banishment.no_items") }}</h3>
                 <p class="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                    {{
-                        searchQuery
-                            ? "No blocked items match your search."
-                            : "You haven't blocked any users or nodes yet."
-                    }}
+                    {{ searchQuery ? $t("nomadnet.no_search_results_peers") : $t("nomadnet.no_announces_yet") }}
                 </p>
             </div>
 
@@ -81,19 +81,26 @@
                                                 class="text-base font-semibold text-gray-900 dark:text-white break-words"
                                                 :title="item.display_name"
                                             >
-                                                {{ item.display_name || "Unknown" }}
+                                                {{ item.display_name || $t("call.unknown") }}
                                             </h4>
                                             <span
                                                 v-if="item.is_node"
                                                 class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded"
                                             >
-                                                Node
+                                                {{ $t("banishment.node") }}
                                             </span>
                                             <span
                                                 v-else
                                                 class="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded"
                                             >
-                                                User
+                                                {{ $t("banishment.user") }}
+                                            </span>
+                                            <span
+                                                v-if="item.is_rns_blackholed"
+                                                class="px-2 py-0.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded border border-zinc-200 dark:border-zinc-700"
+                                                title="Blackholed at Reticulum transport layer"
+                                            >
+                                                RNS Blackhole
                                             </span>
                                         </div>
                                         <p
@@ -104,8 +111,20 @@
                                         </p>
                                     </div>
                                 </div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400">
-                                    Blocked {{ formatTimeAgo(item.created_at) }}
+                                <div v-if="item.created_at" class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                                    {{ $t("banishment.banished_at") }} {{ formatTimeAgo(item.created_at) }}
+                                </div>
+                                <div
+                                    v-if="item.rns_source"
+                                    class="text-[10px] text-zinc-500 dark:text-zinc-500 font-mono truncate mb-1"
+                                >
+                                    Source: {{ item.rns_source }}
+                                </div>
+                                <div
+                                    v-if="item.rns_reason"
+                                    class="text-xs italic text-zinc-500 dark:text-zinc-400 mb-2"
+                                >
+                                    "{{ item.rns_reason }}"
                                 </div>
                             </div>
                         </div>
@@ -114,7 +133,7 @@
                             @click="onUnblock(item)"
                         >
                             <MaterialDesignIcon icon-name="check-circle" class="size-5" />
-                            <span>Unblock</span>
+                            <span>{{ $t("banishment.lift_banishment") }}</span>
                         </button>
                     </div>
                 </div>
@@ -137,17 +156,31 @@ export default {
     data() {
         return {
             blockedItems: [],
+            reticulumBlackholedItems: [],
             isLoading: false,
             searchQuery: "",
         };
     },
     computed: {
+        allBlockedItems() {
+            // Combine local blocked items and reticulum blackholed items
+            // Prioritize local items if they overlap
+            const localHashes = new Set(this.blockedItems.map((i) => i.destination_hash));
+            const combined = [...this.blockedItems];
+
+            for (const item of this.reticulumBlackholedItems) {
+                if (!localHashes.has(item.destination_hash)) {
+                    combined.push(item);
+                }
+            }
+            return combined;
+        },
         filteredBlockedItems() {
             if (!this.searchQuery.trim()) {
-                return this.blockedItems;
+                return this.allBlockedItems;
             }
             const query = this.searchQuery.toLowerCase();
-            return this.blockedItems.filter((item) => {
+            return this.allBlockedItems.filter((item) => {
                 const matchesHash = item.destination_hash.toLowerCase().includes(query);
                 const matchesDisplayName = (item.display_name || "").toLowerCase().includes(query);
                 return matchesHash || matchesDisplayName;
@@ -161,74 +194,70 @@ export default {
         async loadBlockedDestinations() {
             this.isLoading = true;
             try {
+                // Load local blocked destinations
                 const response = await window.axios.get("/api/v1/blocked-destinations");
                 const blockedHashes = response.data.blocked_destinations || [];
 
-                const items = await Promise.all(
-                    blockedHashes.map(async (blocked) => {
-                        let displayName = "Unknown";
-                        let isNode = false;
+                // Load Reticulum blackholed identities
+                let reticulumBlackholed = {};
+                try {
+                    const rnsResponse = await window.axios.get("/api/v1/reticulum/blackhole");
+                    reticulumBlackholed = rnsResponse.data.blackholed_identities || {};
+                } catch (e) {
+                    console.error("Failed to load Reticulum blackhole", e);
+                }
 
-                        try {
-                            const nodeAnnounceResponse = await window.axios.get("/api/v1/announces", {
-                                params: {
-                                    aspect: "nomadnetwork.node",
-                                    identity_hash: blocked.destination_hash,
-                                    include_blocked: true,
-                                    limit: 1,
-                                },
-                            });
+                const processItem = async (hash, data = {}) => {
+                    let displayName = this.$t("call.unknown");
+                    let isNode = false;
 
-                            if (nodeAnnounceResponse.data.announces && nodeAnnounceResponse.data.announces.length > 0) {
-                                const announce = nodeAnnounceResponse.data.announces[0];
-                                displayName = announce.display_name || "Unknown";
-                                isNode = true;
-                            } else {
-                                const announceResponse = await window.axios.get("/api/v1/announces", {
-                                    params: {
-                                        identity_hash: blocked.destination_hash,
-                                        include_blocked: true,
-                                        limit: 1,
-                                    },
-                                });
+                    try {
+                        const announceResponse = await window.axios.get("/api/v1/announces", {
+                            params: {
+                                identity_hash: hash,
+                                include_blocked: true,
+                                limit: 1,
+                            },
+                        });
 
-                                if (announceResponse.data.announces && announceResponse.data.announces.length > 0) {
-                                    const announce = announceResponse.data.announces[0];
-                                    displayName = announce.display_name || "Unknown";
-                                    isNode = announce.aspect === "nomadnetwork.node";
-                                } else {
-                                    const lxmfResponse = await window.axios.get("/api/v1/announces", {
-                                        params: {
-                                            destination_hash: blocked.destination_hash,
-                                            include_blocked: true,
-                                            limit: 1,
-                                        },
-                                    });
-
-                                    if (lxmfResponse.data.announces && lxmfResponse.data.announces.length > 0) {
-                                        const announce = lxmfResponse.data.announces[0];
-                                        displayName = announce.display_name || "Unknown";
-                                        isNode = announce.aspect === "nomadnetwork.node";
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            console.log(e);
+                        if (announceResponse.data.announces && announceResponse.data.announces.length > 0) {
+                            const announce = announceResponse.data.announces[0];
+                            displayName = announce.display_name || this.$t("call.unknown");
+                            isNode = announce.aspect === "nomadnetwork.node";
                         }
+                    } catch {
+                        // ignore error
+                    }
 
-                        return {
-                            destination_hash: blocked.destination_hash,
-                            display_name: displayName,
-                            created_at: blocked.created_at,
-                            is_node: isNode,
-                        };
-                    })
+                    return {
+                        destination_hash: hash,
+                        display_name: displayName,
+                        created_at: data.created_at || null,
+                        is_node: isNode,
+                        is_rns_blackholed: !!data.is_rns,
+                        rns_source: data.source || null,
+                        rns_reason: data.reason || null,
+                        rns_until: data.until || null,
+                    };
+                };
+
+                const items = await Promise.all(
+                    blockedHashes.map((blocked) =>
+                        processItem(blocked.destination_hash, { created_at: blocked.created_at })
+                    )
+                );
+
+                const rnsItems = await Promise.all(
+                    Object.entries(reticulumBlackholed).map(([hash, info]) =>
+                        processItem(hash, { ...info, is_rns: true })
+                    )
                 );
 
                 this.blockedItems = items;
+                this.reticulumBlackholedItems = rnsItems;
             } catch (e) {
                 console.log(e);
-                ToastUtils.error("Failed to load blocked destinations");
+                ToastUtils.error(this.$t("banishment.failed_load_banished"));
             } finally {
                 this.isLoading = false;
             }
@@ -236,7 +265,7 @@ export default {
         async onUnblock(item) {
             if (
                 !(await DialogUtils.confirm(
-                    `Are you sure you want to unblock ${item.display_name || item.destination_hash}?`
+                    this.$t("banishment.lift_banishment_confirm", { name: item.display_name || item.destination_hash })
                 ))
             ) {
                 return;
@@ -245,10 +274,10 @@ export default {
             try {
                 await window.axios.delete(`/api/v1/blocked-destinations/${item.destination_hash}`);
                 await this.loadBlockedDestinations();
-                ToastUtils.success("Unblocked successfully");
+                ToastUtils.success(this.$t("banishment.banishment_lifted"));
             } catch (e) {
                 console.log(e);
-                ToastUtils.error("Failed to unblock");
+                ToastUtils.error(this.$t("banishment.failed_lift_banishment"));
             }
         },
         onSearchInput() {},

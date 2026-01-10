@@ -37,36 +37,23 @@
                     </div>
                 </div>
                 <div class="divide-y divide-gray-200 dark:text-white">
-                    <div class="flex px-3 py-2 items-center">
+                    <div
+                        v-for="communityIface in communityInterfaces"
+                        :key="communityIface.name"
+                        class="flex px-3 py-2 items-center"
+                    >
                         <div class="my-auto mr-auto">
-                            <div class="font-semibold text-gray-900 dark:text-gray-100">RNS Testnet Amsterdam</div>
+                            <div class="font-semibold text-gray-900 dark:text-gray-100">{{ communityIface.name }}</div>
                             <div class="text-xs text-gray-600 dark:text-gray-300">
-                                amsterdam.connect.reticulum.network:4965
+                                {{ communityIface.target_host }}:{{ communityIface.target_port }}
+                                <span v-if="communityIface.online" class="ml-1 text-green-500 font-bold">Online</span>
+                                <span v-else class="ml-1 text-red-500">Offline</span>
                             </div>
-                        </div>
-                        <div class="ml-2 my-auto">
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-x-2 rounded-full bg-blue-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                @click="
-                                    newInterfaceName = 'RNS Testnet Amsterdam';
-                                    newInterfaceType = 'TCPClientInterface';
-                                    newInterfaceTargetHost = 'amsterdam.connect.reticulum.network';
-                                    newInterfaceTargetPort = '4965';
-                                "
+                            <div
+                                v-if="communityIface.description"
+                                class="text-xs text-gray-500 dark:text-gray-400 italic"
                             >
-                                <span>Use Interface</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex px-3 py-2 items-center">
-                        <div class="my-auto mr-auto">
-                            <div class="font-semibold text-gray-900 dark:text-gray-100">
-                                RNS Testnet BetweenTheBorders
-                            </div>
-                            <div class="text-xs text-gray-600 dark:text-gray-300">
-                                reticulum.betweentheborders.com:4242
+                                {{ communityIface.description }}
                             </div>
                         </div>
                         <div class="ml-2 my-auto">
@@ -74,10 +61,10 @@
                                 type="button"
                                 class="inline-flex items-center gap-x-2 rounded-full bg-blue-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                                 @click="
-                                    newInterfaceName = 'RNS Testnet BetweenTheBorders';
-                                    newInterfaceType = 'TCPClientInterface';
-                                    newInterfaceTargetHost = 'reticulum.betweentheborders.com';
-                                    newInterfaceTargetPort = '4242';
+                                    newInterfaceName = communityIface.name;
+                                    newInterfaceType = communityIface.type;
+                                    newInterfaceTargetHost = communityIface.target_host;
+                                    newInterfaceTargetPort = communityIface.target_port;
                                 "
                             >
                                 <span>Use Interface</span>
@@ -135,6 +122,7 @@
                             </optgroup>
                             <optgroup label="RNodes">
                                 <option value="RNodeInterface">RNode Interface</option>
+                                <option value="RNodeIPInterface">RNode IP Interface</option>
                                 <option value="RNodeMultiInterface">RNode Multi Interface</option>
                             </optgroup>
                             <optgroup label="IP Networks">
@@ -154,10 +142,7 @@
                         </select>
                         <FormSubLabel>
                             Need help?
-                            <a
-                                class="text-blue-500 underline"
-                                href="https://reticulum.network/manual/interfaces.html"
-                                target="_blank"
+                            <a class="text-blue-500 underline" href="/reticulum-docs/interfaces.html" target="_blank"
                                 >Reticulum Docs: Configuring Interfaces</a
                             >
                         </FormSubLabel>
@@ -279,24 +264,53 @@
 
                     <!-- RNode interface -->
                     <!-- interface port -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
-                        <FormLabel class="mb-1">Port</FormLabel>
-                        <select
-                            v-model="newInterfacePort"
-                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600"
-                        >
-                            <option v-for="comport of comports" :key="comport.device" :value="comport.device">
-                                {{ comport.device }} (Product: {{ comport.product ?? "?" }}, Serial:
-                                {{ comport.serial ?? "?" }})
-                            </option>
-                        </select>
-                        <FormSubLabel>
-                            <div class="text-blue-500 underline cursor-pointer" @click="loadComports">Reload Ports</div>
-                        </FormSubLabel>
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2">
+                        <div v-if="newInterfaceType === 'RNodeInterface'" class="flex items-center mb-2">
+                            <Toggle id="rnode-use-ip" v-model="newInterfaceRNodeUseIP" />
+                            <FormLabel for="rnode-use-ip" class="ml-2">Connect over IP</FormLabel>
+                        </div>
+
+                        <div v-if="newInterfaceRNodeUseIP || newInterfaceType === 'RNodeIPInterface'" class="space-y-2">
+                            <div>
+                                <FormLabel class="mb-1">Host</FormLabel>
+                                <input
+                                    v-model="newInterfaceRNodeIPHost"
+                                    type="text"
+                                    placeholder="e.g: 10.0.0.1"
+                                    class="input-field"
+                                />
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Port</FormLabel>
+                                <input
+                                    v-model="newInterfaceRNodeIPPort"
+                                    type="text"
+                                    placeholder="e.g: 7633"
+                                    class="input-field"
+                                />
+                            </div>
+                        </div>
+                        <div v-else>
+                            <FormLabel class="mb-1">Port</FormLabel>
+                            <select
+                                v-model="newInterfacePort"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600"
+                            >
+                                <option v-for="comport of comports" :key="comport.device" :value="comport.device">
+                                    {{ comport.device }} (Product: {{ comport.product ?? "?" }}, Serial:
+                                    {{ comport.serial ?? "?" }})
+                                </option>
+                            </select>
+                            <FormSubLabel>
+                                <div class="text-blue-500 underline cursor-pointer" @click="loadComports">
+                                    Reload Ports
+                                </div>
+                            </FormSubLabel>
+                        </div>
                     </div>
 
                     <!-- interface Frequency -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2">
                         <FormLabel class="mb-1">
                             <span>Frequency</span><span v-if="formattedFrequency">: {{ formattedFrequency }}</span>
                         </FormLabel>
@@ -335,7 +349,7 @@
                     </div>
 
                     <!-- interface bandwidth -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2">
                         <FormLabel class="mb-1">Bandwidth</FormLabel>
                         <select
                             v-model="newInterfaceBandwidth"
@@ -352,7 +366,7 @@
                     </div>
 
                     <!-- interface txpower -->
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2">
+                    <div v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)" class="mb-2">
                         <FormLabel class="mb-1">Transmit Power (dBm)</FormLabel>
                         <input
                             v-model="newInterfaceTxpower"
@@ -361,13 +375,16 @@
                         />
                     </div>
 
-                    <div v-if="newInterfaceType === 'RNodeInterface'" class="mb-2 flex flex-wrap items-start gap-4">
+                    <div
+                        v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)"
+                        class="mb-2 flex flex-wrap items-start gap-4"
+                    >
                         <!-- interface spreading factor -->
                         <div class="flex-1">
                             <FormLabel class="mb-1">Spreading Factor</FormLabel>
                             <select
                                 v-model="newInterfaceSpreadingFactor"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-500"
                             >
                                 <option
                                     v-for="spreadingfactor in RNodeInterfaceDefaults.spreadingfactors"
@@ -384,7 +401,7 @@
                             <FormLabel class="mb-1">Coding Rate</FormLabel>
                             <select
                                 v-model="newInterfaceCodingRate"
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-600"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-zinc-900 dark:border-zinc-600 dark:text-white dark:focus:ring-blue-600 dark:focus:border-blue-500"
                             >
                                 <option
                                     v-for="codingrate in RNodeInterfaceDefaults.codingrates"
@@ -710,7 +727,7 @@
             </div>
 
             <!-- RNodeInterface bitrate & link budget -->
-            <ExpandingSection v-if="newInterfaceType === 'RNodeInterface'">
+            <ExpandingSection v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)">
                 <template #title>Calculated RNode Bitrate & Link Budget</template>
                 <template #content>
                     <div class="p-2 space-y-3">
@@ -924,7 +941,7 @@
             </ExpandingSection>
 
             <!-- optional RNodeInterface settings -->
-            <ExpandingSection v-if="newInterfaceType === 'RNodeInterface'">
+            <ExpandingSection v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)">
                 <template #title>Optional RNodeInterface Settings</template>
                 <template #content>
                     <div class="p-2 space-y-3">
@@ -995,7 +1012,7 @@
                                 This setting requires Transport Mode to be enabled.
                                 <a
                                     class="text-blue-500 underline"
-                                    href="https://reticulum.network/manual/interfaces.html#interface-modes"
+                                    href="/reticulum-docs/interfaces.html#interface-modes"
                                     target="_blank"
                                     >Reticulum Docs: Interface Modes</a
                                 >
@@ -1059,6 +1076,207 @@
                 </template>
             </ExpandingSection>
 
+            <ExpandingSection>
+                <template #title>Interface Discovery</template>
+                <template #content>
+                    <div class="p-2 space-y-3">
+                        <div class="flex items-center">
+                            <div class="flex flex-col mr-auto">
+                                <FormLabel class="mb-1">Advertise this Interface</FormLabel>
+                                <FormSubLabel>
+                                    Broadcasts connection details so peers can find and connect to this interface.
+                                </FormSubLabel>
+                            </div>
+                            <Toggle v-model="discovery.discoverable" class="my-auto mx-2" />
+                        </div>
+
+                        <div class="text-sm text-gray-500 dark:text-zinc-300">
+                            LXMF must be installed to publish discovery announces. When enabled, Reticulum handles
+                            signing, stamping, and periodic announces for this interface.
+                        </div>
+
+                        <div v-if="discovery.discoverable" class="space-y-3">
+                            <div>
+                                <FormLabel class="mb-1">Discovery Name</FormLabel>
+                                <input
+                                    v-model="discovery.discovery_name"
+                                    type="text"
+                                    placeholder="Human friendly name"
+                                    class="input-field"
+                                />
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <FormLabel class="mb-1">Reachable On</FormLabel>
+                                    <input
+                                        v-model="discovery.reachable_on"
+                                        type="text"
+                                        placeholder="Hostname, IP, or resolver script path"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div>
+                                    <FormLabel class="mb-1">Announce Interval (minutes)</FormLabel>
+                                    <input
+                                        v-model.number="discovery.announce_interval"
+                                        type="number"
+                                        min="5"
+                                        class="input-field"
+                                    />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <FormLabel class="mb-1">Stamp Value</FormLabel>
+                                    <input
+                                        v-model.number="discovery.discovery_stamp_value"
+                                        type="number"
+                                        min="1"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div class="flex items-center">
+                                    <Toggle id="discovery-encrypt" v-model="discovery.discovery_encrypt" />
+                                    <FormLabel for="discovery-encrypt" class="ml-2">Encrypt Announces</FormLabel>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <Toggle id="publish-ifac" v-model="discovery.publish_ifac" />
+                                <FormLabel for="publish-ifac" class="ml-2">Include IFAC Credentials</FormLabel>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <FormLabel class="mb-1">Latitude</FormLabel>
+                                    <input
+                                        v-model.number="discovery.latitude"
+                                        type="number"
+                                        step="0.00001"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div>
+                                    <FormLabel class="mb-1">Longitude</FormLabel>
+                                    <input
+                                        v-model.number="discovery.longitude"
+                                        type="number"
+                                        step="0.00001"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div>
+                                    <FormLabel class="mb-1">Height (m)</FormLabel>
+                                    <input v-model.number="discovery.height" type="number" class="input-field" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <FormLabel class="mb-1">Discovery Frequency (Hz)</FormLabel>
+                                    <input
+                                        v-model.number="discovery.discovery_frequency"
+                                        type="number"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div>
+                                    <FormLabel class="mb-1">Discovery Bandwidth (Hz)</FormLabel>
+                                    <input
+                                        v-model.number="discovery.discovery_bandwidth"
+                                        type="number"
+                                        class="input-field"
+                                    />
+                                </div>
+                                <div>
+                                    <FormLabel class="mb-1">Discovery Modulation</FormLabel>
+                                    <input
+                                        v-model="discovery.discovery_modulation"
+                                        type="text"
+                                        placeholder="e.g. LoRa"
+                                        class="input-field"
+                                    />
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-zinc-400">
+                                If announce encryption is enabled, a valid network identity path is required in the
+                                Reticulum configuration.
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </ExpandingSection>
+
+            <ExpandingSection>
+                <template #title>Discover Interfaces (Peer)</template>
+                <template #content>
+                    <div class="p-2 space-y-3">
+                        <div class="flex items-center">
+                            <div class="flex flex-col mr-auto">
+                                <FormLabel class="mb-1">Enable Discovery Listener</FormLabel>
+                                <FormSubLabel>
+                                    Listen for announced interfaces and optionally auto-connect to them.
+                                </FormSubLabel>
+                            </div>
+                            <Toggle v-model="reticulumDiscovery.discover_interfaces" class="my-auto mx-2" />
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <FormLabel class="mb-1">Allowed Sources (comma separated)</FormLabel>
+                                <input
+                                    v-model="reticulumDiscovery.interface_discovery_sources"
+                                    type="text"
+                                    placeholder="Identity hashes"
+                                    class="input-field"
+                                />
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Required Stamp Value</FormLabel>
+                                <input
+                                    v-model.number="reticulumDiscovery.required_discovery_value"
+                                    type="number"
+                                    min="0"
+                                    class="input-field"
+                                />
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Auto-connect Slots</FormLabel>
+                                <input
+                                    v-model.number="reticulumDiscovery.autoconnect_discovered_interfaces"
+                                    type="number"
+                                    min="0"
+                                    class="input-field"
+                                />
+                                <FormSubLabel>Set to 0 to disable auto-connect.</FormSubLabel>
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Network Identity Path</FormLabel>
+                                <input
+                                    v-model="reticulumDiscovery.network_identity"
+                                    type="text"
+                                    placeholder="~/.reticulum/storage/identities/..."
+                                    class="input-field"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button
+                                type="button"
+                                class="primary-chip text-xs"
+                                :disabled="savingDiscovery"
+                                @click="saveReticulumDiscoveryConfig"
+                            >
+                                <MaterialDesignIcon
+                                    :icon-name="savingDiscovery ? 'progress-clock' : 'content-save'"
+                                    class="w-4 h-4"
+                                    :class="{ 'animate-spin-reverse': savingDiscovery }"
+                                />
+                                <span class="ml-1">Save Discovery Preferences</span>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </ExpandingSection>
+
             <!-- add/save interface button -->
             <div class="p-2 bg-white rounded shadow divide-y divide-gray-200 dark:bg-zinc-900">
                 <button
@@ -1082,10 +1300,13 @@ import ExpandingSection from "./ExpandingSection.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import FormSubLabel from "../forms/FormSubLabel.vue";
 import Toggle from "../forms/Toggle.vue";
+import GlobalState from "../../js/GlobalState";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
     name: "AddInterfacePage",
     components: {
+        MaterialDesignIcon,
         FormSubLabel,
         FormLabel,
         ExpandingSection,
@@ -1096,6 +1317,8 @@ export default {
             isEditingInterface: false,
 
             config: null,
+
+            communityInterfaces: [],
 
             comports: [],
 
@@ -1127,6 +1350,32 @@ export default {
                 ifac_size: null,
             },
 
+            discovery: {
+                discoverable: false,
+                discovery_name: "",
+                announce_interval: 360,
+                reachable_on: "",
+                discovery_stamp_value: 14,
+                discovery_encrypt: false,
+                publish_ifac: false,
+                latitude: null,
+                longitude: null,
+                height: null,
+                discovery_frequency: null,
+                discovery_bandwidth: null,
+                discovery_modulation: null,
+            },
+
+            reticulumDiscovery: {
+                discover_interfaces: false,
+                interface_discovery_sources: "",
+                required_discovery_value: null,
+                autoconnect_discovered_interfaces: 0,
+                network_identity: "",
+            },
+
+            savingDiscovery: false,
+
             newInterfaceForwardIp: null,
             newInterfaceForwardPort: null,
 
@@ -1140,14 +1389,17 @@ export default {
             },
 
             newInterfacePort: null,
+            newInterfaceRNodeUseIP: false,
+            newInterfaceRNodeIPHost: "localhost",
+            newInterfaceRNodeIPPort: "7633",
             RNodeGHzValue: 0,
             RNodeMHzValue: 0,
             RNodekHzValue: 0,
             newInterfaceFrequency: null,
-            newInterfaceBandwidth: null,
-            newInterfaceTxpower: null,
-            newInterfaceSpreadingFactor: null,
-            newInterfaceCodingRate: null,
+            newInterfaceBandwidth: 125000,
+            newInterfaceTxpower: 7,
+            newInterfaceSpreadingFactor: 12,
+            newInterfaceCodingRate: 5,
 
             // Serial, KISS, and AX25KISS options
             newInterfaceSpeed: null,
@@ -1227,7 +1479,9 @@ export default {
     },
     mounted() {
         this.getConfig();
+        this.loadReticulumDiscoveryConfig();
         this.loadComports();
+        this.loadCommunityInterfaces();
 
         // check if we are editing an interface
         const interfaceName = this.$route.query.interface_name;
@@ -1251,14 +1505,82 @@ export default {
                 const response = await window.axios.patch("/api/v1/config", config);
                 this.config = response.data.config;
             } catch (e) {
-                ToastUtils.error("Failed to save config!");
+                ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
+            }
+        },
+        parseBool(value) {
+            if (typeof value === "string") {
+                return ["true", "yes", "1", "y", "on"].includes(value.toLowerCase());
+            }
+            return Boolean(value);
+        },
+        async loadReticulumDiscoveryConfig() {
+            try {
+                const response = await window.axios.get(`/api/v1/reticulum/discovery`);
+                const discovery = response.data?.discovery ?? {};
+                this.reticulumDiscovery.discover_interfaces = this.parseBool(discovery.discover_interfaces);
+                this.reticulumDiscovery.interface_discovery_sources = discovery.interface_discovery_sources ?? "";
+                this.reticulumDiscovery.required_discovery_value =
+                    discovery.required_discovery_value !== undefined &&
+                    discovery.required_discovery_value !== null &&
+                    discovery.required_discovery_value !== ""
+                        ? Number(discovery.required_discovery_value)
+                        : null;
+                this.reticulumDiscovery.autoconnect_discovered_interfaces =
+                    discovery.autoconnect_discovered_interfaces !== undefined &&
+                    discovery.autoconnect_discovered_interfaces !== null &&
+                    discovery.autoconnect_discovered_interfaces !== ""
+                        ? Number(discovery.autoconnect_discovered_interfaces)
+                        : 0;
+                this.reticulumDiscovery.network_identity = discovery.network_identity ?? "";
+            } catch (e) {
+                // safe to ignore if discovery config cannot be loaded
+                console.log(e);
+            }
+        },
+        async saveReticulumDiscoveryConfig() {
+            if (this.savingDiscovery) return;
+            this.savingDiscovery = true;
+            try {
+                const payload = {
+                    discover_interfaces: this.reticulumDiscovery.discover_interfaces,
+                    interface_discovery_sources: this.reticulumDiscovery.interface_discovery_sources || null,
+                    required_discovery_value:
+                        this.reticulumDiscovery.required_discovery_value === null ||
+                        this.reticulumDiscovery.required_discovery_value === ""
+                            ? null
+                            : Number(this.reticulumDiscovery.required_discovery_value),
+                    autoconnect_discovered_interfaces:
+                        this.reticulumDiscovery.autoconnect_discovered_interfaces === null ||
+                        this.reticulumDiscovery.autoconnect_discovered_interfaces === ""
+                            ? 0
+                            : Number(this.reticulumDiscovery.autoconnect_discovered_interfaces),
+                    network_identity: this.reticulumDiscovery.network_identity || null,
+                };
+
+                await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
+                ToastUtils.success(this.$t("interfaces.discovery_settings_saved"));
+                await this.loadReticulumDiscoveryConfig();
+            } catch (e) {
+                ToastUtils.error(this.$t("interfaces.failed_save_discovery"));
+                console.log(e);
+            } finally {
+                this.savingDiscovery = false;
             }
         },
         async loadComports() {
             try {
                 const response = await window.axios.get(`/api/v1/comports`);
                 this.comports = response.data.comports;
+            } catch {
+                // do nothing if failed to load interfaces
+            }
+        },
+        async loadCommunityInterfaces() {
+            try {
+                const response = await window.axios.get(`/api/v1/community-interfaces`);
+                this.communityInterfaces = response.data.interfaces;
             } catch {
                 // do nothing if failed to load interfaces
             }
@@ -1272,7 +1594,7 @@ export default {
                 // find interface, else show error and redirect to interfaces
                 const iface = interfaces[interfaceName];
                 if (!iface) {
-                    DialogUtils.alert("The selected interface for editing could not be found.");
+                    DialogUtils.alert(this.$t("interfaces.interface_not_found"));
                     this.$router.push({
                         name: "interfaces",
                     });
@@ -1325,6 +1647,14 @@ export default {
 
                 // Port (For RNode, Serial, and KISS)
                 this.newInterfacePort = iface.port;
+                if (iface.type === "RNodeInterface" && iface.port && iface.port.startsWith("tcp://")) {
+                    this.newInterfaceType = "RNodeIPInterface";
+                    this.newInterfaceRNodeUseIP = true;
+                    const address = iface.port.replace("tcp://", "");
+                    const parts = address.split(":");
+                    this.newInterfaceRNodeIPHost = parts[0];
+                    this.newInterfaceRNodeIPPort = parts[1] || "7633";
+                }
 
                 // RNode Interface
                 this.newInterfaceFrequency = iface.frequency;
@@ -1368,6 +1698,22 @@ export default {
                 this.sharedInterfaceSettings.network_name = iface.network_name;
                 this.sharedInterfaceSettings.passphrase = iface.passphrase;
                 this.sharedInterfaceSettings.ifac_size = iface.ifac_size;
+
+                // interface discovery
+                this.discovery.discoverable = this.parseBool(iface.discoverable);
+                this.discovery.discovery_name = iface.discovery_name ?? "";
+                this.discovery.announce_interval = iface.announce_interval ?? this.discovery.announce_interval;
+                this.discovery.reachable_on = iface.reachable_on ?? "";
+                this.discovery.discovery_stamp_value =
+                    iface.discovery_stamp_value ?? this.discovery.discovery_stamp_value;
+                this.discovery.discovery_encrypt = this.parseBool(iface.discovery_encrypt);
+                this.discovery.publish_ifac = this.parseBool(iface.publish_ifac);
+                this.discovery.latitude = iface.latitude !== undefined ? Number(iface.latitude) : null;
+                this.discovery.longitude = iface.longitude !== undefined ? Number(iface.longitude) : null;
+                this.discovery.height = iface.height !== undefined ? Number(iface.height) : null;
+                this.discovery.discovery_frequency = iface.discovery_frequency ?? null;
+                this.discovery.discovery_bandwidth = iface.discovery_bandwidth ?? null;
+                this.discovery.discovery_modulation = iface.discovery_modulation ?? null;
             } catch {
                 // do nothing if failed to load interfaces
             }
@@ -1389,6 +1735,15 @@ export default {
                         };
                     });
                 }
+
+                const discoveryEnabled = this.discovery.discoverable === true;
+                const isRadioInterface = ["RNodeInterface", "RNodeIPInterface"].includes(this.newInterfaceType);
+                const fallbackDiscoveryFrequency =
+                    this.discovery.discovery_frequency ??
+                    (discoveryEnabled && isRadioInterface ? this.calculateFrequencyInHz() : null);
+                const fallbackDiscoveryBandwidth =
+                    this.discovery.discovery_bandwidth ??
+                    (discoveryEnabled && isRadioInterface ? this.newInterfaceBandwidth : null);
 
                 // add interface
                 const response = await window.axios.post(`/api/v1/reticulum/interfaces/add`, {
@@ -1429,7 +1784,10 @@ export default {
                     peers: this.I2PSettings.newInterfacePeers.join(","),
 
                     // rnode interface
-                    port: this.newInterfacePort,
+                    port:
+                        this.newInterfaceRNodeUseIP || this.newInterfaceType === "RNodeIPInterface"
+                            ? `tcp://${this.newInterfaceRNodeIPHost}:${this.newInterfaceRNodeIPPort}`
+                            : this.newInterfacePort,
                     frequency: this.calculateFrequencyInHz(),
                     bandwidth: this.newInterfaceBandwidth,
                     txpower: this.newInterfaceTxpower,
@@ -1463,8 +1821,34 @@ export default {
                     airtime_limit_long: this.newInterfaceAirtimeLimitLong,
                     airtime_limit_short: this.newInterfaceAirtimeLimitShort,
 
+                    // discovery options
+                    discoverable: discoveryEnabled ? "yes" : null,
+                    discovery_name: discoveryEnabled ? this.discovery.discovery_name : null,
+                    announce_interval:
+                        discoveryEnabled && this.discovery.announce_interval !== null
+                            ? Number(this.discovery.announce_interval)
+                            : null,
+                    reachable_on: discoveryEnabled ? this.discovery.reachable_on : null,
+                    discovery_stamp_value:
+                        discoveryEnabled && this.discovery.discovery_stamp_value !== null
+                            ? Number(this.discovery.discovery_stamp_value)
+                            : null,
+                    discovery_encrypt: discoveryEnabled ? this.discovery.discovery_encrypt : null,
+                    publish_ifac: discoveryEnabled ? this.discovery.publish_ifac : null,
+                    latitude:
+                        discoveryEnabled && this.discovery.latitude !== null ? Number(this.discovery.latitude) : null,
+                    longitude:
+                        discoveryEnabled && this.discovery.longitude !== null ? Number(this.discovery.longitude) : null,
+                    height: discoveryEnabled && this.discovery.height !== null ? Number(this.discovery.height) : null,
+                    discovery_frequency: discoveryEnabled ? fallbackDiscoveryFrequency : null,
+                    discovery_bandwidth: discoveryEnabled ? fallbackDiscoveryBandwidth : null,
+                    discovery_modulation:
+                        discoveryEnabled && this.discovery.discovery_modulation
+                            ? this.discovery.discovery_modulation
+                            : null,
+
                     // settings that can be added to any interface type
-                    mode: this.sharedInterfaceSettings.mode,
+                    mode: this.sharedInterfaceSettings.mode || "full",
                     bitrate: this.sharedInterfaceSettings.bitrate,
                     network_name: this.sharedInterfaceSettings.network_name,
                     passphrase: this.sharedInterfaceSettings.passphrase,
@@ -1476,12 +1860,13 @@ export default {
                     DialogUtils.alert(response.data.message);
                 }
 
+                // track change
+                GlobalState.hasPendingInterfaceChanges = true;
+                GlobalState.modifiedInterfaceNames.add(this.newInterfaceName);
+
                 // go to interfaces page
                 this.$router.push({
                     name: "interfaces",
-                    query: {
-                        restart_required: this.newInterfaceName,
-                    },
                 });
             } catch (e) {
                 const message = e.response?.data?.message ?? "failed to add interface";
@@ -1509,6 +1894,13 @@ export default {
             );
         },
         calculateRNodeParameters(bandwidth, spreadingFactor, codingRate, noiseFloor, antennaGain, transmitPower) {
+            if (!bandwidth || !spreadingFactor || !codingRate) {
+                this.RNodeInterfaceLoRaParameters.dataRate = "0 bps";
+                this.RNodeInterfaceLoRaParameters.sensitivity = "??? dBm";
+                this.RNodeInterfaceLoRaParameters.linkBudget = "??? dB";
+                return;
+            }
+
             // https://unsigned.io/understanding-lora-parameters/
             // "SX1272/3/6/7/8 LoRa Modem Design Guide" https://www.openhacks.com/uploadsproductos/loradesignguide_std.pdf
             // 4:5 - 4:8
@@ -1587,12 +1979,6 @@ export default {
 }
 .glass-label {
     @apply mb-1 text-sm font-semibold text-gray-800 dark:text-gray-200;
-}
-.primary-chip {
-    @apply inline-flex items-center gap-x-2 rounded-full bg-blue-600/90 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 transition;
-}
-.secondary-chip {
-    @apply inline-flex items-center gap-x-2 rounded-full border border-gray-300 dark:border-zinc-700 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/80 dark:bg-zinc-900/70 hover:border-blue-400;
 }
 .glass-field {
     @apply space-y-1;

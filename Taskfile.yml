@@ -63,8 +63,8 @@ tasks:
     lint-python:
         desc: Lint Python code using ruff
         cmds:
-            - poetry run ruff check . --exclude tests
-            - poetry run ruff format --check . --exclude tests
+            - poetry run ruff check .
+            - poetry run ruff format --check .
 
     lint-frontend:
         desc: Lint frontend code
@@ -104,15 +104,59 @@ tasks:
     test-frontend:
         desc: Run frontend tests using vitest
         cmds:
-            - "{{.NPM}} run test"
+            - "{{.NPM}} run test -- --exclude tests/frontend/i18n.test.js"
+
+    test-lang:
+        desc: Run language and localization tests
+        cmds:
+            - "{{.NPM}} run test tests/frontend/i18n.test.js"
+            - "poetry run pytest tests/backend/test_translator_handler.py"
+
+    gen-locale-template:
+        desc: Generate a locales.json template with empty values from en.json
+        cmds:
+            - "{{.PYTHON}} scripts/generate_locale_template.py"
 
     test:
         desc: Run all tests
-        deps: [test-python, test-frontend]
+        deps: [test-python, test-frontend, test-lang]
 
     test:cov:
         desc: Run all tests with coverage reports
         deps: [test-python-cov, test-frontend]
+
+    check:
+        desc: Run format, lint and test
+        cmds:
+            - task: format
+            - task: lint
+            - task: test
+
+    bench-backend:
+        desc: Run comprehensive backend benchmarks
+        cmds:
+            - poetry run python tests/backend/run_comprehensive_benchmarks.py
+
+    bench-extreme:
+        desc: Run extreme backend stress benchmarks (Breaking Space Mode)
+        cmds:
+            - poetry run python tests/backend/run_comprehensive_benchmarks.py --extreme
+
+    profile-memory:
+        desc: Run backend memory profiling tests
+        cmds:
+            - poetry run pytest tests/backend/test_memory_profiling.py
+
+    test-integrity:
+        desc: Run backend and data integrity tests
+        cmds:
+            - poetry run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
+
+    bench:
+        desc: Run all backend benchmarks and memory profiling
+        cmds:
+            - task: bench-backend
+            - task: profile-memory
 
     compile:
         desc: Compile Python code to check for syntax errors
@@ -166,16 +210,18 @@ tasks:
 
     build-appimage:
         desc: Build Linux AppImage
-        deps: [build]
+        deps: [build-frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage"
 
     build-exe:
         desc: Build Windows portable executable
-        deps: [build]
+        deps: [build-frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --win portable"
 
     build-electron-linux:
@@ -184,18 +230,38 @@ tasks:
         cmds:
             - "{{.NPM}} run dist:linux"
 
+    build-rpm:
+        desc: Build Linux RPM package
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run dist:rpm"
+
+    build-flatpak:
+        desc: Build Linux Flatpak package
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run dist:flatpak"
+
     build-electron-windows:
         desc: Build Windows Electron apps (portable and installer)
         deps: [build-frontend]
         cmds:
             - "{{.NPM}} run dist:windows"
 
+    build-zip:
+        desc: Build Electron ZIP archive using Electron Forge
+        deps: [build-frontend]
+        cmds:
+            - "PLATFORM=linux {{.NPM}} run build-backend"
+            - "{{.NPM}} run dist:zip"
+
     build-electron-all:
         desc: Build all Electron apps (Linux and Windows)
         deps: [build-frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
-            - "{{.NPM}} run build-backend"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
+            - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
 
     dist:
@@ -210,19 +276,36 @@ tasks:
 
     build-appimage-legacy:
         desc: Build Linux AppImage with legacy Electron version
-        deps: [build, electron-legacy]
+        deps: [build-frontend, electron-legacy]
         cmds:
             - "{{.NPM}} run electron-postinstall"
-            - "{{.NPM}} run dist -- --linux AppImage"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --linux AppImage -c.extraMetadata.main=electron/main-legacy.js"
             - "./scripts/rename_legacy_artifacts.sh"
 
     build-exe-legacy:
         desc: Build Windows portable executable with legacy Electron version
-        deps: [build, electron-legacy]
+        deps: [build-frontend, electron-legacy]
         cmds:
             - "{{.NPM}} run electron-postinstall"
-            - "{{.NPM}} run dist -- --win portable"
+            - "PLATFORM=win32 {{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --win portable -c.extraMetadata.main=electron/main-legacy.js"
             - "./scripts/rename_legacy_artifacts.sh"
+
+    forge-start:
+        desc: Run the application with Electron Forge
+        cmds:
+            - "{{.NPM}} run start"
+
+    forge-package:
+        desc: Package the application with Electron Forge
+        cmds:
+            - "{{.NPM}} run package"
+
+    forge-make:
+        desc: Generate distributables with Electron Forge
+        cmds:
+            - "{{.NPM}} run make"
 
     clean:
         desc: Clean build artifacts and dependencies
@@ -233,6 +316,7 @@ tasks:
             - rm -rf python-dist
             - rm -rf meshchatx/public
             - rm -rf build-dir
+            - rm -rf out
             - task: android-clean
 
     build-docker:
@@ -256,6 +340,11 @@ tasks:
         desc: Run Docker container using docker-compose
         cmds:
             - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f {{.DOCKER_COMPOSE_FILE}} up --remove-orphans --pull never reticulum-meshchatx'
+
+    run-docker-dev:
+        desc: Run Docker container in development mode using docker-compose.dev.yml
+        cmds:
+            - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f docker-compose.dev.yml up --build --remove-orphans reticulum-meshchatx'
 
     docker-build-env:
         desc: Build the Docker image for containerized builds
@@ -345,41 +434,3 @@ tasks:
         cmds:
             - cd "{{.ANDROID_DIR}}" && ./gradlew clean
             - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
-
-    flatpak-check-sdk:
-        desc: Check if required Flatpak SDK is installed
-        cmds:
-            - |
-                if ! flatpak info org.freedesktop.Sdk//24.08 >/dev/null 2>&1; then
-                    echo "Flatpak SDK 24.08 is not installed."
-                    echo "Install it with: flatpak install org.freedesktop.Sdk//24.08"
-                    exit 1
-                fi
-                if ! flatpak info org.freedesktop.Platform//24.08 >/dev/null 2>&1; then
-                    echo "Flatpak Platform runtime 24.08 is not installed."
-                    echo "Install it with: flatpak install org.freedesktop.Platform//24.08"
-                    exit 1
-                fi
-                if ! flatpak info org.freedesktop.Sdk.Extension.node20//24.08 >/dev/null 2>&1; then
-                    echo "Flatpak Node.js 20 extension is not installed."
-                    echo "Install it with: flatpak install org.freedesktop.Sdk.Extension.node20//24.08"
-                    exit 1
-                fi
-                echo "Required Flatpak SDK, Platform runtime, and Node.js extension are installed."
-
-    build-flatpak:
-        desc: Build Flatpak package
-        deps: [flatpak-check-sdk]
-        cmds:
-            - flatpak-builder --force-clean build-dir flatpak.json
-
-    install-flatpak:
-        desc: Install Flatpak package locally
-        deps: [build-flatpak]
-        cmds:
-            - flatpak-builder --install --user --force-clean build-dir flatpak.json
-
-    run-flatpak:
-        desc: Run Flatpak application
-        cmds:
-            - flatpak run com.sudoivan.reticulummeshchatx

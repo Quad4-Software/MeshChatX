@@ -1,9 +1,31 @@
-dist
-node_modules
-build
-electron/assets
-meshchatx/public
-pnpm-lock.yaml
-poetry.lock
-*.log
+# Prettier ignore file
 
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build output
+dist/
+build/
+linux-unpacked/
+win-unpacked/
+mac-unpacked/
+
+# Public assets and libraries
+meshchatx/public/
+meshchatx/src/frontend/public/
+meshchatx/src/frontend/style.css
+
+# Other
+storage/
+__pycache__/
+.venv/
+MagicMock/
+*.min.js
+*.wasm
+*.proto
+
+# Documentation and misc
+misc/README.md
+android/README.md
+CHANGELOG.md

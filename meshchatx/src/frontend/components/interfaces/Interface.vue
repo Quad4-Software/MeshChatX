@@ -42,6 +42,7 @@
                     <span :class="statusChipClass">{{
                         isInterfaceEnabled(iface) ? $t("app.enabled") : $t("app.disabled")
                     }}</span>
+                    <span v-if="isDiscoverable()" class="discoverable-chip">Discoverable</span>
                 </div>
                 <div class="text-sm text-gray-600 dark:text-gray-300">
                     {{ description }}
@@ -194,7 +195,7 @@ export default {
                 case "AutoInterface":
                     return "home-automation";
                 case "RNodeInterface":
-                    return "radio-tower";
+                    return this.iface.port && this.iface.port.startsWith("tcp://") ? "lan-connect" : "radio-tower";
                 case "RNodeMultiInterface":
                     return "access-point-network";
                 case "TCPClientInterface":
@@ -226,6 +227,9 @@ export default {
             if (this.iface.type === "SerialInterface") {
                 return `${this.iface.port} @ ${this.iface.speed || "9600"}bps`;
             }
+            if (this.iface.type === "RNodeInterface" && this.iface.port && this.iface.port.startsWith("tcp://")) {
+                return `RNode over IP @ ${this.iface.port.replace("tcp://", "")}`;
+            }
             if (this.iface.type === "AutoInterface") {
                 return "Auto-detect Ethernet and Wi-Fi peers";
             }
@@ -240,6 +244,13 @@ export default {
     methods: {
         onIFACSignatureClick: function (ifacSignature) {
             DialogUtils.alert(ifacSignature);
+        },
+        isDiscoverable() {
+            const value = this.iface.discoverable;
+            if (typeof value === "string") {
+                return ["true", "yes", "1", "on"].includes(value.toLowerCase());
+            }
+            return Boolean(value);
         },
         isInterfaceEnabled: function (iface) {
             return Utils.isInterfaceEnabled(iface);
@@ -274,7 +285,7 @@ export default {
 
 <style scoped>
 .interface-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3;
+    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3 hover:z-10;
     overflow: visible;
 }
 .interface-card__icon {
@@ -288,6 +299,9 @@ export default {
 }
 .ifac-line {
     @apply text-xs flex flex-wrap items-center gap-1;
+}
+.discoverable-chip {
+    @apply inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-xs font-semibold dark:bg-blue-900/50 dark:text-blue-200;
 }
 .detail-grid {
     @apply grid gap-3 sm:grid-cols-2;

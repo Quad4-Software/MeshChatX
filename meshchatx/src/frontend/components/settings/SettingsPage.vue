@@ -1,5 +1,6 @@
 <template>
     <div
+        v-if="config"
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
         <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
@@ -13,28 +14,20 @@
                             <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 {{ $t("app.profile") }}
                             </div>
-                            <div class="text-2xl font-semibold text-gray-900 dark:text-white">
-                                {{ config.display_name }}
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <input
+                                        v-model="config.display_name"
+                                        type="text"
+                                        :placeholder="$t('app.display_name_placeholder')"
+                                        class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-base font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500 outline-none transition"
+                                        @input="onDisplayNameChange"
+                                    />
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                    {{ $t("app.manage_identity") }}
+                                </div>
                             </div>
-                            <div class="text-sm text-gray-600 dark:text-gray-300">{{ $t("app.manage_identity") }}</div>
-                        </div>
-                        <div class="flex flex-col sm:flex-row gap-2">
-                            <button
-                                type="button"
-                                class="inline-flex items-center justify-center gap-x-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-semibold text-gray-900 dark:text-zinc-100 shadow-sm hover:border-blue-400 dark:hover:border-blue-400/70 transition"
-                                @click="copyValue(config.identity_hash, $t('app.identity_hash'))"
-                            >
-                                <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
-                                {{ $t("app.identity_hash") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="inline-flex items-center justify-center gap-x-2 rounded-xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow hover:shadow-md transition"
-                                @click="copyValue(config.lxmf_address_hash, $t('app.lxmf_address'))"
-                            >
-                                <MaterialDesignIcon icon-name="account-plus" class="w-4 h-4" />
-                                {{ $t("app.lxmf_address") }}
-                            </button>
                         </div>
                     </div>
                     <transition name="fade">
@@ -104,10 +97,367 @@
                     </div>
                 </div>
 
+                <!-- search bar -->
+                <div class="sticky top-0 z-10 py-4">
+                    <div class="relative max-w-6xl mx-auto">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+                        </div>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all shadow-sm"
+                            :placeholder="$t('app.search_settings') || 'Search settings...'"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            @click="searchQuery = ''"
+                        >
+                            <MaterialDesignIcon icon-name="close-circle" class="size-5" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- no results -->
+                <div
+                    v-if="searchQuery && !hasSearchResults"
+                    class="flex flex-col items-center justify-center py-12 text-center"
+                >
+                    <div
+                        class="p-4 bg-white/50 dark:bg-zinc-800/50 rounded-full mb-4 border border-gray-100 dark:border-zinc-800"
+                    >
+                        <MaterialDesignIcon icon-name="magnify-close" class="size-8 text-gray-400" />
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">No results found</h3>
+                    <p class="text-gray-500 dark:text-gray-400">No settings match "{{ searchQuery }}"</p>
+                    <button
+                        class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold text-sm"
+                        @click="searchQuery = ''"
+                    >
+                        Clear search
+                    </button>
+                </div>
+
                 <!-- settings grid -->
-                <div class="columns-1 lg:columns-2 gap-4 space-y-4">
+                <div v-show="hasSearchResults" class="columns-1 lg:columns-2 gap-4 space-y-4">
+                    <!-- Banishment -->
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.banishment)"
+                        class="glass-card break-inside-avoid"
+                    >
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Visuals</div>
+                                <h2>{{ $t("app.banishment") }}</h2>
+                                <p>{{ $t("app.banishment_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="banished-effect-enabled"
+                                    v-model="config.banished_effect_enabled"
+                                    @update:model-value="onBanishedEffectEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.banished_effect_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.banished_effect_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <div v-if="config.banished_effect_enabled" class="space-y-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.banished_text_label") }}
+                                    </div>
+                                    <input
+                                        v-model="config.banished_text"
+                                        type="text"
+                                        class="input-field"
+                                        @input="onBanishedConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.banished_text_description") }}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.banished_color_label") }}
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input
+                                            v-model="config.banished_color"
+                                            type="color"
+                                            class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                            @input="onBanishedConfigChange"
+                                        />
+                                        <input
+                                            v-model="config.banished_color"
+                                            type="text"
+                                            class="input-field monospace-field"
+                                            @input="onBanishedConfigChange"
+                                        />
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.banished_color_description") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Maintenance & Data -->
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.maintenance)"
+                        class="glass-card break-inside-avoid"
+                    >
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Maintenance</div>
+                                <h2>{{ $t("maintenance.title") }}</h2>
+                                <p>{{ $t("maintenance.description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="grid grid-cols-1 gap-3">
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                    @click="clearMessages"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="message-remove" class="size-4" />
+                                            {{ $t("maintenance.clear_messages") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_messages_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
+                                    @click="clearAnnounces"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="broadcast-off" class="size-4" />
+                                            {{ $t("maintenance.clear_announces") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_announces_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-indigo-200 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/20"
+                                    @click="clearNomadnetFavorites"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="bookmark-remove" class="size-4" />
+                                            {{ $t("maintenance.clear_nomadnet_favs") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_nomadnet_favs_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
+                                    @click="clearLxmfIcons"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="account-off" class="size-4" />
+                                            {{ $t("maintenance.clear_lxmf_icons") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_lxmf_icons_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                                    @click="clearArchives"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
+                                            {{ $t("maintenance.clear_archives") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_archives_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
+                                    @click="clearReticulumDocs"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="book-remove" class="size-4" />
+                                            {{ $t("maintenance.clear_reticulum_docs") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_reticulum_docs_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Automatic Backup Limit
+                                </div>
+                                <input
+                                    v-model.number="config.backup_max_count"
+                                    type="number"
+                                    min="1"
+                                    max="50"
+                                    class="input-field"
+                                    @input="onBackupConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    Number of automatic backups to keep.
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 mt-4">
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-blue-500 transition group"
+                                    @click="exportMessages"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="export"
+                                        class="size-6 text-blue-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">{{ $t("maintenance.export_messages") }}</div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-emerald-500 transition group"
+                                    @click="triggerImport"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="import"
+                                        class="size-6 text-emerald-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">{{ $t("maintenance.import_messages") }}</div>
+                                </button>
+                                <input
+                                    ref="importFile"
+                                    type="file"
+                                    accept=".json"
+                                    class="hidden"
+                                    @change="importMessages"
+                                />
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800">
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-purple-500 transition group"
+                                    @click="exportFolders"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="folder-export-outline"
+                                        class="size-6 text-purple-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">Export Folders</div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-indigo-500 transition group"
+                                    @click="triggerFolderImport"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="folder-import-outline"
+                                        class="size-6 text-indigo-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">Import Folders</div>
+                                </button>
+                                <input
+                                    ref="importFolderFile"
+                                    type="file"
+                                    accept=".json"
+                                    class="hidden"
+                                    @change="importFolders"
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Desktop / Electron Settings -->
+                    <section
+                        v-if="ElectronUtils.isElectron()"
+                        v-show="matchesSearch(...sectionKeywords.desktop)"
+                        class="glass-card break-inside-avoid"
+                    >
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Desktop</div>
+                                <h2>App Behaviour</h2>
+                                <p>Control how MeshChat behaves on your desktop.</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <label class="setting-toggle opacity-50 cursor-not-allowed">
+                                <Toggle
+                                    id="desktop-open-calls-in-separate-window"
+                                    :model-value="false"
+                                    :disabled="true"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.desktop_open_calls_in_separate_window")
+                                    }}</span>
+                                    <span class="setting-toggle__description">
+                                        {{ $t("app.desktop_open_calls_in_separate_window_description") }}
+                                        <span class="text-blue-500 font-bold block mt-1">(Phased out for now)</span>
+                                    </span>
+                                </span>
+                            </label>
+
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="desktop-hardware-acceleration-enabled"
+                                    v-model="config.desktop_hardware_acceleration_enabled"
+                                    @update:model-value="onDesktopHardwareAccelerationEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.desktop_hardware_acceleration_enabled")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.desktop_hardware_acceleration_enabled_description")
+                                    }}</span>
+                                    <span class="setting-toggle__hint">{{ $t("app.requires_restart") }}</span>
+                                </span>
+                            </label>
+                        </div>
+                    </section>
+
                     <!-- Page Archiver -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.archiver)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Browsing</div>
@@ -174,7 +524,7 @@
                     </section>
 
                     <!-- Smart Crawler -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.crawler)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Discovery</div>
@@ -249,7 +599,10 @@
                     </section>
 
                     <!-- Appearance -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.appearance)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Personalise</div>
@@ -257,27 +610,272 @@
                                 <p>{{ $t("app.appearance_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-3">
-                            <select v-model="config.theme" class="input-field" @change="onThemeChange">
-                                <option value="light">{{ $t("app.light_theme") }}</option>
-                                <option value="dark">{{ $t("app.dark_theme") }}</option>
-                            </select>
+                        <div class="glass-card__body space-y-4">
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.theme") }}
+                                </div>
+                                <select v-model="config.theme" class="input-field" @change="onThemeChange">
+                                    <option value="light">{{ $t("app.light_theme") }}</option>
+                                    <option value="dark">{{ $t("app.dark_theme") }}</option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Message Font Size
+                                    </div>
+                                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                                        {{ config.message_font_size || 14 }}px
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-gray-400">A</span>
+                                    <input
+                                        v-model.number="config.message_font_size"
+                                        type="range"
+                                        min="10"
+                                        max="32"
+                                        step="1"
+                                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                        @input="onMessageFontSizeChange"
+                                    />
+                                    <span class="text-lg text-gray-400">A</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Icon Size</div>
+                                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                                        {{ config.message_icon_size || 28 }}px
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <MaterialDesignIcon icon-name="account-outline" class="text-gray-400" />
+                                    <input
+                                        v-model.number="config.message_icon_size"
+                                        type="range"
+                                        min="16"
+                                        max="64"
+                                        step="1"
+                                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                        @input="onMessageIconSizeChange"
+                                    />
+                                    <MaterialDesignIcon icon-name="account" class="text-gray-500 dark:text-gray-300" />
+                                </div>
+                            </div>
+
                             <div
-                                class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-2xl px-3 py-2"
+                                class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-2xl px-3 py-2"
                             >
-                                <div>{{ $t("app.live_preview") }}</div>
+                                <div
+                                    :style="messageIconPreviewStyle"
+                                    class="flex items-center justify-center shrink-0 rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
+                                >
+                                    <LxmfUserIcon
+                                        :key="config.message_icon_size"
+                                        icon-name="account"
+                                        icon-class="w-full h-full"
+                                        icon-foreground-colour="#374151"
+                                        icon-background-colour="#e5e7eb"
+                                    />
+                                </div>
+                                <div class="flex-1 min-w-0 space-y-0.5">
+                                    <div
+                                        class="font-semibold text-gray-900 dark:text-gray-100"
+                                        :style="previewTextStyle"
+                                    >
+                                        Preview Name
+                                    </div>
+                                    <div class="text-gray-600 dark:text-gray-400 truncate" :style="previewTextStyle">
+                                        Hey there, this is how text and icons will look.
+                                    </div>
+                                </div>
                                 <span
                                     class="inline-flex items-center gap-1 text-blue-500 dark:text-blue-300 text-xs font-semibold uppercase"
                                 >
                                     <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                    {{ $t("app.realtime") }}
+                                    {{ $t("app.live_preview") }}
                                 </span>
                             </div>
                         </div>
                     </section>
 
+                    <!-- Location -->
+                    <section v-show="matchesSearch(...sectionKeywords.location)" class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Privacy</div>
+                                <h2>Location</h2>
+                                <p>Manage how your location is shared.</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Location Source</div>
+                                <select
+                                    v-model="config.location_source"
+                                    class="input-field"
+                                    @change="
+                                        updateConfig({ location_source: config.location_source }, 'location_source')
+                                    "
+                                >
+                                    <option value="browser">Automatic (Browser)</option>
+                                    <option value="manual">Manual</option>
+                                </select>
+                                <div
+                                    v-if="config.location_source === 'browser'"
+                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                >
+                                    Uses your browser's geolocation API. Note: In the desktop app, this can use Google
+                                    services, which is blocked by CORS so you would need to specifically allow it.
+                                </div>
+                                <div
+                                    v-if="config.location_source === 'manual'"
+                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                >
+                                    Use manually entered coordinates for maximum privacy.
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="config.location_source === 'manual'"
+                                class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                            >
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.location_manual_lat") }}
+                                    </div>
+                                    <input
+                                        v-model="config.location_manual_lat"
+                                        type="text"
+                                        class="input-field"
+                                        placeholder="0.0"
+                                        @input="
+                                            updateConfig(
+                                                { location_manual_lat: config.location_manual_lat },
+                                                'location_manual_lat'
+                                            )
+                                        "
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.location_manual_lon") }}
+                                    </div>
+                                    <input
+                                        v-model="config.location_manual_lon"
+                                        type="text"
+                                        class="input-field"
+                                        placeholder="0.0"
+                                        @input="
+                                            updateConfig(
+                                                { location_manual_lon: config.location_manual_lon },
+                                                'location_manual_lon'
+                                            )
+                                        "
+                                    />
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.location_manual_alt") }}
+                                    </div>
+                                    <input
+                                        v-model="config.location_manual_alt"
+                                        type="text"
+                                        class="input-field"
+                                        placeholder="0.0"
+                                        @input="
+                                            updateConfig(
+                                                { location_manual_alt: config.location_manual_alt },
+                                                'location_manual_alt'
+                                            )
+                                        "
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-4">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="telemetry-enabled"
+                                        v-model="config.telemetry_enabled"
+                                        @update:model-value="
+                                            updateConfig(
+                                                { telemetry_enabled: config.telemetry_enabled },
+                                                'telemetry_enabled'
+                                            )
+                                        "
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.telemetry_enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.telemetry_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div
+                                v-if="config.telemetry_enabled"
+                                class="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-4"
+                            >
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.telemetry_trusted_peers") }}
+                                </div>
+                                <div v-if="trustedTelemetryPeers.length === 0" class="text-xs text-gray-500 italic">
+                                    {{ $t("app.telemetry_no_trusted_peers") }}
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <div
+                                        v-for="peer in trustedTelemetryPeers"
+                                        :key="peer.id"
+                                        class="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700"
+                                    >
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center"
+                                            >
+                                                <MaterialDesignIcon icon-name="account" class="size-5" />
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                    {{ peer.name }}
+                                                </div>
+                                                <div class="text-[10px] text-gray-500 font-mono truncate">
+                                                    {{ peer.remote_identity_hash }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                            :title="$t('app.telemetry_revoke_trust')"
+                                            @click="revokeTelemetryTrust(peer)"
+                                        >
+                                            <MaterialDesignIcon icon-name="shield-off-outline" class="size-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Language -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="
+                            matchesSearch(
+                                'i18n',
+                                'app.language',
+                                'app.select_language',
+                                'English',
+                                'Deutsch',
+                                'Русский'
+                            )
+                        "
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">i18n</div>
@@ -290,12 +888,57 @@
                                 <option value="en">English</option>
                                 <option value="de">Deutsch</option>
                                 <option value="ru">Русский</option>
+                                <option value="it">Italiano</option>
                             </select>
                         </div>
                     </section>
 
+                    <!-- Network Security -->
+                    <section
+                        v-show="
+                            matchesSearch(
+                                'RNS Security',
+                                'Network Security',
+                                'app.blackhole_integration_enabled',
+                                'app.blackhole_integration_description'
+                            )
+                        "
+                        class="glass-card break-inside-avoid"
+                    >
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">RNS Security</div>
+                                <h2>Network Security</h2>
+                                <p>Manage mesh-level security features.</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="setting-toggle">
+                                <div class="setting-toggle__label">
+                                    <div class="setting-toggle__title">
+                                        {{ $t("app.blackhole_integration_enabled") }}
+                                    </div>
+                                    <div class="setting-toggle__description text-xs text-gray-500">
+                                        {{ $t("app.blackhole_integration_description") }}
+                                    </div>
+                                </div>
+                                <Toggle
+                                    v-model="config.blackhole_integration_enabled"
+                                    @update:model-value="
+                                        updateConfig(
+                                            {
+                                                blackhole_integration_enabled: config.blackhole_integration_enabled,
+                                            },
+                                            'blackhole_integration_enabled'
+                                        )
+                                    "
+                                />
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Transport -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.transport)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Reticulum</div>
@@ -322,7 +965,10 @@
                     </section>
 
                     <!-- Interfaces -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.interfaces)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Adapters</div>
@@ -348,25 +994,28 @@
                     </section>
 
                     <!-- Blocked -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch('Privacy', 'Banished', 'Manage Banished users and nodes')"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Privacy</div>
-                                <h2>Blocked</h2>
-                                <p>Manage blocked users and nodes</p>
+                                <h2>Banished</h2>
+                                <p>Manage Banished users and nodes</p>
                             </div>
-                            <RouterLink :to="{ name: 'blocked' }" class="primary-chip"> Manage Blocked </RouterLink>
+                            <RouterLink :to="{ name: 'blocked' }" class="primary-chip"> Manage Banished </RouterLink>
                         </header>
                         <div class="glass-card__body">
                             <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Blocked users and nodes will not be able to send you messages, and their announces will
+                                Banished users and nodes will not be able to send you messages, and their announces will
                                 be ignored.
                             </p>
                         </div>
                     </section>
 
                     <!-- Authentication -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.auth)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">Security</div>
@@ -397,8 +1046,189 @@
                         </div>
                     </section>
 
+                    <!-- Translator -->
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.translator)"
+                        class="glass-card break-inside-avoid"
+                    >
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">i18n</div>
+                                <h2>{{ $t("app.translator") }}</h2>
+                                <p>{{ $t("translator.description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="translator-enabled"
+                                    v-model="config.translator_enabled"
+                                    @update:model-value="onTranslatorEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.translator_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.translator_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <div v-if="config.translator_enabled" class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.libretranslate_url") }}
+                                </div>
+                                <input
+                                    v-model="config.libretranslate_url"
+                                    type="text"
+                                    placeholder="http://localhost:5000"
+                                    class="input-field"
+                                    @input="onTranslatorConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.libretranslate_url_description") }}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Sources & Infrastructure -->
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.infrastructure)"
+                        class="glass-card break-inside-avoid"
+                    >
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Infrastructure</div>
+                                <h2>Sources & Mirroring</h2>
+                                <p>Customize URLs for documentation and external resources.</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Gitea Base URL</div>
+                                <input
+                                    v-model="config.gitea_base_url"
+                                    type="text"
+                                    placeholder="https://git.quad4.io"
+                                    class="input-field"
+                                    @input="onGiteaConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    The base URL for your preferred Gitea instance.
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Documentation Download URLs
+                                </div>
+                                <textarea
+                                    v-model="config.docs_download_urls"
+                                    placeholder="Enter one URL per line (or comma-separated)"
+                                    class="input-field min-h-[100px] text-xs font-mono"
+                                    @input="onGiteaConfigChange"
+                                ></textarea>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    List of ZIP URLs to try when downloading documentation. One URL per line.
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Content Security Policy (CSP) -->
+                    <section v-show="matchesSearch(...sectionKeywords.csp)" class="glass-card break-inside-avoid">
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Security</div>
+                                <h2>{{ $t("app.csp_settings") }}</h2>
+                                <p>{{ $t("app.csp_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_connect_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_connect_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://api.example.com, wss://socket.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_connect_src_description") }}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_img_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_img_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://tiles.example.com, https://cdn.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_img_src_description") }}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_frame_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_frame_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://video.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_frame_src_description") }}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_script_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_script_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://scripts.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_script_src_description") }}
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.csp_extra_style_src") }}
+                                </div>
+                                <input
+                                    v-model="config.csp_extra_style_src"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    placeholder="https://fonts.example.com"
+                                    @input="onCspConfigChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.csp_extra_style_src_description") }}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Messages -->
-                    <section class="glass-card break-inside-avoid">
+                    <section v-show="matchesSearch(...sectionKeywords.messages)" class="glass-card break-inside-avoid">
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">{{ $t("app.reliability") }}</div>
@@ -467,7 +1297,10 @@
                     </section>
 
                     <!-- Propagation nodes -->
-                    <section class="glass-card break-inside-avoid">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.propagation)"
+                        class="glass-card break-inside-avoid"
+                    >
                         <header class="glass-card__header">
                             <div>
                                 <div class="glass-card__eyebrow">LXMF</div>
@@ -499,6 +1332,19 @@
                                     }}</span>
                                     <span class="setting-toggle__hint monospace-field">{{
                                         config.lxmf_local_propagation_node_address_hash || "—"
+                                    }}</span>
+                                </span>
+                            </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="auto-select-propagation-node"
+                                    v-model="config.lxmf_preferred_propagation_node_auto_select"
+                                    @update:model-value="onLxmfPreferredPropagationNodeAutoSelectChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.auto_select_node") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.auto_select_node_description")
                                     }}</span>
                                 </span>
                             </label>
@@ -586,7 +1432,7 @@
                                     <MaterialDesignIcon
                                         :icon-name="reloadingRns ? 'refresh' : 'restart'"
                                         class="w-5 h-5"
-                                        :class="{ 'animate-spin': reloadingRns }"
+                                        :class="{ 'animate-spin-reverse': reloadingRns }"
                                     />
                                     <span>{{ reloadingRns ? $t("app.reloading_rns") : $t("app.reload_rns") }}</span>
                                 </button>
@@ -600,7 +1446,7 @@
                 </div>
 
                 <!-- Keyboard Shortcuts (Full width at bottom) -->
-                <div class="mt-4">
+                <div v-show="matchesSearch(...sectionKeywords.shortcuts)" class="mt-4">
                     <section class="glass-card">
                         <div class="glass-card__header">
                             <div class="flex items-center gap-3">
@@ -654,6 +1500,8 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
+import ElectronUtils from "../../js/ElectronUtils";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
 
 export default {
     name: "SettingsPage",
@@ -661,23 +1509,226 @@ export default {
         MaterialDesignIcon,
         Toggle,
         ShortcutRecorder,
+        LxmfUserIcon,
     },
     data() {
         return {
+            ElectronUtils,
             KeyboardShortcuts,
             config: {
+                display_name: "",
+                identity_hash: "",
+                lxmf_address_hash: "",
+                theme: "dark",
+                is_transport_enabled: false,
                 auto_resend_failed_messages_when_announce_received: null,
                 allow_auto_resending_failed_messages_with_attachments: null,
                 auto_send_failed_messages_to_propagation_node: null,
                 show_suggested_community_interfaces: null,
                 lxmf_local_propagation_node_enabled: null,
                 lxmf_preferred_propagation_node_destination_hash: null,
+                lxmf_preferred_propagation_node_auto_select: null,
                 archives_max_storage_gb: 1,
+                backup_max_count: 5,
+                banished_effect_enabled: true,
+                banished_text: "BANISHED",
+                banished_color: "#dc2626",
+                blackhole_integration_enabled: true,
+                message_font_size: 14,
+                message_icon_size: 28,
+                telephone_tone_generator_enabled: true,
+                telephone_tone_generator_volume: 50,
+                location_source: "browser",
+                location_manual_lat: "0.0",
+                location_manual_lon: "0.0",
+                location_manual_alt: "0.0",
+                telemetry_enabled: false,
+                gitea_base_url: "https://git.quad4.io",
+                docs_download_urls: "",
+                csp_extra_connect_src: "",
+                csp_extra_img_src: "",
+                csp_extra_frame_src: "",
+                csp_extra_script_src: "",
+                csp_extra_style_src: "",
             },
             saveTimeouts: {},
             shortcuts: [],
             reloadingRns: false,
+            searchQuery: "",
+            trustedTelemetryPeers: [],
+            sectionKeywords: {
+                banishment: [
+                    "Visuals",
+                    "app.banishment",
+                    "app.banishment_description",
+                    "app.banished_effect_enabled",
+                    "app.banished_effect_description",
+                    "app.banished_text_label",
+                    "app.banished_text_description",
+                    "app.banished_color_label",
+                    "app.banished_color_description",
+                ],
+                maintenance: [
+                    "Maintenance",
+                    "maintenance.title",
+                    "maintenance.description",
+                    "maintenance.clear_messages",
+                    "maintenance.clear_messages_desc",
+                    "maintenance.clear_announces",
+                    "maintenance.clear_announces_desc",
+                    "maintenance.clear_nomadnet_favs",
+                    "maintenance.clear_nomadnet_favs_desc",
+                    "maintenance.clear_archives",
+                    "maintenance.clear_archives_desc",
+                    "maintenance.export_messages",
+                    "maintenance.export_messages_desc",
+                    "maintenance.import_messages",
+                    "maintenance.import_messages_desc",
+                    "Automatic Backup Limit",
+                    "Export Folders",
+                    "Import Folders",
+                ],
+                desktop: [
+                    "Desktop",
+                    "App Behaviour",
+                    "app.desktop_open_calls_in_separate_window",
+                    "app.desktop_open_calls_in_separate_window_description",
+                    "app.desktop_hardware_acceleration_enabled",
+                    "app.desktop_hardware_acceleration_enabled_description",
+                ],
+                archiver: ["Browsing", "Page Archiver", "archiver", "archive", "versions", "storage", "flush"],
+                crawler: ["Discovery", "Smart Crawler", "crawler", "crawl", "retries", "delay", "concurrent"],
+                csp: [
+                    "Security",
+                    "app.csp_settings",
+                    "app.csp_description",
+                    "app.csp_extra_connect_src",
+                    "app.csp_extra_img_src",
+                    "app.csp_extra_frame_src",
+                    "app.csp_extra_script_src",
+                    "app.csp_extra_style_src",
+                    "CSP",
+                    "Content Security Policy",
+                ],
+                appearance: [
+                    "Personalise",
+                    "app.appearance",
+                    "app.appearance_description",
+                    "app.theme",
+                    "app.light_theme",
+                    "app.dark_theme",
+                    "Message Font Size",
+                    "Icon Size",
+                    "app.live_preview",
+                    "app.realtime",
+                ],
+                language: ["i18n", "app.language", "app.select_language", "English", "Deutsch", "Русский"],
+                networkSecurity: [
+                    "RNS Security",
+                    "Network Security",
+                    "app.blackhole_integration_enabled",
+                    "app.blackhole_integration_description",
+                ],
+                transport: [
+                    "Reticulum",
+                    "app.transport_mode",
+                    "app.transport_description",
+                    "app.enable_transport_mode",
+                    "app.transport_toggle_description",
+                ],
+                interfaces: [
+                    "Adapters",
+                    "app.interfaces",
+                    "app.show_community_interfaces",
+                    "app.community_interfaces_description",
+                ],
+                blocked: ["Privacy", "Banished", "Manage Banished users and nodes"],
+                auth: ["Security", "Authentication", "password", "Protect your instance with a password"],
+                translator: [
+                    "i18n",
+                    "app.translator",
+                    "translator.description",
+                    "app.translator_enabled",
+                    "app.translator_description",
+                    "app.libretranslate_url",
+                    "app.libretranslate_url_description",
+                ],
+                infrastructure: ["Infrastructure", "Sources & Mirroring", "gitea", "documentation", "download", "urls"],
+                messages: [
+                    "reliability",
+                    "app.messages",
+                    "app.messages_description",
+                    "app.auto_resend_title",
+                    "app.auto_resend_description",
+                    "app.retry_attachments_title",
+                    "app.retry_attachments_description",
+                    "app.auto_fallback_title",
+                    "app.auto_fallback_description",
+                    "app.inbound_stamp_cost",
+                    "app.inbound_stamp_description",
+                ],
+                propagation: [
+                    "LXMF",
+                    "app.propagation_nodes",
+                    "app.propagation_nodes_description",
+                    "app.browse_nodes",
+                    "app.run_local_node",
+                    "app.run_local_node_description",
+                    "app.preferred_propagation_node",
+                    "app.auto_sync_interval",
+                    "app.propagation_stamp_cost",
+                    "app.propagation_stamp_description",
+                ],
+                location: [
+                    "Location",
+                    "GPS",
+                    "Privacy",
+                    "manual",
+                    "latitude",
+                    "longitude",
+                    "altitude",
+                    "telemetry",
+                    "trusted peers",
+                ],
+                shortcuts: ["Keyboard Shortcuts", "actions", "workflow"],
+            },
         };
+    },
+    computed: {
+        hasSearchResults() {
+            if (!this.searchQuery) return true;
+            return Object.values(this.sectionKeywords).some((keywords) => this.matchesSearch(...keywords));
+        },
+        safeConfig() {
+            if (!this.config) {
+                return {
+                    display_name: "",
+                    identity_hash: "",
+                    lxmf_address_hash: "",
+                    theme: "dark",
+                    is_transport_enabled: false,
+                    location_source: "browser",
+                    location_manual_lat: "0.0",
+                    location_manual_lon: "0.0",
+                    location_manual_alt: "0.0",
+                };
+            }
+            return this.config;
+        },
+        previewTextStyle() {
+            const size = this.config?.message_font_size || 14;
+            return { "font-size": `${size}px` };
+        },
+        messageIconPreviewStyle() {
+            const size = Number(this.config?.message_icon_size) || 28;
+            return {
+                width: `${size}px`,
+                height: `${size}px`,
+                minWidth: `${size}px`,
+                minHeight: `${size}px`,
+                transition: "width 120ms linear, height 120ms linear",
+            };
+        },
     },
     beforeUnmount() {
         // stop listening for websocket messages
@@ -688,13 +1739,46 @@ export default {
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
         this.getConfig();
+        this.getTrustedTelemetryPeers();
     },
     methods: {
+        async getTrustedTelemetryPeers() {
+            try {
+                const response = await window.axios.get("/api/v1/telemetry/trusted-peers");
+                this.trustedTelemetryPeers = response.data.trusted_peers;
+            } catch (e) {
+                console.error("Failed to fetch trusted telemetry peers", e);
+            }
+        },
+        async revokeTelemetryTrust(peer) {
+            try {
+                await window.axios.patch(`/api/v1/telephone/contacts/${peer.id}`, {
+                    is_telemetry_trusted: false,
+                });
+                this.getTrustedTelemetryPeers();
+                ToastUtils.success(this.$t("app.telemetry_trust_revoked", { name: peer.name }));
+            } catch (e) {
+                ToastUtils.error("Failed to revoke telemetry trust");
+                console.error(e);
+            }
+        },
+        matchesSearch(...texts) {
+            if (!this.searchQuery) return true;
+            const query = this.searchQuery.toLowerCase();
+            return texts.some((text) => {
+                if (!text) return false;
+                // If it looks like a translation key, translate it
+                const content = text.includes(".") ? this.$t(text) : text;
+                return content.toLowerCase().includes(query);
+            });
+        },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
             switch (json.type) {
                 case "config": {
-                    this.config = json.config;
+                    if (json.config) {
+                        this.config = { ...this.config, ...json.config };
+                    }
                     break;
                 }
                 case "keyboard_shortcuts": {
@@ -706,7 +1790,9 @@ export default {
         async getConfig() {
             try {
                 const response = await window.axios.get("/api/v1/config");
-                this.config = response.data.config;
+                if (response?.data?.config) {
+                    this.config = { ...this.config, ...response.data.config };
+                }
                 this.getKeyboardShortcuts();
             } catch (e) {
                 // do nothing if failed to load config
@@ -730,11 +1816,11 @@ export default {
         },
         async saveShortcut(action, keys) {
             await KeyboardShortcuts.saveShortcut(action, keys);
-            ToastUtils.success("Shortcut saved");
+            ToastUtils.success(this.$t("settings.shortcut_saved"));
         },
         async deleteShortcut(action) {
             await KeyboardShortcuts.deleteShortcut(action);
-            ToastUtils.success("Shortcut deleted");
+            ToastUtils.success(this.$t("settings.shortcut_deleted"));
         },
         async updateConfig(config, label = null) {
             try {
@@ -744,7 +1830,7 @@ export default {
                     ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
                 }
             } catch (e) {
-                ToastUtils.error("Failed to save config!");
+                ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
             }
         },
@@ -767,6 +1853,39 @@ export default {
                 },
                 "theme"
             );
+        },
+        async onMessageFontSizeChange() {
+            if (this.saveTimeouts.message_font_size) clearTimeout(this.saveTimeouts.message_font_size);
+            this.saveTimeouts.message_font_size = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        message_font_size: this.config.message_font_size,
+                    },
+                    "message_font_size"
+                );
+            }, 1000);
+        },
+        async onDisplayNameChange() {
+            if (this.saveTimeouts.display_name) clearTimeout(this.saveTimeouts.display_name);
+            this.saveTimeouts.display_name = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        display_name: this.config.display_name,
+                    },
+                    "display_name"
+                );
+            }, 600);
+        },
+        async onMessageIconSizeChange() {
+            if (this.saveTimeouts.message_icon_size) clearTimeout(this.saveTimeouts.message_icon_size);
+            this.saveTimeouts.message_icon_size = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        message_icon_size: this.config.message_icon_size,
+                    },
+                    "message_icon_size"
+                );
+            }, 1000);
         },
         async onLanguageChange() {
             await this.updateConfig(
@@ -839,6 +1958,15 @@ export default {
                 );
             }, 1000);
         },
+        async onLxmfPreferredPropagationNodeAutoSelectChange() {
+            await this.updateConfig(
+                {
+                    lxmf_preferred_propagation_node_auto_select:
+                        this.config.lxmf_preferred_propagation_node_auto_select,
+                },
+                "auto_select_node"
+            );
+        },
         async onLxmfLocalPropagationNodeEnabledChangeWrapper(value) {
             this.config.lxmf_local_propagation_node_enabled = value;
             await this.onLxmfLocalPropagationNodeEnabledChange();
@@ -903,6 +2031,27 @@ export default {
                 );
             }, 1000);
         },
+        async onBanishedEffectEnabledChange(value) {
+            this.config.banished_effect_enabled = value;
+            await this.updateConfig(
+                {
+                    banished_effect_enabled: value,
+                },
+                "banishment"
+            );
+        },
+        async onBanishedConfigChange() {
+            if (this.saveTimeouts.banished) clearTimeout(this.saveTimeouts.banished);
+            this.saveTimeouts.banished = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        banished_text: this.config.banished_text,
+                        banished_color: this.config.banished_color,
+                    },
+                    "banishment"
+                );
+            }, 1000);
+        },
         async onCrawlerEnabledChange(value) {
             await this.updateConfig(
                 {
@@ -924,6 +2073,24 @@ export default {
                 );
             }, 1000);
         },
+        async onDesktopOpenCallsInSeparateWindowChange(value) {
+            this.config.desktop_open_calls_in_separate_window = value;
+            await this.updateConfig(
+                {
+                    desktop_open_calls_in_separate_window: value,
+                },
+                "desktop_open_calls_in_separate_window"
+            );
+        },
+        async onDesktopHardwareAccelerationEnabledChange(value) {
+            this.config.desktop_hardware_acceleration_enabled = value;
+            await this.updateConfig(
+                {
+                    desktop_hardware_acceleration_enabled: value,
+                },
+                "desktop_hardware_acceleration_enabled"
+            );
+        },
         async onAuthEnabledChange(value) {
             await this.updateConfig(
                 {
@@ -938,6 +2105,64 @@ export default {
                 this.$router.push({ name: "auth" });
             }
         },
+        async onTranslatorEnabledChange(value) {
+            this.config.translator_enabled = value;
+            await this.updateConfig(
+                {
+                    translator_enabled: value,
+                },
+                "translator"
+            );
+        },
+        async onTranslatorConfigChange() {
+            if (this.saveTimeouts.translator) clearTimeout(this.saveTimeouts.translator);
+            this.saveTimeouts.translator = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        libretranslate_url: this.config.libretranslate_url,
+                    },
+                    "translator"
+                );
+            }, 1000);
+        },
+        async onGiteaConfigChange() {
+            if (this.saveTimeouts.gitea) clearTimeout(this.saveTimeouts.gitea);
+            this.saveTimeouts.gitea = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        gitea_base_url: this.config.gitea_base_url,
+                        docs_download_urls: this.config.docs_download_urls,
+                    },
+                    "Infrastructure"
+                );
+            }, 1000);
+        },
+        async onCspConfigChange() {
+            if (this.saveTimeouts.csp) clearTimeout(this.saveTimeouts.csp);
+            this.saveTimeouts.csp = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        csp_extra_connect_src: this.config.csp_extra_connect_src,
+                        csp_extra_img_src: this.config.csp_extra_img_src,
+                        csp_extra_frame_src: this.config.csp_extra_frame_src,
+                        csp_extra_script_src: this.config.csp_extra_script_src,
+                        csp_extra_style_src: this.config.csp_extra_style_src,
+                    },
+                    "csp_settings"
+                );
+            }, 1000);
+        },
+        async onBackupConfigChange() {
+            if (this.saveTimeouts.backup) clearTimeout(this.saveTimeouts.backup);
+            this.saveTimeouts.backup = setTimeout(async () => {
+                await this.updateConfig(
+                    {
+                        backup_max_count: this.config.backup_max_count,
+                    },
+                    "backup_max_count"
+                );
+            }, 1000);
+        },
         async flushArchivedPages() {
             if (
                 !(await DialogUtils.confirm(
@@ -951,7 +2176,7 @@ export default {
                     type: "nomadnet.page.archive.flush",
                 })
             );
-            ToastUtils.success("Archived pages flushed.");
+            ToastUtils.success(this.$t("settings.archived_pages_flushed"));
         },
         async onIsTransportEnabledChangeWrapper(value) {
             this.config.is_transport_enabled = value;
@@ -960,19 +2185,15 @@ export default {
         async onIsTransportEnabledChange() {
             if (this.config.is_transport_enabled) {
                 try {
-                    const response = await window.axios.post("/api/v1/reticulum/enable-transport");
-                    ToastUtils.success(response.data.message);
-                } catch (e) {
-                    ToastUtils.error("Failed to enable transport mode!");
-                    console.log(e);
+                    await window.axios.post("/api/v1/reticulum/enable-transport");
+                } catch {
+                    ToastUtils.error(this.$t("settings.failed_enable_transport"));
                 }
             } else {
                 try {
-                    const response = await window.axios.post("/api/v1/reticulum/disable-transport");
-                    ToastUtils.success(response.data.message);
-                } catch (e) {
-                    ToastUtils.error("Failed to disable transport mode!");
-                    console.log(e);
+                    await window.axios.post("/api/v1/reticulum/disable-transport");
+                } catch {
+                    ToastUtils.error(this.$t("settings.failed_disable_transport"));
                 }
             }
         },
@@ -983,12 +2204,147 @@ export default {
                 this.reloadingRns = true;
                 const response = await window.axios.post("/api/v1/reticulum/reload");
                 ToastUtils.success(response.data.message);
-            } catch (e) {
-                ToastUtils.error(e.response?.data?.error || "Failed to reload Reticulum!");
-                console.error(e);
+            } catch {
+                ToastUtils.error(this.$t("settings.failed_reload_reticulum"));
             } finally {
                 this.reloadingRns = false;
             }
+        },
+        async clearMessages() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/messages");
+                ToastUtils.success(this.$t("maintenance.messages_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearAnnounces() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/announces");
+                ToastUtils.success(this.$t("maintenance.announces_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearNomadnetFavorites() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/favourites", {
+                    params: { aspect: "nomadnetwork.node" },
+                });
+                ToastUtils.success(this.$t("maintenance.favourites_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearLxmfIcons() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/lxmf-icons");
+                ToastUtils.success(this.$t("maintenance.lxmf_icons_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearArchives() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/archives");
+                ToastUtils.success(this.$t("maintenance.archives_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearReticulumDocs() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.axios.delete("/api/v1/maintenance/docs/reticulum");
+                ToastUtils.success(this.$t("maintenance.docs_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async exportMessages() {
+            try {
+                const response = await window.axios.get("/api/v1/maintenance/messages/export");
+                const messages = response.data.messages;
+                const dataStr = JSON.stringify({ messages }, null, 2);
+                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+
+                const exportFileDefaultName = `meshchat_messages_${new Date().toISOString().slice(0, 10)}.json`;
+
+                const linkElement = document.createElement("a");
+                linkElement.setAttribute("href", dataUri);
+                linkElement.setAttribute("download", exportFileDefaultName);
+                linkElement.click();
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        triggerImport() {
+            this.$refs.importFile.click();
+        },
+        async importMessages(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.messages) throw new Error("Invalid file format");
+
+                    await window.axios.post("/api/v1/maintenance/messages/import", {
+                        messages: data.messages,
+                    });
+                    ToastUtils.success(this.$t("maintenance.import_success", { count: data.messages.length }));
+                } catch {
+                    ToastUtils.error(this.$t("maintenance.import_failed"));
+                }
+            };
+            reader.readAsText(file);
+            // Reset input
+            event.target.value = "";
+        },
+        async exportFolders() {
+            try {
+                const response = await window.axios.get("/api/v1/lxmf/folders/export");
+                const dataStr = JSON.stringify(response.data, null, 2);
+                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+                const exportFileDefaultName = `meshchat_folders_${new Date().toISOString().slice(0, 10)}.json`;
+                const linkElement = document.createElement("a");
+                linkElement.setAttribute("href", dataUri);
+                linkElement.setAttribute("download", exportFileDefaultName);
+                linkElement.click();
+                ToastUtils.success(this.$t("settings.folders_exported"));
+            } catch {
+                ToastUtils.error(this.$t("settings.failed_export_folders"));
+            }
+        },
+        triggerFolderImport() {
+            this.$refs.importFolderFile.click();
+        },
+        async importFolders(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.folders || !data.mappings) throw new Error("Invalid file format");
+
+                    await window.axios.post("/api/v1/lxmf/folders/import", data);
+                    ToastUtils.success(this.$t("settings.folders_imported"));
+                } catch {
+                    ToastUtils.error(this.$t("settings.failed_import_folders"));
+                }
+            };
+            reader.readAsText(file);
+            // Reset input
+            event.target.value = "";
         },
         formatSecondsAgo: function (seconds) {
             return Utils.formatSecondsAgo(seconds);
@@ -1019,6 +2375,9 @@ export default {
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
 }
+.btn-maintenance {
+    @apply w-full px-4 py-3 rounded-2xl border transition flex items-center justify-between;
+}
 .setting-toggle {
     @apply flex items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
 }
@@ -1036,9 +2395,6 @@ export default {
 }
 .setting-toggle__hint {
     @apply text-xs text-gray-500 dark:text-gray-400;
-}
-.primary-chip {
-    @apply inline-flex items-center gap-x-1 rounded-full bg-blue-600/90 px-4 py-1.5 text-xs font-semibold text-white shadow hover:bg-blue-500 transition;
 }
 .info-callout {
     @apply rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-blue-900 dark:text-blue-100;

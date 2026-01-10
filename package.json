@@ -1,6 +1,6 @@
 {
     "name": "reticulum-meshchatx",
-    "version": "3.3.2",
+    "version": "4.0.0",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
     "homepage": "https://git.quad4.io/RNS-Things/MeshChatX",
     "author": "Sudo-Ivan",
@@ -15,28 +15,48 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "test": "vitest run",
+        "test:fuzz": "vitest run -t fuzzing",
         "test:watch": "vitest",
         "electron-postinstall": "electron-builder install-app-deps",
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
-        "dist:linux": "pnpm run electron-postinstall && pnpm run build && electron-builder --linux AppImage deb --publish=never",
-        "dist:windows": "pnpm run electron-postinstall && pnpm run build && electron-builder --win portable nsis --publish=never",
+        "dist:linux": "pnpm run electron-postinstall && PLATFORM=linux pnpm run build && electron-builder --linux AppImage deb --publish=never",
+        "dist:rpm": "pnpm run electron-postinstall && PLATFORM=linux pnpm run build && electron-builder --linux rpm --publish=never",
+        "dist:flatpak": "pnpm run electron-postinstall && PLATFORM=linux pnpm run build && electron-builder --linux flatpak --publish=never",
+        "dist:windows": "pnpm run electron-postinstall && PLATFORM=win32 pnpm run build && electron-builder --win portable nsis --publish=never",
+        "dist:zip": "pnpm run electron-postinstall && pnpm run build && electron-forge make --targets @electron-forge/maker-zip",
         "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
         "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
-        "dist:mac-universal": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --universal --publish=never"
+        "dist:mac-universal": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --universal --publish=never",
+        "start": "pnpm run build && electron-forge start",
+        "package": "pnpm run build && electron-forge package",
+        "make": "pnpm run build && electron-forge make"
     },
     "license": "MIT",
     "engines": {
-        "node": ">=18"
+        "node": ">=22"
     },
-    "packageManager": "pnpm@10.0.0",
+    "packageManager": "pnpm@10.27.0",
     "devDependencies": {
+        "@electron-forge/cli": "^7.10.2",
+        "@electron-forge/maker-deb": "^7.10.2",
+        "@electron-forge/maker-flatpak": "^7.10.2",
+        "@electron-forge/maker-rpm": "^7.10.2",
+        "@electron-forge/maker-squirrel": "^7.10.2",
+        "@electron-forge/maker-zip": "^7.10.2",
+        "@electron-forge/plugin-auto-unpack-natives": "^7.10.2",
+        "@electron-forge/plugin-fuses": "^7.10.2",
+        "@electron-forge/plugin-vite": "^7.10.2",
+        "@electron/fuses": "^1.8.0",
         "@eslint/js": "^9.39.2",
         "@rushstack/eslint-patch": "^1.15.0",
+        "@tailwindcss/typography": "^0.5.19",
         "@vue/eslint-config-prettier": "^10.2.0",
         "@vue/test-utils": "^2.4.6",
+        "autoprefixer": "^10.4.23",
         "electron": "^39.2.7",
-        "electron-builder": "^24.13.3",
+        "electron-builder": "^26.4.0",
+        "electron-builder-squirrel-windows": "^26.4.0",
         "eslint": "^9.39.2",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.4",
@@ -44,17 +64,35 @@
         "eslint-plugin-vue": "^10.6.2",
         "globals": "^16.5.0",
         "jsdom": "^26.1.0",
+        "postcss": "^8.5.6",
         "prettier": "^3.7.4",
+        "tailwindcss": "^3.4.19",
         "terser": "^5.44.1",
         "vitest": "^3.2.4"
+    },
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "electron",
+            "electron-winstaller",
+            "esbuild",
+            "protobufjs"
+        ],
+        "overrides": {
+            "tmp": ">=0.2.4"
+        }
     },
     "build": {
         "appId": "com.sudoivan.reticulummeshchat",
         "productName": "Reticulum MeshChatX",
         "asar": true,
-        "asarUnpack": [
-            "build/exe/**/*"
-        ],
+        "electronFuses": {
+            "runAsNode": false,
+            "enableCookieEncryption": true,
+            "enableNodeOptionsEnvironmentVariable": false,
+            "enableNodeCliInspectArguments": false,
+            "enableEmbeddedAsarIntegrityValidation": true,
+            "onlyLoadAppFromAsar": true
+        },
         "files": [
             "electron/**/*"
         ],
@@ -70,15 +108,14 @@
             },
             "identity": null,
             "artifactName": "ReticulumMeshChatX-v${version}-mac-${arch}.${ext}",
-            "x64ArchFiles": "Contents/Resources/app/electron/build/exe/**",
             "extendInfo": {
                 "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
                 "com.apple.security.device.audio-input": true
             },
-            "extraFiles": [
+            "extraResources": [
                 {
-                    "from": "build/exe",
-                    "to": "Resources/app/electron/build/exe",
+                    "from": "build/exe/linux",
+                    "to": "backend",
                     "filter": [
                         "**/*"
                     ]
@@ -95,10 +132,10 @@
                     "target": "nsis"
                 }
             ],
-            "extraFiles": [
+            "extraResources": [
                 {
-                    "from": "build/exe",
-                    "to": "Resources/app/electron/build/exe",
+                    "from": "build/exe/win32",
+                    "to": "backend",
                     "filter": [
                         "**/*"
                     ]
@@ -113,14 +150,31 @@
             ],
             "maintainer": "Sudo-Ivan",
             "category": "Network",
-            "extraFiles": [
+            "extraResources": [
                 {
-                    "from": "build/exe",
-                    "to": "resources/app/electron/build/exe",
+                    "from": "build/exe/linux",
+                    "to": "backend",
                     "filter": [
                         "**/*"
                     ]
                 }
+            ]
+        },
+        "flatpak": {
+            "runtime": "org.freedesktop.Platform",
+            "runtimeVersion": "24.08",
+            "sdk": "org.freedesktop.Sdk",
+            "base": "org.electronjs.Electron2.BaseApp",
+            "baseVersion": "24.08",
+            "finishArgs": [
+                "--share=ipc",
+                "--share=network",
+                "--socket=x11",
+                "--socket=wayland",
+                "--device=dri",
+                "--allow=bluetooth",
+                "--filesystem=home",
+                "--talk-name=org.freedesktop.Notifications"
             ]
         },
         "dmg": {
@@ -136,21 +190,21 @@
         }
     },
     "dependencies": {
+        "@mdi/font": "^7.4.47",
         "@mdi/js": "^7.4.47",
         "@tailwindcss/forms": "^0.5.11",
         "@vitejs/plugin-vue": "^5.2.4",
-        "autoprefixer": "^10.4.23",
         "axios": "^1.13.2",
         "click-outside-vue3": "^4.0.1",
         "compressorjs": "^1.2.1",
         "dayjs": "^1.11.19",
         "electron-prompt": "^1.7.0",
+        "electron-squirrel-startup": "^1.0.1",
         "micron-parser": "^1.0.2",
         "mitt": "^3.0.1",
         "ol": "^10.7.0",
-        "postcss": "^8.5.6",
         "protobufjs": "^7.5.4",
-        "tailwindcss": "^3.4.19",
+        "qrcode": "^1.5.4",
         "vis-data": "^7.1.10",
         "vis-network": "^9.1.13",
         "vite": "^6.4.1",

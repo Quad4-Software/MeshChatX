@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Reticulum MeshChatX
+Comment=A simple mesh network communications app powered by the Reticulum Network Stack
+Exec=reticulum-meshchatx
+Icon=reticulum-meshchatx
+Terminal=false
+Type=Application
+Categories=Network;
+

@@ -65,3 +65,42 @@ class TelemetryDAO:
             "DELETE FROM lxmf_telemetry WHERE destination_hash = ?",
             (destination_hash,),
         )
+
+    def is_tracking(self, destination_hash):
+        row = self.provider.fetchone(
+            "SELECT is_tracking FROM telemetry_tracking WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+        return bool(row["is_tracking"]) if row else False
+
+    def toggle_tracking(self, destination_hash, is_tracking=None):
+        if is_tracking is None:
+            is_tracking = not self.is_tracking(destination_hash)
+
+        now = datetime.now(UTC).isoformat()
+        self.provider.execute(
+            """
+            INSERT INTO telemetry_tracking (destination_hash, is_tracking, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(destination_hash) DO UPDATE SET 
+                is_tracking = EXCLUDED.is_tracking,
+                updated_at = EXCLUDED.updated_at
+        """,
+            (destination_hash, int(is_tracking), now),
+        )
+        return is_tracking
+
+    def get_tracked_peers(self):
+        return self.provider.fetchall(
+            "SELECT * FROM telemetry_tracking WHERE is_tracking = 1",
+        )
+
+    def update_last_request_at(self, destination_hash, timestamp=None):
+        if timestamp is None:
+            import time
+
+            timestamp = time.time()
+        self.provider.execute(
+            "UPDATE telemetry_tracking SET last_request_at = ? WHERE destination_hash = ?",
+            (timestamp, destination_hash),
+        )

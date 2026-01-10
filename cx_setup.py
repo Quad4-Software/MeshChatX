@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -7,6 +8,9 @@ from meshchatx.src.version import __version__
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC_DIR = ROOT / "meshchatx" / "public"
+
+target_name = os.environ.get("CX_FREEZE_TARGET_NAME", "ReticulumMeshChatX")
+build_exe_dir = os.environ.get("CX_FREEZE_BUILD_EXE", "build/exe")
 
 include_files = []
 
@@ -42,7 +46,7 @@ setup(
         Executable(
             script="meshchatx/meshchat.py",
             base=None,
-            target_name="ReticulumMeshChatX",
+            target_name=target_name,
             shortcut_name="ReticulumMeshChatX",
             shortcut_dir="ProgramMenuFolder",
             icon="logo/icon.ico",
@@ -56,7 +60,7 @@ setup(
                 "PIL",
             ],
             "optimize": 1,
-            "build_exe": "build/exe",
+            "build_exe": build_exe_dir,
             "replace_paths": [
                 ("*", ""),
             ],

@@ -1,7 +1,7 @@
 services:
     reticulum-meshchatx:
         container_name: reticulum-meshchatx
-        image: git.quad4.io/rns-things/meshchatx:latest
+        image: ${MESHCHAT_IMAGE:-git.quad4.io/rns-things/meshchatx:latest}
         restart: unless-stopped
         security_opt:
             - no-new-privileges:true

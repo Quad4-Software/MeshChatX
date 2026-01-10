@@ -18,6 +18,7 @@ class MessageDAO:
             "hash",
             "source_hash",
             "destination_hash",
+            "peer_hash",
             "state",
             "progress",
             "is_incoming",
@@ -39,7 +40,7 @@ class MessageDAO:
         update_set = ", ".join([f"{f} = EXCLUDED.{f}" for f in fields if f != "hash"])
 
         query = (
-            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
+            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "  # noqa: S608
             f"ON CONFLICT(hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"
         )
 
@@ -62,30 +63,45 @@ class MessageDAO:
             (message_hash,),
         )
 
+    def delete_lxmf_messages_by_hashes(self, message_hashes):
+        if not message_hashes:
+            return
+        placeholders = ", ".join(["?"] * len(message_hashes))
+        self.provider.execute(
+            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",
+            tuple(message_hashes),
+        )
+
     def delete_lxmf_message_by_hash(self, message_hash):
         self.provider.execute(
             "DELETE FROM lxmf_messages WHERE hash = ?",
             (message_hash,),
         )
 
+    def delete_all_lxmf_messages(self):
+        self.provider.execute("DELETE FROM lxmf_messages")
+        self.provider.execute("DELETE FROM lxmf_conversation_read_state")
+
+    def get_all_lxmf_messages(self):
+        return self.provider.fetchall("SELECT * FROM lxmf_messages")
+
     def get_conversation_messages(self, destination_hash, limit=100, offset=0):
         return self.provider.fetchall(
-            "SELECT * FROM lxmf_messages WHERE destination_hash = ? OR source_hash = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-            (destination_hash, destination_hash, limit, offset),
+            "SELECT * FROM lxmf_messages WHERE peer_hash = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+            (destination_hash, limit, offset),
         )
 
     def get_conversations(self):
-        # This is a bit complex in raw SQL, we need the latest message for each destination
+        # Optimized using peer_hash column
         query = """
             SELECT m1.* FROM lxmf_messages m1
-            JOIN (
-                SELECT 
-                    CASE WHEN is_incoming = 1 THEN source_hash ELSE destination_hash END as peer_hash,
-                    MAX(timestamp) as max_ts
+            INNER JOIN (
+                SELECT peer_hash, MAX(timestamp) as max_ts
                 FROM lxmf_messages
+                WHERE peer_hash IS NOT NULL
                 GROUP BY peer_hash
-            ) m2 ON (CASE WHEN m1.is_incoming = 1 THEN m1.source_hash ELSE m1.destination_hash END = m2.peer_hash 
-                     AND m1.timestamp = m2.max_ts)
+            ) m2 ON m1.peer_hash = m2.peer_hash AND m1.timestamp = m2.max_ts
+            GROUP BY m1.peer_hash
             ORDER BY m1.timestamp DESC
         """
         return self.provider.fetchall(query)
@@ -103,16 +119,32 @@ class MessageDAO:
             (destination_hash, now, now, now),
         )
 
+    def mark_conversations_as_read(self, destination_hashes):
+        if not destination_hashes:
+            return
+        now = datetime.now(UTC).isoformat()
+        for destination_hash in destination_hashes:
+            self.provider.execute(
+                """
+                INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at) 
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(destination_hash) DO UPDATE SET 
+                    last_read_at = EXCLUDED.last_read_at,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (destination_hash, now, now, now),
+            )
+
     def is_conversation_unread(self, destination_hash):
         row = self.provider.fetchone(
             """
             SELECT m.timestamp, r.last_read_at 
             FROM lxmf_messages m
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = ?
-            WHERE (m.destination_hash = ? OR m.source_hash = ?)
+            WHERE m.peer_hash = ?
             ORDER BY m.timestamp DESC LIMIT 1
         """,
-            (destination_hash, destination_hash, destination_hash),
+            (destination_hash, destination_hash),
         )
 
         if not row:
@@ -140,16 +172,74 @@ class MessageDAO:
 
     def get_failed_messages_for_destination(self, destination_hash):
         return self.provider.fetchall(
-            "SELECT * FROM lxmf_messages WHERE state = 'failed' AND destination_hash = ? ORDER BY id ASC",
+            "SELECT * FROM lxmf_messages WHERE state = 'failed' AND peer_hash = ? ORDER BY id ASC",
             (destination_hash,),
         )
 
     def get_failed_messages_count(self, destination_hash):
         row = self.provider.fetchone(
-            "SELECT COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND destination_hash = ?",
+            "SELECT COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash = ?",
             (destination_hash,),
         )
         return row["count"] if row else 0
+
+    def get_conversations_unread_states(self, destination_hashes):
+        if not destination_hashes:
+            return {}
+
+        placeholders = ", ".join(["?"] * len(destination_hashes))
+        query = f"""
+            SELECT peer_hash, MAX(timestamp) as latest_ts, last_read_at
+            FROM lxmf_messages m
+            LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = m.peer_hash
+            WHERE m.peer_hash IN ({placeholders})
+            GROUP BY m.peer_hash
+        """  # noqa: S608
+        rows = self.provider.fetchall(query, destination_hashes)
+
+        unread_states = {}
+        for row in rows:
+            peer_hash = row["peer_hash"]
+            latest_ts = row["latest_ts"]
+            last_read_at_str = row["last_read_at"]
+
+            if not last_read_at_str:
+                unread_states[peer_hash] = True
+                continue
+
+            last_read_at = datetime.fromisoformat(last_read_at_str)
+            if last_read_at.tzinfo is None:
+                last_read_at = last_read_at.replace(tzinfo=UTC)
+
+            unread_states[peer_hash] = latest_ts > last_read_at.timestamp()
+
+        return unread_states
+
+    def get_conversations_failed_counts(self, destination_hashes):
+        if not destination_hashes:
+            return {}
+        placeholders = ", ".join(["?"] * len(destination_hashes))
+        rows = self.provider.fetchall(
+            f"SELECT peer_hash, COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash IN ({placeholders}) GROUP BY peer_hash",  # noqa: S608
+            tuple(destination_hashes),
+        )
+        return {row["peer_hash"]: row["count"] for row in rows}
+
+    def get_conversations_attachment_states(self, destination_hashes):
+        if not destination_hashes:
+            return {}
+
+        placeholders = ", ".join(["?"] * len(destination_hashes))
+        query = f"""
+            SELECT peer_hash, 1 as has_attachments
+            FROM lxmf_messages
+            WHERE peer_hash IN ({placeholders})
+            AND fields IS NOT NULL AND fields != '{{}}' AND fields != ''
+            GROUP BY peer_hash
+        """  # noqa: S608
+        rows = self.provider.fetchall(query, destination_hashes)
+
+        return {row["peer_hash"]: True for row in rows}
 
     # Forwarding Mappings
     def get_forwarding_mapping(
@@ -232,3 +322,56 @@ class MessageDAO:
             last_viewed_at = last_viewed_at.replace(tzinfo=UTC)
 
         return message_timestamp <= last_viewed_at.timestamp()
+
+    # Folders
+    def get_all_folders(self):
+        return self.provider.fetchall("SELECT * FROM lxmf_folders ORDER BY name ASC")
+
+    def create_folder(self, name):
+        now = datetime.now(UTC).isoformat()
+        return self.provider.execute(
+            "INSERT INTO lxmf_folders (name, created_at, updated_at) VALUES (?, ?, ?)",
+            (name, now, now),
+        )
+
+    def rename_folder(self, folder_id, new_name):
+        now = datetime.now(UTC).isoformat()
+        self.provider.execute(
+            "UPDATE lxmf_folders SET name = ?, updated_at = ? WHERE id = ?",
+            (new_name, now, folder_id),
+        )
+
+    def delete_folder(self, folder_id):
+        self.provider.execute("DELETE FROM lxmf_folders WHERE id = ?", (folder_id,))
+
+    def get_conversation_folder(self, peer_hash):
+        return self.provider.fetchone(
+            "SELECT * FROM lxmf_conversation_folders WHERE peer_hash = ?",
+            (peer_hash,),
+        )
+
+    def move_conversation_to_folder(self, peer_hash, folder_id):
+        now = datetime.now(UTC).isoformat()
+        if folder_id is None:
+            self.provider.execute(
+                "DELETE FROM lxmf_conversation_folders WHERE peer_hash = ?",
+                (peer_hash,),
+            )
+        else:
+            self.provider.execute(
+                """
+                INSERT INTO lxmf_conversation_folders (peer_hash, folder_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(peer_hash) DO UPDATE SET
+                    folder_id = EXCLUDED.folder_id,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (peer_hash, folder_id, now, now),
+            )
+
+    def move_conversations_to_folder(self, peer_hashes, folder_id):
+        for peer_hash in peer_hashes:
+            self.move_conversation_to_folder(peer_hash, folder_id)
+
+    def get_all_conversation_folders(self):
+        return self.provider.fetchall("SELECT * FROM lxmf_conversation_folders")

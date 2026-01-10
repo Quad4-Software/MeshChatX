@@ -29,6 +29,16 @@
                     <div
                         v-for="identity in identities"
                         :key="identity.hash"
+                        v-memo="[
+                            identity.hash,
+                            identity.is_current,
+                            identity.display_name,
+                            identity.lxmf_address,
+                            identity.lxst_address,
+                            identity.icon_name,
+                            identity.icon_background_colour,
+                            identity.icon_foreground_colour,
+                        ]"
                         class="glass-card overflow-hidden group transition-all duration-300"
                         :class="{
                             'ring-2 ring-blue-500/50 dark:ring-blue-400/40 bg-blue-50/30 dark:bg-blue-900/10':
@@ -91,8 +101,23 @@
                                 </div>
                                 <div
                                     class="text-xs font-mono text-gray-500 dark:text-zinc-500 truncate mt-0.5 tracking-tight"
+                                    :title="'RNS: ' + identity.hash"
                                 >
-                                    {{ identity.hash }}
+                                    ID: {{ identity.hash }}
+                                </div>
+                                <div
+                                    v-if="identity.lxmf_address"
+                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 tracking-tighter"
+                                    :title="'LXMF: ' + identity.lxmf_address"
+                                >
+                                    LXMF: {{ identity.lxmf_address }}
+                                </div>
+                                <div
+                                    v-if="identity.lxst_address"
+                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 tracking-tighter"
+                                    :title="'LXST: ' + identity.lxst_address"
+                                >
+                                    LXST: {{ identity.lxst_address }}
                                 </div>
                             </div>
 
@@ -227,12 +252,12 @@ export default {
                 this.identities = response.data.identities;
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to load identities");
+                ToastUtils.error(this.$t("identities.failed_load"));
             }
         },
         async createIdentity() {
             if (!this.newIdentityName) {
-                ToastUtils.warning("Please enter a display name");
+                ToastUtils.warning(this.$t("identities.enter_display_name_warning"));
                 return;
             }
 
@@ -241,24 +266,26 @@ export default {
                 await window.axios.post("/api/v1/identities/create", {
                     display_name: this.newIdentityName,
                 });
-                ToastUtils.success("Identity created successfully");
+                ToastUtils.success(this.$t("identities.created"));
                 this.showCreateModal = false;
                 this.newIdentityName = "";
                 await this.getIdentities();
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to create identity");
+                ToastUtils.error(this.$t("identities.failed_create"));
             } finally {
                 this.isCreating = false;
             }
         },
         async switchIdentity(identity) {
+            if (identity.is_current) return;
+
             if (!(await DialogUtils.confirm(this.$t("identities.switch_confirm", { name: identity.display_name })))) {
                 return;
             }
 
             try {
-                this.isCreating = true; // Use isCreating as a general loading state for now
+                this.isCreating = true;
                 GlobalEmitter.emit("identity-switching-start");
 
                 const response = await window.axios.post("/api/v1/identities/switch", {
@@ -266,22 +293,24 @@ export default {
                 });
 
                 if (response.data.hotswapped) {
-                    // ToastUtils.success(this.$t("identities.switched")); // Removed as App.vue handles this now
-                    // The App.vue will handle the event and we will refresh via GlobalEmitter
+                    // Success is handled by GlobalEmitter "identity-switched" which we listen to
+                    ToastUtils.success(this.$t("identities.switched") || "Identity switched successfully");
                 } else {
-                    ToastUtils.success("Switch scheduled. Reloading...");
+                    ToastUtils.info(this.$t("identities.switch_scheduled"));
                     setTimeout(() => {
                         window.location.reload();
                     }, 2000);
                 }
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to switch identity");
+                const errorMsg =
+                    e.response?.data?.message || this.$t("identities.failed_switch") || "Failed to switch identity";
+                ToastUtils.error(errorMsg);
                 this.isCreating = false;
-                // Important: hide the global overlay if there was an error
-                // We'll emit an event for this or just hide it here if we had access,
-                // but since it's global, let's just refresh the whole state.
-                window.location.reload();
+
+                // If it was a partial failure, we might need to reload anyway to be safe,
+                // but let's try to stay on the page if hotswap just failed.
+                GlobalEmitter.emit("identity-switched"); // To clear any global loading overlays
             }
         },
         async deleteIdentity(identity) {
@@ -295,7 +324,7 @@ export default {
                 await this.getIdentities();
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to delete identity");
+                ToastUtils.error(this.$t("identities.failed_delete"));
             }
         },
     },

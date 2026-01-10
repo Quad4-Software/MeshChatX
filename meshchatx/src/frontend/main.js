@@ -4,6 +4,7 @@ import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
 import vClickOutside from "click-outside-vue3";
 import "./style.css";
+import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
 import { ensureCodec2ScriptsLoaded } from "./js/Codec2Loader";
 
@@ -11,6 +12,7 @@ import App from "./components/App.vue";
 import en from "./locales/en.json";
 import de from "./locales/de.json";
 import ru from "./locales/ru.json";
+import it from "./locales/it.json";
 
 // init i18n
 const i18n = createI18n({
@@ -21,12 +23,45 @@ const i18n = createI18n({
         en,
         de,
         ru,
+        it,
     },
 });
 
 // init vuetify
 import { createVuetify } from "vuetify";
-const vuetify = createVuetify();
+const vuetify = createVuetify({
+    theme: {
+        defaultTheme: "light",
+        themes: {
+            light: {
+                dark: false,
+                colors: {
+                    background: "#f8fafc",
+                    surface: "#ffffff",
+                    primary: "#2563eb",
+                    secondary: "#475569",
+                    error: "#dc2626",
+                    info: "#0284c7",
+                    success: "#16a34a",
+                    warning: "#f97316",
+                },
+            },
+            dark: {
+                dark: true,
+                colors: {
+                    background: "#09090b",
+                    surface: "#18181b",
+                    primary: "#60a5fa",
+                    secondary: "#94a3b8",
+                    error: "#f87171",
+                    info: "#38bdf8",
+                    success: "#34d399",
+                    warning: "#fb923c",
+                },
+            },
+        },
+    },
+});
 
 // provide axios globally
 window.axios = axios;
@@ -142,6 +177,16 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/rnstatus/RNStatusPage.vue")),
         },
         {
+            name: "rnpath",
+            path: "/rnpath",
+            component: defineAsyncComponent(() => import("./components/tools/RNPathPage.vue")),
+        },
+        {
+            name: "rnpath-trace",
+            path: "/rnpath-trace",
+            component: defineAsyncComponent(() => import("./components/tools/RNPathTracePage.vue")),
+        },
+        {
             name: "rnprobe",
             path: "/rnprobe",
             component: defineAsyncComponent(() => import("./components/rnprobe/RNProbePage.vue")),
@@ -152,6 +197,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/translator/TranslatorPage.vue")),
         },
         {
+            name: "bots",
+            path: "/bots",
+            component: defineAsyncComponent(() => import("./components/tools/BotsPage.vue")),
+        },
+        {
             name: "forwarder",
             path: "/forwarder",
             component: defineAsyncComponent(() => import("./components/forwarder/ForwarderPage.vue")),
@@ -160,6 +210,11 @@ const router = createRouter({
             name: "micron-editor",
             path: "/micron-editor",
             component: defineAsyncComponent(() => import("./components/micron-editor/MicronEditorPage.vue")),
+        },
+        {
+            name: "documentation",
+            path: "/documentation",
+            component: defineAsyncComponent(() => import("./components/docs/DocsPage.vue")),
         },
         {
             name: "profile.icon",
@@ -192,9 +247,37 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/tools/PaperMessagePage.vue")),
         },
         {
+            name: "rnode-flasher",
+            path: "/tools/rnode-flasher",
+            component: defineAsyncComponent(() => import("./components/tools/RNodeFlasherPage.vue")),
+        },
+        {
+            name: "debug-logs",
+            path: "/debug/logs",
+            component: defineAsyncComponent(() => import("./components/debug/DebugLogsPage.vue")),
+        },
+        {
             name: "call",
             path: "/call",
             component: defineAsyncComponent(() => import("./components/call/CallPage.vue")),
+        },
+        {
+            name: "call-popout",
+            path: "/popout/call",
+            meta: { isPopout: true },
+            component: defineAsyncComponent(() => import("./components/call/CallPage.vue")),
+        },
+        {
+            name: "changelog",
+            path: "/changelog",
+            component: defineAsyncComponent(() => import("./components/ChangelogModal.vue")),
+            meta: { isPage: true },
+        },
+        {
+            name: "tutorial",
+            path: "/tutorial",
+            component: defineAsyncComponent(() => import("./components/TutorialModal.vue")),
+            meta: { isPage: true },
         },
     ],
 });

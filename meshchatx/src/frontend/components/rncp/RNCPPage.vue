@@ -15,6 +15,35 @@
                         <div class="text-sm text-gray-600 dark:text-gray-300">
                             {{ $t("rncp.description") }}
                         </div>
+
+                        <div
+                            class="mt-4 p-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
+                        >
+                            <div
+                                class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2"
+                            >
+                                {{ $t("rncp.usage_steps") }}
+                            </div>
+                            <div class="space-y-1.5">
+                                <!-- eslint-disable vue/no-v-html -->
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
+                                    v-html="renderMarkdown($t('rncp.step_1'))"
+                                ></p>
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
+                                    v-html="renderMarkdown($t('rncp.step_2'))"
+                                ></p>
+                                <p
+                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                    @click="handleMessageClick"
+                                    v-html="renderMarkdown($t('rncp.step_3'))"
+                                ></p>
+                                <!-- eslint-enable vue/no-v-html -->
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex gap-2 border-b border-gray-200 dark:border-zinc-700">
@@ -310,6 +339,7 @@
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import MarkdownRenderer from "../../js/MarkdownRenderer";
 
 export default {
     name: "RNCPPage",
@@ -492,6 +522,25 @@ export default {
             this.listenActive = false;
             this.listenDestinationHash = null;
             this.listenResult = null;
+        },
+        renderMarkdown(text) {
+            return MarkdownRenderer.render(text);
+        },
+        handleMessageClick(event) {
+            const nomadnetLink = event.target.closest(".nomadnet-link");
+            if (nomadnetLink) {
+                event.preventDefault();
+                const url = nomadnetLink.getAttribute("data-nomadnet-url");
+                if (url) {
+                    const [hash, ...pathParts] = url.split(":");
+                    const path = pathParts.join(":");
+                    this.$router.push({
+                        name: "nomadnetwork",
+                        params: { destinationHash: hash },
+                        query: { path: path },
+                    });
+                }
+            }
         },
     },
 };

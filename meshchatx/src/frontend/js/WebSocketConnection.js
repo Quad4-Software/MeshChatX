@@ -5,11 +5,15 @@ class WebSocketConnection {
         this.emitter = mitt();
         this.ws = null;
         this.pingInterval = null;
+        this.reconnectTimeout = null;
         this.initialized = false;
+        this.destroyed = false;
         this.connect();
     }
 
     async connect() {
+        this.destroyed = false;
+
         if (typeof window === "undefined" || !window.axios) {
             setTimeout(() => this.connect(), 100);
             return;
@@ -17,6 +21,7 @@ class WebSocketConnection {
 
         this.initialized = true;
         this.reconnect();
+        if (this.pingInterval) clearInterval(this.pingInterval);
         this.pingInterval = setInterval(() => {
             this.ping();
         }, 30000);
@@ -38,17 +43,18 @@ class WebSocketConnection {
     }
 
     reconnect() {
-        if (!this.initialized) {
+        if (!this.initialized || this.destroyed || typeof window === "undefined" || !window.location) {
             return;
         }
 
         // connect to websocket
-        const wsUrl = location.origin.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
+        const wsUrl = window.location.origin.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
         this.ws = new WebSocket(wsUrl);
 
         // auto reconnect when websocket closes
         this.ws.addEventListener("close", () => {
-            setTimeout(() => {
+            if (this.destroyed) return;
+            this.reconnectTimeout = setTimeout(() => {
                 this.reconnect();
             }, 1000);
         });
@@ -57,6 +63,23 @@ class WebSocketConnection {
         this.ws.onmessage = (message) => {
             this.emit("message", message);
         };
+    }
+
+    destroy() {
+        this.destroyed = true;
+        this.initialized = false;
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
+        if (this.reconnectTimeout) {
+            clearTimeout(this.reconnectTimeout);
+            this.reconnectTimeout = null;
+        }
+        if (this.ws) {
+            this.ws.close();
+            this.ws = null;
+        }
     }
 
     send(message) {

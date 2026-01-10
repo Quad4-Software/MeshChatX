@@ -1,25 +1,43 @@
 <template>
     <!-- peer selected -->
-    <div v-if="selectedPeer" class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden transition-all">
+    <div
+        v-if="selectedPeer"
+        class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden transition-all relative"
+    >
+        <!-- banished overlay -->
+        <div
+            v-if="GlobalState.config.banished_effect_enabled && isSelectedPeerBlocked"
+            class="banished-overlay"
+            :style="{ background: GlobalState.config.banished_color + '33' }"
+        >
+            <span
+                class="banished-text !opacity-100 !text-white !shadow-lg !bg-red-600 !px-4 !py-2 !rounded-xl !border-2 !tracking-widest"
+                :style="{
+                    'background-color': GlobalState.config.banished_color,
+                    'border-color': GlobalState.config.banished_color,
+                }"
+                >{{ GlobalState.config.banished_text }}</span
+            >
+        </div>
+
         <!-- header -->
         <div
-            class="flex items-center px-4 py-3 border-b border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm"
+            class="relative z-20 flex items-center px-4 py-3 border-b border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm"
         >
             <!-- peer icon -->
             <div class="flex-shrink-0 mr-3">
-                <div
-                    v-if="selectedPeer.lxmf_user_icon"
-                    class="p-2 rounded shadow-sm"
-                    :style="{
-                        color: selectedPeer.lxmf_user_icon.foreground_colour,
-                        'background-color': selectedPeer.lxmf_user_icon.background_colour,
-                    }"
-                >
-                    <MaterialDesignIcon :icon-name="selectedPeer.lxmf_user_icon.icon_name" class="w-6 h-6" />
-                </div>
-                <div v-else class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded shadow-sm">
-                    <MaterialDesignIcon icon-name="account-outline" class="w-6 h-6" />
-                </div>
+                <LxmfUserIcon
+                    :custom-image="selectedPeer.contact_image"
+                    :icon-name="selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.icon_name : ''"
+                    :icon-foreground-colour="
+                        selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.foreground_colour : ''
+                    "
+                    :icon-background-colour="
+                        selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.background_colour : ''
+                    "
+                    icon-class="shrink-0"
+                    :icon-style="messageIconStyle"
+                />
             </div>
 
             <!-- peer info -->
@@ -30,47 +48,41 @@
                         class="mr-1.5 text-gray-500 dark:text-zinc-400 group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
                         :title="$t('messages.custom_display_name')"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-3.5 h-3.5"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z"
-                            />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />
-                        </svg>
+                        <MaterialDesignIcon icon-name="tag-outline" class="size-4" />
                     </div>
                     <div
-                        class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-xs sm:max-w-sm text-base"
+                        class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[120px] sm:max-w-sm text-base"
                         :title="selectedPeer.custom_display_name ?? selectedPeer.display_name"
                     >
                         {{ selectedPeer.custom_display_name ?? selectedPeer.display_name }}
                     </div>
                 </div>
-                <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2 min-w-0">
                     <!-- destination hash -->
-                    <div class="inline-block mr-1">
-                        <div
-                            class="cursor-pointer hover:text-blue-500 transition-colors"
-                            :title="selectedPeer.destination_hash"
-                            @click="copyHash(selectedPeer.destination_hash)"
-                        >
-                            {{ formatDestinationHash(selectedPeer.destination_hash) }}
-                        </div>
+                    <div
+                        class="cursor-pointer hover:text-blue-500 transition-colors truncate max-w-[120px] sm:max-w-none shrink-0"
+                        :title="selectedPeer.destination_hash"
+                        @click="copyHash(selectedPeer.destination_hash)"
+                    >
+                        {{ formatDestinationHash(selectedPeer.destination_hash) }}
                     </div>
 
-                    <div class="inline-block">
-                        <div class="flex space-x-1">
+                    <div
+                        v-if="
+                            selectedPeerPath ||
+                            selectedPeerSignalMetrics?.snr != null ||
+                            selectedPeerLxmfStampInfo?.stamp_cost
+                        "
+                        class="flex items-center gap-2 min-w-0"
+                    >
+                        <span class="text-gray-300 dark:text-zinc-700 shrink-0">•</span>
+
+                        <div class="flex items-center gap-2 truncate">
                             <!-- hops away -->
                             <span
                                 v-if="selectedPeerPath"
-                                class="flex my-auto cursor-pointer"
+                                class="flex items-center cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200 shrink-0"
+                                title="Path information"
                                 @click="onDestinationPathClick(selectedPeerPath)"
                             >
                                 <span v-if="selectedPeerPath.hops === 0 || selectedPeerPath.hops === 1">{{
@@ -80,19 +92,30 @@
                             </span>
 
                             <!-- snr -->
-                            <span v-if="selectedPeerSignalMetrics?.snr != null" class="flex my-auto space-x-1">
-                                <span v-if="selectedPeerPath">•</span>
-                                <span class="cursor-pointer" @click="onSignalMetricsClick(selectedPeerSignalMetrics)">{{
-                                    $t("messages.snr", { snr: selectedPeerSignalMetrics.snr })
-                                }}</span>
+                            <span
+                                v-if="selectedPeerSignalMetrics?.snr != null"
+                                class="flex items-center gap-2 shrink-0"
+                            >
+                                <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
+                                <span
+                                    class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
+                                    title="Signal quality"
+                                    @click="onSignalMetricsClick(selectedPeerSignalMetrics)"
+                                    >{{ $t("messages.snr", { snr: selectedPeerSignalMetrics.snr }) }}</span
+                                >
                             </span>
 
                             <!-- stamp cost -->
-                            <span v-if="selectedPeerLxmfStampInfo?.stamp_cost" class="flex my-auto space-x-1">
-                                <span v-if="selectedPeerPath || selectedPeerSignalMetrics?.snr != null">•</span>
-                                <span class="cursor-pointer" @click="onStampInfoClick(selectedPeerLxmfStampInfo)">{{
-                                    $t("messages.stamp_cost", { cost: selectedPeerLxmfStampInfo.stamp_cost })
-                                }}</span>
+                            <span v-if="selectedPeerLxmfStampInfo?.stamp_cost" class="flex items-center gap-2 shrink-0">
+                                <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
+                                <span
+                                    class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
+                                    title="LXMF stamp requirement"
+                                    @click="onStampInfoClick(selectedPeerLxmfStampInfo)"
+                                    >{{
+                                        $t("messages.stamp_cost", { cost: selectedPeerLxmfStampInfo.stamp_cost })
+                                    }}</span
+                                >
                             </span>
                         </div>
                     </div>
@@ -100,33 +123,182 @@
             </div>
 
             <!-- dropdown menu -->
-            <div class="ml-auto flex items-center gap-1">
+            <div class="ml-auto flex items-center gap-1.5">
+                <!-- retry all failed messages -->
+                <IconButton
+                    v-if="hasFailedOrCancelledMessages"
+                    title="Retry all failed/cancelled messages"
+                    class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    @click="retryAllFailedOrCancelledMessages"
+                >
+                    <MaterialDesignIcon icon-name="refresh" class="size-7" />
+                </IconButton>
+
+                <!-- telemetry history button -->
+                <IconButton title="View Telemetry History" @click="isTelemetryHistoryModalOpen = true">
+                    <MaterialDesignIcon icon-name="satellite-variant" class="size-7" />
+                </IconButton>
+
+                <!-- call button -->
+                <IconButton title="Start a Call" @click="onStartCall">
+                    <MaterialDesignIcon icon-name="phone" class="size-7" />
+                </IconButton>
+
+                <!-- share contact button -->
+                <IconButton title="Share Contact" @click="openShareContactModal">
+                    <MaterialDesignIcon icon-name="notebook-outline" class="size-7" />
+                </IconButton>
+
                 <ConversationDropDownMenu
                     v-if="selectedPeer"
                     :peer="selectedPeer"
                     @conversation-deleted="onConversationDeleted"
                     @set-custom-display-name="updateCustomDisplayName"
-                    @block-status-changed="loadBlockedDestinations"
+                    @popout="openConversationPopout"
                 />
-
-                <!-- popout button -->
-                <IconButton :title="$t('messages.pop_out_chat')" @click="openConversationPopout">
-                    <MaterialDesignIcon icon-name="open-in-new" class="w-4 h-4" />
-                </IconButton>
-
-                <!-- share contact button -->
-                <IconButton title="Share Contact" @click="openShareContactModal">
-                    <MaterialDesignIcon icon-name="notebook-outline" class="w-4 h-4" />
-                </IconButton>
 
                 <!-- close button -->
                 <IconButton title="Close" @click="close">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                        <path
-                            d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
-                        />
-                    </svg>
+                    <MaterialDesignIcon icon-name="close" class="size-7" />
                 </IconButton>
+            </div>
+        </div>
+
+        <!-- Telemetry History Modal -->
+        <div
+            v-if="isTelemetryHistoryModalOpen"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            @click.self="isTelemetryHistoryModalOpen = false"
+        >
+            <div
+                class="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <MaterialDesignIcon icon-name="satellite-variant" class="size-6 text-blue-500" />
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Telemetry History</h3>
+                    </div>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        @click="isTelemetryHistoryModalOpen = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div v-if="selectedPeerTelemetryItems.length === 0" class="text-center py-8 text-gray-400">
+                        No telemetry history found for this peer.
+                    </div>
+                    <div
+                        v-for="item in selectedPeerTelemetryItems"
+                        :key="item.lxmf_message.hash"
+                        class="p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30"
+                    >
+                        <div class="flex justify-between items-start mb-2">
+                            <span
+                                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+                            >
+                                {{ item.is_outbound ? "Sent" : "Received" }}
+                            </span>
+                            <span class="text-[10px] text-gray-400">{{
+                                formatTimeAgo(item.lxmf_message.created_at)
+                            }}</span>
+                        </div>
+
+                        <!-- location -->
+                        <div v-if="item.lxmf_message.fields?.telemetry?.location" class="flex items-center gap-2 mb-2">
+                            <button
+                                type="button"
+                                class="flex items-center gap-2 text-xs font-mono text-blue-600 dark:text-blue-400 hover:underline"
+                                @click="viewLocationOnMap(item.lxmf_message.fields.telemetry.location)"
+                            >
+                                <MaterialDesignIcon icon-name="map-marker" class="size-4" />
+                                {{ item.lxmf_message.fields.telemetry.location.latitude.toFixed(6) }},
+                                {{ item.lxmf_message.fields.telemetry.location.longitude.toFixed(6) }}
+                            </button>
+                        </div>
+
+                        <!-- sensors -->
+                        <div
+                            v-if="item.lxmf_message.fields?.telemetry"
+                            class="flex flex-wrap gap-3 text-[10px] text-gray-500"
+                        >
+                            <span v-if="item.lxmf_message.fields.telemetry.battery" class="flex items-center gap-1">
+                                <MaterialDesignIcon icon-name="battery" class="size-3" />
+                                Battery: {{ item.lxmf_message.fields.telemetry.battery.charge_percent }}%
+                            </span>
+                            <span
+                                v-if="item.lxmf_message.fields.telemetry.physical_link"
+                                class="flex items-center gap-1"
+                            >
+                                <MaterialDesignIcon icon-name="antenna" class="size-3" />
+                                SNR: {{ item.lxmf_message.fields.telemetry.physical_link.snr }}dB
+                            </span>
+                        </div>
+
+                        <!-- commands -->
+                        <div
+                            v-if="item.lxmf_message.fields?.commands?.some((c) => c['0x01'])"
+                            class="flex items-center gap-2 text-[10px] text-emerald-600 dark:text-emerald-400 mt-1"
+                        >
+                            <MaterialDesignIcon icon-name="crosshairs-question" class="size-3" />
+                            <span>Location Request</span>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 bg-gray-50/30 dark:bg-zinc-900/20 flex flex-col gap-4"
+                >
+                    <div v-if="telemetryBatteryHistory.length > 1" class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                                >Battery Level (%)</span
+                            >
+                            <span class="text-[10px] text-gray-500"
+                                >{{ telemetryBatteryHistory[0].y }}% →
+                                {{ telemetryBatteryHistory[telemetryBatteryHistory.length - 1].y }}%</span
+                            >
+                        </div>
+                        <svg class="w-full h-12 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <path
+                                :d="batterySparklinePath"
+                                fill="none"
+                                stroke="#3b82f6"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                            <circle
+                                :cx="100"
+                                :cy="100 - telemetryBatteryHistory[telemetryBatteryHistory.length - 1].y"
+                                r="3"
+                                fill="#3b82f6"
+                            />
+                        </svg>
+                    </div>
+
+                    <div class="flex justify-between items-center w-full">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input
+                                v-model="showTelemetryInChat"
+                                type="checkbox"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span
+                                class="text-xs font-medium text-gray-600 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-zinc-200"
+                                >Show telemetry in main chat</span
+                            >
+                        </label>
+                        <button
+                            type="button"
+                            class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                            @click="isTelemetryHistoryModalOpen = false"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -181,6 +353,18 @@
                                 <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate">
                                     {{ contact.remote_identity_hash }}
                                 </div>
+                                <div
+                                    v-if="contact.lxmf_address"
+                                    class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate"
+                                >
+                                    LXMF: {{ contact.lxmf_address }}
+                                </div>
+                                <div
+                                    v-if="contact.lxst_address"
+                                    class="text-[9px] text-gray-400 dark:text-zinc-500 font-mono truncate"
+                                >
+                                    LXST: {{ contact.lxst_address }}
+                                </div>
                             </div>
                         </button>
                     </div>
@@ -194,16 +378,16 @@
             class="h-full overflow-y-scroll bg-gray-50/30 dark:bg-zinc-950/50"
             @scroll="onMessagesScroll"
         >
-            <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6">
+            <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6 min-w-0">
                 <div
                     v-for="chatItem of selectedPeerChatItemsReversed"
                     :key="chatItem.lxmf_message.hash"
-                    class="flex flex-col max-w-[75%] sm:max-w-[65%] lg:max-w-[55%] mb-4 group"
+                    class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
                     :class="{ 'ml-auto items-end': chatItem.is_outbound, 'mr-auto items-start': !chatItem.is_outbound }"
                 >
                     <!-- message content -->
                     <div
-                        class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md"
+                        class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
                         :class="[
                             ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
                                 ? 'bg-red-500 text-white shadow-sm'
@@ -215,7 +399,7 @@
                         ]"
                         @click="onChatItemClick(chatItem)"
                     >
-                        <div class="w-full space-y-1 px-4 py-2.5">
+                        <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
                             <!-- spam badge -->
                             <div
                                 v-if="chatItem.lxmf_message.is_spam"
@@ -242,19 +426,146 @@
                             </div>
 
                             <!-- content -->
+                            <!-- eslint-disable vue/no-v-html -->
                             <div
-                                v-if="chatItem.lxmf_message.content"
-                                class="text-sm leading-relaxed whitespace-pre-wrap break-words"
-                                style="font-family: inherit"
+                                v-if="chatItem.lxmf_message.content && !getParsedItems(chatItem)?.isOnlyPaperMessage"
+                                class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
+                                :style="{
+                                    'font-family': 'inherit',
+                                    'font-size': (config?.message_font_size || 14) + 'px',
+                                }"
+                                @click="handleMessageClick"
+                                v-html="renderMarkdown(chatItem.lxmf_message.content)"
+                            ></div>
+                            <!-- eslint-enable vue/no-v-html -->
+
+                            <!-- telemetry placeholder for empty content messages -->
+                            <div
+                                v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry"
+                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
                             >
-                                {{ chatItem.lxmf_message.content }}
+                                <MaterialDesignIcon icon-name="satellite-variant" class="size-4 opacity-60" />
+                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                    {{ chatItem.is_outbound ? "Telemetry update sent" : "Telemetry update received" }}
+                                </span>
+                            </div>
+
+                            <div
+                                v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry_stream"
+                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                            >
+                                <MaterialDesignIcon icon-name="database-sync" class="size-4 opacity-60" />
+                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
+                                    >Telemetry stream received ({{
+                                        chatItem.lxmf_message.fields.telemetry_stream.length
+                                    }}
+                                    entries)</span
+                                >
+                            </div>
+
+                            <div
+                                v-if="
+                                    !chatItem.lxmf_message.content &&
+                                    chatItem.lxmf_message.fields?.commands?.some((c) => c['0x01'] || c['1'] || c['0x1'])
+                                "
+                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                            >
+                                <MaterialDesignIcon icon-name="crosshairs-question" class="size-4 opacity-60" />
+                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                    {{ chatItem.is_outbound ? "Location Request Sent" : "Location Request Received" }}
+                                </span>
+                            </div>
+
+                            <!-- parsed items (contacts / paper messages) -->
+                            <div v-if="getParsedItems(chatItem)" class="mt-2 space-y-2">
+                                <!-- contact -->
+                                <div
+                                    v-if="getParsedItems(chatItem).contact && !chatItem.is_outbound"
+                                    class="flex flex-col gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
+                                >
+                                    <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                        <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
+                                        <span class="text-sm font-bold">Contact Shared</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <LxmfUserIcon
+                                            :custom-image="getParsedItems(chatItem).contact.custom_image"
+                                            :icon-name="getParsedItems(chatItem).contact.lxmf_user_icon?.icon_name"
+                                            :icon-foreground-colour="
+                                                getParsedItems(chatItem).contact.lxmf_user_icon?.foreground_colour
+                                            "
+                                            :icon-background-colour="
+                                                getParsedItems(chatItem).contact.lxmf_user_icon?.background_colour
+                                            "
+                                            icon-class="size-10"
+                                        />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                {{ getParsedItems(chatItem).contact.name }}
+                                            </div>
+                                            <div
+                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
+                                            >
+                                                {{ getParsedItems(chatItem).contact.hash }}
+                                            </div>
+                                            <div
+                                                v-if="getParsedItems(chatItem).contact.lxmf_address"
+                                                class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                            >
+                                                LXMF: {{ getParsedItems(chatItem).contact.lxmf_address }}
+                                            </div>
+                                            <div
+                                                v-if="getParsedItems(chatItem).contact.lxst_address"
+                                                class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                            >
+                                                LXST: {{ getParsedItems(chatItem).contact.lxst_address }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                        @click="
+                                            addContact(
+                                                getParsedItems(chatItem).contact.name,
+                                                getParsedItems(chatItem).contact.hash,
+                                                getParsedItems(chatItem).contact.lxmf_address,
+                                                getParsedItems(chatItem).contact.lxst_address
+                                            )
+                                        "
+                                    >
+                                        Add to Contacts
+                                    </button>
+                                </div>
+
+                                <!-- paper message auto-conversion -->
+                                <div
+                                    v-if="getParsedItems(chatItem).paperMessage && !chatItem.is_outbound"
+                                    class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-black/60 border border-emerald-100 dark:border-zinc-700/50"
+                                >
+                                    <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                                        <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
+                                        <span class="text-sm font-bold">Paper Message detected</span>
+                                    </div>
+                                    <p class="text-xs text-emerald-600/80 dark:text-zinc-400 leading-relaxed">
+                                        This message contains a signed LXMF URI that can be ingested into your
+                                        conversations.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                        @click="ingestPaperMessage(getParsedItems(chatItem).paperMessage)"
+                                    >
+                                        Ingest Message
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- image field -->
                             <div v-if="chatItem.lxmf_message.fields?.image" class="relative group mt-1 -mx-1">
                                 <img
                                     :src="`/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/image`"
-                                    class="w-full rounded-lg cursor-pointer transition-transform group-hover:scale-[1.01]"
+                                    class="max-w-[240px] sm:max-w-xs w-full rounded-lg cursor-pointer transition-transform group-hover:scale-[1.01]"
                                     @click.stop="
                                         openImage(
                                             `/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/image`
@@ -275,82 +586,34 @@
                             <!-- audio field -->
                             <div v-if="chatItem.lxmf_message.fields?.audio" class="pb-1">
                                 <!-- audio is loaded -->
-                                <audio
+                                <AudioWaveformPlayer
                                     v-if="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
                                     :src="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
-                                    controls
-                                    class="w-full rounded-lg shadow-sm"
-                                    style="height: 54px"
-                                    :class="chatItem.is_outbound ? 'audio-controls-light' : 'audio-controls-dark'"
-                                ></audio>
+                                    :is-outbound="chatItem.is_outbound"
+                                />
 
                                 <!-- audio is not yet loaded -->
                                 <!-- min height to make sure audio player doesn't cause height increase after loading -->
-                                <div v-else style="min-height: 54px" class="flex">
-                                    <button
-                                        type="button"
-                                        class="my-auto flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                        :class="
-                                            chatItem.is_outbound
-                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
-                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                                        "
-                                        @click="downloadAndDecodeAudio(chatItem)"
-                                    >
-                                        <span class="my-auto">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke-width="1.5"
-                                                stroke="currentColor"
-                                                class="size-6"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z"
-                                                />
-                                            </svg>
-                                        </span>
-                                        <span class="my-auto w-full">
-                                            {{
-                                                isDownloadingAudio[chatItem.lxmf_message.hash]
-                                                    ? "Downloading..."
-                                                    : chatItem.lxmf_message.fields.audio.audio_mode === 0x10
-                                                      ? "Load Audio"
-                                                      : "Load Audio (Codec2)"
-                                            }}
-                                        </span>
-                                        <span class="my-auto">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke-width="1.5"
-                                                stroke="currentColor"
-                                                class="w-6 h-6"
-                                                :class="
-                                                    isDownloadingAudio[chatItem.lxmf_message.hash]
-                                                        ? 'animate-bounce'
-                                                        : ''
-                                                "
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
-                                                />
-                                            </svg>
-                                        </span>
-                                    </button>
+                                <div
+                                    v-else
+                                    style="min-height: 54px"
+                                    class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <div
+                                            class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                                        ></div>
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{
+                                            $t("messages.downloading")
+                                        }}</span>
+                                    </div>
                                 </div>
 
                                 <div
-                                    class="text-xs mt-1.5"
-                                    :class="chatItem.is_outbound ? 'text-white/70' : 'text-gray-500 dark:text-zinc-400'"
+                                    class="text-[10px] mt-1 text-right opacity-60"
+                                    :class="chatItem.is_outbound ? 'text-white' : 'text-gray-500 dark:text-zinc-400'"
                                 >
-                                    Audio • {{ formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
+                                    Voice Note • {{ formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
                                 </div>
                             </div>
 
@@ -419,29 +682,120 @@
                                 </a>
                             </div>
 
-                            <!-- telemetry / location field -->
-                            <div v-if="chatItem.lxmf_message.fields?.telemetry?.location" class="pb-1 mt-1">
-                                <button
-                                    type="button"
-                                    class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                    :class="
-                                        chatItem.is_outbound
-                                            ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
-                                            : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                                    "
-                                    @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
-                                >
-                                    <MaterialDesignIcon icon-name="map-marker" class="size-5" />
-                                    <div class="text-left">
-                                        <div class="font-bold text-xs uppercase tracking-wider opacity-80">
-                                            Location
-                                        </div>
-                                        <div class="text-[10px] font-mono opacity-70">
-                                            {{ chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(6) }},
-                                            {{ chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(6) }}
+                            <!-- commands -->
+                            <div v-if="chatItem.lxmf_message.fields?.commands" class="space-y-2 mt-1">
+                                <div v-for="(command, index) in chatItem.lxmf_message.fields.commands" :key="index">
+                                    <div
+                                        v-if="command['0x01'] || command['1'] || command['0x1']"
+                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                        :class="
+                                            chatItem.is_outbound
+                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                        "
+                                    >
+                                        <MaterialDesignIcon icon-name="crosshairs-question" class="size-5" />
+                                        <div class="text-left">
+                                            <div class="font-bold text-xs uppercase tracking-wider opacity-80">
+                                                {{ $t("messages.location_requested") }}
+                                            </div>
+                                            <div v-if="!chatItem.is_outbound" class="text-[10px] opacity-70">
+                                                Peer is requesting your location
+                                            </div>
                                         </div>
                                     </div>
-                                </button>
+                                </div>
+                            </div>
+
+                            <!-- telemetry / location field -->
+                            <div v-if="chatItem.lxmf_message.fields?.telemetry" class="pb-1 mt-1 space-y-2">
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        v-if="chatItem.lxmf_message.fields.telemetry.location"
+                                        type="button"
+                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                        :class="
+                                            chatItem.is_outbound
+                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                        "
+                                        @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
+                                    >
+                                        <MaterialDesignIcon icon-name="map-marker" class="size-5" />
+                                        <div class="text-left">
+                                            <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
+                                                Location
+                                            </div>
+                                            <div class="text-[9px] font-mono opacity-70">
+                                                {{
+                                                    chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(6)
+                                                }},
+                                                {{
+                                                    chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(6)
+                                                }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <!-- Live Track Toggle Button (only for incoming) -->
+                                    <button
+                                        v-if="!chatItem.is_outbound"
+                                        type="button"
+                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                        :class="[
+                                            selectedPeer?.is_tracking
+                                                ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-inner'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                        ]"
+                                        @click="toggleTracking()"
+                                    >
+                                        <MaterialDesignIcon
+                                            :icon-name="selectedPeer?.is_tracking ? 'radar' : 'crosshairs'"
+                                            class="size-5"
+                                            :class="{ 'animate-pulse text-blue-500': selectedPeer?.is_tracking }"
+                                        />
+                                        <div class="text-left">
+                                            <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
+                                                {{ selectedPeer?.is_tracking ? "Tracking Active" : "Live Track" }}
+                                            </div>
+                                            <div class="text-[9px] opacity-70">
+                                                {{
+                                                    selectedPeer?.is_tracking
+                                                        ? "Auto-requesting location"
+                                                        : "Enable live tracking"
+                                                }}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                <!-- other sensor data if available -->
+                                <div
+                                    v-if="
+                                        chatItem.lxmf_message.fields.telemetry.battery ||
+                                        chatItem.lxmf_message.fields.telemetry.physical_link
+                                    "
+                                    class="flex gap-3 px-1"
+                                >
+                                    <div
+                                        v-if="chatItem.lxmf_message.fields.telemetry.battery"
+                                        class="flex items-center gap-1 opacity-60 text-[10px]"
+                                    >
+                                        <MaterialDesignIcon icon-name="battery" class="size-3" />
+                                        <span
+                                            >{{ chatItem.lxmf_message.fields.telemetry.battery.charge_percent }}%</span
+                                        >
+                                    </div>
+                                    <div
+                                        v-if="chatItem.lxmf_message.fields.telemetry.physical_link"
+                                        class="flex items-center gap-1 opacity-60 text-[10px]"
+                                    >
+                                        <MaterialDesignIcon icon-name="antenna" class="size-3" />
+                                        <span
+                                            >SNR: {{ chatItem.lxmf_message.fields.telemetry.physical_link.snr }}dB</span
+                                        >
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -456,22 +810,22 @@
                             "
                         >
                             <!-- delete message -->
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-                                @click.stop="deleteChatItem(chatItem)"
-                            >
-                                Delete
-                            </button>
-
-                            <!-- share as paper message -->
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ml-2"
-                                @click.stop="shareAsPaperMessage(chatItem)"
-                            >
-                                Paper Message
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                                    @click.stop="deleteChatItem(chatItem)"
+                                >
+                                    Delete
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600"
+                                    @click.stop="showRawMessage(chatItem)"
+                                >
+                                    Raw LXM
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -530,7 +884,10 @@
                                     >cancel?</a
                                 >
                                 <a
-                                    v-if="chatItem.lxmf_message.state === 'failed'"
+                                    v-if="
+                                        chatItem.lxmf_message.state === 'failed' ||
+                                        chatItem.lxmf_message.state === 'cancelled'
+                                    "
                                     class="ml-1 cursor-pointer underline text-blue-500"
                                     @click="retrySendingMessage(chatItem)"
                                     >retry?</a
@@ -626,6 +983,7 @@
                         <div
                             v-for="(line, index) in getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound)"
                             :key="index"
+                            class="break-all"
                         >
                             {{ line }}
                         </div>
@@ -664,7 +1022,7 @@
             class="w-full border-t border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm px-3 sm:px-4 py-2.5"
         >
             <div class="w-full">
-                <!-- blocked user notification -->
+                <!-- banished user notification -->
                 <div
                     v-if="isSelectedPeerBlocked"
                     class="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-2"
@@ -684,45 +1042,49 @@
                         />
                     </svg>
                     <span class="text-sm text-yellow-800 dark:text-yellow-200"
-                        >You have blocked this user. They cannot send you messages or establish links.</span
+                        >You have banished this user. They cannot send you messages or establish links.</span
                     >
                 </div>
 
                 <!-- message composer -->
                 <div>
-                    <div class="space-y-2">
-                        <!-- image attachment -->
-                        <div v-if="newMessageImage" class="attachment-card">
-                            <div class="attachment-card__preview" @click.stop="openImage(newMessageImageUrl)">
-                                <img
-                                    v-if="newMessageImageUrl"
-                                    :src="newMessageImageUrl"
-                                    class="w-full h-full object-cover rounded-lg"
-                                />
+                    <div class="space-y-2 mb-2">
+                        <!-- image attachments -->
+                        <div v-if="newMessageImages.length > 0" class="flex flex-wrap gap-2">
+                            <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
+                                <div
+                                    class="w-20 h-20 sm:w-24 sm:h-24 overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-800 cursor-pointer border border-gray-200 dark:border-zinc-800 shadow-sm"
+                                    @click.stop="openImage(newMessageImageUrls[index])"
+                                >
+                                    <img
+                                        v-if="newMessageImageUrls[index]"
+                                        :src="newMessageImageUrls[index]"
+                                        class="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    class="absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-sm transition-all opacity-100 sm:opacity-0 group-hover:opacity-100"
+                                    @click.stop="removeImageAttachment(index)"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="w-3 h-3" />
+                                </button>
+                                <div
+                                    class="absolute bottom-0 left-0 right-0 p-1 bg-black/40 text-white text-[9px] text-center rounded-b-xl backdrop-blur-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block"
+                                >
+                                    {{ formatBytes(image.size) }}
+                                </div>
                             </div>
-                            <div class="attachment-card__body">
-                                <div class="attachment-card__title">Image Attachment</div>
-                                <div class="attachment-card__meta">{{ formatBytes(newMessageImage.size) }}</div>
-                            </div>
-                            <button type="button" class="attachment-card__remove" @click.stop="removeImageAttachment">
-                                <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
-                            </button>
                         </div>
 
                         <!-- audio attachment -->
                         <div v-if="newMessageAudio" class="attachment-card">
                             <div class="attachment-card__body w-full">
                                 <div class="attachment-card__title">Voice Note</div>
-                                <div class="attachment-card__meta">
+                                <div class="attachment-card__meta mb-2">
                                     {{ formatBytes(newMessageAudio.audio_blob.size) }}
                                 </div>
-                                <audio
-                                    controls
-                                    class="w-full mt-2 rounded-lg shadow-sm audio-controls-dark"
-                                    style="height: 54px"
-                                >
-                                    <source :src="newMessageAudio.audio_preview_url" type="audio/wav" />
-                                </audio>
+                                <AudioWaveformPlayer :src="newMessageAudio.audio_preview_url" :is-outbound="true" />
                             </div>
                             <button type="button" class="attachment-card__remove" @click="removeAudioAttachment">
                                 <MaterialDesignIcon icon-name="delete" class="w-4 h-4" />
@@ -775,6 +1137,15 @@
                             <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
                             <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
                         </button>
+                        <button
+                            type="button"
+                            class="attachment-action-button"
+                            :title="$t('messages.paste_from_clipboard')"
+                            @click="pasteFromClipboard"
+                        >
+                            <MaterialDesignIcon icon-name="content-paste" class="w-4 h-4" />
+                            <span class="hidden sm:inline">Paste</span>
+                        </button>
                         <AddImageButton @add-image="onImageSelected" />
                         <AddAudioButton
                             :is-recording-audio-attachment="isRecordingAudioAttachment"
@@ -800,6 +1171,24 @@
                         >
                             <MaterialDesignIcon icon-name="crosshairs-question" class="w-4 h-4" />
                             <span class="hidden sm:inline">{{ $t("messages.request") }}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="attachment-action-button"
+                            :title="$t('messages.generate_paper_message')"
+                            :disabled="!canSendMessage || isGeneratingPaperMessage"
+                            @click="generatePaperMessageFromComposition"
+                        >
+                            <template v-if="isGeneratingPaperMessage">
+                                <div
+                                    class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                                ></div>
+                                <span class="hidden sm:inline">Generating...</span>
+                            </template>
+                            <template v-else>
+                                <MaterialDesignIcon icon-name="qrcode-plus" class="w-4 h-4" />
+                                <span class="hidden sm:inline">LXM</span>
+                            </template>
                         </button>
                         <button
                             v-if="hasTranslator && newMessageText"
@@ -830,47 +1219,210 @@
     </div>
 
     <!-- no peer selected -->
-    <div v-else class="flex flex-col h-full items-center justify-center">
-        <div class="w-full max-w-md px-4">
-            <div class="mb-6 text-center">
+    <div v-else class="flex flex-col h-full overflow-y-auto bg-gray-50/50 dark:bg-zinc-950/50">
+        <div class="max-w-4xl mx-auto w-full px-4 py-8 sm:py-12 flex flex-col items-center">
+            <!-- welcome header -->
+            <div class="text-center mb-12">
                 <div
-                    class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 flex items-center justify-center"
+                    class="inline-flex items-center justify-center p-4 rounded-3xl bg-blue-600 shadow-xl shadow-blue-500/20 mb-6"
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="w-8 h-8 text-blue-600 dark:text-blue-400"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 0 1-.825-.242m9.345-8.334a2.126 2.126 0 0 0-.476-.095 48.64 48.64 0 0 0-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0 0 11.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
-                        />
-                    </svg>
+                    <MaterialDesignIcon icon-name="message-text" class="size-10 text-white" />
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-1">
+                <h1 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight mb-3">
                     {{ $t("messages.no_active_chat") }}
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-zinc-400">
+                </h1>
+                <p class="text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
                     {{ $t("messages.select_peer_or_enter_address") }}
                 </p>
             </div>
 
-            <!-- compose message input -->
-            <div class="w-full">
-                <input
-                    id="compose-input"
-                    ref="compose-input"
-                    v-model="composeAddress"
-                    :readonly="isSendingMessage"
-                    type="text"
-                    class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2.5 shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
-                    placeholder="Enter LXMF address..."
-                    @keydown.enter.exact.prevent="onComposeEnterPressed"
-                />
+            <!-- main actions grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mb-12">
+                <button
+                    type="button"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    @click="focusComposeInput"
+                >
+                    <div
+                        class="size-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                    >
+                        <MaterialDesignIcon icon-name="plus" class="size-6" />
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">New Message</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    @click="syncPropagationNode"
+                >
+                    <div
+                        class="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                    >
+                        <MaterialDesignIcon
+                            icon-name="sync"
+                            class="size-6"
+                            :class="{ 'animate-spin': isSyncingPropagationNode }"
+                        />
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">{{
+                        isSyncingPropagationNode ? "Syncing..." : "Sync Node"
+                    }}</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    @click="copyMyAddress"
+                >
+                    <div
+                        class="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                    >
+                        <MaterialDesignIcon icon-name="content-copy" class="size-6" />
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">My Address</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    @click="$router.push({ name: 'identities' })"
+                >
+                    <div
+                        class="size-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                    >
+                        <MaterialDesignIcon icon-name="account-multiple" class="size-6" />
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">Identities</span>
+                </button>
+            </div>
+
+            <!-- latest chats section -->
+            <div v-if="latestConversations.length > 0" class="w-full mb-12">
+                <div class="flex items-center justify-between mb-6">
+                    <h2
+                        class="text-sm font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2"
+                    >
+                        <MaterialDesignIcon icon-name="history" class="size-4" />
+                        Latest Conversations
+                    </h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div
+                        v-for="chat in latestConversations"
+                        :key="chat.destination_hash"
+                        class="group cursor-pointer p-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl hover:border-blue-500/50 hover:shadow-xl transition-all flex items-center gap-4"
+                        @click="$emit('update:selectedPeer', chat)"
+                    >
+                        <div class="flex-shrink-0">
+                            <LxmfUserIcon
+                                :custom-image="chat.contact_image"
+                                :icon-name="
+                                    chat.lxmf_user_icon && chat.lxmf_user_icon.icon_name
+                                        ? chat.lxmf_user_icon.icon_name
+                                        : 'account'
+                                "
+                                :icon-foreground-colour="
+                                    chat.lxmf_user_icon ? chat.lxmf_user_icon.foreground_colour : ''
+                                "
+                                :icon-background-colour="
+                                    chat.lxmf_user_icon ? chat.lxmf_user_icon.background_colour : ''
+                                "
+                                icon-class="size-12 sm:size-14"
+                            />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="font-bold text-gray-900 dark:text-zinc-100 truncate">
+                                    {{ chat.custom_display_name ?? chat.display_name }}
+                                </div>
+                                <div class="text-[10px] text-gray-400 dark:text-zinc-500 whitespace-nowrap">
+                                    {{ formatTimeAgo(chat.updated_at) }}
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-zinc-500 truncate mt-0.5">
+                                {{ chat.latest_message_preview || chat.latest_message_title || "No messages yet" }}
+                            </div>
+                        </div>
+                        <MaterialDesignIcon
+                            icon-name="chevron-right"
+                            class="size-5 text-gray-300 dark:text-zinc-700 group-hover:text-blue-500 transition-colors"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <!-- address input composer -->
+            <div class="w-full max-w-xl">
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <MaterialDesignIcon
+                            icon-name="at"
+                            class="size-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                        />
+                    </div>
+                    <input
+                        id="compose-input"
+                        ref="compose-input"
+                        v-model="composeAddress"
+                        :readonly="isSendingMessage"
+                        type="text"
+                        class="w-full bg-white dark:bg-zinc-900 border-2 border-gray-100 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-base rounded-3xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 pl-12 pr-4 py-4 shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600 font-medium"
+                        placeholder="Enter LXMF address to start a conversation..."
+                        @keydown.enter.exact.prevent="onComposeEnterPressed"
+                        @keydown.up.prevent="handleComposeInputUp"
+                        @keydown.down.prevent="handleComposeInputDown"
+                        @focus="isComposeInputFocused = true"
+                        @blur="onComposeInputBlur"
+                    />
+
+                    <!-- Suggestions Dropdown -->
+                    <div
+                        v-if="isComposeInputFocused && composeSuggestions.length > 0"
+                        class="absolute z-50 left-0 right-0 bottom-full mb-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
+                    >
+                        <div class="p-2 space-y-1">
+                            <div
+                                v-for="(suggestion, index) in composeSuggestions"
+                                :key="suggestion.hash"
+                                class="px-4 py-3 flex items-center gap-3 cursor-pointer rounded-2xl transition-all"
+                                :class="[
+                                    index === selectedComposeSuggestionIndex
+                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                ]"
+                                @mousedown.prevent="selectComposeSuggestion(suggestion)"
+                            >
+                                <div
+                                    class="shrink-0 size-10 rounded-xl flex items-center justify-center"
+                                    :class="[
+                                        index === selectedComposeSuggestionIndex
+                                            ? 'bg-white/20'
+                                            : suggestion.type === 'contact'
+                                              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
+                                              : 'bg-gray-100 dark:bg-zinc-800 text-gray-500',
+                                    ]"
+                                >
+                                    <MaterialDesignIcon :icon-name="suggestion.icon" class="size-5" />
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-bold truncate">
+                                        {{ suggestion.name }}
+                                    </div>
+                                    <div class="text-[10px] font-mono opacity-60 truncate">
+                                        {{ formatDestinationHash(suggestion.hash) }}
+                                    </div>
+                                </div>
+                                <div
+                                    v-if="suggestion.type === 'contact'"
+                                    class="text-[10px] uppercase font-black tracking-widest opacity-40 px-2 py-1 rounded-md bg-black/5"
+                                >
+                                    Contact
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -895,11 +1447,7 @@
                     class="absolute -top-12 right-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-zinc-900/10 hover:bg-white/20 dark:hover:bg-zinc-900/20 text-white transition-colors"
                     @click="closeImageModal"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                        <path
-                            d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
-                        />
-                    </svg>
+                    <MaterialDesignIcon icon-name="close" class="size-5" />
                 </button>
                 <img :src="imageModalUrl" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl" alt="Image preview" />
             </div>
@@ -909,15 +1457,219 @@
     <PaperMessageModal
         v-if="isPaperMessageModalOpen"
         :message-hash="paperMessageHash"
+        :recipient-hash="selectedPeer?.destination_hash"
         @close="isPaperMessageModalOpen = false"
     />
+
+    <PaperMessageModal
+        v-if="isPaperMessageResultModalOpen"
+        :initial-uri="generatedPaperMessageUri"
+        :recipient-hash="selectedPeer?.destination_hash"
+        @close="
+            isPaperMessageResultModalOpen = false;
+            generatedPaperMessageUri = null;
+        "
+    />
+
+    <!-- Raw Message Modal -->
+    <Transition
+        enter-active-class="transition ease-out duration-200"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition ease-in duration-150"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+    >
+        <div
+            v-if="isRawMessageModalOpen"
+            class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            @click.self="isRawMessageModalOpen = false"
+        >
+            <div
+                class="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div
+                    class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between shrink-0"
+                >
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Raw LXMF Message</h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
+                        @click="isRawMessageModalOpen = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                </div>
+                <div class="p-0 overflow-y-auto bg-gray-50 dark:bg-zinc-950 flex-grow">
+                    <div class="p-6 space-y-6">
+                        <!-- header / status info -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Message ID</label
+                                >
+                                <div class="text-sm font-mono text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.id }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >State</label
+                                >
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset"
+                                        :class="
+                                            rawMessageData.state === 'delivered'
+                                                ? 'bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-400'
+                                                : 'bg-blue-50 text-blue-700 ring-blue-700/10 dark:bg-blue-900/30 dark:text-blue-400'
+                                        "
+                                    >
+                                        {{ rawMessageData.state }}
+                                    </span>
+                                    <span v-if="rawMessageData.is_incoming" class="text-[10px] text-gray-400"
+                                        >Incoming</span
+                                    >
+                                    <span v-else class="text-[10px] text-gray-400">Outbound</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                >Message Hash</label
+                            >
+                            <div
+                                class="text-sm font-mono break-all text-gray-900 dark:text-zinc-200 bg-white dark:bg-zinc-900 p-2 rounded border border-gray-100 dark:border-zinc-800"
+                            >
+                                {{ rawMessageData.hash }}
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Source Hash</label
+                                >
+                                <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.source_hash }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Destination Hash</label
+                                >
+                                <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.destination_hash }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Method</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200 capitalize">
+                                    {{ rawMessageData.method }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >RSSI</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.rssi || "N/A" }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >SNR</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.snr || "N/A" }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >Attempts</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                    {{ rawMessageData.delivery_attempts }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                >Content / App Data</label
+                            >
+                            <div
+                                class="text-xs font-mono bg-white dark:bg-zinc-900 p-3 rounded border border-gray-100 dark:border-zinc-800 whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300"
+                            >
+                                {{ rawMessageData.content }}
+                            </div>
+                        </div>
+
+                        <div v-if="rawMessageData.raw_uri" class="space-y-1">
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                >Raw LXMF URI</label
+                            >
+                            <div
+                                class="text-[10px] font-mono bg-white dark:bg-zinc-900 p-2 rounded border border-gray-100 dark:border-zinc-800 break-all text-gray-600 dark:text-zinc-400"
+                            >
+                                {{ rawMessageData.raw_uri }}
+                            </div>
+                        </div>
+
+                        <!-- JSON fallback for full detail -->
+                        <details class="group">
+                            <summary
+                                class="flex items-center gap-2 cursor-pointer text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="chevron-right"
+                                    class="size-4 group-open:rotate-90 transition-transform"
+                                />
+                                View Full JSON Object
+                            </summary>
+                            <div class="mt-2 p-4 bg-black/5 dark:bg-black/20 rounded-lg overflow-x-auto">
+                                <pre class="text-[10px] font-mono text-gray-600 dark:text-zinc-400">{{
+                                    JSON.stringify(rawMessageData, null, 2)
+                                }}</pre>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 flex justify-end shrink-0">
+                    <button
+                        type="button"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors"
+                        @click="isRawMessageModalOpen = false"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Transition>
 </template>
 
 <script>
 import Utils from "../../js/Utils";
 import DialogUtils from "../../js/DialogUtils";
 import MicrophoneRecorder from "../../js/MicrophoneRecorder";
-import NotificationUtils from "../../js/NotificationUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import AddAudioButton from "./AddAudioButton.vue";
 import dayjs from "dayjs";
@@ -928,10 +1680,14 @@ import SendMessageButton from "./SendMessageButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
+import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
 import IconButton from "../IconButton.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
+import GlobalState from "../../js/GlobalState";
+import MarkdownRenderer from "../../js/MarkdownRenderer";
 
 export default {
     name: "ConversationViewer",
@@ -942,9 +1698,16 @@ export default {
         MaterialDesignIcon,
         SendMessageButton,
         AddAudioButton,
+        AudioWaveformPlayer,
         PaperMessageModal,
+        LxmfUserIcon,
     },
     props: {
+        config: {
+            type: Object,
+            required: false,
+            default: null,
+        },
         myLxmfAddressHash: {
             type: String,
             required: true,
@@ -958,9 +1721,10 @@ export default {
             required: true,
         },
     },
-    emits: ["close", "reload-conversations", "update:selectedPeer"],
+    emits: ["close", "reload-conversations", "update:selectedPeer", "update-peer-tracking"],
     data() {
         return {
+            GlobalState,
             selectedPeerPath: null,
             selectedPeerLxmfStampInfo: null,
             selectedPeerSignalMetrics: null,
@@ -973,14 +1737,16 @@ export default {
 
             newMessageDeliveryMethod: null,
             newMessageText: "",
-            newMessageImage: null,
-            newMessageImageUrl: null,
+            newMessageImages: [],
+            newMessageImageUrls: [],
             newMessageAudio: null,
             newMessageTelemetry: null,
             newMessageFiles: [],
             isSendingMessage: false,
             autoScrollOnNewMessage: true,
             composeAddress: "",
+            isComposeInputFocused: false,
+            selectedComposeSuggestionIndex: -1,
 
             isShareContactModalOpen: false,
             contacts: [],
@@ -997,7 +1763,9 @@ export default {
             expandedMessageInfo: null,
             imageModalUrl: null,
             isSelectedPeerBlocked: false,
-            blockedDestinations: [],
+            isGeneratingPaperMessage: false,
+            generatedPaperMessageUri: null,
+            isPaperMessageResultModalOpen: false,
             lxmfAudioModeToCodec2ModeMap: {
                 // https://github.com/markqvist/LXMF/blob/master/LXMF/LXMF.py#L21
                 0x01: "450PWB", // AM_CODEC2_450PWB
@@ -1012,11 +1780,40 @@ export default {
             },
             isPaperMessageModalOpen: false,
             paperMessageHash: null,
+            isRawMessageModalOpen: false,
+            rawMessageData: null,
             hasTranslator: false,
             translatorLanguages: [],
+            propagationNodeStatus: null,
+            propagationStatusInterval: null,
+
+            showTelemetryInChat: false,
+            isTelemetryHistoryModalOpen: false,
         };
     },
     computed: {
+        messageIconStyle() {
+            const size = Number(this.config?.message_icon_size) || 28;
+            return {
+                width: `${size}px`,
+                height: `${size}px`,
+                minWidth: `${size}px`,
+                minHeight: `${size}px`,
+            };
+        },
+        isSyncingPropagationNode() {
+            return [
+                "path_requested",
+                "link_establishing",
+                "link_established",
+                "request_sent",
+                "receiving",
+                "response_received",
+            ].includes(this.propagationNodeStatus?.state);
+        },
+        blockedDestinations() {
+            return GlobalState.blockedDestinations;
+        },
         filteredContacts() {
             if (!this.contactsSearch) return this.contacts;
             const s = this.contactsSearch.toLowerCase();
@@ -1027,10 +1824,64 @@ export default {
         isMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         },
+        latestConversations() {
+            return this.conversations.slice(0, 4);
+        },
+        composeSuggestions() {
+            if (!this.isComposeInputFocused) return [];
+
+            const search = this.composeAddress.toLowerCase().trim();
+            const suggestions = [];
+            const seenHashes = new Set();
+
+            // 1. Check contacts
+            this.contacts.forEach((c) => {
+                const hash = c.remote_identity_hash;
+                if (!seenHashes.has(hash)) {
+                    if (!search || c.name.toLowerCase().includes(search) || hash.toLowerCase().includes(search)) {
+                        suggestions.push({
+                            name: c.name,
+                            hash: hash,
+                            type: "contact",
+                            icon: "account",
+                        });
+                        seenHashes.add(hash);
+                    }
+                }
+            });
+
+            // 2. Check recent conversations
+            this.conversations.forEach((c) => {
+                const hash = c.destination_hash;
+                if (!seenHashes.has(hash)) {
+                    const name = c.custom_display_name ?? c.display_name;
+                    if (!search || name.toLowerCase().includes(search) || hash.toLowerCase().includes(search)) {
+                        suggestions.push({
+                            name: name,
+                            hash: hash,
+                            type: "recent",
+                            icon: "history",
+                        });
+                        seenHashes.add(hash);
+                    }
+                }
+            });
+
+            return suggestions.slice(0, 10);
+        },
         canSendMessage() {
-            // can't send if empty message
+            // can send if message text is present
             const messageText = this.newMessageText.trim();
-            if (messageText == null || messageText === "") {
+            const hasText = messageText != null && messageText !== "";
+
+            // or if any attachments are present
+            const hasAttachments =
+                this.newMessageImages.length > 0 ||
+                this.newMessageAudio != null ||
+                this.newMessageFiles.length > 0 ||
+                this.newMessageTelemetry != null;
+
+            if (!hasText && !hasAttachments) {
                 return false;
             }
 
@@ -1050,7 +1901,15 @@ export default {
                             chatItem.lxmf_message.source_hash === this.selectedPeer.destination_hash;
                         const isToSelectedPeer =
                             chatItem.lxmf_message.destination_hash === this.selectedPeer.destination_hash;
-                        return isFromSelectedPeer || isToSelectedPeer;
+
+                        if (!(isFromSelectedPeer || isToSelectedPeer)) return false;
+
+                        // filter telemetry if disabled
+                        if (!this.showTelemetryInChat && this.isTelemetryOnly(chatItem.lxmf_message)) {
+                            return false;
+                        }
+
+                        return true;
                     }
 
                     return false;
@@ -1059,6 +1918,24 @@ export default {
 
             // no peer, so no chat items!
             return [];
+        },
+        selectedPeerTelemetryItems() {
+            if (!this.selectedPeer) return [];
+            return this.chatItems
+                .filter((chatItem) => {
+                    if (chatItem.type === "lxmf_message") {
+                        const isFromSelectedPeer =
+                            chatItem.lxmf_message.source_hash === this.selectedPeer.destination_hash;
+                        const isToSelectedPeer =
+                            chatItem.lxmf_message.destination_hash === this.selectedPeer.destination_hash;
+
+                        if (!(isFromSelectedPeer || isToSelectedPeer)) return false;
+
+                        return this.isTelemetryOnly(chatItem.lxmf_message);
+                    }
+                    return false;
+                })
+                .reverse();
         },
         selectedPeerChatItemsReversed() {
             // ensure a copy of the array is returned in reverse order
@@ -1070,6 +1947,36 @@ export default {
             }
 
             return null;
+        },
+        hasFailedOrCancelledMessages() {
+            return this.selectedPeerChatItems.some(
+                (item) => item.is_outbound && ["failed", "cancelled"].includes(item.lxmf_message?.state)
+            );
+        },
+        telemetryBatteryHistory() {
+            return this.selectedPeerTelemetryItems
+                .filter((item) => item.lxmf_message.fields?.telemetry?.battery)
+                .map((item) => ({
+                    x: item.lxmf_message.timestamp,
+                    y: item.lxmf_message.fields.telemetry.battery.charge_percent,
+                }))
+                .sort((a, b) => a.x - b.x);
+        },
+        batterySparklinePath() {
+            const history = this.telemetryBatteryHistory;
+            if (history.length < 2) return "";
+
+            const minX = history[0].x;
+            const maxX = history[history.length - 1].x;
+            const rangeX = maxX - minX || 1;
+
+            return history
+                .map((p, i) => {
+                    const x = ((p.x - minX) / rangeX) * 100;
+                    const y = 100 - p.y; // SVG y is top-down
+                    return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+                })
+                .join(" ");
         },
     },
     watch: {
@@ -1095,11 +2002,25 @@ export default {
                 this.adjustTextareaHeight();
             });
         },
+        "config.translator_enabled": {
+            handler() {
+                this.checkTranslator();
+            },
+        },
+        blockedDestinations: {
+            handler() {
+                this.checkIfSelectedPeerBlocked();
+            },
+            deep: true,
+        },
     },
     beforeUnmount() {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
+        if (this.propagationStatusInterval) {
+            clearInterval(this.propagationStatusInterval);
+        }
     },
     mounted() {
         // listen for websocket messages
@@ -1108,23 +2029,80 @@ export default {
         // listen for compose new message event
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessageEvent);
 
-        // load blocked destinations
-        this.loadBlockedDestinations();
-
         // check translator
         this.checkTranslator();
+
+        // fetch contacts for suggestions
+        this.fetchContacts();
+
+        // fetch propagation status
+        this.updatePropagationNodeStatus();
+        this.propagationStatusInterval = setInterval(() => {
+            this.updatePropagationNodeStatus();
+        }, 2000);
     },
     methods: {
-        async loadBlockedDestinations() {
+        renderMarkdown(text) {
+            return MarkdownRenderer.render(text);
+        },
+        handleMessageClick(event) {
+            const nomadnetLink = event.target.closest(".nomadnet-link");
+            if (nomadnetLink) {
+                event.preventDefault();
+                const url = nomadnetLink.getAttribute("data-nomadnet-url");
+                if (url) {
+                    const [hash, ...pathParts] = url.split(":");
+                    const path = pathParts.join(":");
+                    const routeName = this.$route.meta.isPopout ? "nomadnetwork-popout" : "nomadnetwork";
+                    this.$router.push({
+                        name: routeName,
+                        params: { destinationHash: hash },
+                        query: { path: path },
+                    });
+                }
+            }
+        },
+        async updatePropagationNodeStatus() {
             try {
-                const response = await window.axios.get("/api/v1/blocked-destinations");
-                this.blockedDestinations = response.data.blocked_destinations || [];
-                this.checkIfSelectedPeerBlocked();
+                const response = await window.axios.get("/api/v1/lxmf/propagation-node/status");
+                this.propagationNodeStatus = response.data.propagation_node_status;
+            } catch {
+                // do nothing on error
+            }
+        },
+        async syncPropagationNode() {
+            GlobalEmitter.emit("sync-propagation-node");
+        },
+        async copyMyAddress() {
+            try {
+                await navigator.clipboard.writeText(this.myLxmfAddressHash);
+                ToastUtils.success(this.$t("messages.address_copied"));
             } catch (e) {
-                console.log(e);
+                console.error(e);
+                ToastUtils.error(this.$t("messages.failed_copy_address"));
+            }
+        },
+        focusComposeInput() {
+            this.$nextTick(() => {
+                const input = document.getElementById("compose-input");
+                if (input) {
+                    input.focus();
+                }
+            });
+        },
+        async fetchContacts() {
+            try {
+                const response = await window.axios.get("/api/v1/telephone/contacts");
+                this.contacts = response.data;
+            } catch (e) {
+                console.log("Failed to fetch contacts:", e);
             }
         },
         async checkTranslator() {
+            if (!this.config?.translator_enabled) {
+                this.hasTranslator = false;
+                return;
+            }
             try {
                 const response = await window.axios.get("/api/v1/translator/languages");
                 this.translatorLanguages = response.data.languages || [];
@@ -1154,7 +2132,7 @@ export default {
                 }
             } catch (e) {
                 console.error("Translation failed:", e);
-                ToastUtils.error("Translation failed");
+                ToastUtils.error(this.$t("messages.translation_failed"));
             } finally {
                 this.isSendingMessage = false;
             }
@@ -1171,7 +2149,7 @@ export default {
                 this.isSelectedPeerBlocked = false;
                 return;
             }
-            this.isSelectedPeerBlocked = this.blockedDestinations.some(
+            this.isSelectedPeerBlocked = GlobalState.blockedDestinations.some(
                 (b) => b.destination_hash === this.selectedPeer.destination_hash
             );
         },
@@ -1235,6 +2213,9 @@ export default {
 
             // scroll to bottom
             this.scrollMessagesToBottom();
+
+            // auto load audio
+            this.autoLoadAudioAttachments();
         },
         async loadPrevious() {
             // do nothing if already loading
@@ -1286,11 +2267,111 @@ export default {
                 if (chatItems.length < pageSize) {
                     this.hasMorePrevious = false;
                 }
+
+                // auto load audio
+                this.autoLoadAudioAttachments();
             } catch {
                 // do nothing
             } finally {
                 this.isLoadingPrevious = false;
             }
+        },
+        getParsedItems(chatItem) {
+            const content = chatItem.lxmf_message.content;
+            if (!content) return null;
+
+            const items = {
+                contact: null,
+                paperMessage: null,
+            };
+
+            // Parse contact: Contact: ivan <ca314c30b27eacec5f6ca6ac504e94c9> [LXMF: ...] [LXST: ...]
+            const contactMatch = content.match(
+                /^Contact:\s+(.+?)\s+<([a-fA-F0-9]{32})>(?:\s+\[LXMF:\s+([a-fA-F0-9]{32})\])?(?:\s+\[LXST:\s+([a-fA-F0-9]{32})\])?/i
+            );
+            if (contactMatch) {
+                const contactHash = contactMatch[2];
+                const lxmfAddress = contactMatch[3];
+                const lxstAddress = contactMatch[4];
+
+                // try to find enriched info from existing conversations/peers
+                const existing = this.conversations.find(
+                    (c) =>
+                        c.destination_hash === contactHash ||
+                        c.destination_hash === lxmfAddress ||
+                        c.destination_hash === lxstAddress
+                );
+
+                items.contact = {
+                    name: contactMatch[1],
+                    hash: contactHash,
+                    lxmf_address: lxmfAddress,
+                    lxst_address: lxstAddress,
+                    custom_image: existing?.contact_image,
+                    lxmf_user_icon: existing?.lxmf_user_icon,
+                };
+            }
+
+            // Parse paper message link
+            const paperMatch = content.match(/(lxm|lxmf):\/\/[a-zA-Z0-9+/=._-]+/i);
+            if (paperMatch) {
+                items.paperMessage = paperMatch[0];
+                // if content is only the paper message, or it already contains the detected text,
+                // we'll hide the raw content div to avoid double rendering.
+                const trimmedContent = content.trim();
+                if (trimmedContent === items.paperMessage || trimmedContent.includes("Paper Message detected")) {
+                    items.isOnlyPaperMessage = true;
+                }
+            }
+
+            return items;
+        },
+        async addContact(name, hash, lxmf_address = null, lxst_address = null) {
+            try {
+                // Check if contact already exists
+                const checkResponse = await window.axios.get(`/api/v1/telephone/contacts/check/${hash}`);
+                if (checkResponse.data?.id) {
+                    ToastUtils.info(`${name} is already in your contacts`);
+                    return;
+                }
+
+                await window.axios.post("/api/v1/telephone/contacts", {
+                    name: name,
+                    remote_identity_hash: hash,
+                    lxmf_address: lxmf_address,
+                    lxst_address: lxst_address,
+                });
+                ToastUtils.success(`Added ${name} to contacts`);
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("messages.failed_add_contact"));
+            }
+        },
+        async ingestPaperMessage(uri) {
+            try {
+                WebSocketConnection.send(
+                    JSON.stringify({
+                        type: "lxm.ingest_uri",
+                        uri: uri,
+                    })
+                );
+                ToastUtils.info(this.$t("messages.ingesting_paper_message"));
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("messages.failed_ingest_paper"));
+            }
+        },
+        async generatePaperMessageFromComposition() {
+            if (!this.canSendMessage) return;
+
+            this.isGeneratingPaperMessage = true;
+            WebSocketConnection.send(
+                JSON.stringify({
+                    type: "lxm.generate_paper_uri",
+                    destination_hash: this.selectedPeer.destination_hash,
+                    content: this.newMessageText,
+                })
+            );
         },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
@@ -1323,6 +2404,20 @@ export default {
                     this.onLxmfMessageDeleted(json.hash);
                     break;
                 }
+                case "lxm.generate_paper_uri.result": {
+                    this.isGeneratingPaperMessage = false;
+                    if (json.status === "success") {
+                        this.generatedPaperMessageUri = json.uri;
+                        this.isPaperMessageResultModalOpen = true;
+                    } else {
+                        ToastUtils.error(json.message);
+                    }
+                    break;
+                }
+                case "lxm.ingest_uri.result": {
+                    // Handled in App.vue or MessagesPage.vue
+                    break;
+                }
             }
         },
         openLXMFAddress() {
@@ -1347,14 +2442,53 @@ export default {
             await this.handleComposeAddress(destinationHash);
         },
         onComposeEnterPressed() {
+            if (
+                this.selectedComposeSuggestionIndex >= 0 &&
+                this.selectedComposeSuggestionIndex < this.composeSuggestions.length
+            ) {
+                const suggestion = this.composeSuggestions[this.selectedComposeSuggestionIndex];
+                this.selectComposeSuggestion(suggestion);
+            } else {
+                this.onComposeSubmit();
+            }
+        },
+        handleComposeInputUp() {
+            if (this.composeSuggestions.length > 0) {
+                if (this.selectedComposeSuggestionIndex > 0) {
+                    this.selectedComposeSuggestionIndex--;
+                } else {
+                    this.selectedComposeSuggestionIndex = this.composeSuggestions.length - 1;
+                }
+            }
+        },
+        handleComposeInputDown() {
+            if (this.composeSuggestions.length > 0) {
+                if (this.selectedComposeSuggestionIndex < this.composeSuggestions.length - 1) {
+                    this.selectedComposeSuggestionIndex++;
+                } else {
+                    this.selectedComposeSuggestionIndex = 0;
+                }
+            }
+        },
+        selectComposeSuggestion(suggestion) {
+            this.composeAddress = suggestion.hash;
+            this.isComposeInputFocused = false;
+            this.selectedComposeSuggestionIndex = -1;
             this.onComposeSubmit();
+        },
+        onComposeInputBlur() {
+            // Delay blur to allow mousedown on suggestions
+            setTimeout(() => {
+                this.isComposeInputFocused = false;
+                this.selectedComposeSuggestionIndex = -1;
+            }, 200);
         },
         async handleComposeAddress(destinationHash) {
             if (destinationHash.startsWith("lxmf@")) {
                 destinationHash = destinationHash.replace("lxmf@", "");
             }
             if (destinationHash.length !== 32) {
-                DialogUtils.alert("Invalid Address");
+                DialogUtils.alert(this.$t("common.invalid_address"));
                 return;
             }
             GlobalEmitter.emit("compose-new-message", destinationHash);
@@ -1377,15 +2511,13 @@ export default {
                 this.markConversationAsRead(conversation);
             }
 
-            // show notification for new messages if window is not focussed
-            if (!document.hasFocus()) {
-                NotificationUtils.showNewMessageNotification();
-            }
-
             // auto scroll to bottom if we want to
             if (this.autoScrollOnNewMessage) {
                 this.scrollMessagesToBottom();
             }
+
+            // auto load audio
+            this.autoLoadAudioAttachments();
         },
         onLxmfMessageCreated(lxmfMessage) {
             // only add if it's for the current conversation
@@ -1401,6 +2533,9 @@ export default {
                     is_outbound: true,
                 });
             }
+
+            // auto load audio
+            this.autoLoadAudioAttachments();
         },
         onLxmfMessageUpdated(lxmfMessage) {
             // find existing chat item by lxmf message hash
@@ -1564,7 +2699,7 @@ export default {
             }
 
             // ask user for new display name
-            const displayName = await DialogUtils.prompt("Enter a custom display name");
+            const displayName = await DialogUtils.prompt(this.$t("messages.enter_display_name"));
             if (displayName == null) {
                 return;
             }
@@ -1585,7 +2720,7 @@ export default {
                 this.$emit("reload-conversations");
             } catch (error) {
                 console.log(error);
-                DialogUtils.alert("Failed to update display name");
+                DialogUtils.alert(this.$t("messages.failed_update_display_name"));
             }
         },
         async onConversationDeleted() {
@@ -1601,6 +2736,20 @@ export default {
             } else {
                 chatItem.is_actions_expanded = false;
             }
+        },
+        async showRawMessage(chatItem) {
+            try {
+                // we'll try to get the URI first as it contains the raw signed message
+                const response = await window.axios.get(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}/uri`);
+                this.rawMessageData = {
+                    ...chatItem.lxmf_message,
+                    raw_uri: response.data.uri,
+                };
+            } catch {
+                // if URI is not available (message no longer in router), we show what we have
+                this.rawMessageData = { ...chatItem.lxmf_message };
+            }
+            this.isRawMessageModalOpen = true;
         },
         async downloadAndDecodeAudio(chatItem) {
             if (this.isDownloadingAudio[chatItem.lxmf_message.hash]) return;
@@ -1634,9 +2783,20 @@ export default {
                 }
             } catch (e) {
                 console.error("Failed to download or decode audio:", e);
-                DialogUtils.alert("Failed to load audio attachment.");
+                DialogUtils.alert(this.$t("messages.failed_load_audio"));
             } finally {
                 this.isDownloadingAudio[chatItem.lxmf_message.hash] = false;
+            }
+        },
+        autoLoadAudioAttachments() {
+            for (const chatItem of this.chatItems) {
+                if (
+                    chatItem.lxmf_message.fields?.audio &&
+                    !this.lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash] &&
+                    !this.isDownloadingAudio[chatItem.lxmf_message.hash]
+                ) {
+                    this.downloadAndDecodeAudio(chatItem);
+                }
             }
         },
         formatAttachmentSize(attachment, type) {
@@ -1810,20 +2970,23 @@ export default {
                 this.contacts = response.data;
 
                 if (this.contacts.length === 0) {
-                    ToastUtils.info("No contacts found in telephone");
+                    ToastUtils.info(this.$t("messages.no_contacts_telephone"));
                     return;
                 }
 
                 this.isShareContactModalOpen = true;
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to load contacts");
+                ToastUtils.error(this.$t("messages.failed_load_contacts"));
             }
         },
-        async shareContact(contact) {
-            this.newMessageText = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
+        shareContact(contact) {
+            let sharedString = `Contact: ${contact.name} <${contact.remote_identity_hash}>`;
+            if (contact.lxmf_address) sharedString += ` [LXMF: ${contact.lxmf_address}]`;
+            if (contact.lxst_address) sharedString += ` [LXST: ${contact.lxst_address}]`;
+            this.newMessageText = sharedString;
             this.isShareContactModalOpen = false;
-            await this.sendMessage();
+            this.sendMessage();
         },
         shareAsPaperMessage(chatItem) {
             this.paperMessageHash = chatItem.lxmf_message.hash;
@@ -1859,6 +3022,7 @@ export default {
                         fileAttachmentsTotalSize += file.size;
                         fileAttachments.push({
                             file_name: file.name,
+                            file_size: file.size,
                             file_bytes: Utils.arrayBufferToBase64(await file.arrayBuffer()),
                         });
                     }
@@ -1867,17 +3031,17 @@ export default {
 
                 // add image attachment
                 var imageTotalSize = 0;
-                if (this.newMessageImage) {
-                    imageTotalSize = this.newMessageImage.size;
-                    fields["image"] = {
-                        // Reticulum sends image type as "jpg", "png", "webp" etc and not "image/jpg" or "image/png"
-                        // From memory, Sideband would not display images if the image type has the "image/" prefix
-                        // https://github.com/markqvist/Sideband/blob/354fb08297835eab04ac69d15081a18baf0583ac/docs/example_plugins/view.py#L78
-                        // https://github.com/markqvist/Sideband/blob/354fb08297835eab04ac69d15081a18baf0583ac/sbapp/main.py#L1900
-                        // https://github.com/markqvist/Sideband/blob/354fb08297835eab04ac69d15081a18baf0583ac/sbapp/ui/messages.py#L783
-                        image_type: this.newMessageImage.type.replace("image/", ""),
-                        image_bytes: Utils.arrayBufferToBase64(await this.newMessageImage.arrayBuffer()),
-                    };
+                var images = [];
+                if (this.newMessageImages.length > 0) {
+                    for (const image of this.newMessageImages) {
+                        imageTotalSize += image.size;
+                        images.push({
+                            image_type: image.type.replace("image/", ""),
+                            image_size: image.size,
+                            image_bytes: Utils.arrayBufferToBase64(await image.arrayBuffer()),
+                            name: image.name,
+                        });
+                    }
                 }
 
                 // add audio attachment
@@ -1886,6 +3050,7 @@ export default {
                     audioTotalSize = this.newMessageAudio.size;
                     fields["audio"] = {
                         audio_mode: this.newMessageAudio.audio_mode,
+                        audio_size: this.newMessageAudio.size,
                         audio_bytes: Utils.arrayBufferToBase64(await this.newMessageAudio.audio_blob.arrayBuffer()),
                     };
                 }
@@ -1906,23 +3071,81 @@ export default {
                     }
                 }
 
-                // send message to reticulum
-                const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
-                    delivery_method: this.newMessageDeliveryMethod,
-                    lxmf_message: {
-                        destination_hash: this.selectedPeer.destination_hash,
-                        content: this.newMessageText,
-                        fields: fields,
-                    },
-                });
-
-                // add outbound message to ui
-                if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
-                    this.chatItems.push({
-                        type: "lxmf_message",
-                        lxmf_message: response.data.lxmf_message,
-                        is_outbound: true,
+                // if no images, send message as usual
+                if (images.length === 0) {
+                    const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                        delivery_method: this.newMessageDeliveryMethod,
+                        lxmf_message: {
+                            destination_hash: this.selectedPeer.destination_hash,
+                            content: this.newMessageText,
+                            fields: fields,
+                        },
                     });
+
+                    // add outbound message to ui
+                    if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
+                        this.chatItems.push({
+                            type: "lxmf_message",
+                            lxmf_message: response.data.lxmf_message,
+                            is_outbound: true,
+                        });
+                    }
+                } else {
+                    // send first image with message text and other fields
+                    const firstImage = images[0];
+                    const firstFields = {
+                        ...fields,
+                        image: { image_type: firstImage.image_type, image_bytes: firstImage.image_bytes },
+                    };
+
+                    const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                        delivery_method: this.newMessageDeliveryMethod,
+                        lxmf_message: {
+                            destination_hash: this.selectedPeer.destination_hash,
+                            content: this.newMessageText,
+                            fields: firstFields,
+                        },
+                    });
+
+                    // add outbound message to ui
+                    if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
+                        this.chatItems.push({
+                            type: "lxmf_message",
+                            lxmf_message: response.data.lxmf_message,
+                            is_outbound: true,
+                        });
+                    }
+
+                    // send subsequent images as separate messages with image name as content
+                    for (let i = 1; i < images.length; i++) {
+                        const image = images[i];
+                        const subsequentFields = {
+                            image: { image_type: image.image_type, image_bytes: image.image_bytes },
+                        };
+
+                        try {
+                            const subResponse = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                                delivery_method: this.newMessageDeliveryMethod,
+                                lxmf_message: {
+                                    destination_hash: this.selectedPeer.destination_hash,
+                                    content: image.name,
+                                    fields: subsequentFields,
+                                },
+                            });
+
+                            // add outbound message to ui
+                            if (!this.isLxmfMessageInUi(subResponse.data.lxmf_message.hash)) {
+                                this.chatItems.push({
+                                    type: "lxmf_message",
+                                    lxmf_message: subResponse.data.lxmf_message,
+                                    is_outbound: true,
+                                });
+                            }
+                        } catch (subError) {
+                            console.error(`Failed to send image ${i + 1}:`, subError);
+                            // we continue sending other images even if one fails
+                        }
+                    }
                 }
 
                 // always scroll to bottom since we just sent a message
@@ -1931,8 +3154,8 @@ export default {
                 // clear message inputs
                 this.newMessageText = "";
                 this.saveDraft(this.selectedPeer.destination_hash);
-                this.newMessageImage = null;
-                this.newMessageImageUrl = null;
+                this.newMessageImages = [];
+                this.newMessageImageUrls = [];
                 this.newMessageAudio = null;
                 this.newMessageTelemetry = null;
                 this.newMessageFiles = [];
@@ -2004,12 +3227,57 @@ export default {
                 console.log(e);
             }
         },
+        async retryAllFailedOrCancelledMessages() {
+            const failedItems = this.selectedPeerChatItems.filter(
+                (item) => item.is_outbound && ["failed", "cancelled"].includes(item.lxmf_message?.state)
+            );
+            if (failedItems.length === 0) return;
+
+            if (
+                !(await DialogUtils.confirm(
+                    `Are you sure you want to retry sending all ${failedItems.length} failed/cancelled messages?`
+                ))
+            ) {
+                return;
+            }
+
+            for (const item of failedItems) {
+                await this.retrySendingMessage(item);
+            }
+        },
         async shareLocation() {
+            const toastKey = "location_share";
             try {
-                if (!navigator.geolocation) {
-                    DialogUtils.alert("Geolocation is not supported by your browser");
+                if (this.config?.location_source === "manual") {
+                    const lat = parseFloat(this.config.location_manual_lat);
+                    const lon = parseFloat(this.config.location_manual_lon);
+                    const alt = parseFloat(this.config.location_manual_alt);
+
+                    if (isNaN(lat) || isNaN(lon)) {
+                        ToastUtils.error("Invalid manual coordinates in settings", 5000, toastKey);
+                        return;
+                    }
+
+                    this.newMessageTelemetry = {
+                        latitude: lat,
+                        longitude: lon,
+                        altitude: isNaN(alt) ? 0 : alt,
+                        speed: 0,
+                        bearing: 0,
+                        accuracy: 0,
+                        last_update: Math.floor(Date.now() / 1000),
+                    };
+                    this.sendMessage();
+                    ToastUtils.success(this.$t("messages.location_sent"), 3000, toastKey);
                     return;
                 }
+
+                if (!navigator.geolocation) {
+                    DialogUtils.alert(this.$t("map.geolocation_not_supported"));
+                    return;
+                }
+
+                ToastUtils.loading(this.$t("messages.fetching_location"), 0, toastKey);
 
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -2017,15 +3285,20 @@ export default {
                             latitude: position.coords.latitude,
                             longitude: position.coords.longitude,
                             altitude: position.coords.altitude || 0,
-                            speed: (position.coords.speed || 0) * 3.6, // m/s to km/h to match Sideband
+                            speed: (position.coords.speed || 0) * 3.6, // m/s to km/h
                             bearing: position.coords.heading || 0,
                             accuracy: position.coords.accuracy || 0,
                             last_update: Math.floor(Date.now() / 1000),
                         };
                         this.sendMessage();
+                        ToastUtils.success(this.$t("messages.location_sent"), 3000, toastKey);
                     },
                     (error) => {
-                        DialogUtils.alert(`Failed to get location: ${error.message}`);
+                        ToastUtils.error(
+                            `Failed to get location: ${error.message}. Try setting location manually in Settings.`,
+                            5000,
+                            toastKey
+                        );
                     },
                     {
                         enableHighAccuracy: true,
@@ -2035,6 +3308,7 @@ export default {
                 );
             } catch (e) {
                 console.log(e);
+                ToastUtils.error(`Error: ${e.message}`, 5000, toastKey);
             }
         },
         async requestLocation() {
@@ -2047,17 +3321,15 @@ export default {
                         destination_hash: this.selectedPeer.destination_hash,
                         content: "",
                         fields: {
-                            commands: [
-                                { "0x01": Math.floor(Date.now() / 1000) }, // Sideband TELEMETRY_REQUEST
-                            ],
+                            commands: [{ "0x01": Math.floor(Date.now() / 1000) }],
                         },
                     },
                 });
 
-                ToastUtils.success("Location request sent");
+                ToastUtils.success(this.$t("messages.location_request_sent"));
             } catch (e) {
                 console.log(e);
-                ToastUtils.error("Failed to send location request");
+                ToastUtils.error(this.$t("messages.failed_send_location_request"));
             }
         },
         viewLocationOnMap(location) {
@@ -2071,6 +3343,32 @@ export default {
                 },
             });
         },
+        isTelemetryOnly(msg) {
+            const hasContent = msg.content && msg.content.trim() !== "";
+            const hasAttachments = msg.fields?.image || msg.fields?.audio || msg.fields?.file_attachments;
+            const hasTelemetry = msg.fields?.telemetry || msg.fields?.telemetry_stream;
+            const hasCommands = msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"]);
+
+            return !hasContent && !hasAttachments && (hasTelemetry || hasCommands);
+        },
+        async toggleTracking() {
+            if (!this.selectedPeer) return;
+            const hash = this.selectedPeer.destination_hash;
+            try {
+                const response = await window.axios.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
+                    is_tracking: !this.selectedPeer.is_tracking,
+                });
+                // Emit event to parent to update peer status
+                this.$emit("update-peer-tracking", {
+                    destination_hash: hash,
+                    is_tracking: response.data.is_tracking,
+                });
+                ToastUtils.success(response.data.is_tracking ? "Live tracking enabled" : "Live tracking disabled");
+            } catch (e) {
+                console.error("Failed to toggle tracking", e);
+                ToastUtils.error("Failed to update tracking status");
+            }
+        },
         formatTimeAgo: function (datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
         },
@@ -2080,10 +3378,10 @@ export default {
         async copyHash(hash) {
             try {
                 await navigator.clipboard.writeText(hash);
-                ToastUtils.success("Hash copied to clipboard");
+                ToastUtils.success(this.$t("messages.hash_copied"));
             } catch (e) {
                 console.error(e);
-                ToastUtils.error("Failed to copy hash");
+                ToastUtils.error(this.$t("messages.failed_to_copy_hash"));
             }
         },
         formatBytes: function (bytes) {
@@ -2106,6 +3404,38 @@ export default {
             const url = `${window.location.origin}${window.location.pathname}#/popout/messages/${encodedHash}`;
             window.open(url, "_blank", "width=960,height=720,noopener");
         },
+        async onStartCall() {
+            try {
+                await window.axios.get(`/api/v1/telephone/call/${this.selectedPeer.destination_hash}`);
+            } catch (e) {
+                const message = e.response?.data?.message ?? "Failed to start call";
+                DialogUtils.alert(message);
+            }
+        },
+        async pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    const input = this.$refs["message-input"];
+                    const start = input.selectionStart;
+                    const end = input.selectionEnd;
+                    const currentText = this.newMessageText || "";
+                    this.newMessageText = currentText.substring(0, start) + text + currentText.substring(end);
+
+                    this.$nextTick(() => {
+                        input.focus();
+                        const newCursorPos = start + text.length;
+                        input.setSelectionRange(newCursorPos, newCursorPos);
+                        // adjust height
+                        input.style.height = "auto";
+                        input.style.height = Math.min(input.scrollHeight, 200) + "px";
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to read clipboard contents: ", err);
+                ToastUtils.error(this.$t("messages.failed_read_clipboard"));
+            }
+        },
         onFileInputChange: function (event) {
             for (const file of event.target.files) {
                 this.newMessageFiles.push(file);
@@ -2114,28 +3444,29 @@ export default {
         clearFileInput: function () {
             this.$refs["file-input"].value = null;
         },
-        async removeImageAttachment() {
+        async removeImageAttachment(index) {
             // ask user to confirm removing image attachment
-            if (!(await DialogUtils.confirm("Are you sure you want to remove this image attachment?"))) {
+            if (!(await DialogUtils.confirm(this.$t("messages.remove_image_confirm")))) {
                 return;
             }
 
             // remove image
-            this.newMessageImage = null;
-            this.newMessageImageUrl = null;
+            this.newMessageImages.splice(index, 1);
+            this.newMessageImageUrls.splice(index, 1);
         },
         onImageSelected: function (imageBlob) {
             // update selected file
-            this.newMessageImage = imageBlob;
+            const index = this.newMessageImages.length;
+            this.newMessageImages.push(imageBlob);
 
             // update image url when file is read
             const fileReader = new FileReader();
             fileReader.onload = (event) => {
-                this.newMessageImageUrl = event.target.result;
+                this.newMessageImageUrls[index] = event.target.result;
             };
 
             // convert image to data url
-            fileReader.readAsDataURL(this.newMessageImage);
+            fileReader.readAsDataURL(imageBlob);
         },
         async startRecordingAudioAttachment(args) {
             // do nothing if already recording
@@ -2173,7 +3504,7 @@ export default {
 
                     // alert if failed to start recording
                     if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert("failed to start recording");
+                        DialogUtils.alert(this.$t("messages.failed_start_recording"));
                     }
 
                     break;
@@ -2195,7 +3526,7 @@ export default {
 
                     // alert if failed to start recording
                     if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert("failed to start recording");
+                        DialogUtils.alert(this.$t("messages.failed_start_recording"));
                     }
 
                     break;
@@ -2282,7 +3613,7 @@ export default {
         },
         async removeAudioAttachment() {
             // ask user to confirm removing audio attachment
-            if (!(await DialogUtils.confirm("Are you sure you want to remove this audio attachment?"))) {
+            if (!(await DialogUtils.confirm(this.$t("messages.remove_audio_confirm")))) {
                 return;
             }
 
@@ -2450,7 +3781,16 @@ export default {
     @apply inline-flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-red-500;
 }
 .attachment-action-button {
-    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-100 shadow-sm hover:border-blue-400 dark:hover:border-blue-500 transition;
+    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white shadow-sm transition-all !important;
+}
+.attachment-action-button:hover {
+    @apply bg-gray-50 text-gray-900 border-blue-400 !important;
+}
+.dark .attachment-action-button {
+    @apply border-zinc-700 text-zinc-100 bg-zinc-900 !important;
+}
+.dark .attachment-action-button:hover {
+    @apply bg-zinc-800 text-white border-blue-500 !important;
 }
 
 .audio-controls-light {
@@ -2467,5 +3807,30 @@ export default {
 
 .dark .audio-controls-dark {
     filter: invert(1) hue-rotate(180deg);
+}
+.markdown-content :deep(p) {
+    margin: 0.5rem 0;
+}
+
+.markdown-content :deep(strong) {
+    font-weight: 700;
+}
+
+.markdown-content :deep(em) {
+    font-style: italic;
+}
+
+.markdown-content :deep(pre) {
+    margin: 0.75rem 0;
+}
+
+.markdown-content :deep(code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.markdown-content :deep(h1),
+.markdown-content :deep(h2),
+.markdown-content :deep(h3) {
+    line-height: 1.2;
 }
 </style>

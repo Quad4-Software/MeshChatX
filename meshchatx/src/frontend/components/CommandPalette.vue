@@ -63,6 +63,7 @@
                                 >
                                     <LxmfUserIcon
                                         v-if="result.type === 'contact' || result.type === 'peer'"
+                                        :custom-image="result.type === 'contact' ? result.contact.custom_image : ''"
                                         :icon-name="result.icon"
                                         :icon-foreground-colour="result.iconForeground"
                                         :icon-background-colour="result.iconBackground"
@@ -113,6 +114,7 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 
 import GlobalEmitter from "../js/GlobalEmitter";
+import ToastUtils from "../js/ToastUtils";
 
 export default {
     name: "CommandPalette",
@@ -174,6 +176,102 @@ export default {
                     route: { name: "settings" },
                 },
                 {
+                    id: "nav-ping",
+                    title: "nav_ping",
+                    description: "nav_ping_desc",
+                    icon: "radar",
+                    type: "navigation",
+                    route: { name: "ping" },
+                },
+                {
+                    id: "nav-rnprobe",
+                    title: "nav_rnprobe",
+                    description: "nav_rnprobe_desc",
+                    icon: "radar",
+                    type: "navigation",
+                    route: { name: "rnprobe" },
+                },
+                {
+                    id: "nav-rncp",
+                    title: "nav_rncp",
+                    description: "nav_rncp_desc",
+                    icon: "swap-horizontal",
+                    type: "navigation",
+                    route: { name: "rncp" },
+                },
+                {
+                    id: "nav-rnstatus",
+                    title: "nav_rnstatus",
+                    description: "nav_rnstatus_desc",
+                    icon: "chart-line",
+                    type: "navigation",
+                    route: { name: "rnstatus" },
+                },
+                {
+                    id: "nav-rnpath",
+                    title: "nav_rnpath",
+                    description: "nav_rnpath_desc",
+                    icon: "route",
+                    type: "navigation",
+                    route: { name: "rnpath" },
+                },
+                {
+                    id: "nav-rnpath-trace",
+                    title: "nav_rnpath_trace",
+                    description: "nav_rnpath_trace_desc",
+                    icon: "map-marker-path",
+                    type: "navigation",
+                    route: { name: "rnpath-trace" },
+                },
+                {
+                    id: "nav-translator",
+                    title: "nav_translator",
+                    description: "nav_translator_desc",
+                    icon: "translate",
+                    type: "navigation",
+                    route: { name: "translator" },
+                },
+                {
+                    id: "nav-forwarder",
+                    title: "nav_forwarder",
+                    description: "nav_forwarder_desc",
+                    icon: "email-send-outline",
+                    type: "navigation",
+                    route: { name: "forwarder" },
+                },
+                {
+                    id: "nav-documentation",
+                    title: "nav_documentation",
+                    description: "nav_documentation_desc",
+                    icon: "book-open-variant",
+                    type: "navigation",
+                    route: { name: "documentation" },
+                },
+                {
+                    id: "nav-micron-editor",
+                    title: "nav_micron_editor",
+                    description: "nav_micron_editor_desc",
+                    icon: "code-tags",
+                    type: "navigation",
+                    route: { name: "micron-editor" },
+                },
+                {
+                    id: "nav-rnode-flasher",
+                    title: "nav_rnode_flasher",
+                    description: "nav_rnode_flasher_desc",
+                    icon: "flash",
+                    type: "navigation",
+                    route: { name: "rnode-flasher" },
+                },
+                {
+                    id: "nav-debug-logs",
+                    title: "nav_debug_logs",
+                    description: "nav_debug_logs_desc",
+                    icon: "console",
+                    type: "navigation",
+                    route: { name: "debug-logs" },
+                },
+                {
                     id: "action-sync",
                     title: "action_sync",
                     description: "action_sync_desc",
@@ -189,6 +287,38 @@ export default {
                     type: "action",
                     action: "compose",
                 },
+                {
+                    id: "action-orbit",
+                    title: "action_orbit",
+                    description: "action_orbit_desc",
+                    icon: "orbit",
+                    type: "action",
+                    action: "toggle-orbit",
+                },
+                {
+                    id: "action-bouncing-balls",
+                    title: "action_bouncing_balls",
+                    description: "action_bouncing_balls_desc",
+                    icon: "bounce",
+                    type: "action",
+                    action: "toggle-bouncing-balls",
+                },
+                {
+                    id: "action-getting-started",
+                    title: "action_getting_started",
+                    description: "action_getting_started_desc",
+                    icon: "help-circle",
+                    type: "action",
+                    action: "show-tutorial",
+                },
+                {
+                    id: "action-changelog",
+                    title: "action_changelog",
+                    description: "action_changelog_desc",
+                    icon: "history",
+                    type: "action",
+                    action: "show-changelog",
+                },
             ],
         };
     },
@@ -201,29 +331,33 @@ export default {
             }));
 
             // add peers
-            for (const peer of this.peers) {
-                results.push({
-                    id: `peer-${peer.destination_hash}`,
-                    title: peer.custom_display_name ?? peer.display_name,
-                    description: peer.destination_hash,
-                    icon: peer.lxmf_user_icon?.icon_name ?? "account",
-                    iconForeground: peer.lxmf_user_icon?.foreground_colour,
-                    iconBackground: peer.lxmf_user_icon?.background_colour,
-                    type: "peer",
-                    peer: peer,
-                });
+            if (Array.isArray(this.peers)) {
+                for (const peer of this.peers) {
+                    results.push({
+                        id: `peer-${peer.destination_hash}`,
+                        title: peer.custom_display_name ?? peer.display_name,
+                        description: peer.destination_hash,
+                        icon: peer.lxmf_user_icon?.icon_name ?? "account",
+                        iconForeground: peer.lxmf_user_icon?.foreground_colour,
+                        iconBackground: peer.lxmf_user_icon?.background_colour,
+                        type: "peer",
+                        peer: peer,
+                    });
+                }
             }
 
             // add contacts
-            for (const contact of this.contacts) {
-                results.push({
-                    id: `contact-${contact.id}`,
-                    title: contact.name,
-                    description: this.$t("app.call") + ` ${contact.remote_identity_hash}`,
-                    icon: "phone",
-                    type: "contact",
-                    contact: contact,
-                });
+            if (Array.isArray(this.contacts)) {
+                for (const contact of this.contacts) {
+                    results.push({
+                        id: `contact-${contact.id}`,
+                        title: contact.name,
+                        description: this.$t("app.call") + ` ${contact.remote_identity_hash}`,
+                        icon: "phone",
+                        type: "contact",
+                        contact: contact,
+                    });
+                }
             }
 
             return results;
@@ -304,7 +438,7 @@ export default {
 
                 // fetch telephone contacts
                 const contactResponse = await window.axios.get("/api/v1/telephone/contacts");
-                this.contacts = contactResponse.data;
+                this.contacts = Array.isArray(contactResponse.data) ? contactResponse.data : [];
             } catch (e) {
                 console.error("Failed to load command palette data:", e);
             }
@@ -327,7 +461,7 @@ export default {
             } else if (result.type === "peer") {
                 this.$router.push({ name: "messages", params: { destinationHash: result.peer.destination_hash } });
             } else if (result.type === "contact") {
-                this.$router.push({ name: "call", query: { destination_hash: result.contact.remote_identity_hash } });
+                this.dialContact(result.contact.remote_identity_hash);
             } else if (result.type === "action") {
                 if (result.action === "sync") {
                     GlobalEmitter.emit("sync-propagation-node");
@@ -337,7 +471,25 @@ export default {
                         const input = document.getElementById("compose-input");
                         input?.focus();
                     });
+                } else if (result.action === "toggle-orbit") {
+                    GlobalEmitter.emit("toggle-orbit");
+                } else if (result.action === "toggle-bouncing-balls") {
+                    GlobalEmitter.emit("toggle-bouncing-balls");
+                } else if (result.action === "show-tutorial") {
+                    GlobalEmitter.emit("show-tutorial");
+                } else if (result.action === "show-changelog") {
+                    GlobalEmitter.emit("show-changelog");
                 }
+            }
+        },
+        async dialContact(hash) {
+            try {
+                await window.axios.get(`/api/v1/telephone/call/${hash}`);
+                if (this.$route.name !== "call") {
+                    this.$router.push({ name: "call" });
+                }
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || "Failed to initiate call");
             }
         },
     },

@@ -5,17 +5,37 @@
             :class="{ 'hidden sm:flex': destinationHash }"
             :conversations="conversations"
             :peers="peers"
+            :folders="folders"
+            :selected-folder-id="selectedFolderId"
             :selected-destination-hash="selectedPeer?.destination_hash"
             :conversation-search-term="conversationSearchTerm"
             :filter-unread-only="filterUnreadOnly"
             :filter-failed-only="filterFailedOnly"
             :filter-has-attachments-only="filterHasAttachmentsOnly"
             :is-loading="isLoadingConversations"
+            :is-loading-more="isLoadingMore"
+            :has-more-conversations="hasMoreConversations"
+            :is-loading-more-announces="isLoadingMoreAnnounces"
+            :has-more-announces="hasMoreAnnounces"
+            :peers-search-term="peersSearchTerm"
+            :total-peers-count="totalPeersCount"
             @conversation-click="onConversationClick"
             @peer-click="onPeerClick"
             @conversation-search-changed="onConversationSearchChanged"
             @conversation-filter-changed="onConversationFilterChanged"
+            @peers-search-changed="onPeersSearchChanged"
             @ingest-paper-message="openIngestPaperMessageModal"
+            @load-more="loadMoreConversations"
+            @load-more-announces="loadMoreAnnounces"
+            @folder-click="onFolderClick"
+            @create-folder="onCreateFolder"
+            @rename-folder="onRenameFolder"
+            @delete-folder="onDeleteFolder"
+            @move-to-folder="onMoveToFolder"
+            @bulk-mark-as-read="onBulkMarkAsRead"
+            @bulk-delete="onBulkDelete"
+            @export-folders="onExportFolders"
+            @import-folders="onImportFolders"
         />
 
         <div
@@ -25,9 +45,12 @@
             <!-- messages tab -->
             <ConversationViewer
                 ref="conversation-viewer"
+                :config="config"
                 :my-lxmf-address-hash="config?.lxmf_address_hash"
                 :selected-peer="selectedPeer"
                 :conversations="conversations"
+                @update:selected-peer="onPeerClick"
+                @update-peer-tracking="onUpdatePeerTracking"
                 @close="onCloseConversationViewer"
                 @reload-conversations="getConversations"
             />
@@ -103,12 +126,14 @@ import GlobalState from "../../js/GlobalState";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
     name: "MessagesPage",
     components: {
         ConversationViewer,
         MessagesSidebar,
+        MaterialDesignIcon,
     },
     props: {
         destinationHash: {
@@ -123,10 +148,21 @@ export default {
             conversationRefreshTimeout: null,
 
             config: null,
+            hasLoadedConversations: false,
             peers: {},
             selectedPeer: null,
 
             conversations: [],
+            folders: [],
+            selectedFolderId: null,
+            pageSize: 50,
+            hasMoreConversations: true,
+            isLoadingMore: false,
+
+            hasMoreAnnounces: true,
+            isLoadingMoreAnnounces: false,
+            totalPeersCount: 0,
+            peersSearchTerm: "",
             lxmfDeliveryAnnounces: [],
 
             conversationSearchTerm: "",
@@ -170,6 +206,7 @@ export default {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessage);
+        GlobalEmitter.off("refresh-conversations", this.requestConversationsRefresh);
     },
     mounted() {
         // listen for websocket messages
@@ -178,11 +215,13 @@ export default {
 
         this.getConfig();
         this.getConversations();
+        this.getFolders();
         this.getLxmfDeliveryAnnounces();
 
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
             this.getConversations();
+            this.getFolders();
         }, 5000);
 
         // compose message if a destination hash was provided on page load
@@ -218,7 +257,7 @@ export default {
             }
 
             if (destinationHash.length !== 32) {
-                DialogUtils.alert("Invalid Address");
+                DialogUtils.alert(this.$t("common.invalid_address"));
                 return;
             }
 
@@ -255,40 +294,60 @@ export default {
                     await this.getConversations();
                     break;
                 }
+                case "lxmf.telemetry": {
+                    // update tracking status if peer matches
+                    const destHash = json.destination_hash;
+                    if (this.peers[destHash]) {
+                        this.peers[destHash].is_tracking = json.is_tracking;
+                    }
+                    if (this.selectedPeer && this.selectedPeer.destination_hash === destHash) {
+                        this.selectedPeer.is_tracking = json.is_tracking;
+                    }
+                    break;
+                }
                 case "lxm.ingest_uri.result": {
                     if (json.status === "success") {
-                        ToastUtils.success(json.message);
+                        this.ingestUri = "";
                         await this.getConversations();
-                    } else if (json.status === "error") {
-                        ToastUtils.error(json.message);
-                    } else if (json.status === "warning") {
-                        ToastUtils.warning(json.message);
-                    } else {
-                        ToastUtils.info(json.message);
                     }
                     break;
                 }
             }
         },
-        async getLxmfDeliveryAnnounces() {
+        async getLxmfDeliveryAnnounces(append = false) {
             try {
-                // fetch announces for "lxmf.delivery" aspect
+                const offset = append ? Object.keys(this.peers).length : 0;
                 const response = await window.axios.get(`/api/v1/announces`, {
                     params: {
                         aspect: "lxmf.delivery",
-                        limit: 500, // limit ui to showing 500 latest announces
+                        limit: this.pageSize,
+                        offset: offset,
+                        search: this.peersSearchTerm,
                     },
                 });
 
-                // update ui
-                const lxmfDeliveryAnnounces = response.data.announces;
-                for (const lxmfDeliveryAnnounce of lxmfDeliveryAnnounces) {
-                    this.updatePeerFromAnnounce(lxmfDeliveryAnnounce);
+                const newAnnounces = response.data.announces;
+                if (!append) {
+                    this.peers = {};
                 }
+
+                this.totalPeersCount = response.data.total_count || 0;
+
+                for (const ann of newAnnounces) {
+                    this.updatePeerFromAnnounce(ann);
+                }
+
+                this.hasMoreAnnounces = newAnnounces.length === this.pageSize;
             } catch (e) {
-                // do nothing if failed to load announces
                 console.log(e);
+            } finally {
+                this.isLoadingMoreAnnounces = false;
             }
+        },
+        async loadMoreAnnounces() {
+            if (this.isLoadingMoreAnnounces || !this.hasMoreAnnounces) return;
+            this.isLoadingMoreAnnounces = true;
+            await this.getLxmfDeliveryAnnounces(true);
         },
         async getLxmfDeliveryAnnounce(destinationHash) {
             try {
@@ -310,19 +369,181 @@ export default {
                 console.log(e);
             }
         },
-        async getConversations() {
+        async getConversations(append = false) {
             try {
-                this.isLoadingConversations = true;
+                const shouldShowInitialLoading =
+                    !append && !this.hasLoadedConversations && this.conversations.length === 0;
+                if (shouldShowInitialLoading) {
+                    this.isLoadingConversations = true;
+                }
+
+                const offset = append ? this.conversations.length : 0;
                 const response = await window.axios.get(`/api/v1/lxmf/conversations`, {
-                    params: this.buildConversationQueryParams(),
+                    params: {
+                        ...this.buildConversationQueryParams(),
+                        limit: this.pageSize,
+                        offset: offset,
+                    },
                 });
-                this.conversations = response.data.conversations;
+
+                const newConversations = response.data.conversations;
+                if (append) {
+                    this.conversations = [...this.conversations, ...newConversations];
+                } else {
+                    this.conversations = newConversations;
+                }
+
+                for (const conversation of newConversations) {
+                    if (!conversation?.destination_hash) continue;
+                    const existingPeer = this.peers[conversation.destination_hash] || {};
+                    this.peers[conversation.destination_hash] = {
+                        ...existingPeer,
+                        destination_hash: conversation.destination_hash,
+                        display_name: conversation.display_name ?? existingPeer.display_name,
+                        custom_display_name: conversation.custom_display_name ?? existingPeer.custom_display_name,
+                        contact_image: conversation.contact_image ?? existingPeer.contact_image,
+                        lxmf_user_icon: conversation.lxmf_user_icon ?? existingPeer.lxmf_user_icon,
+                        updated_at: conversation.updated_at ?? existingPeer.updated_at,
+                        is_tracking: conversation.is_tracking ?? existingPeer.is_tracking,
+                    };
+                }
+
+                this.hasLoadedConversations = true;
+                this.hasMoreConversations = newConversations.length === this.pageSize;
             } catch (e) {
-                // do nothing if failed to load conversations
                 console.log(e);
             } finally {
                 this.isLoadingConversations = false;
+                this.isLoadingMore = false;
             }
+        },
+        async getFolders() {
+            try {
+                const response = await window.axios.get("/api/v1/lxmf/folders");
+                this.folders = response.data;
+            } catch (e) {
+                console.error("Failed to load folders", e);
+            }
+        },
+        async onCreateFolder(name) {
+            try {
+                await window.axios.post("/api/v1/lxmf/folders", { name });
+                await this.getFolders();
+                ToastUtils.success(this.$t("messages.folder_created"));
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_create_folder"));
+            }
+        },
+        async onRenameFolder({ id, name }) {
+            try {
+                await window.axios.patch(`/api/v1/lxmf/folders/${id}`, { name });
+                await this.getFolders();
+                ToastUtils.success(this.$t("messages.folder_renamed"));
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_rename_folder"));
+            }
+        },
+        async onDeleteFolder(id) {
+            try {
+                await window.axios.delete(`/api/v1/lxmf/folders/${id}`);
+                if (this.selectedFolderId === id) {
+                    this.selectedFolderId = null;
+                }
+                await this.getFolders();
+                await this.getConversations();
+                ToastUtils.success(this.$t("messages.folder_deleted"));
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_delete_folder"));
+            }
+        },
+        async onMoveToFolder({ peer_hashes, folder_id }) {
+            try {
+                // Treat 0 as null (Uncategorized) for the backend
+                const targetFolderId = folder_id === 0 ? null : folder_id;
+                await window.axios.post("/api/v1/lxmf/conversations/move-to-folder", {
+                    peer_hashes,
+                    folder_id: targetFolderId,
+                });
+                await this.getConversations();
+                ToastUtils.success(this.$t("messages.moved_to_folder"));
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_move_folder"));
+            }
+        },
+        async onBulkMarkAsRead(destination_hashes) {
+            try {
+                await window.axios.post("/api/v1/lxmf/conversations/bulk-mark-as-read", {
+                    destination_hashes,
+                });
+                await this.getConversations();
+                ToastUtils.success(this.$t("messages.marked_read"));
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_mark_read"));
+            }
+        },
+        async onBulkDelete(destination_hashes) {
+            try {
+                const confirmed = await DialogUtils.confirm(
+                    "Are you sure you want to delete these conversations? All messages will be lost.",
+                    "Delete Conversations"
+                );
+                if (!confirmed) return;
+
+                await window.axios.post("/api/v1/lxmf/conversations/bulk-delete", {
+                    destination_hashes,
+                });
+                await this.getConversations();
+                ToastUtils.success(this.$t("messages.conversations_deleted"));
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_delete_conversations"));
+            }
+        },
+        async onExportFolders() {
+            try {
+                const response = await window.axios.get("/api/v1/lxmf/folders/export");
+                const data = JSON.stringify(response.data, null, 2);
+                const blob = new Blob([data], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `meshchatx-folders-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_export_folders"));
+            }
+        },
+        async onImportFolders() {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (re) => {
+                    try {
+                        const data = JSON.parse(re.target.result);
+                        await window.axios.post("/api/v1/lxmf/folders/import", data);
+                        await this.getFolders();
+                        await this.getConversations();
+                        ToastUtils.success(this.$t("messages.folders_imported"));
+                    } catch {
+                        ToastUtils.error(this.$t("messages.failed_import_folders"));
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        },
+        onFolderClick(folderId) {
+            this.selectedFolderId = folderId;
+            this.requestConversationsRefresh();
+        },
+        async loadMoreConversations() {
+            if (this.isLoadingMore || !this.hasMoreConversations) return;
+            this.isLoadingMore = true;
+            await this.getConversations(true);
         },
         buildConversationQueryParams() {
             const params = {};
@@ -338,10 +559,22 @@ export default {
             if (this.filterHasAttachmentsOnly) {
                 params.filter_has_attachments = true;
             }
+            if (this.selectedFolderId !== null) {
+                params.folder_id = this.selectedFolderId;
+            }
             return params;
         },
         updatePeerFromAnnounce: function (announce) {
-            this.peers[announce.destination_hash] = announce;
+            const existing = this.peers[announce.destination_hash] || {};
+            this.peers[announce.destination_hash] = { ...existing, ...announce };
+        },
+        onUpdatePeerTracking({ destination_hash, is_tracking }) {
+            if (this.peers[destination_hash]) {
+                this.peers[destination_hash].is_tracking = is_tracking;
+            }
+            if (this.selectedPeer && this.selectedPeer.destination_hash === destination_hash) {
+                this.selectedPeer.is_tracking = is_tracking;
+            }
         },
         onPeerClick: function (peer) {
             // update selected peer
@@ -406,6 +639,15 @@ export default {
             }
             this.requestConversationsRefresh();
         },
+        onPeersSearchChanged(term) {
+            this.peersSearchTerm = term;
+            if (this.peersRefreshTimeout) {
+                clearTimeout(this.peersRefreshTimeout);
+            }
+            this.peersRefreshTimeout = setTimeout(() => {
+                this.getLxmfDeliveryAnnounces();
+            }, 500);
+        },
         openIngestPaperMessageModal() {
             this.ingestUri = "";
             this.isIngestModalOpen = true;
@@ -414,7 +656,7 @@ export default {
             try {
                 this.ingestUri = await navigator.clipboard.readText();
             } catch {
-                ToastUtils.error("Failed to read from clipboard");
+                ToastUtils.error(this.$t("messages.failed_read_clipboard"));
             }
         },
         async ingestPaperMessage() {
@@ -429,7 +671,7 @@ export default {
                 );
                 this.isIngestModalOpen = false;
             } catch {
-                ToastUtils.error("Failed to send ingest request");
+                ToastUtils.error(this.$t("messages.failed_send_ingest"));
             }
         },
         getHashPopoutValue() {
