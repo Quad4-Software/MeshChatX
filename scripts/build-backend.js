@@ -32,6 +32,7 @@ function generateManifest(buildDir, manifestPath) {
 
     for (const file of files) {
         const relativePath = path.relative(buildDir, file);
+        if (relativePath === "backend-manifest.json") continue;
         const fileBuffer = fs.readFileSync(file);
         const hash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
         manifest.files[relativePath] = hash;
@@ -42,8 +43,26 @@ function generateManifest(buildDir, manifestPath) {
 }
 
 try {
-    console.log("Building backend with cx_Freeze...");
-    const result = spawnSync("poetry", ["run", "python", "cx_setup.py", "build"], { stdio: "inherit", shell: false });
+    const platform = process.env.PLATFORM || process.platform;
+    const isWin = platform === "win32" || platform === "win";
+    const targetName = isWin ? "ReticulumMeshChatX.exe" : "ReticulumMeshChatX";
+    const buildDirRelative = isWin ? "build/exe/win32" : "build/exe/linux";
+    const buildDir = path.join(__dirname, "..", buildDirRelative);
+
+    console.log(
+        `Building backend for ${platform} (target: ${targetName}, output: ${buildDirRelative}) with cx_Freeze...`
+    );
+
+    const env = {
+        ...process.env,
+        CX_FREEZE_TARGET_NAME: targetName,
+        CX_FREEZE_BUILD_EXE: buildDirRelative,
+    };
+    const result = spawnSync("poetry", ["run", "python", "cx_setup.py", "build"], {
+        stdio: "inherit",
+        shell: false,
+        env: env,
+    });
     if (result.error) {
         throw result.error;
     }
@@ -51,13 +70,11 @@ try {
         process.exit(result.status || 1);
     }
 
-    const buildDir = path.join(__dirname, "..", "build", "exe");
-    const manifestPath = path.join(__dirname, "..", "electron", "backend-manifest.json");
-
     if (fs.existsSync(buildDir)) {
+        const manifestPath = path.join(buildDir, "backend-manifest.json");
         generateManifest(buildDir, manifestPath);
     } else {
-        console.error("Build directory not found, manifest generation skipped.");
+        console.error(`Build directory not found (${buildDir}), manifest generation skipped.`);
     }
 } catch (error) {
     console.error("Build failed:", error.message);

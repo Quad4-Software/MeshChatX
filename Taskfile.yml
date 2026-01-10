@@ -210,16 +210,18 @@ tasks:
 
     build-appimage:
         desc: Build Linux AppImage
-        deps: [build]
+        deps: [build-frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage"
 
     build-exe:
         desc: Build Windows portable executable
-        deps: [build]
+        deps: [build-frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --win portable"
 
     build-electron-linux:
@@ -250,6 +252,7 @@ tasks:
         desc: Build Electron ZIP archive using Electron Forge
         deps: [build-frontend]
         cmds:
+            - "PLATFORM=linux {{.NPM}} run build-backend"
             - "{{.NPM}} run dist:zip"
 
     build-electron-all:
@@ -257,7 +260,8 @@ tasks:
         deps: [build-frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
-            - "{{.NPM}} run build-backend"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
+            - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
 
     dist:
@@ -272,17 +276,19 @@ tasks:
 
     build-appimage-legacy:
         desc: Build Linux AppImage with legacy Electron version
-        deps: [build, electron-legacy]
+        deps: [build-frontend, electron-legacy]
         cmds:
             - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage -c.extraMetadata.main=electron/main-legacy.js"
             - "./scripts/rename_legacy_artifacts.sh"
 
     build-exe-legacy:
         desc: Build Windows portable executable with legacy Electron version
-        deps: [build, electron-legacy]
+        deps: [build-frontend, electron-legacy]
         cmds:
             - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --win portable -c.extraMetadata.main=electron/main-legacy.js"
             - "./scripts/rename_legacy_artifacts.sh"
 

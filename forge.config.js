@@ -1,10 +1,13 @@
 const { FusesPlugin } = require("@electron-forge/plugin-fuses");
 const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 
+const platform = process.env.PLATFORM || process.platform;
+const extraResourceDir = platform === "win32" || platform === "win" ? "build/exe/win32" : "build/exe/linux";
+
 module.exports = {
     packagerConfig: {
         asar: true,
-        extraResource: ["build/exe"],
+        extraResource: [extraResourceDir],
         executableName: "reticulum-meshchatx",
         name: "Reticulum MeshChatX",
         appBundleId: "com.sudoivan.reticulummeshchatx",

@@ -98,7 +98,7 @@ app.on("open-url", (event, url) => {
 });
 
 function verifyBackendIntegrity(exeDir) {
-    const manifestPath = path.join(__dirname, "backend-manifest.json");
+    const manifestPath = path.join(exeDir, "backend-manifest.json");
     if (!fs.existsSync(manifestPath)) {
         log("Backend integrity manifest missing, skipping check.");
         return { ok: true, issues: ["Manifest missing"] };
