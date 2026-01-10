@@ -3,21 +3,18 @@
 > [!IMPORTANT]  
 > v4 coming soon with release builds for Linux and Windows (Appimage and EXE portable/installer). As well as updated container images and wheel packages. You can test v4 using container by replacing normal image with `git.quad4.io/rns-things/meshchatx-dev:dev`
 
-Contact me for issues, ideas and how to get an account for this gitea instance:
+Contact me for any issues or ideas:
 
 ```
 LXMF: 7cc8d66b4f6a0e0e49d34af7f6077b5a
-XMPP: ivan@chat.quad4.io
-Email: ivan@quad4.io
 ```
 
-For issues contact me over LXMF: `73
 [![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
 [![Tests](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml)
 [![Build](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml)
 [![Docker](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/docker.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/docker.yml)
 
-A [Reticulum MeshChat](https://git.quad4.io/Reticulum/Reticulum) fork from the future.
+A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork from the future.
 
 <video src="https://strg.0rbitzer0.net/raw/62926a2a-0a9a-4f44-a5f6-000dd60deac1.mp4" controls="controls" style="max-width: 100%;"></video>
 
@@ -63,15 +60,16 @@ Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-bui
 ## Major Features
 
 - **Full LXST Support**: Custom voicemail, phonebook, contact sharing, and ringtone support.
+- **Interface Discovery and auto-connecting** - Discover interfaces, auto-connect or connect to trusted ones, map them all!
 - **Multi-Identity**: Switch between multiple Reticulum identities seamlessly.
 - **Modern UI/UX**: A completely redesigned, intuitive interface.
 - **Integrated Maps**: OpenLayers with MBTiles support for offline maps.
 - **Security**: Read more about it in the [Security](#security) section.
 - **Offline Docs**: Access Reticulum documentation without an internet connection.
-- **Expanded Tools**: Includes RNStatus, RNProbe, RNCP, Micron Editor, Paper Message Generator and a Translator.
+- **Expanded Tools**: Includes dozens of more tools.
 - **Page Archiving**: Built-in crawler and browser for archived pages offline.
-- **Banishment**: Banish LXMF users, Telephony, and NomadNet Nodes. (and unbanish them)
-- **i18n**: Support for English, German, and Russian.
+- **Banishment**: Banish LXMF users, Telephony, and NomadNet Nodes.
+- **i18n**: Support for English, German, Italian, and Russian.
 
 ## Screenshots
 
@@ -203,7 +201,6 @@ We use [Task](https://taskfile.dev/) for automation.
 | `task install`                | Install all dependencies                       |
 | `task run`                    | Run the application                            |
 | `task dev`                    | Run the application in development mode        |
-| `task check`                  | Run format, lint and test                      |
 | `task lint`                   | Run all linters (Python & Frontend)            |
 | `task lint-python`            | Lint Python code only                          |
 | `task lint-frontend`          | Lint frontend code only                        |
@@ -227,21 +224,19 @@ We use [Task](https://taskfile.dev/) for automation.
 | `task android-prepare`        | Prepare Android build                          |
 | `task android-build`          | Build Android APK                              |
 | `task build-flatpak`          | Build Flatpak package                          |
-| `task forge-start`            | Run the application with Electron Forge        |
-| `task forge-make`             | Generate distributables with Electron Forge    |
 | `task clean`                  | Clean build artifacts and dependencies         |
 
 ## Security
 
-- [ASAR Integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity) (Electron 39)
+- [ASAR Integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity) (Stable as of Electron 39)
 - Built-in automatic integrity checks on all files (frontend and backend)
 - HTTPS by default (automated locally generated certs)
-- 3-layer redundant CORS protection (loading.html, python backend server, electron main.js)
+- Redundant CORS protection (loading.html, python backend server, electron main.js)
 - Updated dependencies and daily scanning (OSV)
 - Container image scanning (Trivy)
-- SBOM for dependency observability and tracking (soon)
+- SBOM for dependency observability and tracking
 - Extensive testing and fuzzing.
-- Rootless docker images (soon)
+- Rootless docker images
 - Pinned actions and container images (supply chain security and deterministic builds)
 
 ## Credits
