@@ -227,12 +227,12 @@ tasks:
             - "{{.NPM}} run dist -- --win portable"
 
     build-exe-wine:
-        desc: Build Windows portable executable using Wine
+        desc: Build Windows portable executable and NSIS installer using Wine
         deps: [build-frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --win portable"
+            - "npx electron-builder --win portable nsis --publish=never"
 
     build-electron-linux:
         desc: Build Linux Electron app with prebuilt backend
@@ -275,13 +275,13 @@ tasks:
             - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
 
     build-electron-all-wine:
-        desc: Build all Electron apps using Wine for Windows backend
+        desc: Build all Electron apps (Linux + Windows via Wine)
         deps: [build-frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
+            - "npx electron-builder --linux AppImage deb --win portable nsis --publish=never"
 
     dist:
         desc: Build distribution (defaults to AppImage)
