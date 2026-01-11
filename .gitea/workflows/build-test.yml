@@ -99,9 +99,3 @@ jobs:
                       sha256sum "$file" | tee "${file}.sha256"
                     fi
                   done
-
-            - name: Upload artifacts
-              uses: https://git.quad4.io/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
-              with:
-                  name: meshchatx-artifacts
-                  path: release-assets/*

@@ -106,9 +106,6 @@ jobs:
                   WINEDEBUG: -all
               run: pnpm run dist:windows
 
-            - name: Build Electron App (ZIP)
-              run: task build-zip
-
             - name: Prepare release assets
               run: |
                   mkdir -p release-assets
@@ -117,8 +114,6 @@ jobs:
                   find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" -o -name "*-linux*.flatpak" \) -exec cp {} release-assets/ \;
                   # Windows artifacts
                   find dist -maxdepth 1 -type f \( -name "*-win*.exe" \) -exec cp {} release-assets/ \;
-                  # ZIP artifacts from Electron Forge
-                  find out/make -type f -name "*.zip" -exec cp {} release-assets/ \;
                   # Python artifacts
                   find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp {} release-assets/ \;
 
@@ -181,7 +176,6 @@ jobs:
                       release-assets/*.exe
                       release-assets/*.whl
                       release-assets/*.sha256
-                      release-assets/*.zip
                       release-assets/sbom.cyclonedx.json
                   body_path: "release-body.md"
                   draft: true
