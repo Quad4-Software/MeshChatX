@@ -175,6 +175,38 @@ If you want to run MeshChatX from the source code locally:
     poetry run meshchat --headless --host 127.0.0.1
     ```
 
+### Cross-Platform Building (Linux to Windows)
+
+If you are on Linux and want to build the Windows `.exe` and installer locally, you can use **Wine**.
+
+1. **Install Windows Python and Git inside Wine**:
+    ```bash
+    # Download Python installer
+    wget https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe
+    # Install Python to a specific path
+    wine python-3.13.1-amd64.exe /quiet InstallAllUsers=1 TargetDir=C:\Python313 PrependPath=1
+
+    # Download Git installer
+    wget https://github.com/git-for-windows/git/releases/download/v2.52.0.windows.1/Git-2.52.0-64-bit.exe
+    # Install Git (quietly)
+    wine Git-2.52.0-64-bit.exe /VERYSILENT /NORESTART
+    ```
+
+2. **Install Build Dependencies in Wine**:
+    ```bash
+    wine C:/Python313/python.exe -m pip install cx_Freeze poetry
+    wine C:/Python313/python.exe -m pip install -r requirements.txt
+    ```
+
+3. **Run the Build Task**:
+    ```bash
+    # Build only the Windows portable exe
+    WINE_PYTHON="wine C:/Python313/python.exe" task build-exe-wine
+
+    # Or build everything (Linux + Windows) at once
+    WINE_PYTHON="wine C:/Python313/python.exe" task build-electron-all-wine
+    ```
+
 ## Configuration
 
 MeshChatX can be configured via command-line arguments or environment variables.
@@ -216,8 +248,10 @@ We use [Task](https://taskfile.dev/) for automation.
 | `task run-docker`             | Run Docker container using docker-compose      |
 | `task build-appimage`         | Build Linux AppImage                           |
 | `task build-exe`              | Build Windows portable executable              |
+| `task build-exe-wine`         | Build Windows portable (Wine cross-build)      |
 | `task build-electron-linux`   | Build Linux Electron app                       |
 | `task build-electron-windows` | Build Windows Electron apps                    |
+| `task build-electron-all-wine`| Build all Electron apps (Wine cross-build)     |
 | `task android-prepare`        | Prepare Android build                          |
 | `task android-build`          | Build Android APK                              |
 | `task build-flatpak`          | Build Flatpak package                          |
