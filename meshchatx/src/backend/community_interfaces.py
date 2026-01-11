@@ -7,41 +7,6 @@ class CommunityInterfacesManager:
     def __init__(self):
         self.interfaces = [
             {
-                "name": "noDNS1",
-                "type": "TCPClientInterface",
-                "target_host": "202.61.243.41",
-                "target_port": 4965,
-                "description": "Public TCP Relay",
-            },
-            {
-                "name": "noDNS2",
-                "type": "TCPClientInterface",
-                "target_host": "193.26.158.230",
-                "target_port": 4965,
-                "description": "Public TCP Relay",
-            },
-            {
-                "name": "0rbit-Net",
-                "type": "TCPClientInterface",
-                "target_host": "93.95.227.8",
-                "target_port": 49952,
-                "description": "Public TCP Relay",
-            },
-            {
-                "name": "Quad4 TCP Node 1",
-                "type": "TCPClientInterface",
-                "target_host": "rns.quad4.io",
-                "target_port": 4242,
-                "description": "Public TCP Relay",
-            },
-            {
-                "name": "Quad4 TCP Node 2",
-                "type": "TCPClientInterface",
-                "target_host": "rns2.quad4.io",
-                "target_port": 4242,
-                "description": "Public TCP Relay",
-            },
-            {
                 "name": "RNS Testnet Amsterdam",
                 "type": "TCPClientInterface",
                 "target_host": "amsterdam.connect.reticulum.network",
