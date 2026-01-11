@@ -653,9 +653,9 @@
                         v-else
                         type="button"
                         class="px-8 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-sm transition-all"
-                        @click="finishAndRestart"
+                        @click="finishTutorial"
                     >
-                        {{ $t("tutorial.restart_start") }}
+                        {{ $t("tutorial.finish_setup") }}
                     </button>
                 </div>
             </v-card-actions>
@@ -1379,9 +1379,9 @@
                             v-else
                             type="button"
                             class="px-12 h-14 text-lg rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-sm transition-all"
-                            @click="finishAndRestart"
+                            @click="finishTutorial"
                         >
-                            {{ $t("tutorial.restart_start") }}
+                            {{ $t("tutorial.finish_setup") }}
                         </button>
                     </div>
                 </div>
@@ -1654,16 +1654,12 @@ export default {
                 console.error("Failed to mark tutorial as seen:", e);
             }
         },
-        async finishAndRestart() {
+        async finishTutorial() {
             await this.markSeen();
-            if (ElectronUtils.isElectron()) {
-                ElectronUtils.relaunch();
-            } else {
-                if (this.interfaceAddedViaTutorial) {
-                    ToastUtils.info(this.$t("tutorial.ready_desc"));
-                }
-                this.visible = false;
+            if (this.interfaceAddedViaTutorial) {
+                ToastUtils.info(this.$t("tutorial.ready_desc"));
             }
+            this.visible = false;
         },
         async onVisibleUpdate(val) {
             if (!val) {
