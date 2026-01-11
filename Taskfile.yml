@@ -7,6 +7,8 @@ vars:
         sh: echo "${NPM:-pnpm}"
     LEGACY_ELECTRON_VERSION:
         sh: echo "${LEGACY_ELECTRON_VERSION:-30.0.8}"
+    WINE_PYTHON:
+        sh: echo "${WINE_PYTHON:-wine python}"
     DOCKER_COMPOSE_CMD:
         sh: echo "${DOCKER_COMPOSE_CMD:-docker compose}"
     DOCKER_COMPOSE_FILE:
@@ -224,6 +226,14 @@ tasks:
             - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --win portable"
 
+    build-exe-wine:
+        desc: Build Windows portable executable using Wine
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --win portable"
+
     build-electron-linux:
         desc: Build Linux Electron app with prebuilt backend
         deps: [build-frontend]
@@ -262,6 +272,15 @@ tasks:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
+
+    build-electron-all-wine:
+        desc: Build all Electron apps using Wine for Windows backend
+        deps: [build-frontend]
+        cmds:
+            - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
+            - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
 
     dist:
