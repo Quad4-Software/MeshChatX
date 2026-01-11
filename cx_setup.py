@@ -14,6 +14,10 @@ build_exe_dir = os.environ.get("CX_FREEZE_BUILD_EXE", "build/exe")
 
 include_files = []
 
+changelog_path = ROOT / "CHANGELOG.md"
+if changelog_path.exists():
+    include_files.append((str(changelog_path), "CHANGELOG.md"))
+
 if PUBLIC_DIR.exists() and PUBLIC_DIR.is_dir():
     include_files.append((str(PUBLIC_DIR), "public"))
 
