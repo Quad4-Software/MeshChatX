@@ -34,22 +34,29 @@ jobs:
             - name: Determine version
               id: version
               run: |
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
-                    echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+                  VERSION=""
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    VERSION="${{ inputs.version || github.event.inputs.version }}"
+                  fi
+
+                  if [ -n "$VERSION" ]; then
+                    echo "Using version from input: $VERSION"
                   elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
                     VERSION="${GITHUB_REF#refs/tags/}"
                     if [ -z "${VERSION}" ]; then
                       VERSION="${{ github.ref_name }}"
                     fi
-                    if [ "${VERSION}" = "master" ]; then
-                      echo "Error: Invalid tag name '${VERSION}'. Tag name cannot be a branch name." >&2
-                      exit 1
-                    fi
-                    echo "version=${VERSION}" >> $GITHUB_OUTPUT
+                    echo "Using version from tag: $VERSION"
                   else
-                    SHORT_SHA=$(git rev-parse --short HEAD)
-                    echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
+                    VERSION=$(git rev-parse --short HEAD)
+                    echo "Using version from SHA: $VERSION"
                   fi
+
+                  if [ "${VERSION}" = "master" ] || [ -z "${VERSION}" ]; then
+                    echo "Error: Invalid version '${VERSION}'. Version cannot be 'master' or empty." >&2
+                    exit 1
+                  fi
+                  echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
             - name: Install NodeJS
               uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
