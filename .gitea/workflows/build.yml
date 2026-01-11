@@ -184,5 +184,5 @@ jobs:
                       release-assets/*.zip
                       release-assets/sbom.cyclonedx.json
                   body_path: "release-body.md"
-                  draft: false
+                  draft: true
                   prerelease: false
