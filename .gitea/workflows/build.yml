@@ -121,7 +121,7 @@ jobs:
                   (cd meshchatx/public && zip -r ../../release-assets/meshchatx-frontend.zip .)
 
                   # Generate SBOM (CycloneDX)
-                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Extra/assets/raw/commit/90fdcea1bb71d91df2de6ff2e3897f278413f300/bin/trivy_0.68.2_Linux-64bit.deb
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/917e0e52b2f663cbbe13e63b7176262e248265ae/trivy_0.68.2_Linux-64bit.deb
                   sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
                   trivy fs --format cyclonedx --include-dev-deps --output release-assets/sbom.cyclonedx.json .
 
