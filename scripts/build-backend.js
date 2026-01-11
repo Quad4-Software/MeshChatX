@@ -49,8 +49,11 @@ try {
     const buildDirRelative = isWin ? "build/exe/win32" : "build/exe/linux";
     const buildDir = path.join(__dirname, "..", buildDirRelative);
 
+    // Allow overriding the python command (e.g., to use wine python for cross-builds)
+    const pythonCmd = process.env.PYTHON_CMD || "poetry run python";
+
     console.log(
-        `Building backend for ${platform} (target: ${targetName}, output: ${buildDirRelative}) with cx_Freeze...`
+        `Building backend for ${platform} (target: ${targetName}, output: ${buildDirRelative}) using: ${pythonCmd}`
     );
 
     const env = {
@@ -58,7 +61,13 @@ try {
         CX_FREEZE_TARGET_NAME: targetName,
         CX_FREEZE_BUILD_EXE: buildDirRelative,
     };
-    const result = spawnSync("poetry", ["run", "python", "cx_setup.py", "build"], {
+
+    // Split pythonCmd to handle arguments like "wine python"
+    const cmdParts = pythonCmd.split(" ");
+    const cmd = cmdParts[0];
+    const args = [...cmdParts.slice(1), "cx_setup.py", "build"];
+
+    const result = spawnSync(cmd, args, {
         stdio: "inherit",
         shell: false,
         env: env,

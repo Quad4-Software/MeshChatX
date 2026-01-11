@@ -539,10 +539,14 @@ app.whenReady().then(async () => {
         }
 
         // spawn executable
-        exeChildProcess = await spawn(exe, [
+        exeChildProcess = spawn(exe, [
             ...requiredArguments, // always provide required arguments
             ...userProvidedArguments, // also include any user provided arguments
         ]);
+
+        if (!exeChildProcess || !exeChildProcess.pid) {
+            throw new Error("Failed to start backend process (no PID).");
+        }
 
         // log stdout
         var stdoutLines = [];
