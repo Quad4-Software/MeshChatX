@@ -3634,9 +3634,13 @@ class ReticulumMeshChat:
         async def app_changelog(request):
             changelog_path = get_file_path("CHANGELOG.md")
             if not os.path.exists(changelog_path):
+                # try in public folder
+                changelog_path = get_file_path("public/CHANGELOG.md")
+
+            if not os.path.exists(changelog_path):
                 # try project root if not found in package
                 changelog_path = os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    os.path.dirname(os.path.dirname(__file__)),
                     "CHANGELOG.md",
                 )
 
@@ -11579,10 +11583,15 @@ def main():
         type=int,
         help="The port the web server should listen on. Can also be set via MESHCHAT_PORT environment variable.",
     )
+    # If we are running from a frozen application (AppImage, EXE, etc),
+    # we should default to headless mode unless explicitly requested.
+    is_frozen = getattr(sys, "frozen", False)
+    default_headless = env_bool("MESHCHAT_HEADLESS", is_frozen)
+
     parser.add_argument(
         "--headless",
         action="store_true",
-        default=env_bool("MESHCHAT_HEADLESS", False),
+        default=default_headless,
         help="Web browser will not automatically launch when this flag is passed. Can also be set via MESHCHAT_HEADLESS environment variable.",
     )
     parser.add_argument(
