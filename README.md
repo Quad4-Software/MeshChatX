@@ -1,7 +1,7 @@
 # Reticulum MeshChatX
 
-> [!IMPORTANT]  
-> v4 coming soon with release builds for Linux and Windows (Appimage and EXE portable/installer). As well as updated container images and wheel packages. You can test v4 using container by replacing normal image with `git.quad4.io/rns-things/meshchatx-dev:dev`
+> [!WARNING]  
+> Backup your reticulum-meshchat folder before using! MeshChatX will attempt to auto-migrate whatever it can from the old database without breaking things, but it is best to keep backups.
 
 Contact me for any issues or ideas:
 
@@ -20,8 +20,6 @@ A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork fr
 
 This project is separate from the original Reticulum MeshChat project, and is not affiliated with the original project.
 
-> [!WARNING]  
-> Backup your reticulum-meshchat folder before using! MeshChatX will attempt to auto-migrate whatever it can from the old database without breaking things, but it is best to keep backups.
 
 ## Goal
 
@@ -47,7 +45,6 @@ docker run -d \
   --name=meshchatx \
   -p 8000:8000 \
   -v $PWD/storage:/app/storage \
-  -v $PWD/public:/app/public \
   # --network=host \  # Uncomment for autointerface support
   git.quad4.io/rns-things/meshchatx:latest
 
