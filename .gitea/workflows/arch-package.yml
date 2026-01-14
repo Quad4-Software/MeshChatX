@@ -17,7 +17,7 @@ jobs:
 
             - name: Build Arch Package
               run: |
-                  docker build -t arch-builder -f Dockerfile.arch-builder .
+                  docker build --no-cache -t arch-builder -f Dockerfile.arch-builder .
                   docker run --rm -v ${{ github.workspace }}/packaging/arch:/home/build/project arch-builder
 
             - name: Upload Artifact
