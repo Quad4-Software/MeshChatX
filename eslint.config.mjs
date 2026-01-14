@@ -33,6 +33,7 @@ export default [
             "**/*.proto",
             "**/tests/**",
             "**/.pnpm-store/**",
+            "**/packaging/**",
         ],
     },
     {
