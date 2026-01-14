@@ -111,7 +111,8 @@ jobs:
             - name: Build Electron App (Windows EXE and NSIS)
               env:
                   WINEDEBUG: -all
-              run: pnpm run dist:windows
+                  WINE_PYTHON: "wine C:/Python313/python.exe"
+              run: task build-exe-wine
 
             - name: Prepare release assets
               run: |
