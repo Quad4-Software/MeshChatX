@@ -28,12 +28,16 @@ RUN useradd -m build && \
     echo "build ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/build
 
 # Set up build directory
-USER build
+RUN mkdir -p /home/build/project && chown build:build /home/build/project
 WORKDIR /home/build/project
 
-# Copy packaging files
-COPY --chown=build:build packaging/arch /home/build/project/packaging/arch
+# Copy packaging files (optional if mounting, but good for standalone)
+COPY --chown=build:build packaging/arch /home/build/project/
 
 # Default command to build the package
-CMD ["/bin/bash", "-c", "cd packaging/arch && makepkg -s --noconfirm"]
+# We use a script to handle potential permission issues with volume mounts
+RUN echo '#!/bin/bash\nsudo chown -R build:build /home/build/project\ncd /home/build/project\nsudo -u build makepkg -s --noconfirm' > /usr/local/bin/build.sh && \
+    chmod +x /usr/local/bin/build.sh
+
+CMD ["/usr/local/bin/build.sh"]
 

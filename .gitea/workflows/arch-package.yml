@@ -18,7 +18,7 @@ jobs:
             - name: Build Arch Package
               run: |
                   docker build -t arch-builder -f Dockerfile.arch-builder .
-                  docker run --rm -v $(pwd):/home/build/project arch-builder
+                  docker run --rm -v ${{ github.workspace }}/packaging/arch:/home/build/project arch-builder
 
             - name: Upload Artifact
               uses: https://git.quad4.io/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
