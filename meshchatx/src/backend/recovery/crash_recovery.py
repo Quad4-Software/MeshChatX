@@ -95,7 +95,9 @@ class CrashRecovery:
         out.write("\nProbabilistic Root Cause Analysis:\n")
         causes = self._analyze_cause(exc_type, exc_value, diagnosis_results)
         for cause in causes:
-            out.write(f"  - [{cause['probability']}% Probability] {cause['description']}\n")
+            out.write(
+                f"  - [{cause['probability']}% Probability] {cause['description']}\n",
+            )
             out.write(f"    Reasoning: {cause['reasoning']}\n")
 
         out.write("\nTechnical Traceback:\n")
@@ -103,7 +105,7 @@ class CrashRecovery:
 
         out.write("\n" + "=" * 70 + "\n")
         out.write("Recovery Suggestions:\n")
-        
+
         # Dynamic suggestions based on causes
         if causes:
             for i, cause in enumerate(causes, 1):
@@ -118,7 +120,7 @@ class CrashRecovery:
             out.write(
                 "  3. If database corruption is suspected, try starting with --auto-recover.\n",
             )
-        
+
         out.write(
             "  *. If the issue persists, report it to Ivan over another LXMF client: 7cc8d66b4f6a0e0e49d34af7f6077b5a\n",
         )
@@ -138,63 +140,103 @@ class CrashRecovery:
         if "sqlite3" in error_type.lower() or "database" in error_msg:
             if "no such table" in error_msg:
                 if "config" in error_msg and "memory" in diagnosis.get("db_type", ""):
-                    causes.append({
-                        "probability": 95,
-                        "description": "In-Memory Database Sync Failure",
-                        "reasoning": "A background thread attempted to access an in-memory database that was not initialized in its local context. This usually indicates a failure in connection sharing across threads.",
-                        "suggestions": ["Ensure the application is using a shared connection for :memory: databases.", "Update to the latest version of MeshChatX which includes a fix for this."]
-                    })
+                    causes.append(
+                        {
+                            "probability": 95,
+                            "description": "In-Memory Database Sync Failure",
+                            "reasoning": "A background thread attempted to access an in-memory database that was not initialized in its local context. This usually indicates a failure in connection sharing across threads.",
+                            "suggestions": [
+                                "Ensure the application is using a shared connection for :memory: databases.",
+                                "Update to the latest version of MeshChatX which includes a fix for this.",
+                            ],
+                        },
+                    )
                 else:
-                    causes.append({
-                        "probability": 90,
-                        "description": "Database Schema Inconsistency",
-                        "reasoning": "The application expected a database table that does not exist. This typically happens during failed migrations or when using an uninitialized database.",
-                        "suggestions": ["Run with --auto-recover to re-initialize the database.", "Ensure you are not running multiple instances sharing the same storage directory."]
-                    })
+                    causes.append(
+                        {
+                            "probability": 90,
+                            "description": "Database Schema Inconsistency",
+                            "reasoning": "The application expected a database table that does not exist. This typically happens during failed migrations or when using an uninitialized database.",
+                            "suggestions": [
+                                "Run with --auto-recover to re-initialize the database.",
+                                "Ensure you are not running multiple instances sharing the same storage directory.",
+                            ],
+                        },
+                    )
             elif "corrupt" in error_msg or "malformed" in error_msg:
-                causes.append({
-                    "probability": 95,
-                    "description": "SQLite Database Corruption",
-                    "reasoning": "The database file on disk has become physically or logically corrupted, possibly due to a sudden power loss or filesystem error.",
-                    "suggestions": ["Use --auto-recover to attempt a repair.", "Restore from a recent backup using --restore-db <backup_path>."]
-                })
+                causes.append(
+                    {
+                        "probability": 95,
+                        "description": "SQLite Database Corruption",
+                        "reasoning": "The database file on disk has become physically or logically corrupted, possibly due to a sudden power loss or filesystem error.",
+                        "suggestions": [
+                            "Use --auto-recover to attempt a repair.",
+                            "Restore from a recent backup using --restore-db <backup_path>.",
+                        ],
+                    },
+                )
 
         # Asyncio/Event loop patterns
-        if "asyncio" in error_msg or "event loop" in error_msg or "runtimeerror" in error_type:
-            if "no current event loop" in error_msg or "no running event loop" in error_msg:
-                causes.append({
-                    "probability": 85,
-                    "description": "Asynchronous Initialization Race Condition",
-                    "reasoning": "A component tried to access the asyncio event loop before it was started in the main thread. This often occurs during early application bootstrap.",
-                    "suggestions": ["Check if you are running a supported Python version (3.10+ recommended).", "Verify that background tasks are correctly deferred until the loop is running."]
-                })
+        if (
+            "asyncio" in error_msg
+            or "event loop" in error_msg
+            or "runtimeerror" in error_type
+        ):
+            if (
+                "no current event loop" in error_msg
+                or "no running event loop" in error_msg
+            ):
+                causes.append(
+                    {
+                        "probability": 85,
+                        "description": "Asynchronous Initialization Race Condition",
+                        "reasoning": "A component tried to access the asyncio event loop before it was started in the main thread. This often occurs during early application bootstrap.",
+                        "suggestions": [
+                            "Check if you are running a supported Python version (3.10+ recommended).",
+                            "Verify that background tasks are correctly deferred until the loop is running.",
+                        ],
+                    },
+                )
 
         # Environment patterns
         if diagnosis.get("low_memory"):
-            causes.append({
-                "probability": 70,
-                "description": "System Resource Exhaustion (OOM)",
-                "reasoning": f"Available system memory is extremely low ({diagnosis.get('available_mem_mb')} MB). The OS likely terminated the process or a library failed to allocate memory.",
-                "suggestions": ["Close other memory-intensive applications.", "Add more RAM or swap space to the system."]
-            })
+            causes.append(
+                {
+                    "probability": 70,
+                    "description": "System Resource Exhaustion (OOM)",
+                    "reasoning": f"Available system memory is extremely low ({diagnosis.get('available_mem_mb')} MB). The OS likely terminated the process or a library failed to allocate memory.",
+                    "suggestions": [
+                        "Close other memory-intensive applications.",
+                        "Add more RAM or swap space to the system.",
+                    ],
+                },
+            )
 
         if diagnosis.get("config_missing"):
-            causes.append({
-                "probability": 99,
-                "description": "Missing Reticulum Configuration",
-                "reasoning": "The Reticulum Network Stack (RNS) could not find its configuration file. RNS cannot initialize interfaces or identities without this file.",
-                "suggestions": ["Ensure ~/.reticulum/config exists or provide a custom path via --reticulum-config-dir."]
-            })
+            causes.append(
+                {
+                    "probability": 99,
+                    "description": "Missing Reticulum Configuration",
+                    "reasoning": "The Reticulum Network Stack (RNS) could not find its configuration file. RNS cannot initialize interfaces or identities without this file.",
+                    "suggestions": [
+                        "Ensure ~/.reticulum/config exists or provide a custom path via --reticulum-config-dir.",
+                    ],
+                },
+            )
 
         # Python Version patterns
         py_version = sys.version_info
         if py_version.major < 3 or (py_version.major == 3 and py_version.minor < 10):
-            causes.append({
-                "probability": 60,
-                "description": "Unsupported Python Version",
-                "reasoning": f"The application is running on Python {py_version.major}.{py_version.minor}. Modern MeshChatX features require Python 3.10 or higher for stability and asyncio compatibility.",
-                "suggestions": ["Upgrade to Python 3.10+ (current: 3.11/3.12/3.13/3.14 is recommended)."]
-            })
+            causes.append(
+                {
+                    "probability": 60,
+                    "description": "Unsupported Python Version",
+                    "reasoning": f"The application is running on Python {py_version.major}.{py_version.minor}. Modern MeshChatX features require Python 3.10 or higher for stability and asyncio compatibility.",
+                    "suggestions": [
+                        "Upgrade to Python 3.10+ (current: 3.11/3.12/3.13/3.14 is recommended).",
+                    ],
+                },
+            )
 
         return causes
 
@@ -204,9 +246,9 @@ class CrashRecovery:
             "low_memory": False,
             "config_missing": False,
             "available_mem_mb": 0,
-            "db_type": "file"
+            "db_type": "file",
         }
-        
+
         # Basic System Info
         file.write(
             f"- OS: {platform.system()} {platform.release()} ({platform.machine()})\n",
@@ -399,5 +441,5 @@ class CrashRecovery:
                         )
             except Exception:
                 pass
-        
+
         return results
