@@ -1,12 +1,15 @@
 import html
 import json
 import math
+import os
+import shutil
 
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from meshchatx.src.backend.colour_utils import ColourUtils
+from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
 from meshchatx.src.backend.lxmf_utils import convert_db_lxmf_message_to_dict
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
@@ -337,3 +340,60 @@ def test_markdown_renderer_headers(content):
         result = MarkdownRenderer.render(input_text)
         assert "<h1" in result
         assert html.escape(content) in result
+
+
+@given(data=st.binary())
+def test_identity_restore_robustness(data):
+    manager = IdentityManager("/tmp/test_identities")
+    try:
+        # Should either return a dict or raise ValueError, but not crash
+        manager.restore_identity_from_bytes(data)
+    except ValueError:
+        pass
+    except Exception as e:
+        pytest.fail(f"restore_identity_from_bytes crashed with: {e}")
+    finally:
+        if os.path.exists("/tmp/test_identities"):
+            shutil.rmtree("/tmp/test_identities")
+
+
+@given(data=st.text())
+def test_identity_restore_base32_robustness(data):
+    manager = IdentityManager("/tmp/test_identities_b32")
+    try:
+        manager.restore_identity_from_base32(data)
+    except ValueError:
+        pass
+    except Exception as e:
+        pytest.fail(f"restore_identity_from_base32 crashed with: {e}")
+    finally:
+        if os.path.exists("/tmp/test_identities_b32"):
+            shutil.rmtree("/tmp/test_identities_b32")
+
+
+@given(
+    st.lists(
+        st.text(min_size=1).filter(
+            lambda x: "\n" not in x and x.strip() and x.isalnum()
+        )
+    )
+)
+def test_markdown_renderer_list_rendering(items):
+    if not items:
+        return
+    markdown = "\n".join([f"* {item}" for item in items])
+    html_output = MarkdownRenderer.render(markdown)
+    assert "<ul" in html_output
+    for item in items:
+        assert item in html_output
+
+
+@given(
+    st.text(min_size=1).filter(lambda x: x.isalnum()),
+    st.text(min_size=1).filter(lambda x: x.isalnum()),
+)
+def test_markdown_renderer_link_rendering(label, url):
+    markdown = f"[{label}]({url})"
+    html_output = MarkdownRenderer.render(markdown)
+    assert "<a href=" in html_output
+    assert label in html_output

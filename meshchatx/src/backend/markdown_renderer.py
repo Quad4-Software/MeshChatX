@@ -72,10 +72,10 @@ class MarkdownRenderer:
         # Bold and Italic
         text = re.sub(r"\*\*\*(.*?)\*\*\*", r"<strong><em>\1</em></strong>", text)
         text = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", text)
-        text = re.sub(r"\*(.*?)\*", r"<em>\1</em>", text)
+        text = re.sub(r"\*(?!\s)(.*?)(?<!\s)\*", r"<em>\1</em>", text)
         text = re.sub(r"___(.*?)___", r"<strong><em>\1</em></strong>", text)
         text = re.sub(r"__(.*?)__", r"<strong>\1</strong>", text)
-        text = re.sub(r"_(.*?)_", r"<em>\1</em>", text)
+        text = re.sub(r"_(?!\s)(.*?)(?<!\s)_", r"<em>\1</em>", text)
 
         # Strikethrough
         text = re.sub(r"~~(.*?)~~", r"<del>\1</del>", text)
