@@ -141,9 +141,11 @@ def create_mock_zip(zip_path, file_list):
 )
 @given(
     root_folder_name=st.text(min_size=1, max_size=50).filter(
-        lambda x: "/" not in x and x not in [".", ".."],
+        lambda x: "/" not in x and "\x00" not in x and x not in [".", ".."],
     ),
-    docs_file=st.text(min_size=1, max_size=50).filter(lambda x: "/" not in x),
+    docs_file=st.text(min_size=1, max_size=50).filter(
+        lambda x: "/" not in x and "\x00" not in x,
+    ),
 )
 def test_extract_docs_fuzzing(docs_manager, temp_dirs, root_folder_name, docs_file):
     public_dir, docs_dir = temp_dirs

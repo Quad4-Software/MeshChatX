@@ -1,7 +1,13 @@
 import asyncio
+import os
+import tempfile
 from unittest.mock import patch
 
 import pytest
+
+# Set log dir to a temporary directory for tests to avoid permission issues
+# in restricted environments like sandboxes.
+os.environ["MESHCHAT_LOG_DIR"] = tempfile.mkdtemp()
 
 
 @pytest.fixture(autouse=True)
