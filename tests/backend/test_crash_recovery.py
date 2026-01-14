@@ -119,7 +119,27 @@ class TestCrashRecovery(unittest.TestCase):
         self.assertIn("!!! APPLICATION CRASH DETECTED !!!", report)
         self.assertIn("Type:    ValueError", report)
         self.assertIn("Message: Simulated error for testing", report)
+        self.assertIn("Probabilistic Root Cause Analysis:", report)
         self.assertIn("Recovery Suggestions:", report)
+
+    def test_heuristic_analysis_sqlite(self):
+        exc_type = type("OperationalError", (Exception,), {})
+        exc_type.__name__ = "sqlite3.OperationalError"
+        exc_value = Exception("no such table: config")
+        diagnosis = {"db_type": "memory"}
+
+        causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        self.assertTrue(len(causes) > 0)
+        self.assertEqual(causes[0]["description"], "In-Memory Database Sync Failure")
+
+    def test_heuristic_analysis_asyncio(self):
+        exc_type = RuntimeError
+        exc_value = RuntimeError("no current event loop")
+        diagnosis = {}
+
+        causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        self.assertTrue(len(causes) > 0)
+        self.assertIn("Asynchronous Initialization", causes[0]["description"])
 
 
 if __name__ == "__main__":

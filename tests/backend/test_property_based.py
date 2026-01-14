@@ -374,9 +374,9 @@ def test_identity_restore_base32_robustness(data):
 @given(
     st.lists(
         st.text(min_size=1).filter(
-            lambda x: "\n" not in x and x.strip() and x.isalnum()
-        )
-    )
+            lambda x: "\n" not in x and x.strip() and x.isalnum(),
+        ),
+    ),
 )
 def test_markdown_renderer_list_rendering(items):
     if not items:

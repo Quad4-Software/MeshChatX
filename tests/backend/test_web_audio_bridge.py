@@ -1,8 +1,14 @@
 import asyncio
+from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
 
-from meshchatx.src.backend.web_audio_bridge import WebAudioSink, WebAudioSource
+from meshchatx.src.backend.web_audio_bridge import (
+    WebAudioBridge,
+    WebAudioSink,
+    WebAudioSource,
+)
 
 
 class _DummySink:
@@ -37,3 +43,36 @@ def test_web_audio_sink_encodes_and_sends_bytes():
     loop.run_until_complete(asyncio.sleep(0.01))
     loop.close()
     assert sent, "expected audio bytes to be queued for sending"
+
+
+@pytest.mark.asyncio
+async def test_web_audio_bridge_lazy_loop():
+    """Test that WebAudioBridge retrieves the loop lazily to avoid startup crashes."""
+    mock_tele_mgr = MagicMock()
+    mock_config_mgr = MagicMock()
+
+    # Mock get_event_loop to simulate it not being available during init
+    with patch("asyncio.get_event_loop", side_effect=RuntimeError("No running loop")):
+        bridge = WebAudioBridge(mock_tele_mgr, mock_config_mgr)
+        assert bridge._loop is None
+
+        # Simulate a running loop
+        current_loop = asyncio.get_running_loop()
+        assert bridge.loop == current_loop
+        assert bridge._loop == current_loop
+
+
+def test_web_audio_bridge_asyncutils_fallback():
+    """Test that WebAudioBridge falls back to AsyncUtils.main_loop if no loop is running."""
+    from meshchatx.src.backend.async_utils import AsyncUtils
+
+    mock_loop = MagicMock(spec=asyncio.AbstractEventLoop)
+    AsyncUtils.set_main_loop(mock_loop)
+
+    mock_tele_mgr = MagicMock()
+    mock_config_mgr = MagicMock()
+
+    with patch("asyncio.get_running_loop", side_effect=RuntimeError):
+        bridge = WebAudioBridge(mock_tele_mgr, mock_config_mgr)
+        assert bridge.loop == mock_loop
+        assert bridge._loop == mock_loop

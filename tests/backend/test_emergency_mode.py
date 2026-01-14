@@ -1,12 +1,14 @@
 import os
 import shutil
 import tempfile
+import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
 
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.database.provider import DatabaseProvider
 
 
 @pytest.fixture
@@ -221,3 +223,45 @@ def test_normal_mode_startup_logic(mock_rns, temp_dir):
 
         # Verify IntegrityManager.save_manifest WAS called
         assert mock_integrity_instance.save_manifest.call_count == 1
+
+
+def test_emergency_mode_memory_concurrency(mock_rns, temp_dir):
+    """Verify that :memory: database connection is shared across threads."""
+    # Reset singleton
+    DatabaseProvider._instance = None
+
+    with (
+        patch(
+            "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
+        ),
+        patch("meshchatx.src.backend.identity_context.create_lxmf_router"),
+        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.memory_log_handler"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+            emergency=True,
+        )
+
+        ctx = app.current_context
+        provider = ctx.database.provider
+        assert provider.db_path == ":memory:"
+
+        # Set value in main thread
+        test_name = "Emergency Worker"
+        ctx.config.display_name.set(test_name)
+
+        # Simulate another thread by swapping thread-local storage
+        original_local = provider._local
+        provider._local = threading.local()
+
+        try:
+            # Should still return the SAME connection object because of the fix
+            val = ctx.config.display_name.get()
+            assert val == test_name
+        finally:
+            provider._local = original_local
+
+    DatabaseProvider._instance = None
