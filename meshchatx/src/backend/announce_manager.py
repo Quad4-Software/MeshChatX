@@ -89,3 +89,44 @@ class AnnounceManager:
             params.extend([limit, offset])
 
         return self.db.provider.fetchall(sql, params)
+
+    def get_filtered_announces_count(
+        self,
+        aspect=None,
+        identity_hash=None,
+        destination_hash=None,
+        query=None,
+        blocked_identity_hashes=None,
+    ):
+        sql = """
+            SELECT COUNT(*) as count
+            FROM announces a
+            LEFT JOIN contacts c ON (
+                a.identity_hash = c.remote_identity_hash OR 
+                a.destination_hash = c.lxmf_address OR 
+                a.destination_hash = c.lxst_address
+            )
+            WHERE 1=1
+        """
+        params = []
+
+        if aspect:
+            sql += " AND a.aspect = ?"
+            params.append(aspect)
+        if identity_hash:
+            sql += " AND a.identity_hash = ?"
+            params.append(identity_hash)
+        if destination_hash:
+            sql += " AND a.destination_hash = ?"
+            params.append(destination_hash)
+        if query:
+            like_term = f"%{query}%"
+            sql += " AND (a.destination_hash LIKE ? OR a.identity_hash LIKE ?)"
+            params.extend([like_term, like_term])
+        if blocked_identity_hashes:
+            placeholders = ", ".join(["?"] * len(blocked_identity_hashes))
+            sql += f" AND a.identity_hash NOT IN ({placeholders})"
+            params.extend(blocked_identity_hashes)
+
+        result = self.db.provider.fetchone(sql, params)
+        return result["count"] if result else 0

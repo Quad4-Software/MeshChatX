@@ -5525,13 +5525,39 @@ class ReticulumMeshChat:
                 blocked_identity_hashes = [b["destination_hash"] for b in blocked]
 
             # fetch announces from database
+            # If we don't have a search query, we can paginate at the database level
+            # which is much faster than fetching thousands of records and then paginating in Python.
+            db_limit = limit if not search_query else None
+            db_offset = offset if not search_query else 0
+
             results = self.announce_manager.get_filtered_announces(
                 aspect=aspect,
                 identity_hash=identity_hash,
                 destination_hash=destination_hash,
                 query=None,  # We filter in Python to support name search
                 blocked_identity_hashes=blocked_identity_hashes,
+                limit=db_limit,
+                offset=db_offset,
             )
+
+            # fetch total count if we paginated in DB
+            total_count = 0
+            if not search_query:
+                # Get the count from the database for the same filters
+                # We should probably add a get_filtered_announces_count method to announce_manager
+                if db_limit is None:
+                    total_count = len(results)
+                else:
+                    # We need the total count for pagination to work in the frontend
+                    total_count = self.announce_manager.get_filtered_announces_count(
+                        aspect=aspect,
+                        identity_hash=identity_hash,
+                        destination_hash=destination_hash,
+                        query=None,
+                        blocked_identity_hashes=blocked_identity_hashes,
+                    )
+
+            # ... rest of processing ...
 
             # pre-fetch icons and other data to avoid N+1 queries in convert_db_announce_to_dict
             other_user_hashes = [r["destination_hash"] for r in results]
@@ -5671,13 +5697,14 @@ class ReticulumMeshChat:
                     )
                 ]
 
-            # apply pagination
-            total_count = len(all_announces)
-            if offset is not None or limit is not None:
+                # Re-calculate total_count after search filter
+                total_count = len(all_announces)
+                # apply pagination after search
                 start = offset
                 end = start + (limit if limit is not None else total_count)
                 paginated_results = all_announces[start:end]
             else:
+                # We already paginated in DB, and total_count was calculated before processing
                 paginated_results = all_announces
 
             return web.json_response(
