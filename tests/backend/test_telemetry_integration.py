@@ -1,6 +1,8 @@
-import pytest
 import time
 from unittest.mock import MagicMock
+
+import pytest
+
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
@@ -49,7 +51,9 @@ async def test_process_incoming_telemetry_single(mock_app):
     mock_lxmf_message.hash = b"msg_hash"
 
     mock_app.process_incoming_telemetry(
-        source_hash, packed_telemetry, mock_lxmf_message
+        source_hash,
+        packed_telemetry,
+        mock_lxmf_message,
     )
 
     # Verify database call
@@ -108,14 +112,15 @@ async def test_telemetry_request_parsing(mock_app):
 
     # Bind on_lxmf_delivery
     mock_app.on_lxmf_delivery = ReticulumMeshChat.on_lxmf_delivery.__get__(
-        mock_app, ReticulumMeshChat
+        mock_app,
+        ReticulumMeshChat,
     )
 
     # Mocking dependencies
     mock_app.is_destination_blocked.return_value = False
     mock_app.current_context.config.telemetry_enabled.get.return_value = True
     mock_app.database.contacts.get_contact_by_identity_hash.return_value = {
-        "is_telemetry_trusted": True
+        "is_telemetry_trusted": True,
     }
     mock_app.database.messages.get_lxmf_message_by_hash.return_value = {}  # To avoid JSON error
 
@@ -124,7 +129,7 @@ async def test_telemetry_request_parsing(mock_app):
 
     # Verify handle_telemetry_request was called
     mock_app.handle_telemetry_request.assert_called_with(
-        "736f757263655f686173685f6279746573"
+        "736f757263655f686173685f6279746573",
     )
 
 
@@ -135,4 +140,3 @@ async def test_tracking_toggle_endpoint(mock_app):
 
     # We can't easily test the web endpoint here without more setup,
     # but we can test the logic it calls if it was refactored into a method.
-    pass

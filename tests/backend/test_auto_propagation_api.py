@@ -3,8 +3,10 @@ import json
 import shutil
 import tempfile
 from unittest.mock import MagicMock, patch
+
 import pytest
 import RNS
+
 from meshchatx.meshchat import ReticulumMeshChat
 
 
@@ -78,7 +80,7 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     mock_request = MagicMock()
     mock_request.json = MagicMock(return_value=asyncio.Future())
     mock_request.json.return_value.set_result(
-        {"lxmf_preferred_propagation_node_auto_select": True}
+        {"lxmf_preferred_propagation_node_auto_select": True},
     )
 
     response = await patch_handler(mock_request)
@@ -90,7 +92,7 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     mock_request = MagicMock()
     mock_request.json = MagicMock(return_value=asyncio.Future())
     mock_request.json.return_value.set_result(
-        {"lxmf_preferred_propagation_node_auto_select": False}
+        {"lxmf_preferred_propagation_node_auto_select": False},
     )
 
     response = await patch_handler(mock_request)

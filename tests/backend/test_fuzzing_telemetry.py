@@ -1,4 +1,6 @@
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
 # Strategies for telemetry data
@@ -75,7 +77,7 @@ def test_fuzz_from_packed_random_bytes(data):
             values=st.one_of(st.integers(), st.text(), st.floats(), st.booleans()),
         ),
         max_size=10,
-    )
+    ),
 )
 def test_fuzz_command_parsing(commands):
     # This simulates how commands are handled in meshchat.py

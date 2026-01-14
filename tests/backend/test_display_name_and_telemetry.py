@@ -1,14 +1,15 @@
 import base64
 from unittest.mock import MagicMock, patch
+
 import LXMF
+import RNS.vendor.umsgpack as msgpack
+
 from meshchatx.src.backend.meshchat_utils import parse_lxmf_display_name
 from meshchatx.src.backend.telemetry_utils import Telemeter
-import RNS.vendor.umsgpack as msgpack
 
 
 def test_parse_lxmf_display_name_bug_fix():
-    """
-    Test that parse_lxmf_display_name handles both bytes and strings
+    """Test that parse_lxmf_display_name handles both bytes and strings
     in the msgpack list, fixing the 'str' object has no attribute 'decode' bug.
     """
     # 1. Test with bytes (normal case)
@@ -34,9 +35,7 @@ def test_parse_lxmf_display_name_bug_fix():
 
 
 def test_lxmf_telemetry_decoding():
-    """
-    Test decoding of LXMF telemetry fields.
-    """
+    """Test decoding of LXMF telemetry fields."""
     # Create some dummy telemetry data
     ts = 1736264575
     lat, lon = 52.5200, 13.4050
@@ -68,9 +67,7 @@ def test_lxmf_telemetry_decoding():
 
 
 def test_lxmf_telemetry_mapping_in_app():
-    """
-    Test how the app handles telemetry fields from an LXMF message.
-    """
+    """Test how the app handles telemetry fields from an LXMF message."""
     # Mock lxmf_message
     lxmf_message = MagicMock(spec=LXMF.LXMessage)
     source_hash = b"\x01" * 32
@@ -79,7 +76,8 @@ def test_lxmf_telemetry_mapping_in_app():
 
     ts = 1736264575
     packed_telemetry = Telemeter.pack(
-        time_utc=ts, location={"latitude": 1.23, "longitude": 4.56}
+        time_utc=ts,
+        location={"latitude": 1.23, "longitude": 4.56},
     )
 
     lxmf_message.get_fields.return_value = {LXMF.FIELD_TELEMETRY: packed_telemetry}

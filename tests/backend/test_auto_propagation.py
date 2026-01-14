@@ -1,6 +1,8 @@
 from unittest.mock import MagicMock, patch
+
 import pytest
 import RNS
+
 from meshchatx.src.backend.auto_propagation_manager import AutoPropagationManager
 
 
@@ -54,7 +56,7 @@ async def test_auto_propagation_logic():
         # Should have selected aaaa1111
         app.set_active_propagation_node.assert_called_with("aaaa1111", context=context)
         config.lxmf_preferred_propagation_node_destination_hash.set.assert_called_with(
-            "aaaa1111"
+            "aaaa1111",
         )
 
     # 3. Test switching to better node

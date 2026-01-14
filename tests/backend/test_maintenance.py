@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
-from meshchatx.src.backend.database.messages import MessageDAO
+
 from meshchatx.src.backend.database.announces import AnnounceDAO
+from meshchatx.src.backend.database.messages import MessageDAO
 from meshchatx.src.backend.database.misc import MiscDAO
 
 
@@ -27,7 +28,8 @@ class TestMaintenance(unittest.TestCase):
         # Test with aspect
         self.announces_dao.delete_all_announces(aspect="test_aspect")
         self.provider.execute.assert_called_with(
-            "DELETE FROM announces WHERE aspect = ?", ("test_aspect",)
+            "DELETE FROM announces WHERE aspect = ?",
+            ("test_aspect",),
         )
 
     def test_delete_all_favourites(self):
@@ -38,7 +40,8 @@ class TestMaintenance(unittest.TestCase):
         # Test with aspect
         self.announces_dao.delete_all_favourites(aspect="test_aspect")
         self.provider.execute.assert_called_with(
-            "DELETE FROM favourite_destinations WHERE aspect = ?", ("test_aspect",)
+            "DELETE FROM favourite_destinations WHERE aspect = ?",
+            ("test_aspect",),
         )
 
     def test_delete_archived_pages(self):

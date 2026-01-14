@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import RNS
@@ -42,7 +42,7 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
         # Mock the config values
         app_instance.config.csp_extra_connect_src.set("https://api.example.com")
         app_instance.config.map_tile_server_url.set(
-            "https://tiles.example.com/{z}/{x}/{y}.png"
+            "https://tiles.example.com/{z}/{x}/{y}.png",
         )
 
         # Mock a request and handler
@@ -99,12 +99,16 @@ async def test_config_update_csp(mock_rns_minimal, tmp_path):
 
         # To avoid the JSON serialization error of MagicMock in get_config_dict,
         # we mock get_config_dict to return a serializable dict.
-        with patch.object(
-            app_instance, "get_config_dict", return_value={"status": "ok"}
+        with (
+            patch.object(
+                app_instance,
+                "get_config_dict",
+                return_value={"status": "ok"},
+            ),
+            patch.object(app_instance, "send_config_to_websocket_clients"),
         ):
-            with patch.object(app_instance, "send_config_to_websocket_clients"):
-                response = await config_update_handler(request)
-                assert response.status == 200
+            response = await config_update_handler(request)
+            assert response.status == 200
 
         assert (
             app_instance.config.csp_extra_connect_src.get()

@@ -106,8 +106,9 @@ def test_display_name_parsing_fuzzing(app_data_base64):
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
     fields_data=st.dictionaries(
-        st.integers(min_value=0, max_value=255), st.binary(min_size=0, max_size=1000)
-    )
+        st.integers(min_value=0, max_value=255),
+        st.binary(min_size=0, max_size=1000),
+    ),
 )
 def test_lxmf_fields_parsing_fuzzing(fields_data):
     """Fuzz the parsing of LXMF message fields."""

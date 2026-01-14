@@ -92,7 +92,9 @@ def mock_rns():
         )
         stack.enter_context(
             patch.object(
-                MockIdentityClass, "from_bytes", return_value=mock_id_instance
+                MockIdentityClass,
+                "from_bytes",
+                return_value=mock_id_instance,
             ),
         )
 

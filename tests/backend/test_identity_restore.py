@@ -1,9 +1,10 @@
+import base64
 import os
 import shutil
 import tempfile
-import base64
 import unittest
 from unittest.mock import MagicMock, patch
+
 from meshchatx.src.backend.identity_manager import IdentityManager
 
 
@@ -19,7 +20,10 @@ class TestIdentityRestore(unittest.TestCase):
     @patch("meshchatx.src.backend.identity_manager.DatabaseProvider")
     @patch("meshchatx.src.backend.identity_manager.DatabaseSchema")
     def test_restore_identity_from_bytes(
-        self, mock_schema, mock_provider, mock_rns_identity
+        self,
+        mock_schema,
+        mock_provider,
+        mock_rns_identity,
     ):
         # Setup mock identity
         mock_id_instance = MagicMock()
@@ -48,7 +52,10 @@ class TestIdentityRestore(unittest.TestCase):
     @patch("meshchatx.src.backend.identity_manager.DatabaseProvider")
     @patch("meshchatx.src.backend.identity_manager.DatabaseSchema")
     def test_restore_identity_from_base32(
-        self, mock_schema, mock_provider, mock_rns_identity
+        self,
+        mock_schema,
+        mock_provider,
+        mock_rns_identity,
     ):
         # Setup mock identity
         mock_id_instance = MagicMock()
