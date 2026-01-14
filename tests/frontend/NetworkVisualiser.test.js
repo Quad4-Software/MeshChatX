@@ -194,6 +194,8 @@ describe("NetworkVisualiser.vue", () => {
 
     it("fuzzing: handles large and messy network data without crashing", async () => {
         const wrapper = mountVisualiser();
+        // Wait for initial load to finish
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
         // Generate messy path table
         const nodeCount = 500;
@@ -233,6 +235,8 @@ describe("NetworkVisualiser.vue", () => {
 
     it("fuzzing: handles missing announce data gracefully", async () => {
         const wrapper = mountVisualiser();
+        // Wait for initial load to finish
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
         // Set interfaces so eth0 exists
         wrapper.vm.interfaces = [{ name: "eth0", status: true }];
@@ -254,6 +258,9 @@ describe("NetworkVisualiser.vue", () => {
 
     it("fuzzing: handles circular or malformed links", async () => {
         const wrapper = mountVisualiser();
+        // Wait for initial load to finish
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
         wrapper.vm.interfaces = [{ name: "eth0", status: true }];
         wrapper.vm.announces = {
             node1: {
@@ -280,6 +287,9 @@ describe("NetworkVisualiser.vue", () => {
 
     it("performance: measures time to process 1000 nodes", async () => {
         const wrapper = mountVisualiser();
+        // Wait for initial load to finish
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
         const nodeCount = 1000;
 
         const pathTable = Array.from({ length: nodeCount }, (_, i) => ({
