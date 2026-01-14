@@ -3,6 +3,8 @@ name: Build and Publish Docker Image
 on:
     workflow_dispatch:
     push:
+        branches:
+            - master
         tags:
             - "*"
     pull_request:
@@ -80,7 +82,7 @@ jobs:
                   trivy image --exit-code 1 "$IMAGE_TAG"
 
     build-dev:
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
         runs-on: ubuntu-latest
         permissions:
             contents: read
