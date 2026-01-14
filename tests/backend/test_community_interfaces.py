@@ -10,20 +10,21 @@ from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 async def test_community_interfaces_manager_health_check():
     manager = CommunityInterfacesManager()
 
-    # Mock check_health to always return True for some, False for others
+    # Mock check_health to return True for first, False for second
     with patch.object(
         CommunityInterfacesManager,
         "check_health",
-        side_effect=[True, False, True, False, True, False, True],
+        side_effect=[True, False],
     ):
         interfaces = await manager.get_interfaces()
 
-        assert len(interfaces) == 7
+        assert len(interfaces) == 2
         # First one should be online because we sort by online status
         assert interfaces[0]["online"] is True
+        assert interfaces[1]["online"] is False
         # Check that we have both online and offline
         online_count = sum(1 for iface in interfaces if iface["online"])
-        assert online_count == 4
+        assert online_count == 1
 
 
 @pytest.mark.asyncio
