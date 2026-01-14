@@ -454,6 +454,7 @@ class IdentityContext:
         self.running = False
         if self.auto_propagation_manager:
             self.auto_propagation_manager.stop()
+            self.auto_propagation_manager = None
 
         # 1. Deregister announce handlers
         for handler in self.announce_handlers:
@@ -466,6 +467,13 @@ class IdentityContext:
         # 2. Cleanup RNS destinations and links
         try:
             if self.message_router:
+                # Break cycles in mocks/objects
+                if hasattr(self.message_router, "register_delivery_callback"):
+                    try:
+                        self.message_router.register_delivery_callback(None)
+                    except Exception:
+                        pass
+
                 if hasattr(self.message_router, "delivery_destinations"):
                     for dest_hash in list(
                         self.message_router.delivery_destinations.keys(),
@@ -509,21 +517,57 @@ class IdentityContext:
                 print(
                     f"Error while tearing down LXMRouter for {self.identity_hash}: {e}",
                 )
+            self.message_router = None
 
         # 4. Stop telephone and voicemail
         if self.telephone_manager:
             try:
+                # Clear callbacks to break reference cycles
+                self.telephone_manager.on_initiation_status_callback = None
+                self.telephone_manager.get_name_for_identity_hash = None
+
                 self.telephone_manager.teardown()
             except Exception as e:
                 print(
                     f"Error while tearing down telephone for {self.identity_hash}: {e}",
                 )
+            self.telephone_manager = None
+
+        if self.voicemail_manager:
+            try:
+                self.voicemail_manager.on_new_voicemail_callback = None
+                self.voicemail_manager.get_name_for_identity_hash = None
+            except Exception:
+                pass
+            self.voicemail_manager = None
+
+        if self.message_handler:
+            self.message_handler = None
+
+        if self.announce_manager:
+            self.announce_manager = None
+
+        if self.archiver_manager:
+            self.archiver_manager = None
+
+        if self.map_manager:
+            self.map_manager = None
+
+        if self.docs_manager:
+            self.docs_manager = None
+
+        if self.nomadnet_manager:
+            self.nomadnet_manager = None
 
         if self.bot_handler:
             try:
                 self.bot_handler.stop_all()
             except Exception as e:
                 print(f"Error while stopping bots for {self.identity_hash}: {e}")
+            self.bot_handler = None
+
+        if self.forwarding_manager:
+            self.forwarding_manager = None
 
         if self.database:
             try:
@@ -535,6 +579,21 @@ class IdentityContext:
                 )
 
             # 2. Save integrity manifest AFTER closing to capture final stable state
-            self.integrity_manager.save_manifest()
+            if self.integrity_manager:
+                self.integrity_manager.save_manifest()
+            self.database = None
+
+        if self.config:
+            self.config = None
+
+        if self.integrity_manager:
+            self.integrity_manager = None
+
+        if self.local_lxmf_destination:
+            self.local_lxmf_destination = None
+
+        # Final break of the largest cycle
+        self.app = None
+        self.identity = None
 
         print(f"Identity Context for {self.identity_hash} torn down.")
