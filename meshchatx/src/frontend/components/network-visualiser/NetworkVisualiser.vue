@@ -300,8 +300,9 @@ export default {
             edges: new DataSet(),
             iconCache: {},
 
-            pageSize: 100,
+            pageSize: 1000,
             searchQuery: "",
+            abortController: new AbortController(),
         };
     },
     computed: {
@@ -345,6 +346,9 @@ export default {
         },
     },
     beforeUnmount() {
+        if (this.abortController) {
+            this.abortController.abort();
+        }
         if (this._toggleOrbitHandler) {
             GlobalEmitter.off("toggle-orbit", this._toggleOrbitHandler);
         }
@@ -384,72 +388,121 @@ export default {
     methods: {
         async getInterfaceStats() {
             try {
-                const response = await window.axios.get(`/api/v1/interface-stats`);
+                const response = await window.axios.get(`/api/v1/interface-stats`, {
+                    signal: this.abortController.signal,
+                });
                 this.interfaces = response.data.interface_stats?.interfaces ?? [];
             } catch (e) {
+                if (window.axios.isCancel(e)) return;
                 console.error("Failed to fetch interface stats", e);
             }
         },
         async getPathTableBatch() {
             this.pathTable = [];
-            let offset = 0;
-            let totalCount = 1; // dummy initial value
+            try {
+                this.loadingStatus = "Loading Paths...";
+                const firstResp = await window.axios.get(`/api/v1/path-table`, {
+                    params: { limit: this.pageSize, offset: 0 },
+                    signal: this.abortController.signal,
+                });
+                this.pathTable.push(...firstResp.data.path_table);
+                const totalCount = firstResp.data.total_count;
 
-            while (offset < totalCount) {
-                this.loadingStatus = `Loading Paths (${offset} / ${totalCount === 1 ? "..." : totalCount})`;
-                try {
-                    const response = await window.axios.get(`/api/v1/path-table`, {
-                        params: { limit: this.pageSize, offset: offset },
-                    });
-                    this.pathTable.push(...response.data.path_table);
-                    totalCount = response.data.total_count;
-                    offset += this.pageSize;
-                } catch (e) {
-                    console.error("Failed to fetch path table batch", e);
-                    break;
+                if (totalCount > this.pageSize) {
+                    const remainingOffsets = [];
+                    for (let offset = this.pageSize; offset < totalCount; offset += this.pageSize) {
+                        remainingOffsets.push(offset);
+                    }
+
+                    // Fetch remaining batches in parallel with limited concurrency to not overwhelm backend
+                    const concurrency = 3;
+                    for (let i = 0; i < remainingOffsets.length; i += concurrency) {
+                        if (this.abortController.signal.aborted) return;
+                        const chunk = remainingOffsets.slice(i, i + concurrency);
+                        const promises = chunk.map((offset) =>
+                            window.axios.get(`/api/v1/path-table`, {
+                                params: { limit: this.pageSize, offset: offset },
+                                signal: this.abortController.signal,
+                            })
+                        );
+                        const responses = await Promise.all(promises);
+                        for (const r of responses) {
+                            this.pathTable.push(...r.data.path_table);
+                        }
+                        this.loadingStatus = `Loading Paths (${this.pathTable.length} / ${totalCount})`;
+                    }
                 }
+            } catch (e) {
+                if (window.axios.isCancel(e)) return;
+                console.error("Failed to fetch path table batch", e);
             }
         },
         async getAnnouncesBatch() {
             this.announces = {};
-            let offset = 0;
-            let totalCount = 1;
+            try {
+                this.loadingStatus = "Loading Announces...";
+                const firstResp = await window.axios.get(`/api/v1/announces`, {
+                    params: { limit: this.pageSize, offset: 0 },
+                    signal: this.abortController.signal,
+                });
 
-            while (offset < totalCount) {
-                this.loadingStatus = `Loading Announces (${offset} / ${totalCount === 1 ? "..." : totalCount})`;
-                try {
-                    const response = await window.axios.get(`/api/v1/announces`, {
-                        params: { limit: this.pageSize, offset: offset },
-                    });
+                for (const announce of firstResp.data.announces) {
+                    this.announces[announce.destination_hash] = announce;
+                }
+                const totalCount = firstResp.data.total_count;
 
-                    for (const announce of response.data.announces) {
-                        this.announces[announce.destination_hash] = announce;
+                if (totalCount > this.pageSize) {
+                    const remainingOffsets = [];
+                    for (let offset = this.pageSize; offset < totalCount; offset += this.pageSize) {
+                        remainingOffsets.push(offset);
                     }
 
-                    totalCount = response.data.total_count;
-                    offset += this.pageSize;
-                } catch (e) {
-                    console.error("Failed to fetch announces batch", e);
-                    break;
+                    const concurrency = 3;
+                    for (let i = 0; i < remainingOffsets.length; i += concurrency) {
+                        if (this.abortController.signal.aborted) return;
+                        const chunk = remainingOffsets.slice(i, i + concurrency);
+                        const promises = chunk.map((offset) =>
+                            window.axios.get(`/api/v1/announces`, {
+                                params: { limit: this.pageSize, offset: offset },
+                                signal: this.abortController.signal,
+                            })
+                        );
+                        const responses = await Promise.all(promises);
+                        for (const r of responses) {
+                            for (const announce of r.data.announces) {
+                                this.announces[announce.destination_hash] = announce;
+                            }
+                        }
+                        this.loadingStatus = `Loading Announces (${Object.keys(this.announces).length} / ${totalCount})`;
+                    }
                 }
+            } catch (e) {
+                if (window.axios.isCancel(e)) return;
+                console.error("Failed to fetch announces batch", e);
             }
         },
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.axios.get("/api/v1/config", {
+                    signal: this.abortController.signal,
+                });
                 this.config = response.data.config;
             } catch (e) {
+                if (window.axios.isCancel(e)) return;
                 console.error("Failed to fetch config", e);
             }
         },
         async getConversations() {
             try {
-                const response = await window.axios.get(`/api/v1/lxmf/conversations`);
+                const response = await window.axios.get(`/api/v1/lxmf/conversations`, {
+                    signal: this.abortController.signal,
+                });
                 this.conversations = {};
                 for (const conversation of response.data.conversations) {
                     this.conversations[conversation.destination_hash] = conversation;
                 }
             } catch (e) {
+                if (window.axios.isCancel(e)) return;
                 console.error("Failed to fetch conversations", e);
             }
         },
@@ -516,6 +569,11 @@ export default {
                 const svgBlob = new Blob([iconSvg], { type: "image/svg+xml" });
                 const url = URL.createObjectURL(svgBlob);
                 img.onload = () => {
+                    if (this.abortController.signal.aborted) {
+                        URL.revokeObjectURL(url);
+                        resolve(null);
+                        return;
+                    }
                     // Draw a subtle shadow for the icon itself
                     ctx.shadowColor = "rgba(0,0,0,0.2)";
                     ctx.shadowBlur = 4;
@@ -536,6 +594,11 @@ export default {
                     resolve(dataUrl);
                 };
                 img.onerror = () => {
+                    if (this.abortController.signal.aborted) {
+                        URL.revokeObjectURL(url);
+                        resolve(null);
+                        return;
+                    }
                     URL.revokeObjectURL(url);
                     const dataUrl = canvas.toDataURL();
                     this.iconCache[cacheKey] = dataUrl;
@@ -916,9 +979,11 @@ export default {
             this.totalBatches = 0;
 
             await Promise.all([this.getConfig(), this.getInterfaceStats(), this.getConversations()]);
+            if (this.abortController.signal.aborted) return;
 
             this.loadingStatus = "Fetching network data...";
             await Promise.all([this.getPathTableBatch(), this.getAnnouncesBatch()]);
+            if (this.abortController.signal.aborted) return;
 
             await this.processVisualization();
         },
@@ -1017,12 +1082,13 @@ export default {
 
             const aspectsToShow = ["lxmf.delivery", "nomadnetwork.node"];
 
-            // Process in chunks of 25 for smooth visual updates
-            const chunkSize = 25;
+            // Process in larger chunks for speed, but keep UI responsive
+            const chunkSize = 250;
             this.totalBatches = Math.ceil(this.pathTable.length / chunkSize);
             this.currentBatch = 0;
 
             for (let i = 0; i < this.pathTable.length; i += chunkSize) {
+                if (this.abortController.signal.aborted) return;
                 this.currentBatch++;
                 const chunk = this.pathTable.slice(i, i + chunkSize);
                 const batchNodes = [];
@@ -1085,6 +1151,7 @@ export default {
                                 conversation.lxmf_user_icon.background_colour,
                                 64
                             );
+                            if (this.abortController.signal.aborted) return;
                             node.size = 30;
                         } else {
                             node.shape = "circularImage";
@@ -1155,13 +1222,11 @@ export default {
 
                 // Allow UI to breathe and show progress
                 this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
-                // Faster batching: only delay if there's many nodes, and use a shorter delay
-                if (this.pathTable.length > 100) {
-                    await new Promise((r) => setTimeout(r, 10));
-                } else {
-                    // Small networks update instantly
-                    await this.$nextTick();
-                }
+
+                // Use nextTick for responsiveness
+                await this.$nextTick();
+
+                if (this.abortController.signal.aborted) return;
             }
 
             // Cleanup: remove nodes/edges that are no longer in the network
