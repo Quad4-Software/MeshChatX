@@ -64,12 +64,12 @@ class Telemeter:
     ):
         try:
             return [
-                struct.pack("!i", int(round(latitude, 6) * 1e6)),
-                struct.pack("!i", int(round(longitude, 6) * 1e6)),
-                struct.pack("!i", int(round(altitude, 2) * 1e2)),
-                struct.pack("!I", int(round(speed, 2) * 1e2)),
-                struct.pack("!i", int(round(bearing, 2) * 1e2)),
-                struct.pack("!H", int(round(accuracy, 2) * 1e2)),
+                struct.pack("!i", int(round(latitude * 1e6))),
+                struct.pack("!i", int(round(longitude * 1e6))),
+                struct.pack("!i", int(round(altitude * 1e2))),
+                struct.pack("!I", int(round(speed * 1e2))),
+                struct.pack("!i", int(round(bearing * 1e2))),
+                struct.pack("!H", int(round(accuracy * 1e2))),
                 int(last_update) if last_update is not None else int(time.time()),
             ]
         except Exception:
@@ -100,7 +100,7 @@ class Telemeter:
     @staticmethod
     def pack(time_utc=None, location=None, battery=None, physical_link=None):
         p = {}
-        p[Sensor.SID_TIME] = int(time_utc or time.time())
+        p[Sensor.SID_TIME] = int(time_utc if time_utc is not None else time.time())
         if location:
             p[Sensor.SID_LOCATION] = Telemeter.pack_location(**location)
         if battery:
