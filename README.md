@@ -20,7 +20,6 @@ A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork fr
 
 This project is separate from the original Reticulum MeshChat project, and is not affiliated with the original project.
 
-
 ## Goal
 
 To provide everything you need for Reticulum, LXMF, and LXST in one beautiful and feature-rich application.
@@ -180,6 +179,7 @@ If you want to run MeshChatX from the source code locally:
 If you are on Linux and want to build the Windows `.exe` and installer locally, you can use **Wine**.
 
 1. **Install Windows Python and Git inside Wine**:
+
     ```bash
     # Download Python installer
     wget https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe
@@ -193,12 +193,14 @@ If you are on Linux and want to build the Windows `.exe` and installer locally, 
     ```
 
 2. **Install Build Dependencies in Wine**:
+
     ```bash
     wine C:/Python313/python.exe -m pip install cx_Freeze poetry
     wine C:/Python313/python.exe -m pip install -r requirements.txt
     ```
 
 3. **Run the Build Task**:
+
     ```bash
     # Build only the Windows portable exe
     WINE_PYTHON="wine C:/Python313/python.exe" task build-exe-wine
@@ -225,37 +227,37 @@ MeshChatX can be configured via command-line arguments or environment variables.
 
 We use [Task](https://taskfile.dev/) for automation.
 
-| Task                          | Description                                    |
-| :---------------------------- | :--------------------------------------------- |
-| `task install`                | Install all dependencies                       |
-| `task run`                    | Run the application                            |
-| `task dev`                    | Run the application in development mode        |
-| `task lint`                   | Run all linters (Python & Frontend)            |
-| `task lint-python`            | Lint Python code only                          |
-| `task lint-frontend`          | Lint frontend code only                        |
-| `task format`                 | Format all code (Python & Frontend)            |
-| `task format-python`          | Format Python code only                        |
-| `task format-frontend`        | Format frontend code only                      |
-| `task test`                   | Run all tests                                  |
-| `task test:cov`               | Run tests with coverage reports                |
-| `task test-python`            | Run Python tests only                          |
-| `task test-frontend`          | Run frontend tests only                        |
-| `task build`                  | Build frontend and backend                     |
-| `task build-frontend`         | Build only the frontend                        |
-| `task wheel`                  | Build Python wheel package                     |
-| `task compile`                | Compile Python code to check for syntax errors |
-| `task build-docker`           | Build Docker image using buildx                |
-| `task run-docker`             | Run Docker container using docker-compose      |
-| `task build-appimage`         | Build Linux AppImage                           |
-| `task build-exe`              | Build Windows portable executable              |
-| `task build-exe-wine`         | Build Windows portable (Wine cross-build)      |
-| `task build-electron-linux`   | Build Linux Electron app                       |
-| `task build-electron-windows` | Build Windows Electron apps                    |
-| `task build-electron-all-wine`| Build all Electron apps (Wine cross-build)     |
-| `task android-prepare`        | Prepare Android build                          |
-| `task android-build`          | Build Android APK                              |
-| `task build-flatpak`          | Build Flatpak package                          |
-| `task clean`                  | Clean build artifacts and dependencies         |
+| Task                           | Description                                    |
+| :----------------------------- | :--------------------------------------------- |
+| `task install`                 | Install all dependencies                       |
+| `task run`                     | Run the application                            |
+| `task dev`                     | Run the application in development mode        |
+| `task lint`                    | Run all linters (Python & Frontend)            |
+| `task lint-python`             | Lint Python code only                          |
+| `task lint-frontend`           | Lint frontend code only                        |
+| `task format`                  | Format all code (Python & Frontend)            |
+| `task format-python`           | Format Python code only                        |
+| `task format-frontend`         | Format frontend code only                      |
+| `task test`                    | Run all tests                                  |
+| `task test:cov`                | Run tests with coverage reports                |
+| `task test-python`             | Run Python tests only                          |
+| `task test-frontend`           | Run frontend tests only                        |
+| `task build`                   | Build frontend and backend                     |
+| `task build-frontend`          | Build only the frontend                        |
+| `task wheel`                   | Build Python wheel package                     |
+| `task compile`                 | Compile Python code to check for syntax errors |
+| `task build-docker`            | Build Docker image using buildx                |
+| `task run-docker`              | Run Docker container using docker-compose      |
+| `task build-appimage`          | Build Linux AppImage                           |
+| `task build-exe`               | Build Windows portable executable              |
+| `task build-exe-wine`          | Build Windows portable (Wine cross-build)      |
+| `task build-electron-linux`    | Build Linux Electron app                       |
+| `task build-electron-windows`  | Build Windows Electron apps                    |
+| `task build-electron-all-wine` | Build all Electron apps (Wine cross-build)     |
+| `task android-prepare`         | Prepare Android build                          |
+| `task android-build`           | Build Android APK                              |
+| `task build-flatpak`           | Build Flatpak package                          |
+| `task clean`                   | Clean build artifacts and dependencies         |
 
 ## Security
 
