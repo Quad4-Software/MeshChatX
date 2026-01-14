@@ -231,6 +231,7 @@ class WebAudioBridge:
 
     def on_call_ended(self):
         with self.lock:
+            self.clients.clear()
             self.tx_source = None
             self.rx_sink = None
             self.rx_tee = None
