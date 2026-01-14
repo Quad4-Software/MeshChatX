@@ -1394,7 +1394,6 @@
 import logoUrl from "../assets/images/logo.png";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
-import ElectronUtils from "../js/ElectronUtils";
 import GlobalState from "../js/GlobalState";
 import LanguageSelector from "./LanguageSelector.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
