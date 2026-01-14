@@ -91,8 +91,23 @@ class WebAudioBridge:
         self.tx_source: WebAudioSource | None = None
         self.rx_sink: WebAudioSink | None = None
         self.rx_tee: Tee | None = None
-        self.loop = asyncio.get_event_loop()
+        self._loop = None
         self.lock = threading.Lock()
+
+    @property
+    def loop(self):
+        if self._loop:
+            return self._loop
+
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # Fallback to finding it via AsyncUtils if possible
+            from .async_utils import AsyncUtils
+
+            self._loop = AsyncUtils.main_loop
+
+        return self._loop
 
     def _tele(self):
         return getattr(self.telephone_manager, "telephone", None)
