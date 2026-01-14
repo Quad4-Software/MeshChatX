@@ -1,7 +1,7 @@
 # Maintainer: Ivan <ivan@quad4.io>
 pkgname=reticulum-meshchatx-git
 _pkgname=reticulum-meshchatx
-pkgver=3.3.2.r90.g978d917
+pkgver=4.0.0.r7.g9cfbf94
 pkgrel=1
 pkgdesc="A simple mesh network communications app powered by the Reticulum Network Stack"
 arch=('x86_64' 'aarch64')
