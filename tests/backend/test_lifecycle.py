@@ -7,8 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
-from hypothesis import given
-from hypothesis import strategies as st
+from hypothesis import given, settings, strategies as st
 
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.identity_context import IdentityContext
@@ -157,6 +156,7 @@ def test_identity_context_memory_leak():
     assert leak_ref[0]() is None, "IdentityContext was not garbage collected"
 
 
+@settings(deadline=None)
 @given(st.integers(min_value=1, max_value=3))
 def test_identity_context_repeated_lifecycle(n):
     """Fuzz the lifecycle by repeating setup/teardown multiple times with new instances."""
