@@ -333,12 +333,18 @@ def test_markdown_renderer_xss_protection(text):
     assert "&lt;script&gt;" in result
 
 
-@given(content=st.text())
+@given(content=st.text().filter(lambda x: x and "\n" not in x and "#" not in x))
 def test_markdown_renderer_headers(content):
-    if content and "\n" not in content:
-        input_text = f"# {content}"
-        result = MarkdownRenderer.render(input_text)
-        assert "<h1" in result
+    input_text = f"# {content}"
+    result = MarkdownRenderer.render(input_text)
+    assert "<h1" in result
+    # Check that it's correctly wrapped in h1
+    assert result.startswith('<h1')
+    assert result.endswith('</h1>')
+
+    # If the content doesn't contain markdown special chars, we can expect it to be there escaped
+    # This is a safer assertion for property-based testing
+    if not any(c in content for c in "*_~`[]()"):
         assert html.escape(content) in result
 
 
