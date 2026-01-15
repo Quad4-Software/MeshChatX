@@ -666,6 +666,10 @@ export default {
     watch: {
         $route() {
             this.isSidebarOpen = false;
+            // Close tutorial modal if it's open and we navigate away
+            if (this.$refs.tutorialModal && this.$refs.tutorialModal.visible) {
+                this.$refs.tutorialModal.visible = false;
+            }
         },
         config: {
             handler(newConfig) {

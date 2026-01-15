@@ -1420,6 +1420,7 @@ export default {
             savingDiscovery: false,
             savingPropagation: false,
             discoveryInterval: null,
+            markingSeen: false,
         };
     },
     computed: {
@@ -1642,28 +1643,32 @@ export default {
         },
         async skipTutorial() {
             if (await DialogUtils.confirm(this.$t("tutorial.skip_confirm"))) {
-                await this.markSeen();
                 this.visible = false;
+                this.markSeen();
             }
         },
         async markSeen() {
+            if (this.markingSeen) return;
+            this.markingSeen = true;
             try {
                 await window.axios.post("/api/v1/app/tutorial/seen");
             } catch (e) {
                 console.error("Failed to mark tutorial as seen:", e);
+            } finally {
+                this.markingSeen = false;
             }
         },
         async finishTutorial() {
-            await this.markSeen();
+            this.visible = false;
+            this.markSeen();
             if (this.interfaceAddedViaTutorial) {
                 ToastUtils.info(this.$t("tutorial.ready_desc"));
             }
-            this.visible = false;
         },
         async onVisibleUpdate(val) {
             if (!val) {
-                // if closed by clicking away, mark as seen so it doesn't pop up again
-                await this.markSeen();
+                // if closed by clicking away or programmatically, mark as seen
+                this.markSeen();
             }
         },
     },
