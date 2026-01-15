@@ -234,6 +234,14 @@ tasks:
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage"
 
+    dist:linux:arm64:
+        desc: Build Linux arm64 AppImage
+        deps: [build:fe]
+        cmds:
+            - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=linux ARCH=arm64 {{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --linux AppImage --arm64"
+
     dist:win:exe:
         desc: Build Windows portable EXE
         deps: [build:fe]
@@ -241,6 +249,14 @@ tasks:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --win portable"
+
+    dist:win:arm64:
+        desc: Build Windows arm64 portable EXE
+        deps: [build:fe]
+        cmds:
+            - "{{.NPM}} run electron-postinstall"
+            - "PLATFORM=win32 ARCH=arm64 {{.NPM}} run build-backend"
+            - "{{.NPM}} run dist -- --win portable --arm64"
 
     dist:win:wine:
         desc: Build Windows EXE/Installer via Wine
@@ -305,34 +321,30 @@ tasks:
         desc: Build Linux AppImage (Legacy Electron)
         deps: [build:fe]
         cmds:
-            - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=linux {{.NPM}} run build-backend"
-            - "npx electron-builder --config package-legacy.json --linux AppImage --publish=never"
+            - "npx electron-builder -c package-legacy.json --linux AppImage --publish=never"
 
     dist:legacy:win:
         desc: Build Windows EXE (Legacy Electron)
         deps: [build:fe]
         cmds:
-            - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
-            - "npx electron-builder --config package-legacy.json --win portable --publish=never"
+            - "npx electron-builder -c package-legacy.json --win portable --publish=never"
 
     dist:legacy:win:wine:
         desc: Build Windows EXE via Wine (Legacy Electron)
         deps: [build:fe]
         cmds:
-            - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
-            - "npx electron-builder --config package-legacy.json --win portable nsis --publish=never"
+            - "npx electron-builder -c package-legacy.json --win portable nsis --publish=never"
 
     dist:legacy:all:
         desc: Build all Legacy apps
         deps: [build:fe]
         cmds:
-            - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
-            - "npx electron-builder --config package-legacy.json --linux AppImage deb --win portable nsis --publish=never"
+            - "npx electron-builder -c package-legacy.json --linux AppImage deb --win portable nsis --publish=never"
 
     # --- Docker ---
 
