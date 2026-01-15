@@ -54,29 +54,29 @@ jobs:
               run: task install
 
             - name: Build Frontend
-              run: task build-frontend
+              run: task build:fe
 
             - name: Build Backend (Wheel)
-              run: task wheel
+              run: task build:wheel
 
             - name: Build Electron App (Linux)
-              run: pnpm run dist:linux
+              run: pnpm run dist:linux-x64
 
             - name: Build Electron App (RPM - Experimental)
               continue-on-error: true
-              run: task build-rpm
+              run: task dist:fe:rpm
 
             - name: Build Electron App (Flatpak - Experimental)
               continue-on-error: true
-              run: task build-flatpak
+              run: task dist:fe:flatpak
 
             - name: Build Electron App (Windows EXE and NSIS)
               env:
                   WINEDEBUG: -all
-              run: pnpm run dist:windows
+              run: pnpm run dist:win-x64
 
             - name: Build Electron App (ZIP)
-              run: task build-zip
+              run: task dist:fe:zip
 
             - name: Prepare release assets
               run: |

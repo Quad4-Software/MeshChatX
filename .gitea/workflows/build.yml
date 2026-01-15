@@ -92,21 +92,21 @@ jobs:
               run: task install
 
             - name: Build Frontend
-              run: task build-frontend
+              run: task build:fe
 
             - name: Build Python wheel
-              run: task wheel
+              run: task build:wheel
 
             - name: Build Electron App (Appimage)
-              run: pnpm run dist:linux
+              run: pnpm run dist:linux-x64
 
             - name: Build Electron App (RPM)
               continue-on-error: true
-              run: task build-rpm
+              run: task dist:fe:rpm
 
             - name: Build Electron App (Flatpak)
               continue-on-error: true
-              run: task build-flatpak
+              run: task dist:fe:flatpak
 
             - name: Setup Wine Environment
               env:
@@ -135,7 +135,7 @@ jobs:
               env:
                   WINEDEBUG: -all
                   WINE_PYTHON: "wine C:/Python313/python.exe"
-              run: task build-exe-wine
+              run: task dist:win:wine
 
             - name: Prepare release assets
               run: |

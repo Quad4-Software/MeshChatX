@@ -76,7 +76,7 @@ jobs:
               run: task install
 
             - name: Build Frontend and Prepare Android
-              run: task android-prepare
+              run: task android:prepare
 
             - name: Build Android APK
               run: |

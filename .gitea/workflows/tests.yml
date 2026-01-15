@@ -39,4 +39,4 @@ jobs:
             - name: Run tests
               run: |
                   set -o pipefail
-                  task test 2>&1 | tee test_results.txt
+                  task test:all 2>&1 | tee test_results.txt

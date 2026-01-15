@@ -29,13 +29,13 @@ jobs:
             - name: Setup Poetry
               run: pip install poetry
             - name: Setup Python environment
-              run: task setup-python-env
+              run: task setup:be
             - name: Install Node dependencies
-              run: task node_modules
+              run: task deps:fe
             - name: Lint
               run: |
-                  set -o pipefail
-                  task lint 2>&1 | tee lint_results.txt
+                set -o pipefail
+                task lint:all 2>&1 | tee lint_results.txt
 
     build-frontend:
         runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
               with:
                   version: "3.46.3"
             - name: Install dependencies
-              run: task node_modules
+              run: task deps:fe
             - name: Determine version
               id: version
               run: |
@@ -61,7 +61,7 @@ jobs:
             - name: Build frontend
               run: |
                   set -o pipefail
-                  task build-frontend 2>&1 | tee build_results.txt
+                  task build:fe 2>&1 | tee build_results.txt
               env:
                   VITE_APP_VERSION: ${{ steps.version.outputs.version }}
 
@@ -108,4 +108,4 @@ jobs:
             - name: Run language tests
               run: |
                   set -o pipefail
-                  task test-lang 2>&1 | tee lang_results.txt
+                  task test:lang 2>&1 | tee lang_results.txt
