@@ -21,9 +21,13 @@
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
         "dist:linux": "pnpm run electron-postinstall && PLATFORM=linux pnpm run build && electron-builder --linux AppImage deb --publish=never",
+        "dist:linux-x64": "pnpm run electron-postinstall && PLATFORM=linux ARCH=x64 pnpm run build && electron-builder --linux AppImage deb --x64 --publish=never",
+        "dist:linux-arm64": "pnpm run electron-postinstall && PLATFORM=linux ARCH=arm64 pnpm run build && electron-builder --linux AppImage deb --arm64 --publish=never",
         "dist:rpm": "pnpm run electron-postinstall && PLATFORM=linux pnpm run build && electron-builder --linux rpm --publish=never",
         "dist:flatpak": "pnpm run electron-postinstall && PLATFORM=linux pnpm run build && electron-builder --linux flatpak --publish=never",
         "dist:windows": "pnpm run electron-postinstall && PLATFORM=win32 pnpm run build && electron-builder --win portable nsis --publish=never",
+        "dist:win-x64": "pnpm run electron-postinstall && PLATFORM=win32 ARCH=x64 pnpm run build && electron-builder --win portable nsis --x64 --publish=never",
+        "dist:win-arm64": "pnpm run electron-postinstall && PLATFORM=win32 ARCH=arm64 pnpm run build && electron-builder --win portable nsis --arm64 --publish=never",
         "dist:zip": "pnpm run electron-postinstall && pnpm run build && electron-forge make --targets @electron-forge/maker-zip",
         "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
         "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
@@ -114,7 +118,7 @@
             },
             "extraResources": [
                 {
-                    "from": "build/exe/linux",
+                    "from": "build/exe/linux-${arch}",
                     "to": "backend",
                     "filter": [
                         "**/*"
@@ -123,18 +127,26 @@
             ]
         },
         "win": {
-            "artifactName": "ReticulumMeshChat-v${version}-${os}.${ext}",
+            "artifactName": "ReticulumMeshChat-v${version}-${os}-${arch}.${ext}",
             "target": [
                 {
-                    "target": "portable"
+                    "target": "portable",
+                    "arch": [
+                        "x64",
+                        "arm64"
+                    ]
                 },
                 {
-                    "target": "nsis"
+                    "target": "nsis",
+                    "arch": [
+                        "x64",
+                        "arm64"
+                    ]
                 }
             ],
             "extraResources": [
                 {
-                    "from": "build/exe/win32",
+                    "from": "build/exe/win32-${arch}",
                     "to": "backend",
                     "filter": [
                         "**/*"
@@ -143,16 +155,28 @@
             ]
         },
         "linux": {
-            "artifactName": "ReticulumMeshChatX-v${version}-${os}.${ext}",
+            "artifactName": "ReticulumMeshChatX-v${version}-${os}-${arch}.${ext}",
             "target": [
-                "AppImage",
-                "deb"
+                {
+                    "target": "AppImage",
+                    "arch": [
+                        "x64",
+                        "arm64"
+                    ]
+                },
+                {
+                    "target": "deb",
+                    "arch": [
+                        "x64",
+                        "arm64"
+                    ]
+                }
             ],
             "maintainer": "Sudo-Ivan",
             "category": "Network",
             "extraResources": [
                 {
-                    "from": "build/exe/linux",
+                    "from": "build/exe/linux-${arch}",
                     "to": "backend",
                     "filter": [
                         "**/*"

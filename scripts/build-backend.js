@@ -44,9 +44,13 @@ function generateManifest(buildDir, manifestPath) {
 
 try {
     const platform = process.env.PLATFORM || process.platform;
+    const arch = process.env.ARCH || process.arch;
     const isWin = platform === "win32" || platform === "win";
     const targetName = isWin ? "ReticulumMeshChatX.exe" : "ReticulumMeshChatX";
-    const buildDirRelative = isWin ? "build/exe/win32" : "build/exe/linux";
+
+    // Create architecture-specific build directory
+    const platformFolder = isWin ? "win32" : "linux";
+    const buildDirRelative = `build/exe/${platformFolder}-${arch}`;
     const buildDir = path.join(__dirname, "..", buildDirRelative);
 
     // Allow overriding the python command (e.g., to use wine python for cross-builds)
