@@ -32,28 +32,30 @@ const i18n = createI18n({
     },
 });
 
-const router = createRouter({
-    history: createWebHashHistory(),
-    routes: [
-        { path: "/", name: "messages", component: { template: "<div>Messages</div>" } },
-        { path: "/nomadnetwork", name: "nomadnetwork", component: { template: "<div>Nomad</div>" } },
-        { path: "/map", name: "map", component: { template: "<div>Map</div>" } },
-        { path: "/archives", name: "archives", component: { template: "<div>Archives</div>" } },
-        { path: "/call", name: "call", component: { template: "<div>Call</div>" } },
-        { path: "/interfaces", name: "interfaces", component: { template: "<div>Interfaces</div>" } },
-        { path: "/network-visualiser", name: "network-visualiser", component: { template: "<div>Network</div>" } },
-        { path: "/tools", name: "tools", component: { template: "<div>Tools</div>" } },
-        { path: "/settings", name: "settings", component: { template: "<div>Settings</div>" } },
-        { path: "/identities", name: "identities", component: { template: "<div>Identities</div>" } },
-        { path: "/about", name: "about", component: { template: "<div>About</div>" } },
-        { path: "/profile/icon", name: "profile.icon", component: { template: "<div>Profile</div>" } },
-        { path: "/changelog", name: "changelog", component: { template: "<div>Changelog</div>" } },
-        { path: "/tutorial", name: "tutorial", component: { template: "<div>Tutorial</div>" } },
-    ],
-});
+const routes = [
+    { path: "/", name: "messages", component: { template: "<div>Messages</div>" } },
+    { path: "/nomadnetwork", name: "nomadnetwork", component: { template: "<div>Nomad</div>" } },
+    { path: "/map", name: "map", component: { template: "<div>Map</div>" } },
+    { path: "/archives", name: "archives", component: { template: "<div>Archives</div>" } },
+    { path: "/call", name: "call", component: { template: "<div>Call</div>" } },
+    { path: "/interfaces", name: "interfaces", component: { template: "<div>Interfaces</div>" } },
+    { path: "/network-visualiser", name: "network-visualiser", component: { template: "<div>Network</div>" } },
+    { path: "/tools", name: "tools", component: { template: "<div>Tools</div>" } },
+    { path: "/settings", name: "settings", component: { template: "<div>Settings</div>" } },
+    { path: "/identities", name: "identities", component: { template: "<div>Identities</div>" } },
+    { path: "/about", name: "about", component: { template: "<div>About</div>" } },
+    { path: "/profile/icon", name: "profile.icon", component: { template: "<div>Profile</div>" } },
+    { path: "/changelog", name: "changelog", component: { template: "<div>Changelog</div>" } },
+    { path: "/tutorial", name: "tutorial", component: { template: "<div>Tutorial</div>" } },
+];
 
 describe("App.vue Modals", () => {
+    let router;
     beforeEach(() => {
+        router = createRouter({
+            history: createWebHashHistory(),
+            routes,
+        });
         vi.clearAllMocks();
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/app/info") {
@@ -139,6 +141,7 @@ describe("App.vue Modals", () => {
             },
         });
 
+        await router.isReady();
         await new Promise((resolve) => setTimeout(resolve, 200));
 
         expect(wrapper.vm.$refs.tutorialModal.visible).toBe(true);
@@ -197,6 +200,7 @@ describe("App.vue Modals", () => {
             },
         });
 
+        await router.isReady();
         await new Promise((resolve) => setTimeout(resolve, 200));
 
         expect(wrapper.vm.$refs.changelogModal.visible).toBe(true);
