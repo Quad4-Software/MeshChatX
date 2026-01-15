@@ -78,7 +78,7 @@ describe("ChangelogModal.vue", () => {
         axiosMock.get.mockResolvedValue({
             data: {
                 html: "<h1>Test</h1>",
-                version: "4.0.0",
+                version: "4.1.0",
             },
         });
 
@@ -95,7 +95,7 @@ describe("ChangelogModal.vue", () => {
         axiosMock.get.mockResolvedValue({
             data: {
                 html: "<h1>Test</h1>",
-                version: "4.0.0",
+                version: "4.1.0",
             },
         });
 
@@ -114,7 +114,7 @@ describe("ChangelogModal.vue", () => {
         axiosMock.get.mockResolvedValue({
             data: {
                 html: "<h1>Test</h1>",
-                version: "4.0.0",
+                version: "4.1.0",
             },
         });
 

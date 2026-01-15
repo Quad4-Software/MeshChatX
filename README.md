@@ -59,10 +59,10 @@ The simplest way to install MeshChatX on most systems is using the pre-built whe
 
 1. **Install directly from the release**:
    ```bash
-   pip install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.0.0/reticulum_meshchatx-4.0.0-py3-none-any.whl
+   pip install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.1.0/reticulum_meshchatx-4.1.0-py3-none-any.whl
 
    # pipx
-   pipx install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.0.0/reticulum_meshchatx-4.0.0-py3-none-any.whl
+   pipx install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.1.0/reticulum_meshchatx-4.1.0-py3-none-any.whl
    ```
 
 2. **Run MeshChatX**:

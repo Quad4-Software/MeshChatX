@@ -60,9 +60,9 @@ describe("App.vue Modals", () => {
                 return Promise.resolve({
                     data: {
                         app_info: {
-                            version: "4.0.0",
+                            version: "4.1.0",
                             tutorial_seen: true,
-                            changelog_seen_version: "4.0.0",
+                            changelog_seen_version: "4.1.0",
                         },
                     },
                 });
@@ -92,7 +92,7 @@ describe("App.vue Modals", () => {
                 return Promise.resolve({
                     data: {
                         app_info: {
-                            version: "4.0.0",
+                            version: "4.1.0",
                             tutorial_seen: false,
                             changelog_seen_version: "0.0.0",
                         },
@@ -150,7 +150,7 @@ describe("App.vue Modals", () => {
                 return Promise.resolve({
                     data: {
                         app_info: {
-                            version: "4.0.0",
+                            version: "4.1.0",
                             tutorial_seen: true,
                             changelog_seen_version: "3.9.0",
                         },
@@ -158,7 +158,7 @@ describe("App.vue Modals", () => {
                 });
             }
             if (url === "/api/v1/app/changelog") {
-                return Promise.resolve({ data: { html: "<h1>New Features</h1>", version: "4.0.0" } });
+                return Promise.resolve({ data: { html: "<h1>New Features</h1>", version: "4.1.0" } });
             }
             if (url === "/api/v1/config") return Promise.resolve({ data: { config: { theme: "dark" } } });
             if (url === "/api/v1/auth/status") return Promise.resolve({ data: { auth_enabled: false } });
