@@ -56,128 +56,29 @@ tasks:
         cmds:
             - task --list
 
-    setup-python-env:
-        desc: Setup Python environment using Poetry
-        cmds:
-            - poetry install
-            - poetry run pip install ruff
-
-    lint-python:
-        desc: Lint Python code using ruff
-        cmds:
-            - poetry run ruff check .
-            - poetry run ruff format --check .
-
-    lint-frontend:
-        desc: Lint frontend code
-        cmds:
-            - "{{.NPM}} run lint"
-
-    lint:
-        desc: Run all linters (frontend and Python)
-        deps: [lint-frontend, lint-python]
-
-    format-python:
-        desc: Format Python code using ruff
-        cmds:
-            - poetry run ruff format ./ --exclude tests
-            - poetry run ruff check --fix ./ --exclude tests
-
-    format-frontend:
-        desc: Format frontend code using Prettier and ESLint
-        cmds:
-            - "{{.NPM}} run format"
-            - "{{.NPM}} run lint:fix"
-
-    format:
-        desc: Format all code (Python and frontend)
-        deps: [format-python, format-frontend]
-
-    test-python:
-        desc: Run Python tests using pytest
-        cmds:
-            - poetry run pytest tests/backend --cov=meshchatx/src/backend
-
-    test-python-cov:
-        desc: Run Python tests with detailed coverage report
-        cmds:
-            - poetry run pytest tests/backend --cov=meshchatx/src/backend --cov-report=term-missing
-
-    test-frontend:
-        desc: Run frontend tests using vitest
-        cmds:
-            - "{{.NPM}} run test -- --exclude tests/frontend/i18n.test.js"
-
-    test-lang:
-        desc: Run language and localization tests
-        cmds:
-            - "{{.NPM}} run test tests/frontend/i18n.test.js"
-            - "poetry run pytest tests/backend/test_translator_handler.py"
-
-    gen-locale-template:
-        desc: Generate a locales.json template with empty values from en.json
-        cmds:
-            - "{{.PYTHON}} scripts/generate_locale_template.py"
-
-    test:
-        desc: Run all tests
-        deps: [test-python, test-frontend, test-lang]
-
-    test:cov:
-        desc: Run all tests with coverage reports
-        deps: [test-python-cov, test-frontend]
-
-    check:
-        desc: Run format, lint and test
-        cmds:
-            - task: format
-            - task: lint
-            - task: test
-
-    bench-backend:
-        desc: Run comprehensive backend benchmarks
-        cmds:
-            - poetry run python tests/backend/run_comprehensive_benchmarks.py
-
-    bench-extreme:
-        desc: Run extreme backend stress benchmarks (Breaking Space Mode)
-        cmds:
-            - poetry run python tests/backend/run_comprehensive_benchmarks.py --extreme
-
-    profile-memory:
-        desc: Run backend memory profiling tests
-        cmds:
-            - poetry run pytest tests/backend/test_memory_profiling.py
-
-    test-integrity:
-        desc: Run backend and data integrity tests
-        cmds:
-            - poetry run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
-
-    bench:
-        desc: Run all backend benchmarks and memory profiling
-        cmds:
-            - task: bench-backend
-            - task: profile-memory
-
-    compile:
-        desc: Compile Python code to check for syntax errors
-        cmds:
-            - "{{.PYTHON}} -m compileall meshchatx/"
+    # --- Initialization & Dependencies ---
 
     install:
-        desc: Install all dependencies (installs node modules and python deps)
-        deps: [node_modules, python]
+        desc: Install all dependencies (frontend and backend)
+        deps: [deps:fe, deps:be]
 
-    node_modules:
+    deps:fe:
         desc: Install Node.js dependencies
         cmds:
             - "{{.NPM}} install"
 
-    python:
+    deps:be:
         desc: Install Python dependencies using Poetry
         cmds:
             - "{{.PYTHON}} -m poetry install"
+
+    setup:be:
+        desc: Full backend environment setup
+        cmds:
+            - poetry install
+            - poetry run pip install ruff
+
+    # --- Execution ---
 
     run:
         desc: Run the application
@@ -186,184 +87,257 @@ tasks:
             - "{{.PYTHON}} -m poetry run meshchat"
 
     dev:
-        desc: Run the application in development mode
-        deps: [build-frontend]
+        desc: Run in development mode (builds frontend first)
+        deps: [build:fe]
         cmds:
             - task: run
 
-    build:
-        desc: Build the application (frontend and backend)
+    start:
+        desc: Run the application via Electron Forge
+        cmds:
+            - "{{.NPM}} run start"
+
+    package:
+        desc: Package the application with Electron Forge
+        cmds:
+            - "{{.NPM}} run package"
+
+    make:
+        desc: Generate distributables with Electron Forge
+        cmds:
+            - "{{.NPM}} run make"
+
+    # --- Code Quality ---
+
+    lint:all:
+        desc: Run all linters
+        deps: [lint:fe, lint:be]
+
+    lint:be:
+        desc: Lint Python code (ruff)
+        cmds:
+            - poetry run ruff check .
+            - poetry run ruff format --check .
+
+    lint:fe:
+        desc: Lint frontend code
+        cmds:
+            - "{{.NPM}} run lint"
+
+    fmt:all:
+        desc: Format all code
+        deps: [fmt:fe, fmt:be]
+
+    fmt:be:
+        desc: Format Python code (ruff)
+        cmds:
+            - poetry run ruff format ./ --exclude tests
+            - poetry run ruff check --fix ./ --exclude tests
+
+    fmt:fe:
+        desc: Format frontend code (Prettier/ESLint)
+        cmds:
+            - "{{.NPM}} run format"
+            - "{{.NPM}} run lint:fix"
+
+    # --- Testing & Analysis ---
+
+    test:all:
+        desc: Run all tests
+        deps: [test:be, test:fe, test:lang]
+
+    test:be:
+        desc: Run Python tests (pytest)
+        cmds:
+            - poetry run pytest tests/backend --cov=meshchatx/src/backend
+
+    test:be:cov:
+        desc: Run Python tests with detailed coverage
+        cmds:
+            - poetry run pytest tests/backend --cov=meshchatx/src/backend --cov-report=term-missing
+
+    test:fe:
+        desc: Run frontend tests (vitest)
+        cmds:
+            - "{{.NPM}} run test -- --exclude tests/frontend/i18n.test.js"
+
+    test:lang:
+        desc: Run localization tests
+        cmds:
+            - "{{.NPM}} run test tests/frontend/i18n.test.js"
+            - "poetry run pytest tests/backend/test_translator_handler.py"
+
+    test:integrity:
+        desc: Run data integrity tests
+        cmds:
+            - poetry run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
+
+    test:cov:
+        desc: Run all tests with coverage
+        deps: [test:be:cov, test:fe]
+
+    bench:be:
+        desc: Run backend benchmarks
+        cmds:
+            - poetry run python tests/backend/run_comprehensive_benchmarks.py
+
+    bench:be:extreme:
+        desc: Run extreme stress benchmarks
+        cmds:
+            - poetry run python tests/backend/run_comprehensive_benchmarks.py --extreme
+
+    profile:mem:
+        desc: Run memory profiling
+        cmds:
+            - poetry run pytest tests/backend/test_memory_profiling.py
+
+    check:
+        desc: Run formatting, linting, and testing sequentially
+        cmds:
+            - task: fmt:all
+            - task: lint:all
+            - task: test:all
+
+    compile:
+        desc: Compile Python to check for syntax errors
+        cmds:
+            - "{{.PYTHON}} -m compileall meshchatx/"
+
+    # --- Build & Packaging ---
+
+    build:all:
+        desc: Build frontend and prepare backend
         deps: [install]
         cmds:
             - "{{.NPM}} run build"
 
-    build-frontend:
-        desc: Build only the frontend
-        deps: [node_modules]
+    build:fe:
+        desc: Build frontend assets
+        deps: [deps:fe]
         cmds:
             - "{{.NPM}} run build-frontend"
 
-    wheel:
+    build:wheel:
         desc: Build Python wheel package
         deps: [install]
         cmds:
             - "{{.PYTHON}} -m poetry build -f wheel"
             - "{{.PYTHON}} scripts/move_wheels.py"
 
-    build-appimage:
+    # --- Electron Distribution ---
+
+    dist:linux:appimage:
         desc: Build Linux AppImage
-        deps: [build-frontend]
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage"
 
-    build-exe:
-        desc: Build Windows portable executable
-        deps: [build-frontend]
+    dist:win:exe:
+        desc: Build Windows portable EXE
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --win portable"
 
-    build-exe-wine:
-        desc: Build Windows portable executable and NSIS installer using Wine
-        deps: [build-frontend]
+    dist:win:wine:
+        desc: Build Windows EXE/Installer via Wine
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
             - "npx electron-builder --win portable nsis --publish=never"
 
-    build-electron-linux:
-        desc: Build Linux Electron app with prebuilt backend
-        deps: [build-frontend]
+    dist:fe:linux:
+        desc: Build Linux Electron app (prebuilt backend)
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run dist:linux"
 
-    build-rpm:
-        desc: Build Linux RPM package
-        deps: [build-frontend]
+    dist:fe:rpm:
+        desc: Build RPM package
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run dist:rpm"
 
-    build-flatpak:
-        desc: Build Linux Flatpak package
-        deps: [build-frontend]
+    dist:fe:flatpak:
+        desc: Build Flatpak package
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run dist:flatpak"
 
-    build-electron-windows:
-        desc: Build Windows Electron apps (portable and installer)
-        deps: [build-frontend]
+    dist:fe:win:
+        desc: Build Windows Electron apps
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run dist:windows"
 
-    build-zip:
-        desc: Build Electron ZIP archive using Electron Forge
-        deps: [build-frontend]
+    dist:fe:zip:
+        desc: Build Electron ZIP (Forge)
+        deps: [build:fe]
         cmds:
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "{{.NPM}} run dist:zip"
 
-    build-electron-all:
-        desc: Build all Electron apps (Linux and Windows)
-        deps: [build-frontend]
+    dist:all:
+        desc: Build all Electron apps (Linux + Win)
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "{{.NPM}} run dist -- --linux AppImage deb --win portable nsis"
 
-    build-electron-all-wine:
-        desc: Build all Electron apps (Linux + Windows via Wine)
-        deps: [build-frontend]
+    dist:all:wine:
+        desc: Build all Electron apps (Linux + Win via Wine)
+        deps: [build:fe]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
             - "npx electron-builder --linux AppImage deb --win portable nsis --publish=never"
 
-    dist:
-        desc: Build distribution (defaults to AppImage)
-        cmds:
-            - task: build-appimage
+    # --- Legacy Electron Builds ---
 
-    electron-legacy:
-        desc: Ensure legacy Electron version is available (will be downloaded by electron-builder if needed)
-        cmds:
-            - 'echo "Building with legacy Electron version: {{.LEGACY_ELECTRON_VERSION}}"'
-
-    build-appimage-legacy:
-        desc: Build Linux AppImage with legacy Electron version
-        deps: [build-frontend, electron-legacy]
+    dist:legacy:linux:
+        desc: Build Linux AppImage (Legacy Electron)
+        deps: [build:fe]
         cmds:
             - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "npx electron-builder --config package-legacy.json --linux AppImage --publish=never"
 
-    build-exe-legacy:
-        desc: Build Windows portable executable with legacy Electron version
-        deps: [build-frontend, electron-legacy]
+    dist:legacy:win:
+        desc: Build Windows EXE (Legacy Electron)
+        deps: [build:fe]
         cmds:
             - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "npx electron-builder --config package-legacy.json --win portable --publish=never"
 
-    build-exe-legacy-wine:
-        desc: Build Windows portable executable and NSIS installer using Wine (Legacy)
-        deps: [build-frontend, electron-legacy]
+    dist:legacy:win:wine:
+        desc: Build Windows EXE via Wine (Legacy Electron)
+        deps: [build:fe]
         cmds:
             - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
             - "npx electron-builder --config package-legacy.json --win portable nsis --publish=never"
 
-    build-legacy-all:
-        desc: Build all legacy Electron apps (Linux and Windows)
-        deps: [build-frontend, electron-legacy]
+    dist:legacy:all:
+        desc: Build all Legacy apps
+        deps: [build:fe]
         cmds:
             - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
             - "npx electron-builder --config package-legacy.json --linux AppImage deb --win portable nsis --publish=never"
 
-    build-legacy-all-wine:
-        desc: Build all legacy Electron apps (Linux + Windows via Wine)
-        deps: [build-frontend, electron-legacy]
-        cmds:
-            - "npx electron-builder install-app-deps --config package-legacy.json"
-            - "PLATFORM=linux {{.NPM}} run build-backend"
-            - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
-            - "npx electron-builder --config package-legacy.json --linux AppImage deb --win portable nsis --publish=never"
+    # --- Docker ---
 
-    forge-start:
-        desc: Run the application with Electron Forge
-        cmds:
-            - "{{.NPM}} run start"
-
-    forge-package:
-        desc: Package the application with Electron Forge
-        cmds:
-            - "{{.NPM}} run package"
-
-    forge-make:
-        desc: Generate distributables with Electron Forge
-        cmds:
-            - "{{.NPM}} run make"
-
-    clean:
-        desc: Clean build artifacts and dependencies
-        cmds:
-            - rm -rf node_modules
-            - rm -rf build
-            - rm -rf dist
-            - rm -rf python-dist
-            - rm -rf meshchatx/public
-            - rm -rf build-dir
-            - rm -rf out
-            - task: android-clean
-
-    build-docker:
-        desc: Build Docker image using buildx
+    docker:build:
+        desc: Build Docker image (buildx)
         cmds:
             - |
                 if ! docker buildx inspect {{.DOCKER_BUILDER}} >/dev/null 2>&1; then
@@ -379,23 +353,23 @@ tasks:
                   -f {{.DOCKERFILE}} \
                   {{.DOCKER_CONTEXT}}
 
-    run-docker:
-        desc: Run Docker container using docker-compose
+    docker:run:
+        desc: Run Docker container (compose)
         cmds:
             - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f {{.DOCKER_COMPOSE_FILE}} up --remove-orphans --pull never reticulum-meshchatx'
 
-    run-docker-dev:
-        desc: Run Docker container in development mode using docker-compose.dev.yml
+    docker:run:dev:
+        desc: Run Docker container (dev compose)
         cmds:
             - 'MESHCHAT_IMAGE="{{.DOCKER_IMAGE}}" {{.DOCKER_COMPOSE_CMD}} -f docker-compose.dev.yml up --build --remove-orphans reticulum-meshchatx'
 
-    docker-build-env:
-        desc: Build the Docker image for containerized builds
+    docker:build:env:
+        desc: Build containerized build environment
         cmds:
             - docker build -t {{.DOCKER_BUILD_IMAGE}} -f {{.DOCKER_BUILD_FILE}} .
 
-    docker-build-artifacts:
-        desc: Build whls and electron artifacts inside a container and export them
+    docker:build:artifacts:
+        desc: Build and export artifacts from container
         cmds:
             - docker rm -f meshchat-build-temp || true
             - docker run --name meshchat-build-temp {{.DOCKER_BUILD_IMAGE}}
@@ -404,8 +378,10 @@ tasks:
             - docker cp meshchat-build-temp:/app/python-dist/. ./python-dist/
             - docker rm meshchat-build-temp
 
-    android-init:
-        desc: Initialize Gradle wrapper for Android project
+    # --- Android ---
+
+    android:init:
+        desc: Initialize Gradle wrapper
         cmds:
             - |
                 if [ ! -f "{{.ANDROID_DIR}}/gradle/wrapper/gradle-wrapper.jar" ]; then
@@ -418,62 +394,68 @@ tasks:
                     echo "Gradle wrapper already initialized."
                 fi
 
-    android-prepare:
-        desc: Prepare Android build (copy meshchatx package and assets)
-        deps: [build-frontend, android-init]
+    android:prepare:
+        desc: Prepare Android source assets
+        deps: [build:fe, android:init]
         cmds:
             - |
                 echo "Copying meshchatx package and dependencies to Android project..."
                 mkdir -p "{{.PYTHON_SRC_DIR}}"
-                # Remove old copies to ensure fresh build
                 rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
                 rm -rf "{{.PYTHON_SRC_DIR}}/RNS"
                 rm -rf "{{.PYTHON_SRC_DIR}}/LXMF"
                 rm -rf "{{.PYTHON_SRC_DIR}}/LXST"
 
-                # Copy MeshChatX
                 cp -r meshchatx "{{.PYTHON_SRC_DIR}}/"
-
-                # Vendor RNS, LXMF, and LXST from ./misc/ and ./src/
                 cp -r ./misc/RNS "{{.PYTHON_SRC_DIR}}/"
                 cp -r ./misc/LXMF "{{.PYTHON_SRC_DIR}}/"
                 cp -r ./misc/LXST "{{.PYTHON_SRC_DIR}}/"
                 cp -r ./src/RNS "{{.PYTHON_SRC_DIR}}/" || true
                 cp -r ./src/LXMF "{{.PYTHON_SRC_DIR}}/" || true
                 cp -r ./src/LXST "{{.PYTHON_SRC_DIR}}/" || true
-
-                # Copy pycodec2 wheel from ./misc
                 cp "./misc/pycodec2-3.0.1-cp311-cp311-linux_aarch64.whl" "{{.PYTHON_SRC_DIR}}/" || true
 
-                # Copy native libraries from ./misc
                 mkdir -p "{{.JNI_LIBS_DIR}}/arm64-v8a"
                 mkdir -p "{{.JNI_LIBS_DIR}}/armeabi-v7a"
                 cp "./misc/libcodec2-arm64-v8a.so" "{{.JNI_LIBS_DIR}}/arm64-v8a/" || true
                 cp "./misc/libcodec2-armeabi-v7a.so" "{{.JNI_LIBS_DIR}}/armeabi-v7a/" || true
 
-                # Cleanup vendored packages (remove utilities/tests etc if needed, similar to Sideband)
                 rm -rf "{{.PYTHON_SRC_DIR}}/RNS/Utilities/RNS"
                 rm -rf "{{.PYTHON_SRC_DIR}}/LXMF/Utilities/LXMF"
                 rm -rf "{{.PYTHON_SRC_DIR}}/LXST/Utilities/LXST"
-            - |
-                echo "Android build prepared. Don't forget to:"
-                echo "1. Add Chaquopy license to {{.ANDROID_DIR}}/local.properties"
-                echo "2. Open {{.ANDROID_DIR}}/ in Android Studio or run: task android-build"
 
-    android-build:
-        desc: Build Android APK (requires Android SDK and Chaquopy license)
-        deps: [android-prepare]
+    android:build:
+        desc: Build Debug APK
+        deps: [android:prepare]
         cmds:
             - cd "{{.ANDROID_DIR}}" && ./gradlew assembleDebug
 
-    android-build-release:
-        desc: Build Android APK (release, requires signing config)
-        deps: [android-prepare]
+    android:build:release:
+        desc: Build Release APK
+        deps: [android:prepare]
         cmds:
             - cd "{{.ANDROID_DIR}}" && ./gradlew assembleRelease
 
-    android-clean:
-        desc: Clean Android build artifacts
+    android:clean:
+        desc: Clean Android artifacts
         cmds:
             - cd "{{.ANDROID_DIR}}" && ./gradlew clean
             - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
+
+    # --- Maintenance ---
+
+    dist:
+        desc: Alias for dist:linux:appimage
+        cmds:
+            - task: dist:linux:appimage
+
+    clean:
+        desc: Nuke all build artifacts and dependencies
+        cmds:
+            - rm -rf node_modules build dist python-dist meshchatx/public build-dir out
+            - task: android:clean
+
+    locales:gen:
+        desc: Generate localization template
+        cmds:
+            - "{{.PYTHON}} scripts/generate_locale_template.py"
