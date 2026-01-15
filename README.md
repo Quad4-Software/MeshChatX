@@ -66,6 +66,7 @@ Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-bui
 - **Page Archiving**: Built-in crawler and browser for archived pages offline.
 - **Banishment**: Banish LXMF users, Telephony, and NomadNet Nodes.
 - **i18n**: Support for English, German, Italian, and Russian.
+- **Advanced Diagnostic Engine**: Mathematically grounded crash recovery using Active Inference and Information Theory.
 
 ## Screenshots
 
@@ -271,6 +272,16 @@ We use [Task](https://taskfile.dev/) for automation.
 - Extensive testing and fuzzing.
 - Rootless docker images
 - Pinned actions and container images (supply chain security and deterministic builds)
+
+## Advanced Diagnostic Engine
+
+MeshChatX includes a uniquely sophisticated crash recovery system designed for the unpredictable hardware environments.
+
+- **Probabilistic Active Inference**: Uses Bayesian-inspired heuristics to determine root causes (e.g., OOM, RNS config issues, LXMF storage failures) with up to 99% confidence.
+- **Mathematical Grounding**: Quantifies system instability using Shannon Entropy and KL-Divergence, providing a numerical "disorder index" at the time of failure.
+- **Manifold Mapping**: Identifies "Failure Manifolds" across the entire vertical stack—from Kernel and Python versions to RNS interface state and LXMF database integrity.
+
+All running locally on your own hardware and it might not be perfect, but it will only get better. The idea is to provide you the help to possibly fix it when you cannot reach me. 
 
 ## Credits
 
