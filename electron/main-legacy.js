@@ -1,14 +1,75 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, systemPreferences } = require("electron");
+const {
+    app,
+    BrowserWindow,
+    dialog,
+    ipcMain,
+    shell,
+    systemPreferences,
+    Notification,
+    powerSaveBlocker,
+} = require("electron");
 const electronPrompt = require("electron-prompt");
 const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("node:path");
+const crypto = require("crypto");
 
 // remember main window
 var mainWindow = null;
 
+// power save blocker id
+var activePowerSaveBlockerId = null;
+
 // remember child process for exe so we can kill it when app exits
 var exeChildProcess = null;
+
+// store integrity status
+var integrityStatus = {
+    backend: { ok: true, issues: [] },
+    data: { ok: true, issues: [] },
+};
+
+function verifyBackendIntegrity(exeDir) {
+    const manifestPath = path.join(exeDir, "backend-manifest.json");
+    if (!fs.existsSync(manifestPath)) {
+        log("Backend integrity manifest missing, skipping check.");
+        return { ok: true, issues: ["Manifest missing"] };
+    }
+
+    try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        const issues = [];
+
+        const filesToVerify = manifest.files || manifest;
+        const metadata = manifest._metadata || {};
+
+        for (const [relPath, expectedHash] of Object.entries(filesToVerify)) {
+            const fullPath = path.join(exeDir, relPath);
+            if (!fs.existsSync(fullPath)) {
+                issues.push(`Missing: ${relPath}`);
+                continue;
+            }
+
+            const fileBuffer = fs.readFileSync(fullPath);
+            const actualHash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
+            if (actualHash !== expectedHash) {
+                issues.push(`Modified: ${relPath}`);
+            }
+        }
+
+        if (issues.length > 0 && metadata.date && metadata.time) {
+            issues.unshift(`Backend build timestamp: ${metadata.date} ${metadata.time}`);
+        }
+
+        return {
+            ok: issues.length === 0,
+            issues: issues,
+        };
+    } catch (error) {
+        log(`Backend integrity check failed: ${error.message}`);
+        return { ok: false, issues: [error.message] };
+    }
+}
 
 // allow fetching app version via ipc
 ipcMain.handle("app-version", () => {
@@ -24,12 +85,43 @@ ipcMain.handle("is-hardware-acceleration-enabled", () => {
     return true; // Assume true for older versions
 });
 
-// allow fetching integrity status (Stub for legacy)
+// allow fetching integrity status
 ipcMain.handle("get-integrity-status", () => {
-    return {
-        backend: { ok: true, issues: ["Not supported in legacy mode"] },
-        data: { ok: true, issues: ["Not supported in legacy mode"] },
-    };
+    return integrityStatus;
+});
+
+// Native Notification IPC
+ipcMain.handle("show-notification", (event, { title, body, silent }) => {
+    const notification = new Notification({
+        title: title,
+        body: body,
+        silent: silent,
+    });
+    notification.show();
+
+    notification.on("click", () => {
+        if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
+});
+
+// Power Management IPC
+ipcMain.handle("set-power-save-blocker", (event, enabled) => {
+    if (enabled) {
+        if (activePowerSaveBlockerId === null) {
+            activePowerSaveBlockerId = powerSaveBlocker.start("prevent-app-suspension");
+            log("Power save blocker started.");
+        }
+    } else {
+        if (activePowerSaveBlockerId !== null) {
+            powerSaveBlocker.stop(activePowerSaveBlockerId);
+            activePowerSaveBlockerId = null;
+            log("Power save blocker stopped.");
+        }
+    }
+    return activePowerSaveBlockerId !== null;
 });
 
 // ignore ssl errors
@@ -78,6 +170,19 @@ ipcMain.handle("prompt", async (event, message) => {
 ipcMain.handle("relaunch", () => {
     app.relaunch();
     app.exit();
+});
+
+ipcMain.handle("relaunch-emergency", () => {
+    app.relaunch({ args: process.argv.slice(1).concat(["--emergency"]) });
+    app.exit();
+});
+
+ipcMain.handle("shutdown", () => {
+    quit();
+});
+
+ipcMain.handle("get-memory-usage", async () => {
+    return process.getProcessMemoryInfo();
 });
 
 // allow showing a file path in os file manager
@@ -244,6 +349,13 @@ app.whenReady().then(async () => {
     }
 
     log(`Found executable at: ${exe}`);
+
+    // Verify backend integrity before spawning
+    const exeDir = path.dirname(exe);
+    integrityStatus.backend = verifyBackendIntegrity(exeDir);
+    if (!integrityStatus.backend.ok) {
+        log(`INTEGRITY WARNING: Backend tampering detected! Issues: ${integrityStatus.backend.issues.join(", ")}`);
+    }
 
     try {
         // arguments we always want to pass in

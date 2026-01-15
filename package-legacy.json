@@ -1,0 +1,60 @@
+{
+    "appId": "com.sudoivan.reticulummeshchat-legacy",
+    "productName": "Reticulum MeshChatX Legacy",
+    "electronVersion": "30.0.8",
+    "extraMetadata": {
+        "main": "electron/main-legacy.js"
+    },
+    "asar": true,
+    "electronFuses": {
+        "runAsNode": false,
+        "enableCookieEncryption": true,
+        "enableNodeOptionsEnvironmentVariable": false,
+        "enableNodeCliInspectArguments": false,
+        "enableEmbeddedAsarIntegrityValidation": true,
+        "onlyLoadAppFromAsar": true
+    },
+    "files": ["electron/**/*"],
+    "directories": {
+        "buildResources": "electron/build"
+    },
+    "win": {
+        "artifactName": "ReticulumMeshChat-v${version}-legacy-${os}.${ext}",
+        "target": [
+            {
+                "target": "portable"
+            },
+            {
+                "target": "nsis"
+            }
+        ],
+        "extraResources": [
+            {
+                "from": "build/exe/win32",
+                "to": "backend",
+                "filter": ["**/*"]
+            }
+        ]
+    },
+    "linux": {
+        "artifactName": "ReticulumMeshChatX-v${version}-legacy-${os}.${ext}",
+        "target": ["AppImage", "deb"],
+        "maintainer": "Sudo-Ivan",
+        "category": "Network",
+        "extraResources": [
+            {
+                "from": "build/exe/linux",
+                "to": "backend",
+                "filter": ["**/*"]
+            }
+        ]
+    },
+    "portable": {
+        "artifactName": "ReticulumMeshChatX-v${version}-legacy-${os}-portable.${ext}"
+    },
+    "nsis": {
+        "artifactName": "ReticulumMeshChatX-v${version}-legacy-${os}-installer.${ext}",
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true
+    }
+}

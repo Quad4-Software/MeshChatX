@@ -289,27 +289,51 @@ tasks:
             - task: build-appimage
 
     electron-legacy:
-        desc: Install legacy Electron version
+        desc: Ensure legacy Electron version is available (will be downloaded by electron-builder if needed)
         cmds:
-            - "{{.NPM}} install --no-save electron@{{.LEGACY_ELECTRON_VERSION}}"
+            - 'echo "Building with legacy Electron version: {{.LEGACY_ELECTRON_VERSION}}"'
 
     build-appimage-legacy:
         desc: Build Linux AppImage with legacy Electron version
         deps: [build-frontend, electron-legacy]
         cmds:
-            - "{{.NPM}} run electron-postinstall"
+            - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=linux {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --linux AppImage -c.extraMetadata.main=electron/main-legacy.js"
-            - "./scripts/rename_legacy_artifacts.sh"
+            - "npx electron-builder --config package-legacy.json --linux AppImage --publish=never"
 
     build-exe-legacy:
         desc: Build Windows portable executable with legacy Electron version
         deps: [build-frontend, electron-legacy]
         cmds:
-            - "{{.NPM}} run electron-postinstall"
+            - "npx electron-builder install-app-deps --config package-legacy.json"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --win portable -c.extraMetadata.main=electron/main-legacy.js"
-            - "./scripts/rename_legacy_artifacts.sh"
+            - "npx electron-builder --config package-legacy.json --win portable --publish=never"
+
+    build-exe-legacy-wine:
+        desc: Build Windows portable executable and NSIS installer using Wine (Legacy)
+        deps: [build-frontend, electron-legacy]
+        cmds:
+            - "npx electron-builder install-app-deps --config package-legacy.json"
+            - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
+            - "npx electron-builder --config package-legacy.json --win portable nsis --publish=never"
+
+    build-legacy-all:
+        desc: Build all legacy Electron apps (Linux and Windows)
+        deps: [build-frontend, electron-legacy]
+        cmds:
+            - "npx electron-builder install-app-deps --config package-legacy.json"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
+            - "PLATFORM=win32 {{.NPM}} run build-backend"
+            - "npx electron-builder --config package-legacy.json --linux AppImage deb --win portable nsis --publish=never"
+
+    build-legacy-all-wine:
+        desc: Build all legacy Electron apps (Linux + Windows via Wine)
+        deps: [build-frontend, electron-legacy]
+        cmds:
+            - "npx electron-builder install-app-deps --config package-legacy.json"
+            - "PLATFORM=linux {{.NPM}} run build-backend"
+            - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
+            - "npx electron-builder --config package-legacy.json --linux AppImage deb --win portable nsis --publish=never"
 
     forge-start:
         desc: Run the application with Electron Forge
