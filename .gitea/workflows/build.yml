@@ -108,6 +108,29 @@ jobs:
               continue-on-error: true
               run: task build-flatpak
 
+            - name: Setup Wine Environment
+              env:
+                  WINEDEBUG: -all
+                  WINEARCH: win64
+              run: |
+                  echo "Downloading Windows Python and Git..."
+                  wget -q https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe
+                  wget -q https://github.com/git-for-windows/git/releases/download/v2.52.0.windows.1/Git-2.52.0-64-bit.exe
+
+                  echo "Initializing Wine prefix..."
+                  wine wineboot --init
+
+                  echo "Installing Python 3.13 into Wine..."
+                  wine python-3.13.1-amd64.exe /quiet InstallAllUsers=1 TargetDir=C:\Python313 PrependPath=1
+
+                  echo "Installing Git into Wine..."
+                  wine Git-2.52.0-64-bit.exe /VERYSILENT /NORESTART
+
+                  echo "Installing build dependencies in Wine Python..."
+                  wine C:/Python313/python.exe -m pip install --upgrade pip
+                  wine C:/Python313/python.exe -m pip install cx_Freeze poetry
+                  wine C:/Python313/python.exe -m pip install -r requirements.txt
+
             - name: Build Electron App (Windows EXE and NSIS)
               env:
                   WINEDEBUG: -all
