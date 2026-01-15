@@ -5,6 +5,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 from meshchatx.src.backend.recovery.crash_recovery import CrashRecovery
 
@@ -140,6 +141,185 @@ class TestCrashRecovery(unittest.TestCase):
         causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
         self.assertTrue(len(causes) > 0)
         self.assertIn("Asynchronous Initialization", causes[0]["description"])
+
+    def test_heuristic_analysis_oom_priority(self):
+        """Verify that low memory increases OOM probability even with other errors."""
+        exc_type = sqlite3.OperationalError
+        exc_value = sqlite3.OperationalError("database is locked")
+        # Scenario: Low memory + DB error
+        diagnosis = {"low_memory": True, "available_mem_mb": 10}
+
+        causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        # OOM should be prioritized or at least highly probable (85% in code)
+        oom_cause = next((c for c in causes if "OOM" in c["description"]), None)
+        self.assertIsNotNone(oom_cause)
+        self.assertEqual(oom_cause["probability"], 85)
+
+    def test_heuristic_analysis_rns_missing(self):
+        """Verify high confidence for missing RNS config."""
+        exc_type = RuntimeError
+        exc_value = RuntimeError("Reticulum could not start")
+        diagnosis = {"config_missing": True}
+
+        causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        self.assertEqual(causes[0]["description"], "Missing Reticulum Configuration")
+        self.assertEqual(causes[0]["probability"], 99)
+        self.assertIn(
+            "deterministic manifold constraints",
+            causes[0]["reasoning"].lower(),
+        )
+
+    def test_entropy_calculation_levels(self):
+        """Test how entropy reflects system disorder."""
+        # Baseline stable state
+        stable_diag = {"low_memory": False, "config_missing": False}
+        stable_entropy, _ = self.recovery._calculate_system_entropy(stable_diag)
+
+        # Unstable state (one critical issue)
+        unstable_diag = {"low_memory": True, "config_missing": False}
+        unstable_entropy, _ = self.recovery._calculate_system_entropy(unstable_diag)
+
+        # Very unstable state (multiple critical issues)
+        very_unstable_diag = {"low_memory": True, "config_missing": True}
+        very_unstable_entropy, _ = self.recovery._calculate_system_entropy(
+            very_unstable_diag,
+        )
+
+        # Entropy should increase with more issues
+        self.assertGreater(unstable_entropy, stable_entropy)
+        self.assertGreater(very_unstable_entropy, unstable_entropy)
+
+        # Max entropy for 2 binary states is at p=0.5, but here we sum
+        # p_unstable = 0.1 + 0.4 + 0.4 = 0.9.
+        # p=0.9 has lower entropy than p=0.5, but higher than p=0.1.
+        # p_stable=0.9 (stable) vs p_stable=0.5 (medium) vs p_stable=0.1 (unstable)
+        # H(0.1) = 0.469, H(0.5) = 1.0, H(0.9) = 0.469
+        # The current implementation:
+        # stable: p_unstable=0.1 -> H=0.469
+        # unstable: p_unstable=0.5 -> H=1.0
+        # very unstable: p_unstable=0.9 -> H=0.469 (wait, mathematically yes, but logically?)
+        # Actually for a "disorder" metric, we might want it to peak when things are most uncertain.
+        # But in our context, we are showing entropy of the "State Predictability".
+
+    def test_confidence_grounding_text(self):
+        """Verify that reasoning text reflects grounding logic."""
+        # High confidence scenario
+        exc_type = RuntimeError
+        exc_value = RuntimeError("no current event loop")
+        diagnosis = {}  # probability 88% -> heuristic matching
+        causes_low = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        self.assertIn(
+            "probabilistic heuristic matching",
+            causes_low[0]["reasoning"].lower(),
+        )
+
+        # Near-certainty scenario
+        diagnosis_certain = {"config_missing": True}
+        causes_high = self.recovery._analyze_cause(
+            exc_type,
+            exc_value,
+            diagnosis_certain,
+        )
+        self.assertIn("high-confidence threshold", causes_high[0]["reasoning"].lower())
+
+    def test_heuristic_analysis_lxmf_storage(self):
+        """Test LXMF storage failure detection."""
+        exc_type = RuntimeError
+        exc_value = RuntimeError("LXMF could not open storage directory")
+        diagnosis = {}
+
+        causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        self.assertEqual(causes[0]["description"], "LXMF Router Storage Failure")
+        self.assertEqual(causes[0]["probability"], 90)
+
+    def test_heuristic_analysis_rns_identity(self):
+        """Test Reticulum identity failure detection."""
+        exc_type = Exception
+        exc_value = Exception("Reticulum Identity load failed: corrupt private key")
+        diagnosis = {}
+
+        causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        self.assertEqual(causes[0]["description"], "Reticulum Identity Load Failure")
+        self.assertEqual(causes[0]["probability"], 95)
+
+    def test_heuristic_analysis_interface_offline(self):
+        """Test interface offline detection."""
+        exc_type = RuntimeError
+        exc_value = RuntimeError("Reticulum startup failed")
+        diagnosis = {"active_interfaces": 0}
+
+        # We need to trigger the rns_in_msg symptom as well
+        exc_value = RuntimeError("Reticulum failed, no path available")
+        causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+
+        offline_cause = next(
+            (c for c in causes if "Interface" in c["description"]),
+            None,
+        )
+        self.assertIsNotNone(offline_cause)
+        self.assertEqual(offline_cause["probability"], 85)
+
+    def test_advanced_math_output(self):
+        # We don't want to actually sys.exit(1) in tests, so we mock it
+        original_exit = sys.exit
+        sys.exit = MagicMock()
+
+        output = io.StringIO()
+        # Redirect stderr to our buffer
+        original_stderr = sys.stderr
+        sys.stderr = output
+
+        try:
+            try:
+                raise RuntimeError("no current event loop")
+            except RuntimeError:
+                self.recovery.handle_exception(*sys.exc_info())
+        finally:
+            sys.stderr = original_stderr
+            sys.exit = original_exit
+
+        report = output.getvalue()
+        self.assertIn("[System Entropy:", report)
+        self.assertIn("[Deterministic Manifold Constraints:", report)
+        self.assertIn("deterministic manifold constraints", report.lower())
+
+    def test_heuristic_analysis_unsupported_python(self):
+        """Test detection of unsupported Python versions."""
+        # We need to simulate the sys.version_info check
+        with patch("sys.version_info") as mock_version:
+            mock_version.major = 3
+            mock_version.minor = 9
+
+            exc_type = AttributeError
+            exc_value = AttributeError("'NoneType' object has no attribute 'x'")
+            diagnosis = {}
+
+            causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+            self.assertEqual(causes[0]["description"], "Unsupported Python Environment")
+            self.assertEqual(causes[0]["probability"], 99)
+            self.assertIn(
+                "missing standard library features",
+                causes[0]["reasoning"].lower(),
+            )
+
+    def test_heuristic_analysis_legacy_kernel(self):
+        """Test detection of legacy system/kernel limitations."""
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("platform.release", return_value="3.10.0-1160.el7.x86_64"),
+        ):
+            exc_type = RuntimeError
+            exc_value = RuntimeError("kernel feature not available")
+            diagnosis = {}
+
+            causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+            legacy_cause = next(
+                (c for c in causes if "Legacy System" in c["description"]),
+                None,
+            )
+            self.assertIsNotNone(legacy_cause)
+            self.assertGreaterEqual(legacy_cause["probability"], 80)
+            self.assertIn("Kernel detected: 3.10", legacy_cause["reasoning"])
 
 
 if __name__ == "__main__":

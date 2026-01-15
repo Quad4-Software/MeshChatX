@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.identity_context import IdentityContext

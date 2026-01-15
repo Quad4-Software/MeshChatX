@@ -24,6 +24,7 @@ from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
     convert_nomadnet_string_data_to_map,
 )
+from meshchatx.src.backend.recovery.crash_recovery import CrashRecovery
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
 # Strategies for telemetry data
@@ -339,8 +340,8 @@ def test_markdown_renderer_headers(content):
     result = MarkdownRenderer.render(input_text)
     assert "<h1" in result
     # Check that it's correctly wrapped in h1
-    assert result.startswith('<h1')
-    assert result.endswith('</h1>')
+    assert result.startswith("<h1")
+    assert result.endswith("</h1>")
 
     # If the content doesn't contain markdown special chars, we can expect it to be there escaped
     # This is a safer assertion for property-based testing
@@ -403,3 +404,109 @@ def test_markdown_renderer_link_rendering(label, url):
     html_output = MarkdownRenderer.render(markdown)
     assert "<a href=" in html_output
     assert label in html_output
+
+
+@given(
+    exc_msg=st.text(),
+    exc_type_name=st.text(min_size=1).filter(lambda x: x.isidentifier()),
+    diagnosis=st.dictionaries(
+        keys=st.sampled_from(
+            [
+                "low_memory",
+                "config_missing",
+                "config_invalid",
+                "db_type",
+                "active_interfaces",
+                "available_mem_mb",
+            ],
+        ),
+        values=st.one_of(
+            st.booleans(),
+            st.text(),
+            st.integers(min_value=0, max_value=100000),
+        ),
+    ),
+)
+def test_crash_recovery_analyze_cause_robustness(exc_msg, exc_type_name, diagnosis):
+    recovery = CrashRecovery()
+    # Mocking exc_type
+    mock_exc_type = type(exc_type_name, (Exception,), {})
+    mock_exc_value = Exception(exc_msg)
+
+    try:
+        causes = recovery._analyze_cause(mock_exc_type, mock_exc_value, diagnosis)
+        assert isinstance(causes, list)
+        for cause in causes:
+            assert "probability" in cause
+            assert "description" in cause
+            assert "reasoning" in cause
+            assert 0 <= cause["probability"] <= 100
+    except Exception as e:
+        pytest.fail(f"CrashRecovery._analyze_cause crashed: {e}")
+
+
+@given(
+    diagnosis=st.dictionaries(
+        keys=st.sampled_from(
+            [
+                "low_memory",
+                "config_missing",
+                "config_invalid",
+                "db_type",
+                "available_mem_mb",
+            ],
+        ),
+        values=st.one_of(
+            st.booleans(),
+            st.text(),
+            st.integers(min_value=0, max_value=100000),
+            st.none(),
+        ),
+    ),
+)
+def test_crash_recovery_entropy_logic(diagnosis):
+    recovery = CrashRecovery()
+    entropy, divergence = recovery._calculate_system_entropy(diagnosis)
+
+    assert isinstance(entropy, float)
+    assert isinstance(divergence, float)
+    # Entropy should be non-negative. Max theoretical for 4 independent binary
+    # variables is 4.0 bits. Our p values are constrained between 0.01 and 0.99.
+    assert 0.0 <= entropy <= 4.1
+    assert divergence >= 0.0
+
+    # Check that more uncertainty increases entropy (within one dimension)
+    diag_stable = {"low_memory": False}
+    diag_unstable = {"low_memory": True}
+    e_stable, _ = recovery._calculate_system_entropy(diag_stable)
+    e_unstable, _ = recovery._calculate_system_entropy(diag_unstable)
+    assert e_unstable > e_stable
+
+
+@given(
+    exc_msg=st.text(),
+    diagnosis=st.dictionaries(
+        keys=st.sampled_from(
+            [
+                "low_memory",
+                "config_missing",
+                "config_invalid",
+                "db_type",
+                "active_interfaces",
+            ],
+        ),
+        values=st.one_of(
+            st.booleans(),
+            st.text(),
+            st.integers(min_value=0, max_value=100),
+        ),
+    ),
+)
+def test_crash_recovery_probability_sorting(exc_msg, diagnosis):
+    recovery = CrashRecovery()
+    # Use a real exception type that often triggers results
+    causes = recovery._analyze_cause(RuntimeError, RuntimeError(exc_msg), diagnosis)
+
+    if len(causes) > 1:
+        probs = [c["probability"] for c in causes]
+        assert probs == sorted(probs, reverse=True)
