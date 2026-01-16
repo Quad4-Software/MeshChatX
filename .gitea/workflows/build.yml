@@ -80,8 +80,7 @@ jobs:
               run: |
                   sudo dpkg --add-architecture i386
                   sudo apt-get update
-                  sudo apt-get install -y wine32:i386 wine64 xvfb patchelf libopusfile0 ffmpeg espeak-ng nsis zip rpm flatpak flatpak-builder elfutils
-                  flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng zip rpm elfutils
 
             - name: Setup Task
               uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
@@ -104,27 +103,12 @@ jobs:
               continue-on-error: true
               run: task dist:fe:rpm
 
-            - name: Build Electron App (Flatpak)
-              continue-on-error: true
-              run: task dist:fe:flatpak
-
-            - name: Setup Wine Environment
-              run: task setup:wine
-
-            - name: Build Electron App (Windows EXE and NSIS)
-              env:
-                  WINEDEBUG: -all
-                  WINE_PYTHON: "xvfb-run wine C:/Python313/python.exe"
-              run: task dist:win:wine
-
             - name: Prepare release assets
               run: |
                   mkdir -p release-assets
                   # Collect artifacts from dist/
                   # Linux artifacts
-                  find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" -o -name "*-linux*.flatpak" \) -exec cp {} release-assets/ \;
-                  # Windows artifacts
-                  find dist -maxdepth 1 -type f \( -name "*-win*.exe" \) -exec cp {} release-assets/ \;
+                  find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" \) -exec cp {} release-assets/ \;
                   # Python artifacts
                   find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp {} release-assets/ \;
 
@@ -183,8 +167,6 @@ jobs:
                       release-assets/*.AppImage
                       release-assets/*.deb
                       release-assets/*.rpm
-                      release-assets/*.flatpak
-                      release-assets/*.exe
                       release-assets/*.whl
                       release-assets/*.sha256
                       release-assets/sbom.cyclonedx.json
