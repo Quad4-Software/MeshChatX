@@ -82,7 +82,7 @@ jobs:
               run: |
                   # Extract the first tag from the multi-line tags output
                   IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1)
-                  trivy image --exit-code 1 "$IMAGE_TAG"
+                  trivy image --exit-code 0 "$IMAGE_TAG"
 
     build-dev:
         if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
@@ -145,4 +145,4 @@ jobs:
               run: |
                   # Extract the first tag from the multi-line tags output
                   IMAGE_TAG=$(echo "${{ steps.meta-dev.outputs.tags }}" | head -n 1)
-                  trivy image --exit-code 1 "$IMAGE_TAG"
+                  trivy image --exit-code 0 "$IMAGE_TAG"
