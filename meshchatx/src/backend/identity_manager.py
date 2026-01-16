@@ -186,9 +186,8 @@ class IdentityManager:
         # Merge with existing metadata if it exists
         existing_metadata = {}
         if os.path.exists(metadata_path):
-            with contextlib.suppress(Exception):
-                with open(metadata_path) as f:
-                    existing_metadata = json.load(f)
+            with contextlib.suppress(Exception), open(metadata_path) as f:
+                existing_metadata = json.load(f)
 
         existing_metadata.update(metadata)
 

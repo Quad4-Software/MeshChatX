@@ -49,6 +49,7 @@ class DatabaseProvider:
             # isolation_level=None enables autocommit mode, letting us manage transactions manually
             self._local.connection = sqlite3.connect(
                 self.db_path,
+                timeout=30.0,
                 check_same_thread=False,
                 isolation_level=None,
             )

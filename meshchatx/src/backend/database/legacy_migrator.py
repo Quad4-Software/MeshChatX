@@ -116,9 +116,12 @@ class LegacyMigrator:
                             )
                         ]
 
-                        # Find common columns
+                        # Find common columns, but exclude 'id' to avoid collisions during migration
+                        # as new databases will have their own autoincrement IDs.
                         common_columns = [
-                            col for col in legacy_columns if col in current_columns
+                            col
+                            for col in legacy_columns
+                            if col in current_columns and col.lower() != "id"
                         ]
 
                         if common_columns:
