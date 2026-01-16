@@ -283,11 +283,14 @@ We use [Task](https://taskfile.dev/) for automation.
 - [ASAR Integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity) (Stable as of Electron 39)
 - Built-in automatic integrity checks on all files (frontend and backend)
 - HTTPS by default (automated locally generated certs)
+
+* **Layered CSP Protection**: 3-layer Content Security Policy (Backend, Electron Session, and Loading Screen) to prevent XSS and unauthorized resource loading.
+
 - Redundant CORS protection (loading.html, python backend server, electron main.js)
 - Updated dependencies and daily scanning (OSV)
-- Container image scanning (Trivy)
+- **Comprehensive Scanning Pipeline**: Integrated [Trivy](https://github.com/aquasecurity/trivy) for filesystem and container image scanning, alongside [OSV-Scanner](https://github.com/google/osv-scanner) for vulnerability tracking.
 - SBOM for dependency observability and tracking
-- Extensive testing and fuzzing.
+- Extensive testing and fuzzing (Property-based testing with Hypothesis).
 - Rootless docker images
 - Pinned actions and container images (supply chain security and deterministic builds)
 

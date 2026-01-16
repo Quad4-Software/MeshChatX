@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.1.0] - 2026-01-14
+## [4.1.0] - 2026-01-16
 
 ### New Features
 
@@ -12,13 +12,17 @@ All notable changes to this project will be documented in this file.
     - **Failure Manifold Mapping**: Identifies "Failure Manifolds" across the vertical stack, including RNS identity failures, LXMF storage issues, and interface offline states.
 - **RNS Auto-Configuration**: 
     - Automatic creation and repair of the Reticulum configuration file (`~/.reticulum/config`) if it is missing, invalid, or corrupt.
-- **Improved Installation**: 
-    - Added support and documentation for installing via **Pre-built Wheels (.whl)** from releases, which bundle the built frontend for a simpler setup experience.
+- **Expanded Security Pipeline**:
+    - Integrated **Trivy** for both filesystem (codebase) and container image scanning.
+    - Consolidated security scans into a unified `scan.yml` workflow for better visibility.
+    - Updated container workflows to include fail-fast filesystem checks.
 - **Network Visualiser Optimization**: 
     - Implemented **AbortController** support to cancel pending API requests on component unmount.
     - Added high-performance batch fetching for path tables and announces (up to 1000 items per request).
 - **Announce Pagination**: 
     - Added backend and database-level pagination for announces to improve UI responsiveness in large networks.
+- **Improved Installation**: 
+    - Added support and documentation for installing via **Pre-built Wheels (.whl)** from releases, which bundle the built frontend for a simpler setup experience.
 
 ### Improvements
 
@@ -28,6 +32,7 @@ All notable changes to this project will be documented in this file.
     - Refactored `IdentityContext` teardown to ensure all managers are properly nullified and callbacks cleared, preventing memory leaks and reference cycles.
     - Added client list cleanup in `WebAudioBridge` when calls end.
 - **UI/UX**: 
+    - Enhanced **LXMF link handling** with better rendering logic for `lxmf://` and `rns://` URIs.
     - Fixed a critical hang in the **Startup Wizard** where "Finish" or "Skip" buttons could become unresponsive.
     - Improved UI navigation safety by automatically closing the tutorial modal when navigating away.
     - Refined `MarkdownRenderer` regex patterns to prevent empty bold/italic tags and improved matching for single delimiters.
@@ -37,7 +42,8 @@ All notable changes to this project will be documented in this file.
     - Refactored telemetry data packing for more efficient location transmission.
     - Updated dependencies including **Electron Forge (7.11.1)**, **Prettier (3.8.0)**, and ESLint plugins for better stability and formatting.
 - **Testing**: 
-    - Significant expansion of the test suite with **Property-Based Testing** (using `hypothesis`) to ensure robustness of the diagnostic engine, identity restoration, and markdown renderer.
+    - **Frontend UI Test Suite Expansion**: Added comprehensive Vitest suites for all diagnostic and utility tools (Ping, Trace, Probe, RNode Flasher, Micron Editor, etc.).
+    - **Property-Based Testing**: Significant expansion with `hypothesis` to ensure robustness of the diagnostic engine, identity restoration, and markdown renderer.
     - Added automated verification for Python version and legacy kernel compatibility diagnostics.
     - Configured temporary log directory management for tests to improve portability.
 
