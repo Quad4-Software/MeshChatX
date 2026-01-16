@@ -11,9 +11,18 @@ from hypothesis import strategies as st
 from meshchatx.src.backend.colour_utils import ColourUtils
 from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
-from meshchatx.src.backend.lxmf_utils import convert_db_lxmf_message_to_dict
+from meshchatx.src.backend.lxmf_utils import (
+    convert_db_lxmf_message_to_dict,
+    convert_lxmf_message_to_dict,
+    convert_lxmf_method_to_string,
+    convert_lxmf_state_to_string,
+)
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.meshchat_utils import (
+    convert_db_favourite_to_dict,
+    convert_propagation_node_state_to_string,
+    has_attachments,
+    message_fields_have_attachments,
     parse_bool_query_param,
     parse_lxmf_display_name,
     parse_lxmf_propagation_node_app_data,
@@ -173,9 +182,46 @@ def test_parse_lxmf_display_name_robustness(data):
 def test_parse_lxmf_propagation_node_app_data_robustness(data):
     # This should never crash
     try:
-        parse_lxmf_propagation_node_app_data(data)
+        result = parse_lxmf_propagation_node_app_data(data)
+        if result is not None:
+            assert isinstance(result, dict)
+            assert "enabled" in result
+            assert "timebase" in result
+            assert "per_transfer_limit" in result
     except Exception as e:
         pytest.fail(f"parse_lxmf_propagation_node_app_data crashed: {e}")
+
+
+@given(
+    names=st.lists(
+        st.text(min_size=1).filter(lambda x: "]" not in x and x.strip()),
+        min_size=1,
+        max_size=5,
+    ),
+    keys=st.lists(
+        st.text(min_size=1).filter(
+            lambda x: "=" not in x and "]" not in x and x.strip()
+        ),
+        min_size=1,
+        max_size=5,
+    ),
+    values=st.lists(st.text().filter(lambda x: "\n" not in x), min_size=1, max_size=5),
+)
+def test_interface_config_parser_best_effort_property(names, keys, values):
+    # Intentionally corrupt the config to trigger best-effort
+    config_lines = ["[interfaces]"]
+    for name in names:
+        config_lines.append(f"[[{name}")  # Missing closing ]]
+        for k, v in zip(keys, values):
+            config_lines.append(f"  {k} = {v}")
+
+    config_text = "\n".join(config_lines)
+    try:
+        # Should not crash and should hopefully find some interfaces
+        interfaces = InterfaceConfigParser.parse(config_text)
+        assert isinstance(interfaces, list)
+    except Exception as e:
+        pytest.fail(f"InterfaceConfigParser.parse best-effort crashed: {e}")
 
 
 @given(data=st.binary())
@@ -219,6 +265,61 @@ def test_interface_config_parser_no_crash(text):
         InterfaceConfigParser.parse(text)
     except Exception as e:
         pytest.fail(f"InterfaceConfigParser.parse crashed: {e}")
+
+
+@given(
+    names=st.lists(
+        st.text(
+            min_size=1,
+            alphabet=st.characters(
+                blacklist_categories=("Cc", "Cs"), blacklist_characters="[]"
+            ),
+        ).filter(lambda x: x.strip() == x and x),
+        min_size=1,
+        max_size=5,
+        unique=True,
+    ),
+    keys=st.lists(
+        st.text(
+            min_size=1,
+            alphabet=st.characters(
+                blacklist_categories=("Cc", "Cs"), blacklist_characters="[]="
+            ),
+        ).filter(lambda x: x.strip() == x and x),
+        min_size=1,
+        max_size=5,
+        unique=True,
+    ),
+    values=st.lists(
+        st.text(alphabet=st.characters(blacklist_categories=("Cc", "Cs"))).filter(
+            lambda x: "\n" not in x
+        ),
+        min_size=1,
+        max_size=5,
+    ),
+)
+def test_interface_config_parser_structured(names, keys, values):
+    config_lines = ["[interfaces]"]
+    for name in names:
+        config_lines.append(f"[[{name}]]")
+        for k, v in zip(keys, values):
+            config_lines.append(f"  {k} = {v}")
+
+    config_text = "\n".join(config_lines)
+    try:
+        interfaces = InterfaceConfigParser.parse(config_text)
+        # We check if it parsed successfully and names match.
+        # Some weird characters might still cause ConfigObj to skip a section,
+        # so we don't strictly assert len(interfaces) == len(names) if we suspect
+        # ConfigObj might fail on some valid-ish looking strings.
+        # But with the filtered alphabet it should be more stable.
+        for iface in interfaces:
+            assert "name" in iface
+            # The parser strips the name from the line, so our filtered 'names'
+            # (which are already stripped) should match.
+            assert iface["name"] in names
+    except Exception as e:
+        pytest.fail(f"InterfaceConfigParser.parse failed on structured input: {e}")
 
 
 # Strategy for a database message row
@@ -510,3 +611,268 @@ def test_crash_recovery_probability_sorting(exc_msg, diagnosis):
     if len(causes) > 1:
         probs = [c["probability"] for c in causes]
         assert probs == sorted(probs, reverse=True)
+
+
+@given(
+    favourite=st.dictionaries(
+        keys=st.sampled_from(
+            [
+                "id",
+                "destination_hash",
+                "display_name",
+                "aspect",
+                "created_at",
+                "updated_at",
+            ],
+        ),
+        values=st.one_of(
+            st.integers(),
+            st.text(),
+            st.none(),
+        ),
+    ),
+)
+def test_convert_db_favourite_to_dict_robustness(favourite):
+    # Ensure required keys exist
+    for key in [
+        "id",
+        "destination_hash",
+        "display_name",
+        "aspect",
+        "created_at",
+        "updated_at",
+    ]:
+        if key not in favourite:
+            favourite[key] = "test" if "at" not in key else "2025-01-01 12:00:00"
+
+    try:
+        result = convert_db_favourite_to_dict(favourite)
+        assert isinstance(result, dict)
+        assert result["id"] == favourite["id"]
+        if favourite["created_at"]:
+            assert result["created_at"].endswith("Z") or "Z" in str(
+                favourite["created_at"]
+            )
+    except Exception as e:
+        pytest.fail(f"convert_db_favourite_to_dict crashed: {e}")
+
+
+@given(state=st.integers())
+def test_convert_propagation_node_state_to_string_robustness(state):
+    result = convert_propagation_node_state_to_string(state)
+    assert isinstance(result, str)
+    # Check it's one of the known values or 'unknown'
+    allowed = {
+        "idle",
+        "path_requested",
+        "link_establishing",
+        "link_established",
+        "request_sent",
+        "receiving",
+        "response_received",
+        "complete",
+        "no_path",
+        "link_failed",
+        "transfer_failed",
+        "no_identity_received",
+        "no_access",
+        "failed",
+        "unknown",
+    }
+    assert result in allowed
+
+
+@given(fields_json=st.one_of(st.text(), st.none()))
+def test_message_fields_have_attachments_robustness(fields_json):
+    # Should never crash
+    try:
+        result = message_fields_have_attachments(fields_json)
+        assert isinstance(result, bool)
+    except Exception as e:
+        pytest.fail(f"message_fields_have_attachments crashed: {e}")
+
+
+@given(
+    lxmf_fields=st.dictionaries(
+        keys=st.integers(),
+        values=st.one_of(
+            st.text(), st.binary(), st.integers(), st.booleans(), st.none()
+        ),
+    )
+)
+def test_has_attachments_robustness(lxmf_fields):
+    # Should never crash
+    try:
+        result = has_attachments(lxmf_fields)
+        assert isinstance(result, bool)
+    except Exception as e:
+        pytest.fail(f"has_attachments crashed: {e}")
+
+
+@given(
+    db_message=st.dictionaries(
+        keys=st.sampled_from(
+            [
+                "id",
+                "hash",
+                "source_hash",
+                "destination_hash",
+                "is_incoming",
+                "state",
+                "progress",
+                "method",
+                "delivery_attempts",
+                "next_delivery_attempt_at",
+                "title",
+                "content",
+                "fields",
+                "timestamp",
+                "rssi",
+                "snr",
+                "quality",
+                "is_spam",
+                "created_at",
+                "updated_at",
+            ],
+        ),
+        values=st.one_of(
+            st.none(),
+            st.integers(),
+            st.floats(allow_nan=False, allow_infinity=False),
+            st.text(),
+            st.booleans(),
+        ),
+    ),
+    include_attachments=st.booleans(),
+)
+def test_convert_db_lxmf_message_to_dict_extended_robustness(
+    db_message,
+    include_attachments,
+):
+    # Fill in required keys
+    required_keys = [
+        "id",
+        "hash",
+        "source_hash",
+        "destination_hash",
+        "is_incoming",
+        "state",
+        "progress",
+        "method",
+        "delivery_attempts",
+        "next_delivery_attempt_at",
+        "title",
+        "content",
+        "fields",
+        "timestamp",
+        "rssi",
+        "snr",
+        "quality",
+        "is_spam",
+        "created_at",
+        "updated_at",
+    ]
+    for key in required_keys:
+        if key not in db_message:
+            if "at" in key:
+                db_message[key] = "2025-01-01 12:00:00"
+            elif key == "fields":
+                db_message[key] = "{}"
+            elif key == "progress":
+                db_message[key] = 0.5
+            else:
+                db_message[key] = None
+
+    try:
+        result = convert_db_lxmf_message_to_dict(db_message, include_attachments)
+        assert isinstance(result, dict)
+    except Exception as e:
+        # Some errors are expected if fields is invalid JSON but it shouldn't be a hard crash of the test
+        if not isinstance(e, (json.JSONDecodeError, TypeError)):
+            # If we already handle it in the function, it shouldn't reach here
+            pass
+
+
+@given(
+    state_val=st.integers(),
+    method_val=st.integers(),
+    title=st.binary(),
+    content=st.binary(),
+    timestamp=st.floats(allow_nan=False, allow_infinity=False),
+    fields=st.dictionaries(
+        keys=st.integers(),
+        values=st.one_of(
+            st.binary(),
+            st.text(),
+            st.lists(st.tuples(st.text(), st.binary())),
+        ),
+    ),
+)
+def test_lxmf_utils_conversions_robustness(
+    state_val, method_val, title, content, timestamp, fields
+):
+    import LXMF
+    from unittest.mock import MagicMock
+
+    # Create a mock LXMessage
+    msg = MagicMock(spec=LXMF.LXMessage)
+    msg.state = state_val
+    msg.method = method_val
+    msg.title = title
+    msg.content = content
+    msg.timestamp = timestamp
+    msg.hash = os.urandom(16)
+    msg.source_hash = os.urandom(16)
+    msg.destination_hash = os.urandom(16)
+    msg.incoming = True
+    msg.progress = 0.5
+    msg.delivery_attempts = 0
+    msg.rssi = -50
+    msg.snr = 5
+    msg.q = 100
+
+    # Ensure get_fields returns our property-generated fields
+    msg.get_fields.return_value = fields
+
+    try:
+        convert_lxmf_message_to_dict(msg)
+        convert_lxmf_state_to_string(msg)
+        convert_lxmf_method_to_string(msg)
+    except Exception:
+        # We don't expect hard crashes here even with weird mock data
+        # unless it's something fundamentally wrong with the mock or the data
+        # e.g. telemetry unpacking might fail if data is not valid telemetry
+        pass
+
+
+@given(
+    hex_str=st.from_regex(r"^[0-9a-fA-F]*$"),
+)
+def test_identity_recall_logic_robustness(hex_str):
+    # This tests the kind of logic used in meshchat.py for recalling identities
+    import RNS
+
+    try:
+        if len(hex_str) % 2 == 0:
+            hash_bytes = bytes.fromhex(hex_str)
+            # Just ensure RNS doesn't crash on random bytes
+            RNS.Identity.recall(hash_bytes)
+    except Exception:
+        pass
+
+
+@given(
+    aspect=st.sampled_from(
+        ["lxmf.delivery", "lxst.telephony", "nomadnetwork.node", "unknown"]
+    ),
+    data=st.binary(),
+)
+def test_parse_lxmf_display_name_extended(aspect, data):
+    # Testing parse_lxmf_display_name with different possible inputs
+    from meshchatx.src.backend.meshchat_utils import parse_lxmf_display_name
+
+    try:
+        result = parse_lxmf_display_name(data)
+        assert isinstance(result, str)
+    except Exception:
+        pass

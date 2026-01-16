@@ -2,23 +2,47 @@ import { describe, it, expect } from "vitest";
 import LinkUtils from "@/js/LinkUtils";
 
 describe("LinkUtils.js", () => {
-    describe("renderNomadNetLinks", () => {
+    describe("renderReticulumLinks", () => {
         it("detects nomadnet:// links with hash and path", () => {
             const text = "nomadnet://1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu";
-            const result = LinkUtils.renderNomadNetLinks(text);
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain('class="nomadnet-link');
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
         });
 
-        it("detects bare hash and path links", () => {
+        it("detects nomadnet@ links", () => {
+            const text = "nomadnet@1dfeb0d794963579bd21ac8f153c77a4";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain('class="nomadnet-link');
+            expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
+        });
+
+        it("detects bare hash and path links as nomadnet", () => {
             const text = "1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu";
-            const result = LinkUtils.renderNomadNetLinks(text);
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain('class="nomadnet-link');
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
         });
 
-        it("detects nomadnet:// links with just hash", () => {
-            const text = "nomadnet://1dfeb0d794963579bd21ac8f153c77a4";
-            const result = LinkUtils.renderNomadNetLinks(text);
-            expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
+        it("detects bare hash as lxmf", () => {
+            const text = "1dfeb0d794963579bd21ac8f153c77a4";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain('class="lxmf-link');
+            expect(result).toContain('data-lxmf-address="1dfeb0d794963579bd21ac8f153c77a4"');
+        });
+
+        it("detects lxmf:// links", () => {
+            const text = "lxmf://1dfeb0d794963579bd21ac8f153c77a4";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain('class="lxmf-link');
+            expect(result).toContain('data-lxmf-address="1dfeb0d794963579bd21ac8f153c77a4"');
+        });
+
+        it("detects lxmf@ links", () => {
+            const text = "lxmf@1dfeb0d794963579bd21ac8f153c77a4";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain('class="lxmf-link');
+            expect(result).toContain('data-lxmf-address="1dfeb0d794963579bd21ac8f153c77a4"');
         });
     });
 

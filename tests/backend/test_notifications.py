@@ -148,7 +148,7 @@ def mock_app(db, tmp_path):
 def test_add_get_notifications(db):
     """Test basic notification storage and retrieval."""
     db.misc.add_notification(
-        type="test_type",
+        notification_type="test_type",
         remote_hash="test_hash",
         title="Test Title",
         content="Test Content",
@@ -225,19 +225,19 @@ def test_voicemail_notification(mock_app):
 
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(
-    type=st.text(min_size=1, max_size=50),
+    notification_type=st.text(min_size=1, max_size=50),
     remote_hash=st.text(min_size=1, max_size=64),
     title=st.text(min_size=1, max_size=100),
     content=st.text(min_size=1, max_size=500),
 )
-def test_notification_fuzzing(db, type, remote_hash, title, content):
+def test_notification_fuzzing(db, notification_type, remote_hash, title, content):
     """Fuzz notification storage with varied data."""
-    db.misc.add_notification(type, remote_hash, title, content)
+    db.misc.add_notification(notification_type, remote_hash, title, content)
     notifications = db.misc.get_notifications(limit=1)
     assert len(notifications) == 1
     # We don't assert content match exactly if there are encoding issues,
     # but sqlite should handle most strings.
-    assert notifications[0]["type"] == type
+    assert notifications[0]["type"] == notification_type
 
 
 @pytest.mark.asyncio
@@ -270,10 +270,10 @@ async def test_notifications_api(mock_app):
     # Let's test a spike of notifications
     for i in range(100):
         mock_app.database.misc.add_notification(
-            f"type{i}",
-            f"hash{i}",
-            f"title{i}",
-            f"content{i}",
+            notification_type=f"type{i}",
+            remote_hash=f"hash{i}",
+            title=f"title{i}",
+            content=f"content{i}",
         )
 
     notifications = mock_app.database.misc.get_notifications(limit=50)

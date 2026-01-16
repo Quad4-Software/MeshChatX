@@ -23,6 +23,15 @@ describe("Utils.js", () => {
         it("formats MB correctly", () => {
             expect(Utils.formatBytes(1024 * 1024)).toBe("1 MB");
         });
+
+        it("handles negative numbers", () => {
+            expect(Utils.formatBytes(-1024)).toBe("0 Bytes");
+        });
+
+        it("handles null or undefined", () => {
+            expect(Utils.formatBytes(null)).toBe("0 Bytes");
+            expect(Utils.formatBytes(undefined)).toBe("0 Bytes");
+        });
     });
 
     describe("formatNumber", () => {
@@ -37,6 +46,11 @@ describe("Utils.js", () => {
             const result = Utils.formatNumber(1234567);
             expect(typeof result).toBe("string");
             expect(result).toMatch(/1.234.567/); // Matches 1,234,567 or 1.234.567 etc.
+        });
+
+        it("handles null or undefined correctly", () => {
+            expect(Utils.formatNumber(null)).toBe("0");
+            expect(Utils.formatNumber(undefined)).toBe("0");
         });
     });
 

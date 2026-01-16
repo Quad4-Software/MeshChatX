@@ -79,7 +79,7 @@ describe("MarkdownRenderer.js", () => {
         });
     });
 
-    describe("nomadnet links", () => {
+    describe("reticulum links", () => {
         it("detects nomadnet:// links with hash and path", () => {
             const text = "check this out: nomadnet://1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu";
             const result = MarkdownRenderer.render(text);
@@ -87,7 +87,7 @@ describe("MarkdownRenderer.js", () => {
             expect(result).toContain("nomadnet://1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu");
         });
 
-        it("detects bare hash and path links", () => {
+        it("detects bare hash and path links as nomadnet", () => {
             const text = "node is at 1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu";
             const result = MarkdownRenderer.render(text);
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
@@ -100,10 +100,18 @@ describe("MarkdownRenderer.js", () => {
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
         });
 
+        it("detects bare hash as lxmf link", () => {
+            const text = "send to 1dfeb0d794963579bd21ac8f153c77a4";
+            const result = MarkdownRenderer.render(text);
+            expect(result).toContain('class="lxmf-link');
+            expect(result).toContain('data-lxmf-address="1dfeb0d794963579bd21ac8f153c77a4"');
+        });
+
         it("does not detect invalid hashes", () => {
             const text = "not-a-hash:/page/index.mu";
             const result = MarkdownRenderer.render(text);
             expect(result).not.toContain("nomadnet-link");
+            expect(result).not.toContain("lxmf-link");
         });
     });
 
