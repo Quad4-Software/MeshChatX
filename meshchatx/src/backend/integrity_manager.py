@@ -1,7 +1,9 @@
 import fnmatch
 import hashlib
 import json
+import math
 import os
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -22,6 +24,7 @@ class IntegrityManager:
         ".DS_Store",
         "Thumbs.db",
         "integrity-manifest.json",
+        "outbound_stamp_costs",
     ]
 
     def __init__(self, storage_dir, database_path, identity_hash=None):
@@ -40,9 +43,15 @@ class IntegrityManager:
         # We only ignore these if they are inside the lxmf_router directory
         # to avoid accidentally ignoring important files with similar names.
         if "lxmf_router" in path_parts:
+            # Added more volatile LXMF patterns
             if any(
-                part in ["announces", "storage", "identities"] for part in path_parts
+                part in ["announces", "storage", "identities", "tmp"]
+                for part in path_parts
             ):
+                return True
+
+            # Specifically ignore stamp costs which are frequently updated
+            if path_parts[-1] == "outbound_stamp_costs":
                 return True
 
         # Check for other generally ignored directories
@@ -69,8 +78,48 @@ class IntegrityManager:
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
 
+    def _calculate_entropy(self, file_path):
+        """Calculate Shannon entropy of a file to detect content type shifts."""
+        if not os.path.exists(file_path):
+            return 0
+        try:
+            with open(file_path, "rb") as f:
+                # Sample up to 64KB for performance
+                data = f.read(65536)
+            if not data:
+                return 0
+
+            byte_counts = [0] * 256
+            for b in data:
+                byte_counts[b] += 1
+
+            entropy = 0
+            total = len(data)
+            for count in byte_counts:
+                if count > 0:
+                    p = count / total
+                    entropy -= p * math.log2(p)
+            return entropy
+        except Exception:
+            return 0
+
+    def _check_db_integrity(self, db_path):
+        """Use SQLite's PRAGMA integrity_check to verify the database."""
+        if not os.path.exists(db_path):
+            return False, "Database file does not exist"
+        try:
+            # Use read-only mode for checking
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA integrity_check")
+            result = cursor.fetchone()[0]
+            conn.close()
+            return result == "ok", result
+        except Exception as e:
+            return False, str(e)
+
     def check_integrity(self):
-        """Verify the current state against the last saved manifest."""
+        """Verify the current state against the last saved manifest using advanced analytics."""
         if not self.manifest_path.exists():
             return True, ["Initial run - no manifest yet"]
 
@@ -80,13 +129,39 @@ class IntegrityManager:
 
             issues = []
             manifest_files = manifest.get("files", {})
+            manifest_metadata = manifest.get("metadata", {})
+            m_id = manifest.get("identity", "Unknown")
 
-            # Check Database
+            # Always check for identity mismatch first as it's a fundamental security issue
+            if self.identity_hash and m_id != "Unknown" and self.identity_hash != m_id:
+                issues.append(f"Identity mismatch! Manifest belongs to: {m_id}")
+
+            # Check Database (Math-based structural check + Entropy stability + Hash)
             if self.database_path.exists():
                 db_rel = str(self.database_path.relative_to(self.storage_dir))
                 actual_db_hash = self._hash_file(self.database_path)
-                if actual_db_hash and actual_db_hash != manifest_files.get(db_rel):
-                    issues.append(f"Database modified: {db_rel}")
+
+                if actual_db_hash != manifest_files.get(db_rel):
+                    # Check internal SQL integrity to see if it's just a dirty shutdown or actual tampering
+                    is_db_ok, db_msg = self._check_db_integrity(self.database_path)
+                    if not is_db_ok:
+                        issues.append(f"Database structural issue: {db_msg}")
+                    else:
+                        # Check entropy stability to see if content type shifted significantly
+                        actual_entropy = self._calculate_entropy(self.database_path)
+                        saved_entropy = manifest_metadata.get(db_rel, {}).get("entropy")
+
+                        if (
+                            saved_entropy is not None
+                            and abs(actual_entropy - saved_entropy) > 1.0
+                        ):
+                            issues.append(
+                                f"Database structural anomaly (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})"
+                            )
+                        else:
+                            issues.append(
+                                f"Database binary signature mismatch: {db_rel}"
+                            )
 
             # Check other critical files in storage_dir
             for root, _, files_in_dir in os.walk(self.storage_dir):
@@ -97,7 +172,7 @@ class IntegrityManager:
                     if self._should_ignore(rel_path):
                         continue
 
-                    # Database already checked separately, skip here to avoid double reporting
+                    # Database handled separately
                     if full_path == self.database_path:
                         continue
 
@@ -105,13 +180,40 @@ class IntegrityManager:
 
                     if rel_path in manifest_files:
                         if actual_hash != manifest_files[rel_path]:
-                            issues.append(f"File modified: {rel_path}")
+                            actual_entropy = self._calculate_entropy(full_path)
+                            saved_entropy = manifest_metadata.get(rel_path, {}).get(
+                                "entropy"
+                            )
+                            saved_size = manifest_metadata.get(rel_path, {}).get(
+                                "size", 0
+                            )
+                            actual_size = full_path.stat().st_size
+
+                            is_critical = any(
+                                c in rel_path for c in ["identity", "config"]
+                            )
+
+                            if is_critical:
+                                issues.append(
+                                    f"Critical security component integrity compromised: {rel_path}"
+                                )
+                            elif (
+                                saved_entropy is not None
+                                and abs(actual_entropy - saved_entropy) > 1.5
+                            ):
+                                issues.append(
+                                    f"Non-linear content shift detected in {rel_path} (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})"
+                                )
+                            elif saved_size and actual_size != saved_size:
+                                issues.append(
+                                    f"File size divergence: {rel_path} ({saved_size} -> {actual_size} bytes)"
+                                )
+                            else:
+                                issues.append(f"File signature mismatch: {rel_path}")
                     else:
-                        # New files are also a concern for integrity
-                        # but we only report them if they are not in ignored dirs/patterns
                         issues.append(f"New file detected: {rel_path}")
 
-            # Check for missing files that were in manifest
+            # Check for missing files
             for rel_path in manifest_files:
                 if self._should_ignore(rel_path):
                     continue
@@ -123,34 +225,22 @@ class IntegrityManager:
             if issues:
                 m_date = manifest.get("date", "Unknown")
                 m_time = manifest.get("time", "Unknown")
-                m_id = manifest.get("identity", "Unknown")
                 issues.insert(
                     0,
                     f"Last integrity snapshot: {m_date} {m_time} (Identity: {m_id})",
                 )
 
-                # Check if identity matches
-                if (
-                    self.identity_hash
-                    and m_id != "Unknown"
-                    and self.identity_hash != m_id
-                ):
-                    issues.append(f"Identity mismatch! Manifest belongs to: {m_id}")
-
             self.issues = issues
             return len(issues) == 0, issues
         except Exception as e:
-            import traceback
-
-            traceback.print_exc()
             return False, [f"Integrity check failed: {e!s}"]
 
     def save_manifest(self):
-        """Snapshot the current state of critical files."""
+        """Snapshot the current state with extended mathematical metadata."""
         try:
             files = {}
+            metadata = {}
 
-            # Hash all critical files in storage_dir recursively
             for root, _, files_in_dir in os.walk(self.storage_dir):
                 for file in files_in_dir:
                     full_path = Path(root) / file
@@ -160,15 +250,20 @@ class IntegrityManager:
                         continue
 
                     files[rel_path] = self._hash_file(full_path)
+                    metadata[rel_path] = {
+                        "entropy": self._calculate_entropy(full_path),
+                        "size": full_path.stat().st_size,
+                    }
 
             now = datetime.now(UTC)
             manifest = {
-                "version": 1,
+                "version": 2,
                 "timestamp": now.timestamp(),
                 "date": now.strftime("%Y-%m-%d"),
                 "time": now.strftime("%H:%M:%S"),
                 "identity": self.identity_hash,
                 "files": files,
+                "metadata": metadata,
             }
 
             with open(self.manifest_path, "w") as f:

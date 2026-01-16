@@ -1,6 +1,8 @@
 import shutil
 import tempfile
 import unittest
+import os
+import sqlite3
 from pathlib import Path
 
 from meshchatx.src.backend.integrity_manager import IntegrityManager
@@ -13,9 +15,10 @@ class TestIntegrityManager(unittest.TestCase):
         self.identities_dir = self.test_dir / "identities"
         self.identities_dir.mkdir()
 
-        # Create a dummy database
-        with open(self.db_path, "w") as f:
-            f.write("dummy db content")
+        # Create a real SQLite database
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY)")
+        conn.close()
 
         # Create a dummy identity
         self.id_path = self.identities_dir / "test_id"
@@ -45,13 +48,13 @@ class TestIntegrityManager(unittest.TestCase):
         """Test detection of database modification."""
         self.manager.save_manifest()
 
-        # Modify DB
+        # Modify DB in a way that breaks SQLite integrity or at least changes hash
         with open(self.db_path, "a") as f:
             f.write("tampered")
 
         is_ok, issues = self.manager.check_integrity()
         self.assertFalse(is_ok)
-        self.assertTrue(any("Database modified" in i for i in issues))
+        self.assertTrue(any("Database" in i for i in issues))
         self.assertTrue(any("Last integrity snapshot" in i for i in issues))
 
     def test_identity_mismatch(self):
@@ -64,7 +67,7 @@ class TestIntegrityManager(unittest.TestCase):
 
         # Tamper a file to trigger issues list which includes the metadata check
         with open(self.db_path, "a") as f:
-            f.write("tampered")
+            f.write("more content to change hash")
 
         is_ok, issues = self.manager.check_integrity()
         self.assertFalse(is_ok)
@@ -81,7 +84,12 @@ class TestIntegrityManager(unittest.TestCase):
 
         is_ok, issues = self.manager.check_integrity()
         self.assertFalse(is_ok)
-        self.assertTrue(any("File modified" in i for i in issues))
+        self.assertTrue(
+            any(
+                "Critical security component" in i or "File signature mismatch" in i
+                for i in issues
+            )
+        )
 
     def test_new_identity_detected(self):
         """Test detection of unauthorized new identity files."""
