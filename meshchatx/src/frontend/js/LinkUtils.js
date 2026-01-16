@@ -1,19 +1,35 @@
 export default class LinkUtils {
     /**
-     * Detects and wraps NomadNet links in HTML.
-     * Supports nomadnet://<hash>:/path and <hash>:/path
+     * Detects and wraps Reticulum (NomadNet and LXMF) links in HTML.
+     * Supports nomadnet://<hash>, nomadnet@<hash>, lxmf://<hash>, lxmf@<hash> and bare <hash>
      */
-    static renderNomadNetLinks(text) {
+    static renderReticulumLinks(text) {
         if (!text) return "";
 
-        // Hash is 32 hex chars. Path is optional.
+        // Hash is 32 hex chars. Path is optional (NomadNet only).
         const hashPattern = "[a-fA-F0-9]{32}";
-        const nomadnetRegex = new RegExp(`(?:nomadnet://)?(${hashPattern})(?::(/[\\w\\d./?%&=-]*))?`, "g");
+        // This matches optional prefixes (nomadnet://, nomadnet@, lxmf://, lxmf@)
+        // followed by a 32-char hex hash, and an optional path starting with :
+        const reticulumRegex = new RegExp(
+            `(nomadnet://|nomadnet@|lxmf://|lxmf@)?(${hashPattern})(?::(/[\\w\\d./?%&=-]*))?`,
+            "g"
+        );
 
-        return text.replace(nomadnetRegex, (match, hash, path) => {
-            const fullPath = path || "/page/index.mu";
-            const url = `${hash}:${fullPath}`;
-            return `<a href="#" class="nomadnet-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-nomadnet-url="${url}">${match}</a>`;
+        return text.replace(reticulumRegex, (match, prefix, hash, path) => {
+            // Determine if it should be treated as a NomadNet link:
+            // - Has nomadnet prefix
+            // - OR has a path component (e.g. hash:/page)
+            const isNomadNet =
+                (prefix && (prefix.startsWith("nomadnet://") || prefix.startsWith("nomadnet@"))) || !!path;
+
+            if (isNomadNet) {
+                const fullPath = path || "/page/index.mu";
+                const url = `${hash}:${fullPath}`;
+                return `<a href="#" class="nomadnet-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-nomadnet-url="${url}">${match}</a>`;
+            } else {
+                // Treat as LXMF link
+                return `<a href="#" class="lxmf-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-lxmf-address="${hash}">${match}</a>`;
+            }
         });
     }
 
@@ -35,7 +51,7 @@ export default class LinkUtils {
      */
     static renderAllLinks(text) {
         text = this.renderStandardLinks(text);
-        text = this.renderNomadNetLinks(text);
+        text = this.renderReticulumLinks(text);
         return text;
     }
 }

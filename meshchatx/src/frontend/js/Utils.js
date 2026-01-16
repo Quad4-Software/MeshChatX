@@ -9,7 +9,7 @@ class Utils {
     }
 
     static formatBytes(bytes) {
-        if (bytes === 0) {
+        if (!bytes || bytes <= 0) {
             return "0 Bytes";
         }
 
@@ -127,7 +127,7 @@ class Utils {
     }
 
     static formatBitsPerSecond(bits) {
-        if (bits === 0) {
+        if (!bits || bits <= 0) {
             return "0 bps";
         }
 
@@ -141,7 +141,7 @@ class Utils {
     }
 
     static formatBytesPerSecond(bytesPerSecond) {
-        if (bytesPerSecond === 0 || bytesPerSecond == null) {
+        if (!bytesPerSecond || bytesPerSecond <= 0) {
             return "0 B/s";
         }
 
@@ -155,7 +155,7 @@ class Utils {
     }
 
     static formatFrequency(hz) {
-        if (hz === 0 || hz == null) {
+        if (!hz || hz <= 0) {
             return "0 Hz";
         }
 

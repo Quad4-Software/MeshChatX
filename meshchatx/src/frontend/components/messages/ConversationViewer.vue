@@ -2061,6 +2061,18 @@ export default {
                     });
                 }
             }
+
+            const lxmfLink = event.target.closest(".lxmf-link");
+            if (lxmfLink) {
+                event.preventDefault();
+                const address = lxmfLink.getAttribute("data-lxmf-address");
+                if (address) {
+                    this.$router.push({
+                        name: "messages",
+                        params: { destinationHash: address },
+                    });
+                }
+            }
         },
         async updatePropagationNodeStatus() {
             try {

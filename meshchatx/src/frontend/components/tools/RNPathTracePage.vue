@@ -69,7 +69,7 @@
                 </div>
 
                 <!-- results area -->
-                <div v-if="traceResult || isLoading" class="space-y-6">
+                <div v-if="traceResult || isLoading || error" class="space-y-6">
                     <!-- loading state -->
                     <div v-if="isLoading" class="glass-card p-12 flex flex-col items-center justify-center gap-4">
                         <div class="relative">
