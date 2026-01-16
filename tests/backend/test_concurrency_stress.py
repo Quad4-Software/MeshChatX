@@ -103,7 +103,7 @@ class TestConcurrencyStress(unittest.TestCase):
 
         # Assert no errors occurred in threads
         if self.errors:
-            self.fail(f"Errors occurred in threads: \n" + "\n".join(self.errors))
+            self.fail("Errors occurred in threads: \n" + "\n".join(self.errors))
 
         # Check if we ended up with the expected number of messages
         total = self.db.provider.fetchone(
@@ -142,7 +142,7 @@ class TestConcurrencyStress(unittest.TestCase):
 
         # Assert no errors occurred
         if self.errors:
-            self.fail(f"Errors occurred in threads: \n" + "\n".join(self.errors))
+            self.fail("Errors occurred in threads: \n" + "\n".join(self.errors))
 
         identities = manager.list_identities()
         self.assertEqual(len(identities), 20, "Should have created 20 identities")

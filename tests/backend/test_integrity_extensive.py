@@ -3,7 +3,6 @@ import tempfile
 import unittest
 import os
 import sqlite3
-import math
 import json
 from pathlib import Path
 from hypothesis import given, strategies as st, settings, HealthCheck

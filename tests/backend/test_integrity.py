@@ -1,7 +1,6 @@
 import shutil
 import tempfile
 import unittest
-import os
 import sqlite3
 from pathlib import Path
 
