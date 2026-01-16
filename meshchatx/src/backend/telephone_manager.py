@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import contextlib
 import os
 import time
 
@@ -252,12 +253,10 @@ class TelephoneManager:
 
                 # Try reconstructing from public key
                 if announce.get("identity_public_key"):
-                    try:
+                    with contextlib.suppress(Exception):
                         return RNS.Identity.from_bytes(
                             base64.b64decode(announce["identity_public_key"]),
                         )
-                    except Exception:
-                        pass
 
                 return None
 

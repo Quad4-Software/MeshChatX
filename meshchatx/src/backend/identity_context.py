@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import os
 import threading
 
@@ -212,14 +213,12 @@ class IdentityContext:
         )
 
         # Restore preferred propagation node on startup
-        try:
+        with contextlib.suppress(Exception):
             preferred_node = (
                 self.config.lxmf_preferred_propagation_node_destination_hash.get()
             )
             if preferred_node:
                 self.app.set_active_propagation_node(preferred_node, context=self)
-        except Exception:
-            pass
 
         # 5. Initialize Handlers and Managers
         self.rncp_handler = RNCPHandler(
@@ -458,10 +457,8 @@ class IdentityContext:
 
         # 1. Deregister announce handlers
         for handler in self.announce_handlers:
-            try:
+            with contextlib.suppress(Exception):
                 RNS.Transport.deregister_announce_handler(handler)
-            except Exception:
-                pass
         self.announce_handlers = []
 
         # 2. Cleanup RNS destinations and links
@@ -469,10 +466,8 @@ class IdentityContext:
             if self.message_router:
                 # Break cycles in mocks/objects
                 if hasattr(self.message_router, "register_delivery_callback"):
-                    try:
+                    with contextlib.suppress(Exception):
                         self.message_router.register_delivery_callback(None)
-                    except Exception:
-                        pass
 
                 if hasattr(self.message_router, "delivery_destinations"):
                     for dest_hash in list(
@@ -534,11 +529,9 @@ class IdentityContext:
             self.telephone_manager = None
 
         if self.voicemail_manager:
-            try:
+            with contextlib.suppress(Exception):
                 self.voicemail_manager.on_new_voicemail_callback = None
                 self.voicemail_manager.get_name_for_identity_hash = None
-            except Exception:
-                pass
             self.voicemail_manager = None
 
         if self.message_handler:

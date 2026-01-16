@@ -1,4 +1,5 @@
 import base64
+import contextlib
 import json
 import os
 import shutil
@@ -49,11 +50,9 @@ class IdentityManager:
             metadata_path = os.path.join(identity_path, "metadata.json")
             metadata = None
             if os.path.exists(metadata_path):
-                try:
+                with contextlib.suppress(Exception):
                     with open(metadata_path) as f:
                         metadata = json.load(f)
-                except Exception:
-                    pass
 
             if metadata:
                 identities.append(
@@ -187,11 +186,9 @@ class IdentityManager:
         # Merge with existing metadata if it exists
         existing_metadata = {}
         if os.path.exists(metadata_path):
-            try:
+            with contextlib.suppress(Exception):
                 with open(metadata_path) as f:
                     existing_metadata = json.load(f)
-            except Exception:
-                pass
 
         existing_metadata.update(metadata)
 

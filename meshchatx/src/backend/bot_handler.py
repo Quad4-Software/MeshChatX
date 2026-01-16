@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import os
@@ -44,8 +45,8 @@ class BotHandler:
         try:
             with open(self.state_file, "w", encoding="utf-8") as f:
                 json.dump(self.bots_state, f, indent=2)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.error("Failed to save bots state: %s", exc)
 
     def get_available_templates(self):
         return [
@@ -104,22 +105,18 @@ class BotHandler:
                 and getattr(instance, "bot", None)
                 and getattr(instance.bot, "local", None)
             ):
-                try:
+                with contextlib.suppress(Exception):
                     address_pretty = RNS.prettyhexrep(instance.bot.local.hash)
                     address_full = RNS.hexrep(instance.bot.local.hash, delimit=False)
-                except Exception:
-                    pass
 
             # Fallback to identity file on disk
             if address_full is None:
                 identity = self._load_identity_for_bot(bot_id)
                 if identity:
-                    try:
+                    with contextlib.suppress(Exception):
                         destination = RNS.Destination(identity, "lxmf", "delivery")
                         address_full = destination.hash.hex()
                         address_pretty = RNS.prettyhexrep(destination.hash)
-                    except Exception:
-                        pass
 
             bots.append(
                 {
@@ -209,8 +206,10 @@ class BotHandler:
         if pid:
             try:
                 if sys.platform.startswith("win"):
-                    subprocess.run(
-                        ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    # Use absolute path if possible to avoid S607
+                    taskkill = shutil.which("taskkill") or "taskkill"
+                    subprocess.run(  # noqa: S603
+                        [taskkill, "/PID", str(pid), "/T", "/F"],
                         check=False,
                         timeout=5,
                     )

@@ -110,7 +110,7 @@ class ContactsDAO:
             return
 
         updates.append("updated_at = CURRENT_TIMESTAMP")
-        query = f"UPDATE contacts SET {', '.join(updates)} WHERE id = ?"
+        query = f"UPDATE contacts SET {', '.join(updates)} WHERE id = ?"  # noqa: S608
         params.append(contact_id)
         self.provider.execute(query, tuple(params))
 

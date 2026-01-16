@@ -5,6 +5,7 @@ It utilizes Active Inference heuristics, Shannon Entropy, and KL-Divergence
 to map application failures onto deterministic manifold constraints.
 """
 
+import contextlib
 import os
 import platform
 import re
@@ -327,16 +328,16 @@ class CrashRecovery:
             potential_causes["CONFIG_MISSING"]["probability"] = 0.99
 
         # Filter and sort by probability
-        for key, data in potential_causes.items():
-            if data["probability"] > 0.3:
-                causes.append(
-                    {
-                        "probability": int(data["probability"] * 100),
-                        "description": data["description"],
-                        "reasoning": data["reasoning"],
-                        "suggestions": data["suggestions"],
-                    },
-                )
+        causes = [
+            {
+                "probability": int(data["probability"] * 100),
+                "description": data["description"],
+                "reasoning": data["reasoning"],
+                "suggestions": data["suggestions"],
+            }
+            for data in potential_causes.values()
+            if data["probability"] > 0.3
+        ]
 
         causes.sort(key=lambda x: x["probability"], reverse=True)
 
@@ -450,7 +451,7 @@ class CrashRecovery:
         file.write(f"- Python: {sys.version.split()[0]}\n")
 
         # Resource Monitoring
-        try:
+        with contextlib.suppress(Exception):
             mem = psutil.virtual_memory()
             results["available_mem_mb"] = mem.available / (1024**2)
             file.write(
@@ -459,8 +460,6 @@ class CrashRecovery:
             if mem.percent > 95:
                 results["low_memory"] = True
                 file.write("  [CRITICAL] System memory is dangerously low!\n")
-        except Exception:
-            pass
 
         # Filesystem Status
         if self.storage_dir:
@@ -475,7 +474,7 @@ class CrashRecovery:
                         "  [ERROR] Storage path is NOT writable. Check filesystem permissions.\n",
                     )
 
-                try:
+                with contextlib.suppress(Exception):
                     usage = shutil.disk_usage(self.storage_dir)
                     free_mb = usage.free / (1024**2)
                     file.write(f"  - Disk Space: {free_mb:.1f} MB free\n")
@@ -483,8 +482,6 @@ class CrashRecovery:
                         file.write(
                             "  [CRITICAL] Disk space is critically low (< 50MB)!\n",
                         )
-                except Exception:
-                    pass
 
         # Database Integrity
         if self.database_path:
@@ -610,7 +607,7 @@ class CrashRecovery:
             file.write("  - Logs: No RNS log files found in standard locations.\n")
 
         # Check for interfaces and transport status
-        try:
+        with contextlib.suppress(Exception):
             # Try to get more info from RNS if it's already running
             if hasattr(RNS.Transport, "interfaces") and RNS.Transport.interfaces:
                 results["active_interfaces"] = len(RNS.Transport.interfaces)
@@ -622,19 +619,15 @@ class CrashRecovery:
                 file.write(
                     "  - Active Interfaces: None registered (Reticulum may not be initialized yet)\n",
                 )
-        except Exception:
-            pass
 
         # Check for common port conflicts
         common_ports = [4242, 8000, 8080]  # Reticulum default is often 4242
         for port in common_ports:
-            try:
+            with contextlib.suppress(Exception):
                 for conn in psutil.net_connections():
                     if conn.laddr.port == port and conn.status == "LISTEN":
                         file.write(
                             f"  [ALERT] Port {port} is already in use by PID {conn.pid}. Potential conflict.\n",
                         )
-            except Exception:
-                pass
 
         return results

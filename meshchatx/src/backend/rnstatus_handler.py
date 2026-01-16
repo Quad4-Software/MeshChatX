@@ -1,3 +1,4 @@
+import contextlib
 import time
 from typing import Any
 
@@ -58,15 +59,13 @@ class RNStatusHandler:
         blackhole_enabled = False
         blackhole_sources = []
         blackhole_count = 0
-        try:
+        with contextlib.suppress(Exception):
             blackhole_enabled = RNS.Reticulum.publish_blackhole_enabled()
             blackhole_sources = [s.hex() for s in RNS.Reticulum.blackhole_sources()]
 
             # Get count of blackholed identities
             if self.reticulum and hasattr(self.reticulum, "get_blackholed_identities"):
                 blackhole_count = len(self.reticulum.get_blackholed_identities())
-        except Exception:
-            pass
 
         interfaces = stats.get("interfaces", [])
 

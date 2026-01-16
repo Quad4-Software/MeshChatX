@@ -1,3 +1,4 @@
+import contextlib
 import os
 import platform
 import shutil
@@ -300,10 +301,8 @@ class VoicemailManager:
 
         # Stop microphone if it's active to prevent local noise being sent or recorded
         if telephone.audio_input:
-            try:
+            with contextlib.suppress(Exception):
                 telephone.audio_input.stop()
-            except Exception:
-                pass
 
         # Play greeting
         greeting_path = os.path.join(self.greetings_dir, "greeting.opus")
@@ -325,11 +324,9 @@ class VoicemailManager:
 
         def session_job():
             prev_receive_muted = self.telephone_manager.receive_muted
-            try:
+            with contextlib.suppress(Exception):
                 # Prevent remote audio from playing locally while recording voicemail
                 self.telephone_manager.mute_receive()
-            except Exception:
-                pass
 
             try:
                 # Wait for link to stabilize
@@ -417,11 +414,9 @@ class VoicemailManager:
                 if self.is_recording:
                     self.stop_recording()
             finally:
-                try:
+                with contextlib.suppress(Exception):
                     if not prev_receive_muted:
                         self.telephone_manager.unmute_receive()
-                except Exception:
-                    pass
 
         threading.Thread(target=session_job, daemon=True).start()
 

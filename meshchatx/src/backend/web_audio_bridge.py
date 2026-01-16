@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import json
 import threading
 
@@ -218,12 +219,10 @@ class WebAudioBridge:
         tele = self._tele()
         if not tele:
             return
-        try:
-            if hasattr(tele, "_Telephony__reconfigure_transmit_pipeline"):
-                tele._Telephony__reconfigure_transmit_pipeline()
-        except Exception:
-            pass
-        try:
+        with contextlib.suppress(Exception):
+            with contextlib.suppress(Exception):
+                if hasattr(tele, "_Telephony__reconfigure_transmit_pipeline"):
+                    tele._Telephony__reconfigure_transmit_pipeline()
             if tele.receive_pipeline:
                 tele.receive_pipeline.stop()
             if tele.audio_output and self.rx_tee:
@@ -238,8 +237,6 @@ class WebAudioBridge:
                     sink=tele.audio_output,
                 )
                 tele.receive_pipeline.start()
-        except Exception:
-            pass
         self.tx_source = None
         self.rx_sink = None
         self.rx_tee = None

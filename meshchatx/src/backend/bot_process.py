@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import os
 
 from meshchatx.src.backend.bot_templates import (
@@ -30,13 +31,11 @@ def main():
     bot_instance = BotCls(name=args.name, storage_path=args.storage, test_mode=False)
 
     # Optional immediate announce for reachability
-    try:
+    with contextlib.suppress(Exception):
         if hasattr(bot_instance.bot, "announce_enabled"):
             bot_instance.bot.announce_enabled = True
         if hasattr(bot_instance.bot, "_announce"):
             bot_instance.bot._announce()
-    except Exception:
-        pass
 
     bot_instance.run()
 

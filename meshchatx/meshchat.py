@@ -1870,7 +1870,7 @@ class ReticulumMeshChat:
             return
         # Add system notification
         self.database.misc.add_notification(
-            type="telephone_voicemail",
+            notification_type="telephone_voicemail",
             remote_hash=remote_hash,
             title="New Voicemail",
             content=f"New voicemail from {remote_name or remote_hash} ({duration}s)",
@@ -2021,7 +2021,7 @@ class ReticulumMeshChat:
                 # Actually, persistent notification is good.
 
                 self.database.misc.add_notification(
-                    type="telephone_missed_call",
+                    notification_type="telephone_missed_call",
                     remote_hash=remote_identity_hash,
                     title="Missed Call",
                     content=f"You missed a call from {remote_identity_name or remote_identity_hash}",

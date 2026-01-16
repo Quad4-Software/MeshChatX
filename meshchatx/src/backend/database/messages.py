@@ -68,7 +68,7 @@ class MessageDAO:
             return
         placeholders = ", ".join(["?"] * len(message_hashes))
         self.provider.execute(
-            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",
+            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",  # noqa: S608
             tuple(message_hashes),
         )
 

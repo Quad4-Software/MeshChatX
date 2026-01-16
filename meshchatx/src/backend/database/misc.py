@@ -258,12 +258,12 @@ class MiscDAO:
         )
 
     # Notifications
-    def add_notification(self, type, remote_hash, title, content):
+    def add_notification(self, notification_type, remote_hash, title, content):
         now = datetime.now(UTC)
         timestamp = datetime.now(UTC).timestamp()
         self.provider.execute(
             "INSERT INTO notifications (type, remote_hash, title, content, timestamp, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (type, remote_hash, title, content, timestamp, now),
+            (notification_type, remote_hash, title, content, timestamp, now),
         )
 
     def get_notifications(self, filter_unread=False, limit=50):
