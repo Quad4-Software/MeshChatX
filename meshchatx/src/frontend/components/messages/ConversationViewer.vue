@@ -1263,6 +1263,7 @@
                             icon-name="sync"
                             class="size-6"
                             :class="{ 'animate-spin': isSyncingPropagationNode }"
+                            :style="isSyncingPropagationNode ? { animationDirection: 'reverse' } : {}"
                         />
                     </div>
                     <span class="text-sm font-bold text-gray-900 dark:text-zinc-100">{{
