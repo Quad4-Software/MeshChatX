@@ -58,17 +58,18 @@ Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-bui
 The simplest way to install MeshChatX on most systems is using the pre-built wheel from our releases. This package **bundles the built frontend**, so you don't need to deal with Node.js or building assets yourself. No Electron needed, it is a webserver basically, so you use your browser to access it.
 
 1. **Install directly from the release**:
-   ```bash
-   pip install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.1.0/reticulum_meshchatx-4.1.0-py3-none-any.whl
 
-   # pipx
-   pipx install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.1.0/reticulum_meshchatx-4.1.0-py3-none-any.whl
-   ```
+    ```bash
+    pip install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.1.0/reticulum_meshchatx-4.1.0-py3-none-any.whl
+
+    # pipx
+    pipx install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.1.0/reticulum_meshchatx-4.1.0-py3-none-any.whl
+    ```
 
 2. **Run MeshChatX**:
-   ```bash
-   meshchat --headless
-   ```
+    ```bash
+    meshchat --headless
+    ```
 
 ## Major Features
 
@@ -298,7 +299,7 @@ MeshChatX includes a uniquely sophisticated crash recovery system designed for t
 - **Mathematical Grounding**: Quantifies system instability using Shannon Entropy and KL-Divergence, providing a numerical "disorder index" at the time of failure.
 - **Manifold Mapping**: Identifies "Failure Manifolds" across the entire vertical stack from Kernel and Python versions to RNS interface state and LXMF database integrity.
 
-All running locally on your own hardware and it might not be perfect, but it will only get better. The idea is to provide you the help to possibly fix it when you cannot reach me. 
+All running locally on your own hardware and it might not be perfect, but it will only get better. The idea is to provide you the help to possibly fix it when you cannot reach me.
 
 ## Credits
 
