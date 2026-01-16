@@ -10,6 +10,11 @@ All notable changes to this project will be documented in this file.
     - Mathematically grounded crash recovery system using **Probabilistic Active Inference**, **Shannon Entropy**, and **KL-Divergence**.
     - **Deterministic Manifold Constraints**: Actively monitors structural system laws (V1: Version Integrity, V4: Resource Capacity).
     - **Failure Manifold Mapping**: Identifies "Failure Manifolds" across the vertical stack, including RNS identity failures, LXMF storage issues, and interface offline states.
+    - **Intelligent Integrity Monitoring**: 
+        - Implemented **Shannon Entropy Analysis** for critical files and databases to detect non-linear content shifts (e.g., unauthorized encryption or random data injection).
+        - Integrated **SQLite Structural Verification** via `PRAGMA integrity_check` to distinguish between binary hash changes (dirty shutdowns) and actual database corruption.
+        - Refined ignore logic for volatile LXMF/RNS files to eliminate false positives in tampering detection.
+        - Added advanced security alerts for content anomalies, signature mismatches, and critical component compromises.
 - **RNS Auto-Configuration**: 
     - Automatic creation and repair of the Reticulum configuration file (`~/.reticulum/config`) if it is missing, invalid, or corrupt.
 - **Expanded Security Pipeline**:
@@ -44,6 +49,7 @@ All notable changes to this project will be documented in this file.
 - **Testing**: 
     - **Frontend UI Test Suite Expansion**: Added comprehensive Vitest suites for all diagnostic and utility tools (Ping, Trace, Probe, RNode Flasher, Micron Editor, etc.).
     - **Property-Based Testing**: Significant expansion with `hypothesis` to ensure robustness of the diagnostic engine, identity restoration, and markdown renderer.
+    - **Integrity Validation Suite**: Added extensive property-based tests for entropy mathematical bounds and simulated corruption scenarios (SQLite b-tree breakage, content type shifts).
     - Added automated verification for Python version and legacy kernel compatibility diagnostics.
     - Configured temporary log directory management for tests to improve portability.
 
