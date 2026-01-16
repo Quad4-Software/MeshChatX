@@ -46,6 +46,14 @@ jobs:
                   username: ${{ secrets.REGISTRY_USERNAME }}
                   password: ${{ secrets.REGISTRY_PASSWORD }}
 
+            - name: Download Trivy
+              run: |
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/917e0e52b2f663cbbe13e63b7176262e248265ae/trivy_0.68.2_Linux-64bit.deb
+                  sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
+
+            - name: Trivy FS scan
+              run: trivy fs --exit-code 1 .
+
             - name: Extract metadata (tags, labels) for Docker
               id: meta
               uses: https://git.quad4.io/actions/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
@@ -69,11 +77,6 @@ jobs:
                   no-cache: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
-
-            - name: Download Trivy
-              run: |
-                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/917e0e52b2f663cbbe13e63b7176262e248265ae/trivy_0.68.2_Linux-64bit.deb
-                  sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
 
             - name: Scan Docker image
               run: |
@@ -109,6 +112,14 @@ jobs:
                   username: ${{ secrets.REGISTRY_USERNAME }}
                   password: ${{ secrets.REGISTRY_PASSWORD }}
 
+            - name: Download Trivy
+              run: |
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/917e0e52b2f663cbbe13e63b7176262e248265ae/trivy_0.68.2_Linux-64bit.deb
+                  sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
+
+            - name: Trivy FS scan
+              run: trivy fs --exit-code 1 .
+
             - name: Extract DEV metadata (tags, labels) for Docker
               id: meta-dev
               uses: https://git.quad4.io/actions/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
@@ -129,11 +140,6 @@ jobs:
                   no-cache: true
                   tags: ${{ steps.meta-dev.outputs.tags }}
                   labels: ${{ steps.meta-dev.outputs.labels }}
-
-            - name: Download Trivy
-              run: |
-                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/917e0e52b2f663cbbe13e63b7176262e248265ae/trivy_0.68.2_Linux-64bit.deb
-                  sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
 
             - name: Scan Docker image (dev)
               run: |

@@ -1,0 +1,29 @@
+name: Security Scans
+
+on:
+    schedule:
+        - cron: "30 12 * * 1"
+    push:
+        branches: [master]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    scan:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+            - name: OSV scan
+              run: bash scripts/osv_scan.sh
+
+            - name: Download Trivy
+              run: |
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/917e0e52b2f663cbbe13e63b7176262e248265ae/trivy_0.68.2_Linux-64bit.deb
+                  sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
+
+            - name: Trivy FS scan
+              run: trivy fs --exit-code 1 .
