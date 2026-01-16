@@ -75,9 +75,6 @@ jobs:
                   WINEDEBUG: -all
               run: pnpm run dist:win-x64
 
-            - name: Build Electron App (ZIP)
-              run: task dist:fe:zip
-
             - name: Prepare release assets
               run: |
                   mkdir -p release-assets
@@ -85,12 +82,8 @@ jobs:
                   find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" -o -name "*-linux*.flatpak" \) -exec cp {} release-assets/ \;
                   # Collect Windows artifacts
                   find dist -maxdepth 1 -type f \( -name "*-win*.exe" \) -exec cp {} release-assets/ \;
-                  # Collect ZIP artifacts from Electron Forge
-                  find out/make -type f -name "*.zip" -exec cp {} release-assets/ \;
                   # Collect Python artifacts
                   find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp {} release-assets/ \;
-                  # Create frontend zip
-                  (cd meshchatx/public && zip -r ../../release-assets/meshchatx-frontend.zip .)
 
                   # Generate checksums
                   cd release-assets
