@@ -62,6 +62,11 @@ tasks:
         desc: Install all dependencies (frontend and backend)
         deps: [deps:fe, deps:be]
 
+    setup:wine:
+        desc: Setup Wine environment for Windows cross-builds
+        cmds:
+            - ./scripts/setup_wine_env.sh
+
     deps:fe:
         desc: Install Node.js dependencies
         cmds:
