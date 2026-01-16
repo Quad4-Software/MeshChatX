@@ -827,15 +827,15 @@ tests = ["coverage (==7.13.1)", "filelock (>=3.20.1)", "pluggy (==1.6.0)", "pyte
 
 [[package]]
 name = "dmgbuild"
-version = "1.6.6"
+version = "1.6.7"
 description = "macOS command line utility to build disk images"
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 markers = "sys_platform == \"darwin\""
 files = [
-    {file = "dmgbuild-1.6.6-py3-none-any.whl", hash = "sha256:701e83b06155c189194408fab0cb39a6b85a0be8f4d052f6ac69a7507d578026"},
-    {file = "dmgbuild-1.6.6.tar.gz", hash = "sha256:72ce448feec6aa24dba5e777c44a0397b7ae1b4d86fb4dd537e44cf1653c03ec"},
+    {file = "dmgbuild-1.6.7-py3-none-any.whl", hash = "sha256:37ee5771c377beb3203d9164aae8046ffed8531c06edf9227f5788b3c599b1bf"},
+    {file = "dmgbuild-1.6.7.tar.gz", hash = "sha256:676b17acd448899f6d4a83b2184e0657480444ecb6ac9c4922889efad9e5dbfb"},
 ]
 
 [package.dependencies]
@@ -1274,7 +1274,7 @@ rns = ">=1.1.1"
 
 [[package]]
 name = "lxmfy"
-version = "1.3.0"
+version = "1.5.0"
 description = "LXMF bot framework for creating bots for the Reticulum Network"
 optional = false
 python-versions = ">=3.11"
@@ -1283,14 +1283,14 @@ files = []
 develop = false
 
 [package.dependencies]
-lxmf = ">=0.9.3"
-rns = ">=1.1.0"
+lxmf = ">=0.9.4"
+rns = ">=1.1.2"
 
 [package.source]
 type = "git"
 url = "https://git.quad4.io/LXMFy/LXMFy.git"
 reference = "HEAD"
-resolved_reference = "a536b6fed897c1bf9833d344f3d6f62fec756d7f"
+resolved_reference = "bfba780ef7867d49a0b1ca3d4cb75ae9a5187b91"
 
 [[package]]
 name = "lxst"
@@ -2306,4 +2306,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "220ebb5504918c35140a618bcf140757353dfc42b037c8145c93cb541b162955"
+content-hash = "e2d78ca8b70904f9bc5b0afbd775dbb6f9fd4f2cd8d3d9928f0f3a51b9c0373c"
