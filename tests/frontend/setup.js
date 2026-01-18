@@ -1,7 +1,26 @@
 import { vi } from "vitest";
 import { config } from "@vue/test-utils";
+import createDOMPurify from "dompurify";
+
+// Initialize DOMPurify with the jsdom window
+let DOMPurify;
+try {
+    if (typeof createDOMPurify === "function") {
+        DOMPurify = createDOMPurify(window);
+    } else if (createDOMPurify && typeof createDOMPurify.default === "function") {
+        DOMPurify = createDOMPurify.default(window);
+    } else {
+        DOMPurify = createDOMPurify;
+    }
+} catch (e) {
+    console.error("Failed to initialize DOMPurify:", e);
+}
 
 // Global mocks
+if (DOMPurify) {
+    global.DOMPurify = DOMPurify;
+    window.DOMPurify = DOMPurify;
+}
 global.performance.mark = vi.fn();
 global.performance.measure = vi.fn();
 global.performance.getEntriesByName = vi.fn(() => []);
