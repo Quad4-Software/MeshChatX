@@ -1,3 +1,4 @@
+/* global DOMPurify */
 /**
  * Micron Parser JavaScript implementation
  *
@@ -7,9 +8,8 @@
  * Documentation for the Micron markdown format can be found here:
  * https://raw.githubusercontent.com/markqvist/NomadNet/refs/heads/master/nomadnet/ui/textui/Guide.py
  */
- 
-class MicronParser {
 
+class MicronParser {
     constructor(darkTheme = true, enableForceMonospace = true) {
         this.darkTheme = darkTheme;
         this.enableForceMonospace = enableForceMonospace;
@@ -22,38 +22,39 @@ class MicronParser {
         }
 
         try {
-            if (typeof DOMPurify === 'undefined') {
-                console.warn('DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify');
+            if (typeof DOMPurify === "undefined") {
+                console.warn(
+                    "DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify"
+                );
             }
-        } catch (error) {
-            console.warn('DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify');
+        } catch {
+            console.warn("DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify");
         }
 
         this.STYLES_DARK = {
-            "plain": {fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG, bold: false, underline: false, italic: false},
-            "heading1": {fg: "222", bg: "bbb", bold: false, underline: false, italic: false},
-            "heading2": {fg: "111", bg: "999", bold: false, underline: false, italic: false},
-            "heading3": {fg: "000", bg: "777", bold: false, underline: false, italic: false}
+            plain: { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG, bold: false, underline: false, italic: false },
+            heading1: { fg: "222", bg: "bbb", bold: false, underline: false, italic: false },
+            heading2: { fg: "111", bg: "999", bold: false, underline: false, italic: false },
+            heading3: { fg: "000", bg: "777", bold: false, underline: false, italic: false },
         };
 
         this.STYLES_LIGHT = {
-            "plain": {fg: this.DEFAULT_FG_LIGHT, bg: this.DEFAULT_BG, bold: false, underline: false, italic: false},
-            "heading1": {fg: "000", bg: "777", bold: false, underline: false, italic: false},
-            "heading2": {fg: "111", bg: "aaa", bold: false, underline: false, italic: false},
-            "heading3": {fg: "222", bg: "ccc", bold: false, underline: false, italic: false}
+            plain: { fg: this.DEFAULT_FG_LIGHT, bg: this.DEFAULT_BG, bold: false, underline: false, italic: false },
+            heading1: { fg: "000", bg: "777", bold: false, underline: false, italic: false },
+            heading2: { fg: "111", bg: "aaa", bold: false, underline: false, italic: false },
+            heading3: { fg: "222", bg: "ccc", bold: false, underline: false, italic: false },
         };
 
         this.SELECTED_STYLES = this.darkTheme ? this.STYLES_DARK : this.STYLES_LIGHT;
-
     }
 
     injectMonospaceStyles() {
-        if (document.getElementById('micron-monospace-styles')) {
+        if (document.getElementById("micron-monospace-styles")) {
             return;
         }
 
-        const styleEl = document.createElement('style');
-        styleEl.id = 'micron-monospace-styles';
+        const styleEl = document.createElement("style");
+        styleEl.id = "micron-monospace-styles";
 
         styleEl.textContent = `
             .Mu-nl {
@@ -77,7 +78,6 @@ class MicronParser {
     static formatNomadnetworkUrl(url) {
         return `nomadnetwork://${url}`;
     }
-
 
     parseHeaderTags(markup) {
         let pageFg = null;
@@ -120,7 +120,7 @@ class MicronParser {
         // parse header tags for page-level color defaults
         const headerColors = this.parseHeaderTags(markup);
 
-        const plainStyle = this.SELECTED_STYLES?.plain || {fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG};
+        const plainStyle = this.SELECTED_STYLES?.plain || { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG };
         const defaultFg = headerColors.fg || plainStyle.fg;
         const defaultBg = headerColors.bg || this.DEFAULT_BG;
 
@@ -133,13 +133,13 @@ class MicronParser {
                 bold: false,
                 underline: false,
                 italic: false,
-                strikethrough: false
+                strikethrough: false,
             },
             default_align: "left",
             align: "left",
             default_fg: defaultFg,
             default_bg: defaultBg,
-            radio_groups: {}
+            radio_groups: {},
         };
 
         const lines = markup.split("\n");
@@ -157,13 +157,19 @@ class MicronParser {
             }
         }
 
-
-       try {
-        return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
-       } catch (error) {
-            console.warn('DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify ', error);
+        try {
+            return DOMPurify.sanitize(html, {
+                USE_PROFILES: { html: true },
+                ALLOWED_URI_REGEXP:
+                    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+            });
+        } catch (error) {
+            console.warn(
+                "DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify ",
+                error
+            );
             return `<p style="color: red;"> ⚠ DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify </p>`;
-       }
+        }
     }
 
     convertMicronToFragment(markup) {
@@ -172,7 +178,7 @@ class MicronParser {
 
         const headerColors = this.parseHeaderTags(markup);
 
-        const plainStyle = this.SELECTED_STYLES?.plain || {fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG};
+        const plainStyle = this.SELECTED_STYLES?.plain || { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG };
         const defaultFg = headerColors.fg || plainStyle.fg;
         const defaultBg = headerColors.bg || this.DEFAULT_BG;
 
@@ -185,23 +191,26 @@ class MicronParser {
                 bold: false,
                 underline: false,
                 italic: false,
-                strikethrough: false
+                strikethrough: false,
             },
             default_align: "left",
             align: "left",
             default_fg: defaultFg,
             default_bg: defaultBg,
-            radio_groups: {}
+            radio_groups: {},
         };
 
         const lines = markup.split("\n");
 
         for (let line of lines) {
-            line = DOMPurify.sanitize(line, { USE_PROFILES: { html: true } });
+            line = DOMPurify.sanitize(line, {
+                USE_PROFILES: { html: true },
+                ALLOWED_URI_REGEXP:
+                    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+            });
             const lineOutput = this.parseLine(line, state);
             if (lineOutput && lineOutput.length > 0) {
                 for (let el of lineOutput) {
-
                     fragment.appendChild(el);
                 }
             } else if (lineOutput && lineOutput.length === 0) {
@@ -221,7 +230,6 @@ class MicronParser {
                 state.literal = !state.literal;
                 return null;
             }
-
 
             if (!state.literal) {
                 // Comments, and header tags s
@@ -248,7 +256,13 @@ class MicronParser {
                         // apply heading style if it exists
                         let style = null;
                         let wanted_style = "heading" + i;
-                        const defaultPlain = {fg: this.darkTheme ? this.DEFAULT_FG_DARK : this.DEFAULT_FG_LIGHT, bg: this.DEFAULT_BG, bold: false, underline: false, italic: false};
+                        const defaultPlain = {
+                            fg: this.darkTheme ? this.DEFAULT_FG_DARK : this.DEFAULT_FG_LIGHT,
+                            bg: this.DEFAULT_BG,
+                            bold: false,
+                            underline: false,
+                            italic: false,
+                        };
                         if (this.SELECTED_STYLES?.[wanted_style]) {
                             style = this.SELECTED_STYLES[wanted_style];
                         } else {
@@ -271,11 +285,11 @@ class MicronParser {
                             const innerDiv = document.createElement("div");
                             this.applySectionIndent(innerDiv, state);
 
-                            this.appendOutput(innerDiv, outputParts, state);
+                            this.appendOutput(innerDiv, outputParts);
                             outerDiv.appendChild(innerDiv);
 
                             const br = document.createElement("br");
-                            return [outerDiv, br]
+                            return [outerDiv, br];
                         }
                         // wrap in a heading container
                         if (outputParts && outputParts.length > 0) {
@@ -283,7 +297,7 @@ class MicronParser {
                             this.applyAlignment(div, state);
                             this.applySectionIndent(div, state);
                             // merge text nodes
-                            this.appendOutput(div, outputParts, state);
+                            this.appendOutput(div, outputParts);
                             return [div];
                         } else {
                             return null;
@@ -306,11 +320,11 @@ class MicronParser {
                         return [hr];
                     } else {
                         // if second char given
-                        const dividerChar = line[1];  // use the following character for creating the divider
+                        const dividerChar = line[1]; // use the following character for creating the divider
                         const repeated = dividerChar.repeat(250);
 
                         const div = document.createElement("div");
-                        div.style.whiteSpace = "pre";   // needs to not wrap and ignore container formatting
+                        div.style.whiteSpace = "pre"; // needs to not wrap and ignore container formatting
                         div.textContent = repeated;
                         div.style.width = "100%";
                         div.style.whiteSpace = "nowrap";
@@ -322,19 +336,17 @@ class MicronParser {
                         return [div];
                     }
                 }
-
             }
 
             let outputParts = this.makeOutput(state, line);
             // outputParts can contain text (tuple) and special objects (fields/checkbox)
             if (outputParts) {
-
                 // create parent div container to apply proper section indent
                 let container = document.createElement("div");
                 this.applyAlignment(container, state);
                 this.applySectionIndent(container, state);
 
-                this.appendOutput(container, outputParts, state);
+                this.appendOutput(container, outputParts);
 
                 // if theres a background color, wrap with outer div
                 if (state.bg_color !== this.DEFAULT_BG) {
@@ -394,9 +406,9 @@ class MicronParser {
     applySectionIndent(el, state) {
         // indent by state.depth
         let indent = (state.depth - 1) * 2;
-        if (indent > 0 ) {
+        if (indent > 0) {
             // Indent according to forceMonospace() character width
-            el.style.marginLeft = (indent * 0.6) + "em";
+            el.style.marginLeft = indent * 0.6 + "em";
         }
     }
 
@@ -407,7 +419,7 @@ class MicronParser {
             bg: state.bg_color,
             bold: state.formatting.bold,
             underline: state.formatting.underline,
-            italic: state.formatting.italic
+            italic: state.formatting.italic,
         };
     }
 
@@ -419,12 +431,11 @@ class MicronParser {
         if (style.italic !== undefined && style.italic !== null) state.formatting.italic = style.italic;
     }
 
-    appendOutput(container, parts, state) {
-
+    appendOutput(container, parts) {
         let currentSpan = null;
         let currentStyle = null;
 
-         const flushSpan = () => {
+        const flushSpan = () => {
             if (currentSpan) {
                 if (currentStyle && currentStyle.bg !== this.DEFAULT_BG) {
                     currentSpan.style.display = "inline-block";
@@ -436,7 +447,7 @@ class MicronParser {
         };
 
         for (let p of parts) {
-            if (typeof p === 'string') {
+            if (typeof p === "string") {
                 let span = document.createElement("span");
                 span.innerHTML = p;
                 container.appendChild(span);
@@ -451,14 +462,14 @@ class MicronParser {
                     currentStyle = styleSpec;
                 }
                 currentSpan.innerHTML += text;
-            } else if (p && typeof p === 'object') {
+            } else if (p && typeof p === "object") {
                 // field, checkbox, radio, link
                 flushSpan();
                 if (p.type === "field") {
                     let input = document.createElement("input");
                     input.type = p.masked ? "password" : "text";
                     input.name = p.name;
-                    input.setAttribute('value', p.data);
+                    input.setAttribute("value", p.data);
                     if (p.width) {
                         input.size = p.width;
                     }
@@ -470,7 +481,7 @@ class MicronParser {
                     cb.type = "checkbox";
                     cb.name = p.name;
                     cb.value = p.value;
-                    if (p.prechecked) cb.setAttribute('checked', true);
+                    if (p.prechecked) cb.setAttribute("checked", true);
                     label.appendChild(cb);
                     label.appendChild(document.createTextNode(" " + p.label));
                     this.applyStyleToElement(label, this.styleFromState(p.style));
@@ -481,14 +492,13 @@ class MicronParser {
                     rb.type = "radio";
                     rb.name = p.name;
                     rb.value = p.value;
-                    if (p.prechecked) rb.setAttribute('checked', true);
+                    if (p.prechecked) rb.setAttribute("checked", true);
                     label.appendChild(rb);
                     label.appendChild(document.createTextNode(" " + p.label));
                     this.applyStyleToElement(label, this.styleFromState(p.style));
                     container.appendChild(label);
                 } else if (p.type === "link") {
-
-                    let directURL = p.url.replace('nomadnetwork://', '').replace('lxmf://', '');
+                    let directURL = p.url.replace("nomadnetwork://", "").replace("lxmf://", "");
                     // use p.url as is for the href
                     const formattedUrl = p.url;
 
@@ -502,12 +512,12 @@ class MicronParser {
 
                     if (p.fields && p.fields.length > 0) {
                         for (const f of p.fields) {
-                            if (f === '*') {
+                            if (f === "*") {
                                 // submit all fields
                                 foundAll = true;
-                            } else if (f.includes('=')) {
+                            } else if (f.includes("=")) {
                                 // this is a request variable (key=value)
-                                const [k, v] = f.split('=');
+                                const [k, v] = f.split("=");
                                 requestVars[k] = v;
                             } else {
                                 // this is a field name to submit
@@ -515,20 +525,20 @@ class MicronParser {
                             }
                         }
 
-                        let fieldStr = '';
+                        let fieldStr = "";
                         if (foundAll) {
                             // if '*' was found, submit all fields
-                            fieldStr = '*';
+                            fieldStr = "*";
                         } else {
-                            fieldStr = fieldsToSubmit.join('|');
+                            fieldStr = fieldsToSubmit.join("|");
                         }
 
                         // append request variables directly to the directURL as query parameters
                         const varEntries = Object.entries(requestVars);
                         if (varEntries.length > 0) {
-                            const queryString = varEntries.map(([k, v]) => `${k}=${v}`).join('|');
+                            const queryString = varEntries.map(([k, v]) => `${k}=${v}`).join("|");
 
-                            directURL += directURL.includes('`') ? `|${queryString}` : `\`${queryString}`;
+                            directURL += directURL.includes("`") ? `|${queryString}` : `\`${queryString}`;
                         }
 
                         a.setAttribute("data-destination", `${directURL}`);
@@ -537,13 +547,12 @@ class MicronParser {
                         // no fields or request variables, just handle the direct URL
                         a.setAttribute("data-destination", `${directURL}`);
                     }
-                    a.classList.add('Mu-nl');
-                    a.setAttribute('data-action', "openNode");
+                    a.classList.add("Mu-nl");
+                    a.setAttribute("data-action", "openNode");
                     a.innerHTML = p.label;
                     this.applyStyleToElement(a, this.styleFromState(p.style));
                     container.appendChild(a);
                 }
-
             }
         }
 
@@ -553,7 +562,13 @@ class MicronParser {
     stylesEqual(s1, s2) {
         if (!s1 && !s2) return true;
         if (!s1 || !s2) return false;
-        return (s1.fg === s2.fg && s1.bg === s2.bg && s1.bold === s2.bold && s1.underline === s2.underline && s1.italic === s2.italic);
+        return (
+            s1.fg === s2.fg &&
+            s1.bg === s2.bg &&
+            s1.bold === s2.bold &&
+            s1.underline === s2.underline &&
+            s1.italic === s2.italic
+        );
     }
 
     styleFromState(stateStyle) {
@@ -562,7 +577,7 @@ class MicronParser {
         return stateStyle;
     }
 
-applyStyleToElement(el, style) {
+    applyStyleToElement(el, style) {
         if (!style) return;
         // convert style fg/bg to colors
         let fgColor = this.colorToCss(style.fg);
@@ -580,7 +595,7 @@ applyStyleToElement(el, style) {
             el.style.fontWeight = "bold";
         }
         if (style.underline) {
-            el.style.textDecoration = (el.style.textDecoration ? el.style.textDecoration + " underline" : "underline");
+            el.style.textDecoration = el.style.textDecoration ? el.style.textDecoration + " underline" : "underline";
         }
         if (style.italic) {
             el.style.fontStyle = "italic";
@@ -598,12 +613,14 @@ applyStyleToElement(el, style) {
             return "#" + c;
         }
         // If grayscale 'gxx'
-        if (c.length === 3 && c[0] === 'g') {
+        if (c.length === 3 && c[0] === "g") {
             // treat xx as a number and map to gray
             let val = parseInt(c.slice(1), 10);
             if (isNaN(val)) val = 50;
             // map 0-99 scale to a gray hex
-            let h = Math.floor(val * 2.55).toString(16).padStart(2, '0');
+            let h = Math.floor(val * 2.55)
+                .toString(16)
+                .padStart(2, "0");
             return "#" + h + h + h;
         }
 
@@ -617,7 +634,7 @@ applyStyleToElement(el, style) {
             if (line === "\\`=") {
                 line = "`=";
             }
-            if(this.enableForceMonospace) {
+            if (this.enableForceMonospace) {
                 return [[this.stateToStyle(state), this.splitAtSpaces(line)]];
             } else {
                 return [[this.stateToStyle(state), line]];
@@ -632,7 +649,7 @@ applyStyleToElement(el, style) {
 
         const flushPart = () => {
             if (part.length > 0) {
-                if(this.enableForceMonospace) {
+                if (this.enableForceMonospace) {
                     output.push([this.stateToStyle(state), this.splitAtSpaces(part)]);
                 } else {
                     output.push([this.stateToStyle(state), part]);
@@ -653,17 +670,17 @@ applyStyleToElement(el, style) {
 
             if (mode === "formatting") {
                 switch (c) {
-                    case '_':
+                    case "_":
                         state.formatting.underline = !state.formatting.underline;
                         break;
-                    case '!':
+                    case "!":
                         state.formatting.bold = !state.formatting.bold;
                         break;
-                    case '*':
+                    case "*":
                         state.formatting.italic = !state.formatting.italic;
                         break;
 
-                    case 'F':
+                    case "F":
                         // next 3 chars => fg color
                         if (line.length >= i + 4) {
                             let color = line.substr(i + 1, 3);
@@ -671,11 +688,11 @@ applyStyleToElement(el, style) {
                             skip = 3;
                         }
                         break;
-                    case 'f':
+                    case "f":
                         // reset fg to page default
                         state.fg_color = state.default_fg;
                         break;
-                    case 'B':
+                    case "B":
                         // next 3 chars => bg color
                         if (line.length >= i + 4) {
                             let color = line.substr(i + 1, 3);
@@ -684,12 +701,12 @@ applyStyleToElement(el, style) {
                             flushPart(); // flush current part when background color changes
                         }
                         break;
-                     case 'b':
+                    case "b":
                         // reset bg to page default
                         state.bg_color = state.default_bg;
                         flushPart(); // flush to allow for ` tags on same line
                         break;
-                    case '`':
+                    case "`":
                         state.formatting.bold = false;
                         state.formatting.underline = false;
                         state.formatting.italic = false;
@@ -698,20 +715,20 @@ applyStyleToElement(el, style) {
                         state.align = state.default_align;
                         mode = "text";
                         break;
-                    case 'c':
-                        state.align = 'center';
+                    case "c":
+                        state.align = "center";
                         break;
-                    case 'l':
-                        state.align = 'left';
+                    case "l":
+                        state.align = "left";
                         break;
-                    case 'r':
-                        state.align = 'right';
+                    case "r":
+                        state.align = "right";
                         break;
-                    case 'a':
+                    case "a":
                         state.align = state.default_align;
                         break;
 
-                    case '<':
+                    case "<": {
                         // if there's already text, flush it
                         flushPart();
                         let fieldData = this.parseField(line, i, state);
@@ -722,8 +739,9 @@ applyStyleToElement(el, style) {
                             continue;
                         }
                         break;
+                    }
 
-                    case '[':
+                    case "[": {
                         // flush current text first
                         flushPart();
                         let linkData = this.parseLink(line, i, state);
@@ -733,6 +751,7 @@ applyStyleToElement(el, style) {
                             continue;
                         }
                         break;
+                    }
 
                     default:
                         // unknown formatting char, ignore
@@ -741,16 +760,15 @@ applyStyleToElement(el, style) {
                 mode = "text";
                 i++;
                 continue;
-
             } else {
                 // mode === "text"
                 if (escape) {
                     part += c;
                     escape = false;
-                } else if (c === '\\') {
+                } else if (c === "\\") {
                     escape = true;
-                } else if (c === '`') {
-                    if (i + 1 < line.length && line[i + 1] === '`') {
+                } else if (c === "`") {
+                    if (i + 1 < line.length && line[i + 1] === "`") {
                         flushPart();
                         state.formatting.bold = false;
                         state.formatting.underline = false;
@@ -775,7 +793,7 @@ applyStyleToElement(el, style) {
         }
         // end of line
         if (part.length > 0) {
-            if(this.enableForceMonospace) {
+            if (this.enableForceMonospace) {
                 output.push([this.stateToStyle(state), this.splitAtSpaces(part)]);
             } else {
                 output.push([this.stateToStyle(state), part]);
@@ -787,7 +805,7 @@ applyStyleToElement(el, style) {
 
     parseField(line, startIndex, state) {
         let field_start = startIndex + 1;
-        let backtick_pos = line.indexOf('`', field_start);
+        let backtick_pos = line.indexOf("`", field_start);
         if (backtick_pos === -1) return null;
 
         let field_content = line.substring(field_start, backtick_pos);
@@ -798,20 +816,20 @@ applyStyleToElement(el, style) {
         let field_value = "";
         let field_prechecked = false;
 
-        if (field_content.includes('|')) {
-            let f_components = field_content.split('|');
+        if (field_content.includes("|")) {
+            let f_components = field_content.split("|");
             let field_flags = f_components[0];
             field_name = f_components[1];
 
-            if (field_flags.includes('^')) {
+            if (field_flags.includes("^")) {
                 field_type = "radio";
-                field_flags = field_flags.replace('^', '');
-            } else if (field_flags.includes('?')) {
+                field_flags = field_flags.replace("^", "");
+            } else if (field_flags.includes("?")) {
                 field_type = "checkbox";
-                field_flags = field_flags.replace('?', '');
-            } else if (field_flags.includes('!')) {
+                field_flags = field_flags.replace("?", "");
+            } else if (field_flags.includes("!")) {
                 field_masked = true;
-                field_flags = field_flags.replace('!', '');
+                field_flags = field_flags.replace("!", "");
             }
 
             if (field_flags.length > 0) {
@@ -826,13 +844,13 @@ applyStyleToElement(el, style) {
             }
 
             if (f_components.length > 3) {
-                if (f_components[3] === '*') {
+                if (f_components[3] === "*") {
                     field_prechecked = true;
                 }
             }
         }
 
-        let field_end = line.indexOf('>', backtick_pos);
+        let field_end = line.indexOf(">", backtick_pos);
         if (field_end === -1) return null;
 
         let field_data = line.substring(backtick_pos + 1, field_end);
@@ -846,7 +864,7 @@ applyStyleToElement(el, style) {
                 value: field_value || field_data,
                 label: field_data,
                 prechecked: field_prechecked,
-                style: style
+                style: style,
             };
         } else {
             obj = {
@@ -855,20 +873,20 @@ applyStyleToElement(el, style) {
                 width: field_width,
                 masked: field_masked,
                 data: field_data,
-                style: style
+                style: style,
             };
         }
 
-        let skip = (field_end - startIndex);
-        return {obj: obj, skip: skip};
+        let skip = field_end - startIndex;
+        return { obj: obj, skip: skip };
     }
 
     parseLink(line, startIndex, state) {
-        let endpos = line.indexOf(']', startIndex);
+        let endpos = line.indexOf("]", startIndex);
         if (endpos === -1) return null;
 
         let link_data = line.substring(startIndex + 1, endpos);
-        let link_components = link_data.split('`');
+        let link_components = link_data.split("`");
         let link_label = "";
         let link_url = "";
         let link_fields = "";
@@ -897,7 +915,7 @@ applyStyleToElement(el, style) {
         link_url = MicronParser.formatNomadnetworkUrl(link_url);
 
         // Apply forceMonospace
-        if(this.enableForceMonospace) {
+        if (this.enableForceMonospace) {
             link_label = this.splitAtSpaces(link_label);
         }
 
@@ -906,12 +924,12 @@ applyStyleToElement(el, style) {
             type: "link",
             url: link_url,
             label: link_label,
-            fields: (link_fields ? link_fields.split("|") : []),
-            style: style
+            fields: link_fields ? link_fields.split("|") : [],
+            style: style,
         };
 
-        let skip = (endpos - startIndex);
-        return {obj: obj, skip: skip};
+        let skip = endpos - startIndex;
+        return { obj: obj, skip: skip };
     }
 
     splitAtSpaces(line) {
@@ -926,7 +944,7 @@ applyStyleToElement(el, style) {
     forceMonospace(line) {
         let out = "";
         // Properly split compount emoji, source: https://stackoverflow.com/a/71619350
-        let charArr = [...new Intl.Segmenter().segment(line)].map(x => x.segment);
+        let charArr = [...new Intl.Segmenter().segment(line)].map((x) => x.segment);
         for (let char of charArr) {
             out += "<span class='Mu-mnt'>" + char + "</span>";
         }

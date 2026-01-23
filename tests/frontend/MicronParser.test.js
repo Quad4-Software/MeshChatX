@@ -5,7 +5,7 @@ describe("MicronParser.js", () => {
     let parser;
 
     beforeEach(() => {
-        parser = new MicronParser(true); // darkTheme = true
+        parser = new MicronParser(true, false); // darkTheme = true, enableForceMonospace = false
     });
 
     describe("formatNomadnetworkUrl", () => {
@@ -33,7 +33,7 @@ describe("MicronParser.js", () => {
         });
 
         it("converts horizontal dividers", () => {
-            const markup = "---";
+            const markup = "-";
             const html = parser.convertMicronToHtml(markup);
             expect(html).toContain("<hr");
         });
