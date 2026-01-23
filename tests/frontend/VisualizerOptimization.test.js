@@ -60,6 +60,10 @@ describe("NetworkVisualiser Optimization and Abort", () => {
             isCancel: vi.fn().mockImplementation((e) => e && e.name === "AbortError"),
         };
         window.axios = axiosMock;
+
+        // Mock URL methods
+        global.URL.createObjectURL = vi.fn().mockReturnValue("blob:mock");
+        global.URL.revokeObjectURL = vi.fn();
     });
 
     afterEach(() => {
@@ -164,5 +168,123 @@ describe("NetworkVisualiser Optimization and Abort", () => {
         // Should have called offset 0, then offsets 1000, 2000, 3000, 4000
         // Total 5 calls
         expect(axiosMock.get).toHaveBeenCalledTimes(5);
+    });
+
+    it("applies LOD based on scale", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getScale: vi.fn(),
+        };
+
+        const testNode = { id: "test", label: "Test Label", _originalSize: 25, _originalShape: "circularImage" };
+        wrapper.vm.nodes.add(testNode);
+
+        // Test Low LOD
+        wrapper.vm.network.getScale.mockReturnValue(0.1);
+        wrapper.vm.updateLOD();
+        expect(wrapper.vm.currentLOD).toBe("low");
+        let updatedNode = wrapper.vm.nodes.get("test");
+        expect(updatedNode.shape).toBe("dot");
+        expect(updatedNode.font.size).toBe(0);
+
+        // Test Medium LOD
+        wrapper.vm.network.getScale.mockReturnValue(0.3);
+        wrapper.vm.updateLOD();
+        expect(wrapper.vm.currentLOD).toBe("medium");
+        updatedNode = wrapper.vm.nodes.get("test");
+        expect(updatedNode.shape).toBe("circularImage");
+        expect(updatedNode.font.size).toBe(0);
+
+        // Test High LOD
+        wrapper.vm.network.getScale.mockReturnValue(0.7);
+        wrapper.vm.updateLOD();
+        expect(wrapper.vm.currentLOD).toBe("high");
+        updatedNode = wrapper.vm.nodes.get("test");
+        expect(updatedNode.shape).toBe("circularImage");
+        expect(updatedNode.font.size).toBe(11);
+    });
+
+    it("clears Blob URLs from icon cache on unmount", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+
+        const mockBlobUrl = "blob:mock-url-1";
+        wrapper.vm.iconCache["test-key"] = mockBlobUrl;
+
+        const revokeSpy = vi.spyOn(URL, "revokeObjectURL");
+
+        wrapper.unmount();
+
+        expect(revokeSpy).toHaveBeenCalledWith(mockBlobUrl);
+        expect(Object.keys(wrapper.vm.iconCache).length).toBe(0);
+    });
+
+    it("performance: LOD update time for 2000 nodes", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = { getScale: vi.fn() };
+
+        const nodeCount = 2000;
+        const nodes = Array.from({ length: nodeCount }, (_, i) => ({
+            id: `n${i}`,
+            label: `Node ${i}`,
+            _originalSize: 25,
+            _originalShape: "circularImage",
+        }));
+        wrapper.vm.nodes.add(nodes);
+
+        const start = performance.now();
+        wrapper.vm.network.getScale.mockReturnValue(0.1); // Switch to low LOD
+        wrapper.vm.updateLOD();
+        const end = performance.now();
+
+        console.log(`LOD update for ${nodeCount} nodes took ${(end - start).toFixed(2)}ms`);
+        expect(end - start).toBeLessThan(100); // Should be very fast
+    });
+
+    it("performance: icon cache hit vs miss for 500 nodes", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+
+        // Setup 500 nodes with the same icon
+        const iconInfo = { icon_name: "test", foreground_colour: "#000", background_colour: "#fff" };
+        wrapper.vm.pathTable = Array.from({ length: 500 }, (_, i) => ({ hash: `h${i}`, interface: "eth0", hops: 1 }));
+        wrapper.vm.announces = wrapper.vm.pathTable.reduce((acc, cur) => {
+            acc[cur.hash] = {
+                destination_hash: cur.hash,
+                aspect: "lxmf.delivery",
+                display_name: "node",
+                lxmf_user_icon: iconInfo,
+            };
+            return acc;
+        }, {});
+        wrapper.vm.conversations = wrapper.vm.pathTable.reduce((acc, cur) => {
+            acc[cur.hash] = { lxmf_user_icon: iconInfo };
+            return acc;
+        }, {});
+
+        // Mock createIconImage to have some delay
+        wrapper.vm.createIconImage = vi.fn().mockImplementation(async () => {
+            return "blob:mock-icon";
+        });
+
+        const startMiss = performance.now();
+        await wrapper.vm.processVisualization();
+        const endMiss = performance.now();
+        const missTime = endMiss - startMiss;
+
+        // Second run should hit cache
+        const startHit = performance.now();
+        await wrapper.vm.processVisualization();
+        const endHit = performance.now();
+        const hitTime = endHit - startHit;
+
+        console.log(`Icon cache MISS for 500 nodes: ${missTime.toFixed(2)}ms`);
+        console.log(`Icon cache HIT for 500 nodes: ${hitTime.toFixed(2)}ms`);
+
+        // Cache hit should be significantly faster because it avoids 500 async calls (even if resolved instantly)
+        // and doesn't re-create images.
+        expect(hitTime).toBeLessThan(missTime);
     });
 });

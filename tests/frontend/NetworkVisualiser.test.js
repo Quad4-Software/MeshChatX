@@ -327,9 +327,10 @@ describe("NetworkVisualiser.vue", () => {
         const originalCreateIconImage = wrapper.vm.createIconImage;
         wrapper.vm.createIconImage = vi.fn().mockImplementation(async (iconName, fg, bg, size) => {
             const cacheKey = `${iconName}-${fg}-${bg}-${size}`;
-            const mockDataUrl = `data:image/png;base64,${iconName}`;
-            wrapper.vm.iconCache[cacheKey] = mockDataUrl;
-            return mockDataUrl;
+            // Use blob: prefix so it gets cleared on unmount
+            const mockBlobUrl = `blob:image/png/${iconName}`;
+            wrapper.vm.iconCache[cacheKey] = mockBlobUrl;
+            return mockBlobUrl;
         });
 
         const getMemory = () => process.memoryUsage().heapUsed / (1024 * 1024);

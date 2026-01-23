@@ -303,6 +303,7 @@ export default {
             pageSize: 1000,
             searchQuery: "",
             abortController: new AbortController(),
+            currentLOD: "high",
         };
     },
     computed: {
@@ -362,7 +363,14 @@ export default {
             this.network.destroy();
         }
         // Clear icon cache to free memory
-        for (const key in this.iconCache) {
+        const revokedUrls = new Set();
+        const keys = Object.keys(this.iconCache);
+        for (const key of keys) {
+            const url = this.iconCache[key];
+            if (url && url.startsWith("blob:") && !revokedUrls.has(url)) {
+                URL.revokeObjectURL(url);
+                revokedUrls.add(url);
+            }
             delete this.iconCache[key];
         }
         this.iconCache = {};
@@ -516,14 +524,25 @@ export default {
             const cacheKeys = Object.keys(this.iconCache);
             if (cacheKeys.length >= 500) {
                 // simple FIFO eviction
-                delete this.iconCache[cacheKeys[0]];
+                const oldKey = cacheKeys[0];
+                const oldUrl = this.iconCache[oldKey];
+                if (oldUrl && oldUrl.startsWith("blob:")) {
+                    // Check if any other keys use this URL before revoking
+                    const stillUsed = Object.values(this.iconCache).some(
+                        (u, i) => u === oldUrl && Object.keys(this.iconCache)[i] !== oldKey
+                    );
+                    if (!stillUsed) {
+                        URL.revokeObjectURL(oldUrl);
+                    }
+                }
+                delete this.iconCache[oldKey];
             }
 
             return new Promise((resolve) => {
                 const canvas = document.createElement("canvas");
                 canvas.width = size;
                 canvas.height = size;
-                const ctx = canvas.getContext("2d");
+                const ctx = canvas.getContext("2d", { alpha: true });
 
                 // draw background circle with subtle gradient
                 const gradient = ctx.createLinearGradient(0, 0, 0, size);
@@ -589,9 +608,12 @@ export default {
                     ctx.shadowOffsetY = 0;
 
                     URL.revokeObjectURL(url);
-                    const dataUrl = canvas.toDataURL();
-                    this.iconCache[cacheKey] = dataUrl;
-                    resolve(dataUrl);
+
+                    canvas.toBlob((blob) => {
+                        const blobUrl = URL.createObjectURL(blob);
+                        this.iconCache[cacheKey] = blobUrl;
+                        resolve(blobUrl);
+                    }, "image/png");
                 };
                 img.onerror = () => {
                     if (this.abortController.signal.aborted) {
@@ -600,9 +622,11 @@ export default {
                         return;
                     }
                     URL.revokeObjectURL(url);
-                    const dataUrl = canvas.toDataURL();
-                    this.iconCache[cacheKey] = dataUrl;
-                    resolve(dataUrl);
+                    canvas.toBlob((blob) => {
+                        const blobUrl = URL.createObjectURL(blob);
+                        this.iconCache[cacheKey] = blobUrl;
+                        resolve(blobUrl);
+                    }, "image/png");
                 };
                 img.src = url;
             });
@@ -948,6 +972,10 @@ export default {
                 this._draggingNodeId = null;
             });
 
+            this.network.on("zoom", () => {
+                this.updateLOD();
+            });
+
             await this.manualUpdate();
 
             // auto reload
@@ -971,6 +999,53 @@ export default {
                 await this.update();
             } finally {
                 this.isUpdating = false;
+            }
+        },
+        updateLOD() {
+            if (!this.network) return;
+            const scale = this.network.getScale();
+            let newLOD = "high";
+            if (scale < 0.2) {
+                newLOD = "low";
+            } else if (scale < 0.5) {
+                newLOD = "medium";
+            }
+
+            if (this.currentLOD === newLOD) return;
+            this.currentLOD = newLOD;
+
+            const allNodes = this.nodes.get();
+            const updates = allNodes.map((node) => {
+                return this.getNodeLODProps(node, newLOD);
+            });
+            this.nodes.update(updates);
+        },
+        getNodeLODProps(node, lod) {
+            const isDarkMode = document.documentElement.classList.contains("dark");
+            const fontColor = isDarkMode ? "#ffffff" : "#000000";
+
+            if (lod === "low") {
+                return {
+                    id: node.id,
+                    shape: "dot",
+                    size: node.id === "me" ? 15 : 10,
+                    font: { size: 0 }, // hide labels
+                };
+            } else if (lod === "medium") {
+                return {
+                    id: node.id,
+                    shape: node._originalShape || "circularImage",
+                    size: node._originalSize || (node.id === "me" ? 50 : 25),
+                    font: { size: 0 }, // hide labels
+                };
+            } else {
+                // high
+                return {
+                    id: node.id,
+                    shape: node._originalShape || "circularImage",
+                    size: node._originalSize || (node.id === "me" ? 50 : 25),
+                    font: { size: node.id === "me" ? 16 : 11, color: fontColor },
+                };
             }
         },
         async update() {
@@ -1003,11 +1078,13 @@ export default {
             // Add me
             const meLabel = this.config?.display_name ?? "Local Node";
             if (matchesSearch(meLabel) || matchesSearch(this.config?.identity_hash)) {
-                const meNode = {
+                let meNode = {
                     id: "me",
                     group: "me",
                     size: 50,
+                    _originalSize: 50,
                     shape: "circularImage",
+                    _originalShape: "circularImage",
                     image: this.reticulumLogoPath,
                     label: meLabel,
                     title: `Local Node: ${meLabel}\nIdentity: ${this.config?.identity_hash ?? "Unknown"}`,
@@ -1016,6 +1093,7 @@ export default {
                     x: 0,
                     y: 0,
                 };
+                meNode = { ...meNode, ...this.getNodeLODProps(meNode, this.currentLOD) };
                 this.nodes.update([meNode]);
                 processedNodeIds.add("me");
             }
@@ -1039,13 +1117,15 @@ export default {
                     const initialX = Math.cos(angle) * radius;
                     const initialY = Math.sin(angle) * radius;
 
-                    interfaceNodes.push({
+                    let interfaceNode = {
                         id: entry.name,
                         group: "interface",
                         label: label,
                         title: `${entry.name}\nState: ${entry.status ? "Online" : "Offline"}\nBitrate: ${Utils.formatBitsPerSecond(entry.bitrate)}\nTX: ${Utils.formatBytes(entry.txb)}\nRX: ${Utils.formatBytes(entry.rxb)}`,
                         size: 35,
+                        _originalSize: 35,
                         shape: "circularImage",
+                        _originalShape: "circularImage",
                         image: entry.status
                             ? "/assets/images/network-visualiser/interface_connected.png"
                             : "/assets/images/network-visualiser/interface_disconnected.png",
@@ -1056,7 +1136,9 @@ export default {
                         font: { color: fontColor, size: 12, bold: true },
                         x: initialX,
                         y: initialY,
-                    });
+                    };
+                    interfaceNode = { ...interfaceNode, ...this.getNodeLODProps(interfaceNode, this.currentLOD) };
+                    interfaceNodes.push(interfaceNode);
                     processedNodeIds.add(entry.name);
 
                     const edgeId = `me~${entry.name}`;
@@ -1129,10 +1211,11 @@ export default {
                         initY = Math.sin(angle) * dist;
                     }
 
-                    const node = {
+                    let node = {
                         id: entry.hash,
                         group: "announce",
                         size: 25,
+                        _originalSize: 25,
                         _announce: announce,
                         font: { color: fontColor, size: 11 },
                         x: initX,
@@ -1145,16 +1228,24 @@ export default {
                     if (announce.aspect === "lxmf.delivery") {
                         if (conversation?.lxmf_user_icon) {
                             node.shape = "circularImage";
-                            node.image = await this.createIconImage(
-                                conversation.lxmf_user_icon.icon_name,
-                                conversation.lxmf_user_icon.foreground_colour,
-                                conversation.lxmf_user_icon.background_colour,
-                                64
-                            );
+                            node._originalShape = "circularImage";
+                            const cacheKey = `${conversation.lxmf_user_icon.icon_name}-${conversation.lxmf_user_icon.foreground_colour}-${conversation.lxmf_user_icon.background_colour}-64`;
+                            if (this.iconCache[cacheKey]) {
+                                node.image = this.iconCache[cacheKey];
+                            } else {
+                                node.image = await this.createIconImage(
+                                    conversation.lxmf_user_icon.icon_name,
+                                    conversation.lxmf_user_icon.foreground_colour,
+                                    conversation.lxmf_user_icon.background_colour,
+                                    64
+                                );
+                            }
                             if (this.abortController.signal.aborted) return;
                             node.size = 30;
+                            node._originalSize = 30;
                         } else {
                             node.shape = "circularImage";
+                            node._originalShape = "circularImage";
                             node.image =
                                 entry.hops === 1
                                     ? "/assets/images/network-visualiser/user_1hop.png"
@@ -1173,6 +1264,7 @@ export default {
                         };
                     } else if (announce.aspect === "nomadnetwork.node") {
                         node.shape = "circularImage";
+                        node._originalShape = "circularImage";
                         node.image =
                             entry.hops === 1
                                 ? "/assets/images/network-visualiser/server_1hop.png"
@@ -1190,6 +1282,7 @@ export default {
                         };
                     }
 
+                    node = { ...node, ...this.getNodeLODProps(node, this.currentLOD) };
                     batchNodes.push(node);
                     processedNodeIds.add(node.id);
 
