@@ -16,6 +16,8 @@ vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
         formatTimeAgo: () => "1 hour ago",
         formatBytes: () => "1 KB",
         formatDestinationHash: (h) => h,
+        convertUnixMillisToLocalDateTimeString: (ms) => "2026-01-01 12:00 PM",
+        convertDateTimeToLocalDateTimeString: (dt) => "2026-01-01 12:00 PM",
         escapeHtml: (t) =>
             t.replace(
                 /[&<>"']/g,

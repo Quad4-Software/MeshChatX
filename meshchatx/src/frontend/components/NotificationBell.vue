@@ -190,6 +190,9 @@ export default {
                 this.updateDropdownPosition(event);
                 await this.loadNotifications();
                 await this.markNotificationsAsViewed();
+
+                // reset unread count locally once viewed
+                this.unreadCount = 0;
             }
         },
         updateDropdownPosition(event) {
@@ -275,8 +278,25 @@ export default {
                 console.error("Failed to clear notifications", e);
             }
         },
-        onNotificationClick(notification) {
+        async onNotificationClick(notification) {
             this.closeDropdown();
+
+            // Mark this specific notification as viewed
+            try {
+                const destination_hashes = notification.type === "lxmf_message" ? [notification.destination_hash] : [];
+                const notification_ids = notification.type !== "lxmf_message" ? [notification.id] : [];
+
+                await window.axios.post("/api/v1/notifications/mark-as-viewed", {
+                    destination_hashes: destination_hashes,
+                    notification_ids: notification_ids,
+                });
+
+                // reload to update unread count
+                await this.loadNotifications();
+            } catch (e) {
+                console.error("Failed to mark notification as viewed", e);
+            }
+
             if (notification.type === "lxmf_message") {
                 this.$router.push({
                     name: "messages",

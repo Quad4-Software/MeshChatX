@@ -285,6 +285,21 @@ class ConfigManager:
         )
         self.message_font_size = self.IntConfig(self, "message_font_size", 14)
         self.message_icon_size = self.IntConfig(self, "message_icon_size", 28)
+        self.message_outbound_bubble_color = self.StringConfig(
+            self,
+            "message_outbound_bubble_color",
+            "#4f46e5",
+        )
+        self.message_inbound_bubble_color = self.StringConfig(
+            self,
+            "message_inbound_bubble_color",
+            None,
+        )
+        self.message_failed_bubble_color = self.StringConfig(
+            self,
+            "message_failed_bubble_color",
+            "#ef4444",
+        )
 
         # blackhole integration config
         self.blackhole_integration_enabled = self.BoolConfig(

@@ -700,6 +700,106 @@
                                     {{ $t("app.live_preview") }}
                                 </span>
                             </div>
+
+                            <div class="space-y-4 pt-2">
+                                <div
+                                    class="text-sm font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider"
+                                >
+                                    Message Bubbles
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Outbound Color
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <input
+                                                v-model="config.message_outbound_bubble_color"
+                                                type="color"
+                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                                @input="onMessageBubbleColorChange('outbound')"
+                                            />
+                                            <input
+                                                v-model="config.message_outbound_bubble_color"
+                                                type="text"
+                                                class="input-field monospace-field flex-1"
+                                                @input="onMessageBubbleColorChange('outbound')"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Failed Color
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <input
+                                                v-model="config.message_failed_bubble_color"
+                                                type="color"
+                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                                @input="onMessageBubbleColorChange('failed')"
+                                            />
+                                            <input
+                                                v-model="config.message_failed_bubble_color"
+                                                type="text"
+                                                class="input-field monospace-field flex-1"
+                                                @input="onMessageBubbleColorChange('failed')"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Inbound Color (Optional)
+                                        </div>
+                                        <button
+                                            v-if="config.message_inbound_bubble_color"
+                                            type="button"
+                                            class="text-[10px] text-red-500 font-bold uppercase hover:underline"
+                                            @click="
+                                                config.message_inbound_bubble_color = null;
+                                                onMessageBubbleColorChange('inbound');
+                                            "
+                                        >
+                                            Reset to default
+                                        </button>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input
+                                            v-model="config.message_inbound_bubble_color"
+                                            type="color"
+                                            class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                            :disabled="!config.message_inbound_bubble_color"
+                                            @input="onMessageBubbleColorChange('inbound')"
+                                        />
+                                        <div
+                                            v-if="!config.message_inbound_bubble_color"
+                                            class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 italic"
+                                        >
+                                            Using theme default. Click to customize ->
+                                            <button
+                                                class="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg not-italic font-bold"
+                                                @click="
+                                                    config.message_inbound_bubble_color = '#ffffff';
+                                                    onMessageBubbleColorChange('inbound');
+                                                "
+                                            >
+                                                Customize
+                                            </button>
+                                        </div>
+                                        <input
+                                            v-else
+                                            v-model="config.message_inbound_bubble_color"
+                                            type="text"
+                                            class="input-field monospace-field flex-1"
+                                            @input="onMessageBubbleColorChange('inbound')"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
@@ -1536,6 +1636,9 @@ export default {
                 blackhole_integration_enabled: true,
                 message_font_size: 14,
                 message_icon_size: 28,
+                message_outbound_bubble_color: "#4f46e5",
+                message_inbound_bubble_color: null,
+                message_failed_bubble_color: "#ef4444",
                 telephone_tone_generator_enabled: true,
                 telephone_tone_generator_volume: 50,
                 location_source: "browser",
@@ -1884,6 +1987,19 @@ export default {
                         message_icon_size: this.config.message_icon_size,
                     },
                     "message_icon_size"
+                );
+            }, 1000);
+        },
+        async onMessageBubbleColorChange(type) {
+            const timeoutKey = `message_${type}_bubble_color`;
+            if (this.saveTimeouts[timeoutKey]) clearTimeout(this.saveTimeouts[timeoutKey]);
+            this.saveTimeouts[timeoutKey] = setTimeout(async () => {
+                const configKey = `message_${type}_bubble_color`;
+                await this.updateConfig(
+                    {
+                        [configKey]: this.config[configKey],
+                    },
+                    configKey
                 );
             }, 1000);
         },

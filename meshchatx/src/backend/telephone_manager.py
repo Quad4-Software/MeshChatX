@@ -128,6 +128,14 @@ class TelephoneManager:
     def register_ended_callback(self, callback):
         self.on_ended_callback = callback
 
+    def set_callbacks(self, ringing=None, established=None, ended=None):
+        if ringing:
+            self.register_ringing_callback(ringing)
+        if established:
+            self.register_established_callback(established)
+        if ended:
+            self.register_ended_callback(ended)
+
     def on_telephone_ringing(self, caller_identity: RNS.Identity):
         if self.initiation_status:
             # This is an outgoing call where the remote side is now ringing.

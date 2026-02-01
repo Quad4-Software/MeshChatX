@@ -120,6 +120,26 @@ def convert_lxmf_message_to_dict(
     if quality is None and reticulum:
         quality = reticulum.get_packet_q(lxmf_message.hash)
 
+    # get reply_to_hash from fields if present
+    reply_to_hash = None
+    if 0x30 in message_fields:
+        val = message_fields[0x30]
+        reply_to_hash = val.hex() if isinstance(val, bytes) else val
+
+    content = (
+        lxmf_message.content.decode("utf-8", errors="replace")
+        if lxmf_message.content
+        else ""
+    )
+
+    # auto-detect reply from content if not present
+    if not reply_to_hash and content and isinstance(content, str):
+        import re
+
+        match = re.search(r"^> ([a-fA-F0-9]{32})\s*\n?", content)
+        if match:
+            reply_to_hash = match.group(1)
+
     return {
         "hash": lxmf_message.hash.hex(),
         "source_hash": lxmf_message.source_hash.hex(),
@@ -137,14 +157,13 @@ def convert_lxmf_message_to_dict(
         "title": lxmf_message.title.decode("utf-8", errors="replace")
         if lxmf_message.title
         else "",
-        "content": lxmf_message.content.decode("utf-8", errors="replace")
-        if lxmf_message.content
-        else "",
+        "content": content,
         "fields": fields,
         "timestamp": lxmf_message.timestamp,
         "rssi": rssi,
         "snr": snr,
         "quality": quality,
+        "reply_to_hash": reply_to_hash,
     }
 
 

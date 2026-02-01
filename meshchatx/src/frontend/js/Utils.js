@@ -91,9 +91,21 @@ class Utils {
             dateString = dateString.replace(" ", "T") + "Z";
         }
 
-        const millisecondsAgo = Date.now() - new Date(dateString).getTime();
-        const secondsAgo = Math.round(millisecondsAgo / 1000);
-        return this.formatSeconds(secondsAgo);
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSec = Math.round(diffMs / 1000);
+
+        if (diffSec < 60) {
+            return "just now";
+        }
+
+        // If older than 24 hours, show full date
+        if (diffSec > 86400) {
+            return dayjs(date).format("MMM D, h:mm A");
+        }
+
+        return this.formatSeconds(diffSec);
     }
 
     static formatSecondsAgo(seconds) {

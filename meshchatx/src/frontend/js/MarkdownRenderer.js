@@ -37,6 +37,12 @@ export default class MarkdownRenderer {
         text = text.replace(/__(.*?)__/g, "<strong>$1</strong>");
         text = text.replace(/_(.*?)_/g, "<em>$1</em>");
 
+        // Blockquotes
+        text = text.replace(
+            /^> (.*)$/gm,
+            '<blockquote class="border-l-4 border-gray-300 dark:border-zinc-700 pl-3 py-1 my-2 italic opacity-80">$1</blockquote>'
+        );
+
         // Inline code
         text = text.replace(
             /`([^`]+)`/g,

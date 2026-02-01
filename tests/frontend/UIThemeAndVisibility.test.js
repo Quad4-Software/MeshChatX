@@ -459,7 +459,7 @@ describe("Visibility Checks", () => {
         await wrapper.vm.$nextTick();
 
         const colorInputs = wrapper.findAll('input[type="color"]');
-        expect(colorInputs.length).toBe(0);
+        expect(colorInputs.length).toBe(3);
 
         delete window.axios;
     });

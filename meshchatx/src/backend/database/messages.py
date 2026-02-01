@@ -142,7 +142,7 @@ class MessageDAO:
             SELECT m.timestamp, r.last_read_at 
             FROM lxmf_messages m
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = ?
-            WHERE m.peer_hash = ?
+            WHERE m.peer_hash = ? AND m.is_incoming = 1
             ORDER BY m.timestamp DESC LIMIT 1
         """,
             (destination_hash, destination_hash),
@@ -193,7 +193,7 @@ class MessageDAO:
             SELECT peer_hash, MAX(timestamp) as latest_ts, last_read_at
             FROM lxmf_messages m
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = m.peer_hash
-            WHERE m.peer_hash IN ({placeholders})
+            WHERE m.peer_hash IN ({placeholders}) AND m.is_incoming = 1
             GROUP BY m.peer_hash
         """  # noqa: S608
         rows = self.provider.fetchall(query, destination_hashes)
@@ -296,18 +296,33 @@ class MessageDAO:
             (destination_hash, now, now, now),
         )
 
-    def mark_all_notifications_as_viewed(self, destination_hashes):
+    def mark_all_notifications_as_viewed(self, destination_hashes=None):
         now = datetime.now(UTC).isoformat()
-        for destination_hash in destination_hashes:
+        if destination_hashes:
+            for destination_hash in destination_hashes:
+                self.provider.execute(
+                    """
+                    INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(destination_hash) DO UPDATE SET 
+                        last_viewed_at = EXCLUDED.last_viewed_at,
+                        updated_at = EXCLUDED.updated_at
+                    """,
+                    (destination_hash, now, now, now),
+                )
+        else:
+            # mark all conversations as viewed
             self.provider.execute(
                 """
-                INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at) 
-                VALUES (?, ?, ?, ?)
+                INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at)
+                SELECT peer_hash, ?, ?, ? FROM lxmf_messages
+                WHERE peer_hash IS NOT NULL
+                GROUP BY peer_hash
                 ON CONFLICT(destination_hash) DO UPDATE SET 
                     last_viewed_at = EXCLUDED.last_viewed_at,
                     updated_at = EXCLUDED.updated_at
                 """,
-                (destination_hash, now, now, now),
+                (now, now, now),
             )
 
     def is_notification_viewed(self, destination_hash, message_timestamp):

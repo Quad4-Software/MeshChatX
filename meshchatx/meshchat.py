@@ -560,7 +560,11 @@ class ReticulumMeshChat:
         """Ensures that a valid Reticulum config file exists at the expected location.
         If the config is missing or invalid, it creates a sane default one.
         """
-        config_dir = self.reticulum_config_dir or RNS.Reticulum.configpath
+        config_dir = (
+            self.reticulum_config_dir
+            or RNS.Reticulum.configpath
+            or os.path.expanduser("~/.reticulum")
+        )
         config_file = os.path.join(config_dir, "config")
 
         should_recreate = False
@@ -7753,10 +7757,17 @@ class ReticulumMeshChat:
                 self.database.messages.mark_all_notifications_as_viewed(
                     destination_hashes,
                 )
+            else:
+                # mark all LXMF conversations as viewed if no hashes provided
+                # (this happens when "Clear All" is clicked)
+                self.database.messages.mark_all_notifications_as_viewed()
 
             if notification_ids:
                 # mark system notifications as viewed
                 self.database.misc.mark_notifications_as_viewed(notification_ids)
+            else:
+                # mark all system notifications as viewed if no ids provided
+                self.database.misc.mark_notifications_as_viewed()
 
             return web.json_response(
                 {
@@ -7796,6 +7807,13 @@ class ReticulumMeshChat:
                             other_user_hash = db_message["destination_hash"]
                         else:
                             other_user_hash = db_message["source_hash"]
+
+                        # Check if notification has been viewed
+                        if self.database.messages.is_notification_viewed(
+                            other_user_hash,
+                            db_message["timestamp"],
+                        ):
+                            continue
 
                         # Determine display name
                         display_name = self.get_lxmf_conversation_name(
@@ -7894,7 +7912,19 @@ class ReticulumMeshChat:
                     filter_unread=True,
                 )
                 if unread_conversations:
-                    lxmf_unread_count = len(unread_conversations)
+                    for conv in unread_conversations:
+                        # Determine other user hash
+                        if conv["source_hash"] == local_hash:
+                            other_user_hash = conv["destination_hash"]
+                        else:
+                            other_user_hash = conv["source_hash"]
+
+                        # Check if notification has NOT been viewed
+                        if not self.database.messages.is_notification_viewed(
+                            other_user_hash,
+                            conv["timestamp"],
+                        ):
+                            lxmf_unread_count += 1
 
                 total_unread_count = unread_count + lxmf_unread_count
 
@@ -9148,6 +9178,21 @@ class ReticulumMeshChat:
                 value = max(12, min(value, 96))
                 self.config.message_icon_size.set(value)
 
+        if "message_outbound_bubble_color" in data:
+            self.config.message_outbound_bubble_color.set(
+                data["message_outbound_bubble_color"]
+            )
+
+        if "message_inbound_bubble_color" in data:
+            self.config.message_inbound_bubble_color.set(
+                data["message_inbound_bubble_color"]
+            )
+
+        if "message_failed_bubble_color" in data:
+            self.config.message_failed_bubble_color.set(
+                data["message_failed_bubble_color"]
+            )
+
         # update desktop settings
         if "desktop_open_calls_in_separate_window" in data:
             self.config.desktop_open_calls_in_separate_window.set(
@@ -10141,6 +10186,9 @@ class ReticulumMeshChat:
             "banished_color": ctx.config.banished_color.get(),
             "message_font_size": ctx.config.message_font_size.get(),
             "message_icon_size": ctx.config.message_icon_size.get(),
+            "message_outbound_bubble_color": ctx.config.message_outbound_bubble_color.get(),
+            "message_inbound_bubble_color": ctx.config.message_inbound_bubble_color.get(),
+            "message_failed_bubble_color": ctx.config.message_failed_bubble_color.get(),
             "translator_enabled": ctx.config.translator_enabled.get(),
             "libretranslate_url": ctx.config.libretranslate_url.get(),
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
@@ -10918,10 +10966,6 @@ class ReticulumMeshChat:
             reticulum=self.reticulum,
         )
         lxmf_message_dict["is_spam"] = 1 if is_spam else 0
-
-        # extract reply_to from fields if present
-        if "fields" in lxmf_message_dict and "reply_to" in lxmf_message_dict["fields"]:
-            lxmf_message_dict["reply_to_hash"] = lxmf_message_dict["fields"]["reply_to"]
 
         # calculate peer hash
         local_hash = ctx.local_lxmf_destination.hexhash

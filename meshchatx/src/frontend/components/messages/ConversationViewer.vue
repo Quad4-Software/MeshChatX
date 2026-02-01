@@ -385,19 +385,21 @@
                     :key="chatItem.lxmf_message.hash"
                     class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
                     :class="{ 'ml-auto items-end': chatItem.is_outbound, 'mr-auto items-start': !chatItem.is_outbound }"
+                    @contextmenu.prevent="onMessageContextMenu($event, chatItem)"
                 >
                     <!-- message content -->
                     <div
                         class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
                         :class="[
                             ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
-                                ? 'bg-red-500 text-white shadow-sm'
+                                ? 'shadow-sm'
                                 : chatItem.lxmf_message.is_spam
                                   ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
                                   : chatItem.is_outbound
-                                    ? 'bg-blue-600 text-white shadow-sm'
+                                    ? 'shadow-sm'
                                     : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
                         ]"
+                        :style="bubbleStyles(chatItem)"
                         @click="onChatItemClick(chatItem)"
                     >
                         <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
@@ -407,13 +409,19 @@
                                 class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-blue-500/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                                 @click.stop="scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
                             >
-                                <div class="text-[10px] font-bold text-blue-500/80 uppercase tracking-tight mb-0.5">
+                                <div
+                                    class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight mb-0.5"
+                                    :class="chatItem.is_outbound ? 'text-white/80' : 'text-indigo-500/80'"
+                                >
+                                    <MaterialDesignIcon icon-name="reply" class="size-3" />
                                     {{ $t("messages.replying_to") }}
                                 </div>
                                 <div class="text-xs opacity-70 truncate line-clamp-1 italic">
                                     {{
                                         getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
-                                        "(Message not found)"
+                                        (chatItem.lxmf_message.reply_to_hash
+                                            ? `Message <${chatItem.lxmf_message.reply_to_hash.substring(0, 8)}...>`
+                                            : "(Message not found)")
                                     }}
                                 </div>
                             </div>
@@ -423,23 +431,10 @@
                                 v-if="chatItem.lxmf_message.is_spam"
                                 class="flex items-center gap-1.5 text-xs font-medium mb-1"
                                 :class="
-                                    chatItem.is_outbound ? 'text-yellow-200' : 'text-yellow-700 dark:text-yellow-300'
+                                    chatItem.is_outbound ? 'text-orange-200' : 'text-orange-700 dark:text-orange-300'
                                 "
                             >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="2"
-                                    stroke="currentColor"
-                                    class="w-4 h-4"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                                    />
-                                </svg>
+                                <MaterialDesignIcon icon-name="alert-decagram" class="size-4" />
                                 <span>Marked as Spam</span>
                             </div>
 
@@ -653,25 +648,12 @@
                                     @click.stop
                                 >
                                     <div class="my-auto">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke-width="1.5"
-                                            stroke="currentColor"
-                                            class="w-6 h-6"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"
-                                            ></path>
-                                        </svg>
+                                        <MaterialDesignIcon icon-name="paperclip" class="size-5" />
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="truncate">{{ file_attachment.file_name }}</div>
+                                        <div class="truncate text-xs font-bold">{{ file_attachment.file_name }}</div>
                                         <div
-                                            class="text-xs font-normal mt-0.5"
+                                            class="text-[10px] font-normal"
                                             :class="
                                                 chatItem.is_outbound
                                                     ? 'text-white/60'
@@ -682,20 +664,7 @@
                                         </div>
                                     </div>
                                     <div class="my-auto">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke-width="1.5"
-                                            stroke="currentColor"
-                                            class="w-6 h-6"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
-                                            />
-                                        </svg>
+                                        <MaterialDesignIcon icon-name="download" class="size-5" />
                                     </div>
                                 </a>
                             </div>
@@ -815,8 +784,71 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- message footer: timestamp and status icons -->
+                            <div class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3">
+                                <span
+                                    class="text-[9px] opacity-80 font-medium"
+                                    :class="chatItem.is_outbound ? 'text-white/90' : 'text-gray-500 dark:text-zinc-400'"
+                                    :title="getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound).join('\n')"
+                                >
+                                    {{ formatTimeAgo(chatItem.lxmf_message.created_at) }}
+                                </span>
+
+                                <!-- outbound status icons -->
+                                <div v-if="chatItem.is_outbound" class="flex items-center gap-1">
+                                    <span
+                                        v-if="['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)"
+                                        class="text-[9px] font-bold uppercase tracking-wider text-white"
+                                    >
+                                        {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                                    </span>
+
+                                    <!-- delivered: double check -->
+                                    <MaterialDesignIcon
+                                        v-if="chatItem.lxmf_message.state === 'delivered'"
+                                        icon-name="check-all"
+                                        class="size-3 text-blue-300"
+                                        title="Delivered"
+                                    />
+                                    <!-- sent: single check -->
+                                    <MaterialDesignIcon
+                                        v-else-if="['sent', 'propagated'].includes(chatItem.lxmf_message.state)"
+                                        icon-name="check"
+                                        class="size-3 text-white/90"
+                                        :title="
+                                            chatItem.lxmf_message.state === 'propagated'
+                                                ? 'Sent to propagation node'
+                                                : 'Sent'
+                                        "
+                                    />
+                                    <!-- pending/sending/generating: clock or loading -->
+                                    <MaterialDesignIcon
+                                        v-else-if="
+                                            ['outbound', 'sending', 'generating'].includes(chatItem.lxmf_message.state)
+                                        "
+                                        icon-name="clock-outline"
+                                        class="size-3 text-white/60"
+                                        :title="
+                                            chatItem.lxmf_message.state === 'sending'
+                                                ? `Sending... ${chatItem.lxmf_message.progress.toFixed(0)}%`
+                                                : 'Pending'
+                                        "
+                                    />
+                                    <!-- failed/cancelled/rejected: alert -->
+                                    <MaterialDesignIcon
+                                        v-else-if="
+                                            ['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)
+                                        "
+                                        icon-name="alert-circle-outline"
+                                        class="size-3 text-white"
+                                        :title="chatItem.lxmf_message.state"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
+                        <!-- actions (expanded) -->
                         <div
                             v-if="chatItem.is_actions_expanded"
                             class="border-t px-4 py-2.5"
@@ -826,177 +858,30 @@
                                     : 'border-gray-200/60 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/50'
                             "
                         >
-                            <!-- actions -->
                             <div class="flex items-center gap-2">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors"
                                     @click.stop="replyToMessage(chatItem)"
                                 >
                                     {{ $t("messages.reply") }}
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors"
                                     @click.stop="deleteChatItem(chatItem)"
                                 >
                                     Delete
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600"
+                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors"
                                     @click.stop="showRawMessage(chatItem)"
                                 >
                                     Raw LXM
                                 </button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- message state -->
-                    <div
-                        v-if="chatItem.is_outbound"
-                        class="flex text-right mt-1.5 px-1"
-                        :class="[
-                            ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
-                                ? 'text-red-500 dark:text-red-400'
-                                : 'text-gray-400 dark:text-zinc-500',
-                        ]"
-                    >
-                        <div class="flex ml-auto items-center space-x-1.5 text-xs">
-                            <!-- state label -->
-                            <div class="my-auto">
-                                <span
-                                    class="space-x-1 cursor-pointer hover:underline"
-                                    @click="toggleSentMessageInfo(chatItem.lxmf_message.hash)"
-                                >
-                                    <span>{{ chatItem.lxmf_message.state }}</span>
-                                    <span
-                                        v-if="
-                                            chatItem.lxmf_message.state === 'outbound' &&
-                                            chatItem.lxmf_message.delivery_attempts >= 1
-                                        "
-                                        >(attempt {{ chatItem.lxmf_message.delivery_attempts + 1 }})</span
-                                    >
-                                    <span
-                                        v-if="
-                                            chatItem.lxmf_message.state === 'sent' &&
-                                            chatItem.lxmf_message.method === 'opportunistic' &&
-                                            chatItem.lxmf_message.delivery_attempts >= 1
-                                        "
-                                        >(attempt {{ chatItem.lxmf_message.delivery_attempts }})</span
-                                    >
-                                    <span
-                                        v-if="
-                                            chatItem.lxmf_message.state === 'sent' &&
-                                            chatItem.lxmf_message.method === 'propagated'
-                                        "
-                                        >to propagation node</span
-                                    >
-                                    <span v-if="chatItem.lxmf_message.state === 'sending'"
-                                        >{{ chatItem.lxmf_message.progress.toFixed(0) }}%</span
-                                    >
-                                </span>
-                                <a
-                                    v-if="
-                                        chatItem.lxmf_message.state === 'outbound' ||
-                                        chatItem.lxmf_message.state === 'sending' ||
-                                        chatItem.lxmf_message.state === 'sent'
-                                    "
-                                    class="ml-1 cursor-pointer underline text-blue-500"
-                                    @click="cancelSendingMessage(chatItem)"
-                                    >cancel?</a
-                                >
-                                <a
-                                    v-if="
-                                        chatItem.lxmf_message.state === 'failed' ||
-                                        chatItem.lxmf_message.state === 'cancelled'
-                                    "
-                                    class="ml-1 cursor-pointer underline text-blue-500"
-                                    @click="retrySendingMessage(chatItem)"
-                                    >retry?</a
-                                >
-                            </div>
-
-                            <!-- delivered icon -->
-                            <div v-if="chatItem.lxmf_message.state === 'delivered'" class="my-auto">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    class="w-5 h-5"
-                                >
-                                    <path
-                                        fill-rule="evenodd"
-                                        d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z"
-                                        clip-rule="evenodd"
-                                    />
-                                </svg>
-                            </div>
-
-                            <!-- cancelled icon -->
-                            <div v-else-if="chatItem.lxmf_message.state === 'cancelled'" class="my-auto">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    class="size-5"
-                                >
-                                    <path
-                                        fill-rule="evenodd"
-                                        d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.72 6.97a.75.75 0 1 0-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06L12 13.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L13.06 12l1.72-1.72a.75.75 0 1 0-1.06-1.06L12 10.94l-1.72-1.72Z"
-                                        clip-rule="evenodd"
-                                    />
-                                </svg>
-                            </div>
-
-                            <!-- failed icon -->
-                            <div v-else-if="chatItem.lxmf_message.state === 'failed'" class="my-auto">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    class="w-5 h-5"
-                                >
-                                    <path
-                                        fill-rule="evenodd"
-                                        d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"
-                                        clip-rule="evenodd"
-                                    />
-                                </svg>
-                            </div>
-
-                            <!-- fallback icon -->
-                            <div v-else class="my-auto">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="1.5"
-                                    stroke="currentColor"
-                                    class="w-5 h-5"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                                    />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- inbound message info -->
-                    <div
-                        v-if="!chatItem.is_outbound"
-                        class="text-xs text-gray-400 dark:text-zinc-500 mt-1.5 px-1 flex flex-col"
-                    >
-                        <!-- received timestamp -->
-                        <span
-                            class="cursor-pointer hover:underline"
-                            @click="toggleReceivedMessageInfo(chatItem.lxmf_message.hash)"
-                            >{{ formatTimeAgo(chatItem.lxmf_message.created_at) }}</span
-                        >
                     </div>
 
                     <!-- expanded message details -->
@@ -1161,7 +1046,10 @@
                         class="mt-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
                     >
                         <div class="flex-1 min-w-0 border-l-2 border-blue-500 pl-3">
-                            <div class="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">
+                            <div
+                                class="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5"
+                            >
+                                <MaterialDesignIcon icon-name="reply" class="size-3" />
                                 {{ $t("messages.replying_to") }}
                             </div>
                             <div class="text-xs text-gray-600 dark:text-zinc-400 truncate italic">
@@ -1262,6 +1150,46 @@
 
         <!-- hidden file input for selecting files -->
         <input ref="file-input" type="file" multiple style="display: none" @change="onFileInputChange" />
+
+        <!-- Message Context Menu -->
+        <div
+            v-if="messageContextMenu.show"
+            v-click-outside="{ handler: () => (messageContextMenu.show = false), capture: true }"
+            class="fixed z-[100] min-w-[180px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+            :style="{ top: messageContextMenu.y + 'px', left: messageContextMenu.x + 'px' }"
+        >
+            <button
+                type="button"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                @click="replyToMessage(messageContextMenu.chatItem)"
+            >
+                <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
+                <span class="font-medium">Reply</span>
+            </button>
+            <button
+                type="button"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                @click="
+                    showRawMessage(messageContextMenu.chatItem);
+                    messageContextMenu.show = false;
+                "
+            >
+                <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
+                <span class="font-medium">View Raw LXM</span>
+            </button>
+            <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+            <button
+                type="button"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all active:scale-95"
+                @click="
+                    deleteChatItem(messageContextMenu.chatItem);
+                    messageContextMenu.show = false;
+                "
+            >
+                <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
+                <span class="font-medium">Delete</span>
+            </button>
+        </div>
     </div>
 
     <!-- no peer selected -->
@@ -1270,7 +1198,7 @@
             <!-- welcome header -->
             <div class="text-center mb-12">
                 <div
-                    class="inline-flex items-center justify-center p-4 rounded-3xl bg-blue-600 shadow-xl shadow-blue-500/20 mb-6"
+                    class="inline-flex items-center justify-center p-4 rounded-3xl bg-indigo-600 shadow-xl shadow-indigo-500/20 mb-6"
                 >
                     <MaterialDesignIcon icon-name="message-text" class="size-10 text-white" />
                 </div>
@@ -1286,11 +1214,11 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mb-12">
                 <button
                     type="button"
-                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all group"
+                    class="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group"
                     @click="focusComposeInput"
                 >
                     <div
-                        class="size-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform"
+                        class="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"
                     >
                         <MaterialDesignIcon icon-name="plus" class="size-6" />
                     </div>
@@ -1837,9 +1765,37 @@ export default {
             showTelemetryInChat: false,
             isTelemetryHistoryModalOpen: false,
             replyingTo: null,
+            messageContextMenu: {
+                show: false,
+                x: 0,
+                y: 0,
+                chatItem: null,
+            },
+            now: Date.now(),
+            updateTimer: null,
         };
     },
     computed: {
+        bubbleStyles() {
+            return (chatItem) => {
+                const styles = {};
+                const isFailed = ["cancelled", "failed"].includes(chatItem.lxmf_message.state);
+
+                if (isFailed) {
+                    const color = GlobalState.config.message_failed_bubble_color || "#ef4444";
+                    styles["background-color"] = color;
+                    styles["color"] = "#ffffff";
+                } else if (chatItem.is_outbound) {
+                    const color = GlobalState.config.message_outbound_bubble_color || "#4f46e5";
+                    styles["background-color"] = color;
+                    styles["color"] = "#ffffff";
+                } else if (GlobalState.config.message_inbound_bubble_color) {
+                    styles["background-color"] = GlobalState.config.message_inbound_bubble_color;
+                }
+
+                return styles;
+            };
+        },
         messageIconStyle() {
             const size = Number(this.config?.message_icon_size) || 28;
             return {
@@ -2062,15 +2018,11 @@ export default {
             deep: true,
         },
     },
-    beforeUnmount() {
-        // stop listening for websocket messages
-        WebSocketConnection.off("message", this.onWebsocketMessage);
-        GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
-        if (this.propagationStatusInterval) {
-            clearInterval(this.propagationStatusInterval);
-        }
-    },
     mounted() {
+        this.updateTimer = setInterval(() => {
+            this.now = Date.now();
+        }, 30000); // Update every 30 seconds
+
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
@@ -2088,6 +2040,17 @@ export default {
         this.propagationStatusInterval = setInterval(() => {
             this.updatePropagationNodeStatus();
         }, 2000);
+    },
+    beforeUnmount() {
+        if (this.updateTimer) {
+            clearInterval(this.updateTimer);
+        }
+        // stop listening for websocket messages
+        WebSocketConnection.off("message", this.onWebsocketMessage);
+        GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
+        if (this.propagationStatusInterval) {
+            clearInterval(this.propagationStatusInterval);
+        }
     },
     methods: {
         renderMarkdown(text) {
@@ -2267,6 +2230,9 @@ export default {
             this.getPeerPath();
             this.getPeerLxmfStampInfo();
             this.getPeerSignalMetrics();
+
+            // mark as read
+            this.markConversationAsRead(this.selectedPeer);
 
             // load 1 page of previous messages
             await this.loadPrevious();
@@ -2608,7 +2574,11 @@ export default {
             }
 
             // update lxmf message from server, while ensuring ui updates from nested object change
-            this.chatItems[chatItemIndex].lxmf_message = lxmfMessage;
+            // we merge to preserve client-side only fields or database fields not present in state updates
+            this.chatItems[chatItemIndex].lxmf_message = {
+                ...this.chatItems[chatItemIndex].lxmf_message,
+                ...lxmfMessage,
+            };
         },
         onLxmfMessageDeleted(hash) {
             if (hash) {
@@ -2799,12 +2769,15 @@ export default {
         },
         replyToMessage(chatItem) {
             this.replyingTo = chatItem;
+            this.messageContextMenu.show = false;
             chatItem.is_actions_expanded = false;
-            // focus input
-            const textarea = this.$refs["message-input"];
-            if (textarea) {
-                textarea.focus();
-            }
+            // focus the input
+            this.$nextTick(() => {
+                const textarea = this.$refs["message-input"];
+                if (textarea) {
+                    textarea.focus();
+                }
+            });
         },
         cancelReply() {
             this.replyingTo = null;
@@ -2828,6 +2801,32 @@ export default {
         getRepliedMessage(hash) {
             const item = this.chatItems.find((i) => i.lxmf_message?.hash === hash);
             return item ? item.lxmf_message : null;
+        },
+        onMessageContextMenu(event, chatItem) {
+            this.messageContextMenu.chatItem = chatItem;
+            this.messageContextMenu.show = true;
+
+            // wait for context menu to be rendered to calculate its width/height
+            this.$nextTick(() => {
+                const menuWidth = 180; // approximate minimum width
+                const menuHeight = 150; // approximate height
+
+                let x = event.clientX;
+                let y = event.clientY;
+
+                // Adjust X if it would go off-screen on the right
+                if (x + menuWidth > window.innerWidth) {
+                    x = window.innerWidth - menuWidth - 10;
+                }
+
+                // Adjust Y if it would go off-screen at the bottom
+                if (y + menuHeight > window.innerHeight) {
+                    y = window.innerHeight - menuHeight - 10;
+                }
+
+                this.messageContextMenu.x = x;
+                this.messageContextMenu.y = y;
+            });
         },
         async showRawMessage(chatItem) {
             try {
@@ -3466,7 +3465,8 @@ export default {
             }
         },
         formatTimeAgo: function (datetimeString) {
-            return Utils.formatTimeAgo(datetimeString);
+            // Using this.now ensures the computed value updates when the timer ticks
+            return this.now ? Utils.formatTimeAgo(datetimeString) : Utils.formatTimeAgo(datetimeString);
         },
         formatDestinationHash(hash) {
             return Utils.formatDestinationHash(hash);

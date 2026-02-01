@@ -7,7 +7,7 @@
                     class="w-full border-b-2 py-3 px-1 text-center text-sm font-semibold tracking-wide uppercase cursor-pointer transition"
                     :class="[
                         tab === 'conversations'
-                            ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
+                            ? 'border-indigo-500 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300'
                             : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
                     ]"
                     @click="tab = 'conversations'"
@@ -18,7 +18,7 @@
                     class="w-full border-b-2 py-3 px-1 text-center text-sm font-semibold tracking-wide uppercase cursor-pointer transition"
                     :class="[
                         tab === 'announces'
-                            ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300'
+                            ? 'border-indigo-500 text-indigo-600 dark:border-indigo-400 dark:text-indigo-300'
                             : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-zinc-600 hover:text-gray-700 dark:hover:text-gray-200',
                     ]"
                     @click="tab = 'announces'"
@@ -51,7 +51,7 @@
                     <div class="flex gap-1" @click.stop>
                         <button
                             type="button"
-                            class="p-1 text-gray-400 hover:text-blue-500 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                            class="p-1 text-gray-400 hover:text-indigo-500 hover:bg-gray-200/50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                             title="Create Folder"
                             @click="createFolder"
                         >
