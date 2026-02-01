@@ -161,7 +161,7 @@ class MicronParser {
             return DOMPurify.sanitize(html, {
                 USE_PROFILES: { html: true },
                 ALLOWED_URI_REGEXP:
-                    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+                    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
             });
         } catch (error) {
             console.warn(
@@ -206,7 +206,7 @@ class MicronParser {
             line = DOMPurify.sanitize(line, {
                 USE_PROFILES: { html: true },
                 ALLOWED_URI_REGEXP:
-                    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+                    /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
             });
             const lineOutput = this.parseLine(line, state);
             if (lineOutput && lineOutput.length > 0) {

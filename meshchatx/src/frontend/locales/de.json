@@ -651,7 +651,10 @@
         "rssi_val": "RSSI: {rssi}dBm",
         "snr_val": "SNR: {snr}dB",
         "hash_copied": "Identity hash copied to clipboard",
-        "failed_to_copy_hash": "Failed to copy identity hash"
+        "failed_to_copy_hash": "Failed to copy identity hash",
+        "reply": "Antworten",
+        "replying_to": "Antwort an",
+        "message_not_found_in_cache": "Nachricht nicht im Cache gefunden"
     },
     "nomadnet": {
         "remove_favourite": "Favorit entfernen",

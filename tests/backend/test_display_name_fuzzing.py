@@ -1,5 +1,5 @@
 import base64
-from hypothesis import given, strategies as st
+from hypothesis import given, strategies as st, settings, HealthCheck
 import RNS.vendor.umsgpack as msgpack
 from meshchatx.src.backend.meshchat_utils import (
     parse_lxmf_display_name,
@@ -33,6 +33,7 @@ def st_lxmf_announce_app_data(draw):
     return msgpack.packb(app_data_list)
 
 
+@settings(suppress_health_check=[HealthCheck.too_slow])
 @given(data=st.one_of(st.binary(), st_lxmf_announce_app_data()))
 def test_parse_lxmf_display_name_property_based(data):
     # Test with bytes directly

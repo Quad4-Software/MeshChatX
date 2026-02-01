@@ -183,4 +183,33 @@ describe("ConversationViewer.vue", () => {
             expect(axiosMock.get).toHaveBeenCalledWith(expect.stringContaining("/audio"), expect.any(Object))
         );
     });
+
+    it("sets reply state and includes reply_to_hash in sendMessage", async () => {
+        const wrapper = mountConversationViewer();
+        const chatItem = {
+            lxmf_message: { hash: "original-hash", content: "Original message" },
+        };
+
+        // Add to chatItems
+        wrapper.vm.chatItems = [chatItem];
+
+        await wrapper.vm.replyToMessage(chatItem);
+        expect(wrapper.vm.replyingTo.lxmf_message.hash).toBe(chatItem.lxmf_message.hash);
+
+        wrapper.vm.newMessageText = "My reply";
+        axiosMock.post.mockResolvedValue({ data: { lxmf_message: { hash: "reply-hash" } } });
+
+        await wrapper.vm.sendMessage();
+
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/lxmf-messages/send",
+            expect.objectContaining({
+                lxmf_message: expect.objectContaining({
+                    content: "My reply",
+                    reply_to_hash: "original-hash",
+                }),
+            })
+        );
+        expect(wrapper.vm.replyingTo).toBeNull();
+    });
 });

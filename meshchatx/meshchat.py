@@ -7229,6 +7229,11 @@ class ReticulumMeshChat:
                             new_cmd[k] = v
                     commands.append(new_cmd)
 
+            # parse reply_to_hash
+            reply_to_hash = None
+            if "reply_to_hash" in data["lxmf_message"]:
+                reply_to_hash = data["lxmf_message"]["reply_to_hash"]
+
             try:
                 # send lxmf message to destination
                 lxmf_message = await self.send_message(
@@ -7240,6 +7245,7 @@ class ReticulumMeshChat:
                     telemetry_data=telemetry_data,
                     commands=commands,
                     delivery_method=delivery_method,
+                    reply_to_hash=reply_to_hash,
                 )
 
                 return web.json_response(
@@ -10913,6 +10919,10 @@ class ReticulumMeshChat:
         )
         lxmf_message_dict["is_spam"] = 1 if is_spam else 0
 
+        # extract reply_to from fields if present
+        if "fields" in lxmf_message_dict and "reply_to" in lxmf_message_dict["fields"]:
+            lxmf_message_dict["reply_to_hash"] = lxmf_message_dict["fields"]["reply_to"]
+
         # calculate peer hash
         local_hash = ctx.local_lxmf_destination.hexhash
         if lxmf_message_dict["source_hash"] == local_hash:
@@ -10936,6 +10946,7 @@ class ReticulumMeshChat:
         delivery_method: str = None,
         title: str = "",
         sender_identity_hash: str = None,
+        reply_to_hash: str = None,
         no_display: bool = False,
         context=None,
     ) -> LXMF.LXMessage:
@@ -11062,6 +11073,10 @@ class ReticulumMeshChat:
         # add commands field
         if commands is not None:
             lxmf_message.fields[LXMF.FIELD_COMMANDS] = commands
+
+        # add reply_to field
+        if reply_to_hash is not None:
+            lxmf_message.fields[0x30] = bytes.fromhex(reply_to_hash)
 
         # add icon appearance if configured and not already sent to this destination
         current_icon_hash = self.get_current_icon_hash()

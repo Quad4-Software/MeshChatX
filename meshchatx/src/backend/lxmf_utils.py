@@ -75,56 +75,32 @@ def convert_lxmf_message_to_dict(
 
         # handle commands field
         if field_type == LXMF.FIELD_COMMANDS or field_type == 0x01:
-            # value is usually a list of dicts, or a single dict
-            if isinstance(value, dict):
-                # convert dict keys back to ints if they look like hex or int strings
-                new_cmd = {}
-                for k, v in value.items():
-                    try:
-                        ki = None
-                        if isinstance(k, int):
-                            ki = k
-                        elif isinstance(k, str):
-                            if k.startswith("0x"):
-                                ki = int(k, 16)
-                            else:
-                                ki = int(k)
-
-                        if ki is not None:
-                            new_cmd[f"0x{ki:02x}"] = v
-                        else:
-                            new_cmd[str(k)] = v
-                    except (ValueError, TypeError):
-                        new_cmd[str(k)] = v
-                fields["commands"] = [new_cmd]
-            elif isinstance(value, list):
-                processed_commands = []
+            processed_commands = []
+            if isinstance(value, list):
                 for cmd in value:
                     if isinstance(cmd, dict):
                         new_cmd = {}
                         for k, v in cmd.items():
-                            try:
-                                ki = None
-                                if isinstance(k, int):
-                                    ki = k
-                                elif isinstance(k, str):
-                                    if k.startswith("0x"):
-                                        ki = int(k, 16)
-                                    else:
-                                        ki = int(k)
-
-                                if ki is not None:
-                                    new_cmd[f"0x{ki:02x}"] = v
-                                else:
-                                    new_cmd[str(k)] = v
-                            except (ValueError, TypeError):
+                            if isinstance(k, int):
+                                new_cmd[f"0x{k:02x}"] = v
+                            else:
                                 new_cmd[str(k)] = v
                         processed_commands.append(new_cmd)
                     else:
                         processed_commands.append(cmd)
-                fields["commands"] = processed_commands
-            else:
-                fields["commands"] = value
+            elif isinstance(value, dict):
+                new_cmd = {}
+                for k, v in value.items():
+                    if isinstance(k, int):
+                        new_cmd[f"0x{k:02x}"] = v
+                    else:
+                        new_cmd[str(k)] = v
+                processed_commands.append(new_cmd)
+            fields["commands"] = processed_commands
+
+        # handle reply_to field
+        if field_type == 0x30:
+            fields["reply_to"] = value.hex() if isinstance(value, bytes) else value
 
     # convert 0.0-1.0 progress to 0.00-100 percentage
     progress_percentage = round(lxmf_message.progress * 100, 2)
@@ -332,6 +308,7 @@ def convert_db_lxmf_message_to_dict(
         "snr": db_lxmf_message["snr"],
         "quality": db_lxmf_message["quality"],
         "is_spam": bool(db_lxmf_message["is_spam"]),
+        "reply_to_hash": db_lxmf_message.get("reply_to_hash"),
         "created_at": created_at,
         "updated_at": updated_at,
     }

@@ -381,6 +381,7 @@
             <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6 min-w-0">
                 <div
                     v-for="chatItem of selectedPeerChatItemsReversed"
+                    :id="`message-${chatItem.lxmf_message.hash}`"
                     :key="chatItem.lxmf_message.hash"
                     class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
                     :class="{ 'ml-auto items-end': chatItem.is_outbound, 'mr-auto items-start': !chatItem.is_outbound }"
@@ -400,6 +401,23 @@
                         @click="onChatItemClick(chatItem)"
                     >
                         <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
+                            <!-- reply snippet -->
+                            <div
+                                v-if="chatItem.lxmf_message.reply_to_hash"
+                                class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-blue-500/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                                @click.stop="scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
+                            >
+                                <div class="text-[10px] font-bold text-blue-500/80 uppercase tracking-tight mb-0.5">
+                                    {{ $t("messages.replying_to") }}
+                                </div>
+                                <div class="text-xs opacity-70 truncate line-clamp-1 italic">
+                                    {{
+                                        getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
+                                        "(Message not found)"
+                                    }}
+                                </div>
+                            </div>
+
                             <!-- spam badge -->
                             <div
                                 v-if="chatItem.lxmf_message.is_spam"
@@ -799,7 +817,6 @@
                             </div>
                         </div>
 
-                        <!-- actions -->
                         <div
                             v-if="chatItem.is_actions_expanded"
                             class="border-t px-4 py-2.5"
@@ -809,8 +826,15 @@
                                     : 'border-gray-200/60 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/50'
                             "
                         >
-                            <!-- delete message -->
+                            <!-- actions -->
                             <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                                    @click.stop="replyToMessage(chatItem)"
+                                >
+                                    {{ $t("messages.reply") }}
+                                </button>
                                 <button
                                     type="button"
                                     class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
@@ -1130,6 +1154,28 @@
                         @keydown.enter.exact.prevent="onEnterPressed"
                         @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
                     ></textarea>
+
+                    <!-- reply preview -->
+                    <div
+                        v-if="replyingTo"
+                        class="mt-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
+                    >
+                        <div class="flex-1 min-w-0 border-l-2 border-blue-500 pl-3">
+                            <div class="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5">
+                                {{ $t("messages.replying_to") }}
+                            </div>
+                            <div class="text-xs text-gray-600 dark:text-zinc-400 truncate italic">
+                                {{ replyingTo.lxmf_message.content || "(Attachment)" }}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="p-1.5 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200"
+                            @click="cancelReply"
+                        >
+                            <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
+                        </button>
+                    </div>
 
                     <!-- action button -->
                     <div class="flex flex-wrap gap-2 items-center mt-2">
@@ -1790,6 +1836,7 @@ export default {
 
             showTelemetryInChat: false,
             isTelemetryHistoryModalOpen: false,
+            replyingTo: null,
         };
     },
     computed: {
@@ -2750,6 +2797,38 @@ export default {
                 chatItem.is_actions_expanded = false;
             }
         },
+        replyToMessage(chatItem) {
+            this.replyingTo = chatItem;
+            chatItem.is_actions_expanded = false;
+            // focus input
+            const textarea = this.$refs["message-input"];
+            if (textarea) {
+                textarea.focus();
+            }
+        },
+        cancelReply() {
+            this.replyingTo = null;
+        },
+        scrollToMessage(hash) {
+            const index = this.chatItems.findIndex((item) => item.lxmf_message?.hash === hash);
+            if (index !== -1) {
+                const el = document.getElementById(`message-${hash}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    // briefly highlight
+                    el.classList.add("ring-2", "ring-blue-500", "ring-offset-2");
+                    setTimeout(() => {
+                        el.classList.remove("ring-2", "ring-blue-500", "ring-offset-2");
+                    }, 2000);
+                }
+            } else {
+                DialogUtils.alert(this.$t("messages.message_not_found_in_cache"));
+            }
+        },
+        getRepliedMessage(hash) {
+            const item = this.chatItems.find((i) => i.lxmf_message?.hash === hash);
+            return item ? item.lxmf_message : null;
+        },
         async showRawMessage(chatItem) {
             try {
                 // we'll try to get the URI first as it contains the raw signed message
@@ -3091,6 +3170,7 @@ export default {
                         lxmf_message: {
                             destination_hash: this.selectedPeer.destination_hash,
                             content: this.newMessageText,
+                            reply_to_hash: this.replyingTo?.lxmf_message?.hash || null,
                             fields: fields,
                         },
                     });
@@ -3116,6 +3196,7 @@ export default {
                         lxmf_message: {
                             destination_hash: this.selectedPeer.destination_hash,
                             content: this.newMessageText,
+                            reply_to_hash: this.replyingTo?.lxmf_message?.hash || null,
                             fields: firstFields,
                         },
                     });
@@ -3173,6 +3254,7 @@ export default {
                 this.newMessageTelemetry = null;
                 this.newMessageFiles = [];
                 this.clearFileInput();
+                this.replyingTo = null;
             } catch (e) {
                 // show error
                 const message = e.response?.data?.message ?? "failed to send message";
@@ -3218,6 +3300,7 @@ export default {
                     lxmf_message: {
                         destination_hash: chatItem.lxmf_message.destination_hash,
                         content: chatItem.lxmf_message.content,
+                        reply_to_hash: chatItem.lxmf_message.reply_to_hash || null,
                         fields: chatItem.lxmf_message.fields,
                     },
                 });

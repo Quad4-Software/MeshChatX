@@ -154,3 +154,56 @@ def test_convert_db_lxmf_message_to_dict():
     assert result_no_att["fields"]["image"]["image_size"] == len(b"img")
     assert result_no_att["fields"]["audio"]["audio_size"] == len(b"audio")
     assert result_no_att["fields"]["file_attachments"][0]["file_size"] == len(b"file")
+
+
+def test_convert_lxmf_message_to_dict_with_reply():
+    mock_msg = MagicMock(spec=LXMF.LXMessage)
+    mock_msg.hash = b"msg_hash"
+    mock_msg.source_hash = b"src_hash"
+    mock_msg.destination_hash = b"dst_hash"
+    mock_msg.incoming = True
+    mock_msg.state = LXMF.LXMessage.SENT
+    mock_msg.progress = 1.0
+    mock_msg.method = LXMF.LXMessage.DIRECT
+    mock_msg.delivery_attempts = 1
+    mock_msg.title = b""
+    mock_msg.content = b"Reply text"
+    mock_msg.timestamp = 1234567890
+    mock_msg.rssi = None
+    mock_msg.snr = None
+    mock_msg.q = None
+
+    # Reply to hash
+    reply_hash = b"original_msg_hash"
+    mock_msg.get_fields.return_value = {0x30: reply_hash}
+
+    result = convert_lxmf_message_to_dict(mock_msg)
+    assert result["fields"]["reply_to"] == reply_hash.hex()
+
+
+def test_convert_db_lxmf_message_to_dict_with_reply():
+    db_msg = {
+        "id": 1,
+        "hash": "hash_hex",
+        "source_hash": "src_hex",
+        "destination_hash": "dst_hex",
+        "is_incoming": 1,
+        "state": "delivered",
+        "progress": 100.0,
+        "method": "direct",
+        "delivery_attempts": 1,
+        "next_delivery_attempt_at": None,
+        "title": "Title",
+        "content": "Content",
+        "fields": "{}",
+        "timestamp": 1234567890,
+        "rssi": -60,
+        "snr": 5,
+        "quality": 2,
+        "is_spam": 0,
+        "reply_to_hash": "original_hash_hex",
+        "created_at": "2023-01-01 12:00:00",
+        "updated_at": "2023-01-01 12:05:00",
+    }
+    result = convert_db_lxmf_message_to_dict(db_msg)
+    assert result["reply_to_hash"] == "original_hash_hex"

@@ -651,7 +651,10 @@
         "hops_back": "Hops Back: {count}",
         "signal_quality": "Signal Quality: {quality}%",
         "rssi_val": "RSSI: {rssi}dBm",
-        "snr_val": "SNR: {snr}dB"
+        "snr_val": "SNR: {snr}dB",
+        "reply": "Reply",
+        "replying_to": "Replying to",
+        "message_not_found_in_cache": "Message not found in cache"
     },
     "settings": {
         "shortcut_saved": "Shortcut saved",

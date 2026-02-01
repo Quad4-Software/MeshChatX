@@ -651,7 +651,10 @@
         "hops_back": "Salti Ritorno: {count}",
         "signal_quality": "Qualità Segnale: {quality}%",
         "rssi_val": "RSSI: {rssi}dBm",
-        "snr_val": "SNR: {snr}dB"
+        "snr_val": "SNR: {snr}dB",
+        "reply": "Rispondi",
+        "replying_to": "In risposta a",
+        "message_not_found_in_cache": "Messaggio non trovato nella cache"
     },
     "settings": {
         "shortcut_saved": "Scorciatoia salvata",

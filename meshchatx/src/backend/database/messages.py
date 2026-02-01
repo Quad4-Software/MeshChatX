@@ -33,6 +33,7 @@ class MessageDAO:
             "snr",
             "quality",
             "is_spam",
+            "reply_to_hash",
         ]
 
         columns = ", ".join(fields)

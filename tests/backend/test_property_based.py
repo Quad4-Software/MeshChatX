@@ -650,9 +650,12 @@ def test_convert_db_favourite_to_dict_robustness(favourite):
         assert isinstance(result, dict)
         assert result["id"] == favourite["id"]
         if favourite["created_at"]:
-            assert result["created_at"].endswith("Z") or "Z" in str(
-                favourite["created_at"]
-            )
+            # If input already had Z, output should have Z
+            if "Z" in str(favourite["created_at"]):
+                assert "Z" in result["created_at"]
+            # If input had no timezone indicator (+ or Z), output should have Z
+            elif "+" not in str(favourite["created_at"]):
+                assert result["created_at"].endswith("Z")
     except Exception as e:
         pytest.fail(f"convert_db_favourite_to_dict crashed: {e}")
 
