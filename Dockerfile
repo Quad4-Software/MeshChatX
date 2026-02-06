@@ -1,14 +1,14 @@
 ARG NODE_IMAGE=node:22-alpine
 ARG NODE_HASH=sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf
 ARG PYTHON_IMAGE=python:3.12.12-alpine3.23
-ARG PYTHON_HASH=sha256:68d81cd281ee785f48cdadecb6130d05ec6957f1249814570dc90e5100d3b146
+ARG PYTHON_HASH=sha256:036871e8860c254533e1d4c2842568f19a56d1afbaed99653ee6206bf9491f6e
 
 # Stage 1: Build Frontend
 FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 COPY package.json pnpm-lock.yaml vite.config.js tailwind.config.js postcss.config.js ./
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
-RUN corepack enable && corepack prepare pnpm@latest --activate && \
+RUN corepack enable && corepack prepare pnpm@10.27.0 --activate && \
     pnpm install --frozen-lockfile && \
     pnpm run build-frontend
 
@@ -16,7 +16,8 @@ RUN corepack enable && corepack prepare pnpm@latest --activate && \
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH} AS builder
 WORKDIR /build
 # Install build dependencies for C-extensions
-RUN apk add --no-cache gcc musl-dev linux-headers python3-dev libffi-dev openssl-dev git
+RUN apk upgrade --no-cache && \
+    apk add --no-cache gcc musl-dev linux-headers python3-dev libffi-dev openssl-dev git
 # Setup venv and install dependencies
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -41,7 +42,8 @@ FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 WORKDIR /app
 # Install runtime dependencies only
 # We keep py3-setuptools because CFFI/LXST might need it at runtime on Python 3.12+
-RUN apk add --no-cache ffmpeg opusfile libffi su-exec py3-setuptools espeak-ng && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache ffmpeg opusfile libffi py3-setuptools espeak-ng && \
     python -m pip install --no-cache-dir --upgrade "pip>=25.3" "jaraco.context>=6.1.0" && \
     rm -rf /root/.cache/pip && \
     addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
@@ -55,5 +57,6 @@ ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
+USER meshchat
 # Run the app using the installed 'meshchat' entrypoint
-CMD ["sh", "-c", "chown -R meshchat:meshchat /config && exec su-exec meshchat meshchat --host=0.0.0.0 --reticulum-config-dir=/config/.reticulum --storage-dir=/config/.meshchat --headless"]
+CMD ["meshchat", "--host=0.0.0.0", "--reticulum-config-dir=/config/.reticulum", "--storage-dir=/config/.meshchat", "--headless"]
