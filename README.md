@@ -39,16 +39,16 @@ The easiest way to get MeshChatX running is using Docker. Our official image is 
 # Pull and run the latest image
 docker pull git.quad4.io/rns-things/meshchatx:latest
 
-# Run MeshChatX in a Docker container
-docker run -d \
-  --name=meshchatx \
-  -p 8000:8000 \
-  -v $PWD/storage:/app/storage \
-  # --network=host \  # Uncomment for autointerface support
-  git.quad4.io/rns-things/meshchatx:latest
-
-# Or use Docker Compose for an even easier setup
+# Run MeshChatX using Docker Compose (Recommended)
+# This will create a meshchat-config directory for persistence
 docker compose up -d
+```
+
+### Docker Permissions Note
+If you encounter a `PermissionError` when running the Docker container, it's likely because the container's user (UID 1000) doesn't have permission to write to your host's `./meshchat-config` folder. You can fix this by running:
+
+```bash
+sudo chown -R 1000:1000 ./meshchat-config
 ```
 
 Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-built binaries (AppImage, DEB, EXE) if you prefer standalone apps. (coming soon)
@@ -222,10 +222,10 @@ If you are on Linux and want to build the Windows `.exe` and installer locally, 
 
     ```bash
     # Build only the Windows portable exe
-    WINE_PYTHON="wine C:/Python313/python.exe" task build-exe-wine
+    WINE_PYTHON="wine C:/Python313/python.exe" task dist:win:wine
 
     # Or build everything (Linux + Windows) at once
-    WINE_PYTHON="wine C:/Python313/python.exe" task build-electron-all-wine
+    WINE_PYTHON="wine C:/Python313/python.exe" task dist:all:wine
     ```
 
 ## Configuration
@@ -251,31 +251,30 @@ We use [Task](https://taskfile.dev/) for automation.
 | `task install`                 | Install all dependencies                       |
 | `task run`                     | Run the application                            |
 | `task dev`                     | Run the application in development mode        |
-| `task lint`                    | Run all linters (Python & Frontend)            |
-| `task lint-python`             | Lint Python code only                          |
-| `task lint-frontend`           | Lint frontend code only                        |
-| `task format`                  | Format all code (Python & Frontend)            |
-| `task format-python`           | Format Python code only                        |
-| `task format-frontend`         | Format frontend code only                      |
-| `task test`                    | Run all tests                                  |
+| `task lint:all`                | Run all linters (Python & Frontend)            |
+| `task lint:be`                 | Lint Python code only                          |
+| `task lint:fe`                 | Lint frontend code only                        |
+| `task fmt:all`                 | Format all code (Python & Frontend)            |
+| `task fmt:be`                  | Format Python code only                        |
+| `task fmt:fe`                  | Format frontend code only                      |
+| `task test:all`                | Run all tests                                  |
 | `task test:cov`                | Run tests with coverage reports                |
-| `task test-python`             | Run Python tests only                          |
-| `task test-frontend`           | Run frontend tests only                        |
-| `task build`                   | Build frontend and backend                     |
-| `task build-frontend`          | Build only the frontend                        |
-| `task wheel`                   | Build Python wheel package                     |
+| `task test:be`                 | Run Python tests only                          |
+| `task test:fe`                 | Run frontend tests only                        |
+| `task build:all`               | Build frontend and backend                     |
+| `task build:fe`                | Build only the frontend                        |
+| `task build:wheel`             | Build Python wheel package                     |
 | `task compile`                 | Compile Python code to check for syntax errors |
-| `task build-docker`            | Build Docker image using buildx                |
-| `task run-docker`              | Run Docker container using docker-compose      |
-| `task build-appimage`          | Build Linux AppImage                           |
-| `task build-exe`               | Build Windows portable executable              |
-| `task build-exe-wine`          | Build Windows portable (Wine cross-build)      |
-| `task build-electron-linux`    | Build Linux Electron app                       |
-| `task build-electron-windows`  | Build Windows Electron apps                    |
-| `task build-electron-all-wine` | Build all Electron apps (Wine cross-build)     |
-| `task android-prepare`         | Prepare Android build                          |
-| `task android-build`           | Build Android APK                              |
-| `task build-flatpak`           | Build Flatpak package                          |
+| `task docker:build`            | Build Docker image using buildx                |
+| `task docker:run`              | Run Docker container using docker-compose      |
+| `task dist:linux:appimage`     | Build Linux AppImage                           |
+| `task dist:win:exe`            | Build Windows portable executable              |
+| `task dist:win:wine`           | Build Windows portable (Wine cross-build)      |
+| `task dist:all`                | Build all Electron apps                        |
+| `task dist:all:wine`           | Build all Electron apps (Wine cross-build)     |
+| `task android:prepare`         | Prepare Android build                          |
+| `task android:build`           | Build Android APK                              |
+| `task dist:fe:flatpak`         | Build Flatpak package                          |
 | `task clean`                   | Clean build artifacts and dependencies         |
 
 ## Security
