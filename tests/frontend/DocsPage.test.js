@@ -188,6 +188,6 @@ describe("DocsPage.vue", () => {
         await nextTick();
 
         expect(wrapper.text()).toContain("docs.error");
-        expect(wrapper.text()).toContain(longError.substring(0, 100)); // Just check part of it
+        expect(wrapper.text()).toContain(longError.substring(0, 100));
     });
 });

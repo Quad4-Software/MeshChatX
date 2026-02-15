@@ -161,4 +161,22 @@ describe("ConfirmDialog.vue", () => {
         expect(messageElement.exists()).toBe(true);
         expect(messageElement.text()).toContain("Line 1");
     });
+
+    it("shows heading Confirm Action when open", async () => {
+        const wrapper = mountConfirmDialog();
+        GlobalEmitter.emit("confirm", { message: "Sure?", resolve: vi.fn() });
+        await wrapper.vm.$nextTick();
+        const heading = wrapper.find("h3");
+        expect(heading.exists()).toBe(true);
+        expect(heading.text()).toContain("Confirm Action");
+    });
+
+    it("has two buttons with type button", async () => {
+        const wrapper = mountConfirmDialog();
+        GlobalEmitter.emit("confirm", { message: "Ok?", resolve: vi.fn() });
+        await wrapper.vm.$nextTick();
+        const buttons = wrapper.findAll("button");
+        expect(buttons).toHaveLength(2);
+        buttons.forEach((btn) => expect(btn.attributes("type")).toBe("button"));
+    });
 });

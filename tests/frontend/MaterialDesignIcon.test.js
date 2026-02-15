@@ -21,7 +21,20 @@ describe("MaterialDesignIcon.vue", () => {
         const wrapper = mount(MaterialDesignIcon, {
             props: { iconName: "non-existent-icon" },
         });
-        // mdiProgressQuestion should be used
         expect(wrapper.vm.iconPath).not.toBe("");
+    });
+
+    it("renders an svg element for valid icon", () => {
+        const wrapper = mount(MaterialDesignIcon, {
+            props: { iconName: "home" },
+        });
+        expect(wrapper.find("svg").exists()).toBe(true);
+    });
+
+    it("accepts iconName prop", () => {
+        const wrapper = mount(MaterialDesignIcon, {
+            props: { iconName: "cog" },
+        });
+        expect(wrapper.props("iconName")).toBe("cog");
     });
 });

@@ -17,4 +17,22 @@ describe("FormLabel.vue", () => {
         expect(wrapper.classes()).toContain("block");
         expect(wrapper.classes()).toContain("text-sm");
     });
+
+    it("uses label element", () => {
+        const wrapper = mount(FormLabel);
+        expect(wrapper.element.tagName).toBe("LABEL");
+    });
+
+    it("applies for attribute when provided", () => {
+        const wrapper = mount(FormLabel, {
+            props: { for: "email-input" },
+            slots: { default: "Email" },
+        });
+        expect(wrapper.attributes("for")).toBe("email-input");
+    });
+
+    it("renders empty when slot is empty", () => {
+        const wrapper = mount(FormLabel, { slots: { default: "" } });
+        expect(wrapper.text()).toBe("");
+    });
 });

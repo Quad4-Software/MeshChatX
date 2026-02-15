@@ -82,7 +82,40 @@ describe("SidebarLink.vue", () => {
                 },
             },
         });
-        // Based on SidebarLink.vue line 8: bg-blue-100 text-blue-800 ...
         expect(wrapper.find("a").classes()).toContain("bg-blue-100");
+    });
+
+    it("renders a link element", () => {
+        const wrapper = mount(SidebarLink, {
+            props: defaultProps,
+            slots: { icon: "<span></span>", text: "<span>Link</span>" },
+            global: { stubs: { RouterLink: RouterLinkStub } },
+        });
+        expect(wrapper.find("a").exists()).toBe(true);
+    });
+
+    it("link href comes from router slot when stubbed", () => {
+        const to = { name: "settings" };
+        const wrapper = mount(SidebarLink, {
+            props: { ...defaultProps, to },
+            slots: { icon: "<span></span>", text: "<span>Settings</span>" },
+            global: {
+                stubs: {
+                    RouterLink: {
+                        template:
+                            '<slot :href="slotHref" :navigate="() => {}" :isActive="false"></slot>',
+                        props: ["to"],
+                        setup(props) {
+                            const slotHref =
+                                props.to && props.to.name
+                                    ? `/route-${props.to.name}`
+                                    : "#";
+                            return { slotHref };
+                        },
+                    },
+                },
+            },
+        });
+        expect(wrapper.find("a").attributes("href")).toBe("/route-settings");
     });
 });

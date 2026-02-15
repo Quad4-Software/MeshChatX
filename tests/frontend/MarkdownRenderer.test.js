@@ -216,5 +216,102 @@ describe("MarkdownRenderer.js", () => {
             expect(stripped).not.toContain("**");
             expect(stripped).not.toContain("` ");
         });
+
+        it("strip handles null and undefined without throwing", () => {
+            expect(MarkdownRenderer.strip(null)).toBe("");
+            expect(MarkdownRenderer.strip(undefined)).toBe("");
+        });
+
+        it("strip handles ReDoS-prone patterns without hanging", () => {
+            const start = Date.now();
+            MarkdownRenderer.strip("*".repeat(5000));
+            MarkdownRenderer.strip("`".repeat(5000));
+            MarkdownRenderer.strip("# ".repeat(2000));
+            expect(Date.now() - start).toBeLessThan(200);
+        });
+
+        it("strip returns string for malformed and edge input", () => {
+            const edge = ["**no close", "```\ncode", "", "   ", "\n\n", "[[CB0]] literal"];
+            edge.forEach((s) => {
+                const out = MarkdownRenderer.strip(s);
+                expect(typeof out).toBe("string");
+            });
+        });
+    });
+
+    describe("edge: non-string and invalid input", () => {
+        it("render does not throw on null or undefined", () => {
+            expect(MarkdownRenderer.render(null)).toBe("");
+            expect(MarkdownRenderer.render(undefined)).toBe("");
+        });
+
+        it("render returns string for number input (coerced)", () => {
+            const r = MarkdownRenderer.render(12345);
+            expect(typeof r).toBe("string");
+            expect(r).toContain("12345");
+        });
+
+        it("render never returns executable script for any input", () => {
+            const risky = [
+                "<script>alert(1)</script>",
+                "javascript:alert(1)",
+                "data:text/html,<script>alert(1)</script>",
+                "'';alert(1);//",
+            ];
+            risky.forEach((s) => {
+                const r = MarkdownRenderer.render(s);
+                expect(r).not.toMatch(/<script[\s>]/i);
+                expect(r).not.toMatch(/\bhref\s*=\s*["']?\s*javascript:/i);
+            });
+        });
+    });
+
+    describe("edge: placeholder collision", () => {
+        it("literal [[CB0]] in text is not treated as code block placeholder", () => {
+            const text = "See [[CB0]] and [[CB1]] here.";
+            const result = MarkdownRenderer.render(text);
+            expect(result).toContain("[[CB0]]");
+            expect(result).toContain("[[CB1]]");
+        });
+
+        it("code block renders and restores; literal [[CB0]] may be replaced when code block exists", () => {
+            const text = "Before ```\na\n``` after.";
+            const result = MarkdownRenderer.render(text);
+            expect(result).toContain("Before");
+            expect(result).toContain("after");
+            expect(result).toContain("<pre");
+        });
+    });
+
+    describe("message-like content (decoded LXMF body)", () => {
+        it("content with null byte and control chars does not crash", () => {
+            const msg = "Hello\x00world\x07\n\t";
+            expect(() => MarkdownRenderer.render(msg)).not.toThrow();
+            const r = MarkdownRenderer.render(msg);
+            expect(typeof r).toBe("string");
+            expect(r).not.toContain("<script>");
+        });
+
+        it("content with mixed unicode and markdown does not inject script", () => {
+            const msg = "\u202eRTL **bold** <script>nope</script> \ufffd";
+            const r = MarkdownRenderer.render(msg);
+            expect(r).not.toContain("<script>");
+            expect(r).toContain("&lt;script&gt;");
+        });
+
+        it("very long single-line message (100k chars) completes in reasonable time", () => {
+            const msg = "x".repeat(100000);
+            const start = Date.now();
+            const r = MarkdownRenderer.render(msg);
+            expect(Date.now() - start).toBeLessThan(500);
+            expect(typeof r).toBe("string");
+        });
+
+        it("message with many newlines and markdown markers", () => {
+            const msg = "# ".repeat(500) + "**".repeat(500) + "\n\n\n";
+            expect(() => MarkdownRenderer.render(msg)).not.toThrow();
+            const r = MarkdownRenderer.render(msg);
+            expect(typeof r).toBe("string");
+        });
     });
 });

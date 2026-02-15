@@ -148,6 +148,21 @@ describe("NotificationBell.vue", () => {
         expect(notificationButtons.length).toBe(50);
     });
 
+    it("renders a button", () => {
+        const wrapper = mountNotificationBell();
+        expect(wrapper.find("button").exists()).toBe(true);
+    });
+
+    it("shows unread count when unread_count is 1", async () => {
+        axiosMock.get.mockResolvedValueOnce({
+            data: { notifications: [], unread_count: 1 },
+        });
+        const wrapper = mountNotificationBell();
+        await nextTick();
+        await nextTick();
+        expect(wrapper.text()).toContain("1");
+    });
+
     it("navigates to voicemail tab when voicemail notification is clicked", async () => {
         const routerPush = vi.fn();
         axiosMock.get.mockResolvedValue({

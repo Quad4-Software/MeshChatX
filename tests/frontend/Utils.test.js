@@ -159,4 +159,36 @@ describe("Utils.js", () => {
             expect(Utils.isInterfaceEnabled({ enabled: null })).toBe(false);
         });
     });
+
+    describe("escapeHtml", () => {
+        it("escapes angle brackets", () => {
+            expect(Utils.escapeHtml("<script>")).toBe("&lt;script&gt;");
+            expect(Utils.escapeHtml("</div>")).toBe("&lt;/div&gt;");
+        });
+
+        it("escapes quotes and ampersand", () => {
+            expect(Utils.escapeHtml('"double"')).toBe("&quot;double&quot;");
+            expect(Utils.escapeHtml("'single'")).toContain("&#039;");
+            expect(Utils.escapeHtml("a&b")).toBe("a&amp;b");
+        });
+
+        it("returns empty string for null and undefined", () => {
+            expect(Utils.escapeHtml(null)).toBe("");
+            expect(Utils.escapeHtml(undefined)).toBe("");
+        });
+
+        it("escapes mixed XSS-like string so attribute is not executable", () => {
+            const s = '<img src="x" onerror="alert(1)">';
+            const out = Utils.escapeHtml(s);
+            expect(out).not.toContain("<img");
+            expect(out).toContain("&lt;");
+            expect(out).toContain("&quot;");
+            expect(out).not.toContain('onerror="alert');
+        });
+
+        it("does not throw on number (coerces)", () => {
+            expect(() => Utils.escapeHtml(12345)).not.toThrow();
+            expect(Utils.escapeHtml(12345)).toBe("12345");
+        });
+    });
 });

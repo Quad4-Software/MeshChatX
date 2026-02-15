@@ -16,4 +16,14 @@ describe("FormSubLabel.vue", () => {
         const wrapper = mount(FormSubLabel);
         expect(wrapper.classes()).toContain("text-xs");
     });
+
+    it("uses div as root element", () => {
+        const wrapper = mount(FormSubLabel, { slots: { default: "Help" } });
+        expect(wrapper.element.tagName).toBe("DIV");
+    });
+
+    it("renders empty when slot is empty", () => {
+        const wrapper = mount(FormSubLabel, { slots: { default: "" } });
+        expect(wrapper.text()).toBe("");
+    });
 });

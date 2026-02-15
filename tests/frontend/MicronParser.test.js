@@ -117,4 +117,66 @@ describe("MicronParser.js", () => {
             expect(parser.colorToCss("invalid")).toBeNull();
         });
     });
+
+    describe("risky: XSS and injection", () => {
+        it("output contains no raw script tag for script-like markup", () => {
+            const markup = "<script>alert(1)</script> hello";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<script[\s>]/i);
+        });
+
+        it("output contains no javascript: in href for link-like markup", () => {
+            const markup = "`[click`javascript:alert(1)]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/\bhref\s*=\s*["']?\s*javascript:/i);
+        });
+
+        it("output contains no data: html in href", () => {
+            const markup = "`[x`data:text/html,<script>alert(1)</script>]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/\bhref\s*=\s*["']?\s*data\s*:\s*text\/html/i);
+        });
+
+        it("does not produce executable event handler attributes", () => {
+            const markup = '<span onclick="alert(1)">x</span>';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<[^>]*\bonclick\s*=\s*["']?\s*alert/i);
+        });
+    });
+
+    describe("risky: stability and edge input", () => {
+        it("does not throw on null or undefined markup", () => {
+            expect(() => parser.convertMicronToHtml(null)).not.toThrow();
+            expect(() => parser.convertMicronToHtml(undefined)).not.toThrow();
+        });
+
+        it("handles very long input without hanging", () => {
+            const long = "> ".repeat(5000) + "x";
+            const start = Date.now();
+            const html = parser.convertMicronToHtml(long);
+            expect(Date.now() - start).toBeLessThan(500);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles repeated backticks (ReDoS-prone pattern) quickly", () => {
+            const markup = "`".repeat(3000);
+            const start = Date.now();
+            parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(200);
+        });
+
+        it("handles control chars and null byte", () => {
+            const markup = "hello\x00world\x07\n\t";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles unicode and RTL override", () => {
+            const markup = "\u202eRTL `!bold`! text \ufffd";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+            expect(html).not.toMatch(/<script[\s>]/i);
+        });
+    });
 });

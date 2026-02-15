@@ -94,7 +94,7 @@ describe("InterfacesPage Performance", () => {
 
         await wrapper.setData({
             discoveredInterfaces,
-            activeTab: "overview", // This is where discovered interfaces are shown in the template I saw
+            activeTab: "overview",
         });
 
         const end = performance.now();

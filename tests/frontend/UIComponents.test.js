@@ -83,6 +83,30 @@ describe("IconButton Component", () => {
         });
         expect(wrapper.classes()).toContain("custom-class");
     });
+
+    it("root element is a button", () => {
+        const wrapper = mount(IconButton);
+        expect(wrapper.element.tagName).toBe("BUTTON");
+    });
+});
+
+describe("DropDownMenuItem Component", () => {
+    it("renders slot content", () => {
+        const wrapper = mount(DropDownMenuItem, {
+            slots: { default: "Menu item text" },
+        });
+        expect(wrapper.text()).toContain("Menu item text");
+    });
+
+    it("has clickable styling class", () => {
+        const wrapper = mount(DropDownMenuItem);
+        expect(wrapper.classes()).toContain("cursor-pointer");
+    });
+
+    it("root is a div", () => {
+        const wrapper = mount(DropDownMenuItem, { slots: { default: "x" } });
+        expect(wrapper.element.tagName).toBe("DIV");
+    });
 });
 
 describe("SendMessageButton Component", () => {

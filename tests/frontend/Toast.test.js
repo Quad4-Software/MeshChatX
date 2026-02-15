@@ -76,4 +76,15 @@ describe("Toast.vue", () => {
         expect(toasts[0].classes()).toContain("border-green-500/30");
         expect(toasts[1].classes()).toContain("border-red-500/30");
     });
+
+    it("shows no toasts initially", () => {
+        expect(wrapper.findAll(".pointer-events-auto").length).toBe(0);
+    });
+
+    it("single toast has a close button", async () => {
+        GlobalEmitter.emit("toast", { message: "Hi", duration: 0 });
+        await wrapper.vm.$nextTick();
+        const toast = wrapper.find(".pointer-events-auto");
+        expect(toast.find("button").exists()).toBe(true);
+    });
 });

@@ -72,4 +72,15 @@ describe("LanguageSelector.vue", () => {
         expect(wrapper.emitted("language-change")).toBeFalsy();
         expect(wrapper.find(".fixed").exists()).toBe(false);
     });
+
+    it("renders a single trigger button", () => {
+        const wrapper = mountLanguageSelector();
+        expect(wrapper.findAll("button").length).toBe(1);
+    });
+
+    it("button is focusable", () => {
+        const wrapper = mountLanguageSelector();
+        const btn = wrapper.find("button");
+        expect(btn.element.tabIndex).toBeGreaterThanOrEqual(-1);
+    });
 });
