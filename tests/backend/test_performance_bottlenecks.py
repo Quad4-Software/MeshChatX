@@ -90,7 +90,6 @@ class TestPerformanceBottlenecks(unittest.TestCase):
                 app_data = b"app_data"
                 packet_hash = b"packet_hash"
 
-                # This is the synchronous part that could be a bottleneck
                 self.announce_manager.upsert_announce(
                     self.reticulum_mock,
                     identities[i],

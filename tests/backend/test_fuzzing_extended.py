@@ -246,7 +246,6 @@ def test_lxmf_message_construction_fuzzing(mock_app, content, title, fields):
 )
 def test_database_record_fuzzing(mock_app, table_name, data):
     """Fuzz database record insertion logic (simulated)."""
-    # This tests the DAO layer's resilience to weird data types if they aren't properly sanitized
     try:
         dao = None
         if table_name == "messages" and hasattr(mock_app.database, "messages"):
@@ -348,6 +347,36 @@ def test_markdown_renderer_fuzzing(text):
         assert isinstance(html_out, str)
     except Exception as e:
         pytest.fail(f"MarkdownRenderer crashed: {e}")
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    text=st.one_of(
+        st.text(min_size=0, max_size=5000),
+        st.sampled_from([
+            "<script>alert(1)</script>",
+            "[x](javascript:alert(1))",
+            "[x](data:text/html,<script>alert(1)</script>)",
+            "**" * 2000,
+            "#" * 2000,
+            "`" * 2000,
+            "[](" * 500 + ")" * 500,
+            "\x00\x01\x02\n\t",
+            "\ufffd" * 100,
+        ]),
+    ),
+)
+def test_markdown_renderer_dangerous_patterns(text):
+    """Fuzz markdown renderer with known risky patterns (XSS, ReDoS, control chars)."""
+    from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
+
+    try:
+        html_out = MarkdownRenderer.render(text)
+        assert isinstance(html_out, str)
+        assert "<script>" not in html_out
+        assert "javascript:" not in html_out
+    except Exception as e:
+        pytest.fail(f"MarkdownRenderer crashed on dangerous pattern: {e}")
 
 
 # LXMF Message Dictionary Conversion Fuzzing

@@ -33,7 +33,6 @@ from meshchatx.src.backend.telemetry_utils import Telemeter
 def test_telemetry_unpack_fuzzing(data):
     """Fuzz the telemetry unpacking logic with random binary data."""
     try:
-        # This should not raise unhandled exceptions
         Telemeter.from_packed(data)
     except Exception:
         # We expect some failures for invalid packed data, but no crashes
@@ -113,7 +112,6 @@ def test_display_name_parsing_fuzzing(app_data_base64):
 def test_lxmf_fields_parsing_fuzzing(fields_data):
     """Fuzz the parsing of LXMF message fields."""
     try:
-        # This simulates how meshchat.py processes fields in on_lxmf_delivery
         for field_id, field_data in fields_data.items():
             if field_id == 0x01:  # FIELD_COMMANDS
                 try:
@@ -514,10 +512,7 @@ def test_malformed_announce_data(mock_app):
 def test_malformed_message_data(mock_app):
     """Test handling of malformed LXMF messages."""
     mock_message = MagicMock()
-    # Simulate missing attributes or methods
     del mock_message.source_hash
-
-    # This should be caught by the try-except in on_lxmf_delivery
     mock_app.on_lxmf_delivery(mock_message)
 
 

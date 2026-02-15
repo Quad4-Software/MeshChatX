@@ -65,7 +65,6 @@ def test_database_snapshot_restoration(temp_dir):
 
 
 def test_database_auto_backup_logic(temp_dir):
-    # This test verifies the loop logic if possible, or just the backup method
     db_path = os.path.join(temp_dir, "test.db")
     db = Database(db_path)
     db.initialize()

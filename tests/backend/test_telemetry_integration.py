@@ -65,7 +65,6 @@ async def test_process_incoming_telemetry_single(mock_app):
 
 @pytest.mark.asyncio
 async def test_process_incoming_telemetry_stream(mock_app):
-    # This simulates receiving a telemetry stream (e.g. from Sideband collector)
     entries = [
         (
             "peer1",

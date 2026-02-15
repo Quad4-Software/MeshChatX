@@ -355,7 +355,6 @@ def test_telephone_callback_fuzzing(mock_app, caller_id_bytes):
 )
 def test_message_dao_upsert_fuzzing(mock_app, data):
     """Fuzz MessageDAO.upsert_lxmf_message with varied dictionary data."""
-    # This should not raise SQL errors or crash
     mock_app.database.messages.upsert_lxmf_message(data)
 
 

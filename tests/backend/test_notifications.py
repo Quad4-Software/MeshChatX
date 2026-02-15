@@ -264,9 +264,6 @@ async def test_notifications_api(mock_app):
     # But it's defined as a nested function.
     # Alternatively, we can test the DAOs and meshchat.py logic that the handler uses.
 
-    # For now, let's verify that system notifications are correctly combined with LXMF messages.
-    # This is done in notifications_get.
-
     # Let's test a spike of notifications
     for i in range(100):
         mock_app.database.misc.add_notification(

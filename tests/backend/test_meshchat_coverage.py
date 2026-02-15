@@ -290,4 +290,4 @@ def test_on_lxmf_sending_failed_no_propagation(mock_app):
     mock_app.on_lxmf_sending_state_updated = MagicMock()
 
     mock_app.on_lxmf_sending_failed(mock_msg)
-    mock_app.on_lxmf_sending_state_updated.assert_called_once_with(mock_msg)
+    mock_app.on_lxmf_sending_state_updated.assert_called_once_with(mock_msg, context=None)

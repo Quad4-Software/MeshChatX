@@ -66,7 +66,6 @@ def test_parse_nomadnetwork_node_display_name_property_based(name):
 def test_parse_lxmf_display_name_invalid_base64(data):
     # Generate something that is NOT valid base64 (by adding invalid chars)
     invalid_b64 = base64.b64encode(data).decode("utf-8") + "!!!"
-    # This should not crash, it should just return the default value or fail gracefully
     result = parse_lxmf_display_name(invalid_b64)
     assert isinstance(result, str)
 

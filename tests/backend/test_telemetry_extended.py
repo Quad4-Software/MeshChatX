@@ -40,9 +40,4 @@ def test_telemeter_unpack_location_robustness():
 
 
 def test_sideband_request_format_compatibility():
-    # Sideband telemetry request command is 0x01
-    # It can be a simple int 0x01 or a dict {0x01: timebase}
-
-    # This test is more about the logic in on_lxmf_delivery,
-    # but we can verify our assumptions about command structure here if needed.
     pass

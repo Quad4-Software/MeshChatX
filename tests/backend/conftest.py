@@ -43,9 +43,6 @@ def global_mocks():
 @pytest.fixture(autouse=True)
 def cleanup_sqlite_connections():
     yield
-    # After each test, try to close any lingering sqlite connections if possible
-    # This is a bit hard globally without tracking them, but we can at least
-    # trigger GC which often helps with ResourceWarnings.
     import gc
 
     gc.collect()

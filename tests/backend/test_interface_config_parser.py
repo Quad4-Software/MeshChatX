@@ -37,8 +37,6 @@ def test_parse_best_effort_on_failure():
 [[Fixed Interface]]
   type = fixed
 """
-    # Note: ConfigObj might still parse [[Broken Interface] as a key if not careful,
-    # but the parser should return something.
     interfaces = InterfaceConfigParser.parse(config_text)
     assert len(interfaces) >= 1
     names = [i["name"] for i in interfaces]

@@ -62,7 +62,6 @@ def test_fuzz_full_telemetry_packing(charge, charging, rssi, snr, q):
 @settings(deadline=None)
 @given(data=st.binary(min_size=0, max_size=2000))
 def test_fuzz_from_packed_random_bytes(data):
-    # This should never crash
     try:
         Telemeter.from_packed(data)
     except Exception:
@@ -97,5 +96,4 @@ def test_fuzz_command_parsing(commands):
                 new_cmd[k] = v
         processed_commands.append(new_cmd)
 
-    # Just ensure no crash
     assert len(processed_commands) == len(commands)

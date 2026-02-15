@@ -171,7 +171,6 @@ def test_parse_bool_query_param(val):
 
 @given(data=st.binary())
 def test_parse_lxmf_display_name_robustness(data):
-    # This should never crash
     try:
         parse_lxmf_display_name(data)
     except Exception as e:
@@ -180,7 +179,6 @@ def test_parse_lxmf_display_name_robustness(data):
 
 @given(data=st.binary())
 def test_parse_lxmf_propagation_node_app_data_robustness(data):
-    # This should never crash
     try:
         result = parse_lxmf_propagation_node_app_data(data)
         if result is not None:
@@ -226,7 +224,6 @@ def test_interface_config_parser_best_effort_property(names, keys, values):
 
 @given(data=st.binary())
 def test_parse_lxmf_stamp_cost_robustness(data):
-    # This should never crash
     try:
         parse_lxmf_stamp_cost(data)
     except Exception as e:
@@ -235,7 +232,6 @@ def test_parse_lxmf_stamp_cost_robustness(data):
 
 @given(name=st.text())
 def test_parse_nomadnetwork_node_display_name_robustness(name):
-    # This should never crash
     try:
         parse_nomadnetwork_node_display_name(name)
     except Exception as e:
@@ -244,7 +240,6 @@ def test_parse_nomadnetwork_node_display_name_robustness(name):
 
 @given(packed=st.binary())
 def test_telemeter_from_packed_robustness(packed):
-    # This should never crash
     try:
         Telemeter.from_packed(packed)
     except Exception as e:
@@ -444,8 +439,6 @@ def test_markdown_renderer_headers(content):
     assert result.startswith("<h1")
     assert result.endswith("</h1>")
 
-    # If the content doesn't contain markdown special chars, we can expect it to be there escaped
-    # This is a safer assertion for property-based testing
     if not any(c in content for c in "*_~`[]()"):
         assert html.escape(content) in result
 
@@ -852,13 +845,11 @@ def test_lxmf_utils_conversions_robustness(
     hex_str=st.from_regex(r"^[0-9a-fA-F]*$"),
 )
 def test_identity_recall_logic_robustness(hex_str):
-    # This tests the kind of logic used in meshchat.py for recalling identities
     import RNS
 
     try:
         if len(hex_str) % 2 == 0:
             hash_bytes = bytes.fromhex(hex_str)
-            # Just ensure RNS doesn't crash on random bytes
             RNS.Identity.recall(hash_bytes)
     except Exception:
         pass

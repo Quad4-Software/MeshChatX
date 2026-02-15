@@ -31,7 +31,6 @@ def test_fuzz_reply_detection_no_crash(content):
     mock_msg.snr = 0
     mock_msg.q = 0
 
-    # This will trigger the detection logic
     mesh_chat.db_upsert_lxmf_message(mock_msg)
 
 

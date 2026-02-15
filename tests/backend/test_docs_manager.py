@@ -52,7 +52,6 @@ def test_docs_manager_storage_dir_fallback(tmp_path):
 
 
 def test_docs_manager_readonly_public_dir_handling(tmp_path):
-    # This test simulates a read-only public dir without storage_dir
     public_dir = tmp_path / "readonly_public"
     public_dir.mkdir()
 
@@ -189,7 +188,6 @@ def test_extract_docs_malformed_zip(docs_manager, temp_dirs):
     # 1. Zip with no folders at all
     create_mock_zip(zip_path, ["file_at_root.txt"])
     try:
-        # This might fail with IndexError at namelist()[0].split('/')[0] if no slash
         docs_manager._extract_docs(zip_path)
     except (IndexError, Exception):
         pass  # Expected or at least handled by not crashing the whole app
