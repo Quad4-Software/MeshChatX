@@ -56,6 +56,9 @@ jobs:
             - name: Build Backend (Wheel)
               run: task build:wheel
 
+            - name: Ensure cx_Freeze build dependencies
+              run: poetry run pip install pycparser cffi
+
             - name: Build Electron App (Linux)
               run: pnpm run dist:linux-x64
 
