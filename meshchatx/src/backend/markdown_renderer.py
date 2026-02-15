@@ -1,6 +1,22 @@
 import html
 import re
 
+_SAFE_LINK_PREFIXES = ("https://", "http://", "/", "#", "mailto:")
+_UNSAFE_PROTOCOLS = ("javascript:", "data:", "vbscript:", "file:")
+
+
+def _safe_href(url):
+    if not url or not isinstance(url, str):
+        return "#"
+    u = url.strip().lower()
+    if any(u.startswith(p) for p in _UNSAFE_PROTOCOLS):
+        return "#"
+    if any(u.startswith(p) for p in _SAFE_LINK_PREFIXES):
+        return url
+    if ":" in u.split("/")[0]:
+        return "#"
+    return url
+
 
 class MarkdownRenderer:
     """A simple Markdown to HTML renderer."""
@@ -101,17 +117,29 @@ class MarkdownRenderer:
             flags=re.MULTILINE,
         )
 
-        # Links
+        # Links (href sanitized to prevent javascript:/data: XSS)
+        def link_repl(match):
+            label, url = match.group(1), match.group(2)
+            safe_url = _safe_href(url)
+            return f'<a href="{html.escape(safe_url)}" class="text-blue-600 dark:text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">{label}</a>'
+
         text = re.sub(
             r"\[([^\]]+)\]\(([^)]+)\)",
-            r'<a href="\2" class="text-blue-600 dark:text-blue-400 hover:underline" target="_blank">\1</a>',
+            link_repl,
             text,
         )
 
-        # Images
+        # Images (src sanitized)
+        def img_repl(match):
+            alt, src = match.group(1), match.group(2)
+            safe_src = _safe_href(src)
+            if safe_src == "#":
+                return html.escape(match.group(0))
+            return f'<div class="my-6"><img src="{html.escape(safe_src)}" alt="{alt}" class="max-w-full h-auto rounded-xl shadow-lg border border-gray-100 dark:border-zinc-800"></div>'
+
         text = re.sub(
             r"!\[([^\]]*)\]\(([^)]+)\)",
-            r'<div class="my-6"><img src="\2" alt="\1" class="max-w-full h-auto rounded-xl shadow-lg border border-gray-100 dark:border-zinc-800"></div>',
+            img_repl,
             text,
         )
 

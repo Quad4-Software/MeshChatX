@@ -16,9 +16,7 @@ class AsyncUtils:
         if sys.version_info >= (3, 13):
             import asyncio.base_events
 
-            # We need to patch the loop's sendfile to raise NotImplementedError for SSL transports.
-            # This will force aiohttp to use its own fallback which works correctly.
-
+            # Patch sendfile so aiohttp uses its SSL fallback on 3.13.
             original_sendfile = asyncio.base_events.BaseEventLoop.sendfile
 
             async def patched_sendfile(

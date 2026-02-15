@@ -3223,7 +3223,6 @@ export default {
             }
         },
         async playVoicemail(voicemail) {
-            // This is now handled by AudioWaveformPlayer, but we keep it for backward compatibility or direct calls
             if (this.playingVoicemailId === voicemail.id) {
                 if (this.audioPlayer) {
                     this.audioPlayer.pause();

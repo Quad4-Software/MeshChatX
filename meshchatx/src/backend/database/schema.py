@@ -157,8 +157,6 @@ class DatabaseSchema:
 
         # Other essential tables that were present from version 1
         # Peewee automatically creates tables if they don't exist.
-        # Here we define the full schema for all tables as they should be now.
-
         tables = {
             "announces": """
                 CREATE TABLE IF NOT EXISTS announces (

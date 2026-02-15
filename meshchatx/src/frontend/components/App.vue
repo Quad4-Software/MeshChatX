@@ -1094,8 +1094,14 @@ export default {
                 // show result
                 const status = this.propagationNodeStatus?.state;
                 const messagesReceived = this.propagationNodeStatus?.messages_received ?? 0;
+                const messagesStored = this.propagationNodeStatus?.messages_stored ?? 0;
+                const deliveryConfirmations =
+                    this.propagationNodeStatus?.delivery_confirmations ?? 0;
+                const messagesHidden = this.propagationNodeStatus?.messages_hidden ?? 0;
                 if (status === "complete" || status === "idle") {
-                    ToastUtils.success(this.$t("app.sync_complete", { count: messagesReceived }));
+                    const base = this.$t("app.sync_complete", { count: messagesReceived });
+                    const details = `${messagesStored} stored, ${deliveryConfirmations} confirmations, ${messagesHidden} hidden`;
+                    ToastUtils.success(`${base} (${details})`);
                 } else {
                     ToastUtils.error(this.$t("app.sync_error", { status: status }));
                 }

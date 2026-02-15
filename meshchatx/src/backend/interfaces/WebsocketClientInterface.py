@@ -8,7 +8,6 @@ from websockets.sync.connection import Connection
 
 
 class WebsocketClientInterface(Interface):
-    # TODO: required?
     DEFAULT_IFAC_SIZE = 16
 
     RECONNECT_DELAY_SECONDS = 5

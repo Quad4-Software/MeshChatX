@@ -8,8 +8,7 @@ export default class LinkUtils {
 
         // Hash is 32 hex chars. Path is optional (NomadNet only).
         const hashPattern = "[a-fA-F0-9]{32}";
-        // This matches optional prefixes (nomadnet://, nomadnet@, lxmf://, lxmf@)
-        // followed by a 32-char hex hash, and an optional path starting with :
+        // Optional prefix (nomadnet://, nomadnet@, lxmf://, lxmf@), then hash, optional path.
         const reticulumRegex = new RegExp(
             `(nomadnet://|nomadnet@|lxmf://|lxmf@)?(${hashPattern})(?::(/[\\w\\d./?%&=-]*))?`,
             "g"

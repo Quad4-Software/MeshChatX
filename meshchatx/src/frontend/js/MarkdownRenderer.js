@@ -7,11 +7,13 @@ export default class MarkdownRenderer {
      * Ported and simplified from meshchatx/src/backend/markdown_renderer.py
      */
     static render(text) {
-        if (!text) {
+        if (text == null) {
             return "";
         }
+        if (typeof text !== "string") {
+            text = String(text);
+        }
 
-        // Escape HTML entities first to prevent XSS
         text = Utils.escapeHtml(text);
 
         // Fenced code blocks - process these FIRST and replace with placeholders
@@ -81,8 +83,11 @@ export default class MarkdownRenderer {
      * Strips markdown from text for previews.
      */
     static strip(text) {
-        if (!text) {
+        if (text == null) {
             return "";
+        }
+        if (typeof text !== "string") {
+            text = String(text);
         }
 
         // Strip fenced code blocks

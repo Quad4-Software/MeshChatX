@@ -201,9 +201,7 @@ class DocsManager:
         # Also try in the public directory
         search_paths.append(os.path.join(self.public_dir, "meshchatx-docs"))
 
-        # Also try relative to this file
-        # This file is in meshchatx/src/backend/docs_manager.py
-        # Project root is 3 levels up
+        # Also try relative to this file (project root 3 levels up)
         this_dir = os.path.dirname(os.path.abspath(__file__))
         search_paths.append(
             os.path.abspath(os.path.join(this_dir, "..", "..", "..", "docs")),
@@ -407,8 +405,7 @@ class DocsManager:
                             if f"_{lang}.html" in file:
                                 target_files.append(os.path.join(root, file))
                         else:
-                            # For English, we want files that DON'T have a language suffix
-                            # This is a bit heuristic
+                            # English: no language suffix; other langs use _<lang>.html
                             has_lang_suffix = False
                             for lang_code in known_langs:
                                 if f"_{lang_code}.html" in file:
@@ -634,7 +631,6 @@ class DocsManager:
                     else:
                         shutil.copy2(s, d)
             else:
-                # Just extract everything directly to version_dir, but remove root folder if exists
                 zip_ref.extractall(temp_extract)
                 src_path = os.path.join(temp_extract, root_folder)
                 if os.path.exists(src_path) and os.path.isdir(src_path):

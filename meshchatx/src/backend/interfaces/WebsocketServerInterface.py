@@ -11,7 +11,6 @@ from meshchatx.src.backend.interfaces.WebsocketClientInterface import (
 
 
 class WebsocketServerInterface(Interface):
-    # TODO: required?
     DEFAULT_IFAC_SIZE = 16
 
     RESTART_DELAY_SECONDS = 5
@@ -63,7 +62,6 @@ class WebsocketServerInterface(Interface):
     def clients(self):
         return len(self.spawned_interfaces)
 
-    # TODO docs
     def received_announce(self, from_spawned=False):
         if from_spawned:
             self.ia_freq_deque.append(time.time())
@@ -105,13 +103,9 @@ class WebsocketServerInterface(Interface):
             spawned_interface.parent_interface = self
             spawned_interface.online = True
 
-            # TODO implement?
             spawned_interface.announce_rate_target = None
             spawned_interface.announce_rate_grace = None
             spawned_interface.announce_rate_penalty = None
-
-            # TODO ifac?
-            # TODO announce rates?
 
             # activate child interface
             RNS.log(

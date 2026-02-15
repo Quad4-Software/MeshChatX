@@ -279,6 +279,7 @@ class ReticulumMeshChat:
         # Multi-identity support
         self.contexts: dict[str, IdentityContext] = {}
         self.current_context: IdentityContext | None = None
+        self._propagation_sync_metrics: dict[str, dict] = {}
 
         self.setup_identity(identity)
         self.web_audio_bridge = WebAudioBridge(None, None)
@@ -819,7 +820,6 @@ class ReticulumMeshChat:
             self._identity_session_id += 1
 
             # Teardown current identity state and managers
-            # This also calls cleanup_rns_state_for_identity
             self.teardown_identity()
 
             # Give loops a moment to finish
@@ -1684,6 +1684,94 @@ class ReticulumMeshChat:
             return
         ctx.message_router.cancel_propagation_node_requests()
 
+    def _get_propagation_sync_metrics(self, context=None):
+        ctx = context or self.current_context
+        if not ctx:
+            return None
+
+        key = ctx.identity_hash
+        if key not in self._propagation_sync_metrics:
+            self._propagation_sync_metrics[key] = {
+                "started_at": None,
+                "baseline_total_messages": 0,
+                "baseline_delivered_messages": 0,
+                "messages_stored": 0,
+                "delivery_confirmations": 0,
+                "messages_hidden": 0,
+            }
+
+        return self._propagation_sync_metrics[key]
+
+    def _begin_propagation_sync_metrics(self, context=None):
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return
+
+        metrics = self._get_propagation_sync_metrics(context=ctx)
+        if metrics is None:
+            return
+
+        metrics["started_at"] = datetime.now(UTC).isoformat()
+        metrics["baseline_total_messages"] = ctx.database.messages.count_lxmf_messages()
+        metrics["baseline_delivered_messages"] = (
+            ctx.database.messages.count_lxmf_messages_by_state("delivered")
+        )
+        metrics["messages_stored"] = 0
+        metrics["delivery_confirmations"] = 0
+        metrics["messages_hidden"] = 0
+
+    def _collect_propagation_sync_metrics(self, context=None):
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return {
+                "messages_stored": 0,
+                "delivery_confirmations": 0,
+                "messages_hidden": 0,
+            }
+
+        metrics = self._get_propagation_sync_metrics(context=ctx)
+        if metrics is None:
+            return {
+                "messages_stored": 0,
+                "delivery_confirmations": 0,
+                "messages_hidden": 0,
+            }
+        if metrics["started_at"] is None:
+            return {
+                "messages_stored": 0,
+                "delivery_confirmations": 0,
+                "messages_hidden": 0,
+            }
+
+        messages_received = ctx.message_router.propagation_transfer_last_result or 0
+        current_total_messages = ctx.database.messages.count_lxmf_messages()
+        current_delivered_messages = ctx.database.messages.count_lxmf_messages_by_state(
+            "delivered",
+        )
+
+        messages_stored = max(
+            current_total_messages - metrics["baseline_total_messages"],
+            0,
+        )
+        delivery_confirmations = max(
+            current_delivered_messages - metrics["baseline_delivered_messages"],
+            0,
+        )
+        messages_hidden = max(
+            messages_received - messages_stored - delivery_confirmations,
+            0,
+        )
+
+        metrics["messages_stored"] = messages_stored
+        metrics["delivery_confirmations"] = delivery_confirmations
+        metrics["messages_hidden"] = messages_hidden
+
+        return {
+            "messages_stored": messages_stored,
+            "delivery_confirmations": delivery_confirmations,
+            "messages_hidden": messages_hidden,
+        }
+
     # stops and removes the active propagation node
     def remove_active_propagation_node(self, context=None):
         ctx = context or self.current_context
@@ -2125,12 +2213,7 @@ class ReticulumMeshChat:
         sys.exit(code)
 
     def get_routes(self):
-        # This is a bit of a hack to get the routes without running the full server
-        # It's mainly for testing purposes
         routes = web.RouteTableDef()
-
-        # We need to mock some things that are usually setup in run()
-        # but for just getting the route handlers, we can skip most of it
         self._define_routes(routes)
         return routes
 
@@ -2378,7 +2461,6 @@ class ReticulumMeshChat:
                         )
 
                 result = self.database.restore_database(path)
-                # Note: This might require an app relaunch to be fully effective
                 return web.json_response(
                     {"status": "success", "result": result, "requires_relaunch": True},
                 )
@@ -3263,7 +3345,6 @@ class ReticulumMeshChat:
                     InterfaceEditor.update_value(interface_details, data, "callsign")
                     InterfaceEditor.update_value(interface_details, data, "ssid")
 
-            # FIXME: move to own sections
             # RNode Airtime limits and station ID
             InterfaceEditor.update_value(interface_details, data, "callsign")
             InterfaceEditor.update_value(interface_details, data, "id_interval")
@@ -6055,6 +6136,7 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/lxmf/propagation-node/status")
         async def propagation_node_status(request):
+            sync_metrics = self._collect_propagation_sync_metrics()
             return web.json_response(
                 {
                     "propagation_node_status": {
@@ -6064,6 +6146,11 @@ class ReticulumMeshChat:
                         "progress": self.message_router.propagation_transfer_progress
                         * 100,  # convert to percentage
                         "messages_received": self.message_router.propagation_transfer_last_result,
+                        "messages_stored": sync_metrics["messages_stored"],
+                        "delivery_confirmations": sync_metrics[
+                            "delivery_confirmations"
+                        ],
+                        "messages_hidden": sync_metrics["messages_hidden"],
                     },
                 },
             )
@@ -8893,6 +8980,8 @@ class ReticulumMeshChat:
         if not ctx:
             return
 
+        self._begin_propagation_sync_metrics(context=ctx)
+
         # update last synced at timestamp
         ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(int(time.time()))
 
@@ -10721,7 +10810,6 @@ class ReticulumMeshChat:
 
                         # if incoming icon matches our own, skip storing and clear any mistaken stored copy
                         # for now, but this will need to be updated later if two users do have the same icon
-                        # FIXME
                         if (
                             local_icon_name
                             and local_icon_fg
@@ -10917,7 +11005,7 @@ class ReticulumMeshChat:
             self.send_failed_message_via_propagation_node(lxmf_message, context=context)
 
         # update state
-        self.on_lxmf_sending_state_updated(lxmf_message)
+        self.on_lxmf_sending_state_updated(lxmf_message, context=context)
 
     # sends a previously failed message via a propagation node
     def send_failed_message_via_propagation_node(
@@ -11317,8 +11405,6 @@ class ReticulumMeshChat:
 
     # updates lxmf message in database and broadcasts to websocket until it's delivered, or it fails
     async def handle_lxmf_message_progress(self, lxmf_message, context=None):
-        # FIXME: there's no register_progress_callback on the lxmf message, so manually send progress until delivered, propagated or failed
-        # we also can't use on_lxmf_sending_state_updated method to do this, because of async/await issues...
         ctx = context or self.current_context
         if not ctx:
             return
@@ -11741,9 +11827,7 @@ class ReticulumMeshChat:
 
         return None
 
-    # get name to show for an lxmf conversation
-    # currently, this will use the app data from the most recent announce
-    # TODO: we should fetch this from our contacts database, when it gets implemented, and if not found, fallback to app data
+    # get name to show for an lxmf conversation (from most recent announce app data)
     def get_lxmf_conversation_name(
         self,
         destination_hash,
@@ -11792,7 +11876,6 @@ def env_bool(env_name, default=False):
 
 
 # class to manage config stored in database
-# FIXME: we should probably set this as an instance variable of ReticulumMeshChat so it has a proper home, and pass it in to the constructor?
 def main():
     # apply asyncio 3.13 patch if needed
     AsyncUtils.apply_asyncio_313_patch()

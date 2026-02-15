@@ -115,9 +115,10 @@ class MicronParser {
     }
 
     convertMicronToHtml(markup) {
+        if (markup == null) return "";
+        if (typeof markup !== "string") markup = String(markup);
         let html = "";
 
-        // parse header tags for page-level color defaults
         const headerColors = this.parseHeaderTags(markup);
 
         const plainStyle = this.SELECTED_STYLES?.plain || { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG };

@@ -197,7 +197,8 @@ class Utils {
     }
 
     static escapeHtml(text) {
-        if (!text) return "";
+        if (text == null) return "";
+        text = String(text);
         const map = {
             "&": "&amp;",
             "<": "&lt;",

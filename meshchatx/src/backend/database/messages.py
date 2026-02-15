@@ -86,6 +86,17 @@ class MessageDAO:
     def get_all_lxmf_messages(self):
         return self.provider.fetchall("SELECT * FROM lxmf_messages")
 
+    def count_lxmf_messages(self):
+        row = self.provider.fetchone("SELECT COUNT(*) AS count FROM lxmf_messages")
+        return row["count"] if row and row["count"] is not None else 0
+
+    def count_lxmf_messages_by_state(self, state):
+        row = self.provider.fetchone(
+            "SELECT COUNT(*) AS count FROM lxmf_messages WHERE state = ?",
+            (state,),
+        )
+        return row["count"] if row and row["count"] is not None else 0
+
     def get_conversation_messages(self, destination_hash, limit=100, offset=0):
         return self.provider.fetchall(
             "SELECT * FROM lxmf_messages WHERE peer_hash = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",

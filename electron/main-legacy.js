@@ -301,8 +301,7 @@ app.whenReady().then(async () => {
         }
     }
 
-    // find path to python/cxfreeze reticulum meshchatx executable
-    // Note: setup.py creates ReticulumMeshChatX (with X), not ReticulumMeshChat
+    // find path to python/cxfreeze executable (setup.py builds ReticulumMeshChatX)
     const exeName = process.platform === "win32" ? "ReticulumMeshChatX.exe" : "ReticulumMeshChatX";
 
     // get app path (handles both development and packaged app)
@@ -362,7 +361,7 @@ app.whenReady().then(async () => {
         const requiredArguments = [
             "--headless", // reticulum meshchatx usually launches default web browser, we don't want this when using electron
             "--port",
-            "9337", // FIXME: let system pick a random unused port?
+            "9337",
             // '--test-exception-message', 'Test Exception Message', // uncomment to test the crash dialog
         ];
 

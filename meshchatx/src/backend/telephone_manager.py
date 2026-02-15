@@ -79,10 +79,6 @@ class TelephoneManager:
 
     @property
     def is_recording(self):
-        # Check if voicemail manager or this manager is recording
-        # This is a bit of a hack since we don't have a direct link to voicemail_manager here
-        # but we can check if our own recording is active if we had it.
-        # For now, we'll just return False and let meshchat.py handle the combined status.
         return False
 
     def init_telephone(self):
@@ -138,8 +134,6 @@ class TelephoneManager:
 
     def on_telephone_ringing(self, caller_identity: RNS.Identity):
         if self.initiation_status:
-            # This is an outgoing call where the remote side is now ringing.
-            # We update the initiation status to "Ringing..." for the UI.
             self._update_initiation_status("Ringing...")
             return
 
