@@ -9,6 +9,8 @@ export default defineConfig({
         environment: "jsdom",
         include: ["tests/frontend/**/*.{test,spec}.{js,ts,jsx,tsx}"],
         setupFiles: ["tests/frontend/setup.js"],
+        ui: true,
+        open: true,
     },
     resolve: {
         alias: {
