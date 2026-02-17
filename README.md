@@ -45,6 +45,7 @@ docker compose up -d
 ```
 
 ### Docker Permissions Note
+
 If you encounter a `PermissionError` when running the Docker container, it's likely because the container's user (UID 1000) doesn't have permission to write to your host's `./meshchat-config` folder. You can fix this by running:
 
 ```bash
@@ -246,36 +247,36 @@ MeshChatX can be configured via command-line arguments or environment variables.
 
 We use [Task](https://taskfile.dev/) for automation.
 
-| Task                           | Description                                    |
-| :----------------------------- | :--------------------------------------------- |
-| `task install`                 | Install all dependencies                       |
-| `task run`                     | Run the application                            |
-| `task dev`                     | Run the application in development mode        |
-| `task lint:all`                | Run all linters (Python & Frontend)            |
-| `task lint:be`                 | Lint Python code only                          |
-| `task lint:fe`                 | Lint frontend code only                        |
-| `task fmt:all`                 | Format all code (Python & Frontend)            |
-| `task fmt:be`                  | Format Python code only                        |
-| `task fmt:fe`                  | Format frontend code only                      |
-| `task test:all`                | Run all tests                                  |
-| `task test:cov`                | Run tests with coverage reports                |
-| `task test:be`                 | Run Python tests only                          |
-| `task test:fe`                 | Run frontend tests only                        |
-| `task build:all`               | Build frontend and backend                     |
-| `task build:fe`                | Build only the frontend                        |
-| `task build:wheel`             | Build Python wheel package                     |
-| `task compile`                 | Compile Python code to check for syntax errors |
-| `task docker:build`            | Build Docker image using buildx                |
-| `task docker:run`              | Run Docker container using docker-compose      |
-| `task dist:linux:appimage`     | Build Linux AppImage                           |
-| `task dist:win:exe`            | Build Windows portable executable              |
-| `task dist:win:wine`           | Build Windows portable (Wine cross-build)      |
-| `task dist:all`                | Build all Electron apps                        |
-| `task dist:all:wine`           | Build all Electron apps (Wine cross-build)     |
-| `task android:prepare`         | Prepare Android build                          |
-| `task android:build`           | Build Android APK                              |
-| `task dist:fe:flatpak`         | Build Flatpak package                          |
-| `task clean`                   | Clean build artifacts and dependencies         |
+| Task                       | Description                                    |
+| :------------------------- | :--------------------------------------------- |
+| `task install`             | Install all dependencies                       |
+| `task run`                 | Run the application                            |
+| `task dev`                 | Run the application in development mode        |
+| `task lint:all`            | Run all linters (Python & Frontend)            |
+| `task lint:be`             | Lint Python code only                          |
+| `task lint:fe`             | Lint frontend code only                        |
+| `task fmt:all`             | Format all code (Python & Frontend)            |
+| `task fmt:be`              | Format Python code only                        |
+| `task fmt:fe`              | Format frontend code only                      |
+| `task test:all`            | Run all tests                                  |
+| `task test:cov`            | Run tests with coverage reports                |
+| `task test:be`             | Run Python tests only                          |
+| `task test:fe`             | Run frontend tests only                        |
+| `task build:all`           | Build frontend and backend                     |
+| `task build:fe`            | Build only the frontend                        |
+| `task build:wheel`         | Build Python wheel package                     |
+| `task compile`             | Compile Python code to check for syntax errors |
+| `task docker:build`        | Build Docker image using buildx                |
+| `task docker:run`          | Run Docker container using docker-compose      |
+| `task dist:linux:appimage` | Build Linux AppImage                           |
+| `task dist:win:exe`        | Build Windows portable executable              |
+| `task dist:win:wine`       | Build Windows portable (Wine cross-build)      |
+| `task dist:all`            | Build all Electron apps                        |
+| `task dist:all:wine`       | Build all Electron apps (Wine cross-build)     |
+| `task android:prepare`     | Prepare Android build                          |
+| `task android:build`       | Build Android APK                              |
+| `task dist:fe:flatpak`     | Build Flatpak package                          |
+| `task clean`               | Clean build artifacts and dependencies         |
 
 ## Security
 

@@ -10,7 +10,7 @@ vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: { formatTimeAgo: (d) => "1h ago" },
 }));
 
-const MaterialDesignIcon = { template: "<div class=\"mdi\"></div>", props: ["iconName"] };
+const MaterialDesignIcon = { template: '<div class="mdi"></div>', props: ["iconName"] };
 
 function mountBell(options = {}) {
     return mount(NotificationBell, {

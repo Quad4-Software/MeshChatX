@@ -210,8 +210,8 @@ def test_identity_loading_fallback(mock_rns, temp_dir):
         mock_gen_id = MagicMock()
         mock_gen_id.hash.hex.return_value = "generated_hash"
         mock_gen_id.get_private_key.return_value = b"private_key"
-        mock_id_class.side_effect = (
-            lambda create_keys=False: mock_gen_id if create_keys else MagicMock()
+        mock_id_class.side_effect = lambda create_keys=False: (
+            mock_gen_id if create_keys else MagicMock()
         )
 
         # Mock sys.argv to use default behavior (random generation)

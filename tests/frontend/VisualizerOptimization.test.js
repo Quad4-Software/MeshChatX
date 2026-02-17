@@ -243,51 +243,51 @@ describe("NetworkVisualiser Optimization and Abort", () => {
         expect(end - start).toBeLessThan(100); // Should be very fast
     });
 
-        it("performance: icon cache hit vs miss for 500 nodes", async () => {
-            vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
-            const wrapper = mountVisualiser();
+    it("performance: icon cache hit vs miss for 500 nodes", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
 
-            // Setup 500 nodes with the same icon
-            const iconInfo = { icon_name: "test", foreground_colour: "#000", background_colour: "#fff" };
-            wrapper.vm.pathTable = Array.from({ length: 500 }, (_, i) => ({ hash: `h${i}`, interface: "eth0", hops: 1 }));
-            wrapper.vm.announces = wrapper.vm.pathTable.reduce((acc, cur) => {
-                acc[cur.hash] = {
-                    destination_hash: cur.hash,
-                    aspect: "lxmf.delivery",
-                    display_name: "node",
-                    lxmf_user_icon: iconInfo,
-                };
-                return acc;
-            }, {});
-            wrapper.vm.conversations = wrapper.vm.pathTable.reduce((acc, cur) => {
-                acc[cur.hash] = { lxmf_user_icon: iconInfo };
-                return acc;
-            }, {});
+        // Setup 500 nodes with the same icon
+        const iconInfo = { icon_name: "test", foreground_colour: "#000", background_colour: "#fff" };
+        wrapper.vm.pathTable = Array.from({ length: 500 }, (_, i) => ({ hash: `h${i}`, interface: "eth0", hops: 1 }));
+        wrapper.vm.announces = wrapper.vm.pathTable.reduce((acc, cur) => {
+            acc[cur.hash] = {
+                destination_hash: cur.hash,
+                aspect: "lxmf.delivery",
+                display_name: "node",
+                lxmf_user_icon: iconInfo,
+            };
+            return acc;
+        }, {});
+        wrapper.vm.conversations = wrapper.vm.pathTable.reduce((acc, cur) => {
+            acc[cur.hash] = { lxmf_user_icon: iconInfo };
+            return acc;
+        }, {});
 
-            // Mock createIconImage to have some delay for the "miss" case
-            wrapper.vm.createIconImage = vi.fn().mockImplementation(async () => {
-                // Add a tiny delay to ensure "miss" is always measurable
-                await new Promise((r) => setTimeout(r, 0));
-                return "blob:mock-icon";
-            });
-
-            const startMiss = performance.now();
-            await wrapper.vm.processVisualization();
-            const endMiss = performance.now();
-            const missTime = endMiss - startMiss;
-
-            // Second run will hit the cache check in processVisualization
-            // so it won't even call createIconImage.
-            const startHit = performance.now();
-            await wrapper.vm.processVisualization();
-            const endHit = performance.now();
-            const hitTime = endHit - startHit;
-
-            console.log(`Icon cache MISS for 500 nodes: ${missTime.toFixed(2)}ms`);
-            console.log(`Icon cache HIT for 500 nodes: ${hitTime.toFixed(2)}ms`);
-
-            // Cache hit should be significantly faster, but we allow for some
-            // environmental noise in CI environments.
-            expect(hitTime).toBeLessThan(missTime + 200);
+        // Mock createIconImage to have some delay for the "miss" case
+        wrapper.vm.createIconImage = vi.fn().mockImplementation(async () => {
+            // Add a tiny delay to ensure "miss" is always measurable
+            await new Promise((r) => setTimeout(r, 0));
+            return "blob:mock-icon";
         });
+
+        const startMiss = performance.now();
+        await wrapper.vm.processVisualization();
+        const endMiss = performance.now();
+        const missTime = endMiss - startMiss;
+
+        // Second run will hit the cache check in processVisualization
+        // so it won't even call createIconImage.
+        const startHit = performance.now();
+        await wrapper.vm.processVisualization();
+        const endHit = performance.now();
+        const hitTime = endHit - startHit;
+
+        console.log(`Icon cache MISS for 500 nodes: ${missTime.toFixed(2)}ms`);
+        console.log(`Icon cache HIT for 500 nodes: ${hitTime.toFixed(2)}ms`);
+
+        // Cache hit should be significantly faster, but we allow for some
+        // environmental noise in CI environments.
+        expect(hitTime).toBeLessThan(missTime + 200);
+    });
 });

@@ -82,7 +82,7 @@ describe("App propagation sync metrics", () => {
         vi.advanceTimersByTime(600);
 
         expect(ToastUtils.success).toHaveBeenCalledWith(
-            "Sync complete. 8 messages received. (3 stored, 2 confirmations, 3 hidden)",
+            "Sync complete. 8 messages received. (3 stored, 2 confirmations, 3 hidden)"
         );
         expect(ToastUtils.error).not.toHaveBeenCalled();
     });

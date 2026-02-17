@@ -2,13 +2,15 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import BlockedPage from "../../meshchatx/src/frontend/components/blocked/BlockedPage.vue";
 
-vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({ default: { confirm: vi.fn().mockResolvedValue(true) } }));
+vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
+    default: { confirm: vi.fn().mockResolvedValue(true) },
+}));
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: { formatTimeAgo: (d) => "1h ago" },
 }));
 
-const MaterialDesignIcon = { template: "<div class=\"mdi\"></div>", props: ["iconName"] };
+const MaterialDesignIcon = { template: '<div class="mdi"></div>', props: ["iconName"] };
 
 function mountBlockedPage() {
     return mount(BlockedPage, {
@@ -23,10 +25,8 @@ describe("BlockedPage UI", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         global.axios.get = vi.fn().mockImplementation((url) => {
-            if (url === "/api/v1/blocked-destinations")
-                return Promise.resolve({ data: { blocked_destinations: [] } });
-            if (url === "/api/v1/reticulum/blackhole")
-                return Promise.resolve({ data: { blackholed_identities: {} } });
+            if (url === "/api/v1/blocked-destinations") return Promise.resolve({ data: { blocked_destinations: [] } });
+            if (url === "/api/v1/reticulum/blackhole") return Promise.resolve({ data: { blackholed_identities: {} } });
             return Promise.resolve({ data: {} });
         });
     });
@@ -41,7 +41,7 @@ describe("BlockedPage UI", () => {
     it("renders search input and refresh button", async () => {
         const wrapper = mountBlockedPage();
         await flushPromises();
-        expect(wrapper.find("input[type=\"text\"]").exists()).toBe(true);
+        expect(wrapper.find('input[type="text"]').exists()).toBe(true);
         expect(wrapper.find("button").exists()).toBe(true);
     });
 
@@ -56,8 +56,7 @@ describe("BlockedPage UI", () => {
         global.axios.get = vi.fn().mockImplementation((url, opts) => {
             if (url === "/api/v1/blocked-destinations")
                 return Promise.resolve({ data: { blocked_destinations: ["abc123"] } });
-            if (url === "/api/v1/reticulum/blackhole")
-                return Promise.resolve({ data: { blackholed_identities: {} } });
+            if (url === "/api/v1/reticulum/blackhole") return Promise.resolve({ data: { blackholed_identities: {} } });
             if (url === "/api/v1/announces" && opts?.params?.identity_hash === "abc123")
                 return Promise.resolve({
                     data: {
@@ -82,7 +81,7 @@ describe("BlockedPage UI", () => {
     it("search input binds to searchQuery", async () => {
         const wrapper = mountBlockedPage();
         await flushPromises();
-        const input = wrapper.find("input[type=\"text\"]");
+        const input = wrapper.find('input[type="text"]');
         await input.setValue("test");
         expect(wrapper.vm.searchQuery).toBe("test");
     });

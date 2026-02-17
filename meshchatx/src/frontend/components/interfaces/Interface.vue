@@ -38,7 +38,9 @@
                 </div>
                 <div class="flex-1 min-w-0 space-y-2 overflow-hidden">
                     <div class="flex items-center gap-2 flex-wrap">
-                        <div class="text-lg font-semibold text-gray-900 dark:text-white truncate min-w-0">{{ iface._name }}</div>
+                        <div class="text-lg font-semibold text-gray-900 dark:text-white truncate min-w-0">
+                            {{ iface._name }}
+                        </div>
                         <span class="type-chip shrink-0">{{ iface.type }}</span>
                         <span :class="statusChipClass" class="shrink-0">{{
                             isInterfaceEnabled(iface) ? $t("app.enabled") : $t("app.disabled")
@@ -48,34 +50,40 @@
                     <div class="text-sm text-gray-600 dark:text-gray-300 break-words min-w-0">
                         {{ description }}
                     </div>
-                <div class="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
-                    <span v-if="iface._stats?.bitrate" class="stat-chip"
-                        >{{ $t("interface.bitrate") }} {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</span
-                    >
-                    <span class="stat-chip">{{ $t("interface.tx") }} {{ formatBytes(iface._stats?.txb ?? 0) }}</span>
-                    <span class="stat-chip">{{ $t("interface.rx") }} {{ formatBytes(iface._stats?.rxb ?? 0) }}</span>
-                    <span v-if="iface.type === 'RNodeInterface' && iface._stats?.noise_floor" class="stat-chip"
-                        >{{ $t("interface.noise") }} {{ iface._stats?.noise_floor }} dBm</span
-                    >
-                    <span v-if="iface._stats?.clients != null" class="stat-chip"
-                        >{{ $t("interface.clients") }} {{ iface._stats?.clients }}</span
-                    >
-                </div>
-                <div v-if="iface._stats?.ifac_signature" class="ifac-line">
-                    <span class="text-emerald-500 font-semibold">{{ iface._stats.ifac_size * 8 }}-bit IFAC</span>
-                    <span v-if="iface._stats?.ifac_netname">• {{ iface._stats.ifac_netname }}</span>
-                    <span>•</span>
-                    <button
-                        type="button"
-                        class="text-blue-500 hover:underline"
-                        @click="onIFACSignatureClick(iface._stats.ifac_signature)"
-                    >
-                        {{ iface._stats.ifac_signature.slice(0, 8) }}…{{ iface._stats.ifac_signature.slice(-8) }}
-                    </button>
-                </div>
+                    <div class="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
+                        <span v-if="iface._stats?.bitrate" class="stat-chip"
+                            >{{ $t("interface.bitrate") }} {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</span
+                        >
+                        <span class="stat-chip"
+                            >{{ $t("interface.tx") }} {{ formatBytes(iface._stats?.txb ?? 0) }}</span
+                        >
+                        <span class="stat-chip"
+                            >{{ $t("interface.rx") }} {{ formatBytes(iface._stats?.rxb ?? 0) }}</span
+                        >
+                        <span v-if="iface.type === 'RNodeInterface' && iface._stats?.noise_floor" class="stat-chip"
+                            >{{ $t("interface.noise") }} {{ iface._stats?.noise_floor }} dBm</span
+                        >
+                        <span v-if="iface._stats?.clients != null" class="stat-chip"
+                            >{{ $t("interface.clients") }} {{ iface._stats?.clients }}</span
+                        >
+                    </div>
+                    <div v-if="iface._stats?.ifac_signature" class="ifac-line">
+                        <span class="text-emerald-500 font-semibold">{{ iface._stats.ifac_size * 8 }}-bit IFAC</span>
+                        <span v-if="iface._stats?.ifac_netname">• {{ iface._stats.ifac_netname }}</span>
+                        <span>•</span>
+                        <button
+                            type="button"
+                            class="text-blue-500 hover:underline"
+                            @click="onIFACSignatureClick(iface._stats.ifac_signature)"
+                        >
+                            {{ iface._stats.ifac_signature.slice(0, 8) }}…{{ iface._stats.ifac_signature.slice(-8) }}
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="flex flex-col sm:flex-row gap-2 sm:items-center items-end sm:shrink-0 justify-end sm:justify-end relative">
+            <div
+                class="flex flex-col sm:flex-row gap-2 sm:items-center items-end sm:shrink-0 justify-end sm:justify-end relative"
+            >
                 <button
                     v-if="isInterfaceEnabled(iface)"
                     type="button"

@@ -4,13 +4,13 @@ import IconButton from "../../meshchatx/src/frontend/components/IconButton.vue";
 
 function mountIconButton(slots = {}) {
     return mount(IconButton, {
-        slots: { default: slots.default ?? "<span class=\"icon\">X</span>" },
+        slots: { default: slots.default ?? '<span class="icon">X</span>' },
     });
 }
 
 describe("IconButton UI", () => {
     it("renders button with slot content", () => {
-        const wrapper = mountIconButton({ default: "<span class=\"icon\">+</span>" });
+        const wrapper = mountIconButton({ default: '<span class="icon">+</span>' });
         expect(wrapper.find("button").exists()).toBe(true);
         expect(wrapper.find(".icon").exists()).toBe(true);
         expect(wrapper.text()).toContain("+");

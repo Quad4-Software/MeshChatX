@@ -5,8 +5,8 @@ import DropDownMenu from "../../meshchatx/src/frontend/components/DropDownMenu.v
 function mountDropDown(slots = {}) {
     return mount(DropDownMenu, {
         slots: {
-            button: "<button type=\"button\">Menu</button>",
-            items: "<div class=\"menu-item\">Item 1</div>",
+            button: '<button type="button">Menu</button>',
+            items: '<div class="menu-item">Item 1</div>',
             ...slots,
         },
         global: {
@@ -38,7 +38,7 @@ describe("DropDownMenu UI", () => {
     });
 
     it("renders items slot when open", async () => {
-        const wrapper = mountDropDown({ items: "<div class=\"custom-item\">Custom</div>" });
+        const wrapper = mountDropDown({ items: '<div class="custom-item">Custom</div>' });
         await wrapper.find("button").trigger("click");
         expect(wrapper.find(".custom-item").exists()).toBe(true);
         expect(wrapper.text()).toContain("Custom");

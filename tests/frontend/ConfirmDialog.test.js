@@ -8,7 +8,7 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
 
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 
-const MaterialDesignIcon = { template: "<div class=\"mdi\"></div>", props: ["iconName"] };
+const MaterialDesignIcon = { template: '<div class="mdi"></div>', props: ["iconName"] };
 
 function mountDialog() {
     return mount(ConfirmDialog, {

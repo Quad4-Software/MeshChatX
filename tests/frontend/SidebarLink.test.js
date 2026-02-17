@@ -5,8 +5,7 @@ import SidebarLink from "../../meshchatx/src/frontend/components/SidebarLink.vue
 const RouterLinkStub = {
     name: "RouterLinkStub",
     props: ["to"],
-    template:
-        '<a href="#" @click.prevent><slot :href="\'#\'" :navigate="navigate" :isActive="false"/></a>',
+    template: '<a href="#" @click.prevent><slot :href="\'#\'" :navigate="navigate" :isActive="false"/></a>',
     methods: {
         navigate(e) {
             if (e) e.preventDefault();
@@ -18,7 +17,7 @@ function mountSidebarLink(props = {}, slots = {}) {
     return mount(SidebarLink, {
         props: { to: { name: "messages" }, ...props },
         slots: {
-            icon: "<span class=\"icon-slot\">I</span>",
+            icon: '<span class="icon-slot">I</span>',
             text: "Messages",
             ...slots,
         },

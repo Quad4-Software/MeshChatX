@@ -34,8 +34,8 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
     default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() },
 }));
 
-const MaterialDesignIcon = { template: "<div class=\"mdi\"></div>", props: ["iconName"] };
-const LxmfUserIcon = { template: "<div class=\"lxmf-icon\"></div>" };
+const MaterialDesignIcon = { template: '<div class="mdi"></div>', props: ["iconName"] };
+const LxmfUserIcon = { template: '<div class="lxmf-icon"></div>' };
 
 function makePropagationNode(i) {
     return {
@@ -107,7 +107,9 @@ describe("Load time with prefilled data", () => {
             expect(wrapper.vm.paginatedNodes.length).toBe(20);
             expect(loadMs).toBeLessThan(MAX_PROP_NODES_MS);
             if (process.env.CI !== "true") {
-                console.log(`Propagation nodes: ${count} nodes loaded in ${loadMs.toFixed(0)}ms (max ${MAX_PROP_NODES_MS}ms)`);
+                console.log(
+                    `Propagation nodes: ${count} nodes loaded in ${loadMs.toFixed(0)}ms (max ${MAX_PROP_NODES_MS}ms)`
+                );
             }
         });
     });
@@ -148,7 +150,9 @@ describe("Load time with prefilled data", () => {
             expect(wrapper.vm.displayedConversations.length).toBe(count);
             expect(end - start).toBeLessThan(MAX_MESSAGES_ANNOUNCES_MS);
             if (process.env.CI !== "true") {
-                console.log(`Messages: ${count} conversations in ${(end - start).toFixed(0)}ms (max ${MAX_MESSAGES_ANNOUNCES_MS}ms)`);
+                console.log(
+                    `Messages: ${count} conversations in ${(end - start).toFixed(0)}ms (max ${MAX_MESSAGES_ANNOUNCES_MS}ms)`
+                );
             }
         });
     });
@@ -190,7 +194,9 @@ describe("Load time with prefilled data", () => {
             expect(wrapper.vm.searchedPeers.length).toBe(count);
             expect(end - start).toBeLessThan(MAX_MESSAGES_ANNOUNCES_MS);
             if (process.env.CI !== "true") {
-                console.log(`Announces (messages): ${count} peers in ${(end - start).toFixed(0)}ms (max ${MAX_MESSAGES_ANNOUNCES_MS}ms)`);
+                console.log(
+                    `Announces (messages): ${count} peers in ${(end - start).toFixed(0)}ms (max ${MAX_MESSAGES_ANNOUNCES_MS}ms)`
+                );
             }
         });
     });
@@ -220,7 +226,7 @@ describe("Load time with prefilled data", () => {
                     components: {
                         MaterialDesignIcon,
                         IconButton: { template: "<button></button>" },
-                        DropDownMenu: { template: "<div><slot name=\"button\"/><slot name=\"items\"/></div>" },
+                        DropDownMenu: { template: '<div><slot name="button"/><slot name="items"/></div>' },
                         DropDownMenuItem: { template: "<div></div>" },
                     },
                     mocks: { $t: (key) => key },
@@ -233,7 +239,9 @@ describe("Load time with prefilled data", () => {
             expect(wrapper.vm.searchedNodes.length).toBe(count);
             expect(end - start).toBeLessThan(MAX_NOMADNET_NODES_MS);
             if (process.env.CI !== "true") {
-                console.log(`NomadNet nodes: ${count} nodes in ${(end - start).toFixed(0)}ms (max ${MAX_NOMADNET_NODES_MS}ms)`);
+                console.log(
+                    `NomadNet nodes: ${count} nodes in ${(end - start).toFixed(0)}ms (max ${MAX_NOMADNET_NODES_MS}ms)`
+                );
             }
         });
     });

@@ -20,8 +20,8 @@ vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     },
 }));
 
-const MaterialDesignIcon = { template: "<div class=\"mdi\"></div>", props: ["iconName"] };
-const LxmfUserIcon = { template: "<div class=\"lxmf-icon\"></div>" };
+const MaterialDesignIcon = { template: '<div class="mdi"></div>', props: ["iconName"] };
+const LxmfUserIcon = { template: '<div class="lxmf-icon"></div>' };
 
 function defaultProps(overrides = {}) {
     return {
@@ -89,7 +89,9 @@ describe("MessagesSidebar UI", () => {
         await announcesTab.trigger("click");
         await wrapper.vm.$nextTick();
         expect(wrapper.vm.tab).toBe("announces");
-        expect(wrapper.text()).toMatch(/messages\.search_placeholder_announces|messages\.no_peers_discovered|messages\.waiting_for_announce/);
+        expect(wrapper.text()).toMatch(
+            /messages\.search_placeholder_announces|messages\.no_peers_discovered|messages\.waiting_for_announce/
+        );
     });
 
     it("emits folder-click when All Messages is clicked", async () => {
@@ -154,7 +156,7 @@ describe("MessagesSidebar UI", () => {
             ],
         });
         await wrapper.vm.$nextTick();
-        const selectionBtn = wrapper.find("button[title=\"Selection Mode\"]");
+        const selectionBtn = wrapper.find('button[title="Selection Mode"]');
         expect(selectionBtn.exists()).toBe(true);
         await selectionBtn.trigger("click");
         await wrapper.vm.$nextTick();
@@ -182,6 +184,9 @@ describe("MessagesSidebar UI", () => {
         const row = wrapper.find(".conversation-item");
         await row.trigger("click");
         expect(wrapper.emitted("conversation-click")).toBeTruthy();
-        expect(wrapper.emitted("conversation-click")[0][0]).toMatchObject({ destination_hash: "dest1", display_name: "Bob" });
+        expect(wrapper.emitted("conversation-click")[0][0]).toMatchObject({
+            destination_hash: "dest1",
+            display_name: "Bob",
+        });
     });
 });
