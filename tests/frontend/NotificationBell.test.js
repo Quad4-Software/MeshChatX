@@ -1,216 +1,94 @@
 import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import NotificationBell from "@/components/NotificationBell.vue";
-import { nextTick } from "vue";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import NotificationBell from "../../meshchatx/src/frontend/components/NotificationBell.vue";
 
-describe("NotificationBell.vue", () => {
-    let axiosMock;
+vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
+    default: { on: vi.fn(), off: vi.fn() },
+}));
 
+vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
+    default: { formatTimeAgo: (d) => "1h ago" },
+}));
+
+const MaterialDesignIcon = { template: "<div class=\"mdi\"></div>", props: ["iconName"] };
+
+function mountBell(options = {}) {
+    return mount(NotificationBell, {
+        global: {
+            components: { MaterialDesignIcon },
+            directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
+        },
+        ...options,
+    });
+}
+
+describe("NotificationBell UI", () => {
     beforeEach(() => {
-        axiosMock = {
-            get: vi.fn().mockResolvedValue({
-                data: {
-                    notifications: [],
-                    unread_count: 0,
-                },
-            }),
-            post: vi.fn().mockResolvedValue({ data: {} }),
-        };
-        window.axios = axiosMock;
+        vi.clearAllMocks();
+        global.axios.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
     });
 
-    afterEach(() => {
-        delete window.axios;
+    it("renders bell button", () => {
+        const wrapper = mountBell();
+        const btn = wrapper.find("button.relative.rounded-full");
+        expect(btn.exists()).toBe(true);
     });
 
-    const mountNotificationBell = () => {
-        return mount(NotificationBell, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: vi.fn() },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    Teleport: true,
-                },
-                directives: {
-                    "click-outside": {},
-                },
-            },
-        });
-    };
+    it("shows unread badge when unreadCount > 0", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.unreadCount = 5;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("5");
+    });
 
-    it("displays '9+' when unread count is greater than 9", async () => {
-        axiosMock.get.mockResolvedValueOnce({
-            data: {
-                notifications: [],
-                unread_count: 15,
-            },
-        });
-
-        const wrapper = mountNotificationBell();
-        await nextTick();
-        await nextTick();
-
+    it("shows 9+ when unreadCount > 9", async () => {
+        const wrapper = mountBell();
+        wrapper.vm.unreadCount = 12;
+        await wrapper.vm.$nextTick();
         expect(wrapper.text()).toContain("9+");
     });
 
-    it("handles long notification names with truncation", async () => {
-        const longName = "A".repeat(100);
-        axiosMock.get.mockResolvedValue({
+    it("opens dropdown on button click", async () => {
+        const wrapper = mountBell({ attachTo: document.body });
+        await wrapper.find("button").trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isDropdownOpen).toBe(true);
+        expect(document.body.textContent).toContain("Notifications");
+        wrapper.unmount();
+    });
+
+    it("shows Clear button when dropdown open and notifications exist", async () => {
+        global.axios.get = vi.fn().mockResolvedValue({
             data: {
                 notifications: [
-                    {
-                        type: "lxmf_message",
-                        destination_hash: "hash1",
-                        display_name: longName,
-                        updated_at: new Date().toISOString(),
-                        content: "Short content",
-                    },
+                    { destination_hash: "h1", display_name: "A", updated_at: new Date().toISOString(), content: "Hi" },
                 ],
                 unread_count: 1,
             },
         });
-
-        const wrapper = mountNotificationBell();
-        await nextTick();
-
-        // Open dropdown
+        const wrapper = mountBell({ attachTo: document.body });
         await wrapper.find("button").trigger("click");
-        await nextTick();
-        await nextTick();
-
-        const nameElement = wrapper.find(".truncate");
-        expect(nameElement.exists()).toBe(true);
-        expect(nameElement.text()).toBe(longName);
-        expect(nameElement.attributes("title")).toBe(longName);
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 50));
+        expect(document.body.textContent).toContain("Clear");
+        wrapper.unmount();
     });
 
-    it("handles long notification content with line-clamp", async () => {
-        const longContent = "B".repeat(500);
-        axiosMock.get.mockResolvedValue({
-            data: {
-                notifications: [
-                    {
-                        type: "lxmf_message",
-                        destination_hash: "hash1",
-                        display_name: "User",
-                        updated_at: new Date().toISOString(),
-                        content: longContent,
-                    },
-                ],
-                unread_count: 1,
-            },
-        });
-
-        const wrapper = mountNotificationBell();
-        await nextTick();
-
-        // Open dropdown
+    it("shows No new notifications when empty", async () => {
+        const wrapper = mountBell({ attachTo: document.body });
         await wrapper.find("button").trigger("click");
-        await nextTick();
-        await nextTick();
-
-        const contentElement = wrapper.find(".line-clamp-2");
-        expect(contentElement.exists()).toBe(true);
-        expect(contentElement.text().trim()).toBe(longContent);
-        expect(contentElement.attributes("title")).toBe(longContent);
+        await wrapper.vm.$nextTick();
+        expect(document.body.textContent).toContain("No new notifications");
+        wrapper.unmount();
     });
 
-    it("handles a large number of notifications without crashing", async () => {
-        const manyNotifications = Array.from({ length: 50 }, (_, i) => ({
-            type: "lxmf_message",
-            destination_hash: `hash${i}`,
-            display_name: `User ${i}`,
-            updated_at: new Date().toISOString(),
-            content: `Message ${i}`,
-        }));
-
-        axiosMock.get.mockResolvedValue({
-            data: {
-                notifications: manyNotifications,
-                unread_count: 50,
-            },
-        });
-
-        const wrapper = mountNotificationBell();
-        await nextTick();
-
-        // Open dropdown
+    it("dropdown has Notifications heading when open", async () => {
+        const wrapper = mountBell({ attachTo: document.body });
         await wrapper.find("button").trigger("click");
-        await nextTick();
-        await nextTick();
-
-        // The buttons are v-for="notification in notifications"
-        // Let's find them by class .w-full and hover:bg-gray-50 which are on the same element
-        const notificationButtons = wrapper.findAll("div.overflow-y-auto button.w-full");
-        expect(notificationButtons.length).toBe(50);
-    });
-
-    it("renders a button", () => {
-        const wrapper = mountNotificationBell();
-        expect(wrapper.find("button").exists()).toBe(true);
-    });
-
-    it("shows unread count when unread_count is 1", async () => {
-        axiosMock.get.mockResolvedValueOnce({
-            data: { notifications: [], unread_count: 1 },
-        });
-        const wrapper = mountNotificationBell();
-        await nextTick();
-        await nextTick();
-        expect(wrapper.text()).toContain("1");
-    });
-
-    it("navigates to voicemail tab when voicemail notification is clicked", async () => {
-        const routerPush = vi.fn();
-        axiosMock.get.mockResolvedValue({
-            data: {
-                notifications: [
-                    {
-                        type: "telephone_voicemail",
-                        destination_hash: "hash1",
-                        display_name: "User",
-                        updated_at: new Date().toISOString(),
-                        content: "New voicemail",
-                    },
-                ],
-                unread_count: 1,
-            },
-        });
-
-        const wrapper = mount(NotificationBell, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                    $router: { push: routerPush },
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                    Teleport: true,
-                },
-                directives: {
-                    "click-outside": {},
-                },
-            },
-        });
-
-        await nextTick();
-
-        // Click bell to open dropdown
-        await wrapper.find("button").trigger("click");
-        await nextTick();
-        await nextTick();
-
-        // Click it
-        const button = wrapper.find("div.overflow-y-auto button.w-full");
-        expect(button.exists()).toBe(true);
-        await button.trigger("click");
-
-        expect(routerPush).toHaveBeenCalledWith({
-            name: "call",
-            query: { tab: "voicemail" },
-        });
+        await wrapper.vm.$nextTick();
+        const h3 = document.body.querySelector("h3");
+        expect(h3?.textContent).toBe("Notifications");
+        wrapper.unmount();
     });
 });

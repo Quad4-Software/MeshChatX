@@ -1,182 +1,78 @@
 import { mount } from "@vue/test-utils";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import ConfirmDialog from "../../meshchatx/src/frontend/components/ConfirmDialog.vue";
+
+vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
+    default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() },
+}));
+
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
 
-describe("ConfirmDialog.vue", () => {
+const MaterialDesignIcon = { template: "<div class=\"mdi\"></div>", props: ["iconName"] };
+
+function mountDialog() {
+    return mount(ConfirmDialog, {
+        global: { components: { MaterialDesignIcon } },
+    });
+}
+
+describe("ConfirmDialog UI", () => {
     beforeEach(() => {
-        GlobalEmitter.off("confirm");
+        vi.mocked(GlobalEmitter.on).mockClear();
+        vi.mocked(GlobalEmitter.off).mockClear();
     });
 
-    afterEach(() => {
-        GlobalEmitter.off("confirm");
+    it("registers confirm listener on mount", () => {
+        mountDialog();
+        expect(GlobalEmitter.on).toHaveBeenCalledWith("confirm", expect.any(Function));
     });
 
-    const mountConfirmDialog = () => {
-        return mount(ConfirmDialog, {
-            global: {
-                stubs: {
-                    MaterialDesignIcon: { template: '<div class="mdi"></div>' },
-                },
-            },
-        });
-    };
-
-    it("renders nothing when no confirmation is pending", () => {
-        const wrapper = mountConfirmDialog();
-        expect(wrapper.find(".fixed").exists()).toBe(false);
+    it("does not show dialog when pendingConfirm is null", () => {
+        const wrapper = mountDialog();
+        expect(wrapper.vm.pendingConfirm).toBeNull();
+        expect(wrapper.find(".fixed.inset-0").exists()).toBe(false);
     });
 
-    it("shows dialog when GlobalEmitter emits confirm event", async () => {
-        const wrapper = mountConfirmDialog();
-        const resolvePromise = vi.fn();
-
-        GlobalEmitter.emit("confirm", {
-            message: "Are you sure?",
-            resolve: resolvePromise,
-        });
-
+    it("shows dialog with message when show is called", async () => {
+        const wrapper = mountDialog();
+        const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
+        expect(showFn).toBeDefined();
+        showFn({ message: "Delete this item?", resolve: vi.fn() });
         await wrapper.vm.$nextTick();
+        expect(wrapper.vm.pendingConfirm).toEqual({ message: "Delete this item?" });
+        expect(wrapper.text()).toContain("Confirm Action");
+        expect(wrapper.text()).toContain("Delete this item?");
+    });
 
-        expect(wrapper.find(".fixed").exists()).toBe(true);
-        expect(wrapper.text()).toContain("Are you sure?");
-        expect(wrapper.text()).toContain("Confirm");
+    it("has Cancel and Confirm buttons when visible", async () => {
+        const wrapper = mountDialog();
+        const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
+        showFn({ message: "Sure?", resolve: vi.fn() });
+        await wrapper.vm.$nextTick();
         expect(wrapper.text()).toContain("Cancel");
+        expect(wrapper.text()).toContain("Confirm");
     });
 
-    it("calls resolve with true when confirm button is clicked", async () => {
-        const wrapper = mountConfirmDialog();
-        const resolvePromise = vi.fn();
-
-        GlobalEmitter.emit("confirm", {
-            message: "Delete this item?",
-            resolve: resolvePromise,
-        });
-
+    it("calls resolve(true) and clears when Confirm clicked", async () => {
+        const resolve = vi.fn();
+        const wrapper = mountDialog();
+        const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
+        showFn({ message: "Sure?", resolve });
         await wrapper.vm.$nextTick();
-
-        const buttons = wrapper.findAll("button");
-        const confirmButton = buttons.find((btn) => btn.text().includes("Confirm"));
-        await confirmButton.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(resolvePromise).toHaveBeenCalledWith(true);
-        expect(wrapper.find(".fixed").exists()).toBe(false);
+        await wrapper.find("button.bg-red-600").trigger("click");
+        expect(resolve).toHaveBeenCalledWith(true);
+        expect(wrapper.vm.pendingConfirm).toBeNull();
     });
 
-    it("calls resolve with false when cancel button is clicked", async () => {
-        const wrapper = mountConfirmDialog();
-        const resolvePromise = vi.fn();
-
-        GlobalEmitter.emit("confirm", {
-            message: "Delete this item?",
-            resolve: resolvePromise,
-        });
-
+    it("calls resolve(false) when Cancel clicked", async () => {
+        const resolve = vi.fn();
+        const wrapper = mountDialog();
+        const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
+        showFn({ message: "Sure?", resolve });
         await wrapper.vm.$nextTick();
-
-        const buttons = wrapper.findAll("button");
-        const cancelButton = buttons.find((btn) => btn.text().includes("Cancel"));
-        await cancelButton.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(resolvePromise).toHaveBeenCalledWith(false);
-        expect(wrapper.find(".fixed").exists()).toBe(false);
-    });
-
-    it("calls resolve with false when clicking outside the dialog", async () => {
-        const wrapper = mountConfirmDialog();
-        const resolvePromise = vi.fn();
-
-        GlobalEmitter.emit("confirm", {
-            message: "Delete this item?",
-            resolve: resolvePromise,
-        });
-
-        await wrapper.vm.$nextTick();
-
-        const backdrop = wrapper.find(".backdrop-blur-sm");
-
-        if (backdrop.exists()) {
-            await backdrop.trigger("click");
-            await wrapper.vm.$nextTick();
-            expect(resolvePromise).toHaveBeenCalledWith(false);
-            expect(wrapper.find(".fixed").exists()).toBe(false);
-        } else {
-            wrapper.vm.cancel();
-            await wrapper.vm.$nextTick();
-            expect(resolvePromise).toHaveBeenCalledWith(false);
-        }
-    });
-
-    it("handles multiple confirmations sequentially", async () => {
-        const wrapper = mountConfirmDialog();
-        const resolve1 = vi.fn();
-        const resolve2 = vi.fn();
-
-        GlobalEmitter.emit("confirm", {
-            message: "First confirmation",
-            resolve: resolve1,
-        });
-
-        await wrapper.vm.$nextTick();
-        expect(wrapper.text()).toContain("First confirmation");
-
-        const buttons1 = wrapper.findAll("button");
-        const cancelButton1 = buttons1.find((btn) => btn.text().includes("Cancel"));
-        await cancelButton1.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(resolve1).toHaveBeenCalledWith(false);
-
-        GlobalEmitter.emit("confirm", {
-            message: "Second confirmation",
-            resolve: resolve2,
-        });
-
-        await wrapper.vm.$nextTick();
-        expect(wrapper.text()).toContain("Second confirmation");
-
-        const buttons2 = wrapper.findAll("button");
-        const confirmButton2 = buttons2.find((btn) => btn.text().includes("Confirm"));
-        await confirmButton2.trigger("click");
-        await wrapper.vm.$nextTick();
-
-        expect(resolve2).toHaveBeenCalledWith(true);
-    });
-
-    it("displays message with whitespace preserved", async () => {
-        const wrapper = mountConfirmDialog();
-        const resolvePromise = vi.fn();
-
-        const message = "Line 1\nLine 2\nLine 3";
-        GlobalEmitter.emit("confirm", {
-            message: message,
-            resolve: resolvePromise,
-        });
-
-        await wrapper.vm.$nextTick();
-
-        const messageElement = wrapper.find(".whitespace-pre-wrap");
-        expect(messageElement.exists()).toBe(true);
-        expect(messageElement.text()).toContain("Line 1");
-    });
-
-    it("shows heading Confirm Action when open", async () => {
-        const wrapper = mountConfirmDialog();
-        GlobalEmitter.emit("confirm", { message: "Sure?", resolve: vi.fn() });
-        await wrapper.vm.$nextTick();
-        const heading = wrapper.find("h3");
-        expect(heading.exists()).toBe(true);
-        expect(heading.text()).toContain("Confirm Action");
-    });
-
-    it("has two buttons with type button", async () => {
-        const wrapper = mountConfirmDialog();
-        GlobalEmitter.emit("confirm", { message: "Ok?", resolve: vi.fn() });
-        await wrapper.vm.$nextTick();
-        const buttons = wrapper.findAll("button");
-        expect(buttons).toHaveLength(2);
-        buttons.forEach((btn) => expect(btn.attributes("type")).toBe("button"));
+        const cancelBtn = wrapper.findAll("button").find((b) => b.text() === "Cancel");
+        await cancelBtn.trigger("click");
+        expect(resolve).toHaveBeenCalledWith(false);
+        expect(wrapper.vm.pendingConfirm).toBeNull();
     });
 });

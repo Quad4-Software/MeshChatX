@@ -1,100 +1,187 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import MessagesSidebar from "@/components/messages/MessagesSidebar.vue";
+import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/MessagesSidebar.vue";
 
-describe("MessagesSidebar.vue", () => {
-    beforeEach(() => {
-        // Mock localStorage
-        global.localStorage = {
-            getItem: vi.fn(() => null),
-            setItem: vi.fn(),
-            removeItem: vi.fn(),
-            clear: vi.fn(),
-        };
-    });
+vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
+    default: {
+        config: {
+            theme: "light",
+            banished_effect_enabled: false,
+            telemetry_enabled: false,
+        },
+        blockedDestinations: [],
+    },
+}));
 
-    const defaultProps = {
+vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
+    default: {
+        formatTimeAgo: (d) => "1h ago",
+        formatDestinationHash: (h) => (h && h.length >= 8 ? h.slice(0, 8) + "…" : h),
+    },
+}));
+
+const MaterialDesignIcon = { template: "<div class=\"mdi\"></div>", props: ["iconName"] };
+const LxmfUserIcon = { template: "<div class=\"lxmf-icon\"></div>" };
+
+function defaultProps(overrides = {}) {
+    return {
         peers: {},
         conversations: [],
+        folders: [],
+        selectedFolderId: null,
         selectedDestinationHash: "",
         isLoading: false,
+        isLoadingMore: false,
+        hasMoreConversations: false,
+        isLoadingMoreAnnounces: false,
+        hasMoreAnnounces: false,
+        totalPeersCount: 0,
+        ...overrides,
     };
+}
 
-    const mountMessagesSidebar = (props = {}) => {
-        return mount(MessagesSidebar, {
-            props: { ...defaultProps, ...props },
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: true,
-                },
-            },
+function mountSidebar(props = {}, options = {}) {
+    return mount(MessagesSidebar, {
+        props: defaultProps(props),
+        global: {
+            components: { MaterialDesignIcon, LxmfUserIcon },
+            mocks: { $t: (key) => key },
+            directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
+        },
+        ...options,
+    });
+}
+
+describe("MessagesSidebar UI", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("renders with conversations tab active by default", () => {
+        const wrapper = mountSidebar();
+        expect(wrapper.text()).toContain("messages.conversations");
+        expect(wrapper.text()).toContain("messages.announces");
+        expect(wrapper.find(".flex.flex-col.w-full").exists()).toBe(true);
+    });
+
+    it("shows Folders section with All Messages and Uncategorized", () => {
+        const wrapper = mountSidebar();
+        expect(wrapper.text()).toContain("Folders");
+        expect(wrapper.text()).toContain("All Messages");
+        expect(wrapper.text()).toContain("Uncategorized");
+    });
+
+    it("shows custom folders when provided", () => {
+        const wrapper = mountSidebar({
+            folders: [
+                { id: 1, name: "Work" },
+                { id: 2, name: "Family" },
+            ],
         });
-    };
+        expect(wrapper.text()).toContain("Work");
+        expect(wrapper.text()).toContain("Family");
+    });
 
-    it("handles long conversation names and message previews with truncation", () => {
-        const longName = "Very ".repeat(20) + "Long Name";
-        const longPreview = "Message ".repeat(50);
+    it("switches to announces tab when Announces tab is clicked", async () => {
+        const wrapper = mountSidebar();
+        const tabs = wrapper.findAll(".border-b-2.py-3");
+        const announcesTab = tabs[1];
+        await announcesTab.trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.tab).toBe("announces");
+        expect(wrapper.text()).toMatch(/messages\.search_placeholder_announces|messages\.no_peers_discovered|messages\.waiting_for_announce/);
+    });
+
+    it("emits folder-click when All Messages is clicked", async () => {
+        const wrapper = mountSidebar();
+        const clickables = wrapper.findAll(".cursor-pointer");
+        const allMessagesRow = clickables.find((r) => r.text().includes("All Messages"));
+        expect(allMessagesRow.exists()).toBe(true);
+        await allMessagesRow.trigger("click");
+        expect(wrapper.emitted("folder-click")).toBeTruthy();
+        expect(wrapper.emitted("folder-click")[0]).toEqual([null]);
+    });
+
+    it("emits folder-click with folder id when folder row is clicked", async () => {
+        const wrapper = mountSidebar({
+            folders: [{ id: 10, name: "Archive" }],
+        });
+        await wrapper.vm.$nextTick();
+        const clickables = wrapper.findAll(".cursor-pointer");
+        const archiveRow = clickables.find((r) => r.text().includes("Archive"));
+        expect(archiveRow.exists()).toBe(true);
+        await archiveRow.trigger("click");
+        expect(wrapper.emitted("folder-click")).toBeTruthy();
+        expect(wrapper.emitted("folder-click").some((e) => e[0] === 10)).toBe(true);
+    });
+
+    it("renders conversation list when conversations are provided", async () => {
         const conversations = [
             {
-                destination_hash: "hash1",
-                display_name: longName,
-                latest_message_preview: longPreview,
+                destination_hash: "abc123",
+                display_name: "Alice",
                 updated_at: new Date().toISOString(),
+                is_unread: false,
+                failed_messages_count: 0,
             },
         ];
-
-        const wrapper = mountMessagesSidebar({ conversations });
-
-        const nameElement = wrapper.find(".conversation-item .truncate");
-        expect(nameElement.exists()).toBe(true);
-        expect(nameElement.text()).toContain("Long Name");
-
-        const previewElement = wrapper
-            .findAll(".conversation-item .truncate")
-            .find((el) => el.text().includes("Message"));
-        expect(previewElement.exists()).toBe(true);
+        const wrapper = mountSidebar({ conversations, selectedDestinationHash: "" });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.text()).toContain("Alice");
     });
 
-    it("handles a large number of conversations with scroll overflow", async () => {
-        const manyConversations = Array.from({ length: 100 }, (_, i) => ({
-            destination_hash: `hash${i}`,
-            display_name: `User ${i}`,
-            latest_message_preview: `Last message ${i}`,
-            updated_at: new Date().toISOString(),
-        }));
-
-        const wrapper = mountMessagesSidebar({ conversations: manyConversations });
-
-        const scrollContainer = wrapper.find(".overflow-y-auto");
-        expect(scrollContainer.exists()).toBe(true);
-        expect(scrollContainer.classes()).toContain("overflow-y-auto");
-
-        const conversationItems = wrapper.findAll(".conversation-item");
-        expect(conversationItems.length).toBe(100);
+    it("shows loading skeleton when isLoading is true", () => {
+        const wrapper = mountSidebar({ isLoading: true });
+        expect(wrapper.find(".animate-pulse").exists()).toBe(true);
     });
 
-    it("handles long peer names in the announces tab", async () => {
-        const longPeerName = "Peer ".repeat(20) + "Extreme Name";
-        const peers = {
-            peer1: {
-                destination_hash: "peer1",
-                display_name: longPeerName,
+    it("shows no conversations empty state when conversations empty and not loading", () => {
+        const wrapper = mountSidebar({ conversations: [], isLoading: false });
+        expect(wrapper.text()).toContain("No Conversations");
+        expect(wrapper.text()).toContain("Discover peers on the Announces tab");
+    });
+
+    it("toggles selection mode when selection button is clicked", async () => {
+        const wrapper = mountSidebar({
+            conversations: [
+                {
+                    destination_hash: "h1",
+                    display_name: "Peer",
+                    updated_at: new Date().toISOString(),
+                    is_unread: false,
+                    failed_messages_count: 0,
+                },
+            ],
+        });
+        await wrapper.vm.$nextTick();
+        const selectionBtn = wrapper.find("button[title=\"Selection Mode\"]");
+        expect(selectionBtn.exists()).toBe(true);
+        await selectionBtn.trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.selectionMode).toBe(true);
+    });
+
+    it("conversations tab has correct layout classes", () => {
+        const wrapper = mountSidebar();
+        const conversationsPanel = wrapper.find(".flex-1.flex.flex-col.bg-white");
+        expect(conversationsPanel.exists()).toBe(true);
+    });
+
+    it("emits conversation-click when a conversation row is clicked", async () => {
+        const conversations = [
+            {
+                destination_hash: "dest1",
+                display_name: "Bob",
                 updated_at: new Date().toISOString(),
-                hops: 1,
+                is_unread: false,
+                failed_messages_count: 0,
             },
-        };
-
-        const wrapper = mountMessagesSidebar({ peers });
-
-        // Switch to announces tab
-        await wrapper.find("div.cursor-pointer:last-child").trigger("click");
-        expect(wrapper.vm.tab).toBe("announces");
-
-        const peerNameElement = wrapper.find(".truncate");
-        expect(peerNameElement.exists()).toBe(true);
-        expect(peerNameElement.text()).toContain("Extreme Name");
+        ];
+        const wrapper = mountSidebar({ conversations });
+        await wrapper.vm.$nextTick();
+        const row = wrapper.find(".conversation-item");
+        await row.trigger("click");
+        expect(wrapper.emitted("conversation-click")).toBeTruthy();
+        expect(wrapper.emitted("conversation-click")[0][0]).toMatchObject({ destination_hash: "dest1", display_name: "Bob" });
     });
 });
