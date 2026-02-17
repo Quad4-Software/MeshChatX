@@ -1,11 +1,11 @@
 <template>
     <div
-        class="interface-card transition-all duration-300"
+        class="interface-card min-w-0 transition-all duration-300"
         :class="{
             'opacity-60 grayscale-[0.5]': !isInterfaceEnabled(iface) || iface._restart_required || !isReticulumRunning,
         }"
     >
-        <div class="flex gap-4 items-start relative">
+        <div class="flex flex-col sm:flex-row gap-4 sm:items-start relative">
             <!-- Offline Overlay -->
             <div
                 v-if="!isReticulumRunning"
@@ -32,21 +32,22 @@
                 </div>
             </div>
 
-            <div class="interface-card__icon">
-                <MaterialDesignIcon :icon-name="iconName" class="w-6 h-6" />
-            </div>
-            <div class="flex-1 space-y-2">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <div class="text-lg font-semibold text-gray-900 dark:text-white truncate">{{ iface._name }}</div>
-                    <span class="type-chip">{{ iface.type }}</span>
-                    <span :class="statusChipClass">{{
-                        isInterfaceEnabled(iface) ? $t("app.enabled") : $t("app.disabled")
-                    }}</span>
-                    <span v-if="isDiscoverable()" class="discoverable-chip">Discoverable</span>
+            <div class="flex gap-4 min-w-0 flex-1 sm:flex-initial">
+                <div class="interface-card__icon shrink-0">
+                    <MaterialDesignIcon :icon-name="iconName" class="w-6 h-6" />
                 </div>
-                <div class="text-sm text-gray-600 dark:text-gray-300">
-                    {{ description }}
-                </div>
+                <div class="flex-1 min-w-0 space-y-2 overflow-hidden">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="text-lg font-semibold text-gray-900 dark:text-white truncate min-w-0">{{ iface._name }}</div>
+                        <span class="type-chip shrink-0">{{ iface.type }}</span>
+                        <span :class="statusChipClass" class="shrink-0">{{
+                            isInterfaceEnabled(iface) ? $t("app.enabled") : $t("app.disabled")
+                        }}</span>
+                        <span v-if="isDiscoverable()" class="discoverable-chip shrink-0">Discoverable</span>
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300 break-words min-w-0">
+                        {{ description }}
+                    </div>
                 <div class="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
                     <span v-if="iface._stats?.bitrate" class="stat-chip"
                         >{{ $t("interface.bitrate") }} {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</span
@@ -72,22 +73,23 @@
                         {{ iface._stats.ifac_signature.slice(0, 8) }}…{{ iface._stats.ifac_signature.slice(-8) }}
                     </button>
                 </div>
+                </div>
             </div>
-            <div class="flex flex-col gap-2 items-end relative">
+            <div class="flex flex-col sm:flex-row gap-2 sm:items-center items-end sm:shrink-0 justify-end sm:justify-end relative">
                 <button
                     v-if="isInterfaceEnabled(iface)"
                     type="button"
-                    class="secondary-chip text-xs"
+                    class="secondary-chip text-xs shrink-0"
                     @click="disableInterface"
                 >
                     <MaterialDesignIcon icon-name="power" class="w-4 h-4" />
                     {{ $t("interface.disable") }}
                 </button>
-                <button v-else type="button" class="primary-chip text-xs" @click="enableInterface">
+                <button v-else type="button" class="primary-chip text-xs shrink-0" @click="enableInterface">
                     <MaterialDesignIcon icon-name="power" class="w-4 h-4" />
                     {{ $t("interface.enable") }}
                 </button>
-                <div class="relative z-50">
+                <div class="relative z-50 shrink-0">
                     <DropDownMenu>
                         <template #button>
                             <IconButton>
@@ -122,37 +124,37 @@
             <div v-if="iface.type === 'UDPInterface'" class="detail-grid">
                 <div>
                     <div class="detail-label">{{ $t("interface.listen") }}</div>
-                    <div class="detail-value">{{ iface.listen_ip }}:{{ iface.listen_port }}</div>
+                    <div class="detail-value min-w-0 break-all">{{ iface.listen_ip }}:{{ iface.listen_port }}</div>
                 </div>
                 <div>
                     <div class="detail-label">{{ $t("interface.forward") }}</div>
-                    <div class="detail-value">{{ iface.forward_ip }}:{{ iface.forward_port }}</div>
+                    <div class="detail-value min-w-0 break-all">{{ iface.forward_ip }}:{{ iface.forward_port }}</div>
                 </div>
             </div>
             <div v-else-if="iface.type === 'RNodeInterface'" class="detail-grid">
                 <div>
                     <div class="detail-label">{{ $t("interface.port") }}</div>
-                    <div class="detail-value">{{ iface.port }}</div>
+                    <div class="detail-value min-w-0 break-all">{{ iface.port }}</div>
                 </div>
                 <div>
                     <div class="detail-label">{{ $t("interface.frequency") }}</div>
-                    <div class="detail-value">{{ formatFrequency(iface.frequency) }}</div>
+                    <div class="detail-value min-w-0 break-all">{{ formatFrequency(iface.frequency) }}</div>
                 </div>
                 <div>
                     <div class="detail-label">{{ $t("interface.bandwidth") }}</div>
-                    <div class="detail-value">{{ formatFrequency(iface.bandwidth) }}</div>
+                    <div class="detail-value min-w-0 break-all">{{ formatFrequency(iface.bandwidth) }}</div>
                 </div>
                 <div>
                     <div class="detail-label">{{ $t("interface.spreading_factor") }}</div>
-                    <div class="detail-value">{{ iface.spreadingfactor }}</div>
+                    <div class="detail-value min-w-0 break-all">{{ iface.spreadingfactor }}</div>
                 </div>
                 <div>
                     <div class="detail-label">{{ $t("interface.coding_rate") }}</div>
-                    <div class="detail-value">{{ iface.codingrate }}</div>
+                    <div class="detail-value min-w-0 break-all">{{ iface.codingrate }}</div>
                 </div>
                 <div>
                     <div class="detail-label">{{ $t("interface.txpower") }}</div>
-                    <div class="detail-value">{{ iface.txpower }} dBm</div>
+                    <div class="detail-value min-w-0 break-all">{{ iface.txpower }} dBm</div>
                 </div>
             </div>
         </div>
@@ -285,7 +287,7 @@ export default {
 
 <style scoped>
 .interface-card {
-    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3 hover:z-10;
+    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3 hover:z-10 min-w-0;
     overflow: visible;
 }
 .interface-card__icon {
@@ -310,6 +312,6 @@ export default {
     @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
 }
 .detail-value {
-    @apply text-sm font-medium text-gray-900 dark:text-white;
+    @apply text-sm font-medium text-gray-900 dark:text-white min-w-0 break-all;
 }
 </style>

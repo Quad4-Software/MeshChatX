@@ -196,14 +196,6 @@
                     >
                         <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
                     </button>
-                    <button
-                        type="button"
-                        class="p-1 rounded-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                        title="Ingest Paper Message"
-                        @click="openIngestPaperMessageModal"
-                    >
-                        <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
-                    </button>
                 </div>
                 <div
                     v-if="selectionMode"
@@ -438,6 +430,14 @@
                         >
                             <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />
                             <span class="font-medium">Mark as Read</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="contextMenuIngestPaperMessage"
+                        >
+                            <MaterialDesignIcon icon-name="qrcode-scan" class="size-4 text-gray-400" />
+                            <span class="font-medium">{{ $t("messages.ingest_paper_message") }}</span>
                         </button>
                         <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
                         <button
@@ -1027,6 +1027,10 @@ export default {
             return this.blockedDestinations.some((b) => b.destination_hash === destinationHash);
         },
         openIngestPaperMessageModal() {
+            this.$emit("ingest-paper-message");
+        },
+        contextMenuIngestPaperMessage() {
+            this.contextMenu.show = false;
             this.$emit("ingest-paper-message");
         },
         onConversationClick(conversation) {
