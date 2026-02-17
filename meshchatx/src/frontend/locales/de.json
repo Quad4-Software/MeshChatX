@@ -579,6 +579,7 @@
         "view_on_map": "Auf Karte anzeigen",
         "request": "Anfordern",
         "generate_paper_message": "Papier-Nachricht erstellen (LXM)",
+        "ingest_paper_message": "Papier-Nachricht erfassen",
         "recording": "Aufnahme: {duration}",
         "nomad_network_node": "Nomad Network Knoten",
         "toggle_source": "Quellcode umschalten",
