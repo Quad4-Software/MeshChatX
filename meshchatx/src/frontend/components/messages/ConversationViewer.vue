@@ -811,9 +811,9 @@
                                         class="size-3 text-blue-300"
                                         title="Delivered"
                                     />
-                                    <!-- sent: single check -->
+                                    <!-- sent: single check (include unknown for initial outbound when server confirmed creation) -->
                                     <MaterialDesignIcon
-                                        v-else-if="['sent', 'propagated'].includes(chatItem.lxmf_message.state)"
+                                        v-else-if="['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)"
                                         icon-name="check"
                                         class="size-3 text-white/90"
                                         :title="
