@@ -17,7 +17,6 @@ jobs:
               uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
               with:
                   node-version: 24
-                  cache: pnpm
             - name: Install pnpm
               run: corepack enable && corepack prepare pnpm@10.30.0 --activate
             - name: Setup Python
@@ -33,7 +32,9 @@ jobs:
             - name: Setup Python environment
               run: task setup:be
             - name: pip-audit
-              run: poetry run pip install pip-audit && poetry run pip-audit
+              run: |
+                  poetry run pip install --upgrade "pip>=26.0" pip-audit
+                  poetry run pip-audit
             - name: Install Node dependencies
               run: task deps:fe
             - name: pnpm audit
@@ -52,7 +53,6 @@ jobs:
               uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
               with:
                   node-version: 24
-                  cache: pnpm
             - name: Install pnpm
               run: corepack enable && corepack prepare pnpm@10.30.0 --activate
             - name: Setup Task
@@ -102,7 +102,6 @@ jobs:
               uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
               with:
                   node-version: 24
-                  cache: pnpm
             - name: Install pnpm
               run: corepack enable && corepack prepare pnpm@10.30.0 --activate
             - name: Setup Python
@@ -118,7 +117,9 @@ jobs:
             - name: Install dependencies
               run: task install
             - name: pip-audit
-              run: poetry run pip install pip-audit && poetry run pip-audit
+              run: |
+                  poetry run pip install --upgrade "pip>=26.0" pip-audit
+                  poetry run pip-audit
             - name: pnpm audit
               run: pnpm audit --audit-level=high
             - name: Run language tests
