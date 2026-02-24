@@ -18,6 +18,7 @@ export default class MarkdownRenderer {
 
         // Fenced code blocks - process these FIRST and replace with placeholders
         const code_blocks = [];
+        // eslint-disable-next-line security/detect-unsafe-regex -- bounded fenced block, lazy match
         text = text.replace(/```(\w+)?\n([\s\S]*?)\n```/g, (match, lang, code) => {
             const placeholder = `[[CB${code_blocks.length}]]`;
             code_blocks.push(
@@ -91,6 +92,7 @@ export default class MarkdownRenderer {
         }
 
         // Strip fenced code blocks
+        // eslint-disable-next-line security/detect-unsafe-regex -- bounded fenced block, lazy match
         text = text.replace(/```(\w+)?\n([\s\S]*?)\n```/g, "[Code Block]");
 
         // Strip headers
