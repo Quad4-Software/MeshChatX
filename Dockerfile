@@ -22,7 +22,7 @@ RUN apk upgrade --no-cache && \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 COPY pyproject.toml poetry.lock ./
-RUN pip install --no-cache-dir --upgrade "pip>=25.3" poetry setuptools wheel "jaraco.context>=6.1.0" && \
+RUN pip install --no-cache-dir --upgrade "pip>=26.0" poetry setuptools wheel "jaraco.context>=6.1.0" && \
     poetry config virtualenvs.create false && \
     poetry install --no-root --only main && \
     rm -rf /root/.cache/pip /root/.cache/pypoetry
@@ -44,7 +44,7 @@ WORKDIR /app
 # We keep py3-setuptools because CFFI/LXST might need it at runtime on Python 3.12+
 RUN apk upgrade --no-cache && \
     apk add --no-cache ffmpeg opusfile libffi py3-setuptools espeak-ng && \
-    python -m pip install --no-cache-dir --upgrade "pip>=25.3" "jaraco.context>=6.1.0" && \
+    python -m pip install --no-cache-dir --upgrade "pip>=26.0" "jaraco.context>=6.1.0" && \
     rm -rf /root/.cache/pip && \
     addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
     mkdir -p /config && chown meshchat:meshchat /config
