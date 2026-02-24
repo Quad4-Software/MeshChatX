@@ -846,6 +846,7 @@ export default {
                 .replace(/'/g, "&#039;");
 
             const query = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            // eslint-disable-next-line security/detect-non-literal-regexp -- query is escaped above
             const regex = new RegExp(`(${query})`, "gi");
             return escapedText.replace(
                 regex,

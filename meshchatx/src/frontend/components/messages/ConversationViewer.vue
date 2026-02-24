@@ -2315,6 +2315,7 @@ export default {
 
             // Parse contact: Contact: ivan <ca314c30b27eacec5f6ca6ac504e94c9> [LXMF: ...] [LXST: ...]
             const contactMatch = content.match(
+                // eslint-disable-next-line security/detect-unsafe-regex -- bounded pattern, single-line contact header
                 /^Contact:\s+(.+?)\s+<([a-fA-F0-9]{32})>(?:\s+\[LXMF:\s+([a-fA-F0-9]{32})\])?(?:\s+\[LXST:\s+([a-fA-F0-9]{32})\])?/i
             );
             if (contactMatch) {
