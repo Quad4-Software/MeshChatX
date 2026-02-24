@@ -267,8 +267,8 @@ class IdentityContext:
         self.telephone_manager.get_name_for_identity_hash = (
             self.app.get_name_for_identity_hash
         )
-        self.telephone_manager.on_initiation_status_callback = (
-            lambda status, target: self.app.on_telephone_initiation_status(
+        self.telephone_manager.on_initiation_status_callback = lambda status, target: (
+            self.app.on_telephone_initiation_status(
                 status,
                 target,
                 context=self,
@@ -297,8 +297,8 @@ class IdentityContext:
         self.voicemail_manager.get_name_for_identity_hash = (
             self.app.get_name_for_identity_hash
         )
-        self.voicemail_manager.on_new_voicemail_callback = (
-            lambda vm: self.app.on_new_voicemail_received(vm, context=self)
+        self.voicemail_manager.on_new_voicemail_callback = lambda vm: (
+            self.app.on_new_voicemail_received(vm, context=self)
         )
 
         self.ringtone_manager = RingtoneManager(
@@ -415,32 +415,28 @@ class IdentityContext:
             ),
             AnnounceHandler(
                 "lxmf.propagation",
-                lambda aspect,
-                dh,
-                ai,
-                ad,
-                aph: self.app.on_lxmf_propagation_announce_received(
-                    aspect,
-                    dh,
-                    ai,
-                    ad,
-                    aph,
-                    context=self,
+                lambda aspect, dh, ai, ad, aph: (
+                    self.app.on_lxmf_propagation_announce_received(
+                        aspect,
+                        dh,
+                        ai,
+                        ad,
+                        aph,
+                        context=self,
+                    )
                 ),
             ),
             AnnounceHandler(
                 "nomadnetwork.node",
-                lambda aspect,
-                dh,
-                ai,
-                ad,
-                aph: self.app.on_nomadnet_node_announce_received(
-                    aspect,
-                    dh,
-                    ai,
-                    ad,
-                    aph,
-                    context=self,
+                lambda aspect, dh, ai, ad, aph: (
+                    self.app.on_nomadnet_node_announce_received(
+                        aspect,
+                        dh,
+                        ai,
+                        ad,
+                        aph,
+                        context=self,
+                    )
                 ),
             ),
         ]

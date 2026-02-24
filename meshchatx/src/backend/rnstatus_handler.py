@@ -103,8 +103,10 @@ class RNStatusHandler:
                 )
             elif sorting in ("announces", "announce"):
                 interfaces.sort(
-                    key=lambda i: (i.get("incoming_announce_frequency", 0) or 0)
-                    + (i.get("outgoing_announce_frequency", 0) or 0),
+                    key=lambda i: (
+                        (i.get("incoming_announce_frequency", 0) or 0)
+                        + (i.get("outgoing_announce_frequency", 0) or 0)
+                    ),
                     reverse=sort_reverse,
                 )
             elif sorting == "arx":
