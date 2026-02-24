@@ -87,8 +87,7 @@
             "@isaacs/brace-expansion": ">=5.0.1",
             "tmp": ">=0.2.4",
             "tar": ">=7.5.7",
-            "minimatch": ">=10.2.1",
-            "ajv": ">=8.18.0"
+            "minimatch": ">=10.2.1"
         }
     },
     "build": {
