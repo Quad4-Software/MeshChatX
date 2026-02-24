@@ -59,6 +59,8 @@ export default [
             "vue/multi-word-component-names": "off",
             "no-unused-vars": "warn",
             "no-console": "off",
+            "security/detect-object-injection": "off",
+            "security/detect-non-literal-fs-filename": "off",
         },
     },
 ];
