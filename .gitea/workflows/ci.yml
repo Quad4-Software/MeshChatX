@@ -18,6 +18,8 @@ jobs:
               with:
                   node-version: 24
                   cache: pnpm
+            - name: Install pnpm
+              run: corepack enable && corepack prepare pnpm@10.30.0 --activate
             - name: Setup Python
               uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
               with:
@@ -47,6 +49,8 @@ jobs:
               with:
                   node-version: 24
                   cache: pnpm
+            - name: Install pnpm
+              run: corepack enable && corepack prepare pnpm@10.30.0 --activate
             - name: Setup Task
               uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
               with:
@@ -93,6 +97,8 @@ jobs:
               with:
                   node-version: 24
                   cache: pnpm
+            - name: Install pnpm
+              run: corepack enable && corepack prepare pnpm@10.30.0 --activate
             - name: Setup Python
               uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
               with:

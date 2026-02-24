@@ -20,6 +20,9 @@ jobs:
                   node-version: 24
                   cache: pnpm
 
+            - name: Install pnpm
+              run: corepack enable && corepack prepare pnpm@10.30.0 --activate
+
             - name: Setup Python
               uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
               with:
