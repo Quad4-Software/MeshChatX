@@ -1,5 +1,7 @@
 # Reticulum MeshChatX
 
+[Todo](https://todo.quad4.io/1/public/boards/QMC3b2ztD4FAWr7GaErN9HQY) - Website (Soon)
+
 > [!WARNING]  
 > Backup your reticulum-meshchat folder before using! MeshChatX will attempt to auto-migrate whatever it can from the old database without breaking things, but it is best to keep backups.
 
@@ -26,7 +28,7 @@ To provide everything you need for Reticulum, LXMF, and LXST in one beautiful an
 
 - Desktop app (Linux, Windows, macOS)
 - Self-host on your server easily with or without containers
-- Mobile app (one can dream)
+- Mobile support (Android)
 - Reliable, secure, fast and easy to use.
 
 Note on macOS: You will need to manually build or use containers since I do not have a macOS machine or runner.
