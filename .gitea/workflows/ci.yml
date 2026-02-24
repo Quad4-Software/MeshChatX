@@ -32,8 +32,12 @@ jobs:
               run: pip install poetry
             - name: Setup Python environment
               run: task setup:be
+            - name: pip-audit
+              run: poetry run pip install pip-audit && poetry run pip-audit
             - name: Install Node dependencies
               run: task deps:fe
+            - name: pnpm audit
+              run: pnpm audit --audit-level=high
             - name: Lint
               run: |
                   set -o pipefail
@@ -57,6 +61,8 @@ jobs:
                   version: "3.46.3"
             - name: Install dependencies
               run: task deps:fe
+            - name: pnpm audit
+              run: pnpm audit --audit-level=high
             - name: Determine version
               id: version
               run: |
@@ -111,6 +117,10 @@ jobs:
               run: pip install poetry
             - name: Install dependencies
               run: task install
+            - name: pip-audit
+              run: poetry run pip install pip-audit && poetry run pip-audit
+            - name: pnpm audit
+              run: pnpm audit --audit-level=high
             - name: Run language tests
               run: |
                   set -o pipefail
