@@ -1,4 +1,4 @@
-ARG NODE_IMAGE=node:22-alpine
+ARG NODE_IMAGE=node:24-alpine
 ARG NODE_HASH=sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf
 ARG PYTHON_IMAGE=python:3.12.12-alpine3.23
 ARG PYTHON_HASH=sha256:036871e8860c254533e1d4c2842568f19a56d1afbaed99653ee6206bf9491f6e
@@ -8,7 +8,7 @@ FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 COPY package.json pnpm-lock.yaml vite.config.js tailwind.config.js postcss.config.js ./
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
-RUN corepack enable && corepack prepare pnpm@10.27.0 --activate && \
+RUN corepack enable && corepack prepare pnpm@10.30.0 --activate && \
     pnpm install --frozen-lockfile && \
     pnpm run build-frontend
 
@@ -32,7 +32,7 @@ COPY meshchatx ./meshchatx
 COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
 
 # Install the package itself into the venv
-RUN pip install . && \
+RUN pip install --no-cache-dir . && \
     # Trigger LXST filter compilation while build tools are still present
     python -c "import LXST.Filters; print('LXST Filters compiled successfully')" && \
     python -m compileall /opt/venv/lib/python3.12/site-packages
