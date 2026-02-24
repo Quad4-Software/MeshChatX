@@ -157,9 +157,7 @@ async def test_status_includes_sync_storage_and_confirmation_metrics(mock_app):
         if r.path == "/api/v1/lxmf/propagation-node/sync"
     )
 
-    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = (
-        b"somehash"
-    )
+    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = b"somehash"
     mock_app.current_context.message_router.propagation_transfer_last_result = 8
 
     with (
@@ -213,9 +211,7 @@ async def test_status_hidden_metric_is_clamped_to_zero(mock_app):
         if r.path == "/api/v1/lxmf/propagation-node/sync"
     )
 
-    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = (
-        b"somehash"
-    )
+    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = b"somehash"
     mock_app.current_context.message_router.propagation_transfer_last_result = 1
 
     with (

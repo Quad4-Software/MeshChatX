@@ -77,7 +77,7 @@ class TestMarkdownRenderer(unittest.TestCase):
         cases = [
             "<script>alert(1)</script>",
             "<SCRIPT>alert(1)</SCRIPT>",
-            "<script src=\"evil.js\"></script>",
+            '<script src="evil.js"></script>',
             "</script><script>alert(1)</script>",
         ]
         for s in cases:

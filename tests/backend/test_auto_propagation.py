@@ -93,8 +93,8 @@ async def test_auto_propagation_logic():
         # announce1 is 1 hop, but probe fails
         # announce3 is 2 hops, probe succeeds
         mock_hops.side_effect = lambda dh: 1 if dh == bytes.fromhex("aaaa1111") else 2
-        mock_probe.side_effect = (
-            lambda dh: False if dh == bytes.fromhex("aaaa1111") else True
+        mock_probe.side_effect = lambda dh: (
+            False if dh == bytes.fromhex("aaaa1111") else True
         )
 
         await manager.check_and_update_propagation_node()

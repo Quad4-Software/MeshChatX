@@ -9,7 +9,16 @@ class TestBase64DecodeRisky(unittest.TestCase):
             from meshchatx.src.backend.meshchat_utils import parse_lxmf_display_name
         except ImportError:
             self.skipTest("meshchat_utils not importable")
-        for bad in ["!!!", "\x00\x01", "a" * 10000, " ", "=", "===", "a\nb\tc", "\xff\xfe"]:
+        for bad in [
+            "!!!",
+            "\x00\x01",
+            "a" * 10000,
+            " ",
+            "=",
+            "===",
+            "a\nb\tc",
+            "\xff\xfe",
+        ]:
             result = parse_lxmf_display_name(bad, default_value="Fallback")
             self.assertIsInstance(result, str)
 

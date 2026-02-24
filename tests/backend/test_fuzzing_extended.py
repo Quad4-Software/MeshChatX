@@ -353,17 +353,19 @@ def test_markdown_renderer_fuzzing(text):
 @given(
     text=st.one_of(
         st.text(min_size=0, max_size=5000),
-        st.sampled_from([
-            "<script>alert(1)</script>",
-            "[x](javascript:alert(1))",
-            "[x](data:text/html,<script>alert(1)</script>)",
-            "**" * 2000,
-            "#" * 2000,
-            "`" * 2000,
-            "[](" * 500 + ")" * 500,
-            "\x00\x01\x02\n\t",
-            "\ufffd" * 100,
-        ]),
+        st.sampled_from(
+            [
+                "<script>alert(1)</script>",
+                "[x](javascript:alert(1))",
+                "[x](data:text/html,<script>alert(1)</script>)",
+                "**" * 2000,
+                "#" * 2000,
+                "`" * 2000,
+                "[](" * 500 + ")" * 500,
+                "\x00\x01\x02\n\t",
+                "\ufffd" * 100,
+            ]
+        ),
     ),
 )
 def test_markdown_renderer_dangerous_patterns(text):
