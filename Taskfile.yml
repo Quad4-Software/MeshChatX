@@ -114,6 +114,10 @@ tasks:
 
     # --- Code Quality ---
 
+    lint:
+        desc: Run all linters
+        deps: [lint:fe, lint:be]
+
     lint:all:
         desc: Run all linters
         deps: [lint:fe, lint:be]
