@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import pluginVue from "eslint-plugin-vue";
 import pluginPrettier from "eslint-plugin-prettier/recommended";
+import pluginSecurity from "eslint-plugin-security";
 import globals from "globals";
 
 export default [
@@ -51,6 +52,7 @@ export default [
     js.configs.recommended,
     ...pluginVue.configs["flat/recommended"],
     pluginPrettier,
+    pluginSecurity.configs.recommended,
     {
         files: ["**/*.{js,mjs,cjs,vue}"],
         rules: {
