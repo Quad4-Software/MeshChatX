@@ -96,8 +96,9 @@ class IdentityContext:
     def setup(self):
         print(f"Setting up Identity Context for {self.identity_hash}...")
 
-        # 0. Clear any previous integrity issues on the app
+        # 0. Clear any previous integrity and database health issues on the app
         self.app.integrity_issues = []
+        self.app.database_health_issues = []
 
         # 1. Cleanup RNS state for this identity if any lingers
         self.app.cleanup_rns_state_for_identity(self.identity.hash)
@@ -177,6 +178,14 @@ class IdentityContext:
         # Vacuum and mark stuck messages
         self.database.provider.vacuum()
         self.database.messages.mark_stuck_messages_as_failed()
+
+        if not getattr(self.app, "emergency", False):
+            db_issues = self.database.check_db_health_at_open(self.storage_path)
+            if db_issues:
+                self.app.database_health_issues = db_issues
+                print(
+                    f"Database health check for {self.identity_hash}: {', '.join(db_issues)}",
+                )
 
         # 4. Initialize LXMF Router
         propagation_stamp_cost = self.config.lxmf_propagation_node_stamp_cost.get()
@@ -560,6 +569,14 @@ class IdentityContext:
 
         if self.database:
             try:
+                if not getattr(self.app, "emergency", False):
+                    close_issues = self.database.check_db_health_at_close(
+                        self.storage_path,
+                    )
+                    if close_issues:
+                        print(
+                            f"Database health at close for {self.identity_hash}: {', '.join(close_issues)}",
+                        )
                 # 1. Checkpoint WAL and close database cleanly to ensure file is stable for hashing
                 self.database._checkpoint_and_close()
             except Exception as e:
