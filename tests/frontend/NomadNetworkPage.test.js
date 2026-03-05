@@ -93,4 +93,49 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.isShowingNodePageSource).toBe(true);
         }
     });
+
+    describe("partials", () => {
+        it("clearPartials resets partial state and timers", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.pagePartials = { "partial-0": "<span>x</span>" };
+            wrapper.vm.partialIdsByKey = { "abc:path": [] };
+            wrapper.vm.partialRefreshByKey = { "abc:path": 10 };
+            wrapper.vm.partialRefreshTimers = { "abc:path": 12345 };
+
+            wrapper.vm.clearPartials();
+
+            expect(wrapper.vm.pagePartials).toEqual({});
+            expect(wrapper.vm.partialIdsByKey).toEqual({});
+            expect(wrapper.vm.partialRefreshByKey).toEqual({});
+            expect(wrapper.vm.partialRefreshTimers).toEqual({});
+        });
+
+        it("renderPageContent with .mu and pagePartials injects partial content", () => {
+            const dest = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.pagePartials = { "partial-0": "<span>Loaded partial</span>" };
+            const content = "Hello\n`{" + dest + ":/page/partial.mu}\nWorld";
+            const path = dest + ":/page/index.mu";
+
+            const html = wrapper.vm.renderPageContent(path, content);
+
+            expect(html).toContain("Loaded partial");
+            expect(html).not.toContain("Loading...");
+            expect(html).toContain("H");
+            expect(html).toContain("W");
+        });
+
+        it("renderPageContent without pagePartials shows placeholder for partial", () => {
+            const dest = "b".repeat(32);
+            const wrapper = mountNomadNetworkPage();
+            const content = "`{" + dest + ":/page/partial.mu}";
+            const path = dest + ":/page/index.mu";
+
+            const html = wrapper.vm.renderPageContent(path, content);
+
+            expect(html).toContain("mu-partial");
+            expect(html).toContain("Loading...");
+            expect(html).toContain('data-dest="' + dest + '"');
+        });
+    });
 });

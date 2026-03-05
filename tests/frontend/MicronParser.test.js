@@ -8,6 +8,34 @@ describe("MicronParser.js", () => {
         parser = new MicronParser(true, false); // darkTheme = true, enableForceMonospace = false
     });
 
+    describe("PARTIAL_LINE_REGEX", () => {
+        it("matches partial without refresh", () => {
+            const m = "`{f64a846313b874ee4a357040807f8c77:/page/partial.mu}"
+                .trim()
+                .match(MicronParser.PARTIAL_LINE_REGEX);
+            expect(m).not.toBeNull();
+            expect(m[1]).toBe("f64a846313b874ee4a357040807f8c77");
+            expect(m[2]).toBe("/page/partial.mu");
+            expect(m[3]).toBeUndefined();
+        });
+
+        it("matches partial with refresh", () => {
+            const m = "`{f64a846313b874ee4a357040807f8c77:/page/ref.mu`30}"
+                .trim()
+                .match(MicronParser.PARTIAL_LINE_REGEX);
+            expect(m).not.toBeNull();
+            expect(m[3]).toBe("30");
+        });
+
+        it("does not match without leading backtick", () => {
+            expect("{f64a846313b874ee4a357040807f8c77:/page/x.mu}".match(MicronParser.PARTIAL_LINE_REGEX)).toBeNull();
+        });
+
+        it("does not match short hash", () => {
+            expect("`{f64a846313b874ee4a35704:/page/x.mu}".match(MicronParser.PARTIAL_LINE_REGEX)).toBeNull();
+        });
+    });
+
     describe("formatNomadnetworkUrl", () => {
         it("formats nomadnetwork URL correctly", () => {
             expect(MicronParser.formatNomadnetworkUrl("example.com")).toBe("nomadnetwork://example.com");
@@ -97,6 +125,69 @@ describe("MicronParser.js", () => {
             expect(html).toContain('name="checkbox_name"');
             expect(html).toContain('value="val"');
             expect(html).toContain("Checkbox Label");
+        });
+
+        describe("partials", () => {
+            it("emits placeholder for partial line without refresh", () => {
+                const dest = "f64a846313b874ee4a357040807f8c77";
+                const path = "/page/partial_1.mu";
+                const markup = "`{" + dest + ":" + path + "}";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-partial"');
+                expect(html).toContain('data-partial-id="partial-0"');
+                expect(html).toContain('data-dest="' + dest + '"');
+                expect(html).toContain('data-path="' + path + '"');
+                expect(html).not.toContain("data-refresh");
+                expect(html).toContain("Loading...");
+            });
+
+            it("emits placeholder for partial line with refresh seconds", () => {
+                const dest = "f64a846313b874ee4a357040807f8c77";
+                const path = "/page/refreshing_partial.mu";
+                const markup = "`{" + dest + ":" + path + "`10}";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('class="mu-partial"');
+                expect(html).toContain('data-partial-id="partial-0"');
+                expect(html).toContain('data-dest="' + dest + '"');
+                expect(html).toContain('data-path="' + path + '"');
+                expect(html).toContain('data-refresh="10"');
+                expect(html).toContain("Loading...");
+            });
+
+            it("injects partialContents when provided", () => {
+                const dest = "a".repeat(32);
+                const path = "/page/partial.mu";
+                const markup = "`{" + dest + ":" + path + "}";
+                const injected = "<span>Injected partial content</span>";
+                const html = parser.convertMicronToHtml(markup, { "partial-0": injected });
+                expect(html).toContain(injected);
+                expect(html).not.toContain("Loading...");
+                expect(html).not.toContain("mu-partial");
+            });
+
+            it("assigns unique partial ids for multiple partials", () => {
+                const dest = "b".repeat(32);
+                const markup = "`{" + dest + ":/page/a.mu}\n`{" + dest + ":/page/b.mu}";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain('data-partial-id="partial-0"');
+                expect(html).toContain('data-partial-id="partial-1"');
+                expect(html).toContain('data-path="/page/a.mu"');
+                expect(html).toContain('data-path="/page/b.mu"');
+            });
+
+            it("does not interpret partial syntax inside literal block", () => {
+                const dest = "c".repeat(32);
+                const markup = "`=\n`{" + dest + ":/page/partial.mu}\n`=";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain("mu-partial");
+                expect(html).toContain("`{" + dest + ":/page/partial.mu}");
+            });
+
+            it("does not treat similar-looking line as partial without backtick", () => {
+                const markup = "{f64a846313b874ee4a357040807f8c77:/page/partial.mu}";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).not.toContain("mu-partial");
+            });
         });
     });
 
