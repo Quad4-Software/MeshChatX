@@ -8,6 +8,7 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
+from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.colour_utils import ColourUtils
 from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
@@ -315,6 +316,46 @@ def test_interface_config_parser_structured(names, keys, values):
             assert iface["name"] in names
     except Exception as e:
         pytest.fail(f"InterfaceConfigParser.parse failed on structured input: {e}")
+
+
+@given(
+    interfaces=st.lists(
+        st.dictionaries(
+            keys=st.sampled_from(
+                [
+                    "name",
+                    "type",
+                    "reachable_on",
+                    "target_host",
+                    "remote",
+                    "listen_ip",
+                    "port",
+                    "target_port",
+                    "listen_port",
+                    "discovery_hash",
+                    "transport_id",
+                    "network_id",
+                ]
+            ),
+            values=st.one_of(st.text(), st.integers(), st.none()),
+            max_size=12,
+        ),
+        max_size=40,
+    ),
+    whitelist=st.one_of(st.text(), st.lists(st.text(), max_size=20), st.none()),
+    blacklist=st.one_of(st.text(), st.lists(st.text(), max_size=20), st.none()),
+)
+def test_discovery_filter_robustness(interfaces, whitelist, blacklist):
+    try:
+        filtered = ReticulumMeshChat.filter_discovered_interfaces(
+            interfaces,
+            whitelist,
+            blacklist,
+        )
+    except Exception as e:
+        pytest.fail(f"Discovery filtering crashed: {e}")
+    assert isinstance(filtered, list)
+    assert len(filtered) <= len(interfaces)
 
 
 # Strategy for a database message row
@@ -870,3 +911,39 @@ def test_parse_lxmf_display_name_extended(aspect, data):
         assert isinstance(result, str)
     except Exception:
         pass
+
+
+MIN_SIZE_RATIO = 0.2
+
+
+def _is_backup_suspicious_reference(current_stats, baseline):
+    if not baseline:
+        return False
+    prev_count = baseline.get("message_count", 0)
+    prev_bytes = baseline.get("total_bytes", 0)
+    curr_count = current_stats.get("message_count", 0)
+    curr_bytes = current_stats.get("total_bytes", 0)
+    if prev_count > 0 and curr_count == 0:
+        return True
+    if prev_bytes > 100_000 and curr_bytes < prev_bytes * MIN_SIZE_RATIO:
+        return True
+    return False
+
+
+@given(
+    prev_count=st.integers(min_value=0, max_value=1_000_000),
+    prev_bytes=st.integers(min_value=0, max_value=10_000_000),
+    curr_count=st.integers(min_value=0, max_value=1_000_000),
+    curr_bytes=st.integers(min_value=0, max_value=10_000_000),
+)
+@settings(suppress_health_check=[HealthCheck.too_slow])
+def test_is_backup_suspicious_property(prev_count, prev_bytes, curr_count, curr_bytes):
+    from meshchatx.src.backend.database import Database
+
+    baseline = {"message_count": prev_count, "total_bytes": prev_bytes}
+    current_stats = {"message_count": curr_count, "total_bytes": curr_bytes}
+    db = Database(":memory:")
+    db.initialize()
+    result = db._is_backup_suspicious(current_stats, baseline)
+    expected = _is_backup_suspicious_reference(current_stats, baseline)
+    assert result == expected

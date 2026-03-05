@@ -50,6 +50,8 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
             "reticulum": {
                 "discover_interfaces": "true",
                 "interface_discovery_sources": "abc,def",
+                "interface_discovery_whitelist": "tcp-*,10.0.*",
+                "interface_discovery_blacklist": "tcp-bad,*:9999",
                 "required_discovery_value": "16",
                 "autoconnect_discovered_interfaces": "2",
                 "network_identity": "/tmp/net_id",
@@ -93,6 +95,8 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         get_data = json.loads(get_response.body)
         assert get_data["discovery"]["discover_interfaces"] == "true"
         assert get_data["discovery"]["interface_discovery_sources"] == "abc,def"
+        assert get_data["discovery"]["interface_discovery_whitelist"] == "tcp-*,10.0.*"
+        assert get_data["discovery"]["interface_discovery_blacklist"] == "tcp-bad,*:9999"
         assert get_data["discovery"]["required_discovery_value"] == "16"
         assert get_data["discovery"]["autoconnect_discovered_interfaces"] == "2"
         assert get_data["discovery"]["network_identity"] == "/tmp/net_id"
@@ -101,6 +105,8 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         new_config = {
             "discover_interfaces": False,
             "interface_discovery_sources": "",
+            "interface_discovery_whitelist": "peer-*,172.16.*",
+            "interface_discovery_blacklist": "",
             "required_discovery_value": 18,
             "autoconnect_discovered_interfaces": 5,
             "network_identity": "/tmp/other_id",
@@ -115,15 +121,152 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         patch_data = json.loads(patch_response.body)
         assert patch_data["discovery"]["discover_interfaces"] is False
         assert patch_data["discovery"]["interface_discovery_sources"] is None
+        assert patch_data["discovery"]["interface_discovery_whitelist"] == "peer-*,172.16.*"
+        assert patch_data["discovery"]["interface_discovery_blacklist"] is None
         assert patch_data["discovery"]["required_discovery_value"] == 18
         assert patch_data["discovery"]["autoconnect_discovered_interfaces"] == 5
         assert patch_data["discovery"]["network_identity"] == "/tmp/other_id"
         assert config["reticulum"]["discover_interfaces"] is False
         assert "interface_discovery_sources" not in config["reticulum"]
+        assert config["reticulum"]["interface_discovery_whitelist"] == "peer-*,172.16.*"
+        assert "interface_discovery_blacklist" not in config["reticulum"]
         assert config["reticulum"]["required_discovery_value"] == 18
         assert config["reticulum"]["autoconnect_discovered_interfaces"] == 5
         assert config["reticulum"]["network_identity"] == "/tmp/other_id"
         assert config.write_called
+
+
+@pytest.mark.asyncio
+async def test_discovered_interfaces_respect_whitelist_and_blacklist(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {
+                "interface_discovery_whitelist": "peer-*,10.0.*",
+                "interface_discovery_blacklist": "*:9999,bad-*",
+            },
+            "interfaces": {},
+        },
+    )
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+        patch("meshchatx.meshchat.InterfaceDiscovery") as mock_discovery_cls,
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+        mock_reticulum.get_interface_stats.return_value = {"interfaces": []}
+
+        mock_discovery = mock_discovery_cls.return_value
+        mock_discovery.list_discovered_interfaces.return_value = [
+            {
+                "name": "peer-good-1",
+                "type": "TCPClientInterface",
+                "reachable_on": "10.0.0.7",
+                "port": 4242,
+            },
+            {
+                "name": "peer-blocked-port",
+                "type": "TCPClientInterface",
+                "reachable_on": "10.0.0.8",
+                "port": 9999,
+            },
+            {
+                "name": "bad-node",
+                "type": "TCPClientInterface",
+                "reachable_on": "10.0.0.9",
+                "port": 4242,
+            },
+            {
+                "name": "other-network",
+                "type": "TCPClientInterface",
+                "reachable_on": "192.168.1.10",
+                "port": 4242,
+            },
+        ]
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/discovered-interfaces",
+            "GET",
+        )
+        assert handler
+
+        response = await handler(MagicMock())
+        data = json.loads(response.body)
+        interfaces = data["interfaces"]
+
+        assert len(interfaces) == 1
+        assert interfaces[0]["name"] == "peer-good-1"
+
+
+@pytest.mark.asyncio
+async def test_discovery_patch_sanitizes_whitelist_blacklist_values(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        patch_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/discovery",
+            "PATCH",
+        )
+        assert patch_handler
+
+        payload = {
+            "interface_discovery_whitelist": "peer-1,\npeer-1,host:4242,\r\n,\n",
+            "interface_discovery_blacklist": ["bad-node", "bad-node", "evil,\nentry"],
+        }
+
+        class PatchRequest:
+            @staticmethod
+            async def json():
+                return payload
+
+        response = await patch_handler(PatchRequest())
+        data = json.loads(response.body)
+
+        assert data["discovery"]["interface_discovery_whitelist"] == "peer-1,host:4242"
+        assert data["discovery"]["interface_discovery_blacklist"] == "bad-node,evilentry"
+        assert config["reticulum"]["interface_discovery_whitelist"] == "peer-1,host:4242"
+        assert config["reticulum"]["interface_discovery_blacklist"] == "bad-node,evilentry"
+        assert config.write_called
+
+
+def test_filter_discovered_interfaces_handles_non_list_inputs():
+    result = ReticulumMeshChat.filter_discovered_interfaces(
+        {"unexpected": "shape"},
+        "peer-*",
+        "bad-*",
+    )
+    assert result == {"unexpected": "shape"}
 
 
 @pytest.mark.asyncio

@@ -160,7 +160,11 @@ def test_database_integrity_recovery(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
         patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
+        patch(
+            "meshchatx.src.backend.identity_context.IntegrityManager",
+        ) as mock_im_class,
     ):
+        mock_im_class.return_value.check_integrity.return_value = (True, [])
         mock_db_instance = mock_db_class.return_value
         # Fail the first initialize call
         mock_db_instance.initialize.side_effect = [
@@ -228,7 +232,64 @@ def test_identity_loading_fallback(mock_rns, temp_dir):
         mock_gen_id.get_private_key.assert_called()
 
 
-# 4. Test flags/envs
+# 4. Database health issues set on setup and exposed to app
+def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database") as mock_db_class,
+        patch(
+            "meshchatx.src.backend.identity_context.ConfigManager",
+        ) as mock_config_class,
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.DocsManager"),
+        patch("meshchatx.src.backend.identity_context.NomadNetworkManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
+        patch(
+            "meshchatx.src.backend.identity_context.IntegrityManager",
+        ) as mock_int_class,
+        patch("aiohttp.web.run_app"),
+    ):
+        mock_int_class.return_value.check_integrity.return_value = (True, [])
+        mock_db_instance = mock_db_class.return_value
+        mock_db_instance.check_db_health_at_open.return_value = [
+            "Database content anomaly: test."
+        ]
+        mock_config = mock_config_class.return_value
+        mock_config.auth_session_secret.get.return_value = base64.urlsafe_b64encode(
+            secrets.token_bytes(32),
+        ).decode()
+        mock_config.display_name.get.return_value = "Test"
+        mock_config.lxmf_propagation_node_stamp_cost.get.return_value = 0
+        mock_config.lxmf_delivery_transfer_limit_in_bytes.get.return_value = 1000000
+        mock_config.lxmf_inbound_stamp_cost.get.return_value = 0
+        mock_config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
+        mock_config.lxmf_local_propagation_node_enabled.get.return_value = False
+        mock_config.libretranslate_url.get.return_value = "http://localhost:5000"
+        mock_config.translator_enabled.get.return_value = False
+        mock_config.initial_docs_download_attempted.get.return_value = True
+
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.run(host="127.0.0.1", port=8000, launch_browser=False, enable_https=False)
+        assert getattr(app, "database_health_issues", []) == [
+            "Database content anomaly: test."
+        ]
+        app.teardown_identity()
+
+
+# 5. Test flags/envs
 def test_cli_flags_and_envs(mock_rns, temp_dir):
     with (
         patch("meshchatx.meshchat.ReticulumMeshChat") as mock_app_class,

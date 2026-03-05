@@ -13,6 +13,21 @@ from hypothesis import strategies as st
 from meshchatx.meshchat import ReticulumMeshChat
 
 
+@given(value=st.one_of(st.text(), st.lists(st.text(), min_size=0, max_size=20)))
+@settings(deadline=None)
+def test_discovery_pattern_sanitization_never_emits_unsafe_tokens(value):
+    patterns = ReticulumMeshChat.sanitize_discovery_patterns(value)
+    assert isinstance(patterns, list)
+    assert len(patterns) <= 128
+    for token in patterns:
+        assert token
+        assert len(token) <= 128
+        assert "," not in token
+        assert "\n" not in token
+        assert "\r" not in token
+        assert token.strip() == token
+
+
 @pytest.fixture
 def mock_app():
     # Save real Identity class to use as base for our mock class
@@ -1278,6 +1293,346 @@ def test_nomadnet_page_content_fuzzing(mock_app, page_content):
     )
 
     convert_nomadnet_field_data_to_map(page_content)
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(path_data=st.one_of(st.text(min_size=0, max_size=10000), st.none()))
+def test_nomadnet_string_data_to_map_fuzzing(mock_app, path_data):
+    """Fuzz NomadNet path variable string parsing (e.g. after backtick in page path)."""
+    from meshchatx.src.backend.nomadnet_utils import convert_nomadnet_string_data_to_map
+
+    result = convert_nomadnet_string_data_to_map(path_data)
+    assert isinstance(result, dict)
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    download_id=st.one_of(
+        st.integers(),
+        st.text(min_size=0, max_size=200),
+        st.none(),
+    ),
+)
+def test_nomadnet_download_cancel_fuzzing(mock_app, download_id):
+    """Fuzz nomadnet.download.cancel WebSocket handler."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(
+                MagicMock(),
+                {"type": "nomadnet.download.cancel", "download_id": download_id},
+            ),
+        )
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    destination_hash=st.text(min_size=0, max_size=200),
+    page_path=st.text(min_size=0, max_size=2000),
+)
+def test_nomadnet_page_archives_get_fuzzing(mock_app, destination_hash, page_path):
+    """Fuzz nomadnet.page.archives.get WebSocket handler."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(
+                MagicMock(),
+                {
+                    "type": "nomadnet.page.archives.get",
+                    "destination_hash": destination_hash,
+                    "page_path": page_path,
+                },
+            ),
+        )
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    archive_id=st.one_of(
+        st.integers(),
+        st.text(min_size=0, max_size=100),
+        st.floats(allow_nan=False, allow_infinity=False),
+        st.none(),
+    ),
+)
+def test_nomadnet_page_archive_load_fuzzing(mock_app, archive_id):
+    """Fuzz nomadnet.page.archive.load and get_archived_page_by_id."""
+    mock_app.database.misc.get_archived_page_by_id(archive_id)
+    import asyncio
+
+    mock_app.database.misc.get_archived_page_by_id.return_value = None
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(
+                MagicMock(),
+                {"type": "nomadnet.page.archive.load", "archive_id": archive_id},
+            ),
+        )
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    destination_hash=st.text(min_size=0, max_size=200),
+    page_path=st.text(min_size=0, max_size=2000),
+    content=st.one_of(
+        st.text(min_size=0, max_size=50000),
+        st.binary(min_size=0, max_size=10000),
+    ),
+)
+def test_nomadnet_page_archive_add_fuzzing(
+    mock_app, destination_hash, page_path, content
+):
+    """Fuzz nomadnet.page.archive.add WebSocket handler and archive_page."""
+    import asyncio
+
+    content_str = (
+        content.decode("utf-8", errors="replace")
+        if isinstance(content, bytes)
+        else content
+    )
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(
+                MagicMock(),
+                {
+                    "type": "nomadnet.page.archive.add",
+                    "destination_hash": destination_hash,
+                    "page_path": page_path,
+                    "content": content_str,
+                },
+            ),
+        )
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    destination_hash=st.text(min_size=0, max_size=200),
+    file_path=st.text(min_size=0, max_size=2000),
+)
+def test_nomadnet_file_download_fuzzing(mock_app, destination_hash, file_path):
+    """Fuzz nomadnet.file.download WebSocket handler (path traversal, malformed hash)."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        payload = {
+            "type": "nomadnet.file.download",
+            "nomadnet_file_download": {
+                "destination_hash": destination_hash,
+                "file_path": file_path,
+            },
+        }
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(MagicMock(), payload),
+        )
+    except (ValueError, TypeError):
+        pass
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    destination_hash=st.text(min_size=0, max_size=200),
+    page_path=st.text(min_size=0, max_size=2000),
+    field_data=st.one_of(
+        st.dictionaries(
+            keys=st.text(),
+            values=st.one_of(st.text(), st.integers(), st.booleans(), st.none()),
+        ),
+        st.text(min_size=0, max_size=5000),
+        st.lists(st.text(), min_size=0, max_size=20),
+        st.none(),
+    ),
+)
+def test_nomadnet_page_download_fuzzing(
+    mock_app, destination_hash, page_path, field_data
+):
+    """Fuzz nomadnet.page.download WebSocket handler (page_path with backtick, field_data)."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        payload = {
+            "type": "nomadnet.page.download",
+            "nomadnet_page_download": {
+                "destination_hash": destination_hash,
+                "page_path": page_path,
+                "field_data": field_data,
+            },
+        }
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(MagicMock(), payload),
+        )
+    except (ValueError, TypeError):
+        pass
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(archive_id=st.one_of(st.integers(), st.text(), st.floats(), st.none()))
+def test_get_archived_page_by_id_fuzzing(mock_app, archive_id):
+    """Fuzz archived page lookup by id (SQL injection, type confusion)."""
+    mock_app.database.misc.get_archived_page_by_id(archive_id)
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    forward_to_hash=st.text(min_size=0, max_size=100),
+    identity_hash=st.one_of(st.text(min_size=0, max_size=100), st.none()),
+    source_filter_hash=st.one_of(st.text(min_size=0, max_size=100), st.none()),
+    is_active=st.one_of(st.booleans(), st.integers(), st.none()),
+    name=st.one_of(st.text(min_size=0, max_size=200), st.none()),
+)
+def test_lxmf_forwarding_rule_add_fuzzing(
+    mock_app,
+    forward_to_hash,
+    identity_hash,
+    source_filter_hash,
+    is_active,
+    name,
+):
+    """Fuzz lxmf.forwarding.rule.add WebSocket handler and create_forwarding_rule."""
+    import asyncio
+
+    rule = {"forward_to_hash": forward_to_hash}
+    if identity_hash is not None:
+        rule["identity_hash"] = identity_hash
+    if source_filter_hash is not None:
+        rule["source_filter_hash"] = source_filter_hash
+    if is_active is not None:
+        rule["is_active"] = is_active
+    if name is not None:
+        rule["name"] = name
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(
+                MagicMock(),
+                {"type": "lxmf.forwarding.rule.add", "rule": rule},
+            ),
+        )
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    rule_id=st.one_of(st.integers(), st.text(min_size=0, max_size=50), st.none()),
+)
+def test_lxmf_forwarding_rule_delete_fuzzing(mock_app, rule_id):
+    """Fuzz lxmf.forwarding.rule.delete WebSocket handler."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(
+                MagicMock(),
+                {"type": "lxmf.forwarding.rule.delete", "id": rule_id},
+            ),
+        )
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    rule_id=st.one_of(st.integers(), st.text(min_size=0, max_size=50), st.none()),
+)
+def test_lxmf_forwarding_rule_toggle_fuzzing(mock_app, rule_id):
+    """Fuzz lxmf.forwarding.rule.toggle WebSocket handler."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(
+                MagicMock(),
+                {"type": "lxmf.forwarding.rule.toggle", "id": rule_id},
+            ),
+        )
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(
+    action=st.text(min_size=0, max_size=200),
+    keys=st.one_of(
+        st.lists(st.text(), min_size=0, max_size=20),
+        st.text(min_size=0, max_size=500),
+        st.integers(),
+    ),
+)
+def test_keyboard_shortcuts_set_fuzzing(mock_app, action, keys):
+    """Fuzz keyboard_shortcuts.set WebSocket handler (action and keys)."""
+    import asyncio
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            mock_app.on_websocket_data_received(
+                MagicMock(),
+                {"type": "keyboard_shortcuts.set", "action": action, "keys": keys},
+            ),
+        )
+    except (KeyError, TypeError, ValueError):
+        pass
+    finally:
+        loop.close()
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(message_hash=st.text(min_size=0, max_size=200))
+def test_messages_get_by_hash_fuzzing(mock_app, message_hash):
+    """Fuzz message lookup by hash (SQL, type confusion)."""
+    mock_app.database.messages.get_lxmf_message_by_hash(message_hash)
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(message_hash=st.text(min_size=0, max_size=200))
+def test_messages_delete_by_hash_fuzzing(mock_app, message_hash):
+    """Fuzz single message delete by hash."""
+    try:
+        mock_app.database.messages.delete_lxmf_message_by_hash(message_hash)
+    except Exception:
+        pass
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(message_hashes=st.lists(st.text(min_size=0, max_size=100), min_size=0, max_size=50))
+def test_messages_delete_by_hashes_fuzzing(mock_app, message_hashes):
+    """Fuzz bulk message delete by hashes."""
+    try:
+        mock_app.database.messages.delete_lxmf_messages_by_hashes(message_hashes)
+    except Exception:
+        pass
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
