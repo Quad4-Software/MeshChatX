@@ -259,9 +259,7 @@
                                                     class="w-3.5 h-3.5"
                                                 />
                                                 <span>{{
-                                                    isDiscoveredBlacklisted(iface)
-                                                        ? "Blacklisted"
-                                                        : $t("app.disabled")
+                                                    isDiscoveredBlacklisted(iface) ? "Blacklisted" : $t("app.disabled")
                                                 }}</span>
                                             </div>
                                         </div>
@@ -1152,12 +1150,14 @@ export default {
             return regex.test(value);
         },
         isDiscoveredBlacklisted(iface) {
-            const blacklist = this.normalizeDiscoveryPatternInput(this.discoveryConfig.interface_discovery_blacklist).map(
-                (pattern) => this.sanitizeDiscoveryPattern(pattern).toLowerCase()
-            );
+            const blacklist = this.normalizeDiscoveryPatternInput(
+                this.discoveryConfig.interface_discovery_blacklist
+            ).map((pattern) => this.sanitizeDiscoveryPattern(pattern).toLowerCase());
             if (!blacklist.length) return false;
             const candidates = this.discoveryFilterCandidates(iface);
-            return blacklist.some((pattern) => candidates.some((candidate) => this.matchesDiscoveryGlob(pattern, candidate)));
+            return blacklist.some((pattern) =>
+                candidates.some((candidate) => this.matchesDiscoveryGlob(pattern, candidate))
+            );
         },
         discoveryPatternToken(iface) {
             const host = this.sanitizeDiscoveryPattern(
@@ -1183,8 +1183,12 @@ export default {
 
             this.savingDiscoveryAction = true;
             try {
-                const whitelist = this.normalizeDiscoveryPatternInput(this.discoveryConfig.interface_discovery_whitelist);
-                const blacklist = this.normalizeDiscoveryPatternInput(this.discoveryConfig.interface_discovery_blacklist);
+                const whitelist = this.normalizeDiscoveryPatternInput(
+                    this.discoveryConfig.interface_discovery_whitelist
+                );
+                const blacklist = this.normalizeDiscoveryPatternInput(
+                    this.discoveryConfig.interface_discovery_blacklist
+                );
                 const tokenLower = token.toLowerCase();
                 const dedupe = (list) =>
                     list.filter(
