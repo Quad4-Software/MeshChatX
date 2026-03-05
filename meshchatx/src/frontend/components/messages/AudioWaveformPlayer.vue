@@ -17,7 +17,7 @@
         </button>
 
         <!-- Waveform and Progress -->
-        <div class="flex-1 relative h-10 group cursor-pointer" @mousedown="handleWaveformClick">
+        <div class="flex-1 relative h-11 group cursor-pointer min-w-0" @mousedown="handleWaveformClick">
             <div v-if="loading" class="absolute inset-0 flex items-center justify-center">
                 <div
                     class="size-4 border-2 border-current/20 border-t-current rounded-full animate-spin opacity-50"
@@ -80,6 +80,7 @@ export default {
             progressPercent: 0,
             hoverPercent: 0,
             animationFrame: null,
+            darkObserver: null,
         };
     },
     watch: {
@@ -92,10 +93,16 @@ export default {
     },
     mounted() {
         window.addEventListener("resize", this.drawWaveform);
+        this.darkObserver = new MutationObserver(() => this.drawWaveform());
+        this.darkObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     },
     beforeUnmount() {
         this.stopPlayback();
         window.removeEventListener("resize", this.drawWaveform);
+        if (this.darkObserver) {
+            this.darkObserver.disconnect();
+            this.darkObserver = null;
+        }
         if (this.audioContext) {
             this.audioContext.close();
         }
@@ -149,14 +156,13 @@ export default {
 
             ctx.clearRect(0, 0, width, height);
 
-            // Background waveform (grayish)
+            const dark = this.isDarkMode();
+            const waveBg = dark ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.2)";
+            const waveFg = dark ? "#fff" : "#000";
+
             ctx.beginPath();
-            if (this.isOutbound) {
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-            } else {
-                ctx.strokeStyle = this.isDarkMode() ? "#3f3f46" : "#d1d5db";
-            }
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = waveBg;
+            ctx.lineWidth = 1.5;
 
             for (let i = 0; i < width; i++) {
                 let min = 1.0;
@@ -175,12 +181,8 @@ export default {
             const progressX = (this.progressPercent / 100) * width;
             if (progressX > 0) {
                 ctx.beginPath();
-                if (this.isOutbound) {
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-                } else {
-                    ctx.strokeStyle = "#3b82f6";
-                }
-                ctx.lineWidth = 1.2;
+                ctx.strokeStyle = waveFg;
+                ctx.lineWidth = 2;
                 for (let i = 0; i < progressX; i++) {
                     let min = 1.0;
                     let max = -1.0;
