@@ -60,7 +60,7 @@
         "@vue/eslint-config-prettier": "^10.2.0",
         "@vue/test-utils": "^2.4.6",
         "autoprefixer": "^10.4.27",
-        "electron": "^39.7.0",
+        "electron": "^39.8.0",
         "electron-builder": "^26.8.1",
         "electron-builder-squirrel-windows": "^26.8.1",
         "eslint": "^9.39.3",
@@ -70,7 +70,7 @@
         "eslint-plugin-vue": "^10.8.0",
         "globals": "^16.5.0",
         "jsdom": "^26.1.0",
-        "postcss": "^8.5.6",
+        "postcss": "^8.5.8",
         "prettier": "^3.8.1",
         "tailwindcss": "^3.4.19",
         "terser": "^5.46.0",
@@ -85,6 +85,7 @@
         ],
         "overrides": {
             "@isaacs/brace-expansion": ">=5.0.1",
+            "@tootallnate/once": ">=3.0.1",
             "tmp": ">=0.2.4",
             "tar": ">=7.5.7",
             "minimatch": ">=10.2.1",
@@ -242,6 +243,6 @@
         "vue": "^3.5.29",
         "vue-i18n": "^11.2.8",
         "vue-router": "^4.6.4",
-        "vuetify": "^3.12.1"
+        "vuetify": "^3.12.2"
     }
 }
