@@ -1,16 +1,32 @@
-aiohttp>=3.12.14
-aiohttp-session>=2.12.0
-bcrypt>=4.0.1
-cryptography>=46.0.0
-cx_freeze>=7.0.0
-lxmf>=0.9.4
-lxmfy @ git+https://git.quad4.io/LXMFy/LXMFy.git
-lxst>=0.4.6
-psutil>=7.1.3
-rns>=1.1.3
-websockets>=14.2
-requests>=2.32.5
-hypothesis>=6.0.0
-ply>=3.11
-audioop-lts>=0.2.2
-jaraco.context>=6.1.0
+aiohappyeyeballs==2.6.1 ; python_version >= "3.11"
+aiohttp-session==2.12.1 ; python_version >= "3.11"
+aiohttp==3.13.3 ; python_version >= "3.11"
+aiosignal==1.4.0 ; python_version >= "3.11"
+attrs==25.4.0 ; python_version >= "3.11"
+audioop-lts==0.2.2 ; python_version >= "3.13"
+backports-tarfile==1.2.0 ; python_version == "3.11"
+bcrypt==5.0.0 ; python_version >= "3.11"
+certifi==2026.2.25 ; python_version >= "3.11"
+cffi==2.0.0 ; python_version >= "3.11"
+charset-normalizer==3.4.4 ; python_version >= "3.11"
+cryptography==46.0.5 ; python_version >= "3.11"
+frozenlist==1.8.0 ; python_version >= "3.11"
+idna==3.11 ; python_version >= "3.11"
+jaraco-context==6.1.0 ; python_version >= "3.11"
+lxmf==0.9.4 ; python_version >= "3.11"
+lxmfy @ git+https://git.quad4.io/LXMFy/LXMFy.git@0e26fd8bc91724d4a2f6d889097a8063b118045a ; python_version >= "3.11"
+lxst==0.4.6 ; python_version >= "3.11"
+multidict==6.7.1 ; python_version >= "3.11"
+numpy==2.4.2 ; python_version >= "3.11"
+ply==3.11 ; python_version >= "3.11"
+propcache==0.4.1 ; python_version >= "3.11"
+psutil==7.2.2 ; python_version >= "3.11"
+pycodec2==4.1.1 ; python_version >= "3.11"
+pycparser==3.0 ; python_version >= "3.11"
+pyserial==3.5 ; python_version >= "3.11"
+requests==2.32.5 ; python_version >= "3.11"
+rns==1.1.3 ; python_version >= "3.11"
+typing-extensions==4.15.0 ; python_version >= "3.11" and python_version < "3.13"
+urllib3==2.6.3 ; python_version >= "3.11"
+websockets==16.0 ; python_version >= "3.11"
+yarl==1.23.0 ; python_version >= "3.11"
