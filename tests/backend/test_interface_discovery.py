@@ -96,7 +96,9 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         assert get_data["discovery"]["discover_interfaces"] == "true"
         assert get_data["discovery"]["interface_discovery_sources"] == "abc,def"
         assert get_data["discovery"]["interface_discovery_whitelist"] == "tcp-*,10.0.*"
-        assert get_data["discovery"]["interface_discovery_blacklist"] == "tcp-bad,*:9999"
+        assert (
+            get_data["discovery"]["interface_discovery_blacklist"] == "tcp-bad,*:9999"
+        )
         assert get_data["discovery"]["required_discovery_value"] == "16"
         assert get_data["discovery"]["autoconnect_discovered_interfaces"] == "2"
         assert get_data["discovery"]["network_identity"] == "/tmp/net_id"
@@ -121,7 +123,10 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         patch_data = json.loads(patch_response.body)
         assert patch_data["discovery"]["discover_interfaces"] is False
         assert patch_data["discovery"]["interface_discovery_sources"] is None
-        assert patch_data["discovery"]["interface_discovery_whitelist"] == "peer-*,172.16.*"
+        assert (
+            patch_data["discovery"]["interface_discovery_whitelist"]
+            == "peer-*,172.16.*"
+        )
         assert patch_data["discovery"]["interface_discovery_blacklist"] is None
         assert patch_data["discovery"]["required_discovery_value"] == 18
         assert patch_data["discovery"]["autoconnect_discovered_interfaces"] == 5
@@ -254,9 +259,15 @@ async def test_discovery_patch_sanitizes_whitelist_blacklist_values(temp_dir):
         data = json.loads(response.body)
 
         assert data["discovery"]["interface_discovery_whitelist"] == "peer-1,host:4242"
-        assert data["discovery"]["interface_discovery_blacklist"] == "bad-node,evilentry"
-        assert config["reticulum"]["interface_discovery_whitelist"] == "peer-1,host:4242"
-        assert config["reticulum"]["interface_discovery_blacklist"] == "bad-node,evilentry"
+        assert (
+            data["discovery"]["interface_discovery_blacklist"] == "bad-node,evilentry"
+        )
+        assert (
+            config["reticulum"]["interface_discovery_whitelist"] == "peer-1,host:4242"
+        )
+        assert (
+            config["reticulum"]["interface_discovery_blacklist"] == "bad-node,evilentry"
+        )
         assert config.write_called
 
 

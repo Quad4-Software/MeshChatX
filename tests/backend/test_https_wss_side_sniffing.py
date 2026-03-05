@@ -163,5 +163,3 @@ async def test_wss_over_same_tls_port(ssl_context_and_cert):
         )
     finally:
         await runner.cleanup()
-
-

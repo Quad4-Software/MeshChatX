@@ -1626,7 +1626,9 @@ def test_messages_delete_by_hash_fuzzing(mock_app, message_hash):
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(message_hashes=st.lists(st.text(min_size=0, max_size=100), min_size=0, max_size=50))
+@given(
+    message_hashes=st.lists(st.text(min_size=0, max_size=100), min_size=0, max_size=50)
+)
 def test_messages_delete_by_hashes_fuzzing(mock_app, message_hashes):
     """Fuzz bulk message delete by hashes."""
     try:
