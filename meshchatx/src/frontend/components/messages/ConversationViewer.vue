@@ -418,6 +418,7 @@
                                 </div>
                                 <div class="text-xs opacity-70 truncate line-clamp-1 italic">
                                     {{
+                                        chatItem.lxmf_message.fields?.reply_quoted_content ||
                                         getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
                                         (chatItem.lxmf_message.reply_to_hash
                                             ? `Message <${chatItem.lxmf_message.reply_to_hash.substring(0, 8)}...>`
@@ -606,11 +607,9 @@
                                 />
 
                                 <!-- audio is not yet loaded -->
-                                <!-- min height to make sure audio player doesn't cause height increase after loading -->
                                 <div
                                     v-else
-                                    style="min-height: 54px"
-                                    class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800"
+                                    class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800 min-h-[54px]"
                                 >
                                     <div class="flex items-center gap-2">
                                         <div
@@ -3167,12 +3166,15 @@ export default {
 
                 // if no images, send message as usual
                 if (images.length === 0) {
+                    const repliedContent =
+                        this.replyingTo && this.getRepliedMessage(this.replyingTo.lxmf_message?.hash)?.content;
                     const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
                         delivery_method: this.newMessageDeliveryMethod,
                         lxmf_message: {
                             destination_hash: this.selectedPeer.destination_hash,
                             content: this.newMessageText,
                             reply_to_hash: this.replyingTo?.lxmf_message?.hash || null,
+                            reply_quoted_content: repliedContent || null,
                             fields: fields,
                         },
                     });
@@ -3193,12 +3195,15 @@ export default {
                         image: { image_type: firstImage.image_type, image_bytes: firstImage.image_bytes },
                     };
 
+                    const repliedContent =
+                        this.replyingTo && this.getRepliedMessage(this.replyingTo.lxmf_message?.hash)?.content;
                     const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
                         delivery_method: this.newMessageDeliveryMethod,
                         lxmf_message: {
                             destination_hash: this.selectedPeer.destination_hash,
                             content: this.newMessageText,
                             reply_to_hash: this.replyingTo?.lxmf_message?.hash || null,
+                            reply_quoted_content: repliedContent || null,
                             fields: firstFields,
                         },
                     });
@@ -3298,11 +3303,16 @@ export default {
 
             try {
                 // send message to reticulum
+                const replyQuoted =
+                    chatItem.lxmf_message.fields?.reply_quoted_content ||
+                    (chatItem.lxmf_message.reply_to_hash &&
+                        this.getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content);
                 const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
                     lxmf_message: {
                         destination_hash: chatItem.lxmf_message.destination_hash,
                         content: chatItem.lxmf_message.content,
                         reply_to_hash: chatItem.lxmf_message.reply_to_hash || null,
+                        reply_quoted_content: replyQuoted || null,
                         fields: chatItem.lxmf_message.fields,
                     },
                 });
