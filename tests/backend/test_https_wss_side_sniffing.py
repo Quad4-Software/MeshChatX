@@ -3,7 +3,6 @@ Tests that HTTPS/WSS is used so local traffic cannot be sniffed by other apps.
 Server must speak TLS only on the API/WS port; plain HTTP must not be accepted.
 """
 
-import asyncio
 import os
 import socket
 import ssl
