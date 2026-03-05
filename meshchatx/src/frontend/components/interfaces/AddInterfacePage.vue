@@ -1229,6 +1229,24 @@
                                 />
                             </div>
                             <div>
+                                <FormLabel class="mb-1">Discovery Whitelist</FormLabel>
+                                <input
+                                    v-model="reticulumDiscovery.interface_discovery_whitelist"
+                                    type="text"
+                                    placeholder="Names, hosts, ids, or host:port globs"
+                                    class="input-field"
+                                />
+                            </div>
+                            <div>
+                                <FormLabel class="mb-1">Discovery Blacklist</FormLabel>
+                                <input
+                                    v-model="reticulumDiscovery.interface_discovery_blacklist"
+                                    type="text"
+                                    placeholder="Names, hosts, ids, or host:port globs"
+                                    class="input-field"
+                                />
+                            </div>
+                            <div>
                                 <FormLabel class="mb-1">Required Stamp Value</FormLabel>
                                 <input
                                     v-model.number="reticulumDiscovery.required_discovery_value"
@@ -1369,6 +1387,8 @@ export default {
             reticulumDiscovery: {
                 discover_interfaces: false,
                 interface_discovery_sources: "",
+                interface_discovery_whitelist: "",
+                interface_discovery_blacklist: "",
                 required_discovery_value: null,
                 autoconnect_discovered_interfaces: 0,
                 network_identity: "",
@@ -1521,6 +1541,8 @@ export default {
                 const discovery = response.data?.discovery ?? {};
                 this.reticulumDiscovery.discover_interfaces = this.parseBool(discovery.discover_interfaces);
                 this.reticulumDiscovery.interface_discovery_sources = discovery.interface_discovery_sources ?? "";
+                this.reticulumDiscovery.interface_discovery_whitelist = discovery.interface_discovery_whitelist ?? "";
+                this.reticulumDiscovery.interface_discovery_blacklist = discovery.interface_discovery_blacklist ?? "";
                 this.reticulumDiscovery.required_discovery_value =
                     discovery.required_discovery_value !== undefined &&
                     discovery.required_discovery_value !== null &&
@@ -1546,6 +1568,8 @@ export default {
                 const payload = {
                     discover_interfaces: this.reticulumDiscovery.discover_interfaces,
                     interface_discovery_sources: this.reticulumDiscovery.interface_discovery_sources || null,
+                    interface_discovery_whitelist: this.reticulumDiscovery.interface_discovery_whitelist || null,
+                    interface_discovery_blacklist: this.reticulumDiscovery.interface_discovery_blacklist || null,
                     required_discovery_value:
                         this.reticulumDiscovery.required_discovery_value === null ||
                         this.reticulumDiscovery.required_discovery_value === ""

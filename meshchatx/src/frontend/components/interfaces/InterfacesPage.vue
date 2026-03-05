@@ -252,8 +252,17 @@
                                                 class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                                                 :class="{ 'animate-pulse': shouldAnimatePulse(iface) }"
                                             >
-                                                <MaterialDesignIcon icon-name="lan-disconnect" class="w-3.5 h-3.5" />
-                                                <span>{{ $t("app.disabled") }}</span>
+                                                <MaterialDesignIcon
+                                                    :icon-name="
+                                                        isDiscoveredBlacklisted(iface) ? 'cancel' : 'lan-disconnect'
+                                                    "
+                                                    class="w-3.5 h-3.5"
+                                                />
+                                                <span>{{
+                                                    isDiscoveredBlacklisted(iface)
+                                                        ? "Blacklisted"
+                                                        : $t("app.disabled")
+                                                }}</span>
                                             </div>
                                         </div>
 
@@ -382,6 +391,37 @@
                                         </div>
 
                                         <div class="flex flex-col gap-2 shrink-0">
+                                            <div class="relative">
+                                                <button
+                                                    type="button"
+                                                    class="secondary-chip !p-2 !rounded-xl"
+                                                    title="Discovery actions"
+                                                    @click="toggleDiscoveryActionsMenu(iface)"
+                                                >
+                                                    <MaterialDesignIcon icon-name="dots-vertical" class="w-4 h-4" />
+                                                </button>
+                                                <div
+                                                    v-if="openDiscoveryActionKey === discoveryKey(iface)"
+                                                    class="absolute right-0 mt-1 z-20 min-w-44 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
+                                                        :disabled="savingDiscoveryAction"
+                                                        @click="addDiscoveredInterfaceToList(iface, 'allow')"
+                                                    >
+                                                        Allow this announce
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-700 dark:text-red-300"
+                                                        :disabled="savingDiscoveryAction"
+                                                        @click="addDiscoveredInterfaceToList(iface, 'block')"
+                                                    >
+                                                        Blacklist this announce
+                                                    </button>
+                                                </div>
+                                            </div>
                                             <button
                                                 v-if="iface.latitude != null && iface.longitude != null"
                                                 type="button"
@@ -452,6 +492,28 @@
                                                 v-model="discoveryConfig.interface_discovery_sources"
                                                 type="text"
                                                 placeholder="Comma separated identity hashes"
+                                                class="input-field"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                Discovery Whitelist
+                                            </div>
+                                            <input
+                                                v-model="discoveryConfig.interface_discovery_whitelist"
+                                                type="text"
+                                                placeholder="Names, hosts, ids, or host:port globs"
+                                                class="input-field"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                Discovery Blacklist
+                                            </div>
+                                            <input
+                                                v-model="discoveryConfig.interface_discovery_blacklist"
+                                                type="text"
+                                                placeholder="Names, hosts, ids, or host:port globs"
                                                 class="input-field"
                                             />
                                         </div>
@@ -552,11 +614,15 @@ export default {
             discoveryConfig: {
                 discover_interfaces: false,
                 interface_discovery_sources: "",
+                interface_discovery_whitelist: "",
+                interface_discovery_blacklist: "",
                 required_discovery_value: null,
                 autoconnect_discovered_interfaces: 0,
                 network_identity: "",
             },
             savingDiscovery: false,
+            savingDiscoveryAction: false,
+            openDiscoveryActionKey: null,
             discoveredInterfaces: [],
             discoveredActive: [],
             discoveredStatusFilter: "all",
@@ -982,6 +1048,8 @@ export default {
                 const discovery = response.data?.discovery ?? {};
                 this.discoveryConfig.discover_interfaces = this.parseBool(discovery.discover_interfaces);
                 this.discoveryConfig.interface_discovery_sources = discovery.interface_discovery_sources ?? "";
+                this.discoveryConfig.interface_discovery_whitelist = discovery.interface_discovery_whitelist ?? "";
+                this.discoveryConfig.interface_discovery_blacklist = discovery.interface_discovery_blacklist ?? "";
                 this.discoveryConfig.required_discovery_value =
                     discovery.required_discovery_value !== undefined &&
                     discovery.required_discovery_value !== null &&
@@ -1006,6 +1074,8 @@ export default {
                 const payload = {
                     discover_interfaces: this.discoveryConfig.discover_interfaces,
                     interface_discovery_sources: this.discoveryConfig.interface_discovery_sources || null,
+                    interface_discovery_whitelist: this.discoveryConfig.interface_discovery_whitelist || null,
+                    interface_discovery_blacklist: this.discoveryConfig.interface_discovery_blacklist || null,
                     required_discovery_value:
                         this.discoveryConfig.required_discovery_value === null ||
                         this.discoveryConfig.required_discovery_value === ""
@@ -1027,6 +1097,130 @@ export default {
                 console.log(e);
             } finally {
                 this.savingDiscovery = false;
+            }
+        },
+        toggleDiscoveryActionsMenu(iface) {
+            const key = this.discoveryKey(iface);
+            this.openDiscoveryActionKey = this.openDiscoveryActionKey === key ? null : key;
+        },
+        normalizeDiscoveryPatternInput(value) {
+            if (!value) return [];
+            return String(value)
+                .replace(/\r?\n/g, ",")
+                .split(",")
+                .map((part) => part.trim())
+                .filter(Boolean);
+        },
+        sanitizeDiscoveryPattern(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/[\r\n,]/g, "")
+                .trim()
+                .slice(0, 128);
+        },
+        discoveryFilterCandidates(iface) {
+            const values = [
+                iface.name,
+                iface.type,
+                iface.reachable_on,
+                iface.target_host,
+                iface.remote,
+                iface.listen_ip,
+                iface.port,
+                iface.target_port,
+                iface.listen_port,
+                iface.discovery_hash,
+                iface.transport_id,
+                iface.network_id,
+            ]
+                .map((value) => this.sanitizeDiscoveryPattern(value))
+                .filter(Boolean);
+            const host = this.sanitizeDiscoveryPattern(
+                iface.reachable_on || iface.target_host || iface.remote || iface.listen_ip
+            );
+            const port = this.sanitizeDiscoveryPattern(iface.port || iface.target_port || iface.listen_port);
+            if (host && port) {
+                values.push(`${host}:${port}`);
+            }
+            return values.map((value) => value.toLowerCase());
+        },
+        matchesDiscoveryGlob(pattern, value) {
+            const escaped = String(pattern)
+                .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+                .replace(/\*/g, ".*");
+            const regex = new RegExp(`^${escaped}$`, "i");
+            return regex.test(value);
+        },
+        isDiscoveredBlacklisted(iface) {
+            const blacklist = this.normalizeDiscoveryPatternInput(this.discoveryConfig.interface_discovery_blacklist).map(
+                (pattern) => this.sanitizeDiscoveryPattern(pattern).toLowerCase()
+            );
+            if (!blacklist.length) return false;
+            const candidates = this.discoveryFilterCandidates(iface);
+            return blacklist.some((pattern) => candidates.some((candidate) => this.matchesDiscoveryGlob(pattern, candidate)));
+        },
+        discoveryPatternToken(iface) {
+            const host = this.sanitizeDiscoveryPattern(
+                iface.reachable_on || iface.target_host || iface.remote || iface.listen_ip
+            );
+            const port = this.sanitizeDiscoveryPattern(iface.port || iface.target_port || iface.listen_port);
+            if (host && port) return `${host}:${port}`;
+            return (
+                host ||
+                this.sanitizeDiscoveryPattern(iface.transport_id) ||
+                this.sanitizeDiscoveryPattern(iface.network_id) ||
+                this.sanitizeDiscoveryPattern(iface.name)
+            );
+        },
+        async addDiscoveredInterfaceToList(iface, action) {
+            if (this.savingDiscoveryAction) return;
+            const token = this.discoveryPatternToken(iface);
+            this.openDiscoveryActionKey = null;
+            if (!token) {
+                ToastUtils.error("Unable to identify a filter token from this announce");
+                return;
+            }
+
+            this.savingDiscoveryAction = true;
+            try {
+                const whitelist = this.normalizeDiscoveryPatternInput(this.discoveryConfig.interface_discovery_whitelist);
+                const blacklist = this.normalizeDiscoveryPatternInput(this.discoveryConfig.interface_discovery_blacklist);
+                const tokenLower = token.toLowerCase();
+                const dedupe = (list) =>
+                    list.filter(
+                        (entry, index, arr) =>
+                            arr.findIndex((candidate) => candidate.toLowerCase() === entry.toLowerCase()) === index
+                    );
+
+                let nextWhitelist = [...whitelist];
+                let nextBlacklist = [...blacklist];
+                if (action === "allow") {
+                    nextWhitelist.push(token);
+                    nextWhitelist = dedupe(nextWhitelist);
+                    nextBlacklist = nextBlacklist.filter((entry) => entry.toLowerCase() !== tokenLower);
+                } else {
+                    nextBlacklist.push(token);
+                    nextBlacklist = dedupe(nextBlacklist);
+                    nextWhitelist = nextWhitelist.filter((entry) => entry.toLowerCase() !== tokenLower);
+                }
+
+                const payload = {
+                    interface_discovery_whitelist: nextWhitelist.length ? nextWhitelist.join(",") : null,
+                    interface_discovery_blacklist: nextBlacklist.length ? nextBlacklist.join(",") : null,
+                };
+                await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
+                this.discoveryConfig.interface_discovery_whitelist = payload.interface_discovery_whitelist || "";
+                this.discoveryConfig.interface_discovery_blacklist = payload.interface_discovery_blacklist || "";
+                ToastUtils.success(
+                    action === "allow"
+                        ? `Added ${token} to discovery whitelist`
+                        : `Added ${token} to discovery blacklist`
+                );
+            } catch (e) {
+                ToastUtils.error(this.$t("interfaces.failed_save_discovery"));
+                console.log(e);
+            } finally {
+                this.savingDiscoveryAction = false;
             }
         },
         getDiscoveryIcon(iface) {
