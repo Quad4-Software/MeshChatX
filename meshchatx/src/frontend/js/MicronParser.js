@@ -114,7 +114,15 @@ class MicronParser {
         return { fg: pageFg, bg: pageBg };
     }
 
-    convertMicronToHtml(markup) {
+    /**
+     * Match partial include line: `{dest32hex:/path.mu}` or `{dest32hex:/path.mu`seconds}`.
+     */
+    static get PARTIAL_LINE_REGEX() {
+        // eslint-disable-next-line security/detect-unsafe-regex -- fixed pattern, bounded input (single line)
+        return /^`\{([a-f0-9]{32}):([^`}]*)(?:`(\d+))?\}$/;
+    }
+
+    convertMicronToHtml(markup, partialContents = {}) {
         if (markup == null) return "";
         if (typeof markup !== "string") markup = String(markup);
         let html = "";
@@ -141,6 +149,7 @@ class MicronParser {
             default_fg: defaultFg,
             default_bg: defaultBg,
             radio_groups: {},
+            partialIndex: 0,
         };
 
         const lines = markup.split("\n");
@@ -149,7 +158,16 @@ class MicronParser {
             const lineOutput = this.parseLine(line, state);
             if (lineOutput && lineOutput.length > 0) {
                 for (let el of lineOutput) {
-                    html += el.outerHTML;
+                    if (el.classList && el.classList.contains("mu-partial")) {
+                        const id = el.getAttribute("data-partial-id");
+                        if (id && partialContents[id]) {
+                            html += partialContents[id];
+                        } else {
+                            html += el.outerHTML;
+                        }
+                    } else {
+                        html += el.outerHTML;
+                    }
                 }
             } else if (lineOutput && lineOutput.length === 0) {
                 // skip
@@ -233,6 +251,24 @@ class MicronParser {
             }
 
             if (!state.literal) {
+                const partialMatch = line.trim().match(MicronParser.PARTIAL_LINE_REGEX);
+                if (partialMatch) {
+                    const dest = partialMatch[1];
+                    const path = partialMatch[2];
+                    const refresh = partialMatch[3] ? parseInt(partialMatch[3], 10) : null;
+                    const id = "partial-" + state.partialIndex++;
+                    const div = document.createElement("div");
+                    div.className = "mu-partial";
+                    div.setAttribute("data-partial-id", id);
+                    div.setAttribute("data-dest", dest);
+                    div.setAttribute("data-path", path);
+                    if (refresh != null && refresh > 0) {
+                        div.setAttribute("data-refresh", String(refresh));
+                    }
+                    div.textContent = "Loading...";
+                    return [div];
+                }
+
                 // Comments, and header tags s
                 if (line[0] === "#") {
                     return [];
