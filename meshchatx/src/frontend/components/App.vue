@@ -886,6 +886,12 @@ export default {
                     }
                     break;
                 }
+                case "database_health_warning": {
+                    if (json.issues && json.issues.length > 0) {
+                        ToastUtils.warning(json.issues.join(" ") || "Database issue detected.", 8000);
+                    }
+                    break;
+                }
                 case "identity_switched": {
                     ToastUtils.success(`Switched to identity: ${json.display_name}`);
 
@@ -910,6 +916,13 @@ export default {
             try {
                 const response = await window.axios.get(`/api/v1/app/info`);
                 this.appInfo = response.data.app_info;
+
+                if (this.appInfo.database_health_issues && this.appInfo.database_health_issues.length > 0) {
+                    const msg =
+                        this.appInfo.database_health_issues.join(" ") ||
+                        "Database issue detected. Check About > Database.";
+                    ToastUtils.warning(msg, 8000);
+                }
 
                 // check URL params for modal triggers
                 const urlParams = new URLSearchParams(window.location.search);
