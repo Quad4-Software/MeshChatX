@@ -12,12 +12,22 @@ if (fs.existsSync(assetsDir)) {
 export default {
     plugins: [vue(), vuetify()],
 
+    server: {
+        port: 5173,
+        proxy: {
+            "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
+            "/ws": { target: "ws://127.0.0.1:8000", ws: true },
+            "/ws/telephone/audio": { target: "ws://127.0.0.1:8000", ws: true },
+        },
+    },
+
     // vite app is loaded from /meshchatx/src/frontend
     root: path.join(__dirname, "meshchatx", "src", "frontend"),
 
     publicDir: path.join(__dirname, "meshchatx", "src", "frontend", "public"),
 
     build: {
+        sourcemap: false,
         minify: "terser",
         terserOptions: {
             compress: {
