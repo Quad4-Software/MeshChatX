@@ -1447,7 +1447,9 @@ class ReticulumMeshChat:
         sanitized = []
         seen = set()
         for pattern in ReticulumMeshChat.parse_discovery_patterns(value):
-            cleaned = pattern.replace("\r", "").replace("\n", "").replace(",", "").strip()
+            cleaned = (
+                pattern.replace("\r", "").replace("\n", "").replace(",", "").strip()
+            )
             if not cleaned:
                 continue
             cleaned = "".join(ch for ch in cleaned if ch.isprintable())
@@ -1518,7 +1520,9 @@ class ReticulumMeshChat:
         return False
 
     @staticmethod
-    def filter_discovered_interfaces(interfaces, whitelist_patterns, blacklist_patterns):
+    def filter_discovered_interfaces(
+        interfaces, whitelist_patterns, blacklist_patterns
+    ):
         if not isinstance(interfaces, list):
             return interfaces
         whitelist = ReticulumMeshChat.sanitize_discovery_patterns(whitelist_patterns)
@@ -1531,7 +1535,9 @@ class ReticulumMeshChat:
                     not whitelist
                     or ReticulumMeshChat.matches_discovery_pattern(whitelist, interface)
                 )
-                and not ReticulumMeshChat.matches_discovery_pattern(blacklist, interface)
+                and not ReticulumMeshChat.matches_discovery_pattern(
+                    blacklist, interface
+                )
             )
         ]
 
@@ -4702,8 +4708,12 @@ class ReticulumMeshChat:
                 discovery = InterfaceDiscovery(discover_interfaces=False)
                 interfaces = discovery.list_discovered_interfaces()
                 reticulum_config = self._get_reticulum_section()
-                whitelist_patterns = reticulum_config.get("interface_discovery_whitelist")
-                blacklist_patterns = reticulum_config.get("interface_discovery_blacklist")
+                whitelist_patterns = reticulum_config.get(
+                    "interface_discovery_whitelist"
+                )
+                blacklist_patterns = reticulum_config.get(
+                    "interface_discovery_blacklist"
+                )
                 interfaces = ReticulumMeshChat.filter_discovered_interfaces(
                     interfaces,
                     whitelist_patterns,
