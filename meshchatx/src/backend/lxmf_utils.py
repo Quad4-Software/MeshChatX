@@ -101,6 +101,12 @@ def convert_lxmf_message_to_dict(
         # handle reply_to field
         if field_type == 0x30:
             fields["reply_to"] = value.hex() if isinstance(value, bytes) else value
+        if field_type == 0x31:
+            fields["reply_quoted_content"] = (
+                value.decode("utf-8", errors="replace")
+                if isinstance(value, bytes)
+                else value
+            )
 
     # convert 0.0-1.0 progress to 0.00-100 percentage
     progress_percentage = round(lxmf_message.progress * 100, 2)
