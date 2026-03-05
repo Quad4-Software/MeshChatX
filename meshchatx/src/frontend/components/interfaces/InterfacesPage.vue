@@ -1146,6 +1146,7 @@ export default {
             const escaped = String(pattern)
                 .replace(/[.+^${}()|[\]\\]/g, "\\$&")
                 .replace(/\*/g, ".*");
+            /* eslint-disable-next-line security/detect-non-literal-regexp -- pattern is escaped above */
             const regex = new RegExp(`^${escaped}$`, "i");
             return regex.test(value);
         },
