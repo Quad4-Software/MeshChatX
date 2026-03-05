@@ -347,7 +347,7 @@
 </template>
 
 <script>
-import MicronParser from "micron-parser";
+import MicronParser from "../../js/MicronParser";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
@@ -417,6 +417,11 @@ export default {
             isShowingArchivedVersion: false,
             archivedAt: null,
             isSelectedNodeBlocked: false,
+
+            pagePartials: {},
+            partialIdsByKey: {},
+            partialRefreshByKey: {},
+            partialRefreshTimers: {},
         };
     },
     computed: {
@@ -447,8 +452,12 @@ export default {
             deep: true,
         },
     },
+    updated() {
+        this.$nextTick(() => this.processPartials());
+    },
     beforeUnmount() {
         clearInterval(this.reloadInterval);
+        this.clearPartials();
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -887,6 +896,7 @@ export default {
             this.nodePageContent = null;
             this.pageArchives = [];
             this.nodePageProgress = 0;
+            this.clearPartials();
 
             // update url bar
             this.nodePagePathUrlInput = this.nodePagePath;
@@ -964,6 +974,87 @@ export default {
                 }
             );
         },
+        clearPartials() {
+            Object.values(this.partialRefreshTimers).forEach((t) => clearTimeout(t));
+            this.partialRefreshTimers = {};
+            this.pagePartials = {};
+            this.partialIdsByKey = {};
+            this.partialRefreshByKey = {};
+        },
+        processPartials() {
+            if (!this.selectedNode || !this.nodePagePath || !this.nodePageContent || this.isShowingNodePageSource)
+                return;
+            const [pagePathWithoutData] = this.nodePagePath.split("`");
+            if (!pagePathWithoutData.endsWith(".mu")) return;
+
+            const container = this.$el.querySelector(".nodeContainer");
+            if (!container) return;
+
+            const placeholders = container.querySelectorAll(".mu-partial");
+            if (placeholders.length === 0) return;
+
+            const idsByKey = {};
+            const refreshByKey = {};
+            const needLoad = new Set();
+
+            placeholders.forEach((el) => {
+                const id = el.getAttribute("data-partial-id");
+                const dest = el.getAttribute("data-dest");
+                const path = el.getAttribute("data-path");
+                const refreshAttr = el.getAttribute("data-refresh");
+                const refresh = refreshAttr ? parseInt(refreshAttr, 10) : null;
+                const key = dest + ":" + path;
+                if (!idsByKey[key]) idsByKey[key] = [];
+                idsByKey[key].push({ id, refresh });
+                if (refresh != null && refresh > 0) {
+                    refreshByKey[key] = Math.min(refreshByKey[key] ?? Infinity, refresh);
+                }
+                if (!this.pagePartials[id]) needLoad.add(key);
+            });
+
+            this.partialIdsByKey = idsByKey;
+            this.partialRefreshByKey = refreshByKey;
+
+            const muParser = new MicronParser();
+            needLoad.forEach((key) => {
+                const colon = key.indexOf(":");
+                const dest = key.slice(0, colon);
+                const path = colon >= 0 ? key.slice(colon + 1) : "";
+                this.downloadNomadNetPage(
+                    dest,
+                    path,
+                    [],
+                    (pageContent) => {
+                        const html = muParser.convertMicronToHtml(pageContent);
+                        const ids = this.partialIdsByKey[key];
+                        if (ids) {
+                            const next = { ...this.pagePartials };
+                            ids.forEach(({ id }) => (next[id] = html));
+                            this.pagePartials = next;
+                        }
+                        const refreshSec = this.partialRefreshByKey[key];
+                        if (refreshSec != null && refreshSec > 0) {
+                            const scheduleRefresh = () => {
+                                this.partialRefreshTimers[key] = setTimeout(() => {
+                                    this.downloadNomadNetPage(dest, path, [], (content) => {
+                                        const h = muParser.convertMicronToHtml(content);
+                                        const idList = this.partialIdsByKey[key];
+                                        if (idList) {
+                                            const next = { ...this.pagePartials };
+                                            idList.forEach(({ id }) => (next[id] = h));
+                                            this.pagePartials = next;
+                                        }
+                                        scheduleRefresh();
+                                    });
+                                }, refreshSec * 1000);
+                            };
+                            scheduleRefresh();
+                        }
+                    },
+                    () => {}
+                );
+            });
+        },
         renderPageContent(path, content) {
             // render page content if we aren't viewing source
             if (!this.isShowingNodePageSource) {
@@ -974,7 +1065,7 @@ export default {
                 // convert micron to html if page ends with .mu extension
                 if (pagePathWithoutData.endsWith(".mu")) {
                     const muParser = new MicronParser();
-                    return muParser.convertMicronToHtml(content);
+                    return muParser.convertMicronToHtml(content, this.pagePartials);
                 }
             }
 
