@@ -7320,10 +7320,13 @@ class ReticulumMeshChat:
                             new_cmd[k] = v
                     commands.append(new_cmd)
 
-            # parse reply_to_hash
+            # parse reply_to_hash and reply_quoted_content
             reply_to_hash = None
             if "reply_to_hash" in data["lxmf_message"]:
                 reply_to_hash = data["lxmf_message"]["reply_to_hash"]
+            reply_quoted_content = (
+                data["lxmf_message"].get("reply_quoted_content") or None
+            )
 
             try:
                 # send lxmf message to destination
@@ -7337,6 +7340,7 @@ class ReticulumMeshChat:
                     commands=commands,
                     delivery_method=delivery_method,
                     reply_to_hash=reply_to_hash,
+                    reply_quoted_content=reply_quoted_content,
                 )
 
                 return web.json_response(
@@ -11079,6 +11083,7 @@ class ReticulumMeshChat:
         title: str = "",
         sender_identity_hash: str = None,
         reply_to_hash: str = None,
+        reply_quoted_content: str = None,
         no_display: bool = False,
         context=None,
     ) -> LXMF.LXMessage:
@@ -11209,6 +11214,8 @@ class ReticulumMeshChat:
         # add reply_to field
         if reply_to_hash is not None:
             lxmf_message.fields[0x30] = bytes.fromhex(reply_to_hash)
+        if reply_quoted_content is not None and reply_quoted_content:
+            lxmf_message.fields[0x31] = reply_quoted_content.encode("utf-8")
 
         # add icon appearance if configured and not already sent to this destination
         current_icon_hash = self.get_current_icon_hash()
