@@ -1,3 +1,5 @@
+import json
+import logging
 import os
 import shutil
 import zipfile
@@ -17,6 +19,11 @@ from .schema import DatabaseSchema
 from .telemetry import TelemetryDAO
 from .telephone import TelephoneDAO
 from .voicemails import VoicemailDAO
+
+BACKUP_BASELINE_FILENAME = "backup-baseline.json"
+MIN_SIZE_RATIO = 0.2
+
+_log = logging.getLogger("meshchatx.database")
 
 
 class Database:
@@ -90,6 +97,145 @@ class Database:
             "shm_bytes": shm_bytes,
             "total_bytes": main_bytes + wal_bytes + shm_bytes,
         }
+
+    def _get_backup_baseline_path(self, storage_path):
+        default_dir = os.path.join(storage_path, "database-backups")
+        return os.path.join(default_dir, BACKUP_BASELINE_FILENAME)
+
+    def _read_backup_baseline(self, storage_path):
+        path = self._get_backup_baseline_path(storage_path)
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            return data
+        except (OSError, json.JSONDecodeError):
+            return None
+
+    def _write_backup_baseline(self, storage_path, message_count, total_bytes):
+        path = self._get_backup_baseline_path(storage_path)
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            data = {
+                "message_count": message_count,
+                "total_bytes": total_bytes,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2)
+        except OSError as e:
+            print(f"Failed to write backup baseline: {e}")
+
+    def _get_current_db_content_stats(self):
+        stats = self._get_database_file_stats()
+        try:
+            message_count = self.messages.count_lxmf_messages()
+        except Exception:
+            message_count = -1
+        return {
+            "message_count": message_count,
+            "total_bytes": stats["total_bytes"],
+        }
+
+    def _is_backup_suspicious(self, current_stats, baseline):
+        if not baseline:
+            return False
+        prev_count = baseline.get("message_count", 0)
+        prev_bytes = baseline.get("total_bytes", 0)
+        curr_count = current_stats.get("message_count", 0)
+        curr_bytes = current_stats.get("total_bytes", 0)
+        if prev_count > 0 and curr_count == 0:
+            return True
+        if prev_bytes > 100_000 and curr_bytes < prev_bytes * MIN_SIZE_RATIO:
+            return True
+        return False
+
+    def check_db_health_at_open(self, storage_path):
+        """
+        Run integrity and baseline checks after opening the database.
+        Returns a list of human-readable issue strings; empty if healthy.
+        """
+        issues = []
+        try:
+            integrity_rows = self.provider.integrity_check()
+            if not integrity_rows:
+                issues.append("Database integrity check failed: no result")
+                _log.warning("DB open health check: no result")
+            else:
+                first = integrity_rows[0]
+                val = list(first.values())[0] if isinstance(first, dict) else first[0]
+                if val != "ok":
+                    issues.append(f"Database integrity check failed: {val!s}")
+                    _log.warning("DB open health check: %s", val)
+        except Exception as e:
+            msg = f"Database integrity check error: {e!s}"
+            issues.append(msg)
+            _log.warning("DB open health check: %s", msg)
+
+        try:
+            current = self._get_current_db_content_stats()
+            baseline = self._read_backup_baseline(storage_path)
+            if self._is_backup_suspicious(current, baseline):
+                prev_c = baseline.get("message_count", 0)
+                prev_b = baseline.get("total_bytes", 0)
+                curr_c = current.get("message_count", 0)
+                curr_b = current.get("total_bytes", 0)
+                msg = (
+                    f"Database content anomaly: was {prev_c} messages / {prev_b} bytes, "
+                    f"now {curr_c} / {curr_b}. Restore from backup if needed."
+                )
+                issues.append(msg)
+                _log.warning("DB open health check: %s", msg)
+            else:
+                _log.info(
+                    "DB open health check ok: messages=%s total_bytes=%s",
+                    current.get("message_count"),
+                    current.get("total_bytes"),
+                )
+        except Exception as e:
+            _log.warning("DB open health check (baseline): %s", e)
+
+        return issues
+
+    def check_db_health_at_close(self, storage_path):
+        """
+        Run health checks before closing the database (for logging only).
+        Returns a list of issue strings; empty if healthy.
+        """
+        issues = []
+        try:
+            integrity_rows = self.provider.integrity_check()
+            if not integrity_rows:
+                issues.append("Database integrity check failed: no result")
+                _log.warning("DB close health check: no result")
+            else:
+                first = integrity_rows[0]
+                val = list(first.values())[0] if isinstance(first, dict) else first[0]
+                if val != "ok":
+                    issues.append(f"Database integrity check failed: {val!s}")
+                    _log.warning("DB close health check: integrity failed")
+        except Exception as e:
+            _log.warning("DB close health check: %s", e)
+
+        try:
+            current = self._get_current_db_content_stats()
+            baseline = self._read_backup_baseline(storage_path)
+            if self._is_backup_suspicious(current, baseline):
+                issues.append(
+                    "Database content anomaly detected at close. Consider restoring from backup."
+                )
+                _log.warning("DB close health check: content anomaly")
+            else:
+                _log.info(
+                    "DB close health check ok: messages=%s total_bytes=%s",
+                    current.get("message_count"),
+                    current.get("total_bytes"),
+                )
+        except Exception as e:
+            _log.warning("DB close health check (baseline): %s", e)
+
+        return issues
 
     def _database_paths(self):
         db_path = self.provider.db_path
@@ -219,24 +365,55 @@ class Database:
     ):
         default_dir = os.path.join(storage_path, "database-backups")
         os.makedirs(default_dir, exist_ok=True)
+        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+        current_stats = self._get_current_db_content_stats()
+        baseline = self._read_backup_baseline(storage_path)
+        suspicious = self._is_backup_suspicious(current_stats, baseline)
+
         if backup_path is None:
-            timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-            backup_path = os.path.join(default_dir, f"backup-{timestamp}.zip")
+            if suspicious:
+                backup_path = os.path.join(
+                    default_dir, f"backup-SUSPICIOUS-{timestamp}.zip"
+                )
+            else:
+                backup_path = os.path.join(default_dir, f"backup-{timestamp}.zip")
 
         result = self._backup_to_zip(backup_path)
 
-        # Cleanup old backups if a limit is set
+        if suspicious:
+            _log.warning(
+                "Backup data-loss guard: current DB looks wrong (was %s messages / %s bytes, now %s / %s); "
+                "wrote backup-SUSPICIOUS-*.zip, skipping rotation",
+                baseline.get("message_count"),
+                baseline.get("total_bytes"),
+                current_stats.get("message_count"),
+                current_stats.get("total_bytes"),
+            )
+            print(
+                "Backup data-loss guard: current database looks wrong "
+                f"(was {baseline.get('message_count')} messages / {baseline.get('total_bytes')} bytes, "
+                f"now {current_stats.get('message_count')} / {current_stats.get('total_bytes')}). "
+                "Wrote backup-SUSPICIOUS-*.zip; skipping rotation and baseline update. Check disk and DB."
+            )
+            result["suspicious"] = True
+            result["baseline"] = baseline
+            result["current_stats"] = current_stats
+            return result
+
         if max_count is not None and max_count > 0:
             try:
                 backups = []
                 for file in os.listdir(default_dir):
-                    if file.endswith(".zip"):
+                    if (
+                        file.endswith(".zip")
+                        and file.startswith("backup-")
+                        and "SUSPICIOUS" not in file
+                    ):
                         full_path = os.path.join(default_dir, file)
                         stats = os.stat(full_path)
                         backups.append((full_path, stats.st_mtime))
 
                 if len(backups) > max_count:
-                    # Sort by modification time (oldest first)
                     backups.sort(key=lambda x: x[1])
                     to_delete = backups[: len(backups) - max_count]
                     for path, _ in to_delete:
@@ -245,6 +422,11 @@ class Database:
             except Exception as e:
                 print(f"Failed to cleanup old backups: {e}")
 
+        self._write_backup_baseline(
+            storage_path,
+            current_stats["message_count"],
+            current_stats["total_bytes"],
+        )
         return result
 
     def create_snapshot(self, storage_path, name: str):
