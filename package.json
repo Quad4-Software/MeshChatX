@@ -1,6 +1,6 @@
 {
     "name": "reticulum-meshchatx",
-    "version": "4.2.0",
+    "version": "4.2.1",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
     "homepage": "https://git.quad4.io/RNS-Things/MeshChatX",
     "author": "Sudo-Ivan",
@@ -10,7 +10,8 @@
         "watch": "pnpm run build-frontend -- --watch",
         "build-frontend": "vite build",
         "build-backend": "node scripts/build-backend.js",
-        "build": "pnpm run build-frontend && pnpm run build-backend",
+        "version:sync": "node scripts/sync_version.js",
+        "build": "pnpm run version:sync && pnpm run build-frontend && pnpm run build-backend",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
