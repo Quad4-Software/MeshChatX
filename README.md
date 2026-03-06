@@ -1,313 +1,256 @@
 # Reticulum MeshChatX
 
-[Todo](https://todo.quad4.io/1/public/boards/QMC3b2ztD4FAWr7GaErN9HQY) - Website (Soon)
+A extensively modified and feature-rich fork of Reticulum MeshChat by Liam Cottle.
 
-> [!WARNING]  
-> Backup your reticulum-meshchat folder before using! MeshChatX will attempt to auto-migrate whatever it can from the old database without breaking things, but it is best to keep backups.
+This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
 
-Contact me for any issues or ideas:
+- Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
+- Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
+- Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 
-```
-LXMF: 7cc8d66b4f6a0e0e49d34af7f6077b5a
-```
+## Important Notes
 
-[![CI](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/ci.yml)
-[![Tests](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/tests.yml)
-[![Build](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/build.yml)
-[![Docker](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/docker.yml/badge.svg?branch=master)](https://git.quad4.io/RNS-Things/MeshChatX/actions/workflows/docker.yml)
+- Full LXMF support is a core project focus.
+- Storage and migration work has been progressively reworked toward raw SQL (replacing legacy Peewee ORM paths where applicable).
 
-A [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) fork from the future.
+> [!WARNING]
+> MeshChatX is not guaranteed to be wire/data compatible with older Reticulum MeshChat releases. Back up data before migration/testing.
+
+> [!WARNING]
+> Legacy systems are not fully supported yet. Current baseline is Python `>=3.11` and Node `>=24`.
+
+## Demo And Screenshots
 
 <video src="https://strg.0rbitzer0.net/raw/62926a2a-0a9a-4f44-a5f6-000dd60deac1.mp4" controls="controls" style="max-width: 100%;"></video>
 
-This project is separate from the original Reticulum MeshChat project, and is not affiliated with the original project.
+### UI Previews
 
-## Goal
+![Phone](screenshots/phone.png)
+![Network Visualiser](screenshots/network-visualiser.png)
+![Archives](screenshots/archives.png)
+![Identities](screenshots/identities.png)
 
-To provide everything you need for Reticulum, LXMF, and LXST in one beautiful and feature-rich application.
+## Requirements
 
-- Desktop app (Linux, Windows, macOS)
-- Self-host on your server easily with or without containers
-- Mobile support (Android)
-- Reliable, secure, fast and easy to use.
+- Python `>=3.11` (from `pyproject.toml`)
+- Node.js `>=24` (from `package.json`)
+- pnpm `10.30.0` (from `package.json`)
+- Poetry (used by `Taskfile.yml` and CI workflows)
 
-Note on macOS: You will need to manually build or use containers since I do not have a macOS machine or runner.
+## Nix (flake.nix)
 
-## Quick Start (Docker - Recommended)
+This repo includes a Nix flake at `flake.nix`.
 
-The easiest way to get MeshChatX running is using Docker. Our official image is multi-arch and supports `linux/amd64` and `linux/arm64` (Raspberry Pi, etc.).
+### Enter the dev shell
 
 ```bash
-# Pull and run the latest image
-docker pull git.quad4.io/rns-things/meshchatx:latest
+nix develop
+```
 
-# Run MeshChatX using Docker Compose (Recommended)
-# This will create a meshchat-config directory for persistence
+The flake dev shell provides Python, Poetry, Node, pnpm, Task, packaging tools (`rpm`, `dpkg`, `fakeroot`), Android build tools, and Docker tooling.
+
+### Build the default Nix package
+
+```bash
+nix build .#default
+```
+
+### Typical workflow inside `nix develop`
+
+```bash
+task install
+task lint:all
+task test:all
+task build:all
+```
+
+## Install Methods
+
+Use the method that matches your environment and packaging preference.
+
+| Method | Includes frontend assets | Architectures | Best for |
+| --- | --- | --- | --- |
+| Docker image | Yes | `linux/amd64`, `linux/arm64` | Fastest setup on Linux servers/hosts |
+| Python wheel (`.whl`) | Yes | Any Python-supported architecture | Headless/web-server install without Node build |
+| Linux AppImage | Yes | `x64`, `arm64` | Portable desktop use |
+| Debian package (`.deb`) | Yes | `x64`, `arm64` | Debian/Ubuntu installs |
+| RPM package (`.rpm`) | Yes | CI-runner dependent for published artifact | Fedora/RHEL/openSUSE style systems |
+| From source | Built locally | Host architecture | Development and custom builds |
+
+Notes:
+
+- The release workflow explicitly builds Linux `x64` and `arm64` AppImage + DEB.
+- RPM is also attempted by release workflow and uploaded when produced.
+
+## Quick Start: Docker
+
+```bash
 docker compose up -d
 ```
 
-### Docker Permissions Note
+Default compose file maps:
 
-If you encounter a `PermissionError` when running the Docker container, it's likely because the container's user (UID 1000) doesn't have permission to write to your host's `./meshchat-config` folder. You can fix this by running:
+- `127.0.0.1:8000` on host -> container port `8000`
+- `./meshchat-config` -> `/config` for persistence
+
+If your local `meshchat-config` permissions block writes, fix ownership:
 
 ```bash
 sudo chown -R 1000:1000 ./meshchat-config
 ```
 
-Check [releases](https://git.quad4.io/RNS-Things/MeshChatX/releases) for pre-built binaries (AppImage, DEB, EXE) if you prefer standalone apps. (coming soon)
+## Install from Release Artifacts
 
-### Installation via Wheel (.whl)
+### 1) Linux AppImage (x64/arm64)
 
-The simplest way to install MeshChatX on most systems is using the pre-built wheel from our releases. This package **bundles the built frontend**, so you don't need to deal with Node.js or building assets yourself. No Electron needed, it is a webserver basically, so you use your browser to access it.
+1. Download `ReticulumMeshChatX-v<version>-linux-<arch>.AppImage` from releases.
+2. Make it executable and run:
 
-1. **Install directly from the release**:
+```bash
+chmod +x ./ReticulumMeshChatX-v*-linux-*.AppImage
+./ReticulumMeshChatX-v*-linux-*.AppImage
+```
 
-    ```bash
-    pip install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.1.0/reticulum_meshchatx-4.1.0-py3-none-any.whl
+### 2) Debian/Ubuntu `.deb` (x64/arm64)
 
-    # pipx
-    pipx install https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.1.0/reticulum_meshchatx-4.1.0-py3-none-any.whl
-    ```
+1. Download `ReticulumMeshChatX-v<version>-linux-<arch>.deb`.
+2. Install:
 
-2. **Run MeshChatX**:
-    ```bash
-    meshchat --headless
-    ```
+```bash
+sudo apt install ./ReticulumMeshChatX-v*-linux-*.deb
+```
 
-## Major Features
+### 3) RPM-based systems
 
-- **Full LXST Support**: Custom voicemail, phonebook, contact sharing, and ringtone support.
-- **Interface Discovery and auto-connecting** - Discover interfaces, auto-connect or connect to trusted ones, map them all!
-- **Multi-Identity**: Switch between multiple Reticulum identities seamlessly.
-- **Modern UI/UX**: A completely redesigned, intuitive interface.
-- **Integrated Maps**: OpenLayers with MBTiles support for offline maps.
-- **Security**: Read more about it in the [Security](#security) section.
-- **Offline Docs**: Access Reticulum documentation without an internet connection.
-- **Expanded Tools**: Includes dozens of more tools.
-- **Page Archiving**: Built-in crawler and browser for archived pages offline.
-- **Banishment**: Banish LXMF users, Telephony, and NomadNet Nodes.
-- **i18n**: Support for English, German, Italian, and Russian.
-- **Advanced Diagnostic Engine**: Mathematically grounded crash recovery using Active Inference and Information Theory.
+1. Download `ReticulumMeshChatX-v<version>-linux-<arch>.rpm` if present in the release.
+2. Install with your distro tool:
 
-## Screenshots
+```bash
+sudo rpm -Uvh ./ReticulumMeshChatX-v*-linux-*.rpm
+```
 
-<details>
-<summary>Telephony & Calling</summary>
+### 4) Python wheel (`.whl`)
 
-### Phone
+Release wheels include the built web assets.
 
-![Phone](screenshots/phone.png)
+```bash
+pip install ./reticulum_meshchatx-*-py3-none-any.whl
+meshchat --headless
+```
 
-### Active Call
+`pipx` is also supported:
 
-![Calling](screenshots/calling.png)
+```bash
+pipx install ./reticulum_meshchatx-*-py3-none-any.whl
+```
 
-### Call Ended
+## Run from Source (Web Server Mode)
 
-![Call Ended](screenshots/calling-end.png)
+Use this when developing or when you need a local custom build.
 
-### Voicemail
+```bash
+git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+cd MeshChatX
+corepack enable
+pnpm install
+pip install poetry
+poetry install
+pnpm run build-frontend
+poetry run meshchat --headless --host 127.0.0.1
+```
 
-![Voicemail](screenshots/voicemail.png)
+## Build Desktop Packages from Source
 
-### Ringtone Settings
+These scripts are defined in `package.json` and `Taskfile.yml`.
 
-![Ringtone](screenshots/ringtone.png)
+### Linux x64 AppImage + DEB
 
-</details>
+```bash
+pnpm run dist:linux-x64
+```
 
-<details>
-<summary>Networking & Visualization</summary>
+### Linux arm64 AppImage + DEB
 
-### Network Visualiser
+```bash
+pnpm run dist:linux-arm64
+```
 
-![Network Visualiser](screenshots/network-visualiser.png)
-![Network Visualiser 2](screenshots/network-visualiser2.png)
+### RPM
 
-</details>
+```bash
+pnpm run dist:rpm
+```
 
-<details>
-<summary>Page Archives</summary>
+Or through Task:
 
-### Archives Browser
+```bash
+task dist:fe:rpm
+```
 
-![Archives](screenshots/archives.png)
+## Architecture Support Summary
 
-### Viewing Archived Page
+- Docker image: `amd64`, `arm64`
+- Linux AppImage: `x64`, `arm64`
+- Linux DEB: `x64`, `arm64`
+- Windows: `x64`, `arm64` (build scripts available)
+- macOS: build scripts available (`arm64`, `universal`) for local build environments
+- Android: build workflow and Android project are present in this repository
 
-![Archive View](screenshots/archive-view.png)
+## Android
 
-</details>
+Use the dedicated docs:
 
-<details>
-<summary>Tools & Identities</summary>
-
-### Tools
-
-![Tools](screenshots/tools.png)
-
-### Identity Management
-
-![Identities](screenshots/identities.png)
-
-</details>
-
-### Pipx / Global Installation
-
-If you prefer to install MeshChatX globally using `pipx, pip or uv`, you can do so directly from the repository. However, you must specify the path to your built frontend files using the `--public-dir` flag or `MESHCHAT_PUBLIC_DIR` environment variable, as the static files are not bundled with the source code. The release .whl packages include the built frontend files and also there is a seperate frontend zip to grab and use.
-
-1. **Install MeshChatX**:
-
-    ```bash
-    pipx install git+https://git.quad4.io/RNS-Things/MeshChatX
-    ```
-
-2. **Run with Frontend Path**:
-    ```bash
-    # Replace /path/to/MeshChatX/meshchatx/public with your actual path
-    meshchat --public-dir /path/to/MeshChatX/meshchatx/public
-    ```
-
-### Manual Installation (From Source)
-
-If you want to run MeshChatX from the source code locally:
-
-1. **Clone the repository**:
-
-    ```bash
-    git clone https://git.quad4.io/RNS-Things/MeshChatX
-    cd MeshChatX
-    ```
-
-2. **Build the Frontend**:
-   Requires Node.js and pnpm.
-
-    ```bash
-    corepack enable
-    pnpm install
-    pnpm run build-frontend
-    ```
-
-3. **Install & Run Backend**:
-   Requires Python 3.10+ and Poetry.
-    ```bash
-    pip install poetry
-    poetry install
-    poetry run meshchat --headless --host 127.0.0.1
-    ```
-
-### Cross-Platform Building (Linux to Windows)
-
-If you are on Linux and want to build the Windows `.exe` and installer locally, you can use **Wine**.
-
-1. **Install Windows Python and Git inside Wine**:
-
-    ```bash
-    # Download Python installer
-    wget https://www.python.org/ftp/python/3.13.1/python-3.13.1-amd64.exe
-    # Install Python to a specific path
-    wine python-3.13.1-amd64.exe /quiet InstallAllUsers=1 TargetDir=C:\Python313 PrependPath=1
-
-    # Download Git installer
-    wget https://github.com/git-for-windows/git/releases/download/v2.52.0.windows.1/Git-2.52.0-64-bit.exe
-    # Install Git (quietly)
-    wine Git-2.52.0-64-bit.exe /VERYSILENT /NORESTART
-    ```
-
-2. **Install Build Dependencies in Wine**:
-
-    ```bash
-    wine C:/Python313/python.exe -m pip install cx_Freeze poetry
-    wine C:/Python313/python.exe -m pip install -r requirements.txt
-    ```
-
-3. **Run the Build Task**:
-
-    ```bash
-    # Build only the Windows portable exe
-    WINE_PYTHON="wine C:/Python313/python.exe" task dist:win:wine
-
-    # Or build everything (Linux + Windows) at once
-    WINE_PYTHON="wine C:/Python313/python.exe" task dist:all:wine
-    ```
+- [`docs/meshchatx_on_android_with_termux.md`](docs/meshchatx_on_android_with_termux.md)
+- [`android/README.md`](android/README.md)
 
 ## Configuration
 
-MeshChatX can be configured via command-line arguments or environment variables.
+MeshChatX supports both CLI args and env vars.
 
-| Argument        | Environment Variable   | Default     | Description          |
-| :-------------- | :--------------------- | :---------- | :------------------- |
-| `--host`        | `MESHCHAT_HOST`        | `127.0.0.1` | Web server address   |
-| `--port`        | `MESHCHAT_PORT`        | `8000`      | Web server port      |
-| `--no-https`    | `MESHCHAT_NO_HTTPS`    | `false`     | Disable HTTPS        |
-| `--headless`    | `MESHCHAT_HEADLESS`    | `false`     | Don't launch browser |
-| `--auth`        | `MESHCHAT_AUTH`        | `false`     | Enable basic auth    |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Data directory       |
-| `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | -           | Frontend files path  |
+| Argument | Environment Variable | Default | Description |
+| --- | --- | --- | --- |
+| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Web server bind address |
+| `--port` | `MESHCHAT_PORT` | `8000` | Web server port |
+| `--no-https` | `MESHCHAT_NO_HTTPS` | `false` | Disable HTTPS |
+| `--headless` | `MESHCHAT_HEADLESS` | `false` | Do not auto-launch browser |
+| `--auth` | `MESHCHAT_AUTH` | `false` | Enable basic auth |
+| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Data directory |
+| `--public-dir` | `MESHCHAT_PUBLIC_DIR` | auto/bundled | Frontend files directory (needed for source installs without bundled assets) |
 
 ## Development
 
-We use [Task](https://taskfile.dev/) for automation.
+Common tasks from `Taskfile.yml`:
 
-| Task                       | Description                                    |
-| :------------------------- | :--------------------------------------------- |
-| `task install`             | Install all dependencies                       |
-| `task run`                 | Run the application                            |
-| `task dev`                 | Run the application in development mode        |
-| `task lint:all`            | Run all linters (Python & Frontend)            |
-| `task lint:be`             | Lint Python code only                          |
-| `task lint:fe`             | Lint frontend code only                        |
-| `task fmt:all`             | Format all code (Python & Frontend)            |
-| `task fmt:be`              | Format Python code only                        |
-| `task fmt:fe`              | Format frontend code only                      |
-| `task test:all`            | Run all tests                                  |
-| `task test:cov`            | Run tests with coverage reports                |
-| `task test:be`             | Run Python tests only                          |
-| `task test:fe`             | Run frontend tests only                        |
-| `task build:all`           | Build frontend and backend                     |
-| `task build:fe`            | Build only the frontend                        |
-| `task build:wheel`         | Build Python wheel package                     |
-| `task compile`             | Compile Python code to check for syntax errors |
-| `task docker:build`        | Build Docker image using buildx                |
-| `task docker:run`          | Run Docker container using docker-compose      |
-| `task dist:linux:appimage` | Build Linux AppImage                           |
-| `task dist:win:exe`        | Build Windows portable executable              |
-| `task dist:win:wine`       | Build Windows portable (Wine cross-build)      |
-| `task dist:all`            | Build all Electron apps                        |
-| `task dist:all:wine`       | Build all Electron apps (Wine cross-build)     |
-| `task android:prepare`     | Prepare Android build                          |
-| `task android:build`       | Build Android APK                              |
-| `task dist:fe:flatpak`     | Build Flatpak package                          |
-| `task clean`               | Clean build artifacts and dependencies         |
+```bash
+task install
+task lint:all
+task test:all
+task build:all
+```
+
+## Versioning
+
+Current version in this repo is `4.2.1`.
+
+- `package.json` is the JavaScript/Electron version source.
+- `meshchatx/src/version.py` is synced from `package.json` using:
+
+```bash
+pnpm run version:sync
+```
+
+For release consistency, keep version fields aligned where required (`package.json`, `pyproject.toml`, `meshchatx/__init__.py`).
 
 ## Security
 
-- [ASAR Integrity](https://www.electronjs.org/docs/latest/tutorial/asar-integrity) (Stable as of Electron 39)
-- Built-in automatic integrity checks on all files (frontend and backend)
-- HTTPS by default (automated locally generated certs)
+Security and integrity details:
 
-* **Layered CSP Protection**: 3-layer Content Security Policy (Backend, Electron Session, and Loading Screen) to prevent XSS and unauthorized resource loading.
-
-- Redundant CORS protection (loading.html, python backend server, electron main.js)
-- Updated dependencies and daily scanning (OSV)
-- **Comprehensive Scanning Pipeline**: Integrated [Trivy](https://github.com/aquasecurity/trivy) for filesystem and container image scanning, alongside [OSV-Scanner](https://github.com/google/osv-scanner) for vulnerability tracking.
-- SBOM for dependency observability and tracking
-- Extensive testing and fuzzing (Property-based testing with Hypothesis).
-- Rootless docker images
-- Pinned actions and container images (supply chain security and deterministic builds)
-
-## Advanced Diagnostic Engine
-
-MeshChatX includes a uniquely sophisticated crash recovery system designed for the unpredictable hardware environments.
-
-- **Probabilistic Active Inference**: Uses Bayesian-inspired heuristics to determine root causes (e.g., OOM, RNS config issues, LXMF storage failures) with up to 99% confidence.
-- **Mathematical Grounding**: Quantifies system instability using Shannon Entropy and KL-Divergence, providing a numerical "disorder index" at the time of failure.
-- **Manifold Mapping**: Identifies "Failure Manifolds" across the entire vertical stack from Kernel and Python versions to RNS interface state and LXMF database integrity.
-
-All running locally on your own hardware and it might not be perfect, but it will only get better. The idea is to provide you the help to possibly fix it when you cannot reach me.
+- [`SECURITY.md`](SECURITY.md)
+- Built-in integrity checks and HTTPS/WSS defaults in app runtime
+- CI scanning workflows in `.gitea/workflows/`
 
 ## Credits
 
 - [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
-- [RFnexus](https://github.com/RFnexus) - [micron-parser-js](https://github.com/RFnexus/micron-parser-js)
-- [Marqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
+- [RFnexus](https://github.com/RFnexus) - micron parser JavaScript work
+- [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
