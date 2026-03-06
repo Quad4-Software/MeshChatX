@@ -270,4 +270,342 @@ describe("MicronParser.js", () => {
             expect(html).not.toMatch(/<script[\s>]/i);
         });
     });
+
+    describe("adversarial: deeply nested tags", () => {
+        it("handles 500 levels of nested bold without stack overflow", () => {
+            const open = "`!".repeat(500);
+            const close = "`!".repeat(500);
+            const markup = open + "deep" + close;
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+            expect(html).toContain("deep");
+        });
+
+        it("handles 500 levels of mixed nesting (bold+italic+underline)", () => {
+            const tags = ["`!", "`*", "`_"];
+            let markup = "";
+            for (let i = 0; i < 500; i++) markup += tags[i % 3];
+            markup += "payload";
+            for (let i = 499; i >= 0; i--) markup += tags[i % 3];
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).toContain("payload");
+        });
+
+        it("handles deeply nested headings", () => {
+            const markup = Array.from({ length: 200 }, (_, i) => ">".repeat(i + 1) + " H").join("\n");
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+    });
+
+    describe("adversarial: unclosed and mismatched tags", () => {
+        it("handles unclosed bold tag", () => {
+            const markup = "`!unclosed bold without end";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+            expect(html).not.toMatch(/<script[\s>]/i);
+        });
+
+        it("handles unclosed italic tag", () => {
+            const markup = "`*unclosed italic";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles mismatched open/close order", () => {
+            const markup = "`!`*bold-italic`!`*";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles unclosed link", () => {
+            const markup = "`[link text without closing";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+            expect(html).not.toMatch(/\bhref\s*=\s*["']?\s*javascript:/i);
+        });
+
+        it("handles unclosed input", () => {
+            const markup = "`<24|field_name`value without closing";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles unclosed literal mode", () => {
+            const markup = "`=\nsome literal text that never closes";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+        });
+    });
+
+    describe("adversarial: malformed UTF-8 and encoding attacks", () => {
+        it("handles UTF-8 overlong encoding sequences", () => {
+            const markup = "test\xC0\xAFpath\xE0\x80\xAFmore";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+
+        it("handles surrogate halves", () => {
+            const markup = "text\uD800alone\uDC00orphan";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+
+        it("handles BOM characters", () => {
+            const markup = "\uFEFF> Heading with BOM";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles zero-width joiner/non-joiner", () => {
+            const markup = "`!\u200Bbold\u200Dtext`!";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles full-width characters in tag positions", () => {
+            const markup = "\uFF40\uFF01fullwidth backtick-bang\uFF40\uFF01";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+    });
+
+    describe("adversarial: null bytes and control characters", () => {
+        it("handles null bytes between tag markers", () => {
+            const markup = "`\x00!bold\x00`!";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+
+        it("handles line of only null bytes", () => {
+            const markup = "\x00".repeat(100);
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+
+        it("handles ASCII control characters 0x01-0x1F", () => {
+            let markup = "";
+            for (let i = 1; i < 32; i++) markup += String.fromCharCode(i);
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<script[\s>]/i);
+        });
+
+        it("handles escape sequences in links", () => {
+            const markup = "`[label`\x1B[31mred\x1B[0m]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles DEL character (0x7F)", () => {
+            const markup = "hello\x7Fworld";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+    });
+
+    describe("adversarial: ReDoS patterns", () => {
+        it("handles alternating backtick-bracket pattern quickly", () => {
+            const markup = "`[".repeat(1000) + "x" + "]".repeat(1000);
+            const start = Date.now();
+            parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(500);
+        });
+
+        it("handles alternating backtick-angle pattern quickly", () => {
+            const markup = "`<".repeat(1000) + "y" + ">".repeat(1000);
+            const start = Date.now();
+            parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(500);
+        });
+
+        it("handles pathological color code pattern quickly", () => {
+            const markup = "`Fabc".repeat(500);
+            const start = Date.now();
+            parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(500);
+        });
+
+        it("handles massive number of newlines quickly", () => {
+            const markup = "\n".repeat(10000);
+            const start = Date.now();
+            parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(500);
+        });
+
+        it("handles rapid format toggle (open/close/open/close) quickly", () => {
+            const markup = "`!x`!".repeat(2000);
+            const start = Date.now();
+            parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(500);
+        });
+    });
+
+    describe("adversarial: XSS bypass attempts", () => {
+        it("blocks SVG onload XSS", () => {
+            const markup = '<svg onload="alert(1)">';
+            const html = parser.convertMicronToHtml(markup);
+            const div = document.createElement("div");
+            div.innerHTML = html;
+            const svgs = div.querySelectorAll("svg");
+            for (const svg of svgs) {
+                expect(svg.getAttribute("onload")).toBeNull();
+            }
+        });
+
+        it("blocks img onerror XSS", () => {
+            const markup = '<img src=x onerror="alert(1)">';
+            const html = parser.convertMicronToHtml(markup);
+            const div = document.createElement("div");
+            div.innerHTML = html;
+            const imgs = div.querySelectorAll("img");
+            for (const img of imgs) {
+                expect(img.getAttribute("onerror")).toBeNull();
+            }
+        });
+
+        it("blocks iframe injection", () => {
+            const markup = '<iframe src="https://evil.com"></iframe>';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<iframe[\s>]/i);
+        });
+
+        it("blocks style-based data exfiltration", () => {
+            const markup = '<style>body{background:url("https://evil.com/steal")}</style>';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<style[\s>]/i);
+        });
+
+        it("blocks javascript: in link with encoding", () => {
+            const markup = "`[click`java\tscript:alert(1)]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/\bhref\s*=\s*["']?\s*java\s*script:/i);
+        });
+
+        it("blocks vbscript: protocol", () => {
+            const markup = "`[click`vbscript:MsgBox(1)]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/\bhref\s*=\s*["']?\s*vbscript:/i);
+        });
+
+        it("blocks meta refresh injection", () => {
+            const markup = '<meta http-equiv="refresh" content="0;url=https://evil.com">';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<meta[\s>]/i);
+        });
+
+        it("blocks object/embed tags", () => {
+            const markup = '<object data="evil.swf"></object><embed src="evil.swf">';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<object[\s>]/i);
+            expect(html).not.toMatch(/<embed[\s>]/i);
+        });
+
+        it("blocks form action injection", () => {
+            const markup = '<form action="https://evil.com"><input type="submit"></form>';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<form[\s>]/i);
+        });
+
+        it("blocks base tag hijacking", () => {
+            const markup = '<base href="https://evil.com/">';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<base[\s>]/i);
+        });
+    });
+
+    describe("adversarial: injection through micron features", () => {
+        it("link URL with attribute injection is entity-encoded", () => {
+            const markup = '`[click`" onclick="alert(1)" data-x="]';
+            const html = parser.convertMicronToHtml(markup);
+            const div = document.createElement("div");
+            div.innerHTML = html;
+            const anchors = div.querySelectorAll("a");
+            for (const a of anchors) {
+                expect(a.getAttribute("onclick")).toBeNull();
+            }
+        });
+
+        it("input field name cannot inject HTML", () => {
+            const markup = '`<24|"><script>alert(1)</script>`val>';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<script[\s>]/i);
+        });
+
+        it("checkbox value with attribute injection is entity-encoded", () => {
+            const markup = '`<?|name|"><img src=x onerror=alert(1)>|`label>';
+            const html = parser.convertMicronToHtml(markup);
+            const div = document.createElement("div");
+            div.innerHTML = html;
+            const imgs = div.querySelectorAll("img");
+            for (const img of imgs) {
+                expect(img.getAttribute("onerror")).toBeNull();
+            }
+        });
+
+        it("color code cannot inject styles or HTML", () => {
+            const markup = '`F"><script>alert(1)</script>text';
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<script[\s>]/i);
+        });
+
+        it("partial hash cannot inject HTML", () => {
+            const hash = 'a"><script>alert(1)</script>';
+            const markup = "`{" + hash + ":/page/test.mu}";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<script[\s>]/i);
+        });
+    });
+
+    describe("adversarial: large and extreme payloads", () => {
+        it("handles 100KB of plain text", () => {
+            const markup = "A".repeat(100_000);
+            const start = Date.now();
+            const html = parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(2000);
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles 10K lines of formatted text", () => {
+            const lines = Array.from({ length: 10_000 }, (_, i) => `\`!line ${i}\`!`);
+            const markup = lines.join("\n");
+            const start = Date.now();
+            parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(10000);
+        });
+
+        it("handles single line of 50KB", () => {
+            const markup = "`!" + "X".repeat(50_000) + "`!";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+
+        it("handles empty string", () => {
+            const html = parser.convertMicronToHtml("");
+            expect(typeof html).toBe("string");
+        });
+
+        it("handles only whitespace", () => {
+            const html = parser.convertMicronToHtml("   \t\t\n\n  ");
+            expect(typeof html).toBe("string");
+        });
+    });
+
+    describe("adversarial: polyglot and mixed content", () => {
+        it("handles HTML/micron polyglot", () => {
+            const markup = "> `!<b>Heading</b>`!\n<script>alert(1)</script>\n`[link`http://safe.com]";
+            const html = parser.convertMicronToHtml(markup);
+            expect(html).not.toMatch(/<script[\s>]/i);
+            expect(html).toContain("Heading");
+        });
+
+        it("handles markdown-like input", () => {
+            const markup = "# Not a heading\n**not bold**\n[not a link](http://evil.com)";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+
+        it("handles ANSI escape codes", () => {
+            const markup = "\x1B[31mred text\x1B[0m normal";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+
+        it("handles mixed valid/invalid UTF-8 with micron", () => {
+            const markup = "`!\uFFFD\uFFFE\uFFFF bold\uD83D\uDE00`!";
+            expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+    });
 });
