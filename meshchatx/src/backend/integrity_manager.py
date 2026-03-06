@@ -138,7 +138,10 @@ class IntegrityManager:
 
             # Check Database (Math-based structural check + Entropy stability + Hash)
             if self.database_path.exists():
-                db_rel = str(self.database_path.relative_to(self.storage_dir))
+                try:
+                    db_rel = str(self.database_path.relative_to(self.storage_dir))
+                except ValueError:
+                    db_rel = str(self.database_path.name)
                 actual_db_hash = self._hash_file(self.database_path)
 
                 if actual_db_hash != manifest_files.get(db_rel):

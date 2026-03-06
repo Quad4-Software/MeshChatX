@@ -328,6 +328,7 @@ class MapManager:
                 os.remove(dest_path)
 
     def _lonlat_to_tile(self, lon, lat, zoom):
+        lat = max(-85.051129, min(85.051129, lat))
         lat_rad = math.radians(lat)
         n = 2.0**zoom
         x = int((lon + 180.0) / 360.0 * n)

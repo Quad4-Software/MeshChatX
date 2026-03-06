@@ -273,7 +273,9 @@ class CrashRecovery:
             "old_python": py_version.major < 3
             or (py_version.major == 3 and py_version.minor < 10),
             "legacy_kernel": "linux" in platform.system().lower()
-            and float(re.search(r"(\d+\.\d+)", platform.release()).group(1)) < 4.0,
+            and (lambda m: m is not None and float(m.group(1)) < 4.0)(
+                re.search(r"(\d+\.\d+)", platform.release())
+            ),
             "attribute_error": "attributeerror" in error_type,
         }
 
@@ -369,7 +371,7 @@ class CrashRecovery:
             return -(p * math.log2(p) + (1.0 - p) * math.log2(1.0 - p))
 
         def kl_div(p, q):
-            """Kullback-Leibler Divergence: D_KL(P || Q)"""
+            """Kullback-Leibler Divergence: D_KL(P || Q) for Bernoulli distributions."""
             p = min(0.99, max(0.01, p))
             q = min(0.99, max(0.01, q))
             return p * math.log2(p / q) + (1.0 - p) * math.log2((1.0 - p) / (1.0 - q))
