@@ -15,7 +15,7 @@
         };
 
         python = pkgs.python312;
-        node = pkgs.nodejs_22;
+        node = pkgs.nodejs_24;
       in
       {
         devShells.default = pkgs.mkShell {
