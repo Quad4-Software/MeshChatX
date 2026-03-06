@@ -1,5 +1,5 @@
-"""Auto-generated helper so Python tooling and the Electron build
-share the same version string.
+"""Version string synced from package.json. Do not edit by hand.
+Run: pnpm run version:sync
 """
 
-__version__ = "4.2.0"
+__version__ = "4.2.1"
