@@ -4401,7 +4401,9 @@ class ReticulumMeshChat:
                 if self.database:
                     for item in identities:
                         if item.get("is_current"):
-                            item["message_count"] = self.database.messages.count_lxmf_messages()
+                            item["message_count"] = (
+                                self.database.messages.count_lxmf_messages()
+                            )
                             break
                 return web.json_response(
                     {
