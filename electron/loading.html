@@ -84,7 +84,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div class="text-sm">
                             <div
                                 class="rounded-2xl border border-slate-200/90 bg-white/70 p-4 dark:border-zinc-800/80 dark:bg-zinc-900/70 transition-colors"
                             >
@@ -95,19 +95,6 @@
                                     v0.0.0
                                 </div>
                             </div>
-                            <div
-                                class="rounded-2xl border border-slate-200/90 bg-white/70 p-4 text-right dark:border-zinc-800/80 dark:bg-zinc-900/70 transition-colors"
-                            >
-                                <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                    Status
-                                </div>
-                                <div
-                                    class="mt-1 text-lg font-semibold text-emerald-600 dark:text-emerald-300"
-                                    id="status-badge"
-                                >
-                                    Booting
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -116,7 +103,6 @@
 
         <script>
             const statusText = document.getElementById("status-text");
-            const statusBadge = document.getElementById("status-badge");
 
             applyTheme(detectPreferredTheme());
             showAppVersion();
@@ -171,7 +157,6 @@
                         if (status === 200 && data.status === "ok") {
                             detectedProtocol = protocol;
                             statusText.innerText = "Launching UI";
-                            statusBadge.innerText = "Ready";
                             syncThemeFromConfig();
                             setTimeout(onReady, 200);
                             return;

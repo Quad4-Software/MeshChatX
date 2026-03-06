@@ -17,13 +17,6 @@
                     <h1 class="text-xs md:text-sm font-bold text-gray-900 dark:text-zinc-100">
                         {{ $t("docs.title") }}
                     </h1>
-                    <div
-                        v-if="status.has_docs || status.has_meshchatx_docs"
-                        class="hidden md:flex items-center text-[10px] text-gray-500"
-                    >
-                        <span class="w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
-                        Ready
-                    </div>
                 </div>
             </div>
 
