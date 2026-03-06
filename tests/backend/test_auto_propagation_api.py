@@ -42,6 +42,7 @@ def mock_rns_minimal():
         mock_id.hash = b"test_hash_32_bytes_long_01234567"
         mock_id.hexhash = mock_id.hash.hex()
         mock_id.get_private_key.return_value = b"test_private_key"
+        mock_id.get_public_key.return_value = b"test_public_key_32_bytes_long!!!!"
         yield mock_id
 
 

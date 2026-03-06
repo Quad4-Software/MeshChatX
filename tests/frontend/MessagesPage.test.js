@@ -93,4 +93,20 @@ describe("MessagesPage.vue", () => {
 
         expect(wrapper.vm.selectedPeer.destination_hash).toBe(destHash);
     });
+
+    it("routes to compose when ingest result is lxma contact", async () => {
+        const wrapper = mountMessagesPage();
+        const composeSpy = vi.spyOn(wrapper.vm, "onComposeNewMessage").mockResolvedValue(undefined);
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "lxm.ingest_uri.result",
+                status: "success",
+                ingest_type: "lxma_contact",
+                destination_hash: "f".repeat(32),
+            }),
+        });
+
+        expect(composeSpy).toHaveBeenCalledWith("f".repeat(32));
+    });
 });

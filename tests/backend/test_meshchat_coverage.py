@@ -167,6 +167,7 @@ def test_get_config_dict_basic(mock_app):
     mock_config.language.get.return_value = "en"
 
     ctx.identity.hash.hex.return_value = "abcd"
+    ctx.identity.get_public_key.return_value = bytes.fromhex("a1" * 32)
     ctx.local_lxmf_destination.hexhash = "beef"
     ctx.telephone_manager.telephone = None
     mock_app.reticulum.transport_enabled.return_value = True
@@ -175,6 +176,45 @@ def test_get_config_dict_basic(mock_app):
     assert config_dict["display_name"] == "Test"
     assert config_dict["theme"] == "light"
     assert config_dict["is_transport_enabled"] is True
+    assert config_dict["identity_public_key"] == "a1" * 32
+
+
+@pytest.mark.asyncio
+async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
+    mock_app.database.contacts.get_contact_by_identity_hash.return_value = None
+    mock_app.database.contacts.add_contact = MagicMock()
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+
+    fake_identity = MagicMock()
+    fake_identity.hash = bytes.fromhex("bb" * 16)
+    fake_identity.load_public_key.return_value = True
+
+    with patch("meshchatx.meshchat.AsyncUtils.run_async", side_effect=lambda coro: asyncio.create_task(coro)):
+        with patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity):
+            await mock_app.on_websocket_data_received(
+                mock_client,
+                {
+                    "type": "lxm.ingest_uri",
+                    "uri": f"lxma://{'aa' * 16}:{'11' * 64}",
+                },
+            )
+            await asyncio.sleep(0)
+
+    mock_app.database.contacts.add_contact.assert_called_once_with(
+        "Contact aaaaaaaa",
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        lxmf_address="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    )
+    mock_app.message_router.ingest_lxm_uri.assert_not_called()
+    mock_client.send_str.assert_called_once()
+    payload = json.loads(mock_client.send_str.call_args[0][0])
+    assert payload["type"] == "lxm.ingest_uri.result"
+    assert payload["status"] == "success"
+    assert payload["ingest_type"] == "lxma_contact"
+    assert payload["destination_hash"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 
 def test_db_upsert_lxmf_message_basic(mock_app):

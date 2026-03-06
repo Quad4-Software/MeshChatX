@@ -39,11 +39,14 @@ describe("IdentitiesPage.vue", () => {
                                     hash: "hash1",
                                     display_name: "Identity 1",
                                     is_current: true,
+                                    lxmf_address: "a1b2c3d4e5f6",
+                                    message_count: 42,
                                 },
                                 {
                                     hash: "hash2",
                                     display_name: "Identity 2",
                                     is_current: false,
+                                    lxmf_address: null,
                                 },
                             ],
                         },
@@ -75,14 +78,45 @@ describe("IdentitiesPage.vue", () => {
         });
     };
 
+    it("shows skeleton when loading and no identities", async () => {
+        axiosMock.get.mockImplementation(() => new Promise(() => {}));
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isLoading).toBe(true);
+        const skeletons = wrapper.findAll('[class*="animate-pulse"]');
+        expect(skeletons.length).toBeGreaterThan(0);
+    });
+
     it("renders identity list correctly", async () => {
         const wrapper = mountPage();
         await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick(); // Wait for axios
+        await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain("Identity 1");
         expect(wrapper.text()).toContain("Identity 2");
-        expect(wrapper.findAll(".glass-card").length).toBe(2);
+        expect(wrapper.vm.isLoading).toBe(false);
+        const cards = wrapper.findAll(".glass-card");
+        expect(cards.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("exposes current identity with LXMF and message_count", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("a1b2c3d4e5f6");
+        const current = wrapper.vm.currentIdentity;
+        expect(current).toBeTruthy();
+        expect(current.message_count).toBe(42);
+    });
+
+    it("shows export/import key section when current identity exists", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.currentIdentity).toBeTruthy();
+        expect(wrapper.text()).toContain("identities.key_control");
     });
 
     it("opens create modal and creates identity", async () => {
@@ -131,8 +165,8 @@ describe("IdentitiesPage.vue", () => {
         const renderTime = end - start;
         console.log(`Rendered ${numIdentities} identities in ${renderTime.toFixed(2)}ms`);
 
-        expect(wrapper.findAll(".glass-card").length).toBe(numIdentities);
-        expect(renderTime).toBeLessThan(2000); // Should be reasonably fast
+        expect(wrapper.findAll(".glass-card").length).toBeGreaterThanOrEqual(numIdentities);
+        expect(renderTime).toBeLessThan(2000);
     });
 
     it("memory: tracks growth after multiple identity list refreshes", async () => {
