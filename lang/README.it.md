@@ -65,14 +65,14 @@ task build:all
 
 ## Metodi di installazione
 
-| Metodo | Include frontend | Architetture | Ideale per |
-| --- | --- | --- | --- |
-| Immagine Docker | Si | `linux/amd64`, `linux/arm64` | Avvio rapido su server Linux |
-| Python wheel (`.whl`) | Si | Qualsiasi architettura supportata da Python | Installazione headless/web-server senza build Node |
-| Linux AppImage | Si | `x64`, `arm64` | Uso desktop portatile |
-| Pacchetto Debian (`.deb`) | Si | `x64`, `arm64` | Installazione Debian/Ubuntu |
-| Pacchetto RPM (`.rpm`) | Si | Dipende dal CI | Fedora/RHEL/openSUSE |
-| Da sorgente | Compilato localmente | Architettura host | Sviluppo e build personalizzati |
+| Metodo                    | Include frontend     | Architetture                                | Ideale per                                         |
+| ------------------------- | -------------------- | ------------------------------------------- | -------------------------------------------------- |
+| Immagine Docker           | Si                   | `linux/amd64`, `linux/arm64`                | Avvio rapido su server Linux                       |
+| Python wheel (`.whl`)     | Si                   | Qualsiasi architettura supportata da Python | Installazione headless/web-server senza build Node |
+| Linux AppImage            | Si                   | `x64`, `arm64`                              | Uso desktop portatile                              |
+| Pacchetto Debian (`.deb`) | Si                   | `x64`, `arm64`                              | Installazione Debian/Ubuntu                        |
+| Pacchetto RPM (`.rpm`)    | Si                   | Dipende dal CI                              | Fedora/RHEL/openSUSE                               |
+| Da sorgente               | Compilato localmente | Architettura host                           | Sviluppo e build personalizzati                    |
 
 Note:
 
@@ -190,15 +190,15 @@ pnpm run dist:rpm
 
 ## Configurazione
 
-| Argomento | Variabile d'ambiente | Predefinito | Descrizione |
-| --- | --- | --- | --- |
-| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Indirizzo del web server |
-| `--port` | `MESHCHAT_PORT` | `8000` | Porta del web server |
-| `--no-https` | `MESHCHAT_NO_HTTPS` | `false` | Disattiva HTTPS |
-| `--headless` | `MESHCHAT_HEADLESS` | `false` | Non aprire il browser automaticamente |
-| `--auth` | `MESHCHAT_AUTH` | `false` | Attiva autenticazione base |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Directory dei dati |
-| `--public-dir` | `MESHCHAT_PUBLIC_DIR` | auto | Directory dei file frontend |
+| Argomento       | Variabile d'ambiente   | Predefinito | Descrizione                           |
+| --------------- | ---------------------- | ----------- | ------------------------------------- |
+| `--host`        | `MESHCHAT_HOST`        | `127.0.0.1` | Indirizzo del web server              |
+| `--port`        | `MESHCHAT_PORT`        | `8000`      | Porta del web server                  |
+| `--no-https`    | `MESHCHAT_NO_HTTPS`    | `false`     | Disattiva HTTPS                       |
+| `--headless`    | `MESHCHAT_HEADLESS`    | `false`     | Non aprire il browser automaticamente |
+| `--auth`        | `MESHCHAT_AUTH`        | `false`     | Attiva autenticazione base            |
+| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Directory dei dati                    |
+| `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | auto        | Directory dei file frontend           |
 
 ## Sviluppo
 

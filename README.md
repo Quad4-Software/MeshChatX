@@ -70,14 +70,14 @@ task build:all
 
 Use the method that matches your environment and packaging preference.
 
-| Method | Includes frontend assets | Architectures | Best for |
-| --- | --- | --- | --- |
-| Docker image | Yes | `linux/amd64`, `linux/arm64` | Fastest setup on Linux servers/hosts |
-| Python wheel (`.whl`) | Yes | Any Python-supported architecture | Headless/web-server install without Node build |
-| Linux AppImage | Yes | `x64`, `arm64` | Portable desktop use |
-| Debian package (`.deb`) | Yes | `x64`, `arm64` | Debian/Ubuntu installs |
-| RPM package (`.rpm`) | Yes | CI-runner dependent for published artifact | Fedora/RHEL/openSUSE style systems |
-| From source | Built locally | Host architecture | Development and custom builds |
+| Method                  | Includes frontend assets | Architectures                              | Best for                                       |
+| ----------------------- | ------------------------ | ------------------------------------------ | ---------------------------------------------- |
+| Docker image            | Yes                      | `linux/amd64`, `linux/arm64`               | Fastest setup on Linux servers/hosts           |
+| Python wheel (`.whl`)   | Yes                      | Any Python-supported architecture          | Headless/web-server install without Node build |
+| Linux AppImage          | Yes                      | `x64`, `arm64`                             | Portable desktop use                           |
+| Debian package (`.deb`) | Yes                      | `x64`, `arm64`                             | Debian/Ubuntu installs                         |
+| RPM package (`.rpm`)    | Yes                      | CI-runner dependent for published artifact | Fedora/RHEL/openSUSE style systems             |
+| From source             | Built locally            | Host architecture                          | Development and custom builds                  |
 
 Notes:
 
@@ -209,15 +209,15 @@ Use the dedicated docs:
 
 MeshChatX supports both CLI args and env vars.
 
-| Argument | Environment Variable | Default | Description |
-| --- | --- | --- | --- |
-| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Web server bind address |
-| `--port` | `MESHCHAT_PORT` | `8000` | Web server port |
-| `--no-https` | `MESHCHAT_NO_HTTPS` | `false` | Disable HTTPS |
-| `--headless` | `MESHCHAT_HEADLESS` | `false` | Do not auto-launch browser |
-| `--auth` | `MESHCHAT_AUTH` | `false` | Enable basic auth |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Data directory |
-| `--public-dir` | `MESHCHAT_PUBLIC_DIR` | auto/bundled | Frontend files directory (needed for source installs without bundled assets) |
+| Argument        | Environment Variable   | Default      | Description                                                                  |
+| --------------- | ---------------------- | ------------ | ---------------------------------------------------------------------------- |
+| `--host`        | `MESHCHAT_HOST`        | `127.0.0.1`  | Web server bind address                                                      |
+| `--port`        | `MESHCHAT_PORT`        | `8000`       | Web server port                                                              |
+| `--no-https`    | `MESHCHAT_NO_HTTPS`    | `false`      | Disable HTTPS                                                                |
+| `--headless`    | `MESHCHAT_HEADLESS`    | `false`      | Do not auto-launch browser                                                   |
+| `--auth`        | `MESHCHAT_AUTH`        | `false`      | Enable basic auth                                                            |
+| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage`  | Data directory                                                               |
+| `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | auto/bundled | Frontend files directory (needed for source installs without bundled assets) |
 
 ## Development
 

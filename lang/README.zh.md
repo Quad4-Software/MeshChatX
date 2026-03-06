@@ -65,14 +65,14 @@ task build:all
 
 ## 安装方式
 
-| 方式 | 包含前端 | 架构 | 适用场景 |
-| --- | --- | --- | --- |
-| Docker 镜像 | 是 | `linux/amd64`, `linux/arm64` | Linux 服务器快速部署 |
-| Python wheel (`.whl`) | 是 | 任何 Python 支持的架构 | 无需 Node 构建的无头/Web 服务器安装 |
-| Linux AppImage | 是 | `x64`, `arm64` | 便携式桌面使用 |
-| Debian 包 (`.deb`) | 是 | `x64`, `arm64` | Debian/Ubuntu 安装 |
-| RPM 包 (`.rpm`) | 是 | 取决于 CI | Fedora/RHEL/openSUSE |
-| 从源码 | 本地构建 | 主机架构 | 开发和自定义构建 |
+| 方式                  | 包含前端 | 架构                         | 适用场景                            |
+| --------------------- | -------- | ---------------------------- | ----------------------------------- |
+| Docker 镜像           | 是       | `linux/amd64`, `linux/arm64` | Linux 服务器快速部署                |
+| Python wheel (`.whl`) | 是       | 任何 Python 支持的架构       | 无需 Node 构建的无头/Web 服务器安装 |
+| Linux AppImage        | 是       | `x64`, `arm64`               | 便携式桌面使用                      |
+| Debian 包 (`.deb`)    | 是       | `x64`, `arm64`               | Debian/Ubuntu 安装                  |
+| RPM 包 (`.rpm`)       | 是       | 取决于 CI                    | Fedora/RHEL/openSUSE                |
+| 从源码                | 本地构建 | 主机架构                     | 开发和自定义构建                    |
 
 说明:
 
@@ -190,15 +190,15 @@ pnpm run dist:rpm
 
 ## 配置
 
-| 参数 | 环境变量 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Web 服务器绑定地址 |
-| `--port` | `MESHCHAT_PORT` | `8000` | Web 服务器端口 |
-| `--no-https` | `MESHCHAT_NO_HTTPS` | `false` | 禁用 HTTPS |
-| `--headless` | `MESHCHAT_HEADLESS` | `false` | 不自动打开浏览器 |
-| `--auth` | `MESHCHAT_AUTH` | `false` | 启用基本认证 |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | 数据目录 |
-| `--public-dir` | `MESHCHAT_PUBLIC_DIR` | 自动 | 前端文件目录 |
+| 参数            | 环境变量               | 默认值      | 说明               |
+| --------------- | ---------------------- | ----------- | ------------------ |
+| `--host`        | `MESHCHAT_HOST`        | `127.0.0.1` | Web 服务器绑定地址 |
+| `--port`        | `MESHCHAT_PORT`        | `8000`      | Web 服务器端口     |
+| `--no-https`    | `MESHCHAT_NO_HTTPS`    | `false`     | 禁用 HTTPS         |
+| `--headless`    | `MESHCHAT_HEADLESS`    | `false`     | 不自动打开浏览器   |
+| `--auth`        | `MESHCHAT_AUTH`        | `false`     | 启用基本认证       |
+| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | 数据目录           |
+| `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | 自动        | 前端文件目录       |
 
 ## 开发
 

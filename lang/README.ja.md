@@ -65,14 +65,14 @@ task build:all
 
 ## インストール方法
 
-| 方法 | フロントエンド含む | アーキテクチャ | 最適な用途 |
-| --- | --- | --- | --- |
-| Docker イメージ | はい | `linux/amd64`, `linux/arm64` | Linux サーバーでの最速セットアップ |
-| Python wheel (`.whl`) | はい | Python がサポートする全アーキテクチャ | Node ビルド不要のヘッドレス/Web サーバー |
-| Linux AppImage | はい | `x64`, `arm64` | ポータブルデスクトップ |
-| Debian パッケージ (`.deb`) | はい | `x64`, `arm64` | Debian/Ubuntu |
-| RPM パッケージ (`.rpm`) | はい | CI 依存 | Fedora/RHEL/openSUSE |
-| ソースから | ローカルビルド | ホストアーキテクチャ | 開発・カスタムビルド |
+| 方法                       | フロントエンド含む | アーキテクチャ                        | 最適な用途                               |
+| -------------------------- | ------------------ | ------------------------------------- | ---------------------------------------- |
+| Docker イメージ            | はい               | `linux/amd64`, `linux/arm64`          | Linux サーバーでの最速セットアップ       |
+| Python wheel (`.whl`)      | はい               | Python がサポートする全アーキテクチャ | Node ビルド不要のヘッドレス/Web サーバー |
+| Linux AppImage             | はい               | `x64`, `arm64`                        | ポータブルデスクトップ                   |
+| Debian パッケージ (`.deb`) | はい               | `x64`, `arm64`                        | Debian/Ubuntu                            |
+| RPM パッケージ (`.rpm`)    | はい               | CI 依存                               | Fedora/RHEL/openSUSE                     |
+| ソースから                 | ローカルビルド     | ホストアーキテクチャ                  | 開発・カスタムビルド                     |
 
 備考:
 
@@ -190,15 +190,15 @@ pnpm run dist:rpm
 
 ## 設定
 
-| 引数 | 環境変数 | デフォルト | 説明 |
-| --- | --- | --- | --- |
-| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Web サーバーバインドアドレス |
-| `--port` | `MESHCHAT_PORT` | `8000` | Web サーバーポート |
-| `--no-https` | `MESHCHAT_NO_HTTPS` | `false` | HTTPS を無効化 |
-| `--headless` | `MESHCHAT_HEADLESS` | `false` | ブラウザを自動で開かない |
-| `--auth` | `MESHCHAT_AUTH` | `false` | 基本認証を有効化 |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | データディレクトリ |
-| `--public-dir` | `MESHCHAT_PUBLIC_DIR` | 自動 | フロントエンドファイルディレクトリ |
+| 引数            | 環境変数               | デフォルト  | 説明                               |
+| --------------- | ---------------------- | ----------- | ---------------------------------- |
+| `--host`        | `MESHCHAT_HOST`        | `127.0.0.1` | Web サーバーバインドアドレス       |
+| `--port`        | `MESHCHAT_PORT`        | `8000`      | Web サーバーポート                 |
+| `--no-https`    | `MESHCHAT_NO_HTTPS`    | `false`     | HTTPS を無効化                     |
+| `--headless`    | `MESHCHAT_HEADLESS`    | `false`     | ブラウザを自動で開かない           |
+| `--auth`        | `MESHCHAT_AUTH`        | `false`     | 基本認証を有効化                   |
+| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | データディレクトリ                 |
+| `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | 自動        | フロントエンドファイルディレクトリ |
 
 ## 開発
 

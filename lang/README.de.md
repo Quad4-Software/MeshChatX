@@ -65,14 +65,14 @@ task build:all
 
 ## Installationsmethoden
 
-| Methode | Frontend enthalten | Architekturen | Geeignet fuer |
-| --- | --- | --- | --- |
-| Docker-Image | Ja | `linux/amd64`, `linux/arm64` | Schnellster Start auf Linux-Servern |
-| Python Wheel (`.whl`) | Ja | Jede Python-unterstuetzte Architektur | Headless/Webserver ohne Node-Build |
-| Linux AppImage | Ja | `x64`, `arm64` | Portabler Desktop-Einsatz |
-| Debian-Paket (`.deb`) | Ja | `x64`, `arm64` | Debian/Ubuntu-Installation |
-| RPM-Paket (`.rpm`) | Ja | CI-abhaengig | Fedora/RHEL/openSUSE |
-| Aus Quellcode | Lokal gebaut | Host-Architektur | Entwicklung und individuelle Builds |
+| Methode               | Frontend enthalten | Architekturen                         | Geeignet fuer                       |
+| --------------------- | ------------------ | ------------------------------------- | ----------------------------------- |
+| Docker-Image          | Ja                 | `linux/amd64`, `linux/arm64`          | Schnellster Start auf Linux-Servern |
+| Python Wheel (`.whl`) | Ja                 | Jede Python-unterstuetzte Architektur | Headless/Webserver ohne Node-Build  |
+| Linux AppImage        | Ja                 | `x64`, `arm64`                        | Portabler Desktop-Einsatz           |
+| Debian-Paket (`.deb`) | Ja                 | `x64`, `arm64`                        | Debian/Ubuntu-Installation          |
+| RPM-Paket (`.rpm`)    | Ja                 | CI-abhaengig                          | Fedora/RHEL/openSUSE                |
+| Aus Quellcode         | Lokal gebaut       | Host-Architektur                      | Entwicklung und individuelle Builds |
 
 Hinweise:
 
@@ -190,15 +190,15 @@ pnpm run dist:rpm
 
 ## Konfiguration
 
-| Argument | Umgebungsvariable | Standard | Beschreibung |
-| --- | --- | --- | --- |
-| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Webserver-Adresse |
-| `--port` | `MESHCHAT_PORT` | `8000` | Webserver-Port |
-| `--no-https` | `MESHCHAT_NO_HTTPS` | `false` | HTTPS deaktivieren |
-| `--headless` | `MESHCHAT_HEADLESS` | `false` | Browser nicht automatisch oeffnen |
-| `--auth` | `MESHCHAT_AUTH` | `false` | Basis-Authentifizierung aktivieren |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Datenverzeichnis |
-| `--public-dir` | `MESHCHAT_PUBLIC_DIR` | auto | Frontend-Verzeichnis |
+| Argument        | Umgebungsvariable      | Standard    | Beschreibung                       |
+| --------------- | ---------------------- | ----------- | ---------------------------------- |
+| `--host`        | `MESHCHAT_HOST`        | `127.0.0.1` | Webserver-Adresse                  |
+| `--port`        | `MESHCHAT_PORT`        | `8000`      | Webserver-Port                     |
+| `--no-https`    | `MESHCHAT_NO_HTTPS`    | `false`     | HTTPS deaktivieren                 |
+| `--headless`    | `MESHCHAT_HEADLESS`    | `false`     | Browser nicht automatisch oeffnen  |
+| `--auth`        | `MESHCHAT_AUTH`        | `false`     | Basis-Authentifizierung aktivieren |
+| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Datenverzeichnis                   |
+| `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | auto        | Frontend-Verzeichnis               |
 
 ## Entwicklung
 
