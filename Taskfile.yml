@@ -75,7 +75,7 @@ tasks:
     deps:be:
         desc: Install Python dependencies using Poetry
         cmds:
-            - "{{.PYTHON}} -m poetry install"
+            - poetry install
 
     setup:be:
         desc: Full backend environment setup
@@ -89,7 +89,7 @@ tasks:
         desc: Run the application
         deps: [install]
         cmds:
-            - "{{.PYTHON}} -m poetry run meshchat"
+            - poetry run meshchat
 
     dev:
         desc: Run in development mode (builds frontend first)
@@ -230,7 +230,7 @@ tasks:
         desc: Build Python wheel package
         deps: [install]
         cmds:
-            - "{{.PYTHON}} -m poetry build -f wheel"
+            - poetry build -f wheel
             - "{{.PYTHON}} scripts/move_wheels.py"
 
     # --- Electron Distribution ---
