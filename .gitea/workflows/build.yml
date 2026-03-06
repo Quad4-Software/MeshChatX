@@ -96,8 +96,11 @@ jobs:
             - name: Build Python wheel
               run: task build:wheel
 
-            - name: Build Electron App (Appimage)
+            - name: Build Electron App (x64 AppImage + deb)
               run: pnpm run dist:linux-x64
+
+            - name: Build Electron App (arm64 AppImage + deb)
+              run: pnpm run dist:linux-arm64
 
             - name: Build Electron App (RPM)
               continue-on-error: true
@@ -168,6 +171,7 @@ jobs:
                       release-assets/*.deb
                       release-assets/*.rpm
                       release-assets/*.whl
+                      release-assets/*.zip
                       release-assets/*.sha256
                       release-assets/sbom.cyclonedx.json
                   body_path: "release-body.md"
