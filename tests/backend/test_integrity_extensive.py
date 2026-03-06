@@ -183,6 +183,245 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
         if not is_ok:
             self.assertTrue(any("Database" in i for i in issues))
 
+    # ------------------------------------------------------------------
+    # Corrupt / malformed manifest
+    # ------------------------------------------------------------------
+
+    def test_corrupt_manifest_json(self):
+        """check_integrity must not crash on invalid JSON in the manifest."""
+        self.manager.save_manifest()
+        with open(self.manager.manifest_path, "w") as f:
+            f.write("{{{NOT JSON!!!")
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(any("Integrity check failed" in i for i in issues))
+
+    def test_empty_manifest_file(self):
+        """check_integrity must handle a 0-byte manifest gracefully."""
+        self.manager.save_manifest()
+        with open(self.manager.manifest_path, "w") as f:
+            f.truncate(0)
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(any("Integrity check failed" in i for i in issues))
+
+    def test_manifest_missing_keys(self):
+        """Manifest with valid JSON but missing expected keys should not crash."""
+        with open(self.manager.manifest_path, "w") as f:
+            json.dump({"version": 2}, f)
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertTrue(is_ok or isinstance(issues, list))
+
+    # ------------------------------------------------------------------
+    # Hash consistency
+    # ------------------------------------------------------------------
+
+    def test_hash_file_consistency(self):
+        """Same file content must always produce the same hash."""
+        h1 = self.manager._hash_file(self.db_path)
+        h2 = self.manager._hash_file(self.db_path)
+        self.assertEqual(h1, h2)
+        self.assertIsNotNone(h1)
+        self.assertEqual(len(h1), 64)  # SHA-256 hex length
+
+    def test_hash_file_missing(self):
+        """_hash_file on a missing path must return None."""
+        result = self.manager._hash_file(self.test_dir / "does_not_exist.bin")
+        self.assertIsNone(result)
+
+    # ------------------------------------------------------------------
+    # DB integrity check
+    # ------------------------------------------------------------------
+
+    def test_check_db_integrity_valid(self):
+        """_check_db_integrity on a valid DB returns (True, 'ok')."""
+        ok, msg = self.manager._check_db_integrity(self.db_path)
+        self.assertTrue(ok)
+        self.assertEqual(msg, "ok")
+
+    def test_check_db_integrity_not_sqlite(self):
+        """_check_db_integrity on a non-SQLite file returns (False, ...)."""
+        bad = self.test_dir / "bad.db"
+        bad.write_text("this is not sqlite")
+        ok, msg = self.manager._check_db_integrity(bad)
+        self.assertFalse(ok)
+
+    def test_check_db_integrity_missing(self):
+        """_check_db_integrity on missing file returns (False, ...)."""
+        ok, msg = self.manager._check_db_integrity(self.test_dir / "gone.db")
+        self.assertFalse(ok)
+        self.assertIn("does not exist", msg)
+
+    def test_check_db_integrity_empty_file(self):
+        """_check_db_integrity on a 0-byte file should not crash."""
+        empty_db = self.test_dir / "empty.db"
+        empty_db.touch()
+        ok, msg = self.manager._check_db_integrity(empty_db)
+        # SQLite treats a 0-byte file as a valid empty database
+        self.assertIsInstance(ok, bool)
+        self.assertIsInstance(msg, str)
+
+    # ------------------------------------------------------------------
+    # Entropy threshold boundaries
+    # ------------------------------------------------------------------
+
+    def test_entropy_threshold_db_just_below(self):
+        """DB entropy delta of 0.99 should NOT trigger anomaly warning."""
+        self.manager.save_manifest()
+
+        with open(self.manager.manifest_path) as f:
+            manifest = json.load(f)
+
+        db_rel = str(self.db_path.relative_to(self.test_dir))
+        real_entropy = manifest["metadata"][db_rel]["entropy"]
+        manifest["metadata"][db_rel]["entropy"] = real_entropy + 0.99
+
+        with open(self.manager.manifest_path, "w") as f:
+            json.dump(manifest, f)
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertFalse(
+            any("structural anomaly" in i for i in issues),
+            f"Should not flag anomaly at delta=0.99: {issues}",
+        )
+
+    def test_entropy_threshold_db_just_above(self):
+        """DB entropy delta of 1.01 should trigger anomaly warning."""
+        self.manager.save_manifest()
+
+        with open(self.manager.manifest_path) as f:
+            manifest = json.load(f)
+
+        db_rel = str(self.db_path.relative_to(self.test_dir))
+        real_entropy = manifest["metadata"][db_rel]["entropy"]
+        manifest["metadata"][db_rel]["entropy"] = real_entropy + 1.01
+
+        # Also change the file hash so it triggers the comparison path
+        manifest["files"][db_rel] = "0" * 64
+
+        with open(self.manager.manifest_path, "w") as f:
+            json.dump(manifest, f)
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(
+            any("structural anomaly" in i or "Entropy" in i for i in issues),
+            f"Should flag anomaly at delta=1.01: {issues}",
+        )
+
+    def test_entropy_threshold_file_1_49_no_flag(self):
+        """Non-DB file entropy delta of 1.49 should NOT trigger content shift."""
+        data_file = self.test_dir / "payload.bin"
+        data_file.write_bytes(b"X" * 2000)
+        self.manager.save_manifest()
+
+        with open(self.manager.manifest_path) as f:
+            manifest = json.load(f)
+
+        rel = str(data_file.relative_to(self.test_dir))
+        real_entropy = manifest["metadata"][rel]["entropy"]
+        manifest["metadata"][rel]["entropy"] = real_entropy + 1.49
+        manifest["files"][rel] = "0" * 64
+
+        with open(self.manager.manifest_path, "w") as f:
+            json.dump(manifest, f)
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertFalse(
+            any("Non-linear content shift" in i for i in issues),
+            f"Should not flag content shift at delta=1.49: {issues}",
+        )
+
+    def test_entropy_threshold_file_1_51_flags(self):
+        """Non-DB file entropy delta of 1.51 should trigger content shift."""
+        data_file = self.test_dir / "payload.bin"
+        data_file.write_bytes(b"X" * 2000)
+        self.manager.save_manifest()
+
+        with open(self.manager.manifest_path) as f:
+            manifest = json.load(f)
+
+        rel = str(data_file.relative_to(self.test_dir))
+        real_entropy = manifest["metadata"][rel]["entropy"]
+        manifest["metadata"][rel]["entropy"] = real_entropy + 1.51
+        manifest["files"][rel] = "0" * 64
+
+        with open(self.manager.manifest_path, "w") as f:
+            json.dump(manifest, f)
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertFalse(is_ok)
+        self.assertTrue(
+            any("Non-linear content shift" in i for i in issues),
+            f"Should flag content shift at delta=1.51: {issues}",
+        )
+
+    # ------------------------------------------------------------------
+    # DB outside storage_dir
+    # ------------------------------------------------------------------
+
+    def test_db_outside_storage_dir(self):
+        """check_integrity must not crash when DB is outside storage_dir."""
+        import tempfile as tf
+
+        ext_dir = Path(tf.mkdtemp())
+        try:
+            ext_db = ext_dir / "external.db"
+            conn = sqlite3.connect(ext_db)
+            conn.execute("CREATE TABLE t (id INTEGER PRIMARY KEY)")
+            conn.close()
+
+            mgr = IntegrityManager(self.test_dir, ext_db)
+            mgr.save_manifest()
+            is_ok, issues = mgr.check_integrity()
+            self.assertTrue(is_ok or isinstance(issues, list))
+        finally:
+            shutil.rmtree(ext_dir)
+
+    # ------------------------------------------------------------------
+    # Hypothesis: entropy for any binary data
+    # ------------------------------------------------------------------
+
+    @settings(
+        suppress_health_check=[HealthCheck.too_slow],
+        deadline=None,
+        derandomize=True,
+    )
+    @given(st.binary(min_size=1, max_size=4096))
+    def test_entropy_monotonic_with_unique_bytes(self, data):
+        """More unique byte values should produce higher entropy."""
+        f = self.test_dir / "hyp_ent"
+        f.write_bytes(data)
+        e = self.manager._calculate_entropy(f)
+        unique = len(set(data))
+        if unique == 1:
+            self.assertAlmostEqual(e, 0.0, places=5)
+        else:
+            self.assertGreater(e, 0.0)
+        self.assertLessEqual(e, 8.0 + 1e-9)
+
+    # ------------------------------------------------------------------
+    # Hypothesis: save_manifest then check_integrity always consistent
+    # ------------------------------------------------------------------
+
+    @settings(
+        suppress_health_check=[HealthCheck.too_slow],
+        deadline=None,
+        max_examples=10,
+        derandomize=True,
+    )
+    @given(st.binary(min_size=1, max_size=512))
+    def test_save_then_check_always_passes(self, extra_data):
+        """After save_manifest(), check_integrity() must pass for unchanged state."""
+        extra_file = self.test_dir / "extra.bin"
+        extra_file.write_bytes(extra_data)
+        self.manager.save_manifest()
+        is_ok, issues = self.manager.check_integrity()
+        self.assertTrue(is_ok, f"Should pass after save. Issues: {issues}")
+
 
 if __name__ == "__main__":
     unittest.main()

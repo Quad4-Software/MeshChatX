@@ -321,6 +321,213 @@ class TestCrashRecovery(unittest.TestCase):
             self.assertGreaterEqual(legacy_cause["probability"], 80)
             self.assertIn("Kernel detected: 3.10", legacy_cause["reasoning"])
 
+    # ==================================================================
+    # install() / disable()
+    # ==================================================================
+
+    def test_install_sets_excepthook(self):
+        """install() should set sys.excepthook to handle_exception."""
+        original = sys.excepthook
+        try:
+            self.recovery.install()
+            self.assertEqual(sys.excepthook, self.recovery.handle_exception)
+        finally:
+            sys.excepthook = original
+
+    def test_disable_prevents_install(self):
+        """After disable(), install() should not set the hook."""
+        original = sys.excepthook
+        try:
+            self.recovery.disable()
+            self.recovery.install()
+            self.assertNotEqual(sys.excepthook, self.recovery.handle_exception)
+        finally:
+            sys.excepthook = original
+
+    # ==================================================================
+    # _calculate_manifold_curvature
+    # ==================================================================
+
+    def test_curvature_empty_causes(self):
+        """Empty causes list should return 0.0 curvature."""
+        self.assertEqual(self.recovery._calculate_manifold_curvature([]), 0.0)
+
+    def test_curvature_single_cause(self):
+        """Single cause should return probability * 10."""
+        causes = [{"probability": 95}]
+        self.assertAlmostEqual(self.recovery._calculate_manifold_curvature(causes), 9.5)
+
+    def test_curvature_two_causes_gradient(self):
+        """Curvature should be 10 * (top - second)."""
+        causes = [{"probability": 90}, {"probability": 40}]
+        self.assertAlmostEqual(self.recovery._calculate_manifold_curvature(causes), 5.0)
+
+    def test_curvature_equal_causes(self):
+        """Equal probabilities should give curvature = 0."""
+        causes = [{"probability": 50}, {"probability": 50}]
+        self.assertAlmostEqual(self.recovery._calculate_manifold_curvature(causes), 0.0)
+
+    def test_curvature_many_causes(self):
+        """Only top 2 probabilities matter for curvature."""
+        causes = [
+            {"probability": 80},
+            {"probability": 30},
+            {"probability": 10},
+        ]
+        self.assertAlmostEqual(self.recovery._calculate_manifold_curvature(causes), 5.0)
+
+    # ==================================================================
+    # _calculate_system_entropy edge cases
+    # ==================================================================
+
+    def test_entropy_empty_diagnosis(self):
+        """Empty diagnosis should return baseline entropy (all ideal)."""
+        entropy, divergence = self.recovery._calculate_system_entropy({})
+        self.assertGreater(entropy, 0)
+        self.assertAlmostEqual(divergence, 0.0, places=5)
+
+    def test_entropy_all_critical(self):
+        """All dimensions critical should maximize entropy and divergence."""
+        diag = {
+            "low_memory": True,
+            "config_missing": True,
+            "db_type": "memory",
+        }
+        entropy, divergence = self.recovery._calculate_system_entropy(diag)
+        base_entropy, base_div = self.recovery._calculate_system_entropy({})
+        self.assertGreater(entropy, base_entropy)
+        self.assertGreater(divergence, base_div)
+
+    def test_entropy_invalid_mem_value(self):
+        """Non-numeric available_mem_mb should not crash."""
+        diag = {"available_mem_mb": "not_a_number", "low_memory": True}
+        entropy, divergence = self.recovery._calculate_system_entropy(diag)
+        self.assertIsInstance(entropy, float)
+        self.assertIsInstance(divergence, float)
+
+    def test_entropy_none_mem_value(self):
+        """None available_mem_mb should not crash."""
+        diag = {"available_mem_mb": None}
+        entropy, divergence = self.recovery._calculate_system_entropy(diag)
+        self.assertIsInstance(entropy, float)
+
+    def test_divergence_nonnegative(self):
+        """KL divergence must always be non-negative."""
+        test_cases = [
+            {},
+            {"low_memory": True},
+            {"config_missing": True},
+            {"db_type": "memory"},
+            {"low_memory": True, "config_missing": True, "db_type": "memory"},
+        ]
+        for diag in test_cases:
+            _, div = self.recovery._calculate_system_entropy(diag)
+            self.assertGreaterEqual(div, 0.0, f"Negative divergence for {diag}")
+
+    # ==================================================================
+    # legacy_kernel regex safety
+    # ==================================================================
+
+    def test_legacy_kernel_non_linux(self):
+        """Non-Linux platforms should not crash on legacy_kernel check."""
+        with (
+            patch("platform.system", return_value="Windows"),
+            patch("platform.release", return_value="10"),
+        ):
+            exc_type = RuntimeError
+            exc_value = RuntimeError("test")
+            causes = self.recovery._analyze_cause(exc_type, exc_value, {})
+            self.assertIsInstance(causes, list)
+
+    def test_legacy_kernel_unusual_release(self):
+        """Unusual release strings should not crash."""
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("platform.release", return_value="unknown"),
+        ):
+            exc_type = RuntimeError
+            exc_value = RuntimeError("test")
+            causes = self.recovery._analyze_cause(exc_type, exc_value, {})
+            self.assertIsInstance(causes, list)
+
+    def test_legacy_kernel_empty_release(self):
+        """Empty release string should not crash."""
+        with (
+            patch("platform.system", return_value="Linux"),
+            patch("platform.release", return_value=""),
+        ):
+            exc_type = RuntimeError
+            exc_value = RuntimeError("test")
+            causes = self.recovery._analyze_cause(exc_type, exc_value, {})
+            self.assertIsInstance(causes, list)
+
+    # ==================================================================
+    # run_reticulum_diagnosis isolation
+    # ==================================================================
+
+    def test_reticulum_diagnosis_invalid_config_content(self):
+        """Invalid config file content should be flagged."""
+        rns_dir = os.path.join(self.test_dir, "rns_invalid")
+        os.makedirs(rns_dir)
+        with open(os.path.join(rns_dir, "config"), "w") as f:
+            f.write("this is not a valid reticulum config")
+
+        self.recovery.update_paths(reticulum_config_dir=rns_dir)
+        output = io.StringIO()
+        results = self.recovery.run_reticulum_diagnosis(file=output)
+        report = output.getvalue()
+        self.assertIn("[ERROR]", report)
+        self.assertTrue(results.get("config_invalid", False))
+
+    def test_reticulum_diagnosis_empty_logfile(self):
+        """Empty log file should be handled gracefully."""
+        rns_dir = os.path.join(self.test_dir, "rns_empty_log")
+        os.makedirs(rns_dir)
+        with open(os.path.join(rns_dir, "config"), "w") as f:
+            f.write("[reticulum]\n")
+        with open(os.path.join(rns_dir, "logfile"), "w") as f:
+            pass
+
+        self.recovery.update_paths(reticulum_config_dir=rns_dir)
+        output = io.StringIO()
+        self.recovery.run_reticulum_diagnosis(file=output)
+        report = output.getvalue()
+        self.assertIn("Log file is empty", report)
+
+    # ==================================================================
+    # Diagnosis edge cases
+    # ==================================================================
+
+    def test_diagnosis_empty_db_file(self):
+        """0-byte database file should trigger a warning."""
+        open(self.db_path, "w").close()  # noqa: SIM115
+
+        output = io.StringIO()
+        self.recovery.run_diagnosis(file=output)
+        report = output.getvalue()
+        self.assertIn("empty (0 bytes)", report)
+
+    def test_update_paths(self):
+        """update_paths should correctly update internal state."""
+        new_storage = os.path.join(self.test_dir, "new_storage")
+        self.recovery.update_paths(storage_dir=new_storage)
+        self.assertEqual(self.recovery.storage_dir, new_storage)
+
+    def test_keyboard_interrupt_passthrough(self):
+        """KeyboardInterrupt should be passed to the default hook."""
+        called = {}
+
+        def mock_hook(exc_type, exc_value, exc_tb):
+            called["invoked"] = True
+
+        original = sys.__excepthook__
+        sys.__excepthook__ = mock_hook
+        try:
+            self.recovery.handle_exception(KeyboardInterrupt, KeyboardInterrupt(), None)
+            self.assertTrue(called.get("invoked", False))
+        finally:
+            sys.__excepthook__ = original
+
 
 if __name__ == "__main__":
     unittest.main()

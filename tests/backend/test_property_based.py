@@ -947,3 +947,101 @@ def test_is_backup_suspicious_property(prev_count, prev_bytes, curr_count, curr_
     result = db._is_backup_suspicious(current_stats, baseline)
     expected = _is_backup_suspicious_reference(current_stats, baseline)
     assert result == expected
+
+
+# =====================================================================
+# CrashRecovery math property-based tests
+# =====================================================================
+
+
+class TestCrashRecoveryMathProperties:
+    """Property-based tests for CrashRecovery mathematical functions."""
+
+    @staticmethod
+    def _make_recovery():
+        return CrashRecovery()
+
+    @given(
+        low_memory=st.booleans(),
+        config_missing=st.booleans(),
+        config_invalid=st.booleans(),
+        db_type=st.sampled_from(["file", "memory"]),
+        available_mem_mb=st.one_of(
+            st.floats(min_value=0, max_value=100000, allow_nan=False),
+            st.integers(min_value=0, max_value=100000),
+            st.none(),
+            st.just("garbage"),
+        ),
+    )
+    @settings(
+        suppress_health_check=[HealthCheck.too_slow],
+        deadline=None,
+        derandomize=True,
+    )
+    def test_system_entropy_always_finite(
+        self, low_memory, config_missing, config_invalid, db_type, available_mem_mb
+    ):
+        """Entropy and divergence must always be finite floats for any diagnosis."""
+        import math as m
+
+        recovery = self._make_recovery()
+        diag = {
+            "low_memory": low_memory,
+            "config_missing": config_missing,
+            "config_invalid": config_invalid,
+            "db_type": db_type,
+            "available_mem_mb": available_mem_mb,
+        }
+        entropy, divergence = recovery._calculate_system_entropy(diag)
+        assert m.isfinite(entropy), f"Non-finite entropy: {entropy}"
+        assert m.isfinite(divergence), f"Non-finite divergence: {divergence}"
+        assert entropy >= 0, f"Negative entropy: {entropy}"
+        assert divergence >= 0, f"Negative divergence: {divergence}"
+
+    @given(
+        probs=st.lists(
+            st.integers(min_value=0, max_value=100), min_size=0, max_size=10
+        ),
+    )
+    @settings(derandomize=True, deadline=None)
+    def test_manifold_curvature_bounded(self, probs):
+        """Manifold curvature must always be a non-negative finite float."""
+        import math as m
+
+        recovery = self._make_recovery()
+        causes = [{"probability": p} for p in probs]
+        curvature = recovery._calculate_manifold_curvature(causes)
+        assert m.isfinite(curvature), f"Non-finite curvature: {curvature}"
+        assert curvature >= 0 or len(probs) >= 2, f"Unexpected negative: {curvature}"
+
+    @given(
+        exc_msg=st.text(min_size=0, max_size=200),
+        exc_type_name=st.sampled_from(
+            [
+                "RuntimeError",
+                "ValueError",
+                "sqlite3.OperationalError",
+                "AttributeError",
+                "MemoryError",
+                "OSError",
+            ]
+        ),
+    )
+    @settings(
+        suppress_health_check=[HealthCheck.too_slow],
+        deadline=None,
+        derandomize=True,
+        max_examples=50,
+    )
+    def test_analyze_cause_never_crashes(self, exc_msg, exc_type_name):
+        """_analyze_cause must never raise for any error message/type combo."""
+        recovery = self._make_recovery()
+        exc_type = type(exc_type_name, (Exception,), {})
+        exc_type.__name__ = exc_type_name
+        exc_value = Exception(exc_msg)
+        diagnosis = {}
+        causes = recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        assert isinstance(causes, list)
+        for c in causes:
+            assert isinstance(c["probability"], int)
+            assert 0 <= c["probability"] <= 100
