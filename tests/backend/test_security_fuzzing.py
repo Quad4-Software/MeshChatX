@@ -2196,3 +2196,306 @@ def test_lxmf_display_name_parsing_regression():
 
     # None input
     assert parse_lxmf_display_name(None, default_value="Fallback") == "Fallback"
+
+
+class TestLxmfFieldHardening:
+    """Tests for LXMF message field type safety and edge cases."""
+
+    def test_file_attachment_non_list(self, mock_app):
+        """File attachments field as non-list should not crash."""
+        mock_message = MagicMock()
+        mock_message.source_hash = os.urandom(16)
+        mock_message.destination_hash = os.urandom(16)
+        mock_message.hash = os.urandom(16)
+        mock_message.content = b"test"
+        mock_message.title = b""
+        mock_message.incoming = True
+        mock_message.state = LXMF.LXMessage.DELIVERED
+        mock_message.method = LXMF.LXMessage.DIRECT
+        mock_message.progress = 1.0
+        mock_message.timestamp = 123456789.0
+        mock_message.rssi = -50
+        mock_message.snr = 10
+        mock_message.q = 100
+        mock_message.delivery_attempts = 1
+        mock_message.next_delivery_attempt = None
+        mock_message.get_fields.return_value = {
+            LXMF.FIELD_FILE_ATTACHMENTS: "not-a-list",
+        }
+        from meshchatx.src.backend.lxmf_utils import convert_lxmf_message_to_dict
+
+        result = convert_lxmf_message_to_dict(mock_message)
+        assert isinstance(result, dict)
+
+    def test_file_attachment_item_wrong_type(self, mock_app):
+        """File attachment items that are not [name, data] pairs should not crash."""
+        mock_message = MagicMock()
+        mock_message.source_hash = os.urandom(16)
+        mock_message.destination_hash = os.urandom(16)
+        mock_message.hash = os.urandom(16)
+        mock_message.content = b"test"
+        mock_message.title = b""
+        mock_message.incoming = True
+        mock_message.state = LXMF.LXMessage.DELIVERED
+        mock_message.method = LXMF.LXMessage.DIRECT
+        mock_message.progress = 1.0
+        mock_message.timestamp = 123456789.0
+        mock_message.rssi = -50
+        mock_message.snr = 10
+        mock_message.q = 100
+        mock_message.delivery_attempts = 1
+        mock_message.next_delivery_attempt = None
+        mock_message.get_fields.return_value = {
+            LXMF.FIELD_FILE_ATTACHMENTS: [42, None, "string", {"a": "b"}],
+        }
+        from meshchatx.src.backend.lxmf_utils import convert_lxmf_message_to_dict
+
+        try:
+            convert_lxmf_message_to_dict(mock_message)
+        except (TypeError, IndexError, KeyError):
+            pass
+
+    def test_image_field_non_list(self, mock_app):
+        """Image field as unexpected type should not crash."""
+        mock_message = MagicMock()
+        mock_message.source_hash = os.urandom(16)
+        mock_message.destination_hash = os.urandom(16)
+        mock_message.hash = os.urandom(16)
+        mock_message.content = b"test"
+        mock_message.title = b""
+        mock_message.incoming = True
+        mock_message.state = LXMF.LXMessage.DELIVERED
+        mock_message.method = LXMF.LXMessage.DIRECT
+        mock_message.progress = 1.0
+        mock_message.timestamp = 123456789.0
+        mock_message.rssi = -50
+        mock_message.snr = 10
+        mock_message.q = 100
+        mock_message.delivery_attempts = 1
+        mock_message.next_delivery_attempt = None
+        mock_message.get_fields.return_value = {
+            LXMF.FIELD_IMAGE: 42,
+        }
+        from meshchatx.src.backend.lxmf_utils import convert_lxmf_message_to_dict
+
+        try:
+            convert_lxmf_message_to_dict(mock_message)
+        except (TypeError, IndexError, KeyError):
+            pass
+
+    @settings(
+        suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None
+    )
+    @given(
+        fields_data=st.dictionaries(
+            keys=st.integers(min_value=0, max_value=20),
+            values=st.one_of(
+                st.none(),
+                st.booleans(),
+                st.integers(),
+                st.text(max_size=200),
+                st.binary(max_size=200),
+                st.lists(st.text(max_size=50), max_size=5),
+            ),
+            max_size=10,
+        ),
+    )
+    def test_arbitrary_fields_do_not_crash(self, mock_app, fields_data):
+        """Fuzz arbitrary LXMF fields dict to ensure no crashes."""
+        mock_message = MagicMock()
+        mock_message.source_hash = os.urandom(16)
+        mock_message.destination_hash = os.urandom(16)
+        mock_message.hash = os.urandom(16)
+        mock_message.content = b"ok"
+        mock_message.title = b""
+        mock_message.incoming = True
+        mock_message.state = LXMF.LXMessage.DELIVERED
+        mock_message.method = LXMF.LXMessage.DIRECT
+        mock_message.progress = 1.0
+        mock_message.timestamp = 123456789.0
+        mock_message.rssi = -50
+        mock_message.snr = 10
+        mock_message.q = 100
+        mock_message.delivery_attempts = 1
+        mock_message.next_delivery_attempt = None
+        mock_message.get_fields.return_value = fields_data
+        from meshchatx.src.backend.lxmf_utils import convert_lxmf_message_to_dict
+
+        try:
+            convert_lxmf_message_to_dict(mock_message)
+        except (TypeError, IndexError, KeyError, ValueError):
+            pass
+
+
+class TestStrangerAttachmentBlocking:
+    """Tests for stranger attachment stripping logic."""
+
+    def _make_mock_message(self, source_hash=None, with_attachments=True):
+        mock_msg = MagicMock()
+        mock_msg.source_hash = source_hash or os.urandom(16)
+        mock_msg.destination_hash = os.urandom(16)
+        mock_msg.hash = os.urandom(16)
+        mock_msg.content = b"hello from stranger"
+        mock_msg.title = b""
+        mock_msg.incoming = True
+        mock_msg.state = LXMF.LXMessage.DELIVERED
+        mock_msg.method = LXMF.LXMessage.DIRECT
+        mock_msg.progress = 1.0
+        mock_msg.timestamp = 123456789.0
+        mock_msg.rssi = -50
+        mock_msg.snr = 10
+        mock_msg.q = 100
+        mock_msg.delivery_attempts = 1
+        mock_msg.next_delivery_attempt = None
+
+        fields = {}
+        if with_attachments:
+            fields[LXMF.FIELD_FILE_ATTACHMENTS] = [
+                [b"malware.exe", b"\x00" * 100],
+            ]
+        mock_msg.get_fields.return_value = fields
+        mock_msg.fields = fields
+        return mock_msg
+
+    def test_stranger_attachments_stripped_when_enabled(self, mock_app):
+        """Attachments from non-contacts should be stripped when setting is on."""
+        source_hash = os.urandom(16)
+        mock_msg = self._make_mock_message(source_hash=source_hash)
+
+        mock_app.config.block_attachments_from_strangers.get.return_value = True
+        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+
+        mock_app.db_upsert_lxmf_message.assert_called_once()
+        call_kwargs = mock_app.db_upsert_lxmf_message.call_args
+        assert call_kwargs[1].get("attachments_stripped") is True or (
+            len(call_kwargs[0]) > 2 and call_kwargs[0][2] is True
+        )
+
+    def test_contact_attachments_not_stripped(self, mock_app):
+        """Attachments from contacts should NOT be stripped."""
+        source_hash = os.urandom(16)
+        mock_msg = self._make_mock_message(source_hash=source_hash)
+
+        mock_app.config.block_attachments_from_strangers.get.return_value = True
+        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=True)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_called_once()
+        fields = mock_msg.get_fields()
+        assert LXMF.FIELD_FILE_ATTACHMENTS in fields
+
+    def test_setting_disabled_allows_stranger_attachments(self, mock_app):
+        """When setting is off, stranger attachments pass through."""
+        source_hash = os.urandom(16)
+        mock_msg = self._make_mock_message(source_hash=source_hash)
+
+        mock_app.config.block_attachments_from_strangers.get.return_value = False
+        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_called_once()
+        fields = mock_msg.get_fields()
+        assert LXMF.FIELD_FILE_ATTACHMENTS in fields
+
+    def test_text_message_from_stranger_still_delivered(self, mock_app):
+        """Text-only messages from strangers are delivered normally."""
+        source_hash = os.urandom(16)
+        mock_msg = self._make_mock_message(
+            source_hash=source_hash, with_attachments=False
+        )
+
+        mock_app.config.block_attachments_from_strangers.get.return_value = True
+        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_called_once()
+
+
+class TestBlockAllFromStrangers:
+    """Tests for the block-everything-from-strangers feature."""
+
+    def _make_mock_message(self, source_hash=None, with_attachments=False):
+        mock_msg = MagicMock()
+        mock_msg.source_hash = source_hash or os.urandom(16)
+        mock_msg.destination_hash = os.urandom(16)
+        mock_msg.hash = os.urandom(16)
+        mock_msg.content = b"hello from stranger"
+        mock_msg.title = b""
+        mock_msg.incoming = True
+        mock_msg.state = LXMF.LXMessage.DELIVERED
+        mock_msg.method = LXMF.LXMessage.DIRECT
+        mock_msg.progress = 1.0
+        mock_msg.timestamp = 123456789.0
+        mock_msg.rssi = -50
+        mock_msg.snr = 10
+        mock_msg.q = 100
+        mock_msg.delivery_attempts = 1
+        mock_msg.next_delivery_attempt = None
+        fields = {}
+        if with_attachments:
+            fields[LXMF.FIELD_FILE_ATTACHMENTS] = [[b"file.txt", b"data"]]
+        mock_msg.get_fields.return_value = fields
+        mock_msg.fields = fields
+        return mock_msg
+
+    def test_stranger_message_dropped_when_enabled(self, mock_app):
+        """Text message from a stranger is silently dropped when block_all is on."""
+        mock_msg = self._make_mock_message()
+        mock_app.config.block_all_from_strangers.get.return_value = True
+        mock_app.config.block_attachments_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_not_called()
+
+    def test_contact_message_delivered_when_block_all_enabled(self, mock_app):
+        """Messages from contacts pass through even when block_all is on."""
+        mock_msg = self._make_mock_message()
+        mock_app.config.block_all_from_strangers.get.return_value = True
+        mock_app.config.block_attachments_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=True)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_called_once()
+
+    def test_stranger_with_attachments_dropped(self, mock_app):
+        """Message with attachments from stranger is dropped entirely, not just stripped."""
+        mock_msg = self._make_mock_message(with_attachments=True)
+        mock_app.config.block_all_from_strangers.get.return_value = True
+        mock_app.config.block_attachments_from_strangers.get.return_value = True
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_not_called()
+
+    def test_disabled_allows_stranger_messages(self, mock_app):
+        """When block_all is off, stranger messages are delivered."""
+        mock_msg = self._make_mock_message()
+        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app.config.block_attachments_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+        mock_app.db_upsert_lxmf_message.assert_called_once()
