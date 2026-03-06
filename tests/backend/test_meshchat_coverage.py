@@ -192,7 +192,10 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
     fake_identity.hash = bytes.fromhex("bb" * 16)
     fake_identity.load_public_key.return_value = True
 
-    with patch("meshchatx.meshchat.AsyncUtils.run_async", side_effect=lambda coro: asyncio.create_task(coro)):
+    with patch(
+        "meshchatx.meshchat.AsyncUtils.run_async",
+        side_effect=lambda coro: asyncio.create_task(coro),
+    ):
         with patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity):
             await mock_app.on_websocket_data_received(
                 mock_client,
