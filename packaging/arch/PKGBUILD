@@ -1,7 +1,7 @@
 # Maintainer: Ivan <ivan@quad4.io>
 pkgname=reticulum-meshchatx-git
 _pkgname=reticulum-meshchatx
-pkgver=4.2.0
+pkgver=4.2.1
 pkgrel=1
 pkgdesc="A simple mesh network communications app powered by the Reticulum Network Stack"
 arch=('x86_64' 'aarch64')
@@ -19,7 +19,7 @@ sha256sums=('SKIP'
 pkgver() {
   cd "$_pkgname"
   git describe --long --tags 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' || \
-  printf "4.2.0.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  printf "4.2.1.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
