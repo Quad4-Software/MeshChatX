@@ -1,4 +1,15 @@
+import re
+
 from .provider import DatabaseProvider
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_identifier(name: str, label: str = "identifier") -> str:
+    if not _IDENTIFIER_RE.match(name):
+        msg = f"Invalid SQL {label}: {name!r}"
+        raise ValueError(msg)
+    return name
 
 
 class DatabaseSchema:
@@ -28,21 +39,18 @@ class DatabaseSchema:
 
     def _ensure_column(self, table_name, column_name, column_type):
         """Add a column to a table if it doesn't exist."""
-        # First check if it exists using PRAGMA
+        _validate_identifier(table_name, "table name")
+        _validate_identifier(column_name, "column name")
+
         cursor = self.provider.connection.cursor()
         try:
-            cursor.execute(f"PRAGMA table_info({table_name})")
+            cursor.execute(f"PRAGMA table_info({table_name})")  # noqa: S608
             columns = [row[1] for row in cursor.fetchall()]
         finally:
             cursor.close()
 
         if column_name not in columns:
             try:
-                # SQLite has limitations on ALTER TABLE ADD COLUMN:
-                # 1. Cannot add UNIQUE or PRIMARY KEY columns
-                # 2. Cannot add columns with non-constant defaults (like CURRENT_TIMESTAMP)
-
-                # Strip non-constant defaults if present for the ALTER TABLE statement
                 stmt_type = column_type
                 forbidden_defaults = [
                     "CURRENT_TIMESTAMP",
@@ -51,9 +59,6 @@ class DatabaseSchema:
                 ]
                 for forbidden in forbidden_defaults:
                     if f"DEFAULT {forbidden}" in stmt_type.upper():
-                        # Remove the DEFAULT part for the ALTER statement
-                        import re
-
                         stmt_type = re.sub(
                             f"DEFAULT\\s+{forbidden}",
                             "",
@@ -61,9 +66,8 @@ class DatabaseSchema:
                             flags=re.IGNORECASE,
                         ).strip()
 
-                # Use the connection directly to avoid any middle-ware issues
                 res = self._safe_execute(
-                    f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}",
+                    f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}",  # noqa: S608
                 )
                 return res is not None
             except Exception as e:

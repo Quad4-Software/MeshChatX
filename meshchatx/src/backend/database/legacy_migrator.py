@@ -1,4 +1,7 @@
 import os
+import re
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class LegacyMigrator:
@@ -73,7 +76,8 @@ class LegacyMigrator:
             # Attach the legacy database
             # We use a randomized alias to avoid collisions
             alias = f"legacy_{os.urandom(4).hex()}"
-            self.provider.execute(f"ATTACH DATABASE '{legacy_path}' AS {alias}")
+            safe_path = legacy_path.replace("'", "''")
+            self.provider.execute(f"ATTACH DATABASE '{safe_path}' AS {alias}")  # noqa: S608
 
             # Tables that existed in the legacy Peewee version
             tables_to_migrate = [
@@ -121,7 +125,9 @@ class LegacyMigrator:
                         common_columns = [
                             col
                             for col in legacy_columns
-                            if col in current_columns and col.lower() != "id"
+                            if col in current_columns
+                            and col.lower() != "id"
+                            and _IDENTIFIER_RE.match(col)
                         ]
 
                         if common_columns:
