@@ -61,6 +61,19 @@ class ContactsDAO:
             (limit, offset),
         )
 
+    def get_contacts_count(self, search=None):
+        if search:
+            row = self.provider.fetchone(
+                """
+                SELECT COUNT(*) as n FROM contacts
+                WHERE name LIKE ? OR remote_identity_hash LIKE ? OR lxmf_address LIKE ? OR lxst_address LIKE ?
+                """,
+                (f"%{search}%", f"%{search}%", f"%{search}%", f"%{search}%"),
+            )
+        else:
+            row = self.provider.fetchone("SELECT COUNT(*) as n FROM contacts")
+        return row["n"] if row else 0
+
     def get_contact(self, contact_id):
         return self.provider.fetchone(
             "SELECT * FROM contacts WHERE id = ?",

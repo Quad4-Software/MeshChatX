@@ -19,7 +19,4 @@ class CommunityInterfacesManager:
         ]
 
     async def get_interfaces(self) -> list[dict[str, Any]]:
-        return [
-            {**iface, "online": None, "last_check": 0}
-            for iface in self.interfaces
-        ]
+        return [{**iface, "online": None, "last_check": 0} for iface in self.interfaces]

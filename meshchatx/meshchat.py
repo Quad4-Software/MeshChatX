@@ -4395,9 +4395,15 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/identities")
         async def identities_list(request):
             try:
+                identities = self.list_identities()
+                if self.database:
+                    for item in identities:
+                        if item.get("is_current"):
+                            item["message_count"] = self.database.messages.count_lxmf_messages()
+                            break
                 return web.json_response(
                     {
-                        "identities": self.list_identities(),
+                        "identities": identities,
                     },
                 )
             except Exception as e:
@@ -5757,6 +5763,7 @@ class ReticulumMeshChat:
                 limit=limit,
                 offset=offset,
             )
+            total_count = self.database.contacts.get_contacts_count(search=search)
 
             contacts = []
             for row in contacts_rows:
@@ -5778,7 +5785,7 @@ class ReticulumMeshChat:
                         d["remote_telephony_hash"] = tele_hash
                 contacts.append(d)
 
-            return web.json_response(contacts)
+            return web.json_response({"contacts": contacts, "total_count": total_count})
 
         @routes.post("/api/v1/telephone/contacts")
         async def telephone_contacts_post(request):
@@ -5908,35 +5915,32 @@ class ReticulumMeshChat:
 
             blocked_identity_hashes = None
             if not include_blocked:
-                blocked = self.database.misc.get_blocked_destinations()
+                blocked = await asyncio.to_thread(
+                    self.database.misc.get_blocked_destinations
+                )
                 blocked_identity_hashes = [b["destination_hash"] for b in blocked]
 
-            # fetch announces from database
-            # If we don't have a search query, we can paginate at the database level
-            # which is much faster than fetching thousands of records and then paginating in Python.
             db_limit = limit if not search_query else None
             db_offset = offset if not search_query else 0
 
-            results = self.announce_manager.get_filtered_announces(
+            results = await asyncio.to_thread(
+                self.announce_manager.get_filtered_announces,
                 aspect=aspect,
                 identity_hash=identity_hash,
                 destination_hash=destination_hash,
-                query=None,  # We filter in Python to support name search
+                query=None,
                 blocked_identity_hashes=blocked_identity_hashes,
                 limit=db_limit,
                 offset=db_offset,
             )
 
-            # fetch total count if we paginated in DB
             total_count = 0
             if not search_query:
-                # Get the count from the database for the same filters
-                # We should probably add a get_filtered_announces_count method to announce_manager
                 if db_limit is None:
                     total_count = len(results)
                 else:
-                    # We need the total count for pagination to work in the frontend
-                    total_count = self.announce_manager.get_filtered_announces_count(
+                    total_count = await asyncio.to_thread(
+                        self.announce_manager.get_filtered_announces_count,
                         aspect=aspect,
                         identity_hash=identity_hash,
                         destination_hash=destination_hash,
@@ -5950,7 +5954,11 @@ class ReticulumMeshChat:
             other_user_hashes = [r["destination_hash"] for r in results]
             user_icons = {}
             if other_user_hashes:
-                db_icons = self.database.misc.get_user_icons(other_user_hashes)
+
+                def _fetch_icons():
+                    return self.database.misc.get_user_icons(other_user_hashes)
+
+                db_icons = await asyncio.to_thread(_fetch_icons)
                 for icon in db_icons:
                     user_icons[icon["destination_hash"]] = {
                         "icon_name": icon["icon_name"],
@@ -5962,10 +5970,14 @@ class ReticulumMeshChat:
             custom_names = {}
             lxmf_names_for_telephony = {}
             if other_user_hashes:
-                db_custom_names = self.database.provider.fetchall(
-                    f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",  # noqa: S608
-                    other_user_hashes,
-                )
+
+                def _fetch_custom_names():
+                    return self.database.provider.fetchall(
+                        f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",  # noqa: S608
+                        other_user_hashes,
+                    )
+
+                db_custom_names = await asyncio.to_thread(_fetch_custom_names)
                 for row in db_custom_names:
                     custom_names[row["destination_hash"]] = row["display_name"]
 
@@ -5981,10 +5993,14 @@ class ReticulumMeshChat:
                         ),
                     )
                     if identity_hashes:
-                        lxmf_results = self.database.announces.provider.fetchall(
-                            f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",  # noqa: S608
-                            identity_hashes,
-                        )
+
+                        def _fetch_lxmf_names():
+                            return self.database.announces.provider.fetchall(
+                                f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",  # noqa: S608
+                                identity_hashes,
+                            )
+
+                        lxmf_results = await asyncio.to_thread(_fetch_lxmf_names)
                         for row in lxmf_results:
                             lxmf_names_for_telephony[row["identity_hash"]] = (
                                 parse_lxmf_display_name(row["app_data"])
@@ -10138,6 +10154,75 @@ class ReticulumMeshChat:
             duplicate_signal = "duplicate_lxm"
 
             try:
+                # Columba-style contact sharing URI:
+                # lxma://<destination_hash_hex>:<public_key_hex>
+                if uri.lower().startswith("lxma://"):
+                    lxma_payload = uri[7:]
+                    if ":" not in lxma_payload:
+                        raise ValueError(
+                            "Invalid LXMA URI format, expected lxma://<destination_hash>:<public_key>",
+                        )
+
+                    destination_hash_hex, public_key_hex = lxma_payload.split(":", 1)
+                    destination_hash_hex = destination_hash_hex.strip().lower()
+                    public_key_hex = public_key_hex.strip().lower()
+
+                    if len(destination_hash_hex) != 32:
+                        raise ValueError(
+                            "Invalid LXMA destination hash length, expected 32 hex characters",
+                        )
+                    if len(public_key_hex) not in (64, 128):
+                        raise ValueError(
+                            "Invalid LXMA public key length, expected 64 or 128 hex characters",
+                        )
+
+                    bytes.fromhex(destination_hash_hex)
+                    raw_bytes = bytes.fromhex(public_key_hex)
+                    public_key_bytes = (
+                        raw_bytes[:32] if len(raw_bytes) >= 32 else raw_bytes
+                    )
+
+                    identity = RNS.Identity(create_keys=False)
+                    if not identity.load_public_key(public_key_bytes):
+                        if len(raw_bytes) == 64:
+                            raise ValueError("Invalid LXMA public key")
+                        public_key_bytes = raw_bytes
+                        if not identity.load_public_key(public_key_bytes):
+                            raise ValueError("Invalid LXMA public key")
+
+                    remote_identity_hash = identity.hash.hex()
+                    existing_contact = (
+                        self.database.contacts.get_contact_by_identity_hash(
+                            remote_identity_hash,
+                        )
+                    )
+                    contact_name = (
+                        existing_contact["name"]
+                        if existing_contact and existing_contact.get("name")
+                        else f"Contact {destination_hash_hex[:8]}"
+                    )
+
+                    self.database.contacts.add_contact(
+                        contact_name,
+                        remote_identity_hash,
+                        lxmf_address=destination_hash_hex,
+                    )
+
+                    AsyncUtils.run_async(
+                        client.send_str(
+                            json.dumps(
+                                {
+                                    "type": "lxm.ingest_uri.result",
+                                    "status": "success",
+                                    "message": f"Contact imported from LXMA URI ({destination_hash_hex})",
+                                    "ingest_type": "lxma_contact",
+                                    "destination_hash": destination_hash_hex,
+                                },
+                            ),
+                        ),
+                    )
+                    return
+
                 # ensure uri starts with lxmf:// or lxm://
                 if not uri.lower().startswith(
                     LXMF.LXMessage.URI_SCHEMA + "://",
@@ -10364,6 +10449,7 @@ class ReticulumMeshChat:
         return {
             "display_name": ctx.config.display_name.get(),
             "identity_hash": ctx.identity.hash.hex(),
+            "identity_public_key": ctx.identity.get_public_key().hex(),
             "lxmf_address_hash": ctx.local_lxmf_destination.hexhash,
             "telephone_address_hash": ctx.telephone_manager.telephone.destination.hexhash
             if ctx.telephone_manager.telephone
