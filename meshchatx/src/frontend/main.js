@@ -3,7 +3,10 @@ import { createApp, defineAsyncComponent } from "vue";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
 import vClickOutside from "click-outside-vue3";
+import DOMPurify from "dompurify";
 import "./style.css";
+
+window.DOMPurify = DOMPurify;
 import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
 import { ensureCodec2ScriptsLoaded } from "./js/Codec2Loader";
