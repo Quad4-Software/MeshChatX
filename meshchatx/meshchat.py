@@ -24,6 +24,8 @@ import threading
 import time
 import traceback
 import webbrowser
+import io
+import zipfile
 import fnmatch
 from datetime import UTC, datetime, timedelta
 from logging.handlers import RotatingFileHandler
@@ -4410,6 +4412,35 @@ class ReticulumMeshChat:
                 return web.json_response(
                     {
                         "message": f"Failed to list identities: {e!s}",
+                    },
+                    status=500,
+                )
+
+        @routes.get("/api/v1/identities/export-all")
+        async def identities_export_all(request):
+            try:
+                all_bytes = self.identity_manager.get_all_identity_backup_bytes()
+                if not all_bytes:
+                    return web.json_response(
+                        {"message": "No identities to export"},
+                        status=400,
+                    )
+                buf = io.BytesIO()
+                with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for identity_hash, data in all_bytes.items():
+                        zf.writestr(f"identity_{identity_hash}", data)
+                buf.seek(0)
+                return web.Response(
+                    body=buf.read(),
+                    headers={
+                        "Content-Type": "application/zip",
+                        "Content-Disposition": 'attachment; filename="identities_export.zip"',
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {
+                        "message": f"Failed to export identities: {e!s}",
                     },
                     status=500,
                 )

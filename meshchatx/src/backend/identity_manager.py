@@ -36,6 +36,25 @@ class IdentityManager:
     def backup_identity_base32(self, identity: RNS.Identity) -> str:
         return base64.b32encode(self.get_identity_bytes(identity)).decode("utf-8")
 
+    def get_all_identity_backup_bytes(self) -> dict[str, bytes]:
+        result = {}
+        identities_base_dir = os.path.join(self.storage_dir, "identities")
+        if not os.path.exists(identities_base_dir):
+            return result
+        for identity_hash in os.listdir(identities_base_dir):
+            identity_path = os.path.join(identities_base_dir, identity_hash)
+            if not os.path.isdir(identity_path):
+                continue
+            identity_file = os.path.join(identity_path, "identity")
+            if not os.path.isfile(identity_file):
+                continue
+            try:
+                with open(identity_file, "rb") as f:
+                    result[identity_hash] = f.read()
+            except Exception:
+                continue
+        return result
+
     def list_identities(self, current_identity_hash: str | None = None):
         identities = []
         identities_base_dir = os.path.join(self.storage_dir, "identities")
