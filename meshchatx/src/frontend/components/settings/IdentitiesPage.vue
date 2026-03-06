@@ -58,9 +58,7 @@
                             :key="'skel-' + i"
                             class="glass-card overflow-hidden p-5 flex items-center gap-4"
                         >
-                            <div
-                                class="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0"
-                            />
+                            <div class="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0" />
                             <div class="flex-1 min-w-0 space-y-2">
                                 <div class="h-5 w-32 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse" />
                                 <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded animate-pulse" />
@@ -68,8 +66,8 @@
                         </div>
                     </template>
                     <div
-                        v-else
                         v-for="identity in identities"
+                        v-else
                         :key="identity.hash"
                         v-memo="[
                             identity.hash,
@@ -298,7 +296,10 @@
                                 <button
                                     type="button"
                                     class="w-full secondary-chip justify-center"
-                                    @click="$refs.identityFileInput?.click(); showImportModal = false"
+                                    @click="
+                                        $refs.identityFileInput?.click();
+                                        showImportModal = false;
+                                    "
                                 >
                                     <MaterialDesignIcon icon-name="upload" class="w-4 h-4" />
                                     {{ $t("identities.upload_key_file") }}
@@ -313,10 +314,16 @@
                                         class="input-field font-mono text-xs w-full"
                                         :placeholder="$t('identities.paste_base32_placeholder')"
                                     />
-                                    <div v-if="identityRestoreError" class="text-sm text-red-600 dark:text-red-400 mt-2">
+                                    <div
+                                        v-if="identityRestoreError"
+                                        class="text-sm text-red-600 dark:text-red-400 mt-2"
+                                    >
                                         {{ identityRestoreError }}
                                     </div>
-                                    <div v-if="identityRestoreMessage" class="text-sm text-green-600 dark:text-green-400 mt-2">
+                                    <div
+                                        v-if="identityRestoreMessage"
+                                        class="text-sm text-green-600 dark:text-green-400 mt-2"
+                                    >
                                         {{ identityRestoreMessage }}
                                     </div>
                                     <button
@@ -330,7 +337,11 @@
                                             icon-name="loading"
                                             class="w-4 h-4 animate-spin"
                                         />
-                                        {{ identityRestoreInProgress ? $t("identities.restoring") : $t("identities.confirm_restore") }}
+                                        {{
+                                            identityRestoreInProgress
+                                                ? $t("identities.restoring")
+                                                : $t("identities.confirm_restore")
+                                        }}
                                     </button>
                                 </div>
                             </div>

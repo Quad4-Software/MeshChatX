@@ -110,13 +110,14 @@ describe("IdentitiesPage.vue", () => {
         expect(current.message_count).toBe(42);
     });
 
-    it("shows export/import key section when current identity exists", async () => {
+    it("shows Import and Export all when identities exist", async () => {
         const wrapper = mountPage();
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
 
         expect(wrapper.vm.currentIdentity).toBeTruthy();
-        expect(wrapper.text()).toContain("identities.key_control");
+        expect(wrapper.text()).toContain("identities.import");
+        expect(wrapper.text()).toContain("identities.export_all");
     });
 
     it("opens create modal and creates identity", async () => {
