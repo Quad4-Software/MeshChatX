@@ -70,7 +70,7 @@ jobs:
                   version: "3.46.3"
 
             - name: Sync versions
-              run: python scripts/sync_version.py
+              run: node scripts/sync_version.js
 
             - name: Install dependencies
               run: task install
