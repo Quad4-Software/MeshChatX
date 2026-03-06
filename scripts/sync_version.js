@@ -15,8 +15,8 @@ const versionPyPath = path.join(root, "meshchatx", "src", "version.py");
 const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 const version = pkg.version;
 if (!version || typeof version !== "string") {
-  console.error("package.json has no valid 'version' field");
-  process.exit(1);
+    console.error("package.json has no valid 'version' field");
+    process.exit(1);
 }
 
 const content = `"""Version string synced from package.json. Do not edit by hand.
