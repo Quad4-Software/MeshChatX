@@ -7604,11 +7604,10 @@ class ReticulumMeshChat:
             count = request.query.get("count")
             after_id = request.query.get("after_id")
 
-            # get source hash from local lxmf destination
             local_hash = self.local_lxmf_destination.hash.hex()
 
-            # fetch messages from database
-            results = self.message_handler.get_conversation_messages(
+            results = await asyncio.to_thread(
+                self.message_handler.get_conversation_messages,
                 local_hash,
                 destination_hash,
                 limit=int(count) if count else 100,
@@ -7770,8 +7769,8 @@ class ReticulumMeshChat:
 
             local_hash = self.local_lxmf_destination.hexhash
 
-            # fetch conversations from database with optimized query
-            db_conversations = self.message_handler.get_conversations(
+            db_conversations = await asyncio.to_thread(
+                self.message_handler.get_conversations,
                 local_hash,
                 search=search_query,
                 filter_unread=filter_unread,
