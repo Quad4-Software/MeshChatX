@@ -125,6 +125,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/messages/MessagesPage.vue")),
         },
         {
+            name: "contacts",
+            path: "/contacts",
+            component: defineAsyncComponent(() => import("./components/contacts/ContactsPage.vue")),
+        },
+        {
             name: "map",
             path: "/map",
             component: defineAsyncComponent(() => import("./components/map/MapPage.vue")),
