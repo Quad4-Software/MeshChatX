@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -7,24 +7,14 @@ from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 
 
 @pytest.mark.asyncio
-async def test_community_interfaces_manager_health_check():
+async def test_community_interfaces_manager_no_probe():
     manager = CommunityInterfacesManager()
-
-    # Mock check_health to return True for first, False for second
-    with patch.object(
-        CommunityInterfacesManager,
-        "check_health",
-        side_effect=[True, False],
-    ):
-        interfaces = await manager.get_interfaces()
-
-        assert len(interfaces) == 2
-        # First one should be online because we sort by online status
-        assert interfaces[0]["online"] is True
-        assert interfaces[1]["online"] is False
-        # Check that we have both online and offline
-        online_count = sum(1 for iface in interfaces if iface["online"])
-        assert online_count == 1
+    interfaces = await manager.get_interfaces()
+    assert len(interfaces) >= 1
+    for iface in interfaces:
+        assert "name" in iface and "target_host" in iface and "target_port" in iface
+        assert iface.get("online") is None
+        assert iface.get("last_check") == 0
 
 
 @pytest.mark.asyncio
@@ -59,18 +49,9 @@ async def test_rnstatus_integration_simulated():
 
 
 @pytest.mark.asyncio
-async def test_community_interfaces_dynamic_update():
+async def test_community_interfaces_static_list():
     manager = CommunityInterfacesManager()
-
-    # Mock check_health to return different values over time
-    with patch.object(CommunityInterfacesManager, "check_health") as mock_check:
-        # First check: all online
-        mock_check.return_value = True
-        ifaces1 = await manager.get_interfaces()
-        assert all(iface["online"] for iface in ifaces1)
-
-        # Force update by clearing last_check and mock all offline
-        manager.last_check = 0
-        mock_check.return_value = False
-        ifaces2 = await manager.get_interfaces()
-        assert all(not iface["online"] for iface in ifaces2)
+    ifaces1 = await manager.get_interfaces()
+    ifaces2 = await manager.get_interfaces()
+    assert ifaces1 == ifaces2
+    assert all(iface.get("online") is None for iface in ifaces1)
