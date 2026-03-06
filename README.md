@@ -1,5 +1,7 @@
 # Reticulum MeshChatX
 
+[Русский](lang/README.ru.md) | [Deutsch](lang/README.de.md) | [Italiano](lang/README.it.md) | [中文](lang/README.zh.md) | [日本語](lang/README.ja.md)
+
 A extensively modified and feature-rich fork of Reticulum MeshChat by Liam Cottle.
 
 This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
@@ -10,8 +12,8 @@ This project is independent from the original Reticulum MeshChat project and is 
 
 ## Important Notes
 
-- Full LXMF support is a core project focus.
-- Storage and migration work has been progressively reworked toward raw SQL (replacing legacy Peewee ORM paths where applicable).
+- Uses LXST
+- Replaced Peewee ORM with raw SQL.
 
 > [!WARNING]
 > MeshChatX is not guaranteed to be wire/data compatible with older Reticulum MeshChat releases. Back up data before migration/testing.
