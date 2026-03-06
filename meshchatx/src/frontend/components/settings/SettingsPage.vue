@@ -143,6 +143,49 @@
                 <div v-show="hasSearchResults" class="columns-1 lg:columns-2 gap-4 space-y-4">
                     <!-- Banishment -->
                     <section
+                        v-show="matchesSearch('stranger', 'attachments', 'trust', 'block')"
+                        class="glass-card break-inside-avoid"
+                    >
+                        <header class="glass-card__header">
+                            <div>
+                                <div class="glass-card__eyebrow">Security</div>
+                                <h2>{{ $t("app.stranger_protection") }}</h2>
+                                <p>{{ $t("app.stranger_protection_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="glass-card__body space-y-4">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="block-attachments-from-strangers"
+                                    v-model="config.block_attachments_from_strangers"
+                                    @update:model-value="onStrangerAttachmentBlockChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.block_stranger_attachments")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.block_stranger_attachments_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="block-all-from-strangers"
+                                    v-model="config.block_all_from_strangers"
+                                    @update:model-value="onBlockAllFromStrangersChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.block_all_from_strangers") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.block_all_from_strangers_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section
                         v-show="matchesSearch(...sectionKeywords.banishment)"
                         class="glass-card break-inside-avoid"
                     >
@@ -1630,6 +1673,8 @@ export default {
                 lxmf_preferred_propagation_node_auto_select: null,
                 archives_max_storage_gb: 1,
                 backup_max_count: 5,
+                block_attachments_from_strangers: true,
+                block_all_from_strangers: false,
                 banished_effect_enabled: true,
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
@@ -2146,6 +2191,14 @@ export default {
                     "page_archiver"
                 );
             }, 1000);
+        },
+        async onStrangerAttachmentBlockChange(value) {
+            this.config.block_attachments_from_strangers = value;
+            await this.updateConfig({ block_attachments_from_strangers: value }, "stranger_protection");
+        },
+        async onBlockAllFromStrangersChange(value) {
+            this.config.block_all_from_strangers = value;
+            await this.updateConfig({ block_all_from_strangers: value }, "stranger_protection");
         },
         async onBanishedEffectEnabledChange(value) {
             this.config.banished_effect_enabled = value;

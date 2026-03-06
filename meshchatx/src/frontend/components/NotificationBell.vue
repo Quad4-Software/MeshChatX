@@ -319,9 +319,12 @@ export default {
         },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
-            if (json.type === "lxmf.delivery") {
+            if (
+                json.type === "lxmf.delivery" ||
+                json.type === "telephone_missed_call" ||
+                json.type === "new_voicemail"
+            ) {
                 await this.loadNotifications();
-                // If dropdown is open, mark new notifications as viewed
                 if (this.isDropdownOpen) {
                     await this.markNotificationsAsViewed();
                 }

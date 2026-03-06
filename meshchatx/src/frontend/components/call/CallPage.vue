@@ -779,6 +779,17 @@
                                                     </button>
                                                     <button
                                                         type="button"
+                                                        class="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shrink-0"
+                                                        :title="$t('contacts.send_message')"
+                                                        @click="openMessageFromHistory(entry)"
+                                                    >
+                                                        <MaterialDesignIcon
+                                                            icon-name="message-text-outline"
+                                                            class="size-4"
+                                                        />
+                                                    </button>
+                                                    <button
+                                                        type="button"
                                                         class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-500 transition-all shadow-md shadow-blue-500/10 shrink-0"
                                                         @click="
                                                             destinationHash =
@@ -2733,6 +2744,11 @@ export default {
                 preferred_ringtone_id: null,
             };
             this.isContactModalOpen = true;
+        },
+        openMessageFromHistory(entry) {
+            const hash = entry.remote_destination_hash || entry.remote_identity_hash;
+            if (!hash) return;
+            this.$router.push({ name: "messages", params: { destinationHash: hash } });
         },
         async getHistory(loadMore = false) {
             try {

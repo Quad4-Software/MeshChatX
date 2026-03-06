@@ -372,6 +372,42 @@
             </div>
         </div>
 
+        <!-- stranger trust banner -->
+        <div
+            v-if="isStrangerPeer && !strangerBannerDismissed"
+            class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex items-center gap-3 text-sm"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 9v3.75m0 3.75h.008v-.008H12v.008Zm9.303-5.626a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                />
+            </svg>
+            <span class="flex-1 text-amber-900 dark:text-amber-200">
+                {{ $t("messages.stranger_banner_text") }}
+            </span>
+            <button
+                class="px-3 py-1 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                @click="addStrangerAsContact"
+            >
+                {{ $t("messages.add_to_contacts") }}
+            </button>
+            <button
+                class="px-2 py-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors"
+                @click="strangerBannerDismissed = true"
+            >
+                {{ $t("messages.dismiss") }}
+            </button>
+        </div>
+
         <!-- chat items -->
         <div
             id="messages"
@@ -1739,6 +1775,8 @@ export default {
             expandedMessageInfo: null,
             imageModalUrl: null,
             isSelectedPeerBlocked: false,
+            isStrangerPeer: false,
+            strangerBannerDismissed: false,
             isGeneratingPaperMessage: false,
             generatedPaperMessageUri: null,
             isPaperMessageResultModalOpen: false,
@@ -1991,6 +2029,8 @@ export default {
                     this.saveDraft(oldPeer.destination_hash);
                 }
                 this.checkIfSelectedPeerBlocked();
+                this.strangerBannerDismissed = false;
+                this.checkIfStrangerPeer();
                 this.initialLoad();
                 if (newPeer) {
                     this.loadDraft(newPeer.destination_hash);
@@ -2030,6 +2070,9 @@ export default {
         // listen for compose new message event
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessageEvent);
 
+        // listen for contact updates to refresh stranger banner
+        GlobalEmitter.on("contact-updated", this.onContactUpdatedForBanner);
+
         // check translator
         this.checkTranslator();
 
@@ -2049,6 +2092,7 @@ export default {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
+        GlobalEmitter.off("contact-updated", this.onContactUpdatedForBanner);
         if (this.propagationStatusInterval) {
             clearInterval(this.propagationStatusInterval);
         }
@@ -2176,6 +2220,54 @@ export default {
             this.isSelectedPeerBlocked = GlobalState.blockedDestinations.some(
                 (b) => b.destination_hash === this.selectedPeer.destination_hash
             );
+        },
+        onContactUpdatedForBanner(data) {
+            if (this.selectedPeer?.destination_hash === data?.remote_identity_hash) {
+                this.isStrangerPeer = false;
+                this.strangerBannerDismissed = true;
+            }
+        },
+        async checkIfStrangerPeer() {
+            if (!this.selectedPeer) {
+                this.isStrangerPeer = false;
+                return;
+            }
+            if (this.selectedPeer.is_contact || this.selectedPeer.contact_image) {
+                this.isStrangerPeer = false;
+                return;
+            }
+            try {
+                const response = await window.axios.get(
+                    `/api/v1/telephone/contacts/check/${this.selectedPeer.destination_hash}`
+                );
+                this.isStrangerPeer = !response.data.is_contact;
+            } catch {
+                this.isStrangerPeer = !this.selectedPeer.is_contact && !this.selectedPeer.contact_image;
+            }
+        },
+        async addStrangerAsContact() {
+            if (!this.selectedPeer) return;
+            try {
+                const displayName =
+                    this.selectedPeer.custom_display_name ?? this.selectedPeer.display_name ?? "Unknown";
+                await fetch(`/api/v1/telephone/contacts`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        remote_identity_hash: this.selectedPeer.destination_hash,
+                        lxmf_address: this.selectedPeer.destination_hash,
+                        name: displayName,
+                    }),
+                });
+                this.isStrangerPeer = false;
+                this.strangerBannerDismissed = true;
+                GlobalEmitter.emit("contact-updated", {
+                    remote_identity_hash: this.selectedPeer.destination_hash,
+                });
+                this.$emit("reload-conversations");
+            } catch (e) {
+                console.error("Failed to add contact:", e);
+            }
         },
         loadDraft(destinationHash) {
             try {

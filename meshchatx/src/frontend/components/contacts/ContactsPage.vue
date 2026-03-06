@@ -60,7 +60,7 @@
                         <div
                             v-for="contact in contacts"
                             :key="contact.id"
-                            class="rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/50 px-4 py-3 flex items-center gap-3 hover:border-blue-300 dark:hover:border-blue-700 transition-colors cursor-default"
+                            class="group rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/50 px-4 py-3 flex items-center gap-3 hover:border-blue-300 dark:hover:border-blue-700 transition-colors cursor-default"
                             @contextmenu.prevent="openContextMenu($event, contact)"
                         >
                             <div class="flex-shrink-0">
@@ -83,6 +83,24 @@
                                 <div class="text-xs font-mono text-gray-500 dark:text-zinc-400 break-all">
                                     {{ contact.lxmf_address || contact.remote_identity_hash }}
                                 </div>
+                            </div>
+                            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    type="button"
+                                    class="p-1.5 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                    :title="$t('contacts.send_message')"
+                                    @click.stop="openConversation(contact)"
+                                >
+                                    <MaterialDesignIcon icon-name="message-text-outline" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="p-1.5 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-green-100 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                                    :title="$t('contacts.call_contact')"
+                                    @click.stop="callContact(contact)"
+                                >
+                                    <MaterialDesignIcon icon-name="phone-outline" class="size-5" />
+                                </button>
                             </div>
                             <button
                                 type="button"
@@ -114,6 +132,15 @@
             class="fixed z-[210] min-w-48 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl"
             :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
         >
+            <button type="button" class="context-item" @click="openConversation(contextMenu.contact)">
+                <MaterialDesignIcon icon-name="message-text-outline" class="size-4" />
+                {{ $t("contacts.send_message") }}
+            </button>
+            <button type="button" class="context-item" @click="callContact(contextMenu.contact)">
+                <MaterialDesignIcon icon-name="phone-outline" class="size-4" />
+                {{ $t("contacts.call_contact") }}
+            </button>
+            <div class="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
             <button type="button" class="context-item" @click="shareContact(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="share-variant" class="size-4" />
                 {{ $t("contacts.share_contact") }}
@@ -122,6 +149,7 @@
                 <MaterialDesignIcon icon-name="content-copy" class="size-4" />
                 {{ $t("contacts.copy_contact_uri") }}
             </button>
+            <div class="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
             <button
                 type="button"
                 class="context-item text-red-600 dark:text-red-400"
@@ -530,6 +558,19 @@ export default {
             } catch {
                 ToastUtils.error(this.$t("contacts.failed_remove_contact"));
             }
+        },
+        openConversation(contact) {
+            this.closeContextMenu();
+            const hash = contact.remote_destination_hash || contact.lxmf_address || contact.remote_identity_hash;
+            if (!hash) return;
+            this.$router.push({ name: "messages", params: { destinationHash: hash } });
+        },
+        callContact(contact) {
+            this.closeContextMenu();
+            const hash =
+                contact.remote_telephony_hash || contact.remote_destination_hash || contact.remote_identity_hash;
+            if (!hash) return;
+            this.$router.push({ name: "call", query: { destination_hash: hash, tab: "phone" } });
         },
         openContextMenu(event, contact) {
             this.contextMenu.visible = true;
