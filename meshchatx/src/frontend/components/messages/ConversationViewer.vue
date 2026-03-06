@@ -2117,7 +2117,7 @@ export default {
         async fetchContacts() {
             try {
                 const response = await window.axios.get("/api/v1/telephone/contacts");
-                this.contacts = response.data;
+                this.contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
             } catch (e) {
                 console.log("Failed to fetch contacts:", e);
             }
@@ -3060,7 +3060,7 @@ export default {
         async openShareContactModal() {
             try {
                 const response = await window.axios.get("/api/v1/telephone/contacts");
-                this.contacts = response.data;
+                this.contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
 
                 if (this.contacts.length === 0) {
                     ToastUtils.info(this.$t("messages.no_contacts_telephone"));

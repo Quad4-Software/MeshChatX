@@ -1063,6 +1063,11 @@ export default {
             await this.processVisualization();
         },
         async processVisualization() {
+            await new Promise((r) => {
+                requestAnimationFrame(r);
+            });
+            if (this.abortController.signal.aborted) return;
+
             this.loadingStatus = "Processing visualization...";
 
             const processedNodeIds = new Set();
@@ -1157,6 +1162,9 @@ export default {
             }
             if (interfaceNodes.length > 0) this.nodes.update(interfaceNodes);
             if (interfaceEdges.length > 0) this.edges.update(interfaceEdges);
+
+            await this.$nextTick();
+            if (this.abortController.signal.aborted) return;
 
             // Process path table in batches to prevent UI block
             this.totalNodesToLoad = this.pathTable.length;

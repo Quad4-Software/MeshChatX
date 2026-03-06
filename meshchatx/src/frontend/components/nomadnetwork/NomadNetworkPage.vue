@@ -374,6 +374,8 @@ export default {
         return {
             GlobalState,
             reloadInterval: null,
+            nodesRefreshTimeout: null,
+            abortController: new AbortController(),
 
             nodes: {},
             totalNodesCount: 0,
@@ -456,13 +458,12 @@ export default {
         this.$nextTick(() => this.processPartials());
     },
     beforeUnmount() {
+        if (this.nodesRefreshTimeout) clearTimeout(this.nodesRefreshTimeout);
         clearInterval(this.reloadInterval);
+        this.abortController.abort();
         this.clearPartials();
 
-        // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
-
-        // stop listening for element clicks
         window.document.removeEventListener("click", this.onElementClick);
     },
     mounted() {
@@ -790,7 +791,6 @@ export default {
         },
         async getNomadnetworkNodeAnnounces(append = false) {
             try {
-                // fetch announces for "nomadnetwork.node" aspect
                 const offset = append ? Object.keys(this.nodes).length : 0;
                 const response = await window.axios.get(`/api/v1/announces`, {
                     params: {
@@ -799,9 +799,9 @@ export default {
                         offset: offset,
                         search: this.nodesSearchTerm,
                     },
+                    signal: this.abortController.signal,
                 });
 
-                // update ui
                 const nodeAnnounces = response.data.announces;
                 if (!append) {
                     this.nodes = {};
@@ -815,7 +815,7 @@ export default {
 
                 this.hasMoreNodes = nodeAnnounces.length === this.pageSize;
             } catch (e) {
-                // do nothing if failed to load announces
+                if (window.axios.isCancel?.(e)) return;
                 console.log(e);
             } finally {
                 this.isLoadingMoreNodes = false;
@@ -837,21 +837,20 @@ export default {
         },
         async getNomadnetworkNodeAnnounce(destinationHash) {
             try {
-                // fetch announces for "nomadnetwork.node" aspect
                 const response = await window.axios.get(`/api/v1/announces`, {
                     params: {
                         destination_hash: destinationHash,
                         limit: 1,
                     },
+                    signal: this.abortController.signal,
                 });
 
-                // update ui
                 const nodeAnnounces = response.data.announces;
                 for (const nodeAnnounce of nodeAnnounces) {
                     this.updateNodeFromAnnounce(nodeAnnounce);
                 }
             } catch (e) {
-                // do nothing if failed to load announce
+                if (window.axios.isCancel?.(e)) return;
                 console.log(e);
             }
         },

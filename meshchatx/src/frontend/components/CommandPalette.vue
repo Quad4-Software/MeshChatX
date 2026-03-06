@@ -438,7 +438,8 @@ export default {
 
                 // fetch telephone contacts
                 const contactResponse = await window.axios.get("/api/v1/telephone/contacts");
-                this.contacts = Array.isArray(contactResponse.data) ? contactResponse.data : [];
+                this.contacts =
+                    contactResponse.data?.contacts ?? (Array.isArray(contactResponse.data) ? contactResponse.data : []);
             } catch (e) {
                 console.error("Failed to load command palette data:", e);
             }

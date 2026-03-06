@@ -804,94 +804,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Identity Section -->
-                            <div class="bg-red-500/5 p-6 rounded-2xl border border-red-500/10 space-y-6">
-                                <div class="flex items-center gap-4 text-red-500">
-                                    <v-icon icon="mdi-key-alert" size="24"></v-icon>
-                                    <div class="space-y-0.5">
-                                        <div class="font-black text-sm tracking-tight">Identity Key Control</div>
-                                        <div class="text-[10px] font-bold uppercase tracking-widest opacity-70 italic">
-                                            Critical Security Warning
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="flex flex-wrap gap-3">
-                                    <button
-                                        type="button"
-                                        class="danger-chip !px-5 !py-2.5"
-                                        @click="downloadIdentityFile"
-                                    >
-                                        <v-icon icon="mdi-file-export" start></v-icon>
-                                        Export Key File
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="secondary-chip !border-red-200 dark:!border-red-900/50 !text-red-600 dark:!text-red-400 !px-5 !py-2.5"
-                                        @click="copyIdentityBase32"
-                                    >
-                                        <v-icon icon="mdi-content-copy" start></v-icon>
-                                        Copy Base32 Key
-                                    </button>
-                                </div>
-
-                                <div class="space-y-4 pt-4 border-t border-red-500/10">
-                                    <div class="text-[10px] font-black text-red-500/60 uppercase tracking-widest">
-                                        Restore Identity
-                                    </div>
-                                    <div class="flex flex-col sm:flex-row gap-3">
-                                        <button
-                                            type="button"
-                                            class="secondary-chip flex-1 !border-dashed !border-2 !rounded-2xl !py-4"
-                                            @click="$refs.identityFileInput.click()"
-                                        >
-                                            <v-icon icon="mdi-upload" start></v-icon>
-                                            Upload Key File
-                                        </button>
-                                        <input
-                                            ref="identityFileInput"
-                                            type="file"
-                                            accept=".identity,.bin,.key"
-                                            class="hidden"
-                                            @change="onIdentityRestoreFileChange"
-                                        />
-                                        <div
-                                            class="text-center sm:py-2 text-[10px] font-black text-zinc-400 uppercase italic px-2 shrink-0 self-center"
-                                        >
-                                            — or —
-                                        </div>
-                                        <button
-                                            type="button"
-                                            class="secondary-chip flex-1 !border-dashed !border-2 !rounded-2xl !py-4"
-                                            @click="showIdentityPaste = !showIdentityPaste"
-                                        >
-                                            <v-icon icon="mdi-clipboard-text" start></v-icon>
-                                            Paste Base32
-                                        </button>
-                                    </div>
-
-                                    <transition name="fade-blur">
-                                        <div v-if="showIdentityPaste" class="space-y-3">
-                                            <textarea
-                                                v-model="identityRestoreBase32"
-                                                rows="4"
-                                                placeholder="Paste your base32 identity key here..."
-                                                class="w-full bg-white dark:bg-zinc-950 p-4 rounded-xl font-mono text-xs border border-zinc-100 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                                            ></textarea>
-                                            <button
-                                                type="button"
-                                                class="danger-chip w-full !py-3 !rounded-xl"
-                                                :disabled="identityRestoreInProgress"
-                                                @click="restoreIdentityBase32"
-                                            >
-                                                <span v-if="identityRestoreInProgress">Restoring...</span>
-                                                <span v-else>Confirm Key Restore</span>
-                                            </button>
-                                        </div>
-                                    </transition>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -943,21 +855,9 @@ export default {
             autoBackupsTotal: 0,
             autoBackupsOffset: 0,
             autoBackupsLimit: 3,
-            identityBackupMessage: "",
-            identityBackupError: "",
-            identityBase32: "",
-            identityBase32Message: "",
-            identityBase32Error: "",
-            identityRestoreInProgress: false,
-            identityRestoreMessage: "",
-            identityRestoreError: "",
-            identityRestoreFileName: "",
-            identityRestoreFile: null,
-            identityRestoreBase32: "",
             electronVersion: null,
             chromeVersion: null,
             nodeVersion: null,
-            showIdentityPaste: false,
             showContactDev: false,
         };
     },
@@ -1352,100 +1252,6 @@ export default {
                 this.restoreFileName = files[0].name;
                 this.restoreError = "";
                 this.restoreMessage = "";
-            }
-        },
-        async downloadIdentityFile() {
-            this.identityBackupMessage = "";
-            this.identityBackupError = "";
-            try {
-                const response = await window.axios.get("/api/v1/identity/backup/download", {
-                    responseType: "blob",
-                });
-                const blob = new Blob([response.data], { type: "application/octet-stream" });
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", "identity");
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(url);
-                this.identityBackupMessage = "Identity downloaded. Keep it secret.";
-                ToastUtils.success(this.$t("about.identity_exported"));
-            } catch {
-                this.identityBackupError = "Failed to download identity";
-            }
-        },
-        async copyIdentityBase32() {
-            this.identityBase32Message = "";
-            this.identityBase32Error = "";
-            try {
-                const response = await window.axios.get("/api/v1/identity/backup/base32");
-                this.identityBase32 = response.data.identity_base32 || "";
-                if (!this.identityBase32) {
-                    this.identityBase32Error = "No identity available";
-                    return;
-                }
-                await navigator.clipboard.writeText(this.identityBase32);
-                this.identityBase32Message = "Identity copied. Clear your clipboard after use.";
-                ToastUtils.success(this.$t("about.identity_copied"));
-            } catch {
-                this.identityBase32Error = "Failed to copy identity";
-            }
-        },
-        onIdentityRestoreFileChange(event) {
-            const files = event.target.files;
-            if (files && files[0]) {
-                this.identityRestoreFile = files[0];
-                this.identityRestoreFileName = files[0].name;
-                this.identityRestoreError = "";
-                this.identityRestoreMessage = "";
-            }
-        },
-        async restoreIdentityFile() {
-            if (this.identityRestoreInProgress) {
-                return;
-            }
-            if (!this.identityRestoreFile) {
-                this.identityRestoreError = "Select an identity file to restore.";
-                return;
-            }
-            this.identityRestoreInProgress = true;
-            this.identityRestoreMessage = "";
-            this.identityRestoreError = "";
-            try {
-                const formData = new FormData();
-                formData.append("file", this.identityRestoreFile);
-                const response = await window.axios.post("/api/v1/identity/restore", formData, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                });
-                this.identityRestoreMessage = response.data.message || "Identity imported.";
-            } catch {
-                this.identityRestoreError = "Identity restore failed";
-            } finally {
-                this.identityRestoreInProgress = false;
-            }
-        },
-        async restoreIdentityBase32() {
-            if (this.identityRestoreInProgress) {
-                return;
-            }
-            if (!this.identityRestoreBase32) {
-                this.identityRestoreError = "Provide a base32 key to restore.";
-                return;
-            }
-            this.identityRestoreInProgress = true;
-            this.identityRestoreMessage = "";
-            this.identityRestoreError = "";
-            try {
-                const response = await window.axios.post("/api/v1/identity/restore", {
-                    base32: this.identityRestoreBase32.trim(),
-                });
-                this.identityRestoreMessage = response.data.message || "Identity imported.";
-            } catch {
-                this.identityRestoreError = "Identity restore failed";
-            } finally {
-                this.identityRestoreInProgress = false;
             }
         },
         formatRecoveryResult(value) {

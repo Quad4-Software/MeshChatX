@@ -76,7 +76,8 @@
                 <div class="p-6">
                     <p class="text-sm text-gray-600 dark:text-zinc-400 mb-4">
                         You can read LXMF paper messages by scanning a QR code or pasting an <strong>lxmf://</strong> or
-                        <strong>lxm://</strong> link.
+                        <strong>lxm://</strong> link. Contact-sharing links using <strong>lxma://</strong> are also
+                        supported.
                     </p>
                     <div class="space-y-4">
                         <div>
@@ -89,7 +90,7 @@
                                 <input
                                     v-model="ingestUri"
                                     type="text"
-                                    placeholder="lxmf://..."
+                                    placeholder="lxmf://... or lxma://..."
                                     class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                     @keydown.enter="ingestPaperMessage"
                                 />
@@ -308,7 +309,11 @@ export default {
                 case "lxm.ingest_uri.result": {
                     if (json.status === "success") {
                         this.ingestUri = "";
-                        await this.getConversations();
+                        if (json.ingest_type === "lxma_contact" && json.destination_hash) {
+                            await this.onComposeNewMessage(json.destination_hash);
+                        } else {
+                            await this.getConversations();
+                        }
                     }
                     break;
                 }

@@ -170,6 +170,19 @@
                                         </SidebarLink>
                                     </li>
 
+                                    <!-- contacts -->
+                                    <li>
+                                        <SidebarLink :to="{ name: 'contacts' }" :is-collapsed="isSidebarCollapsed">
+                                            <template #icon>
+                                                <MaterialDesignIcon
+                                                    icon-name="account-multiple"
+                                                    class="w-6 h-6 text-gray-700 dark:text-white"
+                                                />
+                                            </template>
+                                            <template #text>{{ $t("app.contacts") }}</template>
+                                        </SidebarLink>
+                                    </li>
+
                                     <!-- nomad network -->
                                     <li>
                                         <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
@@ -481,7 +494,7 @@
         >
             <div class="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">LXMF Address QR</h3>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Identity QR (LXMA)</h3>
                     <button
                         type="button"
                         class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
@@ -503,13 +516,13 @@
                         v-if="config?.lxmf_address_hash"
                         class="text-xs font-mono text-gray-700 dark:text-zinc-200 text-center break-words"
                     >
-                        {{ config.lxmf_address_hash }}
+                        {{ getMyIdentityUri() }}
                     </div>
                     <div class="flex justify-center">
                         <button
                             type="button"
                             class="px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                            @click="copyValue(config?.lxmf_address_hash, $t('app.lxmf_address'))"
+                            @click="copyIdentityUri"
                         >
                             {{ $t("common.copy") }}
                         </button>
@@ -1006,12 +1019,24 @@ export default {
         async openLxmfQr() {
             if (!this.config?.lxmf_address_hash) return;
             try {
-                const uri = `lxmf://${this.config.lxmf_address_hash}`;
+                const uri = this.getMyIdentityUri();
                 this.lxmfQrDataUrl = await QRCode.toDataURL(uri, { margin: 1, scale: 6 });
                 this.showLxmfQr = true;
             } catch {
                 ToastUtils.error(this.$t("common.error"));
             }
+        },
+        getMyIdentityUri() {
+            if (!this.config?.lxmf_address_hash) return null;
+            const publicKey = this.config?.identity_public_key;
+            return publicKey
+                ? `lxma://${this.config.lxmf_address_hash}:${publicKey}`
+                : `lxmf://${this.config.lxmf_address_hash}`;
+        },
+        async copyIdentityUri() {
+            const uri = this.getMyIdentityUri();
+            if (!uri) return;
+            await this.copyValue(uri, "Identity URI");
         },
         async updateConfig(config, label = null) {
             try {
@@ -1356,8 +1381,9 @@ export default {
         },
         handleProtocolLink(url) {
             try {
-                // lxmf://<hash> or rns://<hash>
-                const hash = url.replace("lxmf://", "").replace("rns://", "").split("/")[0].replace("/", "");
+                // lxma://<hash>:<pubkey> or lxmf://<hash> or rns://<hash>
+                const cleanUrl = url.replace("lxma://", "").replace("lxmf://", "").replace("rns://", "");
+                const hash = cleanUrl.split(":")[0].split("/")[0].replace("/", "");
                 if (hash && hash.length === 32) {
                     this.$router.push({
                         name: "messages",

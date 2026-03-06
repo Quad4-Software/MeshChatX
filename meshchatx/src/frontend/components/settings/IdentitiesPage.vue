@@ -24,9 +24,106 @@
                     </button>
                 </div>
 
+                <!-- export/import current identity (only when current exists) -->
+                <div
+                    v-if="currentIdentity"
+                    class="glass-card overflow-hidden border border-amber-500/20 dark:border-amber-500/10 bg-amber-50/30 dark:bg-amber-900/10"
+                >
+                    <div class="p-5 space-y-4">
+                        <div class="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                            <MaterialDesignIcon icon-name="key-alert" class="w-5 h-5 shrink-0" />
+                            <span class="font-semibold text-sm">{{ $t("identities.key_control") }}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                class="secondary-chip"
+                                @click="downloadIdentityFile"
+                            >
+                                <MaterialDesignIcon icon-name="file-export" class="w-4 h-4" />
+                                {{ $t("identities.export_key_file") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary-chip"
+                                @click="copyIdentityBase32"
+                            >
+                                <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                                {{ $t("identities.copy_base32") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary-chip"
+                                @click="$refs.identityFileInput?.click()"
+                            >
+                                <MaterialDesignIcon icon-name="upload" class="w-4 h-4" />
+                                {{ $t("identities.upload_key_file") }}
+                            </button>
+                            <input
+                                ref="identityFileInput"
+                                type="file"
+                                accept=".identity,.bin,.key"
+                                class="hidden"
+                                @change="onIdentityRestoreFileChange"
+                            />
+                            <button
+                                type="button"
+                                class="secondary-chip"
+                                @click="showIdentityPaste = !showIdentityPaste"
+                            >
+                                <MaterialDesignIcon icon-name="clipboard-text" class="w-4 h-4" />
+                                {{ $t("identities.paste_base32") }}
+                            </button>
+                        </div>
+                        <div v-if="identityRestoreError" class="text-sm text-red-600 dark:text-red-400">
+                            {{ identityRestoreError }}
+                        </div>
+                        <div v-if="identityRestoreMessage" class="text-sm text-green-600 dark:text-green-400">
+                            {{ identityRestoreMessage }}
+                        </div>
+                        <div v-if="showIdentityPaste" class="space-y-2 pt-2 border-t border-amber-500/10">
+                            <textarea
+                                v-model="identityRestoreBase32"
+                                rows="3"
+                                class="input-field font-mono text-xs"
+                                :placeholder="$t('identities.paste_base32_placeholder')"
+                            />
+                            <button
+                                type="button"
+                                class="primary-chip"
+                                :disabled="identityRestoreInProgress || !identityRestoreBase32.trim()"
+                                @click="restoreIdentityBase32"
+                            >
+                                <MaterialDesignIcon
+                                    v-if="identityRestoreInProgress"
+                                    icon-name="loading"
+                                    class="w-4 h-4 animate-spin"
+                                />
+                                {{ identityRestoreInProgress ? $t("identities.restoring") : $t("identities.confirm_restore") }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- identities list -->
                 <div class="grid gap-4">
+                    <template v-if="isLoading && identities.length === 0">
+                        <div
+                            v-for="i in 4"
+                            :key="'skel-' + i"
+                            class="glass-card overflow-hidden p-5 flex items-center gap-4"
+                        >
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0"
+                            />
+                            <div class="flex-1 min-w-0 space-y-2">
+                                <div class="h-5 w-32 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse" />
+                                <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded animate-pulse" />
+                            </div>
+                        </div>
+                    </template>
                     <div
+                        v-else
                         v-for="identity in identities"
                         :key="identity.hash"
                         v-memo="[
@@ -35,6 +132,7 @@
                             identity.display_name,
                             identity.lxmf_address,
                             identity.lxst_address,
+                            identity.message_count,
                             identity.icon_name,
                             identity.icon_background_colour,
                             identity.icon_foreground_colour,
@@ -119,6 +217,12 @@
                                 >
                                     LXST: {{ identity.lxst_address }}
                                 </div>
+                                <div
+                                    v-if="identity.message_count != null"
+                                    class="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5"
+                                >
+                                    {{ $t("identities.message_count", { count: identity.message_count }) }}
+                                </div>
                             </div>
 
                             <!-- actions -->
@@ -147,7 +251,7 @@
                 </div>
 
                 <!-- empty state -->
-                <div v-if="identities.length === 0" class="glass-card p-12 text-center">
+                <div v-if="!isLoading && identities.length === 0" class="glass-card p-12 text-center">
                     <div
                         class="w-20 h-20 bg-gray-100 dark:bg-zinc-800 rounded-3xl flex items-center justify-center mx-auto mb-4"
                     >
@@ -229,10 +333,22 @@ export default {
     data() {
         return {
             identities: [],
+            isLoading: false,
             showCreateModal: false,
             newIdentityName: "",
             isCreating: false,
+            showIdentityPaste: false,
+            identityRestoreBase32: "",
+            identityRestoreInProgress: false,
+            identityRestoreMessage: "",
+            identityRestoreError: "",
+            identityRestoreFile: null,
         };
+    },
+    computed: {
+        currentIdentity() {
+            return this.identities.find((i) => i.is_current) || null;
+        },
     },
     mounted() {
         this.getIdentities();
@@ -247,12 +363,95 @@ export default {
             this.isCreating = false;
         },
         async getIdentities() {
+            this.isLoading = true;
             try {
                 const response = await window.axios.get("/api/v1/identities");
-                this.identities = response.data.identities;
+                this.identities = response.data?.identities ?? [];
             } catch (e) {
                 console.error(e);
                 ToastUtils.error(this.$t("identities.failed_load"));
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        async downloadIdentityFile() {
+            try {
+                const response = await window.axios.get("/api/v1/identity/backup/download", {
+                    responseType: "blob",
+                });
+                const blob = new Blob([response.data], { type: "application/octet-stream" });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", "identity");
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+                ToastUtils.success(this.$t("identities.identity_exported"));
+            } catch {
+                ToastUtils.error(this.$t("identities.identity_export_failed"));
+            }
+        },
+        async copyIdentityBase32() {
+            try {
+                const response = await window.axios.get("/api/v1/identity/backup/base32");
+                const base32 = response.data?.identity_base32 ?? "";
+                if (!base32) {
+                    ToastUtils.error(this.$t("identities.no_identity_available"));
+                    return;
+                }
+                await navigator.clipboard.writeText(base32);
+                ToastUtils.success(this.$t("identities.identity_copied"));
+            } catch {
+                ToastUtils.error(this.$t("identities.identity_copy_failed"));
+            }
+        },
+        onIdentityRestoreFileChange(event) {
+            const files = event.target.files;
+            if (files?.[0]) {
+                this.identityRestoreFile = files[0];
+                this.identityRestoreError = "";
+                this.identityRestoreMessage = "";
+                this.restoreIdentityFile();
+            }
+            event.target.value = "";
+        },
+        async restoreIdentityFile() {
+            if (this.identityRestoreInProgress || !this.identityRestoreFile) return;
+            this.identityRestoreInProgress = true;
+            this.identityRestoreMessage = "";
+            this.identityRestoreError = "";
+            try {
+                const formData = new FormData();
+                formData.append("file", this.identityRestoreFile);
+                const response = await window.axios.post("/api/v1/identity/restore", formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                this.identityRestoreMessage = response.data?.message ?? this.$t("identities.identity_restored");
+                this.identityRestoreFile = null;
+            } catch {
+                this.identityRestoreError = this.$t("identities.identity_restore_failed");
+            } finally {
+                this.identityRestoreInProgress = false;
+            }
+        },
+        async restoreIdentityBase32() {
+            if (this.identityRestoreInProgress || !this.identityRestoreBase32?.trim()) return;
+            this.identityRestoreInProgress = true;
+            this.identityRestoreMessage = "";
+            this.identityRestoreError = "";
+            try {
+                const response = await window.axios.post("/api/v1/identity/restore", {
+                    base32: this.identityRestoreBase32.trim(),
+                });
+                this.identityRestoreMessage = response.data?.message ?? this.$t("identities.identity_restored");
+                this.identityRestoreBase32 = "";
+                this.showIdentityPaste = false;
+            } catch {
+                this.identityRestoreError = this.$t("identities.identity_restore_failed");
+            } finally {
+                this.identityRestoreInProgress = false;
             }
         },
         async createIdentity() {
