@@ -22,7 +22,6 @@ import tempfile
 import threading
 import time
 import unittest
-from unittest.mock import MagicMock
 
 from meshchatx.src.backend.announce_manager import AnnounceManager
 from meshchatx.src.backend.database import Database
@@ -32,6 +31,7 @@ from meshchatx.src.backend.message_handler import MessageHandler
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def percentile(data, pct):
     """Return the pct-th percentile of sorted data."""
@@ -108,8 +108,8 @@ def make_announce(i):
 # Test class
 # ---------------------------------------------------------------------------
 
-class TestPerformanceHotPaths(unittest.TestCase):
 
+class TestPerformanceHotPaths(unittest.TestCase):
     NUM_MESSAGES = 10_000
     NUM_PEERS = 200
     NUM_ANNOUNCES = 5_000
@@ -134,7 +134,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
 
     @classmethod
     def _seed_data(cls):
-        print(f"\n--- Seeding test data ---")
+        print("\n--- Seeding test data ---")
 
         # Peers
         cls.peer_hashes = [secrets.token_hex(16) for _ in range(cls.NUM_PEERS)]
@@ -286,7 +286,9 @@ class TestPerformanceHotPaths(unittest.TestCase):
             dest = secrets.token_hex(16)
             _, ms = timed_call(
                 self.db.announces.upsert_favourite,
-                dest, f"Bench Fav {i}", "lxmf.delivery",
+                dest,
+                f"Bench Fav {i}",
+                "lxmf.delivery",
             )
             durations.append(ms)
 
@@ -316,7 +318,13 @@ class TestPerformanceHotPaths(unittest.TestCase):
     def test_conversations_search_latency(self):
         """Search conversations — LIKE across titles, content, peer hashes."""
         print("\n[Conversations] Search:")
-        terms = ["Message title 5", "Content body", "abc", "zzz_nope", self.heavy_peer[:8]]
+        terms = [
+            "Message title 5",
+            "Content body",
+            "abc",
+            "zzz_nope",
+            self.heavy_peer[:8],
+        ]
         durations = []
         for term in terms:
             _, ms = timed_call(
@@ -450,7 +458,9 @@ class TestPerformanceHotPaths(unittest.TestCase):
             with lock:
                 all_durations.extend(thread_durations)
 
-        threads = [threading.Thread(target=writer, args=(t,)) for t in range(num_threads)]
+        threads = [
+            threading.Thread(target=writer, args=(t,)) for t in range(num_threads)
+        ]
         t0 = time.perf_counter()
         for t in threads:
             t.start()
@@ -460,8 +470,10 @@ class TestPerformanceHotPaths(unittest.TestCase):
 
         total_ops = num_threads * msgs_per_thread
         throughput = total_ops / (wall_ms / 1000)
-        print(f"  Wall time: {wall_ms:.0f}ms for {total_ops} inserts ({throughput:.0f} ops/s)")
-        stats = latency_report("concurrent_write", all_durations)
+        print(
+            f"  Wall time: {wall_ms:.0f}ms for {total_ops} inserts ({throughput:.0f} ops/s)"
+        )
+        latency_report("concurrent_write", all_durations)
 
         self.assertEqual(len(errors), 0, f"Writer errors: {errors[:5]}")
         self.assertGreater(throughput, 100, "Concurrent write throughput < 100 ops/s")
@@ -487,7 +499,9 @@ class TestPerformanceHotPaths(unittest.TestCase):
             with lock:
                 all_durations.extend(thread_durations)
 
-        threads = [threading.Thread(target=writer, args=(t,)) for t in range(num_threads)]
+        threads = [
+            threading.Thread(target=writer, args=(t,)) for t in range(num_threads)
+        ]
         t0 = time.perf_counter()
         for t in threads:
             t.start()
@@ -497,8 +511,10 @@ class TestPerformanceHotPaths(unittest.TestCase):
 
         total_ops = num_threads * announces_per_thread
         throughput = total_ops / (wall_ms / 1000)
-        print(f"  Wall time: {wall_ms:.0f}ms for {total_ops} upserts ({throughput:.0f} ops/s)")
-        stats = latency_report("concurrent_announce_write", all_durations)
+        print(
+            f"  Wall time: {wall_ms:.0f}ms for {total_ops} upserts ({throughput:.0f} ops/s)"
+        )
+        latency_report("concurrent_announce_write", all_durations)
 
         self.assertEqual(len(errors), 0, f"Writer errors: {errors[:5]}")
         self.assertGreater(throughput, 100, "Concurrent announce write < 100 ops/s")
@@ -543,8 +559,12 @@ class TestPerformanceHotPaths(unittest.TestCase):
             with lock:
                 read_durations.extend(local_durs)
 
-        writers = [threading.Thread(target=writer, args=(t,)) for t in range(num_writers)]
-        readers = [threading.Thread(target=reader, args=(t,)) for t in range(num_readers)]
+        writers = [
+            threading.Thread(target=writer, args=(t,)) for t in range(num_writers)
+        ]
+        readers = [
+            threading.Thread(target=reader, args=(t,)) for t in range(num_readers)
+        ]
 
         t0 = time.perf_counter()
         for t in writers + readers:
@@ -592,6 +612,154 @@ class TestPerformanceHotPaths(unittest.TestCase):
         _, ms_con = timed_call(self.db.contacts.get_contacts, search="Contact")
         print(f"  Contacts LIKE search ({self.NUM_CONTACTS} rows): {ms_con:.2f}ms")
         self.assertLess(ms_con, 50, "Contacts LIKE search > 50ms")
+
+    # ===================================================================
+    # N+1 BATCH OPERATIONS — transaction wrapping regression tests
+    # ===================================================================
+
+    def test_mark_conversations_as_read_batch(self):
+        """mark_conversations_as_read should be fast for large batches (transaction-wrapped)."""
+        print("\n[Batch] mark_conversations_as_read:")
+        hashes = [secrets.token_hex(16) for _ in range(200)]
+        durations = []
+        for _ in range(5):
+            _, ms = timed_call(self.db.messages.mark_conversations_as_read, hashes)
+            durations.append(ms)
+
+        stats = latency_report("mark_read_200", durations)
+        self.assertLess(stats["p95"], 50, "mark_conversations_as_read(200) p95 > 50ms")
+
+    def test_mark_all_notifications_as_viewed_batch(self):
+        """mark_all_notifications_as_viewed should be fast for large batches."""
+        print("\n[Batch] mark_all_notifications_as_viewed:")
+        hashes = [secrets.token_hex(16) for _ in range(200)]
+        durations = []
+        for _ in range(5):
+            _, ms = timed_call(
+                self.db.messages.mark_all_notifications_as_viewed, hashes
+            )
+            durations.append(ms)
+
+        stats = latency_report("mark_viewed_200", durations)
+        self.assertLess(
+            stats["p95"], 50, "mark_all_notifications_as_viewed(200) p95 > 50ms"
+        )
+
+    def test_move_conversations_to_folder_batch(self):
+        """move_conversations_to_folder should be fast for large batches."""
+        print("\n[Batch] move_conversations_to_folder:")
+        self.db.messages.create_folder("perf_test_folder")
+        folders = self.db.messages.get_all_folders()
+        folder_id = folders[0]["id"]
+
+        hashes = [secrets.token_hex(16) for _ in range(200)]
+        durations = []
+        for _ in range(5):
+            _, ms = timed_call(
+                self.db.messages.move_conversations_to_folder, hashes, folder_id
+            )
+            durations.append(ms)
+
+        stats = latency_report("move_folder_200", durations)
+        self.assertLess(
+            stats["p95"], 50, "move_conversations_to_folder(200) p95 > 50ms"
+        )
+
+    # ===================================================================
+    # INDEX VERIFICATION — confirm new indexes are used
+    # ===================================================================
+
+    def test_indexes_exist(self):
+        """Verify critical indexes exist in the schema."""
+        print("\n[Indexes] Checking critical indexes exist:")
+        rows = self.db.provider.fetchall(
+            "SELECT name FROM sqlite_master WHERE type='index'"
+        )
+        index_names = {r["name"] for r in rows}
+
+        expected = [
+            "idx_contacts_lxmf_address",
+            "idx_contacts_lxst_address",
+            "idx_notifications_is_viewed",
+            "idx_map_drawings_identity_hash",
+            "idx_map_drawings_identity_name",
+            "idx_voicemails_is_read",
+            "idx_archived_pages_created_at",
+            "idx_lxmf_messages_state_peer",
+            "idx_lxmf_messages_peer_hash",
+            "idx_lxmf_messages_peer_ts",
+            "idx_announces_updated_at",
+            "idx_announces_aspect",
+        ]
+        for idx in expected:
+            self.assertIn(idx, index_names, f"Missing index: {idx}")
+            print(f"  {idx}: OK")
+
+    def test_pragmas_applied(self):
+        """Verify performance PRAGMAs are active."""
+        print("\n[PRAGMAs] Checking applied PRAGMAs:")
+        journal = self.db._get_pragma_value("journal_mode")
+        print(f"  journal_mode: {journal}")
+        self.assertEqual(journal, "wal")
+
+        sync = self.db._get_pragma_value("synchronous")
+        print(f"  synchronous: {sync}")
+        self.assertEqual(sync, 1)  # NORMAL = 1
+
+        temp_store = self.db._get_pragma_value("temp_store")
+        print(f"  temp_store: {temp_store}")
+        self.assertEqual(temp_store, 2)  # MEMORY = 2
+
+        cache_size = self.db._get_pragma_value("cache_size")
+        print(f"  cache_size: {cache_size}")
+        self.assertLessEqual(cache_size, -8000)
+
+    # ===================================================================
+    # QUERY PLAN CHECKS — confirm indexes are actually used
+    # ===================================================================
+
+    def test_query_plan_messages_by_peer(self):
+        """The most common message query should use peer_hash index."""
+        print("\n[Query Plan] Messages by peer_hash:")
+        rows = self.db.provider.fetchall(
+            "EXPLAIN QUERY PLAN SELECT * FROM lxmf_messages WHERE peer_hash = ? ORDER BY id DESC LIMIT 50",
+            ("test",),
+        )
+        plan = " ".join(str(r["detail"]) for r in rows)
+        print(f"  {plan}")
+        self.assertIn("idx_lxmf_messages_peer_hash", plan.lower())
+
+    def test_query_plan_announces_by_aspect(self):
+        """Announce filtering by aspect should use the aspect index."""
+        print("\n[Query Plan] Announces by aspect:")
+        rows = self.db.provider.fetchall(
+            "EXPLAIN QUERY PLAN SELECT * FROM announces WHERE aspect = ? ORDER BY updated_at DESC LIMIT 50",
+            ("lxmf.delivery",),
+        )
+        plan = " ".join(str(r["detail"]) for r in rows)
+        print(f"  {plan}")
+        self.assertIn("idx_announces_aspect", plan.lower())
+
+    def test_query_plan_failed_messages_state_peer(self):
+        """The failed_count subquery should use the state+peer composite index."""
+        print("\n[Query Plan] Failed messages (state, peer_hash):")
+        rows = self.db.provider.fetchall(
+            "EXPLAIN QUERY PLAN SELECT COUNT(*) FROM lxmf_messages WHERE state = 'failed' AND peer_hash = ?",
+            ("test",),
+        )
+        plan = " ".join(str(r["detail"]) for r in rows)
+        print(f"  {plan}")
+        self.assertIn("idx_lxmf_messages_state_peer", plan.lower())
+
+    def test_query_plan_notifications_unread(self):
+        """Notification unread filter should use the is_viewed index."""
+        print("\n[Query Plan] Notifications unread:")
+        rows = self.db.provider.fetchall(
+            "EXPLAIN QUERY PLAN SELECT * FROM notifications WHERE is_viewed = 0 ORDER BY timestamp DESC LIMIT 50",
+        )
+        plan = " ".join(str(r["detail"]) for r in rows)
+        print(f"  {plan}")
+        self.assertIn("idx_notifications_is_viewed", plan.lower())
 
 
 if __name__ == "__main__":

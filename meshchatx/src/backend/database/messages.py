@@ -135,17 +135,18 @@ class MessageDAO:
         if not destination_hashes:
             return
         now = datetime.now(UTC).isoformat()
-        for destination_hash in destination_hashes:
-            self.provider.execute(
-                """
-                INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at) 
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(destination_hash) DO UPDATE SET 
-                    last_read_at = EXCLUDED.last_read_at,
-                    updated_at = EXCLUDED.updated_at
-                """,
-                (destination_hash, now, now, now),
-            )
+        with self.provider:
+            for destination_hash in destination_hashes:
+                self.provider.execute(
+                    """
+                    INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(destination_hash) DO UPDATE SET 
+                        last_read_at = EXCLUDED.last_read_at,
+                        updated_at = EXCLUDED.updated_at
+                    """,
+                    (destination_hash, now, now, now),
+                )
 
     def is_conversation_unread(self, destination_hash):
         row = self.provider.fetchone(
@@ -310,17 +311,18 @@ class MessageDAO:
     def mark_all_notifications_as_viewed(self, destination_hashes=None):
         now = datetime.now(UTC).isoformat()
         if destination_hashes:
-            for destination_hash in destination_hashes:
-                self.provider.execute(
-                    """
-                    INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at) 
-                    VALUES (?, ?, ?, ?)
-                    ON CONFLICT(destination_hash) DO UPDATE SET 
-                        last_viewed_at = EXCLUDED.last_viewed_at,
-                        updated_at = EXCLUDED.updated_at
-                    """,
-                    (destination_hash, now, now, now),
-                )
+            with self.provider:
+                for destination_hash in destination_hashes:
+                    self.provider.execute(
+                        """
+                        INSERT INTO notification_viewed_state (destination_hash, last_viewed_at, created_at, updated_at) 
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(destination_hash) DO UPDATE SET 
+                            last_viewed_at = EXCLUDED.last_viewed_at,
+                            updated_at = EXCLUDED.updated_at
+                        """,
+                        (destination_hash, now, now, now),
+                    )
         else:
             # mark all conversations as viewed
             self.provider.execute(
@@ -397,8 +399,9 @@ class MessageDAO:
             )
 
     def move_conversations_to_folder(self, peer_hashes, folder_id):
-        for peer_hash in peer_hashes:
-            self.move_conversation_to_folder(peer_hash, folder_id)
+        with self.provider:
+            for peer_hash in peer_hashes:
+                self.move_conversation_to_folder(peer_hash, folder_id)
 
     def get_all_conversation_folders(self):
         return self.provider.fetchall("SELECT * FROM lxmf_conversation_folders")

@@ -13,7 +13,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 38
+    LATEST_VERSION = 39
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1011,6 +1011,39 @@ class DatabaseSchema:
             )
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_reply_to_hash ON lxmf_messages(reply_to_hash)",
+            )
+
+        if current_version < 39:
+            # Indexes for contacts JOIN columns (used in message_handler.get_conversations
+            # and announce_manager.get_filtered_announces OR-based JOINs)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_contacts_lxmf_address ON contacts(lxmf_address)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_contacts_lxst_address ON contacts(lxst_address)",
+            )
+            # Notifications: filter by is_viewed
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_is_viewed ON notifications(is_viewed)",
+            )
+            # Map drawings: lookup by identity_hash
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_drawings_identity_hash ON map_drawings(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_drawings_identity_name ON map_drawings(identity_hash, name)",
+            )
+            # Voicemails: filter by is_read
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_voicemails_is_read ON voicemails(is_read)",
+            )
+            # Archived pages: ORDER BY created_at for cleanup queries
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_archived_pages_created_at ON archived_pages(created_at)",
+            )
+            # Conversation message state+peer: for failed_count subquery
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_state_peer ON lxmf_messages(state, peer_hash)",
             )
 
         # Update version in config

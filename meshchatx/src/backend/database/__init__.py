@@ -43,6 +43,7 @@ class Database:
         self.debug_logs = DebugLogsDAO(self.provider)
 
     def initialize(self):
+        self._tune_sqlite_pragmas()
         self.schema.initialize()
 
     def migrate_from_legacy(self, reticulum_config_dir, identity_hash_hex):
@@ -60,9 +61,12 @@ class Database:
 
     def _tune_sqlite_pragmas(self):
         try:
+            self.execute_sql("PRAGMA journal_mode=WAL")
+            self.execute_sql("PRAGMA synchronous=NORMAL")
             self.execute_sql("PRAGMA wal_autocheckpoint=1000")
             self.execute_sql("PRAGMA temp_store=MEMORY")
-            self.execute_sql("PRAGMA journal_mode=WAL")
+            self.execute_sql("PRAGMA cache_size=-8000")  # 8 MB
+            self.execute_sql("PRAGMA mmap_size=67108864")  # 64 MB
         except Exception as exc:
             print(f"SQLite pragma setup failed: {exc}")
 

@@ -9,7 +9,6 @@ Covers:
 import os
 import re
 import sqlite3
-import tempfile
 
 import pytest
 from hypothesis import HealthCheck, given, settings
@@ -23,6 +22,7 @@ from meshchatx.src.backend.database.schema import DatabaseSchema, _validate_iden
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def db_env(tmp_path):
@@ -52,8 +52,8 @@ def _make_legacy_db(legacy_dir, identity_hash, tables_sql):
 # 1. ATTACH DATABASE — single-quote escaping
 # ---------------------------------------------------------------------------
 
-class TestAttachDatabasePathEscaping:
 
+class TestAttachDatabasePathEscaping:
     def test_path_without_quotes_migrates_normally(self, db_env):
         provider, _schema, tmp_path = db_env
         legacy_dir = str(tmp_path / "legacy_normal")
@@ -153,8 +153,8 @@ class TestAttachDatabasePathEscaping:
 # 2. Legacy migrator — malicious column names filtered out
 # ---------------------------------------------------------------------------
 
-class TestLegacyColumnFiltering:
 
+class TestLegacyColumnFiltering:
     def test_normal_columns_migrate(self, db_env):
         """Standard column names pass through the identifier filter."""
         provider, _schema, tmp_path = db_env
@@ -188,9 +188,7 @@ class TestLegacyColumnFiltering:
         conn.execute(
             'CREATE TABLE config (key TEXT UNIQUE, value TEXT, "key; DROP TABLE config" TEXT)'
         )
-        conn.execute(
-            "INSERT INTO config (key, value) VALUES ('safe', 'data')"
-        )
+        conn.execute("INSERT INTO config (key, value) VALUES ('safe', 'data')")
         conn.commit()
         conn.close()
 
@@ -211,12 +209,8 @@ class TestLegacyColumnFiltering:
         os.makedirs(identity_dir, exist_ok=True)
         db_path = os.path.join(identity_dir, "database.db")
         conn = sqlite3.connect(db_path)
-        conn.execute(
-            'CREATE TABLE config (key TEXT UNIQUE, value TEXT, "evil()" TEXT)'
-        )
-        conn.execute(
-            "INSERT INTO config (key, value) VALUES ('p1', 'parens')"
-        )
+        conn.execute('CREATE TABLE config (key TEXT UNIQUE, value TEXT, "evil()" TEXT)')
+        conn.execute("INSERT INTO config (key, value) VALUES ('p1', 'parens')")
         conn.commit()
         conn.close()
 
@@ -231,8 +225,8 @@ class TestLegacyColumnFiltering:
 # 3. _validate_identifier — unit tests
 # ---------------------------------------------------------------------------
 
-class TestValidateIdentifier:
 
+class TestValidateIdentifier:
     @pytest.mark.parametrize(
         "name",
         [
@@ -273,8 +267,8 @@ class TestValidateIdentifier:
 # 4. _ensure_column — rejects injection via table/column names
 # ---------------------------------------------------------------------------
 
-class TestEnsureColumnInjection:
 
+class TestEnsureColumnInjection:
     def test_ensure_column_rejects_malicious_table_name(self, db_env):
         _provider, schema, _tmp_path = db_env
         with pytest.raises(ValueError, match="Invalid SQL table name"):
@@ -353,6 +347,7 @@ def test_validate_identifier_rejects_pure_metacharacter_strings(name):
 # ---------------------------------------------------------------------------
 # 6. ATTACH path escaping — property-based
 # ---------------------------------------------------------------------------
+
 
 @given(
     path_segment=st.text(

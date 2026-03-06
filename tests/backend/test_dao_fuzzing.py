@@ -42,22 +42,24 @@ st_nasty_text = st.text(
     max_size=300,
 )
 
-st_sql_payloads = st.sampled_from([
-    "'; DROP TABLE config; --",
-    "' OR '1'='1",
-    "\" OR \"1\"=\"1",
-    "1; SELECT * FROM sqlite_master",
-    "Robert'); DROP TABLE lxmf_messages;--",
-    "%",
-    "%%",
-    "_",
-    "\x00",
-    "' UNION SELECT key, value FROM config --",
-    "NULL",
-    "1=1",
-    "admin'--",
-    "' AND 1=CONVERT(int,(SELECT TOP 1 table_name FROM information_schema.tables))--",
-])
+st_sql_payloads = st.sampled_from(
+    [
+        "'; DROP TABLE config; --",
+        "' OR '1'='1",
+        '" OR "1"="1',
+        "1; SELECT * FROM sqlite_master",
+        "Robert'); DROP TABLE lxmf_messages;--",
+        "%",
+        "%%",
+        "_",
+        "\x00",
+        "' UNION SELECT key, value FROM config --",
+        "NULL",
+        "1=1",
+        "admin'--",
+        "' AND 1=CONVERT(int,(SELECT TOP 1 table_name FROM information_schema.tables))--",
+    ]
+)
 
 st_search_term = st.one_of(st_nasty_text, st_sql_payloads)
 
@@ -67,6 +69,7 @@ st_hex_hash = st.from_regex(r"[0-9a-f]{16,64}", fullmatch=True)
 # ---------------------------------------------------------------------------
 # Fixture: initialised in-memory database
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def db():
@@ -85,8 +88,8 @@ def handler(db):
 # ContactsDAO
 # ===================================================================
 
-class TestContactsDAOFuzzing:
 
+class TestContactsDAOFuzzing:
     @given(
         name=st_nasty_text,
         identity_hash=st_hex_hash,
@@ -144,8 +147,8 @@ class TestContactsDAOFuzzing:
 # ConfigDAO
 # ===================================================================
 
-class TestConfigDAOFuzzing:
 
+class TestConfigDAOFuzzing:
     @given(key=st_nasty_text.filter(lambda x: len(x) > 0), value=st_nasty_text)
     @settings(
         deadline=None,
@@ -187,8 +190,8 @@ class TestConfigDAOFuzzing:
 # MiscDAO — spam keywords, notifications, keyboard shortcuts
 # ===================================================================
 
-class TestMiscDAOFuzzing:
 
+class TestMiscDAOFuzzing:
     @given(keyword=st_nasty_text.filter(lambda x: len(x) > 0))
     @settings(
         deadline=None,
@@ -221,7 +224,9 @@ class TestMiscDAOFuzzing:
         suppress_health_check=[HealthCheck.function_scoped_fixture],
         max_examples=40,
     )
-    def test_add_notification_never_crashes(self, db, ntype, remote_hash, title, content):
+    def test_add_notification_never_crashes(
+        self, db, ntype, remote_hash, title, content
+    ):
         db.misc.add_notification(ntype, remote_hash, title, content)
         notifications = db.misc.get_notifications()
         assert isinstance(notifications, list)
@@ -262,8 +267,8 @@ class TestMiscDAOFuzzing:
 # TelephoneDAO
 # ===================================================================
 
-class TestTelephoneDAOFuzzing:
 
+class TestTelephoneDAOFuzzing:
     @given(
         name=st_nasty_text,
         identity_hash=st_hex_hash,
@@ -314,8 +319,8 @@ class TestTelephoneDAOFuzzing:
 # VoicemailDAO
 # ===================================================================
 
-class TestVoicemailDAOFuzzing:
 
+class TestVoicemailDAOFuzzing:
     @given(
         name=st_nasty_text,
         identity_hash=st_hex_hash,
@@ -354,8 +359,8 @@ class TestVoicemailDAOFuzzing:
 # DebugLogsDAO
 # ===================================================================
 
-class TestDebugLogsDAOFuzzing:
 
+class TestDebugLogsDAOFuzzing:
     @given(
         level=st.sampled_from(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]),
         module=st_nasty_text,
@@ -400,7 +405,10 @@ class TestDebugLogsDAOFuzzing:
     def test_count_matches_result_length(self, db, search, level):
         """get_total_count must be consistent with len(get_logs) when no limit truncation."""
         results = db.debug_logs.get_logs(
-            search=search, level=level, limit=100000, offset=0,
+            search=search,
+            level=level,
+            limit=100000,
+            offset=0,
         )
         count = db.debug_logs.get_total_count(search=search, level=level)
         assert count == len(results)
@@ -410,8 +418,8 @@ class TestDebugLogsDAOFuzzing:
 # RingtoneDAO
 # ===================================================================
 
-class TestRingtoneDAOFuzzing:
 
+class TestRingtoneDAOFuzzing:
     @given(
         filename=st_nasty_text.filter(lambda x: len(x) > 0),
         display_name=st_nasty_text.filter(lambda x: len(x) > 0),
@@ -445,13 +453,18 @@ class TestRingtoneDAOFuzzing:
 # MapDrawingsDAO
 # ===================================================================
 
-class TestMapDrawingsDAOFuzzing:
 
+class TestMapDrawingsDAOFuzzing:
     @given(
         name=st_nasty_text.filter(lambda x: len(x) > 0),
         data=st.one_of(
             st_nasty_text,
-            st.builds(json.dumps, st.dictionaries(st.text(max_size=10), st.text(max_size=50), max_size=10)),
+            st.builds(
+                json.dumps,
+                st.dictionaries(
+                    st.text(max_size=10), st.text(max_size=50), max_size=10
+                ),
+            ),
         ),
     )
     @settings(
@@ -470,8 +483,8 @@ class TestMapDrawingsDAOFuzzing:
 # MessageDAO — folders
 # ===================================================================
 
-class TestMessageDAOFoldersFuzzing:
 
+class TestMessageDAOFoldersFuzzing:
     @given(name=st_nasty_text.filter(lambda x: len(x) > 0))
     @settings(
         deadline=None,
@@ -507,8 +520,8 @@ class TestMessageDAOFoldersFuzzing:
 # MessageHandler — search
 # ===================================================================
 
-class TestMessageHandlerFuzzing:
 
+class TestMessageHandlerFuzzing:
     @given(search=st_search_term)
     @settings(
         deadline=None,
@@ -557,9 +570,14 @@ class TestMessageHandlerFuzzing:
         suppress_health_check=[HealthCheck.function_scoped_fixture],
         max_examples=40,
     )
-    def test_get_conversation_messages_never_crashes(self, handler, dest, after_id, before_id):
+    def test_get_conversation_messages_never_crashes(
+        self, handler, dest, after_id, before_id
+    ):
         results = handler.get_conversation_messages(
-            "local_hash", dest, after_id=after_id, before_id=before_id,
+            "local_hash",
+            dest,
+            after_id=after_id,
+            before_id=before_id,
         )
         assert isinstance(results, list)
 
@@ -568,8 +586,8 @@ class TestMessageHandlerFuzzing:
 # _safe_href — URL sanitization
 # ===================================================================
 
-class TestSafeHrefFuzzing:
 
+class TestSafeHrefFuzzing:
     @given(url=st.text(max_size=500))
     @settings(deadline=None, max_examples=200)
     def test_safe_href_never_returns_dangerous_protocol(self, url):
@@ -619,14 +637,20 @@ class TestSafeHrefFuzzing:
     def test_safe_href_blocks_all_generated_dangerous_urls(self, url):
         assert _safe_href(url) == "#"
 
-    @given(scheme=st.text(min_size=1, max_size=20).filter(lambda s: ":" not in s and "/" not in s))
+    @given(
+        scheme=st.text(min_size=1, max_size=20).filter(
+            lambda s: ":" not in s and "/" not in s
+        )
+    )
     @settings(deadline=None, max_examples=60)
     def test_safe_href_blocks_unknown_schemes(self, scheme):
         """Any unknown scheme like 'foo:bar' should be blocked."""
         url = f"{scheme}:something"
         result = _safe_href(url)
         lower = url.strip().lower()
-        if any(lower.startswith(p) for p in ("https://", "http://", "/", "#", "mailto:")):
+        if any(
+            lower.startswith(p) for p in ("https://", "http://", "/", "#", "mailto:")
+        ):
             assert result == url
         else:
             assert result == "#"
@@ -636,31 +660,34 @@ class TestSafeHrefFuzzing:
 # parse_bool_query_param
 # ===================================================================
 
-class TestParseBoolQueryParam:
 
+class TestParseBoolQueryParam:
     @given(value=st.text(max_size=100))
     @settings(deadline=None, max_examples=200)
     def test_never_crashes_and_returns_bool(self, value):
         result = parse_bool_query_param(value)
         assert isinstance(result, bool)
 
-    @pytest.mark.parametrize("value,expected", [
-        ("1", True),
-        ("true", True),
-        ("True", True),
-        ("TRUE", True),
-        ("yes", True),
-        ("YES", True),
-        ("on", True),
-        ("ON", True),
-        ("0", False),
-        ("false", False),
-        ("no", False),
-        ("off", False),
-        ("", False),
-        ("maybe", False),
-        (None, False),
-    ])
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("1", True),
+            ("true", True),
+            ("True", True),
+            ("TRUE", True),
+            ("yes", True),
+            ("YES", True),
+            ("on", True),
+            ("ON", True),
+            ("0", False),
+            ("false", False),
+            ("no", False),
+            ("off", False),
+            ("", False),
+            ("maybe", False),
+            (None, False),
+        ],
+    )
     def test_known_values(self, value, expected):
         assert parse_bool_query_param(value) is expected
 
@@ -669,8 +696,8 @@ class TestParseBoolQueryParam:
 # message_fields_have_attachments
 # ===================================================================
 
-class TestMessageFieldsHaveAttachments:
 
+class TestMessageFieldsHaveAttachments:
     @given(data=st.text(max_size=500))
     @settings(deadline=None, max_examples=100)
     def test_never_crashes_on_arbitrary_text(self, data):
@@ -689,25 +716,30 @@ class TestMessageFieldsHaveAttachments:
         result = message_fields_have_attachments(json.dumps(obj))
         assert isinstance(result, bool)
 
-    @pytest.mark.parametrize("fields_json,expected", [
-        (None, False),
-        ("", False),
-        ("{}", False),
-        ("not json", False),
-        ('{"image": "base64data"}', True),
-        ('{"audio": "base64data"}', True),
-        ('{"file_attachments": [{"name": "f.txt"}]}', True),
-        ('{"file_attachments": []}', False),
-        ('{"other_field": "value"}', False),
-    ])
+    @pytest.mark.parametrize(
+        "fields_json,expected",
+        [
+            (None, False),
+            ("", False),
+            ("{}", False),
+            ("not json", False),
+            ('{"image": "base64data"}', True),
+            ('{"audio": "base64data"}', True),
+            ('{"file_attachments": [{"name": "f.txt"}]}', True),
+            ('{"file_attachments": []}', False),
+            ('{"other_field": "value"}', False),
+        ],
+    )
     def test_known_cases(self, fields_json, expected):
         assert message_fields_have_attachments(fields_json) is expected
 
     @given(
         data=st.recursive(
             st.one_of(st.text(max_size=20), st.integers(), st.booleans(), st.none()),
-            lambda children: st.lists(children, max_size=5)
-            | st.dictionaries(st.text(max_size=10), children, max_size=5),
+            lambda children: (
+                st.lists(children, max_size=5)
+                | st.dictionaries(st.text(max_size=10), children, max_size=5)
+            ),
             max_leaves=30,
         )
     )
