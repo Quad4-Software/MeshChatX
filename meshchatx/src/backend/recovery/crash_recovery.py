@@ -1,11 +1,10 @@
 """CRASH RECOVERY & ADAPTIVE DIAGNOSTIC ENGINE
 --------------------------------------------------
-Mathematically grounded diagnostic system for MeshChatX.
+Diagnostic system for MeshChatX.
 
 Uses Shannon Entropy, KL-Divergence, and Bayesian weight learning
-to map application failures onto deterministic manifold constraints.
-Crash history is persisted and priors are refined over time using
-a conjugate Beta-Binomial model.
+to diagnose application failures. Crash history is persisted and
+priors are refined over time using a conjugate Beta-Binomial model.
 """
 
 import contextlib
@@ -213,18 +212,13 @@ class CrashRecovery:
         except Exception as e:
             out.write(f"  [ERROR] Failed to complete diagnosis: {e}\n")
 
-        # Enhanced Explanation Engine (Analytic logic)
-        out.write("\nProbabilistic Root Cause Analysis:\n")
+        out.write("\nRoot Cause Analysis:\n")
         causes = self._analyze_cause(exc_type, exc_value, diagnosis_results)
 
-        # Calculate advanced system state metrics
         entropy, divergence = self._calculate_system_entropy(diagnosis_results)
-        curvature = self._calculate_manifold_curvature(causes)
 
         out.write(f"  [System Entropy: {entropy:.4f} bits]\n")
-        out.write(f"  [Systemic Divergence (KL): {divergence:.4f} bits]\n")
-        out.write(f"  [Manifold Curvature: {curvature:.2f}κ]\n")
-        out.write("  [Deterministic Manifold Constraints: V1,V4 Active]\n")
+        out.write(f"  [KL-Divergence: {divergence:.4f} bits]\n")
 
         if self.log_handler:
             log_ent = self.log_handler.current_log_entropy
@@ -277,7 +271,7 @@ class CrashRecovery:
         sys.exit(1)
 
     def _analyze_cause(self, exc_type, exc_value, diagnosis):
-        """Uses probabilistic active inference and heuristic pattern matching
+        """Uses heuristic pattern matching and Bayesian priors
         to determine the likely root cause of the application crash.
         """
         causes = []
@@ -470,21 +464,6 @@ class CrashRecovery:
 
         causes.sort(key=lambda x: x["probability"], reverse=True)
 
-        # Apply Mathematical Grounding via Active Inference Directives if possible
-        if causes:
-            # We "ground" the top cause
-            top_cause = causes[0]
-            if top_cause["probability"] > 90:
-                top_cause["reasoning"] += (
-                    " This diagnosis has reached a high-confidence threshold grounded in "
-                    "deterministic manifold constraints (V1,V4) and active inference."
-                )
-            else:
-                top_cause["reasoning"] += (
-                    " This diagnosis is based on probabilistic heuristic matching of "
-                    "current system entropy against known failure manifolds."
-                )
-
         return causes
 
     def _calculate_system_entropy(self, diagnosis):
@@ -546,23 +525,6 @@ class CrashRecovery:
         divergence = sum(kl_div(q, p) for q, p in zip(q_vec, p_vec))
 
         return entropy, divergence
-
-    def _calculate_manifold_curvature(self, causes):
-        """Calculates 'Manifold Curvature' (κ) based on the gradient of probabilities.
-        High curvature indicates a 'sharp' failure where one cause is dominant.
-        Low curvature indicates an 'ambiguous' failure landscape.
-        """
-        if not causes:
-            return 0.0
-
-        probs = [c["probability"] / 100.0 for c in causes]
-        if len(probs) < 2:
-            # If there's only one cause and it's high probability, curvature is high
-            return probs[0] * 10.0
-
-        # Curvature is the 'steepness' between the top two causes
-        gradient = probs[0] - probs[1]
-        return gradient * 10.0
 
     def run_diagnosis(self, file=sys.stderr):
         """Performs a series of OS-agnostic checks on the application's environment."""

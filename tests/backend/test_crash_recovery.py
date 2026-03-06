@@ -120,7 +120,7 @@ class TestCrashRecovery(unittest.TestCase):
         self.assertIn("!!! APPLICATION CRASH DETECTED !!!", report)
         self.assertIn("Type:    ValueError", report)
         self.assertIn("Message: Simulated error for testing", report)
-        self.assertIn("Probabilistic Root Cause Analysis:", report)
+        self.assertIn("Root Cause Analysis:", report)
         self.assertIn("Recovery Suggestions:", report)
 
     def test_heuristic_analysis_sqlite(self):
@@ -164,10 +164,6 @@ class TestCrashRecovery(unittest.TestCase):
         causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
         self.assertEqual(causes[0]["description"], "Missing Reticulum Configuration")
         self.assertEqual(causes[0]["probability"], 99)
-        self.assertIn(
-            "deterministic manifold constraints",
-            causes[0]["reasoning"].lower(),
-        )
 
     def test_entropy_calculation_levels(self):
         """Test how entropy reflects system disorder."""
@@ -200,27 +196,6 @@ class TestCrashRecovery(unittest.TestCase):
         # very unstable: p_unstable=0.9 -> H=0.469 (wait, mathematically yes, but logically?)
         # Actually for a "disorder" metric, we might want it to peak when things are most uncertain.
         # But in our context, we are showing entropy of the "State Predictability".
-
-    def test_confidence_grounding_text(self):
-        """Verify that reasoning text reflects grounding logic."""
-        # High confidence scenario
-        exc_type = RuntimeError
-        exc_value = RuntimeError("no current event loop")
-        diagnosis = {}  # probability 88% -> heuristic matching
-        causes_low = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
-        self.assertIn(
-            "probabilistic heuristic matching",
-            causes_low[0]["reasoning"].lower(),
-        )
-
-        # Near-certainty scenario
-        diagnosis_certain = {"config_missing": True}
-        causes_high = self.recovery._analyze_cause(
-            exc_type,
-            exc_value,
-            diagnosis_certain,
-        )
-        self.assertIn("high-confidence threshold", causes_high[0]["reasoning"].lower())
 
     def test_heuristic_analysis_lxmf_storage(self):
         """Test LXMF storage failure detection."""
@@ -280,8 +255,7 @@ class TestCrashRecovery(unittest.TestCase):
 
         report = output.getvalue()
         self.assertIn("[System Entropy:", report)
-        self.assertIn("[Deterministic Manifold Constraints:", report)
-        self.assertIn("deterministic manifold constraints", report.lower())
+        self.assertIn("[KL-Divergence:", report)
 
     def test_heuristic_analysis_unsupported_python(self):
         """Test detection of unsupported Python versions."""
@@ -343,38 +317,6 @@ class TestCrashRecovery(unittest.TestCase):
             self.assertNotEqual(sys.excepthook, self.recovery.handle_exception)
         finally:
             sys.excepthook = original
-
-    # ==================================================================
-    # _calculate_manifold_curvature
-    # ==================================================================
-
-    def test_curvature_empty_causes(self):
-        """Empty causes list should return 0.0 curvature."""
-        self.assertEqual(self.recovery._calculate_manifold_curvature([]), 0.0)
-
-    def test_curvature_single_cause(self):
-        """Single cause should return probability * 10."""
-        causes = [{"probability": 95}]
-        self.assertAlmostEqual(self.recovery._calculate_manifold_curvature(causes), 9.5)
-
-    def test_curvature_two_causes_gradient(self):
-        """Curvature should be 10 * (top - second)."""
-        causes = [{"probability": 90}, {"probability": 40}]
-        self.assertAlmostEqual(self.recovery._calculate_manifold_curvature(causes), 5.0)
-
-    def test_curvature_equal_causes(self):
-        """Equal probabilities should give curvature = 0."""
-        causes = [{"probability": 50}, {"probability": 50}]
-        self.assertAlmostEqual(self.recovery._calculate_manifold_curvature(causes), 0.0)
-
-    def test_curvature_many_causes(self):
-        """Only top 2 probabilities matter for curvature."""
-        causes = [
-            {"probability": 80},
-            {"probability": 30},
-            {"probability": 10},
-        ]
-        self.assertAlmostEqual(self.recovery._calculate_manifold_curvature(causes), 5.0)
 
     # ==================================================================
     # _calculate_system_entropy edge cases

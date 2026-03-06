@@ -999,22 +999,6 @@ class TestCrashRecoveryMathProperties:
         assert divergence >= 0, f"Negative divergence: {divergence}"
 
     @given(
-        probs=st.lists(
-            st.integers(min_value=0, max_value=100), min_size=0, max_size=10
-        ),
-    )
-    @settings(derandomize=True, deadline=None)
-    def test_manifold_curvature_bounded(self, probs):
-        """Manifold curvature must always be a non-negative finite float."""
-        import math as m
-
-        recovery = self._make_recovery()
-        causes = [{"probability": p} for p in probs]
-        curvature = recovery._calculate_manifold_curvature(causes)
-        assert m.isfinite(curvature), f"Non-finite curvature: {curvature}"
-        assert curvature >= 0 or len(probs) >= 2, f"Unexpected negative: {curvature}"
-
-    @given(
         exc_msg=st.text(min_size=0, max_size=200),
         exc_type_name=st.sampled_from(
             [
