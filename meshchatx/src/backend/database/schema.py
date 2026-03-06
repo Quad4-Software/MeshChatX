@@ -13,7 +13,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 40
+    LATEST_VERSION = 41
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1063,6 +1063,11 @@ class DatabaseSchema:
             """)
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_crash_history_timestamp ON crash_history(timestamp)",
+            )
+
+        if current_version < 41:
+            self._safe_execute(
+                "ALTER TABLE lxmf_messages ADD COLUMN attachments_stripped INTEGER DEFAULT 0",
             )
 
         # Update version in config

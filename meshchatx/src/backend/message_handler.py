@@ -69,7 +69,8 @@ class MessageHandler:
             SELECT 
                 m1.id, m1.hash, m1.source_hash, m1.destination_hash,
                 m1.peer_hash, m1.state, m1.progress, m1.is_incoming,
-                m1.title, m1.timestamp, m1.is_spam, m1.reply_to_hash,
+                m1.title, m1.content, m1.fields, m1.timestamp,
+                m1.is_spam, m1.reply_to_hash,
                 m1.created_at, m1.updated_at,
                 a.app_data as peer_app_data, 
                 c.display_name as custom_display_name,
@@ -79,7 +80,8 @@ class MessageHandler:
                 f.id as folder_id,
                 fn.name as folder_name,
                 (SELECT COUNT(*) FROM lxmf_messages m_failed 
-                 WHERE m_failed.peer_hash = m1.peer_hash AND m_failed.state = 'failed') as failed_count
+                 WHERE m_failed.peer_hash = m1.peer_hash AND m_failed.state = 'failed') as failed_count,
+                CASE WHEN con.id IS NOT NULL THEN 1 ELSE 0 END as is_contact
             FROM lxmf_messages m1
             INNER JOIN (
                 SELECT peer_hash, MAX(timestamp) as max_ts

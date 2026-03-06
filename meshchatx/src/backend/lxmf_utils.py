@@ -18,12 +18,18 @@ def convert_lxmf_message_to_dict(
         value = message_fields[field_type]
 
         # handle file attachments field
-        if field_type == LXMF.FIELD_FILE_ATTACHMENTS:
-            # process file attachments
+        if field_type == LXMF.FIELD_FILE_ATTACHMENTS and isinstance(value, list):
             file_attachments = []
             for file_attachment in value:
+                if (
+                    not isinstance(file_attachment, (list, tuple))
+                    or len(file_attachment) < 2
+                ):
+                    continue
                 file_name = file_attachment[0]
                 file_data = file_attachment[1]
+                if not isinstance(file_data, (bytes, bytearray)):
+                    continue
                 file_bytes = None
                 if include_attachments:
                     file_bytes = base64.b64encode(file_data).decode(
@@ -32,42 +38,51 @@ def convert_lxmf_message_to_dict(
 
                 file_attachments.append(
                     {
-                        "file_name": file_name,
+                        "file_name": str(file_name) if file_name else "",
                         "file_size": len(file_data),
                         "file_bytes": file_bytes,
                     },
                 )
 
-            # add to fields
             fields["file_attachments"] = file_attachments
 
         # handle image field
-        if field_type == LXMF.FIELD_IMAGE:
+        if (
+            field_type == LXMF.FIELD_IMAGE
+            and isinstance(value, (list, tuple))
+            and len(value) >= 2
+        ):
             image_type = value[0]
             image_data = value[1]
-            image_bytes = None
-            if include_attachments:
-                image_bytes = base64.b64encode(image_data).decode("utf-8")
+            if isinstance(image_data, (bytes, bytearray)):
+                image_bytes = None
+                if include_attachments:
+                    image_bytes = base64.b64encode(image_data).decode("utf-8")
 
-            fields["image"] = {
-                "image_type": image_type,
-                "image_size": len(image_data),
-                "image_bytes": image_bytes,
-            }
+                fields["image"] = {
+                    "image_type": image_type,
+                    "image_size": len(image_data),
+                    "image_bytes": image_bytes,
+                }
 
         # handle audio field
-        if field_type == LXMF.FIELD_AUDIO:
+        if (
+            field_type == LXMF.FIELD_AUDIO
+            and isinstance(value, (list, tuple))
+            and len(value) >= 2
+        ):
             audio_mode = value[0]
             audio_data = value[1]
-            audio_bytes = None
-            if include_attachments:
-                audio_bytes = base64.b64encode(audio_data).decode("utf-8")
+            if isinstance(audio_data, (bytes, bytearray)):
+                audio_bytes = None
+                if include_attachments:
+                    audio_bytes = base64.b64encode(audio_data).decode("utf-8")
 
-            fields["audio"] = {
-                "audio_mode": audio_mode,
-                "audio_size": len(audio_data),
-                "audio_bytes": audio_bytes,
-            }
+                fields["audio"] = {
+                    "audio_mode": audio_mode,
+                    "audio_size": len(audio_data),
+                    "audio_bytes": audio_bytes,
+                }
 
         # handle telemetry field
         if field_type == LXMF.FIELD_TELEMETRY:
@@ -334,6 +349,7 @@ def convert_db_lxmf_message_to_dict(
         "quality": db_lxmf_message["quality"],
         "is_spam": bool(db_lxmf_message["is_spam"]),
         "reply_to_hash": db_lxmf_message.get("reply_to_hash"),
+        "attachments_stripped": bool(db_lxmf_message.get("attachments_stripped", 0)),
         "created_at": created_at,
         "updated_at": updated_at,
     }

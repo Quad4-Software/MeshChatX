@@ -267,6 +267,18 @@ class ConfigManager:
         self.location_manual_lon = self.StringConfig(self, "location_manual_lon", "0.0")
         self.location_manual_alt = self.StringConfig(self, "location_manual_alt", "0.0")
 
+        # stranger / trust config
+        self.block_attachments_from_strangers = self.BoolConfig(
+            self,
+            "block_attachments_from_strangers",
+            True,
+        )
+        self.block_all_from_strangers = self.BoolConfig(
+            self,
+            "block_all_from_strangers",
+            False,
+        )
+
         # banishment config
         self.banished_effect_enabled = self.BoolConfig(
             self,

@@ -2145,8 +2145,11 @@ class ReticulumMeshChat:
                 ).start()
             return
 
-        # Check if only allowing calls from contacts
-        if self.config.telephone_allow_calls_from_contacts_only.get():
+        # Check if only allowing calls from contacts, or blocking all from strangers
+        if (
+            self.config.telephone_allow_calls_from_contacts_only.get()
+            or self.config.block_all_from_strangers.get()
+        ):
             contact = self.database.contacts.get_contact_by_identity_hash(caller_hash)
             if not contact:
                 print(f"Rejecting incoming call from non-contact: {caller_hash}")
@@ -7915,6 +7918,7 @@ class ReticulumMeshChat:
                         "latest_message_preview": row["content"],
                         "latest_message_created_at": row["timestamp"],
                         "lxmf_user_icon": user_icon,
+                        "is_contact": bool(row.get("is_contact", 0)),
                         "updated_at": datetime.fromtimestamp(
                             row["timestamp"],
                             UTC,
@@ -9466,6 +9470,16 @@ class ReticulumMeshChat:
                 self._parse_bool(data["telemetry_enabled"]),
             )
 
+        if "block_attachments_from_strangers" in data:
+            self.config.block_attachments_from_strangers.set(
+                self._parse_bool(data["block_attachments_from_strangers"]),
+            )
+
+        if "block_all_from_strangers" in data:
+            self.config.block_all_from_strangers.set(
+                self._parse_bool(data["block_all_from_strangers"]),
+            )
+
         # update banishment settings
         if "banished_effect_enabled" in data:
             self.config.banished_effect_enabled.set(
@@ -10568,6 +10582,8 @@ class ReticulumMeshChat:
             "telephone_web_audio_enabled": ctx.config.telephone_web_audio_enabled.get(),
             "telephone_web_audio_allow_fallback": ctx.config.telephone_web_audio_allow_fallback.get(),
             "call_recording_enabled": ctx.config.call_recording_enabled.get(),
+            "block_attachments_from_strangers": ctx.config.block_attachments_from_strangers.get(),
+            "block_all_from_strangers": ctx.config.block_all_from_strangers.get(),
             "banished_effect_enabled": ctx.config.banished_effect_enabled.get(),
             "banished_text": ctx.config.banished_text.get(),
             "banished_color": ctx.config.banished_color.get(),
@@ -10888,6 +10904,16 @@ class ReticulumMeshChat:
             background_colour,
         )
 
+    def _is_contact(self, source_hash: str, context=None) -> bool:
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return False
+        try:
+            contact = ctx.database.contacts.get_contact_by_identity_hash(source_hash)
+            return contact is not None
+        except Exception:
+            return False
+
     # check if a destination is blocked
     def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
         ctx = context or self.current_context
@@ -11003,6 +11029,15 @@ class ReticulumMeshChat:
                 )
                 return
 
+            # block entire message from strangers if setting is enabled
+            if ctx.config.block_all_from_strangers.get() and not self._is_contact(
+                source_hash, context=ctx
+            ):
+                print(
+                    f"Blocking entire message from stranger: {source_hash}",
+                )
+                return
+
             # check for spam keywords
             is_spam = False
             message_title = lxmf_message.title if hasattr(lxmf_message, "title") else ""
@@ -11018,6 +11053,7 @@ class ReticulumMeshChat:
                 )
 
             # reject attachments from blocked sources (already checked above, but double-check)
+            attachments_stripped = False
             if has_attachments(lxmf_fields):
                 if self.is_destination_blocked(source_hash):
                     print(
@@ -11030,9 +11066,31 @@ class ReticulumMeshChat:
                         f"Rejecting LXMF message with attachments from spam source: {source_hash}",
                     )
                     return
+                # strip attachments from strangers (non-contacts) if setting is enabled
+                if (
+                    ctx.config.block_attachments_from_strangers.get()
+                    and not self._is_contact(source_hash, context=ctx)
+                ):
+                    for key in (
+                        LXMF.FIELD_FILE_ATTACHMENTS,
+                        LXMF.FIELD_IMAGE,
+                        LXMF.FIELD_AUDIO,
+                    ):
+                        if key in lxmf_fields:
+                            del lxmf_fields[key]
+                    lxmf_message.fields = lxmf_fields
+                    attachments_stripped = True
+                    print(
+                        f"Stripped attachments from stranger: {source_hash}",
+                    )
 
             # upsert lxmf message to database with spam flag
-            self.db_upsert_lxmf_message(lxmf_message, is_spam=is_spam, context=ctx)
+            self.db_upsert_lxmf_message(
+                lxmf_message,
+                is_spam=is_spam,
+                attachments_stripped=attachments_stripped,
+                context=ctx,
+            )
 
             # handle forwarding
             self.handle_forwarding(lxmf_message, context=ctx)
@@ -11340,6 +11398,7 @@ class ReticulumMeshChat:
         self,
         lxmf_message: LXMF.LXMessage,
         is_spam: bool = False,
+        attachments_stripped: bool = False,
         context=None,
     ):
         ctx = context or self.current_context
@@ -11352,6 +11411,7 @@ class ReticulumMeshChat:
             reticulum=self.reticulum,
         )
         lxmf_message_dict["is_spam"] = 1 if is_spam else 0
+        lxmf_message_dict["attachments_stripped"] = 1 if attachments_stripped else 0
 
         # calculate peer hash
         local_hash = ctx.local_lxmf_destination.hexhash

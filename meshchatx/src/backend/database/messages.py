@@ -34,6 +34,7 @@ class MessageDAO:
             "quality",
             "is_spam",
             "reply_to_hash",
+            "attachments_stripped",
         ]
 
         columns = ", ".join(fields)
