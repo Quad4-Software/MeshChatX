@@ -79,6 +79,35 @@ class MicronParser {
         return `nomadnetwork://${url}`;
     }
 
+    /**
+     * Remove CSS properties that can create full-screen overlays and block the app UI.
+     * Nomad Network page content (e.g. dynamic server pages) may contain such styles.
+     */
+    static stripOverlayStyles(html) {
+        if (typeof html !== "string") return html;
+        const dangerousProps = ["zindex", "inset", "top", "left", "right", "bottom", "transform"];
+        return html.replace(/(\s)style="([^"]*)"/g, (match, space, styleValue) => {
+            const declarations = styleValue.split(";").filter(Boolean);
+            const safe = declarations.filter((decl) => {
+                const colon = decl.indexOf(":");
+                if (colon <= 0) return false;
+                const rawProp = decl.slice(0, colon).trim();
+                const prop = rawProp.toLowerCase().replace(/-/g, "");
+                const val = decl
+                    .slice(colon + 1)
+                    .trim()
+                    .toLowerCase();
+                if (prop === "position" && (val === "fixed" || val === "sticky")) return false;
+                if (dangerousProps.includes(prop)) return false;
+                if (prop === "width" && /100v[wh]/.test(val)) return false;
+                if (prop === "height" && /100v[hw]/.test(val)) return false;
+                return true;
+            });
+            const out = safe.join("; ").trim();
+            return out ? `${space}style="${out}"` : "";
+        });
+    }
+
     parseHeaderTags(markup) {
         let pageFg = null;
         let pageBg = null;
@@ -177,11 +206,12 @@ class MicronParser {
         }
 
         try {
-            return DOMPurify.sanitize(html, {
+            const sanitized = DOMPurify.sanitize(html, {
                 USE_PROFILES: { html: true },
                 ALLOWED_URI_REGEXP:
                     /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
             });
+            return MicronParser.stripOverlayStyles(sanitized);
         } catch (error) {
             console.warn(
                 "DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify ",

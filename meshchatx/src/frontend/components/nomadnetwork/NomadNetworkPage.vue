@@ -537,17 +537,17 @@ export default {
             );
         },
         onElementClick(event) {
-            // find the closest ancestor (or the clicked element itself) with data-action="openNode"
             const element = event.target.closest('[data-action="openNode"]');
             if (!element) {
                 return;
             }
 
-            // get the destination and fields
+            event.preventDefault();
+            event.stopPropagation();
+
             const destination = element.getAttribute("data-destination");
             const fields = element.getAttribute("data-fields");
 
-            // navigate to destination
             this.onNodePageUrlClick(destination, fields);
         },
         async onWebsocketMessage(message) {
@@ -1614,5 +1614,22 @@ pre.text-wrap > div > :last-child {
 
 pre a:hover {
     text-decoration: underline;
+}
+
+.nodeContainer input[type="text"],
+.nodeContainer input[type="password"] {
+    font-family:
+        Roboto Mono Nerd Font,
+        monospace;
+    font-size: 1em;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-bottom: 1px solid currentColor;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    box-sizing: content-box;
 }
 </style>
