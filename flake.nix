@@ -74,7 +74,7 @@
         # Simple package definition for the backend
         packages.default = pkgs.python312Packages.buildPythonPackage {
           pname = "reticulum-meshchatx";
-          version = "4.2.0";
+          version = "4.2.1";
           src = ./.;
           format = "pyproject";
 
