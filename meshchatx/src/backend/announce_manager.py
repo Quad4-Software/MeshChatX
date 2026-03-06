@@ -49,7 +49,7 @@ class AnnounceManager:
         destination_hash=None,
         query=None,
         blocked_identity_hashes=None,
-        limit=None,
+        limit=500,
         offset=0,
     ):
         sql = """

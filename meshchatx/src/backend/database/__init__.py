@@ -67,6 +67,7 @@ class Database:
             self.execute_sql("PRAGMA temp_store=MEMORY")
             self.execute_sql("PRAGMA cache_size=-8000")  # 8 MB
             self.execute_sql("PRAGMA mmap_size=67108864")  # 64 MB
+            self.execute_sql("PRAGMA busy_timeout=5000")  # 5 s wait on lock contention
         except Exception as exc:
             print(f"SQLite pragma setup failed: {exc}")
 

@@ -4594,9 +4594,17 @@ class ReticulumMeshChat:
         # maintenance - export messages
         @routes.get("/api/v1/maintenance/messages/export")
         async def maintenance_export_messages(request):
-            messages = self.database.messages.get_all_lxmf_messages()
-            # Convert sqlite3.Row to dict if necessary
-            messages_list = [dict(m) for m in messages]
+            messages_list = []
+            page_size = 5000
+            offset = 0
+            while True:
+                page = self.database.messages.get_all_lxmf_messages(
+                    limit=page_size, offset=offset
+                )
+                messages_list.extend(dict(m) for m in page)
+                if len(page) < page_size:
+                    break
+                offset += page_size
             return web.json_response({"messages": messages_list})
 
         # maintenance - import messages

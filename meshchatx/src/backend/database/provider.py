@@ -126,6 +126,11 @@ class DatabaseProvider:
         else:
             self.commit()
 
+    def executemany(self, query, params_seq):
+        cursor = self.connection.cursor()
+        cursor.executemany(query, params_seq)
+        return cursor
+
     def fetchone(self, query, params=None):
         cursor = self.execute(query, params)
         row = cursor.fetchone()

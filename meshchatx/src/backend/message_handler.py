@@ -41,15 +41,17 @@ class MessageHandler:
             [destination_hash],
         )
 
-    def search_messages(self, local_hash, search_term):
+    def search_messages(self, local_hash, search_term, limit=500):
         like_term = f"%{search_term}%"
         query = """
             SELECT peer_hash, MAX(timestamp) as max_ts
             FROM lxmf_messages
             WHERE title LIKE ? OR content LIKE ? OR peer_hash LIKE ?
             GROUP BY peer_hash
+            ORDER BY max_ts DESC
+            LIMIT ?
         """
-        params = [like_term, like_term, like_term]
+        params = [like_term, like_term, like_term, limit]
         return self.db.provider.fetchall(query, params)
 
     def get_conversations(
@@ -60,13 +62,15 @@ class MessageHandler:
         filter_failed=False,
         filter_has_attachments=False,
         folder_id=None,
-        limit=None,
+        limit=500,
         offset=0,
     ):
-        # Optimized using peer_hash column and JOINs to avoid N+1 queries
         query = """
             SELECT 
-                m1.*, 
+                m1.id, m1.hash, m1.source_hash, m1.destination_hash,
+                m1.peer_hash, m1.state, m1.progress, m1.is_incoming,
+                m1.title, m1.timestamp, m1.is_spam, m1.reply_to_hash,
+                m1.created_at, m1.updated_at,
                 a.app_data as peer_app_data, 
                 c.display_name as custom_display_name,
                 con.custom_image as contact_image,

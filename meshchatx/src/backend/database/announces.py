@@ -69,7 +69,7 @@ class AnnounceDAO:
         search_term=None,
         identity_hash=None,
         destination_hash=None,
-        limit=None,
+        limit=500,
         offset=0,
     ):
         query = "SELECT * FROM announces WHERE 1=1"
