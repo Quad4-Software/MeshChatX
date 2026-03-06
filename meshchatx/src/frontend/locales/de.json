@@ -946,7 +946,7 @@
             "description": "Micron-Markup bearbeiten und mit Live-Rendering anzeigen.",
             "editor": "Editor",
             "preview": "Vorschau",
-            "download": "Herunterladen",
+            "save": "Speichern",
             "edit": "Bearbeiten",
             "view_preview": "Vorschau anzeigen",
             "placeholder": "Geben Sie hier Ihr Micron-Markup ein...",

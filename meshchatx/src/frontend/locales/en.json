@@ -1035,7 +1035,7 @@
             "description": "Edit and preview Micron markup with live rendering.",
             "editor": "Editor",
             "preview": "Preview",
-            "download": "Download",
+            "save": "Save",
             "edit": "Edit",
             "view_preview": "View Preview",
             "placeholder": "Enter your Micron markup here...",

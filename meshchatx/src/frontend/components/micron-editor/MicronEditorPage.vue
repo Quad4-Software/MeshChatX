@@ -35,7 +35,7 @@
                 </button>
                 <button type="button" class="secondary-chip !py-1 !px-3" @click="downloadFile">
                     <MaterialDesignIcon icon-name="download" class="w-3.5 h-3.5" />
-                    <span class="hidden sm:inline">{{ $t("tools.micron_editor.download") }}</span>
+                    <span class="hidden sm:inline">{{ $t("tools.micron_editor.save") }}</span>
                 </button>
                 <button v-if="isMobileView" type="button" class="primary-chip !py-1 !px-3" @click="toggleView">
                     <MaterialDesignIcon :icon-name="showEditor ? 'eye' : 'pencil'" class="w-3.5 h-3.5" />

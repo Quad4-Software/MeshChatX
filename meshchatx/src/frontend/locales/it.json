@@ -1035,7 +1035,7 @@
             "description": "Modifica e visualizza l'anteprima del markup Micron con rendering live.",
             "editor": "Editor",
             "preview": "Anteprima",
-            "download": "Scarica",
+            "save": "Salva",
             "edit": "Modifica",
             "view_preview": "Visualizza Anteprima",
             "placeholder": "Inserisci qui il tuo markup Micron...",
