@@ -5,7 +5,7 @@
         <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
             <div class="space-y-6 w-full max-w-4xl mx-auto">
                 <!-- header -->
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between flex-wrap gap-4">
                     <div>
                         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                             {{ $t("identities.title") }}
@@ -14,96 +14,41 @@
                             {{ $t("identities.manage") }}
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-x-2 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-indigo-500/25 transition-all active:scale-95"
-                        @click="showCreateModal = true"
-                    >
-                        <MaterialDesignIcon icon-name="plus" class="w-5 h-5" />
-                        {{ $t("identities.new_identity") }}
-                    </button>
-                </div>
-
-                <!-- export/import current identity (only when current exists) -->
-                <div
-                    v-if="currentIdentity"
-                    class="glass-card overflow-hidden border border-amber-500/20 dark:border-amber-500/10 bg-amber-50/30 dark:bg-amber-900/10"
-                >
-                    <div class="p-5 space-y-4">
-                        <div class="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                            <MaterialDesignIcon icon-name="key-alert" class="w-5 h-5 shrink-0" />
-                            <span class="font-semibold text-sm">{{ $t("identities.key_control") }}</span>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                class="secondary-chip"
-                                @click="downloadIdentityFile"
-                            >
-                                <MaterialDesignIcon icon-name="file-export" class="w-4 h-4" />
-                                {{ $t("identities.export_key_file") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip"
-                                @click="copyIdentityBase32"
-                            >
-                                <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
-                                {{ $t("identities.copy_base32") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip"
-                                @click="$refs.identityFileInput?.click()"
-                            >
-                                <MaterialDesignIcon icon-name="upload" class="w-4 h-4" />
-                                {{ $t("identities.upload_key_file") }}
-                            </button>
-                            <input
-                                ref="identityFileInput"
-                                type="file"
-                                accept=".identity,.bin,.key"
-                                class="hidden"
-                                @change="onIdentityRestoreFileChange"
-                            />
-                            <button
-                                type="button"
-                                class="secondary-chip"
-                                @click="showIdentityPaste = !showIdentityPaste"
-                            >
-                                <MaterialDesignIcon icon-name="clipboard-text" class="w-4 h-4" />
-                                {{ $t("identities.paste_base32") }}
-                            </button>
-                        </div>
-                        <div v-if="identityRestoreError" class="text-sm text-red-600 dark:text-red-400">
-                            {{ identityRestoreError }}
-                        </div>
-                        <div v-if="identityRestoreMessage" class="text-sm text-green-600 dark:text-green-400">
-                            {{ identityRestoreMessage }}
-                        </div>
-                        <div v-if="showIdentityPaste" class="space-y-2 pt-2 border-t border-amber-500/10">
-                            <textarea
-                                v-model="identityRestoreBase32"
-                                rows="3"
-                                class="input-field font-mono text-xs"
-                                :placeholder="$t('identities.paste_base32_placeholder')"
-                            />
-                            <button
-                                type="button"
-                                class="primary-chip"
-                                :disabled="identityRestoreInProgress || !identityRestoreBase32.trim()"
-                                @click="restoreIdentityBase32"
-                            >
-                                <MaterialDesignIcon
-                                    v-if="identityRestoreInProgress"
-                                    icon-name="loading"
-                                    class="w-4 h-4 animate-spin"
-                                />
-                                {{ identityRestoreInProgress ? $t("identities.restoring") : $t("identities.confirm_restore") }}
-                            </button>
-                        </div>
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-x-2 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-indigo-500/25 transition-all active:scale-95"
+                            @click="showCreateModal = true"
+                        >
+                            <MaterialDesignIcon icon-name="plus" class="w-5 h-5" />
+                            {{ $t("identities.new_identity") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-x-2 rounded-2xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="showImportModal = true"
+                        >
+                            <MaterialDesignIcon icon-name="upload" class="w-5 h-5" />
+                            {{ $t("identities.import") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-x-2 rounded-2xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            :disabled="identities.length === 0"
+                            @click="downloadAllIdentities"
+                        >
+                            <MaterialDesignIcon icon-name="file-export" class="w-5 h-5" />
+                            {{ $t("identities.export_all") }}
+                        </button>
                     </div>
                 </div>
+                <input
+                    ref="identityFileInput"
+                    type="file"
+                    accept=".identity,.bin,.key"
+                    class="hidden"
+                    @change="onIdentityRestoreFileChange"
+                />
 
                 <!-- identities list -->
                 <div class="grid gap-4">
@@ -225,8 +170,30 @@
                                 </div>
                             </div>
 
-                            <!-- actions -->
+                            <!-- actions: key export on hover for current identity only -->
                             <div class="flex items-center gap-2">
+                                <template v-if="identity.is_current">
+                                    <div
+                                        class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <button
+                                            type="button"
+                                            class="p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-all active:scale-90"
+                                            :title="$t('identities.export_key_file')"
+                                            @click="downloadIdentityFile"
+                                        >
+                                            <MaterialDesignIcon icon-name="file-export" class="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-all active:scale-90"
+                                            :title="$t('identities.copy_base32')"
+                                            @click="copyIdentityBase32"
+                                        >
+                                            <MaterialDesignIcon icon-name="content-copy" class="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </template>
                                 <button
                                     v-if="!identity.is_current"
                                     type="button"
@@ -314,6 +281,71 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- import modal -->
+                <div
+                    v-if="showImportModal"
+                    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+                    @click.self="showImportModal = false"
+                >
+                    <div class="glass-card w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div class="p-6">
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                {{ $t("identities.import") }}
+                            </h2>
+                            <p class="text-gray-500 dark:text-gray-400 mt-1">{{ $t("identities.import_hint") }}</p>
+                            <div class="mt-6 space-y-4">
+                                <button
+                                    type="button"
+                                    class="w-full secondary-chip justify-center"
+                                    @click="$refs.identityFileInput?.click(); showImportModal = false"
+                                >
+                                    <MaterialDesignIcon icon-name="upload" class="w-4 h-4" />
+                                    {{ $t("identities.upload_key_file") }}
+                                </button>
+                                <div class="border-t border-gray-200 dark:border-zinc-700 pt-4">
+                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                        {{ $t("identities.paste_base32") }}
+                                    </label>
+                                    <textarea
+                                        v-model="identityRestoreBase32"
+                                        rows="3"
+                                        class="input-field font-mono text-xs w-full"
+                                        :placeholder="$t('identities.paste_base32_placeholder')"
+                                    />
+                                    <div v-if="identityRestoreError" class="text-sm text-red-600 dark:text-red-400 mt-2">
+                                        {{ identityRestoreError }}
+                                    </div>
+                                    <div v-if="identityRestoreMessage" class="text-sm text-green-600 dark:text-green-400 mt-2">
+                                        {{ identityRestoreMessage }}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="primary-chip mt-3"
+                                        :disabled="identityRestoreInProgress || !identityRestoreBase32.trim()"
+                                        @click="restoreIdentityBase32"
+                                    >
+                                        <MaterialDesignIcon
+                                            v-if="identityRestoreInProgress"
+                                            icon-name="loading"
+                                            class="w-4 h-4 animate-spin"
+                                        />
+                                        {{ identityRestoreInProgress ? $t("identities.restoring") : $t("identities.confirm_restore") }}
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-6">
+                                <button
+                                    type="button"
+                                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                                    @click="showImportModal = false"
+                                >
+                                    {{ $t("common.cancel") }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -335,9 +367,9 @@ export default {
             identities: [],
             isLoading: false,
             showCreateModal: false,
+            showImportModal: false,
             newIdentityName: "",
             isCreating: false,
-            showIdentityPaste: false,
             identityRestoreBase32: "",
             identityRestoreInProgress: false,
             identityRestoreMessage: "",
@@ -407,6 +439,25 @@ export default {
                 ToastUtils.error(this.$t("identities.identity_copy_failed"));
             }
         },
+        async downloadAllIdentities() {
+            try {
+                const response = await window.axios.get("/api/v1/identities/export-all", {
+                    responseType: "blob",
+                });
+                const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/zip" }));
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", "identities_export.zip");
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+                ToastUtils.success(this.$t("identities.export_all_success"));
+            } catch (e) {
+                const msg = e?.response?.data?.message || this.$t("identities.export_all_failed");
+                ToastUtils.error(msg);
+            }
+        },
         onIdentityRestoreFileChange(event) {
             const files = event.target.files;
             if (files?.[0]) {
@@ -430,6 +481,7 @@ export default {
                 });
                 this.identityRestoreMessage = response.data?.message ?? this.$t("identities.identity_restored");
                 this.identityRestoreFile = null;
+                this.showImportModal = false;
             } catch {
                 this.identityRestoreError = this.$t("identities.identity_restore_failed");
             } finally {
@@ -447,7 +499,7 @@ export default {
                 });
                 this.identityRestoreMessage = response.data?.message ?? this.$t("identities.identity_restored");
                 this.identityRestoreBase32 = "";
-                this.showIdentityPaste = false;
+                this.showImportModal = false;
             } catch {
                 this.identityRestoreError = this.$t("identities.identity_restore_failed");
             } finally {

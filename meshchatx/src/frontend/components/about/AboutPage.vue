@@ -175,6 +175,11 @@
                                         "
                                         size="14"
                                         start
+                                        :class="
+                                            appInfo.integrity_issues.length === 0
+                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                : ''
+                                        "
                                     ></v-icon>
                                     {{
                                         appInfo.integrity_issues.length === 0
@@ -213,9 +218,13 @@
                         </div>
                         <div
                             v-else
-                            class="text-sm text-gray-500 dark:text-zinc-500 flex items-center gap-3 bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10"
+                            class="text-sm text-gray-700 dark:text-emerald-200 flex items-center gap-3 bg-emerald-500/10 dark:bg-emerald-900/30 p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30"
                         >
-                            <v-icon icon="mdi-check-decagram" color="green" size="20"></v-icon>
+                            <v-icon
+                                icon="mdi-check-decagram"
+                                size="20"
+                                class="text-emerald-600 dark:text-emerald-400 shrink-0"
+                            ></v-icon>
                             <span class="font-bold tracking-tight">{{ $t("about.no_integrity_violations") }}</span>
                         </div>
                     </div>
@@ -1265,8 +1274,8 @@ export default {
         },
         statusPillClass(isGood) {
             return isGood
-                ? "inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-xs font-semibold"
-                : "inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold";
+                ? "inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 px-3 py-1 text-xs font-semibold"
+                : "inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 px-3 py-1 text-xs font-semibold";
         },
     },
 };
