@@ -40,6 +40,9 @@ importers:
       dayjs:
         specifier: ^1.11.19
         version: 1.11.19
+      dompurify:
+        specifier: ^3.3.2
+        version: 3.3.2
       electron-prompt:
         specifier: ^1.7.0
         version: 1.7.0
