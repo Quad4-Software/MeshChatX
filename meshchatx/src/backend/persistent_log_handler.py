@@ -1,9 +1,12 @@
 import collections
 import logging
+import math
 import re
 import threading
 import time
 from datetime import UTC, datetime
+
+_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
 
 class PersistentLogHandler(logging.Handler):
@@ -27,6 +30,10 @@ class PersistentLogHandler(logging.Handler):
         self.known_ips = set()
         self.known_uas = set()
 
+        # Entropy tracking — level counts over a sliding 60s window
+        self._level_events = collections.deque(maxlen=10000)
+        self._error_events = collections.deque(maxlen=10000)
+
     def set_database(self, database):
         with self.lock:
             self.database = database
@@ -49,6 +56,10 @@ class PersistentLogHandler(logging.Handler):
 
             with self.lock:
                 self.logs_buffer.append(log_entry)
+                now_mono = time.monotonic()
+                self._level_events.append((now_mono, record.levelname))
+                if record.levelno >= logging.ERROR:
+                    self._error_events.append(now_mono)
 
             # Periodically flush to database if available
             if self.database and (
@@ -233,3 +244,34 @@ class PersistentLogHandler(logging.Handler):
                     is_anomaly=is_anomaly,
                 )
             return len(self.logs_buffer)
+
+    @property
+    def current_log_entropy(self):
+        """Shannon entropy over log-level distribution in the last 60 seconds."""
+        cutoff = time.monotonic() - 60.0
+        with self.lock:
+            counts = {lv: 0 for lv in _LOG_LEVELS}
+            total = 0
+            for ts, level in self._level_events:
+                if ts >= cutoff:
+                    counts[level] = counts.get(level, 0) + 1
+                    total += 1
+        if total == 0:
+            return 0.0
+        entropy = 0.0
+        for c in counts.values():
+            if c > 0:
+                p = c / total
+                entropy -= p * math.log2(p)
+        return entropy
+
+    @property
+    def current_error_rate(self):
+        """Fraction of log events at ERROR or above in the last 60 seconds."""
+        cutoff = time.monotonic() - 60.0
+        with self.lock:
+            total = sum(1 for ts, _ in self._level_events if ts >= cutoff)
+            errors = sum(1 for ts in self._error_events if ts >= cutoff)
+        if total == 0:
+            return 0.0
+        return errors / total

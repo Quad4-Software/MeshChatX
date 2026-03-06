@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from .announces import AnnounceDAO
 from .config import ConfigDAO
 from .contacts import ContactsDAO
+from .crash_history import CrashHistoryDAO
 from .debug_logs import DebugLogsDAO
 from .legacy_migrator import LegacyMigrator
 from .map_drawings import MapDrawingsDAO
@@ -41,6 +42,7 @@ class Database:
         self.contacts = ContactsDAO(self.provider)
         self.map_drawings = MapDrawingsDAO(self.provider)
         self.debug_logs = DebugLogsDAO(self.provider)
+        self.crash_history = CrashHistoryDAO(self.provider)
 
     def initialize(self):
         self._tune_sqlite_pragmas()

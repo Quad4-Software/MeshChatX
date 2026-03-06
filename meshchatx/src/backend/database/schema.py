@@ -13,7 +13,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 39
+    LATEST_VERSION = 40
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1044,6 +1044,25 @@ class DatabaseSchema:
             # Conversation message state+peer: for failed_count subquery
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_state_peer ON lxmf_messages(state, peer_hash)",
+            )
+
+        if current_version < 40:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS crash_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp REAL,
+                    error_type TEXT,
+                    error_message TEXT,
+                    diagnosed_cause TEXT,
+                    symptoms TEXT,
+                    probability INTEGER,
+                    entropy REAL,
+                    divergence REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_crash_history_timestamp ON crash_history(timestamp)",
             )
 
         # Update version in config

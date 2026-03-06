@@ -88,7 +88,7 @@ from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_string_data_to_map,
 )
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
-from meshchatx.src.backend.recovery import CrashRecovery
+from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.telemetry_utils import Telemeter
@@ -743,6 +743,19 @@ class ReticulumMeshChat:
 
         # Link database to memory log handler
         memory_log_handler.set_database(context.database)
+
+        # Wire crash recovery with DB + log handler for adaptive diagnostics
+        if hasattr(self, "_crash_recovery") and self._crash_recovery:
+            self._crash_recovery.set_database(context.database)
+            self._crash_recovery.log_handler = memory_log_handler
+
+        # Start health monitor if not already running
+        if not hasattr(self, "_health_monitor") or self._health_monitor is None:
+            self._health_monitor = HealthMonitor(
+                log_handler=memory_log_handler,
+                app=self,
+            )
+            self._health_monitor.start()
 
     def _checkpoint_and_close(self):
         # delegated to database instance
@@ -12418,6 +12431,9 @@ def main():
         gitea_base_url=args.gitea_base_url,
         docs_download_urls=args.docs_download_urls,
     )
+
+    # store recovery on app for wiring with identity context
+    reticulum_meshchat._crash_recovery = recovery
 
     # update recovery with known paths
     recovery.update_paths(

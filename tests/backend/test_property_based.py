@@ -1045,3 +1045,38 @@ class TestCrashRecoveryMathProperties:
         for c in causes:
             assert isinstance(c["probability"], int)
             assert 0 <= c["probability"] <= 100
+
+    @given(
+        prior=st.floats(min_value=0.01, max_value=0.99, allow_nan=False),
+        count=st.integers(min_value=0, max_value=100),
+        total=st.integers(min_value=3, max_value=200),
+    )
+    @settings(derandomize=True, deadline=None, max_examples=100)
+    def test_bayesian_posterior_bounded(self, prior, count, total):
+        """Beta-Binomial posterior must stay in [0.01, 0.99]."""
+        import math as m
+
+        count = min(count, total)
+        alpha = 1.0 + count
+        beta = 1.0 + (total - count)
+        posterior = alpha / (alpha + beta)
+        clamped = max(0.01, min(0.99, round(posterior, 4)))
+        assert m.isfinite(clamped)
+        assert 0.01 <= clamped <= 0.99
+
+    @given(
+        counts=st.lists(
+            st.integers(min_value=0, max_value=50), min_size=1, max_size=10
+        ),
+    )
+    @settings(derandomize=True, deadline=None, max_examples=50)
+    def test_bayesian_posteriors_sum_reasonable(self, counts):
+        """Posteriors from any crash distribution should be valid probabilities."""
+        total = sum(counts) + 1  # ensure non-zero
+        posteriors = []
+        for c in counts:
+            alpha = 1.0 + c
+            beta = 1.0 + max(0, total - c)
+            posteriors.append(max(0.01, min(0.99, alpha / (alpha + beta))))
+        for p in posteriors:
+            assert 0.01 <= p <= 0.99

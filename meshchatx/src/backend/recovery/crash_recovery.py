@@ -1,26 +1,45 @@
-"""CRASH RECOVERY & DIAGNOSTIC ENGINE
-------------------------------------------
-This module implements a mathematically grounded diagnostic system for MeshChatX.
-It utilizes Active Inference heuristics, Shannon Entropy, and KL-Divergence
+"""CRASH RECOVERY & ADAPTIVE DIAGNOSTIC ENGINE
+--------------------------------------------------
+Mathematically grounded diagnostic system for MeshChatX.
+
+Uses Shannon Entropy, KL-Divergence, and Bayesian weight learning
 to map application failures onto deterministic manifold constraints.
+Crash history is persisted and priors are refined over time using
+a conjugate Beta-Binomial model.
 """
 
 import contextlib
+import json
 import os
 import platform
 import re
 import shutil
 import sqlite3
 import sys
+import time
 import traceback
 
 import psutil
 import RNS
 
+_DEFAULT_PRIORS = {
+    "DB_SYNC_FAILURE": 0.05,
+    "DB_CORRUPTION": 0.05,
+    "ASYNC_RACE": 0.10,
+    "OOM": 0.02,
+    "CONFIG_MISSING": 0.01,
+    "RNS_IDENTITY_FAILURE": 0.05,
+    "LXMF_STORAGE_FAILURE": 0.05,
+    "INTERFACE_OFFLINE": 0.05,
+    "UNSUPPORTED_PYTHON": 0.05,
+    "LEGACY_SYSTEM_LIMITATION": 0.05,
+}
+
 
 class CrashRecovery:
     """A diagnostic utility that intercepts application crashes and provides
-    meaningful error reports and system state analysis.
+    meaningful error reports and system state analysis.  Learns from crash
+    history to refine root-cause probabilities over time.
     """
 
     def __init__(
@@ -29,12 +48,17 @@ class CrashRecovery:
         database_path=None,
         public_dir=None,
         reticulum_config_dir=None,
+        database=None,
+        log_handler=None,
     ):
         self.storage_dir = storage_dir
         self.database_path = database_path
         self.public_dir = public_dir
         self.reticulum_config_dir = reticulum_config_dir
+        self.database = database
+        self.log_handler = log_handler
         self.enabled = True
+        self._learned_priors = None
 
         # Check environment variable to allow disabling the recovery system
         env_val = os.environ.get("MESHCHAT_NO_CRASH_RECOVERY", "").lower()
@@ -68,6 +92,95 @@ class CrashRecovery:
             self.public_dir = public_dir
         if reticulum_config_dir:
             self.reticulum_config_dir = reticulum_config_dir
+
+    def set_database(self, database):
+        """Provide database access for crash persistence and weight learning."""
+        self.database = database
+        self._load_learned_priors()
+
+    def _load_learned_priors(self):
+        """Load learned Bayesian priors from the config table."""
+        if not self.database:
+            return
+        try:
+            raw = self.database.config.get("diagnostic_weights")
+            if raw:
+                self._learned_priors = json.loads(raw)
+        except Exception:
+            self._learned_priors = None
+
+    def _get_prior(self, cause_key):
+        """Return the learned prior for a cause, falling back to the hardcoded default."""
+        if self._learned_priors and cause_key in self._learned_priors:
+            return self._learned_priors[cause_key]
+        return _DEFAULT_PRIORS.get(cause_key, 0.05)
+
+    def _persist_crash(
+        self, error_type, error_msg, causes, symptoms, entropy, divergence
+    ):
+        """Store crash event in crash_history for future learning."""
+        if not self.database:
+            return
+        try:
+            top_cause = causes[0]["description"] if causes else "Unknown"
+            top_prob = causes[0]["probability"] if causes else 0
+            self.database.crash_history.insert_crash(
+                timestamp=time.time(),
+                error_type=error_type,
+                error_message=error_msg,
+                diagnosed_cause=top_cause,
+                symptoms=symptoms,
+                probability=top_prob,
+                entropy=entropy,
+                divergence=divergence,
+            )
+            self.database.crash_history.cleanup_old(max_entries=200)
+        except Exception:
+            pass
+
+    def _update_learned_weights(self):
+        """Bayesian weight update using Beta-Binomial conjugate model."""
+        if not self.database:
+            return
+        try:
+            freq_rows = self.database.crash_history.get_cause_frequencies(limit=50)
+            if not freq_rows:
+                return
+            total = sum(r["count"] for r in freq_rows)
+            if total < 3:
+                return
+
+            cause_counts = {r["diagnosed_cause"]: r["count"] for r in freq_rows}
+            weights = {}
+            for key, default_prior in _DEFAULT_PRIORS.items():
+                desc = self._cause_key_to_description(key)
+                count = cause_counts.get(desc, 0)
+                alpha = 1.0 + count
+                beta = 1.0 + (total - count)
+                posterior = alpha / (alpha + beta)
+                weights[key] = max(0.01, min(0.99, round(posterior, 4)))
+
+            self.database.config.set("diagnostic_weights", json.dumps(weights))
+            self._learned_priors = weights
+        except Exception:
+            pass
+
+    @staticmethod
+    def _cause_key_to_description(key):
+        """Map internal cause keys to their human-readable descriptions."""
+        mapping = {
+            "DB_SYNC_FAILURE": "In-Memory Database Sync Failure",
+            "DB_CORRUPTION": "SQLite Database Corruption",
+            "ASYNC_RACE": "Asynchronous Initialization Race Condition",
+            "OOM": "System Resource Exhaustion (OOM)",
+            "CONFIG_MISSING": "Missing Reticulum Configuration",
+            "RNS_IDENTITY_FAILURE": "Reticulum Identity Load Failure",
+            "LXMF_STORAGE_FAILURE": "LXMF Router Storage Failure",
+            "INTERFACE_OFFLINE": "Reticulum Interface Initialization Failure",
+            "UNSUPPORTED_PYTHON": "Unsupported Python Environment",
+            "LEGACY_SYSTEM_LIMITATION": "Legacy System Resource Limitation",
+        }
+        return mapping.get(key, key)
 
     def handle_exception(self, exc_type, exc_value, exc_traceback):
         """Intercepts unhandled exceptions to provide a detailed diagnosis report."""
@@ -113,6 +226,15 @@ class CrashRecovery:
         out.write(f"  [Manifold Curvature: {curvature:.2f}κ]\n")
         out.write("  [Deterministic Manifold Constraints: V1,V4 Active]\n")
 
+        if self.log_handler:
+            log_ent = self.log_handler.current_log_entropy
+            err_rate = self.log_handler.current_error_rate
+            out.write(f"  [Log Entropy (60s): {log_ent:.4f} bits]\n")
+            out.write(f"  [Error Rate (60s): {err_rate:.2%}]\n")
+
+        if self._learned_priors:
+            out.write("  [Bayesian Priors: Learned from crash history]\n")
+
         for cause in causes:
             out.write(
                 f"  - [{cause['probability']}% Probability] {cause['description']}\n",
@@ -146,6 +268,11 @@ class CrashRecovery:
         out.write("=" * 70 + "\n\n")
         out.flush()
 
+        # Persist crash and update weights (best-effort, never raise)
+        with contextlib.suppress(Exception):
+            self._persist_crash(error_type, error_msg, causes, {}, entropy, divergence)
+            self._update_learned_weights()
+
         # Exit with error code
         sys.exit(1)
 
@@ -157,10 +284,10 @@ class CrashRecovery:
         error_msg = str(exc_value).lower()
         error_type = exc_type.__name__.lower()
 
-        # Define potential root causes with prior probabilities
+        # Define potential root causes with prior probabilities (learned or default)
         potential_causes = {
             "DB_SYNC_FAILURE": {
-                "probability": 0.05,
+                "probability": self._get_prior("DB_SYNC_FAILURE"),
                 "description": "In-Memory Database Sync Failure",
                 "reasoning": "A background thread attempted to access an in-memory database that was not initialized in its local context.",
                 "suggestions": [
@@ -169,7 +296,7 @@ class CrashRecovery:
                 ],
             },
             "DB_CORRUPTION": {
-                "probability": 0.05,
+                "probability": self._get_prior("DB_CORRUPTION"),
                 "description": "SQLite Database Corruption",
                 "reasoning": "The database file on disk has become physically or logically corrupted.",
                 "suggestions": [
@@ -178,7 +305,7 @@ class CrashRecovery:
                 ],
             },
             "ASYNC_RACE": {
-                "probability": 0.10,
+                "probability": self._get_prior("ASYNC_RACE"),
                 "description": "Asynchronous Initialization Race Condition",
                 "reasoning": "A component tried to access the asyncio event loop before it was started.",
                 "suggestions": [
@@ -187,7 +314,7 @@ class CrashRecovery:
                 ],
             },
             "OOM": {
-                "probability": 0.02,
+                "probability": self._get_prior("OOM"),
                 "description": "System Resource Exhaustion (OOM)",
                 "reasoning": "Available system memory is extremely low, leading to allocation failures.",
                 "suggestions": [
@@ -196,7 +323,7 @@ class CrashRecovery:
                 ],
             },
             "CONFIG_MISSING": {
-                "probability": 0.01,
+                "probability": self._get_prior("CONFIG_MISSING"),
                 "description": "Missing Reticulum Configuration",
                 "reasoning": "The Reticulum Network Stack (RNS) could not find its configuration file.",
                 "suggestions": [
@@ -204,7 +331,7 @@ class CrashRecovery:
                 ],
             },
             "RNS_IDENTITY_FAILURE": {
-                "probability": 0.05,
+                "probability": self._get_prior("RNS_IDENTITY_FAILURE"),
                 "description": "Reticulum Identity Load Failure",
                 "reasoning": "The Reticulum identity file is missing, corrupt, or unreadable.",
                 "suggestions": [
@@ -213,7 +340,7 @@ class CrashRecovery:
                 ],
             },
             "LXMF_STORAGE_FAILURE": {
-                "probability": 0.05,
+                "probability": self._get_prior("LXMF_STORAGE_FAILURE"),
                 "description": "LXMF Router Storage Failure",
                 "reasoning": "The LXMF router could not access its message storage directory.",
                 "suggestions": [
@@ -222,7 +349,7 @@ class CrashRecovery:
                 ],
             },
             "INTERFACE_OFFLINE": {
-                "probability": 0.05,
+                "probability": self._get_prior("INTERFACE_OFFLINE"),
                 "description": "Reticulum Interface Initialization Failure",
                 "reasoning": "No active communication interfaces could be established.",
                 "suggestions": [
@@ -231,7 +358,7 @@ class CrashRecovery:
                 ],
             },
             "UNSUPPORTED_PYTHON": {
-                "probability": 0.05,
+                "probability": self._get_prior("UNSUPPORTED_PYTHON"),
                 "description": "Unsupported Python Environment",
                 "reasoning": "The application is running on an outdated or incompatible Python version.",
                 "suggestions": [
@@ -240,7 +367,7 @@ class CrashRecovery:
                 ],
             },
             "LEGACY_SYSTEM_LIMITATION": {
-                "probability": 0.05,
+                "probability": self._get_prior("LEGACY_SYSTEM_LIMITATION"),
                 "description": "Legacy System Resource Limitation",
                 "reasoning": "The host system lacks modern kernel features or resource allocation capabilities required for high-performance mesh networking.",
                 "suggestions": [
