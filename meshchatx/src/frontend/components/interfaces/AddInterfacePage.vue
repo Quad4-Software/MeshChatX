@@ -136,7 +136,7 @@
                             <MaterialDesignIcon icon-name="import" class="size-4" />
                             Quick Import
                         </h3>
-                        <span class="text-[10px] text-gray-400">Paste raw TOML config here</span>
+                        <span class="text-[10px] text-gray-400">Paste raw config here</span>
                     </div>
                     <textarea
                         v-model="rawConfigInput"
@@ -1158,7 +1158,7 @@ export default {
             this.newInterfaceName = config.name || this.newInterfaceName;
             this.newInterfaceType = config.type;
 
-            // Map TOML keys to component data
+            // Map raw config keys to component data
             if (config.target_host) this.newInterfaceTargetHost = config.target_host;
             if (config.target_port) this.newInterfaceTargetPort = Number(config.target_port);
             if (config.listen_ip) this.newInterfaceListenIp = config.listen_ip;

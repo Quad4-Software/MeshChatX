@@ -66,6 +66,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_message_to_dict,
 )
 from meshchatx.src.backend.map_manager import TRANSPARENT_TILE
+from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.meshchat_utils import (
     convert_db_favourite_to_dict,
@@ -278,6 +279,7 @@ class ReticulumMeshChat:
         self.download_id_counter = 0
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
+        self.page_node_manager = PageNodeManager(self.storage_dir)
 
         # Multi-identity support
         self.contexts: dict[str, IdentityContext] = {}
@@ -730,6 +732,8 @@ class ReticulumMeshChat:
         if not hasattr(self, "reticulum"):
             self._ensure_reticulum_config()
             self.reticulum = RNS.Reticulum(self.reticulum_config_dir)
+            self.page_node_manager.load_nodes()
+            self.page_node_manager.start_all()
 
         # Create new context
         context = IdentityContext(identity, self)
@@ -740,6 +744,10 @@ class ReticulumMeshChat:
             context.telephone_manager,
             context.config,
         )
+
+        for node in self.page_node_manager.nodes.values():
+            if node.running and node.destination:
+                self._register_local_page_node_announce(node)
 
         # Link database to memory log handler
         memory_log_handler.set_database(context.database)
@@ -2319,6 +2327,10 @@ class ReticulumMeshChat:
 
     # web server has shutdown, likely ctrl+c, but if we don't do the following, the script never exits
     async def shutdown(self, app):
+        # stop page nodes before tearing down reticulum
+        if hasattr(self, "page_node_manager"):
+            self.page_node_manager.teardown()
+
         # force close websocket clients
         for websocket_client in self.websocket_clients:
             try:
@@ -6917,6 +6929,168 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
+        # --- Page Node API ---
+
+        @routes.get("/api/v1/page-nodes")
+        async def page_nodes_list(request):
+            return web.json_response(self.page_node_manager.list_nodes())
+
+        @routes.post("/api/v1/page-nodes")
+        async def page_nodes_create(request):
+            data = await request.json()
+            name = data.get("name", "").strip()
+            if not name:
+                return web.json_response({"message": "Name is required"}, status=400)
+            node = self.page_node_manager.create_node(name)
+            return web.json_response(node.get_status())
+
+        @routes.get("/api/v1/page-nodes/{node_id}")
+        async def page_nodes_get(request):
+            node_id = request.match_info["node_id"]
+            node = self.page_node_manager.get_node(node_id)
+            if not node:
+                return web.json_response({"message": "Node not found"}, status=404)
+            return web.json_response(node.get_status())
+
+        @routes.delete("/api/v1/page-nodes/{node_id}")
+        async def page_nodes_delete(request):
+            node_id = request.match_info["node_id"]
+            if self.page_node_manager.delete_node(node_id):
+                return web.json_response({"message": "Node deleted"})
+            return web.json_response({"message": "Node not found"}, status=404)
+
+        @routes.post("/api/v1/page-nodes/{node_id}/start")
+        async def page_nodes_start(request):
+            node_id = request.match_info["node_id"]
+            try:
+                dest_hash = self.page_node_manager.start_node(node_id)
+                node = self.page_node_manager.get_node(node_id)
+                if node and node.running:
+                    self._register_local_page_node_announce(node)
+                return web.json_response(
+                    {"destination_hash": dest_hash, "message": "Node started"}
+                )
+            except KeyError:
+                return web.json_response({"message": "Node not found"}, status=404)
+
+        @routes.post("/api/v1/page-nodes/{node_id}/stop")
+        async def page_nodes_stop(request):
+            node_id = request.match_info["node_id"]
+            try:
+                self.page_node_manager.stop_node(node_id)
+                return web.json_response({"message": "Node stopped"})
+            except KeyError:
+                return web.json_response({"message": "Node not found"}, status=404)
+
+        @routes.post("/api/v1/page-nodes/{node_id}/announce")
+        async def page_nodes_announce(request):
+            node_id = request.match_info["node_id"]
+            try:
+                node = self.page_node_manager.get_node(node_id)
+                if node is None or not node.running:
+                    return web.json_response(
+                        {"message": "Node not running"}, status=400
+                    )
+                node.announce()
+                self._register_local_page_node_announce(node)
+                return web.json_response({"message": "Announced"})
+            except KeyError:
+                return web.json_response({"message": "Node not found"}, status=404)
+
+        @routes.put("/api/v1/page-nodes/{node_id}/rename")
+        async def page_nodes_rename(request):
+            node_id = request.match_info["node_id"]
+            data = await request.json()
+            new_name = data.get("name", "").strip()
+            if not new_name:
+                return web.json_response({"message": "Name is required"}, status=400)
+            try:
+                self.page_node_manager.rename_node(node_id, new_name)
+                return web.json_response({"message": "Renamed"})
+            except KeyError:
+                return web.json_response({"message": "Node not found"}, status=404)
+
+        @routes.get("/api/v1/page-nodes/{node_id}/pages")
+        async def page_nodes_list_pages(request):
+            node_id = request.match_info["node_id"]
+            node = self.page_node_manager.get_node(node_id)
+            if not node:
+                return web.json_response({"message": "Node not found"}, status=404)
+            return web.json_response({"pages": node.list_pages()})
+
+        @routes.post("/api/v1/page-nodes/{node_id}/pages")
+        async def page_nodes_add_page(request):
+            node_id = request.match_info["node_id"]
+            node = self.page_node_manager.get_node(node_id)
+            if not node:
+                return web.json_response({"message": "Node not found"}, status=404)
+            data = await request.json()
+            name = data.get("name", "")
+            content = data.get("content", "")
+            if not name:
+                return web.json_response(
+                    {"message": "Page name is required"}, status=400
+                )
+            saved_name = node.add_page(name, content)
+            return web.json_response({"name": saved_name, "message": "Page saved"})
+
+        @routes.get("/api/v1/page-nodes/{node_id}/pages/{page_name}")
+        async def page_nodes_get_page(request):
+            node_id = request.match_info["node_id"]
+            page_name = request.match_info["page_name"]
+            node = self.page_node_manager.get_node(node_id)
+            if not node:
+                return web.json_response({"message": "Node not found"}, status=404)
+            content = node.get_page_content(page_name)
+            if content is None:
+                return web.json_response({"message": "Page not found"}, status=404)
+            return web.json_response({"name": page_name, "content": content})
+
+        @routes.delete("/api/v1/page-nodes/{node_id}/pages/{page_name}")
+        async def page_nodes_delete_page(request):
+            node_id = request.match_info["node_id"]
+            page_name = request.match_info["page_name"]
+            node = self.page_node_manager.get_node(node_id)
+            if not node:
+                return web.json_response({"message": "Node not found"}, status=404)
+            if node.remove_page(page_name):
+                return web.json_response({"message": "Page deleted"})
+            return web.json_response({"message": "Page not found"}, status=404)
+
+        @routes.get("/api/v1/page-nodes/{node_id}/files")
+        async def page_nodes_list_files(request):
+            node_id = request.match_info["node_id"]
+            node = self.page_node_manager.get_node(node_id)
+            if not node:
+                return web.json_response({"message": "Node not found"}, status=404)
+            return web.json_response({"files": node.list_files()})
+
+        @routes.post("/api/v1/page-nodes/{node_id}/files")
+        async def page_nodes_upload_file(request):
+            node_id = request.match_info["node_id"]
+            node = self.page_node_manager.get_node(node_id)
+            if not node:
+                return web.json_response({"message": "Node not found"}, status=404)
+            reader = await request.multipart()
+            field = await reader.next()
+            if field is None:
+                return web.json_response({"message": "No file uploaded"}, status=400)
+            filename = field.filename or "upload"
+            file_data = await field.read()
+            saved_name = node.add_file(filename, file_data)
+            return web.json_response({"name": saved_name, "message": "File uploaded"})
+
+        @routes.delete("/api/v1/page-nodes/{node_id}/files/{file_name}")
+        async def page_nodes_delete_file(request):
+            node_id = request.match_info["node_id"]
+            file_name = request.match_info["file_name"]
+            node = self.page_node_manager.get_node(node_id)
+            if not node:
+                return web.json_response({"message": "Node not found"}, status=404)
+            if node.remove_file(file_name):
+                return web.json_response({"message": "File deleted"})
+            return web.json_response({"message": "File not found"}, status=404)
+
         @routes.get("/api/v1/rnstatus")
         async def rnstatus(request):
             include_link_stats = request.query.get("include_link_stats", "false") in (
@@ -9880,6 +10054,35 @@ class ReticulumMeshChat:
             # convert destination hash to bytes
             destination_hash = bytes.fromhex(destination_hash)
 
+            local_file = self._try_serve_local_page_node_file(
+                destination_hash,
+                file_path,
+            )
+            if local_file is not None:
+                file_name, file_bytes = local_file
+                self.download_id_counter += 1
+                download_id = self.download_id_counter
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "nomadnet.file.download",
+                                "download_id": download_id,
+                                "nomadnet_file_download": {
+                                    "status": "success",
+                                    "destination_hash": destination_hash.hex(),
+                                    "file_path": file_path,
+                                    "file_name": file_name,
+                                    "file_bytes": base64.b64encode(file_bytes).decode(
+                                        "utf-8",
+                                    ),
+                                },
+                            },
+                        ),
+                    ),
+                )
+                return
+
             # generate download id
             self.download_id_counter += 1
             download_id = self.download_id_counter
@@ -10031,6 +10234,30 @@ class ReticulumMeshChat:
 
             # convert destination hash to bytes
             destination_hash = bytes.fromhex(destination_hash)
+
+            local_page = self._try_serve_local_page_node(
+                destination_hash,
+                page_path_to_download,
+            )
+            if local_page is not None:
+                self.archive_page(destination_hash.hex(), page_path, local_page)
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "nomadnet.page.download",
+                                "download_id": download_id,
+                                "nomadnet_page_download": {
+                                    "status": "success",
+                                    "destination_hash": destination_hash.hex(),
+                                    "page_path": page_path,
+                                    "page_content": local_page,
+                                },
+                            },
+                        ),
+                    ),
+                )
+                return
 
             # handle successful page download
             def on_page_download_success(page_content):
@@ -12170,6 +12397,74 @@ class ReticulumMeshChat:
 
         # queue crawler task (existence check in queue_crawler_task handles duplicates)
         self.queue_crawler_task(destination_hash.hex(), "/page/index.mu")
+
+    def _try_serve_local_page_node(self, destination_hash, page_path):
+        """If destination_hash belongs to one of our page nodes, serve the page
+        directly from disk. Returns the page content string or None."""
+        for node in self.page_node_manager.nodes.values():
+            if not node.running or not node.destination:
+                continue
+            if node.destination.hash == destination_hash:
+                page_name = page_path.lstrip("/")
+                if page_name.startswith("page/"):
+                    page_name = page_name[5:]
+                content = node.get_page_content(page_name)
+                if content is not None:
+                    node._stats["pages_served"] += 1
+                return content
+        return None
+
+    def _try_serve_local_page_node_file(self, destination_hash, file_path):
+        """If destination_hash belongs to one of our page nodes, serve the file
+        directly from disk. Returns (file_name, file_bytes) or None."""
+        for node in self.page_node_manager.nodes.values():
+            if not node.running or not node.destination:
+                continue
+            if node.destination.hash == destination_hash:
+                file_name = file_path.lstrip("/")
+                if file_name.startswith("file/"):
+                    file_name = file_name[5:]
+                file_name = os.path.basename(file_name)
+                full_path = os.path.join(node.files_dir, file_name)
+                if os.path.isfile(full_path):
+                    with open(full_path, "rb") as f:
+                        file_bytes = f.read()
+                    node._stats["files_served"] += 1
+                    return (file_name, file_bytes)
+                return None
+        return None
+
+    def _register_local_page_node_announce(self, node):
+        """Inject a local page node's announce into the database so it appears
+        in the NomadNet announces list without relying on RNS loopback."""
+        ctx = self.current_context
+        if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
+            return
+        if not node.destination or not node.identity:
+            return
+        destination_hash = node.destination.hash
+        aspect = "nomadnetwork.node"
+        app_data = node.name.encode("utf-8")
+        ctx.announce_manager.upsert_announce(
+            self.reticulum,
+            node.identity,
+            destination_hash,
+            aspect,
+            app_data,
+            None,
+        )
+        announce = ctx.database.announces.get_announce_by_hash(destination_hash.hex())
+        if announce:
+            AsyncUtils.run_async(
+                self.websocket_broadcast(
+                    json.dumps(
+                        {
+                            "type": "announce",
+                            "announce": self.convert_db_announce_to_dict(announce),
+                        },
+                    ),
+                ),
+            )
 
     # queues a crawler task for the provided destination and path
     def queue_crawler_task(self, destination_hash: str, page_path: str, context=None):

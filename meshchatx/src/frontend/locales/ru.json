@@ -1034,9 +1034,9 @@
             "title": "Бумажное сообщение",
             "description": "Создание и чтение подписанных бумажных сообщений LXMF через QR-коды."
         },
-        "rns_page_node": {
-            "title": "RNS Page Node",
-            "description": "Хостинг микрон-страниц Nomadnet и удобный обмен файлами."
+        "mesh_server": {
+            "title": "Mesh Server",
+            "description": "Раздавайте Micron-страницы и файлы напрямую через сеть Reticulum."
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",

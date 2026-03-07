@@ -1085,9 +1085,9 @@
             "title": "Paper Message",
             "description": "Generate and read LXMF signed paper messages via QR codes."
         },
-        "rns_page_node": {
-            "title": "RNS Page Node",
-            "description": "Host Nomadnet micron pages and share files with ease."
+        "mesh_server": {
+            "title": "Mesh Server",
+            "description": "Serve Micron pages and files directly over the Reticulum mesh."
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",

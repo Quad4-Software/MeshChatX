@@ -37,6 +37,49 @@
                     <MaterialDesignIcon icon-name="download" class="w-3.5 h-3.5" />
                     <span class="hidden sm:inline">{{ $t("tools.micron_editor.save") }}</span>
                 </button>
+                <div class="relative">
+                    <button type="button" class="primary-chip !py-1 !px-3" @click="togglePublishMenu">
+                        <MaterialDesignIcon icon-name="publish" class="w-3.5 h-3.5" />
+                        <span class="hidden sm:inline">Publish</span>
+                    </button>
+                    <div
+                        v-if="showPublishMenu"
+                        v-click-outside="() => (showPublishMenu = false)"
+                        class="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 z-50 py-2"
+                    >
+                        <div
+                            class="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                        >
+                            Publish to Mesh Server
+                        </div>
+                        <div v-if="pageNodes.length === 0" class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                            No mesh servers available.
+                            <router-link to="/mesh-server" class="text-blue-500 hover:underline"
+                                >Create one</router-link
+                            >
+                        </div>
+                        <button
+                            v-for="pn in pageNodes"
+                            :key="pn.node_id"
+                            class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-zinc-700 flex items-center gap-2 transition-colors"
+                            @click="publishToNode(pn)"
+                        >
+                            <div
+                                class="w-2 h-2 rounded-full shrink-0"
+                                :class="pn.running ? 'bg-green-500' : 'bg-gray-400'"
+                            ></div>
+                            <span class="truncate text-gray-900 dark:text-white">{{ pn.name }}</span>
+                        </button>
+                        <div class="border-t border-gray-200 dark:border-zinc-700 mt-1 pt-1">
+                            <button
+                                class="w-full text-left px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                                @click="publishAllToNode"
+                            >
+                                Publish all tabs to server...
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <button v-if="isMobileView" type="button" class="primary-chip !py-1 !px-3" @click="toggleView">
                     <MaterialDesignIcon :icon-name="showEditor ? 'eye' : 'pencil'" class="w-3.5 h-3.5" />
                     {{ showEditor ? $t("tools.micron_editor.view_preview") : $t("tools.micron_editor.edit") }}
@@ -144,6 +187,8 @@ export default {
             storageKey: "micron_editor_content",
             editingTabIndex: -1,
             editingTabName: "",
+            showPublishMenu: false,
+            pageNodes: [],
         };
     },
     watch: {
@@ -739,6 +784,60 @@ ${b}=
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        },
+        async togglePublishMenu() {
+            this.showPublishMenu = !this.showPublishMenu;
+            if (this.showPublishMenu) {
+                try {
+                    const response = await window.axios.get("/api/v1/page-nodes");
+                    this.pageNodes = response.data;
+                } catch {
+                    this.pageNodes = [];
+                }
+            }
+        },
+        async publishToNode(node) {
+            const tab = this.tabs[this.activeTabIndex];
+            const pageName = tab.name.replace(/\s+/g, "_");
+            try {
+                await window.axios.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                    name: pageName,
+                    content: tab.content,
+                });
+                this.showPublishMenu = false;
+                DialogUtils.alert(`Published "${pageName}.mu" to ${node.name}`);
+            } catch (e) {
+                DialogUtils.alert(e.response?.data?.message || "Failed to publish page");
+            }
+        },
+        async publishAllToNode() {
+            if (this.pageNodes.length === 0) return;
+
+            const nodeNames = this.pageNodes.map((n) => n.name);
+            const nodeName = prompt("Enter server name to publish all tabs to:\n\nAvailable: " + nodeNames.join(", "));
+            if (!nodeName) return;
+
+            const node = this.pageNodes.find((n) => n.name === nodeName);
+            if (!node) {
+                DialogUtils.alert("Server not found: " + nodeName);
+                return;
+            }
+
+            let published = 0;
+            for (const tab of this.tabs) {
+                const pageName = tab.name.replace(/\s+/g, "_");
+                try {
+                    await window.axios.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                        name: pageName,
+                        content: tab.content,
+                    });
+                    published++;
+                } catch {
+                    console.error(`Failed to publish tab: ${tab.name}`);
+                }
+            }
+            this.showPublishMenu = false;
+            DialogUtils.alert(`Published ${published}/${this.tabs.length} tabs to ${node.name}`);
         },
     },
 };

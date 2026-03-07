@@ -231,12 +231,12 @@ export default {
                     },
                 },
                 {
-                    name: "rns-page-node",
-                    comingSoon: true,
+                    name: "mesh-server",
+                    route: { name: "mesh-server" },
                     icon: "server-network",
                     iconBg: "tool-card__icon bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-200",
-                    titleKey: "tools.rns_page_node.title",
-                    descriptionKey: "tools.rns_page_node.description",
+                    titleKey: "tools.mesh_server.title",
+                    descriptionKey: "tools.mesh_server.description",
                 },
                 {
                     name: "rns-tunnel",

@@ -1034,9 +1034,9 @@
             "title": "Papiernachricht",
             "description": "Erstellen und lesen Sie LXMF-signierte Papiernachrichten über QR-Codes."
         },
-        "rns_page_node": {
-            "title": "RNS Page Node",
-            "description": "Nomadnet-Micron-Seiten hosten und Dateien mühelos teilen."
+        "mesh_server": {
+            "title": "Mesh Server",
+            "description": "Micron-Seiten und Dateien direkt ueber das Reticulum-Mesh bereitstellen."
         },
         "rns_tunnel": {
             "title": "RNSTunnel",

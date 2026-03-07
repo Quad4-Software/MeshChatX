@@ -1123,9 +1123,9 @@
             "title": "Messaggio Cartaceo",
             "description": "Genera e leggi messaggi cartacei LXMF firmati tramite codici QR."
         },
-        "rns_page_node": {
-            "title": "RNS Page Node",
-            "description": "Ospita pagine micron Nomadnet e condividi file con facilità."
+        "mesh_server": {
+            "title": "Mesh Server",
+            "description": "Servi pagine Micron e file direttamente sulla rete Reticulum."
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",
