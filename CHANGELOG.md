@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.3.0] - 2026-03-07
+
+### New Features
+
+- **Mesh Server**: Serve Micron pages and files directly over Reticulum. Each server gets its own RNS identity and destination address with the `nomadnetwork.node` aspect, making it compatible with the standard NomadNet page browsing protocol. Supports dynamic per-page and per-file request handler registration, announce broadcasting, and full lifecycle management (create, start, stop, delete, rename).
+- **Mesh Server management UI**: New tool page for creating and managing Mesh Servers with start/stop controls, announce button, page CRUD (add, edit, delete), file upload/delete, and a "View" button that opens the server's content in the built-in NomadNet browser.
+- **Micron Editor publish integration**: "Publish to Mesh Server" button in the Micron Editor allows publishing the current tab or all tabs directly to a selected Mesh Server.
+- **Local page serving**: Pages and files hosted on local Mesh Servers are served directly from disk when browsed locally, bypassing RNS link establishment. This provides instant page loads for your own content.
+- **Local announce injection**: Mesh Server announces are injected directly into the MeshChat announce database on startup, node start, and manual announce, ensuring they appear in the NomadNet announces list without depending on RNS loopback processing.
+
+### Improvements
+
+- **NomadNet downloader**: Added identity recall validation before link establishment to provide clearer error messages when a destination identity cannot be resolved.
+
+### Testing
+
+- **Mesh Server tests**: 66 new tests covering PageNode (setup, teardown, announce, page/file CRUD, responder closures, config persistence, status, link callbacks, path traversal protection, edge cases) and PageNodeManager (create, delete, start/stop, announce, rename, get/list, disk persistence, teardown).
+
 ## [4.2.1] - 2026-03-06
 
 ### New Features
