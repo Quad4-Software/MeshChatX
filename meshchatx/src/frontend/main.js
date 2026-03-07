@@ -220,6 +220,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/micron-editor/MicronEditorPage.vue")),
         },
         {
+            name: "mesh-server",
+            path: "/mesh-server",
+            component: defineAsyncComponent(() => import("./components/page-nodes/PageNodesPage.vue")),
+        },
+        {
             name: "documentation",
             path: "/documentation",
             component: defineAsyncComponent(() => import("./components/docs/DocsPage.vue")),
