@@ -250,7 +250,6 @@
                                         >
                                             <div
                                                 class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
-                                                :class="{ 'animate-pulse': shouldAnimatePulse(iface) }"
                                             >
                                                 <MaterialDesignIcon
                                                     :icon-name="
@@ -932,7 +931,6 @@ export default {
                         ...iface,
                         last_heard: lastHeard,
                         __isNew: isNew || existing?.__isNew,
-                        disconnected_at: existing?.disconnected_at ?? null,
                     });
                 };
 
@@ -941,18 +939,6 @@ export default {
 
                 this.discoveredInterfaces = Array.from(merged.values());
                 this.discoveredActive = active;
-
-                // Track disconnection time for animation control
-                const now = Date.now();
-                this.discoveredInterfaces.forEach((iface) => {
-                    if (!this.isDiscoveredConnected(iface)) {
-                        if (iface.disconnected_at === null) {
-                            iface.disconnected_at = now;
-                        }
-                    } else {
-                        iface.disconnected_at = null;
-                    }
-                });
             } catch (e) {
                 console.log(e);
             }
@@ -989,13 +975,6 @@ export default {
                     (s.listen_port && port && Number(s.listen_port) === Number(port));
                 return hostMatch && portMatch && (s.connected || s.online);
             });
-        },
-        shouldAnimatePulse(iface) {
-            if (this.isDiscoveredConnected(iface)) return false;
-            if (!iface.disconnected_at) return true;
-            // only pulse for the first 30 seconds of being disconnected
-            // to avoid continuous UI animation lag on many disconnected items
-            return Date.now() - iface.disconnected_at < 30000;
         },
         goToMap(iface) {
             if (iface.latitude == null || iface.longitude == null) return;
