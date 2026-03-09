@@ -7,6 +7,7 @@
 - Исходный код: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
 - Релизы: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Журнал изменений: [`CHANGELOG.md`](../CHANGELOG.md)
+- TODO: [`TODO.md`](../TODO.md)
 - [English README](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
 ## Важные замечания
@@ -199,6 +200,13 @@ pnpm run dist:rpm
 | `--auth`        | `MESHCHAT_AUTH`        | `false`      | Включить базовую аутентификацию    |
 | `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage`  | Директория данных                  |
 | `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | авто         | Директория фронтенд-файлов         |
+
+## Ветки
+
+| Ветка    | Назначение                                                              |
+| -------- | ----------------------------------------------------------------------- |
+| `master` | Стабильные релизы. Только готовый к продакшену код.                      |
+| `dev`    | Активная разработка. Может содержать нестабильные или неполные изменения.|
 
 ## Разработка
 

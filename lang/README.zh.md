@@ -7,6 +7,7 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 - 源码: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
 - 发行版: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - 变更日志: [`CHANGELOG.md`](../CHANGELOG.md)
+- TODO: [`TODO.md`](../TODO.md)
 - [English README](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [日本語](README.ja.md)
 
 ## 重要说明
@@ -199,6 +200,13 @@ pnpm run dist:rpm
 | `--auth`        | `MESHCHAT_AUTH`        | `false`     | 启用基本认证       |
 | `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | 数据目录           |
 | `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | 自动        | 前端文件目录       |
+
+## 分支
+
+| 分支     | 用途                                     |
+| -------- | ---------------------------------------- |
+| `master` | 稳定发布。仅限生产就绪代码。             |
+| `dev`    | 活跃开发。可能包含不稳定或不完整的更改。 |
 
 ## 开发
 

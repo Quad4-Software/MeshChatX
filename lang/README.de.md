@@ -7,6 +7,7 @@ Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in ke
 - Quellcode: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Aenderungsprotokoll: [`CHANGELOG.md`](../CHANGELOG.md)
+- TODO: [`TODO.md`](../TODO.md)
 - [English README](../README.md) | [Русский](README.ru.md) | [Italiano](README.it.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
 ## Wichtige Hinweise
@@ -199,6 +200,13 @@ pnpm run dist:rpm
 | `--auth`        | `MESHCHAT_AUTH`        | `false`     | Basis-Authentifizierung aktivieren |
 | `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Datenverzeichnis                   |
 | `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | auto        | Frontend-Verzeichnis               |
+
+## Branches
+
+| Branch   | Zweck                                                                       |
+| -------- | --------------------------------------------------------------------------- |
+| `master` | Stabile Releases. Nur produktionsreifer Code.                               |
+| `dev`    | Aktive Entwicklung. Kann instabile oder unvollstaendige Aenderungen enthalten.|
 
 ## Entwicklung
 

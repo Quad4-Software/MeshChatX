@@ -9,6 +9,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 - Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
+- TODO: [`TODO.md`](TODO.md)
 
 ## Important Notes
 
@@ -219,6 +220,13 @@ MeshChatX supports both CLI args and env vars.
 | `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage`  | Data directory                                                               |
 | `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | auto/bundled | Frontend files directory (needed for source installs without bundled assets) |
 
+## Branches
+
+| Branch   | Purpose                                                        |
+| -------- | -------------------------------------------------------------- |
+| `master` | Stable releases. Production-ready code only.                   |
+| `dev`    | Active development. May contain breaking or incomplete changes.|
+
 ## Development
 
 Common tasks from `Taskfile.yml`:
@@ -229,6 +237,17 @@ task lint:all
 task test:all
 task build:all
 ```
+
+`Makefile` shortcuts are also available:
+
+| Command      | Description                              |
+| ------------ | ---------------------------------------- |
+| `make install` | Install pnpm and poetry dependencies   |
+| `make run`     | Run MeshChatX via poetry               |
+| `make build`   | Build frontend                         |
+| `make lint`    | Run eslint and ruff                    |
+| `make test`    | Run frontend and backend tests         |
+| `make clean`   | Remove build artifacts and node_modules|
 
 ## Versioning
 

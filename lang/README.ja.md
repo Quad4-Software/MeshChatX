@@ -7,6 +7,7 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 - ソースコード: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
 - リリース: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - 変更履歴: [`CHANGELOG.md`](../CHANGELOG.md)
+- TODO: [`TODO.md`](../TODO.md)
 - [English README](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [中文](README.zh.md)
 
 ## 重要事項
@@ -199,6 +200,13 @@ pnpm run dist:rpm
 | `--auth`        | `MESHCHAT_AUTH`        | `false`     | 基本認証を有効化                   |
 | `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | データディレクトリ                 |
 | `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | 自動        | フロントエンドファイルディレクトリ |
+
+## ブランチ
+
+| ブランチ | 目的                                                       |
+| -------- | ---------------------------------------------------------- |
+| `master` | 安定版リリース。本番環境対応コードのみ。                   |
+| `dev`    | 活発な開発中。不安定または不完全な変更を含む場合があります。|
 
 ## 開発
 
