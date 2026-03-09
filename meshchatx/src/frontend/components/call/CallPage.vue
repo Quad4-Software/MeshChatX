@@ -194,7 +194,7 @@
                                                 v-else-if="
                                                     activeCall && activeCall.is_incoming && activeCall.status === 4
                                                 "
-                                                class="text-blue-600 dark:text-blue-400 font-bold text-sm animate-bounce"
+                                                class="text-blue-600 dark:text-blue-400 font-bold text-sm"
                                                 >{{ $t("call.incoming_call") }}</span
                                             >
                                             <span

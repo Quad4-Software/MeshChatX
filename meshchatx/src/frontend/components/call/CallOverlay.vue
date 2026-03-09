@@ -238,7 +238,7 @@
                     v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
                     type="button"
                     :title="$t('call.answer_call')"
-                    class="p-2.5 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-600/30 animate-bounce"
+                    class="p-2.5 rounded-full bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-600/30"
                     @click="answerCall(null)"
                 >
                     <MaterialDesignIcon icon-name="phone" class="size-5" />
