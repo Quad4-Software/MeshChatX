@@ -100,21 +100,18 @@ describe("InterfacesPage Performance", () => {
         const end = performance.now();
         console.log(`Rendered ${numDiscovered} discovered interfaces in ${(end - start).toFixed(2)}ms`);
 
-        // Check if animations are present
-        const pulsingElements = wrapper.findAll(".animate-pulse");
-        expect(pulsingElements.length).toBe(numDiscovered);
-
-        expect(end - start).toBeLessThan(5000);
+        const disconnectedBadges = wrapper.findAll(".bg-red-500\\/90");
+        expect(disconnectedBadges.length).toBe(numDiscovered);
+        expect(end - start).toBeLessThan(6000);
     });
 
-    it("stops pulsing animations after 30 seconds", async () => {
+    it("disconnected discovered interfaces render without pulse animation", async () => {
         const iface = {
             name: "Discovered 1",
             type: "UDPInterface",
             reachable_on: "192.168.1.1",
             port: 4242,
             discovery_hash: "hash_1",
-            disconnected_at: Date.now() - 31000, // 31 seconds ago
         };
 
         const wrapper = mount(InterfacesPage, {

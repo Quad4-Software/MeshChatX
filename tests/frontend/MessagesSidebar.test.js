@@ -15,10 +15,12 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
 
 vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
     default: {
-        formatTimeAgo: (d) => "1h ago",
+        formatTimeAgo: vi.fn((d) => "1h ago"),
         formatDestinationHash: (h) => (h && h.length >= 8 ? h.slice(0, 8) + "…" : h),
     },
 }));
+
+import Utils from "../../meshchatx/src/frontend/js/Utils";
 
 const MaterialDesignIcon = { template: '<div class="mdi"></div>', props: ["iconName"] };
 const LxmfUserIcon = { template: '<div class="lxmf-icon"></div>' };
@@ -188,5 +190,40 @@ describe("MessagesSidebar UI", () => {
             destination_hash: "dest1",
             display_name: "Bob",
         });
+    });
+
+    it("re-renders time-ago when timeAgoTick updates so times live-update", async () => {
+        const formatTimeAgoSpy = vi.mocked(Utils.formatTimeAgo);
+        formatTimeAgoSpy.mockClear();
+        const conversations = [
+            {
+                destination_hash: "d1",
+                display_name: "Alice",
+                updated_at: new Date().toISOString(),
+                is_unread: false,
+                failed_messages_count: 0,
+            },
+        ];
+        const wrapper = mountSidebar({ conversations });
+        await wrapper.vm.$nextTick();
+        const callsAfterMount = formatTimeAgoSpy.mock.calls.length;
+        expect(callsAfterMount).toBeGreaterThanOrEqual(1);
+        wrapper.vm.timeAgoTick = Date.now();
+        await wrapper.vm.$nextTick();
+        expect(formatTimeAgoSpy.mock.calls.length).toBeGreaterThan(callsAfterMount);
+    });
+
+    it("clears time-ago interval on unmount", () => {
+        const setIntervalSpy = vi.spyOn(globalThis, "setInterval").mockImplementation((fn, ms) => {
+            expect(ms).toBe(60 * 1000);
+            return 999;
+        });
+        const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
+        const wrapper = mountSidebar();
+        expect(setIntervalSpy).toHaveBeenCalled();
+        wrapper.unmount();
+        expect(clearIntervalSpy).toHaveBeenCalledWith(999);
+        setIntervalSpy.mockRestore();
+        clearIntervalSpy.mockRestore();
     });
 });
