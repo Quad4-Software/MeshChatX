@@ -86,7 +86,7 @@ jobs:
                   trivy image --exit-code 0 "$IMAGE_TAG"
 
     build-dev:
-        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev'
+        if: github.ref == 'refs/heads/dev'
         runs-on: ubuntu-latest
         permissions:
             contents: read
