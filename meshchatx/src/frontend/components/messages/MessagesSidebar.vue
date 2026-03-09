@@ -303,6 +303,7 @@
                             GlobalState.config.banished_effect_enabled && isBlocked(conversation.destination_hash),
                             selectionMode,
                             selectedHashes.has(conversation.destination_hash),
+                            timeAgoTick,
                         ]"
                         class="flex cursor-pointer p-2 border-l-2 relative group conversation-item"
                         :class="[
@@ -567,6 +568,7 @@
                             peer.snr,
                             selectedDestinationHash === peer.destination_hash,
                             GlobalState.config.banished_effect_enabled && isBlocked(peer.destination_hash),
+                            timeAgoTick,
                         ]"
                         class="flex cursor-pointer p-2 border-l-2 relative"
                         :class="[
@@ -772,6 +774,7 @@ export default {
         return {
             GlobalState,
             tab: "conversations",
+            timeAgoTick: 0,
             foldersExpanded,
             selectionMode: false,
             selectedHashes: new Set(),
@@ -852,11 +855,15 @@ export default {
         },
     },
     mounted() {
-        // listen for contact updates
         GlobalEmitter.on("contact-updated", this.onContactUpdated);
+        const tickMs = 60 * 1000;
+        this._timeAgoInterval = setInterval(() => {
+            this.timeAgoTick = Date.now();
+        }, tickMs);
     },
     unmounted() {
         GlobalEmitter.off("contact-updated", this.onContactUpdated);
+        if (this._timeAgoInterval) clearInterval(this._timeAgoInterval);
     },
     methods: {
         onContactUpdated(data) {
