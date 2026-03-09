@@ -1062,9 +1062,7 @@ export default {
 
             if (lod === "low") {
                 const isInterface = node.group === "interface";
-                const baseColor = isInterface && node.color
-                    ? node.color
-                    : this.nodeColor(blueBorder, blueBg);
+                const baseColor = isInterface && node.color ? node.color : this.nodeColor(blueBorder, blueBg);
                 return {
                     id: node.id,
                     shape: "dot",
@@ -1093,7 +1091,12 @@ export default {
             this.currentBatch = 0;
             this.totalBatches = 0;
 
-            await Promise.all([this.getConfig(), this.getInterfaceStats(), this.getConversations(), this.getDiscoveredInterfaces()]);
+            await Promise.all([
+                this.getConfig(),
+                this.getInterfaceStats(),
+                this.getConversations(),
+                this.getDiscoveredInterfaces(),
+            ]);
             if (this.abortController.signal.aborted) return;
 
             this.loadingStatus = "Fetching network data...";
@@ -1174,10 +1177,7 @@ export default {
                         image: entry.status
                             ? "/assets/images/network-visualiser/interface_connected.png"
                             : "/assets/images/network-visualiser/interface_disconnected.png",
-                        color: this.nodeColor(
-                            entry.status ? "#10b981" : "#ef4444",
-                            isDarkMode ? "#064e3b" : "#ecfdf5"
-                        ),
+                        color: this.nodeColor(entry.status ? "#10b981" : "#ef4444", isDarkMode ? "#064e3b" : "#ecfdf5"),
                         font: { color: fontColor, size: 12, bold: true },
                         x: initialX,
                         y: initialY,
@@ -1208,7 +1208,11 @@ export default {
             for (const disc of this.discoveredInterfaces) {
                 const discId = `discovered~${disc.discovery_hash || disc.name}`;
                 const discLabel = disc.name || disc.reachable_on || "Unknown";
-                if (!matchesSearch(discLabel) && !matchesSearch(disc.reachable_on) && !matchesSearch(disc.transport_id)) {
+                if (
+                    !matchesSearch(discLabel) &&
+                    !matchesSearch(disc.reachable_on) &&
+                    !matchesSearch(disc.transport_id)
+                ) {
                     continue;
                 }
 
@@ -1234,9 +1238,7 @@ export default {
                         : "/assets/images/network-visualiser/interface_disconnected.png",
                     color: this.nodeColor(
                         isConnected ? "#06b6d4" : "#64748b",
-                        isDarkMode
-                            ? isConnected ? "#164e63" : "#1e293b"
-                            : isConnected ? "#ecfeff" : "#f1f5f9"
+                        isDarkMode ? (isConnected ? "#164e63" : "#1e293b") : isConnected ? "#ecfeff" : "#f1f5f9"
                     ),
                     font: { color: fontColor, size: 10 },
                     x: Math.cos(angle) * dist,
@@ -1362,9 +1364,7 @@ export default {
                         }
                         node.color = this.nodeColor(
                             entry.hops === 1 ? "#10b981" : "#3b82f6",
-                            entry.hops === 1
-                                ? isDarkMode ? "#064e3b" : "#ecfdf5"
-                                : isDarkMode ? "#1e40af" : "#eff6ff"
+                            entry.hops === 1 ? (isDarkMode ? "#064e3b" : "#ecfdf5") : isDarkMode ? "#1e40af" : "#eff6ff"
                         );
                     } else if (announce.aspect === "nomadnetwork.node") {
                         node.shape = "circularImage";
@@ -1375,9 +1375,7 @@ export default {
                                 : "/assets/images/network-visualiser/server.png";
                         node.color = this.nodeColor(
                             entry.hops === 1 ? "#10b981" : "#8b5cf6",
-                            entry.hops === 1
-                                ? isDarkMode ? "#064e3b" : "#ecfdf5"
-                                : isDarkMode ? "#4c1d95" : "#f5f3ff"
+                            entry.hops === 1 ? (isDarkMode ? "#064e3b" : "#ecfdf5") : isDarkMode ? "#4c1d95" : "#f5f3ff"
                         );
                     }
 
