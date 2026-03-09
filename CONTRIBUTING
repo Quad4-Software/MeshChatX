@@ -1,0 +1,46 @@
+Contributing to Reticulum MeshChatX
+
+Patches are the preferred way to contribute. Create your changes locally,
+export a .patch file, and send it over Reticulum.
+
+
+Generating a Patch
+------------------
+
+1. Clone or fork the repository and make your changes on a branch.
+
+2. Stage and commit your work:
+
+    git add -A
+    git commit -m "Short description of the change"
+
+3. Export the commit(s) as a .patch file:
+
+    # Single most recent commit
+    git format-patch -1
+
+    # Last N commits
+    git format-patch -N
+
+    # All commits since a branch point
+    git format-patch main..HEAD
+
+   This produces one .patch file per commit (e.g. 0001-my-change.patch).
+
+
+Sending the Patch
+-----------------
+
+Send the .patch file as an LXMF message over Reticulum to:
+
+    7cc8d66b4f6a0e0e49d34af7f6077b5a
+
+You can attach the file using Sideband, Meshchat, MeshchatX, or any LXMF-capable client with hattachments support.
+Include a brief description of what the patch does in the message body.
+
+
+Patch Guidelines
+----------------
+
+- Keep patches focused on a single change or fix.
+- Test your changes before exporting.
