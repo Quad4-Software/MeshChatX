@@ -1,13 +1,13 @@
 # Maintainer: Ivan <ivan@quad4.io>
 pkgname=reticulum-meshchatx-git
 _pkgname=reticulum-meshchatx
-pkgver=4.2.1.r28.gdde0442
+pkgver=4.3.0.r0.gebacc00
 pkgrel=1
 pkgdesc="A simple mesh network communications app powered by the Reticulum Network Stack"
 arch=('x86_64' 'aarch64')
 url="https://git.quad4.io/RNS-Things/MeshChatX"
 license=('MIT')
-depends=('opus' 'opusfile' 'portaudio' 'espeak-ng' 'nss' 'atk' 'at-spi2-core' 'libxcomposite' 'libxrandr' 'libxdamage' 'mesa' 'alsa-lib' 'libx11')
+depends=('opus' 'opusfile' 'portaudio' 'espeak-ng')
 makedepends=('git' 'nodejs' 'pnpm' 'python' 'python-poetry')
 provides=("$_pkgname")
 conflicts=("$_pkgname")
