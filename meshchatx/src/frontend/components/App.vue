@@ -170,19 +170,6 @@
                                         </SidebarLink>
                                     </li>
 
-                                    <!-- contacts -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'contacts' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="account-multiple"
-                                                    class="w-6 h-6 text-gray-700 dark:text-white"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.contacts") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
                                     <!-- nomad network -->
                                     <li>
                                         <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
@@ -193,6 +180,19 @@
                                                 />
                                             </template>
                                             <template #text>{{ $t("app.nomad_network") }}</template>
+                                        </SidebarLink>
+                                    </li>
+
+                                    <!-- contacts -->
+                                    <li>
+                                        <SidebarLink :to="{ name: 'contacts' }" :is-collapsed="isSidebarCollapsed">
+                                            <template #icon>
+                                                <MaterialDesignIcon
+                                                    icon-name="account-multiple"
+                                                    class="w-6 h-6 text-gray-700 dark:text-white"
+                                                />
+                                            </template>
+                                            <template #text>{{ $t("app.contacts") }}</template>
                                         </SidebarLink>
                                     </li>
 
