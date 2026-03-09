@@ -4,7 +4,7 @@ on:
     schedule:
         - cron: "30 12 * * 1"
     push:
-        branches: [master]
+        branches: [master, dev]
     workflow_dispatch:
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
 
             - name: Download Trivy
               run: |
-                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/917e0e52b2f663cbbe13e63b7176262e248265ae/trivy_0.68.2_Linux-64bit.deb
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/fdfe96b77d2f7b7f5a90cea00af5024c9f728f17/trivy_0.69.3_Linux-64bit.deb
                   sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
 
             - name: Trivy FS scan

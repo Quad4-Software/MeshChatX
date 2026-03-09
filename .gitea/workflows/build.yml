@@ -52,8 +52,8 @@ jobs:
                     echo "Using version from SHA: $VERSION"
                   fi
 
-                  if [ "${VERSION}" = "master" ] || [ -z "${VERSION}" ]; then
-                    echo "Error: Invalid version '${VERSION}'. Version cannot be 'master' or empty." >&2
+                  if [ "${VERSION}" = "master" ] || [ "${VERSION}" = "dev" ] || [ -z "${VERSION}" ]; then
+                    echo "Error: Invalid version '${VERSION}'. Version cannot be a branch name or empty." >&2
                     exit 1
                   fi
                   echo "version=${VERSION}" >> $GITHUB_OUTPUT
@@ -119,7 +119,7 @@ jobs:
                   (cd meshchatx/public && zip -r ../../release-assets/meshchatx-frontend.zip .)
 
                   # Generate SBOM (CycloneDX)
-                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/917e0e52b2f663cbbe13e63b7176262e248265ae/trivy_0.68.2_Linux-64bit.deb
+                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/fdfe96b77d2f7b7f5a90cea00af5024c9f728f17/trivy_0.69.3_Linux-64bit.deb
                   sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
                   trivy fs --format cyclonedx --include-dev-deps --output release-assets/sbom.cyclonedx.json .
 
@@ -152,7 +152,7 @@ jobs:
                     echo "Error: Version is empty" >&2
                     exit 1
                   fi
-                  if [ "${VERSION}" = "master" ]; then
+                  if [ "${VERSION}" = "master" ] || [ "${VERSION}" = "dev" ]; then
                     echo "Error: Invalid version '${VERSION}'. Version cannot be a branch name." >&2
                     exit 1
                   fi
