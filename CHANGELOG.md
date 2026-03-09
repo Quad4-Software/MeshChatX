@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.3.0] - 2026-03-07
+## [4.3.0] - 2026-03-09
 
 ### New Features
 
@@ -11,14 +11,29 @@ All notable changes to this project will be documented in this file.
 - **Micron Editor publish integration**: "Publish to Mesh Server" button in the Micron Editor allows publishing the current tab or all tabs directly to a selected Mesh Server.
 - **Local page serving**: Pages and files hosted on local Mesh Servers are served directly from disk when browsed locally, bypassing RNS link establishment. This provides instant page loads for your own content.
 - **Local announce injection**: Mesh Server announces are injected directly into the MeshChat announce database on startup, node start, and manual announce, ensuring they appear in the NomadNet announces list without depending on RNS loopback processing.
+- **Stranger protection**: Settings to block attachments and messages from non-contacts. Message handling strips attachments from strangers when configured; database schema extended to track stripped attachments. Localization and UI for stranger protection options.
 
 ### Improvements
 
 - **NomadNet downloader**: Added identity recall validation before link establishment to provide clearer error messages when a destination identity cannot be resolved.
+- **NomadNet partials**: Fixed partial page loading when partials include field data; PARTIAL_LINE_REGEX captures optional fields, WebSocket allows partial responses when callback registered, partial DOM updates via innerHTML. Auto-refresh behavior improved.
+- **PageNodesPage**: Refactored error handling.
+- **MessagesSidebar**: Time-ago functionality for message timestamps.
+- **InterfacesPage**: Removed bounce and disconnected animation logic and related properties.
+- **Status indication**: Removed redundant status indication from UI.
 
 ### Testing
 
 - **Mesh Server tests**: 66 new tests covering PageNode (setup, teardown, announce, page/file CRUD, responder closures, config persistence, status, link callbacks, path traversal protection, edge cases) and PageNodeManager (create, delete, start/stop, announce, rename, get/list, disk persistence, teardown).
+- **Notification and LXMF**: Extensive tests for notification reliability and LXMF field hardening.
+- **Frontend**: Comprehensive tests for MicronParser and NotificationBell.
+- **Performance**: Updated performance tests and expectations for rendering times.
+
+### Developer / Docs
+
+- **CONTRIBUTING** and **CONTRIBUTORS** added for contribution guidelines and credits.
+- **Makefile** added for common build/run targets.
+- **README** updates.
 
 ## [4.2.1] - 2026-03-06
 
