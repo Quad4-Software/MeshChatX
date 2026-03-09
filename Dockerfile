@@ -3,10 +3,13 @@
 # 2. builder: Install Python dependencies, build and collect backend files in a venv
 # 3. final image: Copy venv, install runtime deps, set up container user and config
 
-# ---- STAGE 1: Frontend Build ----
+# ---- Global Build Args ----
 ARG NODE_IMAGE=node:24-alpine
 ARG NODE_HASH=sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf
+ARG PYTHON_IMAGE=python:3.12.12-alpine3.23
+ARG PYTHON_HASH=sha256:036871e8860c254533e1d4c2842568f19a56d1afbaed99653ee6206bf9491f6e
 
+# ---- STAGE 1: Frontend Build ----
 FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 COPY package.json pnpm-lock.yaml vite.config.js tailwind.config.js postcss.config.js ./
@@ -16,8 +19,6 @@ RUN corepack enable && corepack prepare pnpm@10.30.0 --activate && \
     pnpm run build-frontend
 
 # ---- STAGE 2: Python Builder ----
-ARG PYTHON_IMAGE=python:3.12.12-alpine3.23
-ARG PYTHON_HASH=sha256:036871e8860c254533e1d4c2842568f19a56d1afbaed99653ee6206bf9491f6e
 
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH} AS builder
 WORKDIR /build
