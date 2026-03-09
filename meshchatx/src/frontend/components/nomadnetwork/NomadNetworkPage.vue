@@ -583,8 +583,15 @@ export default {
                     }
 
                     // ignore response if it's for a different page than currently requested/viewed
+                    // but allow responses for partial pages (they have registered callbacks)
                     if (this.nodePagePath && responsePagePath !== this.nodePagePath) {
-                        return;
+                        const callbackKey = this.getNomadnetPageDownloadCallbackKey(
+                            nomadnetPageDownload.destination_hash,
+                            nomadnetPageDownload.page_path
+                        );
+                        if (!this.nomadnetPageDownloadCallbacks[callbackKey]) {
+                            return;
+                        }
                     }
 
                     // handle started status
@@ -996,17 +1003,31 @@ export default {
             const refreshByKey = {};
             const needLoad = new Set();
 
+            const fieldsByKey = {};
             placeholders.forEach((el) => {
                 const id = el.getAttribute("data-partial-id");
                 const dest = el.getAttribute("data-dest");
                 const path = el.getAttribute("data-path");
                 const refreshAttr = el.getAttribute("data-refresh");
                 const refresh = refreshAttr ? parseInt(refreshAttr, 10) : null;
+                const fieldsStr = el.getAttribute("data-fields");
                 const key = dest + ":" + path;
                 if (!idsByKey[key]) idsByKey[key] = [];
                 idsByKey[key].push({ id, refresh });
                 if (refresh != null && refresh > 0) {
                     refreshByKey[key] = Math.min(refreshByKey[key] ?? Infinity, refresh);
+                }
+                if (fieldsStr && !fieldsByKey[key]) {
+                    const fieldData = {};
+                    for (const part of fieldsStr.split("|")) {
+                        const eq = part.indexOf("=");
+                        if (eq > 0) {
+                            let name = part.slice(0, eq);
+                            if (name.startsWith("field_")) name = name.slice(6);
+                            fieldData[name] = part.slice(eq + 1);
+                        }
+                    }
+                    fieldsByKey[key] = fieldData;
                 }
                 if (!this.pagePartials[id]) needLoad.add(key);
             });
@@ -1015,33 +1036,40 @@ export default {
             this.partialRefreshByKey = refreshByKey;
 
             const muParser = new MicronParser();
+            const updatePartialDom = (html, ids) => {
+                const container = this.$el.querySelector(".nodeContainer");
+                if (!container) return;
+                for (const { id } of ids) {
+                    const el = container.querySelector(`[data-partial-id="${id}"]`);
+                    if (el) {
+                        el.innerHTML = html;
+                    }
+                }
+            };
             needLoad.forEach((key) => {
                 const colon = key.indexOf(":");
                 const dest = key.slice(0, colon);
                 const path = colon >= 0 ? key.slice(colon + 1) : "";
+                const fields = fieldsByKey[key] || [];
                 this.downloadNomadNetPage(
                     dest,
                     path,
-                    [],
+                    fields,
                     (pageContent) => {
                         const html = muParser.convertMicronToHtml(pageContent);
                         const ids = this.partialIdsByKey[key];
                         if (ids) {
-                            const next = { ...this.pagePartials };
-                            ids.forEach(({ id }) => (next[id] = html));
-                            this.pagePartials = next;
+                            updatePartialDom(html, ids);
                         }
                         const refreshSec = this.partialRefreshByKey[key];
                         if (refreshSec != null && refreshSec > 0) {
                             const scheduleRefresh = () => {
                                 this.partialRefreshTimers[key] = setTimeout(() => {
-                                    this.downloadNomadNetPage(dest, path, [], (content) => {
+                                    this.downloadNomadNetPage(dest, path, fields, (content) => {
                                         const h = muParser.convertMicronToHtml(content);
                                         const idList = this.partialIdsByKey[key];
                                         if (idList) {
-                                            const next = { ...this.pagePartials };
-                                            idList.forEach(({ id }) => (next[id] = h));
-                                            this.pagePartials = next;
+                                            updatePartialDom(h, idList);
                                         }
                                         scheduleRefresh();
                                     });

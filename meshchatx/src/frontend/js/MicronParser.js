@@ -144,11 +144,14 @@ class MicronParser {
     }
 
     /**
-     * Match partial include line: `{dest32hex:/path.mu}` or `{dest32hex:/path.mu`seconds}`.
+     * Match partial include line:
+     *   `{dest32hex:/path.mu}`
+     *   `{dest32hex:/path.mu`seconds}`
+     *   `{dest32hex:/path.mu`seconds`fields}`
      */
     static get PARTIAL_LINE_REGEX() {
         // eslint-disable-next-line security/detect-unsafe-regex -- fixed pattern, bounded input (single line)
-        return /^`\{([a-f0-9]{32}):([^`}]*)(?:`(\d+))?\}$/;
+        return /^`\{([a-f0-9]{32}):([^`}]*)(?:`(\d+)(?:`([^}]*))?)?\}$/;
     }
 
     convertMicronToHtml(markup, partialContents = {}) {
@@ -286,6 +289,7 @@ class MicronParser {
                     const dest = partialMatch[1];
                     const path = partialMatch[2];
                     const refresh = partialMatch[3] ? parseInt(partialMatch[3], 10) : null;
+                    const fields = partialMatch[4] || null;
                     const id = "partial-" + state.partialIndex++;
                     const div = document.createElement("div");
                     div.className = "mu-partial";
@@ -294,6 +298,9 @@ class MicronParser {
                     div.setAttribute("data-path", path);
                     if (refresh != null && refresh > 0) {
                         div.setAttribute("data-refresh", String(refresh));
+                    }
+                    if (fields) {
+                        div.setAttribute("data-fields", fields);
                     }
                     div.textContent = "Loading...";
                     return [div];
