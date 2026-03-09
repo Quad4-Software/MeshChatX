@@ -561,17 +561,13 @@ describe("MicronParser.js", () => {
             expect(typeof html).toBe("string");
         });
 
-        it(
-            "handles 10K lines of formatted text",
-            () => {
-                const lines = Array.from({ length: 10_000 }, (_, i) => `\`!line ${i}\`!`);
-                const markup = lines.join("\n");
-                const start = Date.now();
-                parser.convertMicronToHtml(markup);
-                expect(Date.now() - start).toBeLessThan(15000);
-            },
-            15000
-        );
+        it("handles 10K lines of formatted text", () => {
+            const lines = Array.from({ length: 10_000 }, (_, i) => `\`!line ${i}\`!`);
+            const markup = lines.join("\n");
+            const start = Date.now();
+            parser.convertMicronToHtml(markup);
+            expect(Date.now() - start).toBeLessThan(15000);
+        }, 15000);
 
         it("handles single line of 50KB", () => {
             const markup = "`!" + "X".repeat(50_000) + "`!";
