@@ -252,6 +252,13 @@
                 <div class="w-3 h-3 rounded-full border-2 border-blue-500/50 bg-blue-500/10"></div>
                 <span class="text-[10px] font-bold text-gray-600 dark:text-zinc-400 uppercase">Multi-Hop</span>
             </div>
+            <div v-if="discoveredInterfaces.length > 0" class="w-px h-3 bg-gray-200 dark:bg-zinc-800 mx-1"></div>
+            <div v-if="discoveredInterfaces.length > 0" class="flex items-center gap-1.5">
+                <div class="w-3 h-3 rounded-full border-2 border-cyan-500/50 bg-cyan-500/10"></div>
+                <span class="text-[10px] font-bold text-gray-600 dark:text-zinc-400 uppercase"
+                    >Discovered ({{ discoveredInterfaces.length }})</span
+                >
+            </div>
         </div>
     </div>
 </template>
@@ -291,6 +298,8 @@ export default {
             totalBatches: 0,
 
             interfaces: [],
+            discoveredInterfaces: [],
+            discoveredActive: [],
             pathTable: [],
             announces: {},
             conversations: {},
@@ -403,6 +412,17 @@ export default {
             } catch (e) {
                 if (window.axios.isCancel(e)) return;
                 console.error("Failed to fetch interface stats", e);
+            }
+        },
+        async getDiscoveredInterfaces() {
+            try {
+                const response = await window.axios.get(`/api/v1/reticulum/discovered-interfaces`, {
+                    signal: this.abortController.signal,
+                });
+                this.discoveredInterfaces = response.data?.interfaces ?? [];
+                this.discoveredActive = response.data?.active ?? [];
+            } catch (e) {
+                if (window.axios.isCancel(e)) return;
             }
         },
         async getPathTableBatch() {
@@ -894,6 +914,12 @@ export default {
                     nodes: {
                         borderWidth: 3,
                         borderWidthSelected: 6,
+                        color: {
+                            border: "#3b82f6",
+                            background: isDarkMode ? "#1e40af" : "#eff6ff",
+                            highlight: { border: "#3b82f6", background: isDarkMode ? "#2563eb" : "#dbeafe" },
+                            hover: { border: "#3b82f6", background: isDarkMode ? "#2563eb" : "#dbeafe" },
+                        },
                         font: {
                             face: "Inter, system-ui, sans-serif",
                             strokeWidth: 4,
@@ -1020,26 +1046,40 @@ export default {
             });
             this.nodes.update(updates);
         },
+        nodeColor(border, background) {
+            return {
+                border,
+                background,
+                highlight: { border, background },
+                hover: { border, background },
+            };
+        },
         getNodeLODProps(node, lod) {
             const isDarkMode = document.documentElement.classList.contains("dark");
             const fontColor = isDarkMode ? "#ffffff" : "#000000";
+            const blueBorder = "#3b82f6";
+            const blueBg = isDarkMode ? "#1e40af" : "#eff6ff";
 
             if (lod === "low") {
+                const isInterface = node.group === "interface";
+                const baseColor = isInterface && node.color
+                    ? node.color
+                    : this.nodeColor(blueBorder, blueBg);
                 return {
                     id: node.id,
                     shape: "dot",
                     size: node.id === "me" ? 15 : 10,
-                    font: { size: 0 }, // hide labels
+                    font: { size: 0 },
+                    color: baseColor,
                 };
             } else if (lod === "medium") {
                 return {
                     id: node.id,
                     shape: node._originalShape || "circularImage",
                     size: node._originalSize || (node.id === "me" ? 50 : 25),
-                    font: { size: 0 }, // hide labels
+                    font: { size: 0 },
                 };
             } else {
-                // high
                 return {
                     id: node.id,
                     shape: node._originalShape || "circularImage",
@@ -1053,7 +1093,7 @@ export default {
             this.currentBatch = 0;
             this.totalBatches = 0;
 
-            await Promise.all([this.getConfig(), this.getInterfaceStats(), this.getConversations()]);
+            await Promise.all([this.getConfig(), this.getInterfaceStats(), this.getConversations(), this.getDiscoveredInterfaces()]);
             if (this.abortController.signal.aborted) return;
 
             this.loadingStatus = "Fetching network data...";
@@ -1093,7 +1133,7 @@ export default {
                     image: this.reticulumLogoPath,
                     label: meLabel,
                     title: `Local Node: ${meLabel}\nIdentity: ${this.config?.identity_hash ?? "Unknown"}`,
-                    color: { border: "#3b82f6", background: isDarkMode ? "#1e40af" : "#eff6ff" },
+                    color: this.nodeColor("#3b82f6", isDarkMode ? "#1e40af" : "#eff6ff"),
                     font: { color: fontColor, size: 16, bold: true },
                     x: 0,
                     y: 0,
@@ -1134,10 +1174,10 @@ export default {
                         image: entry.status
                             ? "/assets/images/network-visualiser/interface_connected.png"
                             : "/assets/images/network-visualiser/interface_disconnected.png",
-                        color: {
-                            border: entry.status ? "#10b981" : "#ef4444",
-                            background: isDarkMode ? "#064e3b" : "#ecfdf5",
-                        },
+                        color: this.nodeColor(
+                            entry.status ? "#10b981" : "#ef4444",
+                            isDarkMode ? "#064e3b" : "#ecfdf5"
+                        ),
                         font: { color: fontColor, size: 12, bold: true },
                         x: initialX,
                         y: initialY,
@@ -1162,6 +1202,67 @@ export default {
             }
             if (interfaceNodes.length > 0) this.nodes.update(interfaceNodes);
             if (interfaceEdges.length > 0) this.edges.update(interfaceEdges);
+
+            const discoveredNodes = [];
+            const discoveredEdges = [];
+            for (const disc of this.discoveredInterfaces) {
+                const discId = `discovered~${disc.discovery_hash || disc.name}`;
+                const discLabel = disc.name || disc.reachable_on || "Unknown";
+                if (!matchesSearch(discLabel) && !matchesSearch(disc.reachable_on) && !matchesSearch(disc.transport_id)) {
+                    continue;
+                }
+
+                const isConnected = this.discoveredActive.some((a) => {
+                    const aHost = a.target_host || a.remote || a.listen_ip;
+                    const aPort = a.target_port || a.listen_port;
+                    return aHost && aPort && disc.reachable_on === aHost && String(disc.port) === String(aPort);
+                });
+
+                const angle = Math.random() * 2 * Math.PI;
+                const dist = 800 + Math.random() * 200;
+                let discNode = {
+                    id: discId,
+                    group: "discovered",
+                    label: discLabel,
+                    title: `Discovered: ${discLabel}\nType: ${disc.type || "Unknown"}\nHops: ${disc.hops ?? "?"}\nStatus: ${isConnected ? "Connected" : disc.status || "Available"}${disc.reachable_on ? `\nAddress: ${disc.reachable_on}:${disc.port}` : ""}`,
+                    size: 25,
+                    _originalSize: 25,
+                    shape: "circularImage",
+                    _originalShape: "circularImage",
+                    image: isConnected
+                        ? "/assets/images/network-visualiser/interface_connected.png"
+                        : "/assets/images/network-visualiser/interface_disconnected.png",
+                    color: this.nodeColor(
+                        isConnected ? "#06b6d4" : "#64748b",
+                        isDarkMode
+                            ? isConnected ? "#164e63" : "#1e293b"
+                            : isConnected ? "#ecfeff" : "#f1f5f9"
+                    ),
+                    font: { color: fontColor, size: 10 },
+                    x: Math.cos(angle) * dist,
+                    y: Math.sin(angle) * dist,
+                };
+                discNode = { ...discNode, ...this.getNodeLODProps(discNode, this.currentLOD) };
+                discoveredNodes.push(discNode);
+                processedNodeIds.add(discId);
+
+                const edgeId = `me~${discId}`;
+                discoveredEdges.push({
+                    id: edgeId,
+                    from: "me",
+                    to: discId,
+                    color: {
+                        color: isDarkMode ? "#155e75" : "#06b6d4",
+                        opacity: 0.4,
+                    },
+                    width: 1,
+                    dashes: true,
+                    hidden: this.enableOrbit,
+                });
+                processedEdgeIds.add(edgeId);
+            }
+            if (discoveredNodes.length > 0) this.nodes.update(discoveredNodes);
+            if (discoveredEdges.length > 0) this.edges.update(discoveredEdges);
 
             await this.$nextTick();
             if (this.abortController.signal.aborted) return;
@@ -1259,17 +1360,12 @@ export default {
                                     ? "/assets/images/network-visualiser/user_1hop.png"
                                     : "/assets/images/network-visualiser/user.png";
                         }
-                        node.color = {
-                            border: entry.hops === 1 ? "#10b981" : "#3b82f6",
-                            background:
-                                entry.hops === 1
-                                    ? isDarkMode
-                                        ? "#064e3b"
-                                        : "#ecfdf5"
-                                    : isDarkMode
-                                      ? "#1e40af"
-                                      : "#eff6ff",
-                        };
+                        node.color = this.nodeColor(
+                            entry.hops === 1 ? "#10b981" : "#3b82f6",
+                            entry.hops === 1
+                                ? isDarkMode ? "#064e3b" : "#ecfdf5"
+                                : isDarkMode ? "#1e40af" : "#eff6ff"
+                        );
                     } else if (announce.aspect === "nomadnetwork.node") {
                         node.shape = "circularImage";
                         node._originalShape = "circularImage";
@@ -1277,17 +1373,12 @@ export default {
                             entry.hops === 1
                                 ? "/assets/images/network-visualiser/server_1hop.png"
                                 : "/assets/images/network-visualiser/server.png";
-                        node.color = {
-                            border: entry.hops === 1 ? "#10b981" : "#8b5cf6",
-                            background:
-                                entry.hops === 1
-                                    ? isDarkMode
-                                        ? "#064e3b"
-                                        : "#ecfdf5"
-                                    : isDarkMode
-                                      ? "#4c1d95"
-                                      : "#f5f3ff",
-                        };
+                        node.color = this.nodeColor(
+                            entry.hops === 1 ? "#10b981" : "#8b5cf6",
+                            entry.hops === 1
+                                ? isDarkMode ? "#064e3b" : "#ecfdf5"
+                                : isDarkMode ? "#4c1d95" : "#f5f3ff"
+                        );
                     }
 
                     node = { ...node, ...this.getNodeLODProps(node, this.currentLOD) };
