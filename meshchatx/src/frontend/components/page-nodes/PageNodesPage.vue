@@ -391,7 +391,7 @@ export default {
                         this.selectedNode = null;
                     }
                 }
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to load nodes", false);
             } finally {
                 this.loading = false;
@@ -423,7 +423,7 @@ export default {
                 }
                 this.showStatus("Server deleted", true);
                 await this.loadNodes();
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to delete server", false);
             }
         },
@@ -441,7 +441,7 @@ export default {
                 await window.axios.post(`/api/v1/page-nodes/${nodeId}/stop`);
                 this.showStatus("Server stopped", true);
                 await this.loadNodes();
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to stop server", false);
             }
         },
@@ -449,7 +449,7 @@ export default {
             try {
                 await window.axios.post(`/api/v1/page-nodes/${nodeId}/announce`);
                 this.showStatus("Announced on mesh", true);
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to announce", false);
             }
         },
@@ -463,7 +463,7 @@ export default {
                 this.showRenameDialog = false;
                 this.showStatus("Server renamed", true);
                 await this.loadNodes();
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to rename server", false);
             }
         },
@@ -477,7 +477,7 @@ export default {
                 this.newPageName = "";
                 this.showStatus("Page created", true);
                 await this.loadNodes();
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to create page", false);
             }
         },
@@ -488,7 +488,7 @@ export default {
                 );
                 this.editingPage = pageName;
                 this.editingPageContent = response.data.content;
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to load page", false);
             }
         },
@@ -503,7 +503,7 @@ export default {
                 this.editingPageContent = "";
                 this.showStatus("Page saved", true);
                 await this.loadNodes();
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to save page", false);
             }
         },
@@ -518,7 +518,7 @@ export default {
                 }
                 this.showStatus("Page deleted", true);
                 await this.loadNodes();
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to delete page", false);
             }
         },
@@ -533,7 +533,7 @@ export default {
                 });
                 this.showStatus("File uploaded", true);
                 await this.loadNodes();
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to upload file", false);
             }
             event.target.value = "";
@@ -546,7 +546,7 @@ export default {
                 );
                 this.showStatus("File deleted", true);
                 await this.loadNodes();
-            } catch (_) {
+            } catch {
                 this.showStatus("Failed to delete file", false);
             }
         },
