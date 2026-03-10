@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.3.1] - 2026-03-10
+
+### Fixes
+
+- **Message retry**: Added per-message retry button to the context menu and inline on failed/cancelled outbound messages, allowing individual message resend without bulk retry.
+- **Sender display name**: Fixed outgoing messages showing "Unknown Peer" by resolving display names from conversations and announces when composing to a new peer.
+- **Conversation refresh on send**: Added `lxmf_message_created` and `lxmf_message_state_updated` websocket handlers to `MessagesPage` so the sidebar updates after sending without requiring an incoming message to trigger a refresh.
+- **No-flash sidebar updates**: Outbound message state transitions (outbound, sending, sent, delivered) now update the sidebar in-place without API calls. New messages trigger a background merge that patches existing conversation objects rather than replacing the array, preventing full sidebar re-renders.
+- **Received message outbound flag**: Incoming messages now explicitly set `is_outbound: false` instead of relying on an undefined default.
+
+### Testing
+
+- **Frontend**: New tests for message retry context menu visibility, retry click behavior, `is_outbound` on received messages, in-place conversation updates on send, display name merge from API, failed message count tracking, and zero API calls during state transitions.
+- **Backend**: New tests for `MessageHandler` covering `failed_count` in conversations, `filter_failed` query, `search_messages`, and `after_id`/`before_id` pagination.
+
 ## [4.3.0] - 2026-03-09
 
 ### New Features
