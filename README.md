@@ -222,10 +222,10 @@ MeshChatX supports both CLI args and env vars.
 
 ## Branches
 
-| Branch   | Purpose                                                        |
-| -------- | -------------------------------------------------------------- |
-| `master` | Stable releases. Production-ready code only.                   |
-| `dev`    | Active development. May contain breaking or incomplete changes.|
+| Branch   | Purpose                                                         |
+| -------- | --------------------------------------------------------------- |
+| `master` | Stable releases. Production-ready code only.                    |
+| `dev`    | Active development. May contain breaking or incomplete changes. |
 
 ## Development
 
@@ -240,14 +240,14 @@ task build:all
 
 `Makefile` shortcuts are also available:
 
-| Command      | Description                              |
-| ------------ | ---------------------------------------- |
-| `make install` | Install pnpm and poetry dependencies   |
-| `make run`     | Run MeshChatX via poetry               |
-| `make build`   | Build frontend                         |
-| `make lint`    | Run eslint and ruff                    |
-| `make test`    | Run frontend and backend tests         |
-| `make clean`   | Remove build artifacts and node_modules|
+| Command        | Description                             |
+| -------------- | --------------------------------------- |
+| `make install` | Install pnpm and poetry dependencies    |
+| `make run`     | Run MeshChatX via poetry                |
+| `make build`   | Build frontend                          |
+| `make lint`    | Run eslint and ruff                     |
+| `make test`    | Run frontend and backend tests          |
+| `make clean`   | Remove build artifacts and node_modules |
 
 ## Versioning
 

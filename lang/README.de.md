@@ -203,10 +203,10 @@ pnpm run dist:rpm
 
 ## Branches
 
-| Branch   | Zweck                                                                       |
-| -------- | --------------------------------------------------------------------------- |
-| `master` | Stabile Releases. Nur produktionsreifer Code.                               |
-| `dev`    | Aktive Entwicklung. Kann instabile oder unvollstaendige Aenderungen enthalten.|
+| Branch   | Zweck                                                                          |
+| -------- | ------------------------------------------------------------------------------ |
+| `master` | Stabile Releases. Nur produktionsreifer Code.                                  |
+| `dev`    | Aktive Entwicklung. Kann instabile oder unvollstaendige Aenderungen enthalten. |
 
 ## Entwicklung
 

@@ -203,10 +203,10 @@ pnpm run dist:rpm
 
 ## Branch
 
-| Branch   | Scopo                                                                     |
-| -------- | ------------------------------------------------------------------------- |
-| `master` | Release stabili. Solo codice pronto per la produzione.                    |
-| `dev`    | Sviluppo attivo. Potrebbe contenere modifiche instabili o incomplete.     |
+| Branch   | Scopo                                                                 |
+| -------- | --------------------------------------------------------------------- |
+| `master` | Release stabili. Solo codice pronto per la produzione.                |
+| `dev`    | Sviluppo attivo. Potrebbe contenere modifiche instabili o incomplete. |
 
 ## Sviluppo
 
