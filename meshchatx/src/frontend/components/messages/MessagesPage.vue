@@ -262,8 +262,10 @@ export default {
                 return;
             }
 
+            const existingConversation = this.conversations.find((c) => c.destination_hash === destinationHash);
             this.onPeerClick({
-                display_name: "Unknown Peer",
+                display_name: existingConversation?.display_name ?? "Anonymous Peer",
+                custom_display_name: existingConversation?.custom_display_name ?? null,
                 destination_hash: destinationHash,
             });
         },
@@ -291,8 +293,15 @@ export default {
                     break;
                 }
                 case "lxmf.delivery": {
-                    // reload conversations when a new message is received
                     await this.getConversations();
+                    break;
+                }
+                case "lxmf_message_created": {
+                    this.onOutboundMessageCreated(json.lxmf_message);
+                    break;
+                }
+                case "lxmf_message_state_updated": {
+                    this.onOutboundMessageStateUpdated(json.lxmf_message);
                     break;
                 }
                 case "lxmf.telemetry": {
@@ -420,6 +429,87 @@ export default {
             } finally {
                 this.isLoadingConversations = false;
                 this.isLoadingMore = false;
+            }
+        },
+        peerHashFromMessage(msg) {
+            return msg.is_incoming ? msg.source_hash : msg.destination_hash;
+        },
+        onOutboundMessageCreated(msg) {
+            const peerHash = this.peerHashFromMessage(msg);
+            const idx = this.conversations.findIndex((c) => c.destination_hash === peerHash);
+            if (idx !== -1) {
+                const conv = this.conversations[idx];
+                conv.latest_message_preview = msg.content;
+                conv.latest_message_title = msg.title;
+                conv.latest_message_created_at = msg.timestamp;
+                conv.updated_at = new Date(msg.timestamp * 1000).toISOString();
+            } else {
+                const peer = this.peers[peerHash];
+                this.conversations.unshift({
+                    destination_hash: peerHash,
+                    display_name: peer?.display_name ?? this.selectedPeer?.display_name ?? "Anonymous Peer",
+                    custom_display_name: peer?.custom_display_name ?? this.selectedPeer?.custom_display_name ?? null,
+                    contact_image: peer?.contact_image ?? null,
+                    lxmf_user_icon: peer?.lxmf_user_icon ?? null,
+                    is_unread: false,
+                    is_tracking: peer?.is_tracking ?? false,
+                    failed_messages_count: 0,
+                    has_attachments: false,
+                    latest_message_preview: msg.content,
+                    latest_message_title: msg.title,
+                    latest_message_created_at: msg.timestamp,
+                    updated_at: new Date(msg.timestamp * 1000).toISOString(),
+                    is_contact: false,
+                });
+                this.resolvePeerDisplayName(peerHash);
+            }
+        },
+        onOutboundMessageStateUpdated(msg) {
+            const peerHash = this.peerHashFromMessage(msg);
+            const conv = this.conversations.find((c) => c.destination_hash === peerHash);
+            if (!conv) return;
+
+            const oldState = conv._lastKnownState;
+            const newState = msg.state;
+            conv._lastKnownState = newState;
+
+            if (newState === "failed" && oldState !== "failed") {
+                conv.failed_messages_count = (conv.failed_messages_count || 0) + 1;
+            } else if (oldState === "failed" && newState !== "failed") {
+                conv.failed_messages_count = Math.max(0, (conv.failed_messages_count || 1) - 1);
+            }
+        },
+        async resolvePeerDisplayName(peerHash) {
+            try {
+                const response = await window.axios.get(`/api/v1/lxmf/conversations`, {
+                    params: { search: peerHash, limit: 1 },
+                });
+                const results = response.data.conversations;
+                if (!results || results.length === 0) return;
+
+                const fresh = results[0];
+                if (fresh.destination_hash !== peerHash) return;
+
+                const conv = this.conversations.find((c) => c.destination_hash === peerHash);
+                if (conv) {
+                    if (fresh.display_name) conv.display_name = fresh.display_name;
+                    if (fresh.custom_display_name) conv.custom_display_name = fresh.custom_display_name;
+                    if (fresh.contact_image) conv.contact_image = fresh.contact_image;
+                    if (fresh.lxmf_user_icon) conv.lxmf_user_icon = fresh.lxmf_user_icon;
+                    if (fresh.is_contact) conv.is_contact = fresh.is_contact;
+                }
+
+                if (this.selectedPeer && this.selectedPeer.destination_hash === peerHash) {
+                    if (fresh.display_name && fresh.display_name !== this.selectedPeer.display_name) {
+                        this.selectedPeer = {
+                            ...this.selectedPeer,
+                            display_name: fresh.display_name,
+                            custom_display_name: fresh.custom_display_name ?? this.selectedPeer.custom_display_name,
+                        };
+                    }
+                }
+            } catch {
+                // non-critical
             }
         },
         async getFolders() {

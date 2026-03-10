@@ -838,6 +838,15 @@
                                     >
                                         {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
                                     </span>
+                                    <button
+                                        v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
+                                        type="button"
+                                        class="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                        title="Retry sending"
+                                        @click.stop="retrySendingMessage(chatItem)"
+                                    >
+                                        <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
+                                    </button>
 
                                     <!-- delivered: double check -->
                                     <MaterialDesignIcon
@@ -1213,6 +1222,21 @@
             >
                 <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
                 <span class="font-medium">View Raw LXM</span>
+            </button>
+            <button
+                v-if="
+                    messageContextMenu.chatItem?.is_outbound &&
+                    ['failed', 'cancelled'].includes(messageContextMenu.chatItem?.lxmf_message?.state)
+                "
+                type="button"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all active:scale-95"
+                @click="
+                    retrySendingMessage(messageContextMenu.chatItem);
+                    messageContextMenu.show = false;
+                "
+            >
+                <MaterialDesignIcon icon-name="refresh" class="size-4" />
+                <span class="font-medium">Retry</span>
             </button>
             <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
             <button
@@ -2613,52 +2637,54 @@ export default {
             }
             GlobalEmitter.emit("compose-new-message", destinationHash);
         },
+        normalizeLxmfMessage(msg, isOutbound) {
+            const normalized = { ...msg };
+            if (!normalized.created_at && normalized.timestamp) {
+                normalized.created_at = new Date(normalized.timestamp * 1000).toISOString();
+            }
+            if (isOutbound && normalized.state === "unknown") {
+                normalized.state = "outbound";
+            }
+            return normalized;
+        },
         onLxmfMessageReceived(lxmfMessage) {
-            // only add if it's for the current conversation
             if (lxmfMessage.source_hash !== this.selectedPeer?.destination_hash) {
                 return;
             }
 
-            // add inbound message to ui
             this.chatItems.push({
                 type: "lxmf_message",
-                lxmf_message: lxmfMessage,
+                is_outbound: false,
+                lxmf_message: this.normalizeLxmfMessage(lxmfMessage, false),
             });
 
-            // mark conversation as read
             const conversation = this.findConversation(this.selectedPeer.destination_hash);
             if (conversation) {
                 this.markConversationAsRead(conversation);
             }
 
-            // auto scroll to bottom if we want to
             if (this.autoScrollOnNewMessage) {
                 this.scrollMessagesToBottom();
             }
 
-            // auto load audio
             this.autoLoadAudioAttachments();
         },
         onLxmfMessageCreated(lxmfMessage) {
-            // only add if it's for the current conversation
             if (lxmfMessage.destination_hash !== this.selectedPeer?.destination_hash) {
                 return;
             }
 
-            // add new outbound lxmf message from server
             if (!this.isLxmfMessageInUi(lxmfMessage.hash)) {
                 this.chatItems.push({
                     type: "lxmf_message",
-                    lxmf_message: lxmfMessage,
+                    lxmf_message: this.normalizeLxmfMessage(lxmfMessage, true),
                     is_outbound: true,
                 });
             }
 
-            // auto load audio
             this.autoLoadAudioAttachments();
         },
         onLxmfMessageUpdated(lxmfMessage) {
-            // find existing chat item by lxmf message hash
             const lxmfMessageHash = lxmfMessage.hash;
             const chatItemIndex = this.chatItems.findIndex(
                 (chatItem) => chatItem.lxmf_message?.hash === lxmfMessageHash
@@ -2667,8 +2693,6 @@ export default {
                 return;
             }
 
-            // update lxmf message from server, while ensuring ui updates from nested object change
-            // we merge to preserve client-side only fields or database fields not present in state updates
             this.chatItems[chatItemIndex].lxmf_message = {
                 ...this.chatItems[chatItemIndex].lxmf_message,
                 ...lxmfMessage,
@@ -3271,16 +3295,14 @@ export default {
                         },
                     });
 
-                    // add outbound message to ui
                     if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
                         this.chatItems.push({
                             type: "lxmf_message",
-                            lxmf_message: response.data.lxmf_message,
+                            lxmf_message: this.normalizeLxmfMessage(response.data.lxmf_message, true),
                             is_outbound: true,
                         });
                     }
                 } else {
-                    // send first image with message text and other fields
                     const firstImage = images[0];
                     const firstFields = {
                         ...fields,
@@ -3300,16 +3322,14 @@ export default {
                         },
                     });
 
-                    // add outbound message to ui
                     if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
                         this.chatItems.push({
                             type: "lxmf_message",
-                            lxmf_message: response.data.lxmf_message,
+                            lxmf_message: this.normalizeLxmfMessage(response.data.lxmf_message, true),
                             is_outbound: true,
                         });
                     }
 
-                    // send subsequent images as separate messages with image name as content
                     for (let i = 1; i < images.length; i++) {
                         const image = images[i];
                         const subsequentFields = {
@@ -3326,17 +3346,15 @@ export default {
                                 },
                             });
 
-                            // add outbound message to ui
                             if (!this.isLxmfMessageInUi(subResponse.data.lxmf_message.hash)) {
                                 this.chatItems.push({
                                     type: "lxmf_message",
-                                    lxmf_message: subResponse.data.lxmf_message,
+                                    lxmf_message: this.normalizeLxmfMessage(subResponse.data.lxmf_message, true),
                                     is_outbound: true,
                                 });
                             }
                         } catch (subError) {
                             console.error(`Failed to send image ${i + 1}:`, subError);
-                            // we continue sending other images even if one fails
                         }
                     }
                 }
@@ -3390,11 +3408,9 @@ export default {
             }
         },
         async retrySendingMessage(chatItem) {
-            // force delete existing message
             await this.deleteChatItem(chatItem, false);
 
             try {
-                // send message to reticulum
                 const replyQuoted =
                     chatItem.lxmf_message.fields?.reply_quoted_content ||
                     (chatItem.lxmf_message.reply_to_hash &&
@@ -3409,19 +3425,16 @@ export default {
                     },
                 });
 
-                // add outbound message to ui
                 if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
                     this.chatItems.push({
                         type: "lxmf_message",
-                        lxmf_message: response.data.lxmf_message,
+                        lxmf_message: this.normalizeLxmfMessage(response.data.lxmf_message, true),
                         is_outbound: true,
                     });
                 }
 
-                // always scroll to bottom since we just sent a message
                 this.scrollMessagesToBottom();
             } catch (e) {
-                // show error
                 const message = e.response?.data?.message ?? "failed to send message";
                 DialogUtils.alert(message);
                 console.log(e);
