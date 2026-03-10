@@ -109,4 +109,208 @@ describe("MessagesPage.vue", () => {
 
         expect(composeSpy).toHaveBeenCalledWith("f".repeat(32));
     });
+
+    it("updates existing conversation in-place without API call on lxmf_message_created", async () => {
+        const destHash = "a".repeat(32);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.conversations = [
+            {
+                destination_hash: destHash,
+                display_name: "Test Peer",
+                latest_message_preview: "old msg",
+                updated_at: "2025-01-01T00:00:00Z",
+            },
+        ];
+
+        axiosMock.get.mockClear();
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "lxmf_message_created",
+                lxmf_message: {
+                    hash: "abc",
+                    source_hash: "my-hash",
+                    destination_hash: destHash,
+                    is_incoming: false,
+                    content: "new msg",
+                    title: "",
+                    timestamp: 1700000000,
+                },
+            }),
+        });
+
+        expect(wrapper.vm.conversations[0].latest_message_preview).toBe("new msg");
+        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
+        expect(convCalls).toHaveLength(0);
+    });
+
+    it("resolves display name for new conversation only", async () => {
+        const destHash = "d".repeat(32);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.conversations = [];
+        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Anonymous Peer" };
+
+        axiosMock.get.mockClear();
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/lxmf/conversations")
+                return Promise.resolve({
+                    data: {
+                        conversations: [
+                            {
+                                destination_hash: destHash,
+                                display_name: "Resolved Name",
+                                custom_display_name: null,
+                            },
+                        ],
+                    },
+                });
+            return Promise.resolve({ data: {} });
+        });
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "lxmf_message_created",
+                lxmf_message: {
+                    hash: "new1",
+                    source_hash: "my-hash",
+                    destination_hash: destHash,
+                    is_incoming: false,
+                    content: "hello",
+                    title: "",
+                    timestamp: 1700000000,
+                },
+            }),
+        });
+
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.conversations[0].display_name).toBe("Resolved Name");
+        expect(wrapper.vm.selectedPeer.display_name).toBe("Resolved Name");
+
+        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
+        expect(convCalls).toHaveLength(1);
+        expect(convCalls[0][1].params.search).toBe(destHash);
+        expect(convCalls[0][1].params.limit).toBe(1);
+    });
+
+    it("updates failed_messages_count on state transition to failed", async () => {
+        const destHash = "e".repeat(32);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.conversations = [{ destination_hash: destHash, failed_messages_count: 0 }];
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "lxmf_message_state_updated",
+                lxmf_message: {
+                    hash: "f1",
+                    source_hash: "my-hash",
+                    destination_hash: destHash,
+                    is_incoming: false,
+                    state: "failed",
+                },
+            }),
+        });
+
+        expect(wrapper.vm.conversations[0].failed_messages_count).toBe(1);
+    });
+
+    it("does not trigger API call on state updates", async () => {
+        const destHash = "f".repeat(32);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.conversations = [{ destination_hash: destHash, failed_messages_count: 0 }];
+
+        axiosMock.get.mockClear();
+
+        for (const state of ["outbound", "sending", "sent", "delivered"]) {
+            await wrapper.vm.onWebsocketMessage({
+                data: JSON.stringify({
+                    type: "lxmf_message_state_updated",
+                    lxmf_message: {
+                        hash: "s1",
+                        source_hash: "my-hash",
+                        destination_hash: destHash,
+                        is_incoming: false,
+                        state,
+                    },
+                }),
+            });
+        }
+
+        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
+        expect(convCalls).toHaveLength(0);
+    });
+
+    it("mutates existing conversation object without replacing array entry", async () => {
+        const destHash = "a".repeat(32);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.conversations = [
+            {
+                destination_hash: destHash,
+                display_name: "Peer",
+                latest_message_preview: "old",
+                updated_at: "2025-01-01T00:00:00Z",
+            },
+        ];
+
+        const lengthBefore = wrapper.vm.conversations.length;
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "lxmf_message_created",
+                lxmf_message: {
+                    hash: "abc",
+                    source_hash: "my-hash",
+                    destination_hash: destHash,
+                    is_incoming: false,
+                    content: "new",
+                    title: "",
+                    timestamp: 1700000000,
+                },
+            }),
+        });
+
+        expect(wrapper.vm.conversations.length).toBe(lengthBefore);
+        expect(wrapper.vm.conversations[0].latest_message_preview).toBe("new");
+        expect(wrapper.vm.conversations[0].display_name).toBe("Peer");
+    });
+
+    it("uses conversation display name instead of Unknown Peer when composing", async () => {
+        const destHash = "c".repeat(32);
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/lxmf/conversations")
+                return Promise.resolve({
+                    data: {
+                        conversations: [
+                            {
+                                destination_hash: destHash,
+                                display_name: "Existing Peer",
+                                custom_display_name: null,
+                            },
+                        ],
+                    },
+                });
+            if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        wrapper.vm.conversations = [
+            { destination_hash: destHash, display_name: "Existing Peer", custom_display_name: null },
+        ];
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.onComposeNewMessage(destHash);
+        expect(wrapper.vm.selectedPeer.display_name).toBe("Existing Peer");
+    });
 });

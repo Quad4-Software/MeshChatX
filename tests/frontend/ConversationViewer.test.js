@@ -184,6 +184,187 @@ describe("ConversationViewer.vue", () => {
         );
     });
 
+    it("shows retry button in context menu for failed outbound messages", async () => {
+        const wrapper = mountConversationViewer();
+        const failedChatItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "failed-hash",
+                state: "failed",
+                content: "failed message",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+            },
+        };
+        wrapper.vm.chatItems = [failedChatItem];
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.messageContextMenu.chatItem = failedChatItem;
+        wrapper.vm.messageContextMenu.show = true;
+        await wrapper.vm.$nextTick();
+
+        const menuHtml = wrapper.html();
+        expect(menuHtml).toContain("Retry");
+    });
+
+    it("does not show retry in context menu for delivered messages", async () => {
+        const wrapper = mountConversationViewer();
+        const deliveredItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "delivered-hash",
+                state: "delivered",
+                content: "delivered message",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+            },
+        };
+        wrapper.vm.chatItems = [deliveredItem];
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.messageContextMenu.chatItem = deliveredItem;
+        wrapper.vm.messageContextMenu.show = true;
+        await wrapper.vm.$nextTick();
+
+        const retryButtons = wrapper.findAll("button").filter((b) => b.text().includes("Retry"));
+        expect(retryButtons).toHaveLength(0);
+    });
+
+    it("calls retrySendingMessage when retry context menu clicked", async () => {
+        const wrapper = mountConversationViewer();
+        const failedChatItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "retry-hash",
+                state: "failed",
+                content: "retry me",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+                reply_to_hash: null,
+            },
+        };
+
+        axiosMock.post.mockResolvedValue({
+            data: { lxmf_message: { hash: "new-hash", state: "outbound" } },
+        });
+
+        const retrySpy = vi.spyOn(wrapper.vm, "retrySendingMessage").mockResolvedValue(undefined);
+
+        wrapper.vm.messageContextMenu.chatItem = failedChatItem;
+        wrapper.vm.messageContextMenu.show = true;
+        await wrapper.vm.$nextTick();
+
+        const retryButton = wrapper.findAll("button").find((b) => b.text().includes("Retry"));
+        expect(retryButton).toBeDefined();
+        await retryButton.trigger("click");
+
+        expect(retrySpy).toHaveBeenCalledWith(failedChatItem);
+    });
+
+    it("marks received messages as not outbound", async () => {
+        const wrapper = mountConversationViewer();
+
+        const incomingMessage = {
+            hash: "incoming-hash",
+            source_hash: "test-hash",
+            destination_hash: "my-hash",
+            content: "hello",
+            state: "delivered",
+            fields: {},
+        };
+
+        wrapper.vm.onLxmfMessageReceived(incomingMessage);
+
+        const addedItem = wrapper.vm.chatItems.find((i) => i.lxmf_message?.hash === "incoming-hash");
+        expect(addedItem).toBeDefined();
+        expect(addedItem.is_outbound).toBe(false);
+    });
+
+    it("generates created_at from timestamp when missing", async () => {
+        const wrapper = mountConversationViewer();
+
+        const liveMsg = {
+            hash: "live-hash",
+            source_hash: "test-hash",
+            destination_hash: "my-hash",
+            content: "hello",
+            state: "delivered",
+            timestamp: 1700000000,
+            fields: {},
+        };
+
+        wrapper.vm.onLxmfMessageReceived(liveMsg);
+
+        const addedItem = wrapper.vm.chatItems.find((i) => i.lxmf_message?.hash === "live-hash");
+        expect(addedItem.lxmf_message.created_at).toBe(new Date(1700000000 * 1000).toISOString());
+    });
+
+    it("converts unknown state to outbound for outgoing messages", async () => {
+        const wrapper = mountConversationViewer();
+
+        const outMsg = {
+            hash: "out-hash",
+            source_hash: "my-hash",
+            destination_hash: "test-hash",
+            content: "hello",
+            state: "unknown",
+            timestamp: 1700000000,
+            fields: {},
+        };
+
+        wrapper.vm.onLxmfMessageCreated(outMsg);
+
+        const addedItem = wrapper.vm.chatItems.find((i) => i.lxmf_message?.hash === "out-hash");
+        expect(addedItem).toBeDefined();
+        expect(addedItem.lxmf_message.state).toBe("outbound");
+        expect(addedItem.is_outbound).toBe(true);
+    });
+
+    it("preserves unknown state for incoming messages", async () => {
+        const wrapper = mountConversationViewer();
+
+        const inMsg = {
+            hash: "in-unknown-hash",
+            source_hash: "test-hash",
+            destination_hash: "my-hash",
+            content: "hello",
+            state: "unknown",
+            timestamp: 1700000000,
+            fields: {},
+        };
+
+        wrapper.vm.onLxmfMessageReceived(inMsg);
+
+        const addedItem = wrapper.vm.chatItems.find((i) => i.lxmf_message?.hash === "in-unknown-hash");
+        expect(addedItem.lxmf_message.state).toBe("unknown");
+    });
+
+    it("does not overwrite existing created_at", async () => {
+        const wrapper = mountConversationViewer();
+
+        const dbMsg = {
+            hash: "db-hash",
+            source_hash: "test-hash",
+            destination_hash: "my-hash",
+            content: "hello",
+            state: "delivered",
+            timestamp: 1700000000,
+            created_at: "2023-11-14T22:13:20.000Z",
+            fields: {},
+        };
+
+        wrapper.vm.onLxmfMessageReceived(dbMsg);
+
+        const addedItem = wrapper.vm.chatItems.find((i) => i.lxmf_message?.hash === "db-hash");
+        expect(addedItem.lxmf_message.created_at).toBe("2023-11-14T22:13:20.000Z");
+    });
+
     it("sets reply state and includes reply_to_hash in sendMessage", async () => {
         const wrapper = mountConversationViewer();
         const chatItem = {

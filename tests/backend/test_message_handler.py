@@ -31,6 +31,71 @@ class TestMessageHandler(unittest.TestCase):
         self.assertIn("DELETE FROM lxmf_conversation_folders", second_call_args[0])
         self.assertIn("dest", second_call_args[1])
 
+    def test_get_conversations_includes_failed_count(self):
+        self.db.provider.fetchall.return_value = [
+            {
+                "id": 1,
+                "hash": "h1",
+                "source_hash": "src",
+                "destination_hash": "dst",
+                "peer_hash": "peer1",
+                "state": "failed",
+                "progress": 0,
+                "is_incoming": 0,
+                "title": "",
+                "content": "failed msg",
+                "fields": "{}",
+                "timestamp": 1234567890,
+                "is_spam": 0,
+                "reply_to_hash": None,
+                "created_at": "2023-01-01",
+                "updated_at": "2023-01-01",
+                "peer_app_data": None,
+                "custom_display_name": None,
+                "contact_image": None,
+                "icon_name": None,
+                "foreground_colour": None,
+                "background_colour": None,
+                "last_read_at": None,
+                "folder_id": None,
+                "folder_name": None,
+                "failed_count": 3,
+                "is_contact": 0,
+            }
+        ]
+        result = self.handler.get_conversations("local")
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["failed_count"], 3)
+
+    def test_get_conversations_with_filter_failed(self):
+        self.db.provider.fetchall.return_value = []
+        self.handler.get_conversations("local", filter_failed=True)
+        args, _ = self.db.provider.fetchall.call_args
+        self.assertIn("state = 'failed'", args[0])
+
+    def test_search_messages(self):
+        self.db.provider.fetchall.return_value = [
+            {"peer_hash": "peer1", "max_ts": 1234567890}
+        ]
+        result = self.handler.search_messages("local", "test")
+        self.assertEqual(len(result), 1)
+        args, _ = self.db.provider.fetchall.call_args
+        self.assertIn("LIKE", args[0])
+
+    def test_get_conversation_messages_with_after_id(self):
+        self.db.provider.fetchall.return_value = []
+        self.handler.get_conversation_messages("local", "dest", after_id=5)
+        args, _ = self.db.provider.fetchall.call_args
+        self.assertIn("id > ?", args[0])
+        self.assertIn(5, args[1])
+
+    def test_get_conversation_messages_with_before_id(self):
+        self.db.provider.fetchall.return_value = []
+        self.handler.get_conversation_messages("local", "dest", before_id=10)
+        args, _ = self.db.provider.fetchall.call_args
+        self.assertIn("id < ?", args[0])
+        self.assertIn(10, args[1])
+
 
 if __name__ == "__main__":
     unittest.main()
