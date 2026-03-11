@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.3.2] - 2026-03-11
+
+### Improvements
+
+- **MicronParser truecolor**: Added `FT` and `BT` tags for 6-digit hex foreground/background colors, enabling 16.7M colors instead of 4,096. Backwards compatible with existing 3-digit `F`/`B` format. https://github.com/RFnexus/micron-parser-js/pull/20
+
+### Testing
+
+- **MicronParser**: Tests for `FT`/`BT` truecolor and 3-digit `F`/`B` formats, including precedence when both could match.
+
 ## [4.3.1] - 2026-03-10
 
 ### Fixes
