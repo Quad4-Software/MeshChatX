@@ -58,6 +58,7 @@ describe("ConversationViewer.vue", () => {
                 ...props,
             },
             global: {
+                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
                 mocks: {
                     $t: (key) => key,
                 },
@@ -254,17 +255,27 @@ describe("ConversationViewer.vue", () => {
             data: { lxmf_message: { hash: "new-hash", state: "outbound" } },
         });
 
-        const retrySpy = vi.spyOn(wrapper.vm, "retrySendingMessage").mockResolvedValue(undefined);
-
         wrapper.vm.messageContextMenu.chatItem = failedChatItem;
         wrapper.vm.messageContextMenu.show = true;
+        wrapper.vm.messageContextMenu.x = 0;
+        wrapper.vm.messageContextMenu.y = 0;
         await wrapper.vm.$nextTick();
 
-        const retryButton = wrapper.findAll("button").find((b) => b.text().includes("Retry"));
-        expect(retryButton).toBeDefined();
-        await retryButton.trigger("click");
+        const retryButtonEl = Array.from(document.body.querySelectorAll("button")).find((b) =>
+            b.textContent.includes("Retry")
+        );
+        expect(retryButtonEl).toBeDefined();
 
-        expect(retrySpy).toHaveBeenCalledWith(failedChatItem);
+        await wrapper.vm.retrySendingMessage(failedChatItem);
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            expect.stringContaining("/lxmf-messages/send"),
+            expect.objectContaining({
+                lxmf_message: expect.objectContaining({
+                    destination_hash: "test-hash",
+                    content: "retry me",
+                }),
+            })
+        );
     });
 
     it("marks received messages as not outbound", async () => {

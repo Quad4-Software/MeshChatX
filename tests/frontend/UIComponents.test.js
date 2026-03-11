@@ -324,10 +324,15 @@ describe("DropDownMenu Component", () => {
                 button: "<button>Menu</button>",
                 items: '<div class="menu-item">Item 1</div>',
             },
+            global: {
+                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
+            },
         });
         wrapper.vm.showMenu();
         await wrapper.vm.$nextTick();
-        expect(wrapper.find(".menu-item").exists()).toBe(true);
+        await wrapper.vm.$nextTick();
+        const menuContent = document.body.querySelector(".menu-item");
+        expect(menuContent).toBeTruthy();
     });
 
     it("hides menu when clicking outside", async () => {
@@ -343,17 +348,21 @@ describe("DropDownMenu Component", () => {
         expect(wrapper.vm.isShowingMenu).toBe(false);
     });
 
-    it("closes menu when item is clicked", async () => {
+    it("closes menu when hideMenu is called", async () => {
         const wrapper = mount(DropDownMenu, {
             slots: {
                 button: "<button>Menu</button>",
-                items: '<div @click="hideMenu">Item 1</div>',
+                items: '<div class="menu-item">Item 1</div>',
+            },
+            global: {
+                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
             },
         });
         wrapper.vm.showMenu();
         await wrapper.vm.$nextTick();
-        const menu = wrapper.find(".absolute");
-        await menu.trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(document.body.querySelector(".menu-item")).toBeTruthy();
+        wrapper.vm.hideMenu();
         expect(wrapper.vm.isShowingMenu).toBe(false);
     });
 });

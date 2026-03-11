@@ -42,12 +42,15 @@ describe("ConversationViewer.vue button interactions", () => {
             removeItem: vi.fn(),
         });
         window.URL.createObjectURL = vi.fn(() => "mock-url");
-        vi.stubGlobal("FileReader", vi.fn(() => ({
-            readAsDataURL: vi.fn(function () {
-                this.result = "data:image/png;base64,mock";
-                this.onload?.({ target: { result: this.result } });
-            }),
-        })));
+        vi.stubGlobal(
+            "FileReader",
+            vi.fn(() => ({
+                readAsDataURL: vi.fn(function () {
+                    this.result = "data:image/png;base64,mock";
+                    this.onload?.({ target: { result: this.result } });
+                }),
+            }))
+        );
     });
 
     afterEach(() => {
@@ -194,7 +197,9 @@ describe("ConversationViewer.vue button interactions", () => {
         const menuEl = Array.from(document.body.querySelectorAll(".fixed")).find(
             (el) => el.textContent?.includes("Reply") && el.textContent?.includes("Delete")
         );
-        const deleteBtn = menuEl ? Array.from(menuEl.querySelectorAll("button")).find((b) => b.textContent.includes("Delete")) : null;
+        const deleteBtn = menuEl
+            ? Array.from(menuEl.querySelectorAll("button")).find((b) => b.textContent.includes("Delete"))
+            : null;
         expect(deleteBtn).toBeTruthy();
 
         deleteBtn?.click();

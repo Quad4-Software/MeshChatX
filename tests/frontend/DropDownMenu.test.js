@@ -25,8 +25,12 @@ describe("DropDownMenu UI", () => {
         const wrapper = mountDropDown();
         expect(wrapper.vm.isShowingMenu).toBe(false);
         await wrapper.find("button").trigger("click");
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
         expect(wrapper.vm.isShowingMenu).toBe(true);
-        expect(wrapper.text()).toContain("Item 1");
+        const menuContent = document.body.querySelector(".menu-item");
+        expect(menuContent).toBeTruthy();
+        expect(menuContent.textContent).toContain("Item 1");
     });
 
     it("hides menu when button clicked again", async () => {
@@ -40,7 +44,10 @@ describe("DropDownMenu UI", () => {
     it("renders items slot when open", async () => {
         const wrapper = mountDropDown({ items: '<div class="custom-item">Custom</div>' });
         await wrapper.find("button").trigger("click");
-        expect(wrapper.find(".custom-item").exists()).toBe(true);
-        expect(wrapper.text()).toContain("Custom");
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        const menuContent = document.body.querySelector(".custom-item");
+        expect(menuContent).toBeTruthy();
+        expect(menuContent.textContent).toContain("Custom");
     });
 });
