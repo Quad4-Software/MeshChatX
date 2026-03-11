@@ -161,7 +161,7 @@
                                     </div>
                                 </div>
                                 <IconButton
-                                    class="text-gray-500 dark:text-gray-300"
+                                    class="flex-shrink-0 text-gray-500 dark:text-gray-300"
                                     @click.stop="openFavouriteContextMenu($event, favourite, section.id)"
                                 >
                                     <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
@@ -183,29 +183,53 @@
                 </div>
             </div>
 
-            <!-- Favourite Context Menu -->
-            <div
-                v-if="favouriteContextMenu.show"
-                v-click-outside="{ handler: closeContextMenus, capture: true }"
-                class="fixed z-[100] min-w-[220px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                :style="{ top: favouriteContextMenu.y + 'px', left: favouriteContextMenu.x + 'px' }"
-            >
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                    @click="renameFavouriteFromContext"
+            <!-- Favourite Context Menu (Teleport to body to avoid overflow clipping) -->
+            <Teleport to="body">
+                <div
+                    v-if="favouriteContextMenu.show"
+                    v-click-outside="{
+                        handler: () => {
+                            if (!favouriteContextMenu.justOpened) closeContextMenus();
+                        },
+                        capture: true,
+                    }"
+                    class="fixed z-[200] min-w-[220px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                    :style="{ top: favouriteContextMenu.y + 'px', left: favouriteContextMenu.x + 'px' }"
                 >
-                    <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
-                    <span class="font-medium">{{ $t("nomadnet.rename") }}</span>
-                </button>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                    @click="removeFavouriteFromContext"
-                >
-                    <MaterialDesignIcon icon-name="trash-can" class="size-4 text-red-400" />
-                    <span class="font-medium">{{ $t("nomadnet.remove") }}</span>
-                </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                        @click="renameFavouriteFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
+                        <span class="font-medium">{{ $t("nomadnet.rename") }}</span>
+                    </button>
+                    <button
+                        v-if="!isBlocked(favouriteContextMenu.targetHash)"
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                        @click="banishFavouriteFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="gavel" class="size-4 text-red-400" />
+                        <span class="font-medium">{{ $t("nomadnet.block_node") }}</span>
+                    </button>
+                    <button
+                        v-else
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all active:scale-95"
+                        @click="unblockFavouriteFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="check-circle" class="size-4 text-green-400" />
+                        <span class="font-medium">{{ $t("nomadnet.lift_banishment") }}</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                        @click="removeFavouriteFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="trash-can" class="size-4 text-red-400" />
+                        <span class="font-medium">{{ $t("nomadnet.remove") }}</span>
+                    </button>
                 <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
                 <div
                     class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
@@ -224,15 +248,17 @@
                         <span class="truncate">{{ section.name }}</span>
                     </button>
                 </div>
-            </div>
+                </div>
+            </Teleport>
 
-            <!-- Section Context Menu -->
-            <div
-                v-if="sectionContextMenu.show"
-                v-click-outside="{ handler: closeContextMenus, capture: true }"
-                class="fixed z-[100] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                :style="{ top: sectionContextMenu.y + 'px', left: sectionContextMenu.x + 'px' }"
-            >
+            <!-- Section Context Menu (Teleport to body) -->
+            <Teleport to="body">
+                <div
+                    v-if="sectionContextMenu.show"
+                    v-click-outside="{ handler: closeContextMenus, capture: true }"
+                    class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                    :style="{ top: sectionContextMenu.y + 'px', left: sectionContextMenu.x + 'px' }"
+                >
                 <button
                     type="button"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
@@ -251,7 +277,8 @@
                     <MaterialDesignIcon icon-name="delete" class="size-4 text-red-400" />
                     <span class="font-medium">Delete Section</span>
                 </button>
-            </div>
+                </div>
+            </Teleport>
         </div>
 
         <div v-else class="flex-1 flex flex-col min-h-0">
@@ -271,6 +298,7 @@
                         :key="node.destination_hash"
                         class="announce-card relative"
                         :class="{ 'announce-card--active': node.destination_hash === selectedDestinationHash }"
+                        @contextmenu.prevent="openAnnounceContextMenu($event, node)"
                     >
                         <!-- banished overlay -->
                         <div
@@ -310,7 +338,8 @@
                                 </div>
                             </div>
                         </div>
-                        <DropDownMenu>
+                        <div class="flex-shrink-0">
+                            <DropDownMenu>
                             <template #button>
                                 <IconButton>
                                     <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
@@ -318,15 +347,16 @@
                             </template>
                             <template #items>
                                 <DropDownMenuItem v-if="!isBlocked(node.identity_hash)" @click.stop="onBlockNode(node)">
-                                    <MaterialDesignIcon icon-name="block-helper" class="w-5 h-5 text-red-500" />
+                                    <MaterialDesignIcon icon-name="gavel" class="w-5 h-5 text-red-500" />
                                     <span class="text-red-500">{{ $t("nomadnet.block_node") }}</span>
                                 </DropDownMenuItem>
                                 <DropDownMenuItem v-else @click.stop="onUnblockNode(node.identity_hash)">
                                     <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
-                                    <span class="text-green-500">Lift Banishment</span>
+                                    <span class="text-green-500">{{ $t("nomadnet.lift_banishment") }}</span>
                                 </DropDownMenuItem>
                             </template>
                         </DropDownMenu>
+                        </div>
                     </div>
 
                     <!-- loading more spinner -->
@@ -340,6 +370,49 @@
                     <div class="text-sm text-gray-500 dark:text-gray-400">{{ $t("nomadnet.listening_for_peers") }}</div>
                 </div>
             </div>
+
+            <!-- Announce Context Menu (right-click, Teleport to body) -->
+            <Teleport to="body">
+                <div
+                    v-if="announceContextMenu.show"
+                    v-click-outside="{
+                        handler: () => {
+                            if (!announceContextMenu.justOpened) closeContextMenus();
+                        },
+                        capture: true,
+                    }"
+                    class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                    :style="{ top: announceContextMenu.y + 'px', left: announceContextMenu.x + 'px' }"
+                >
+                    <button
+                        v-if="!isFavourite(announceContextMenu.node?.destination_hash)"
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                        @click="addFavouriteFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="star-outline" class="size-4 text-yellow-500" />
+                        <span class="font-medium">{{ $t("nomadnet.add_favourite") }}</span>
+                    </button>
+                    <button
+                        v-if="!isBlocked(announceContextMenu.node?.identity_hash)"
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                        @click="blockAnnounceFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="gavel" class="size-4 text-red-400" />
+                        <span class="font-medium">{{ $t("nomadnet.block_node") }}</span>
+                    </button>
+                    <button
+                        v-else
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all active:scale-95"
+                        @click="unblockAnnounceFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="check-circle" class="size-4 text-green-400" />
+                        <span class="font-medium">{{ $t("nomadnet.lift_banishment") }}</span>
+                    </button>
+                </div>
+            </Teleport>
         </div>
     </div>
 </template>
@@ -388,7 +461,14 @@ export default {
             default: false,
         },
     },
-    emits: ["node-click", "rename-favourite", "remove-favourite", "nodes-search-changed", "load-more-nodes"],
+    emits: [
+        "node-click",
+        "rename-favourite",
+        "remove-favourite",
+        "add-favourite",
+        "nodes-search-changed",
+        "load-more-nodes",
+    ],
     data() {
         return {
             GlobalState,
@@ -409,12 +489,20 @@ export default {
                 y: 0,
                 targetHash: null,
                 targetSectionId: null,
+                justOpened: false,
             },
             sectionContextMenu: {
                 show: false,
                 x: 0,
                 y: 0,
                 sectionId: null,
+            },
+            announceContextMenu: {
+                show: false,
+                x: 0,
+                y: 0,
+                node: null,
+                justOpened: false,
             },
         };
     },
@@ -594,6 +682,36 @@ export default {
         isBlocked(identityHash) {
             return this.blockedDestinations.some((b) => b.destination_hash === identityHash);
         },
+        isFavourite(destinationHash) {
+            return this.favourites.some((f) => f.destination_hash === destinationHash);
+        },
+        addFavouriteFromContext() {
+            const node = this.announceContextMenu.node;
+            if (!node) {
+                this.closeContextMenus();
+                return;
+            }
+            this.closeContextMenus();
+            this.$emit("add-favourite", node);
+        },
+        async blockAnnounceFromContext() {
+            const node = this.announceContextMenu.node;
+            if (!node) {
+                this.closeContextMenus();
+                return;
+            }
+            this.closeContextMenus();
+            await this.onBlockNode(node);
+        },
+        async unblockAnnounceFromContext() {
+            const node = this.announceContextMenu.node;
+            if (!node) {
+                this.closeContextMenus();
+                return;
+            }
+            this.closeContextMenus();
+            await this.onUnblockNode(node.identity_hash);
+        },
         async onBlockNode(node) {
             if (!(await DialogUtils.confirm(this.$t("nomadnet.block_node_confirm", { name: node.display_name })))) {
                 return;
@@ -742,12 +860,16 @@ export default {
         openFavouriteContextMenu(event, favourite, sectionId) {
             this.favouriteContextMenu = {
                 show: true,
-                x: event.pageX || event.clientX,
-                y: event.pageY || event.clientY,
+                justOpened: true,
+                x: event.clientX,
+                y: event.clientY,
                 targetHash: favourite.destination_hash,
                 targetSectionId: sectionId,
             };
             this.sectionContextMenu.show = false;
+            setTimeout(() => {
+                this.favouriteContextMenu.justOpened = false;
+            }, 50);
         },
         openSectionContextMenu(event, section) {
             this.sectionContextMenu = {
@@ -761,6 +883,21 @@ export default {
         closeContextMenus() {
             this.favouriteContextMenu.show = false;
             this.sectionContextMenu.show = false;
+            this.announceContextMenu.show = false;
+        },
+        openAnnounceContextMenu(event, node) {
+            this.announceContextMenu = {
+                show: true,
+                justOpened: true,
+                x: event.clientX,
+                y: event.clientY,
+                node,
+            };
+            this.favouriteContextMenu.show = false;
+            this.sectionContextMenu.show = false;
+            setTimeout(() => {
+                this.announceContextMenu.justOpened = false;
+            }, 50);
         },
         getFavouriteByHash(hash) {
             return this.favourites.find((fav) => fav.destination_hash === hash);
@@ -782,6 +919,47 @@ export default {
             }
             this.closeContextMenus();
             this.onRemoveFavourite(favourite);
+        },
+        async banishFavouriteFromContext() {
+            const favourite = this.getFavouriteByHash(this.favouriteContextMenu.targetHash);
+            if (!favourite) {
+                this.closeContextMenus();
+                return;
+            }
+            this.closeContextMenus();
+            if (
+                !(await DialogUtils.confirm(
+                    this.$t("nomadnet.block_node_confirm", { name: favourite.display_name || favourite.custom_display_name })
+                ))
+            ) {
+                return;
+            }
+            try {
+                await window.axios.post("/api/v1/blocked-destinations", {
+                    destination_hash: favourite.destination_hash,
+                });
+                GlobalEmitter.emit("block-status-changed");
+                DialogUtils.alert(this.$t("nomadnet.node_blocked_successfully"));
+            } catch (e) {
+                DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
+                console.error(e);
+            }
+        },
+        async unblockFavouriteFromContext() {
+            const hash = this.favouriteContextMenu.targetHash;
+            if (!hash) {
+                this.closeContextMenus();
+                return;
+            }
+            this.closeContextMenus();
+            try {
+                await window.axios.delete(`/api/v1/blocked-destinations/${hash}`);
+                GlobalEmitter.emit("block-status-changed");
+                DialogUtils.alert(this.$t("nomadnet.banishment_lifted"));
+            } catch (e) {
+                DialogUtils.alert(this.$t("nomadnet.failed_lift_banishment"));
+                console.error(e);
+            }
         },
         moveContextFavouriteToSection(sectionId) {
             if (!this.favouriteContextMenu.targetHash) {

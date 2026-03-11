@@ -1039,11 +1039,12 @@
                     <!-- Network Security -->
                     <section
                         v-show="
-                            matchesSearch(
+                                matchesSearch(
                                 'RNS Security',
                                 'Network Security',
                                 'app.blackhole_integration_enabled',
-                                'app.blackhole_integration_description'
+                                'app.blackhole_integration_description',
+                                'app.announce_limits'
                             )
                         "
                         class="glass-card break-inside-avoid"
@@ -1076,6 +1077,64 @@
                                         )
                                     "
                                 />
+                            </div>
+                            <div class="space-y-3">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.announce_limits") }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.announce_limits_description") }}
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="space-y-1">
+                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_lxmf") }}</label>
+                                        <input
+                                            v-model.number="config.announce_limit_lxmf_delivery"
+                                            type="number"
+                                            min="0"
+                                            class="input-field"
+                                            placeholder="-"
+                                            @change="
+                                                updateConfig(
+                                                    { announce_limit_lxmf_delivery: config.announce_limit_lxmf_delivery ?? null },
+                                                    'announce_limits'
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_nomadnet") }}</label>
+                                        <input
+                                            v-model.number="config.announce_limit_nomadnetwork_node"
+                                            type="number"
+                                            min="0"
+                                            class="input-field"
+                                            placeholder="-"
+                                            @change="
+                                                updateConfig(
+                                                    { announce_limit_nomadnetwork_node: config.announce_limit_nomadnetwork_node ?? null },
+                                                    'announce_limits'
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_prop") }}</label>
+                                        <input
+                                            v-model.number="config.announce_limit_lxmf_propagation"
+                                            type="number"
+                                            min="0"
+                                            class="input-field"
+                                            placeholder="-"
+                                            @change="
+                                                updateConfig(
+                                                    { announce_limit_lxmf_propagation: config.announce_limit_lxmf_propagation ?? null },
+                                                    'announce_limits'
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -1679,6 +1738,9 @@ export default {
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
                 blackhole_integration_enabled: true,
+                announce_limit_lxmf_delivery: null,
+                announce_limit_nomadnetwork_node: null,
+                announce_limit_lxmf_propagation: null,
                 message_font_size: 14,
                 message_icon_size: 28,
                 message_outbound_bubble_color: "#4f46e5",
@@ -1776,6 +1838,10 @@ export default {
                     "Network Security",
                     "app.blackhole_integration_enabled",
                     "app.blackhole_integration_description",
+                    "app.announce_limits",
+                    "app.announce_limit_lxmf",
+                    "app.announce_limit_nomadnet",
+                    "app.announce_limit_prop",
                 ],
                 transport: [
                     "Reticulum",

@@ -27,7 +27,7 @@
             <!-- block/unblock button -->
             <div class="border-t">
                 <DropDownMenuItem v-if="!isBlocked" @click="onBlockDestination">
-                    <MaterialDesignIcon icon-name="block-helper" class="size-5 text-red-500" />
+                    <MaterialDesignIcon icon-name="gavel" class="size-5 text-red-500" />
                     <span class="text-red-500">Banish User</span>
                 </DropDownMenuItem>
                 <DropDownMenuItem v-else @click="onUnblockDestination">

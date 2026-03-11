@@ -14,6 +14,19 @@
                             <MaterialDesignIcon icon-name="qrcode" class="size-4" />
                             {{ $t("contacts.share_my_identity") }}
                         </button>
+                        <button
+                            type="button"
+                            class="secondary-chip"
+                            :disabled="totalContactsCount === 0"
+                            @click="exportContacts"
+                        >
+                            <MaterialDesignIcon icon-name="file-export" class="size-4" />
+                            {{ $t("contacts.export_contacts") }}
+                        </button>
+                        <button type="button" class="secondary-chip" @click="openImportDialog">
+                            <MaterialDesignIcon icon-name="file-import" class="size-4" />
+                            {{ $t("contacts.import_contacts") }}
+                        </button>
                         <button type="button" class="primary-chip" @click="openAddDialog">
                             <MaterialDesignIcon icon-name="plus" class="size-4" />
                             {{ $t("contacts.add_contact") }}
@@ -265,6 +278,49 @@
             </div>
         </div>
 
+        <!-- Import contacts dialog -->
+        <div
+            v-if="isImportDialogOpen"
+            class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            @click.self="closeImportDialog"
+        >
+            <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">
+                        {{ $t("contacts.import_modal_title") }}
+                    </h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                        @click="closeImportDialog"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <p class="text-sm text-gray-600 dark:text-zinc-400">
+                        {{ $t("contacts.import_file_hint") }}
+                    </p>
+                    <input
+                        ref="importFileInput"
+                        type="file"
+                        accept=".json,application/json"
+                        class="hidden"
+                        @change="onImportFileChange"
+                    />
+                    <button
+                        type="button"
+                        class="secondary-chip w-full justify-center"
+                        @click="$refs.importFileInput?.click()"
+                    >
+                        <MaterialDesignIcon icon-name="file-upload" class="size-4" />
+                        {{ $t("contacts.import_contacts") }}
+                    </button>
+                    <p v-if="importError" class="text-sm text-red-600 dark:text-red-400">{{ importError }}</p>
+                </div>
+            </div>
+        </div>
+
         <!-- My identity dialog -->
         <div
             v-if="isMyIdentityDialogOpen"
@@ -363,6 +419,9 @@ export default {
                 y: 0,
                 contact: null,
             },
+
+            isImportDialogOpen: false,
+            importError: null,
         };
     },
     computed: {
@@ -457,6 +516,68 @@ export default {
             this.newContactInput = "";
             this.pendingLxmaImport = false;
             this.isAddDialogOpen = true;
+        },
+        openImportDialog() {
+            this.importError = null;
+            this.isImportDialogOpen = true;
+        },
+        closeImportDialog() {
+            this.isImportDialogOpen = false;
+            this.importError = null;
+        },
+        onImportFileChange(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            this.importError = null;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const json = JSON.parse(e.target?.result || "{}");
+                    const contacts = json.contacts ?? (Array.isArray(json) ? json : []);
+                    if (!Array.isArray(contacts) || contacts.length === 0) {
+                        this.importError = this.$t("contacts.import_failed");
+                        return;
+                    }
+                    this.importContacts(contacts);
+                } catch {
+                    this.importError = this.$t("contacts.import_failed");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = "";
+        },
+        async importContacts(contacts) {
+            try {
+                const response = await window.axios.post("/api/v1/telephone/contacts/import", {
+                    contacts,
+                });
+                const added = response.data?.added ?? 0;
+                ToastUtils.success(this.$t("contacts.import_success", { added }));
+                this.closeImportDialog();
+                await this.getContacts();
+            } catch (e) {
+                this.importError = e?.response?.data?.message || this.$t("contacts.import_failed");
+            }
+        },
+        async exportContacts() {
+            try {
+                const response = await window.axios.get("/api/v1/telephone/contacts/export");
+                const contacts = response.data?.contacts ?? [];
+                const blob = new Blob([JSON.stringify({ contacts }, null, 2)], {
+                    type: "application/json",
+                });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", "contacts_export.json");
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+                ToastUtils.success(this.$t("contacts.export_success"));
+            } catch (e) {
+                ToastUtils.error(e?.response?.data?.message || this.$t("contacts.export_failed"));
+            }
         },
         closeAddDialog() {
             this.isAddDialogOpen = false;

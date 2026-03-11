@@ -14,6 +14,7 @@
             @node-click="onNodeClick"
             @rename-favourite="onRenameFavourite"
             @remove-favourite="onRemoveFavourite"
+            @add-favourite="addFavourite"
             @nodes-search-changed="onNodesSearchChanged"
             @load-more-nodes="loadMoreNodes"
         />

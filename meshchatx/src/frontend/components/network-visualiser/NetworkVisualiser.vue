@@ -425,39 +425,42 @@ export default {
                 if (window.axios.isCancel(e)) return;
             }
         },
-        async getPathTableBatch() {
+        async getPathTableBatch(destinationHashes = null) {
             this.pathTable = [];
             try {
-                this.loadingStatus = "Loading Paths...";
-                const firstResp = await window.axios.get(`/api/v1/path-table`, {
-                    params: { limit: this.pageSize, offset: 0 },
-                    signal: this.abortController.signal,
-                });
-                this.pathTable.push(...firstResp.data.path_table);
-                const totalCount = firstResp.data.total_count;
-
-                if (totalCount > this.pageSize) {
-                    const remainingOffsets = [];
-                    for (let offset = this.pageSize; offset < totalCount; offset += this.pageSize) {
-                        remainingOffsets.push(offset);
-                    }
-
-                    // Fetch remaining batches in parallel with limited concurrency to not overwhelm backend
-                    const concurrency = 3;
-                    for (let i = 0; i < remainingOffsets.length; i += concurrency) {
-                        if (this.abortController.signal.aborted) return;
-                        const chunk = remainingOffsets.slice(i, i + concurrency);
-                        const promises = chunk.map((offset) =>
-                            window.axios.get(`/api/v1/path-table`, {
-                                params: { limit: this.pageSize, offset: offset },
-                                signal: this.abortController.signal,
-                            })
-                        );
-                        const responses = await Promise.all(promises);
-                        for (const r of responses) {
-                            this.pathTable.push(...r.data.path_table);
+                this.loadingStatus = "Loading paths...";
+                if (destinationHashes && destinationHashes.length > 0) {
+                    const resp = await window.axios.post(`/api/v1/path-table`, { destination_hashes: destinationHashes }, {
+                        signal: this.abortController.signal,
+                    });
+                    this.pathTable.push(...resp.data.path_table);
+                } else {
+                    const firstResp = await window.axios.get(`/api/v1/path-table`, {
+                        params: { limit: this.pageSize, offset: 0 },
+                        signal: this.abortController.signal,
+                    });
+                    this.pathTable.push(...firstResp.data.path_table);
+                    const totalCount = firstResp.data.total_count;
+                    if (totalCount > this.pageSize) {
+                        const concurrency = 3;
+                        for (let offset = this.pageSize; offset < totalCount; offset += this.pageSize * concurrency) {
+                            if (this.abortController.signal.aborted) return;
+                            const chunk = [];
+                            for (let i = 0; i < concurrency && offset + i * this.pageSize < totalCount; i++) {
+                                chunk.push(offset + i * this.pageSize);
+                            }
+                            const promises = chunk.map((o) =>
+                                window.axios.get(`/api/v1/path-table`, {
+                                    params: { limit: this.pageSize, offset: o },
+                                    signal: this.abortController.signal,
+                                })
+                            );
+                            const responses = await Promise.all(promises);
+                            for (const r of responses) {
+                                this.pathTable.push(...r.data.path_table);
+                            }
+                            this.loadingStatus = `Loading paths (${this.pathTable.length} / ${totalCount})`;
                         }
-                        this.loadingStatus = `Loading Paths (${this.pathTable.length} / ${totalCount})`;
                     }
                 }
             } catch (e) {
@@ -467,41 +470,26 @@ export default {
         },
         async getAnnouncesBatch() {
             this.announces = {};
+            const aspectsToFetch = ["lxmf.delivery", "nomadnetwork.node"];
             try {
-                this.loadingStatus = "Loading Announces...";
-                const firstResp = await window.axios.get(`/api/v1/announces`, {
-                    params: { limit: this.pageSize, offset: 0 },
-                    signal: this.abortController.signal,
-                });
-
-                for (const announce of firstResp.data.announces) {
-                    this.announces[announce.destination_hash] = announce;
-                }
-                const totalCount = firstResp.data.total_count;
-
-                if (totalCount > this.pageSize) {
-                    const remainingOffsets = [];
-                    for (let offset = this.pageSize; offset < totalCount; offset += this.pageSize) {
-                        remainingOffsets.push(offset);
-                    }
-
-                    const concurrency = 3;
-                    for (let i = 0; i < remainingOffsets.length; i += concurrency) {
-                        if (this.abortController.signal.aborted) return;
-                        const chunk = remainingOffsets.slice(i, i + concurrency);
-                        const promises = chunk.map((offset) =>
-                            window.axios.get(`/api/v1/announces`, {
-                                params: { limit: this.pageSize, offset: offset },
-                                signal: this.abortController.signal,
-                            })
-                        );
-                        const responses = await Promise.all(promises);
-                        for (const r of responses) {
-                            for (const announce of r.data.announces) {
-                                this.announces[announce.destination_hash] = announce;
-                            }
+                for (const aspect of aspectsToFetch) {
+                    if (this.abortController.signal.aborted) return;
+                    this.loadingStatus = `Loading ${aspect}...`;
+                    let offset = 0;
+                    let hasMore = true;
+                    while (hasMore) {
+                        const resp = await window.axios.get(`/api/v1/announces`, {
+                            params: { aspect, limit: this.pageSize, offset },
+                            signal: this.abortController.signal,
+                        });
+                        for (const announce of resp.data.announces) {
+                            this.announces[announce.destination_hash] = announce;
                         }
-                        this.loadingStatus = `Loading Announces (${Object.keys(this.announces).length} / ${totalCount})`;
+                        const loaded = Object.keys(this.announces).length;
+                        const total = resp.data.total_count;
+                        this.loadingStatus = `Loading announces (${loaded})`;
+                        offset += resp.data.announces.length;
+                        hasMore = resp.data.announces.length === this.pageSize && offset < total;
                     }
                 }
             } catch (e) {
@@ -1100,7 +1088,9 @@ export default {
             if (this.abortController.signal.aborted) return;
 
             this.loadingStatus = "Fetching network data...";
-            await Promise.all([this.getPathTableBatch(), this.getAnnouncesBatch()]);
+            await this.getAnnouncesBatch();
+            if (this.abortController.signal.aborted) return;
+            await this.getPathTableBatch(Object.keys(this.announces));
             if (this.abortController.signal.aborted) return;
 
             await this.processVisualization();

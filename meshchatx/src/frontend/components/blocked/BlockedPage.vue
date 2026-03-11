@@ -5,7 +5,7 @@
         >
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                    <MaterialDesignIcon icon-name="block-helper" class="size-6 text-red-600 dark:text-red-400" />
+                    <MaterialDesignIcon icon-name="gavel" class="size-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ $t("banishment.title") }}</h1>

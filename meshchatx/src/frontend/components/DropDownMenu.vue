@@ -8,24 +8,28 @@
             <slot name="button" />
         </div>
 
-        <!-- drop down menu -->
-        <Transition
-            enter-active-class="transition ease-out duration-100"
-            enter-from-class="transform opacity-0 scale-95"
-            enter-to-class="transform opacity-100 scale-100"
-            leave-active-class="transition ease-in duration-75"
-            leave-from-class="transform opacity-100 scale-100"
-            leave-to-class="transform opacity-0 scale-95"
-        >
-            <div
-                v-if="isShowingMenu"
-                class="overflow-hidden absolute right-0 z-50 mr-4 w-56 rounded-md bg-white dark:bg-zinc-800 shadow-lg border border-gray-200 dark:border-zinc-700 focus:outline-none"
-                :class="[dropdownClass]"
-                @click.stop="hideMenu"
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition ease-out duration-100"
+                enter-from-class="transform opacity-0 scale-95"
+                enter-to-class="transform opacity-100 scale-100"
+                leave-active-class="transition ease-in duration-75"
+                leave-from-class="transform opacity-100 scale-100"
+                leave-to-class="transform opacity-0 scale-95"
             >
-                <slot name="items" />
-            </div>
-        </Transition>
+                <div
+                    v-if="isShowingMenu && dropdownPosition"
+                    class="overflow-hidden fixed z-[200] w-56 rounded-md bg-white dark:bg-zinc-800 shadow-lg border border-gray-200 dark:border-zinc-700 focus:outline-none"
+                    :style="{
+                        left: dropdownPosition.x + 'px',
+                        top: dropdownPosition.y + 'px',
+                    }"
+                    @click.stop="hideMenu"
+                >
+                    <slot name="items" />
+                </div>
+            </Transition>
+        </Teleport>
     </div>
 </template>
 
@@ -35,7 +39,7 @@ export default {
     data() {
         return {
             isShowingMenu: false,
-            dropdownClass: null,
+            dropdownPosition: null,
         };
     },
     methods: {
@@ -52,6 +56,7 @@ export default {
         },
         hideMenu() {
             this.isShowingMenu = false;
+            this.dropdownPosition = null;
         },
         onClickOutsideMenu(event) {
             if (this.isShowingMenu) {
@@ -61,39 +66,28 @@ export default {
         },
         adjustDropdownPosition() {
             this.$nextTick(() => {
-                // find button and dropdown
                 const button = this.$refs["dropdown-button"];
-                if (!button) {
-                    return;
-                }
+                if (!button) return;
 
-                const dropdown = button.parentElement?.querySelector(".absolute");
-                if (!dropdown) {
-                    return;
-                }
-
-                // get bounding box of button
                 const buttonRect = button.getBoundingClientRect();
+                const estimatedHeight = 200;
+                const spaceBelow = window.innerHeight - buttonRect.bottom;
+                const spaceAbove = buttonRect.top;
 
-                // calculate how much space is under and above the button
-                const spaceBelowButton = window.innerHeight - buttonRect.bottom;
-                const spaceAboveButton = buttonRect.top;
+                let x = buttonRect.right - 224;
+                if (x < 8) x = 8;
+                if (x + 224 > window.innerWidth) x = window.innerWidth - 224 - 8;
 
-                // estimate dropdown height (will be measured after render)
-                const estimatedDropdownHeight = 150;
-
-                // calculate if there is enough space available to show dropdown
-                const hasEnoughSpaceAboveButton = spaceAboveButton > estimatedDropdownHeight;
-                const hasEnoughSpaceBelowButton = spaceBelowButton > estimatedDropdownHeight;
-
-                // show dropdown above button
-                if (hasEnoughSpaceAboveButton && !hasEnoughSpaceBelowButton) {
-                    this.dropdownClass = "bottom-0 mb-12";
-                    return;
+                let y;
+                if (spaceBelow >= estimatedHeight || spaceBelow >= spaceAbove) {
+                    y = buttonRect.bottom + 4;
+                } else {
+                    y = buttonRect.top - estimatedHeight - 4;
                 }
+                if (y < 8) y = 8;
+                if (y + estimatedHeight > window.innerHeight - 8) y = window.innerHeight - estimatedHeight - 8;
 
-                // otherwise fallback to showing dropdown below button
-                this.dropdownClass = "top-0 mt-12";
+                this.dropdownPosition = { x, y };
             });
         },
     },

@@ -149,6 +149,16 @@
                     <MaterialDesignIcon icon-name="notebook-outline" class="size-7" />
                 </IconButton>
 
+                <!-- banish button (visible when peer not blocked) -->
+                <IconButton
+                    v-if="!isSelectedPeerBlocked"
+                    :title="$t('messages.banish_user')"
+                    class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    @click="onBanishHeaderClick"
+                >
+                    <MaterialDesignIcon icon-name="gavel" class="size-7" />
+                </IconButton>
+
                 <ConversationDropDownMenu
                     v-if="selectedPeer"
                     :peer="selectedPeer"
@@ -438,6 +448,15 @@
                         :style="bubbleStyles(chatItem)"
                         @click="onChatItemClick(chatItem)"
                     >
+                        <button
+                            type="button"
+                            class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
+                            :class="chatItem.is_outbound ? 'hover:bg-white/20' : 'hover:bg-gray-200 dark:hover:bg-zinc-700'"
+                            :title="$t('messages.message_actions')"
+                            @click.stop="onMessageContextMenu($event, chatItem)"
+                        >
+                            <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
+                        </button>
                         <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
                             <!-- reply snippet -->
                             <div
@@ -1197,13 +1216,19 @@
         <!-- hidden file input for selecting files -->
         <input ref="file-input" type="file" multiple style="display: none" @change="onFileInputChange" />
 
-        <!-- Message Context Menu -->
-        <div
-            v-if="messageContextMenu.show"
-            v-click-outside="{ handler: () => (messageContextMenu.show = false), capture: true }"
-            class="fixed z-[100] min-w-[180px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-            :style="{ top: messageContextMenu.y + 'px', left: messageContextMenu.x + 'px' }"
-        >
+        <!-- Message Context Menu (Teleport to body to avoid overflow clipping) -->
+        <Teleport to="body">
+            <div
+                v-if="messageContextMenu.show"
+                v-click-outside="{
+                    handler: () => {
+                        if (!messageContextMenu.justOpened) messageContextMenu.show = false;
+                    },
+                    capture: true,
+                }"
+                class="fixed z-[200] min-w-[180px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                :style="{ top: messageContextMenu.y + 'px', left: messageContextMenu.x + 'px' }"
+            >
             <button
                 type="button"
                 class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
@@ -1250,7 +1275,8 @@
                 <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
                 <span class="font-medium">Delete</span>
             </button>
-        </div>
+            </div>
+        </Teleport>
     </div>
 
     <!-- no peer selected -->
@@ -1833,6 +1859,7 @@ export default {
                 x: 0,
                 y: 0,
                 chatItem: null,
+                justOpened: false,
             },
             now: Date.now(),
             updateTimer: null,
@@ -2872,11 +2899,29 @@ export default {
             }
         },
         async onConversationDeleted() {
-            // reload conversation
             await this.initialLoad();
-
-            // reload conversations
             this.$emit("reload-conversations");
+        },
+        async onBanishHeaderClick() {
+            if (!this.selectedPeer) return;
+            if (
+                !(await DialogUtils.confirm(
+                    this.$t("messages.banish_confirm") ||
+                        "Are you sure you want to banish this user? They will not be able to send you messages or establish links."
+                ))
+            ) {
+                return;
+            }
+            try {
+                await window.axios.post("/api/v1/blocked-destinations", {
+                    destination_hash: this.selectedPeer.destination_hash,
+                });
+                GlobalEmitter.emit("block-status-changed");
+                DialogUtils.alert(this.$t("messages.user_banished"));
+            } catch (e) {
+                DialogUtils.alert(this.$t("messages.failed_banish_user"));
+                console.error(e);
+            }
         },
         onChatItemClick: function (chatItem) {
             if (!chatItem.is_actions_expanded) {
@@ -2922,28 +2967,28 @@ export default {
         },
         onMessageContextMenu(event, chatItem) {
             this.messageContextMenu.chatItem = chatItem;
+            this.messageContextMenu.justOpened = true;
             this.messageContextMenu.show = true;
 
-            // wait for context menu to be rendered to calculate its width/height
             this.$nextTick(() => {
-                const menuWidth = 180; // approximate minimum width
-                const menuHeight = 150; // approximate height
+                const menuWidth = 180;
+                const menuHeight = 150;
 
                 let x = event.clientX;
                 let y = event.clientY;
 
-                // Adjust X if it would go off-screen on the right
                 if (x + menuWidth > window.innerWidth) {
                     x = window.innerWidth - menuWidth - 10;
                 }
-
-                // Adjust Y if it would go off-screen at the bottom
                 if (y + menuHeight > window.innerHeight) {
                     y = window.innerHeight - menuHeight - 10;
                 }
 
                 this.messageContextMenu.x = x;
                 this.messageContextMenu.y = y;
+                setTimeout(() => {
+                    this.messageContextMenu.justOpened = false;
+                }, 50);
             });
         },
         async showRawMessage(chatItem) {
