@@ -109,6 +109,14 @@ describe("NetworkVisualiser.vue", () => {
                 }
                 return Promise.resolve({ data: {} });
             }),
+            post: vi.fn().mockImplementation((url) => {
+                if (url.includes("/api/v1/path-table")) {
+                    return Promise.resolve({
+                        data: { path_table: [{ hash: "node1", interface: "eth0", hops: 1 }], total_count: 1 },
+                    });
+                }
+                return Promise.resolve({ data: {} });
+            }),
         };
         window.axios = axiosMock;
 

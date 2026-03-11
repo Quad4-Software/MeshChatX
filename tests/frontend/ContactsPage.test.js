@@ -41,6 +41,9 @@ describe("ContactsPage.vue", () => {
                 });
             }
             if (url === "/api/v1/telephone/contacts") {
+                return Promise.resolve({ data: { contacts: [], total_count: 0 } });
+            }
+            if (url === "/api/v1/telephone/contacts/export") {
                 return Promise.resolve({ data: { contacts: [] } });
             }
             if (url.startsWith("/api/v1/telephone/contacts/check/")) {
@@ -98,5 +101,48 @@ describe("ContactsPage.vue", () => {
             })
         );
         expect(axiosMock.post).not.toHaveBeenCalled();
+    });
+
+    it("exports contacts via GET /api/v1/telephone/contacts/export", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.exportContacts();
+
+        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/telephone/contacts/export");
+    });
+
+    it("imports contacts via POST /api/v1/telephone/contacts/import", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.post.mockResolvedValue({ data: { added: 2, skipped: 0 } });
+
+        await wrapper.vm.importContacts([
+            { name: "A", remote_identity_hash: "a".repeat(32) },
+            { name: "B", remote_identity_hash: "b".repeat(32) },
+        ]);
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/telephone/contacts/import", {
+            contacts: [
+                { name: "A", remote_identity_hash: "a".repeat(32) },
+                { name: "B", remote_identity_hash: "b".repeat(32) },
+            ],
+        });
+    });
+
+    it("mounts within 500ms", () => {
+        const start = performance.now();
+        const wrapper = mountPage();
+        const elapsed = performance.now() - start;
+        expect(wrapper.find("h1").exists()).toBe(true);
+        expect(elapsed).toBeLessThan(500);
+    });
+
+    it("export and import buttons are present", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        const html = wrapper.html();
+        expect(html).toContain("contacts.export_contacts");
+        expect(html).toContain("contacts.import_contacts");
     });
 });
