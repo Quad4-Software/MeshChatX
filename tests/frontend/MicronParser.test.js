@@ -95,6 +95,52 @@ describe("MicronParser.js", () => {
             expect(html).toContain("Bold Underlined Text");
         });
 
+        describe("foreground color", () => {
+            it("handles 3-char F format", () => {
+                const markup = "`FabcRed Text`";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(170, 187, 204)");
+                expect(html).toContain("Red Text");
+            });
+
+            it("handles FT truecolor (6-char hex)", () => {
+                const markup = "`FTff00ffMagenta Text`";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(255, 0, 255)");
+                expect(html).toContain("Magenta Text");
+            });
+
+            it("prefers FT over F when both could match", () => {
+                const markup = "`FTabcdefText`";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(171, 205, 239)");
+                expect(html).toContain("Text");
+            });
+        });
+
+        describe("background color", () => {
+            it("handles 3-char B format", () => {
+                const markup = "`BfffYellow BG`";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(255, 255, 255)");
+                expect(html).toContain("Yellow BG");
+            });
+
+            it("handles BT truecolor (6-char hex)", () => {
+                const markup = "`BT0000ffBlue BG`";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(0, 0, 255)");
+                expect(html).toContain("Blue BG");
+            });
+
+            it("prefers BT over B when both could match", () => {
+                const markup = "`BT112233Text`";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(17, 34, 51)");
+                expect(html).toContain("Text");
+            });
+        });
+
         it("handles literal mode", () => {
             const markup = "`=\n`*Not Italic`*\n`=";
             const html = parser.convertMicronToHtml(markup);

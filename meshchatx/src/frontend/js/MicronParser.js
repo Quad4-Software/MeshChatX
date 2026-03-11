@@ -755,7 +755,12 @@ class MicronParser {
                         break;
 
                     case "F":
-                        // next 3 chars => fg color
+                        if (line[i + 1] === "T" && line.length >= i + 8) {
+                            let color = line.substr(i + 2, 6);
+                            state.fg_color = color;
+                            skip = 7;
+                            break;
+                        }
                         if (line.length >= i + 4) {
                             let color = line.substr(i + 1, 3);
                             state.fg_color = color;
@@ -767,12 +772,18 @@ class MicronParser {
                         state.fg_color = state.default_fg;
                         break;
                     case "B":
-                        // next 3 chars => bg color
+                        if (line[i + 1] === "T" && line.length >= i + 8) {
+                            let color = line.substr(i + 2, 6);
+                            state.bg_color = color;
+                            skip = 7;
+                            flushPart();
+                            break;
+                        }
                         if (line.length >= i + 4) {
                             let color = line.substr(i + 1, 3);
                             state.bg_color = color;
                             skip = 3;
-                            flushPart(); // flush current part when background color changes
+                            flushPart();
                         }
                         break;
                     case "b":
