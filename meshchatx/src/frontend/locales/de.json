@@ -203,6 +203,11 @@
         "emergency_mode_active": "Notfallmodus aktiv - In-Memory-Datenbank und eingeschränkte Dienste werden verwendet.",
         "blackhole_integration_enabled": "Blackhole-Integration",
         "blackhole_integration_description": "Identitäten automatisch auf der Reticulum-Transportebene sperren (Blackhole), wenn Benutzer in MeshChatX verbannt werden.",
+        "announce_limits": "Ankündigungslimits",
+        "announce_limits_description": "Optionale maximale Anzahl pro Aspekt. Leer lassen für kein Limit. Schützt vor Flood-Angriffen in öffentlichen Netzen.",
+        "announce_limit_lxmf": "LXMF",
+        "announce_limit_nomadnet": "NomadNet",
+        "announce_limit_prop": "Prop-Knoten",
         "failed_announce": "Ankündigung fehlgeschlagen",
         "search_settings": "Einstellungen suchen...",
         "show_qr": "QR-Code anzeigen",
@@ -385,7 +390,15 @@
         "qr_scanned": "QR-Code gescannt",
         "importing_lxma": "LXMA-Kontakt wird importiert...",
         "send_message": "Nachricht senden",
-        "call_contact": "Anrufen"
+        "call_contact": "Anrufen",
+        "export_contacts": "Export",
+        "import_contacts": "Import",
+        "export_success": "Kontakte exportiert",
+        "export_failed": "Export fehlgeschlagen",
+        "import_success": "{added} Kontakt(e) importiert",
+        "import_failed": "Import fehlgeschlagen",
+        "import_modal_title": "Kontakte importieren",
+        "import_file_hint": "Wählen Sie eine JSON-Datei aus dem Kontakte-Export."
     },
     "about": {
         "title": "Über",
@@ -708,6 +721,8 @@
         "profile_icon_removed": "Profile icon removed successfully",
         "user_banished": "User banished successfully",
         "failed_banish_user": "Failed to banish user",
+        "banish_user": "Nutzer verbannen",
+        "banish_confirm": "Möchten Sie diesen Nutzer wirklich verbannen? Er kann Ihnen keine Nachrichten mehr senden oder Verbindungen herstellen.",
         "delete_conversation_confirm": "Are you sure you want to delete this conversation?",
         "failed_delete_conversation": "failed to delete conversation",
         "delete_history_confirm": "Are you sure you want to delete all messages in this conversation? This can not be undone!",
@@ -726,6 +741,7 @@
         "failed_to_copy_hash": "Failed to copy identity hash",
         "reply": "Antworten",
         "replying_to": "Antwort an",
+        "message_actions": "Nachrichtenaktionen",
         "message_not_found_in_cache": "Nachricht nicht im Cache gefunden"
     },
     "nomadnet": {
@@ -770,6 +786,7 @@
         "failed_rename_favourite": "Failed to rename favourite",
         "banishment_lifted": "Banishment lifted successfully",
         "failed_lift_banishment": "Failed to lift banishment",
+        "lift_banishment": "Lift Banishment",
         "enter_section_name": "Enter section name",
         "new_section": "New Section",
         "rename_section": "Rename section",

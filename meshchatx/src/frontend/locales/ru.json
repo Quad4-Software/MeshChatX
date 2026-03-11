@@ -203,6 +203,11 @@
         "emergency_mode_active": "Аварийный режим активен — используется база данных в оперативной памяти и ограниченные службы.",
         "blackhole_integration_enabled": "Интеграция Blackhole",
         "blackhole_integration_description": "Автоматически блокировать (blackhole) личности на транспортном уровне Reticulum при изгнании пользователей в MeshChatX.",
+        "announce_limits": "Лимиты объявлений",
+        "announce_limits_description": "Необязательный максимум по аспекту. Оставьте пустым для отсутствия лимита. Защита от флуд-атак в публичных сетях.",
+        "announce_limit_lxmf": "LXMF",
+        "announce_limit_nomadnet": "NomadNet",
+        "announce_limit_prop": "Prop-узлы",
         "failed_announce": "ошибка анонса",
         "search_settings": "Поиск настроек...",
         "show_qr": "Показать QR-код",
@@ -385,7 +390,15 @@
         "qr_scanned": "QR-код отсканирован",
         "importing_lxma": "Импорт контакта LXMA...",
         "send_message": "Написать сообщение",
-        "call_contact": "Позвонить"
+        "call_contact": "Позвонить",
+        "export_contacts": "Экспорт",
+        "import_contacts": "Импорт",
+        "export_success": "Контакты экспортированы",
+        "export_failed": "Ошибка экспорта",
+        "import_success": "Импортировано контактов: {added}",
+        "import_failed": "Ошибка импорта",
+        "import_modal_title": "Импорт контактов",
+        "import_file_hint": "Выберите JSON-файл, экспортированный из Контактов."
     },
     "about": {
         "title": "О программе",
@@ -708,6 +721,8 @@
         "profile_icon_removed": "Profile icon removed successfully",
         "user_banished": "User banished successfully",
         "failed_banish_user": "Failed to banish user",
+        "banish_user": "Забанить пользователя",
+        "banish_confirm": "Вы уверены, что хотите забанить этого пользователя? Он не сможет отправлять вам сообщения или устанавливать соединения.",
         "delete_conversation_confirm": "Are you sure you want to delete this conversation?",
         "failed_delete_conversation": "failed to delete conversation",
         "delete_history_confirm": "Are you sure you want to delete all messages in this conversation? This can not be undone!",
@@ -726,6 +741,7 @@
         "failed_to_copy_hash": "Failed to copy identity hash",
         "reply": "Ответить",
         "replying_to": "Ответ на",
+        "message_actions": "Действия с сообщением",
         "message_not_found_in_cache": "Сообщение не найдено в кэше"
     },
     "nomadnet": {
@@ -770,6 +786,7 @@
         "failed_rename_favourite": "Failed to rename favourite",
         "banishment_lifted": "Banishment lifted successfully",
         "failed_lift_banishment": "Failed to lift banishment",
+        "lift_banishment": "Lift Banishment",
         "enter_section_name": "Enter section name",
         "new_section": "New Section",
         "rename_section": "Rename section",

@@ -206,6 +206,11 @@
         "emergency_mode_active": "Modalità Emergenza Attiva - Utilizzo del database in memoria e servizi limitati.",
         "blackhole_integration_enabled": "Integrazione Blackhole",
         "blackhole_integration_description": "Metti automaticamente in blackhole le identità a livello di trasporto Reticulum quando esili gli utenti in MeshChatX.",
+        "announce_limits": "Limiti annunci",
+        "announce_limits_description": "Numero massimo opzionale per aspetto. Lasciare vuoto per nessun limite. Protegge da attacchi flood su reti pubbliche.",
+        "announce_limit_lxmf": "LXMF",
+        "announce_limit_nomadnet": "NomadNet",
+        "announce_limit_prop": "Nodi prop",
         "csp_settings": "Content Security Policy (CSP)",
         "csp_description": "Aggiungi manualmente domini e sorgenti consentiti per vari tipi di risorse. Utile per server di tile personalizzati, bot o integrazioni esterne.",
         "csp_extra_connect_src": "Sorgenti di Connessione Extra",
@@ -385,7 +390,15 @@
         "qr_scanned": "Codice QR scansionato",
         "importing_lxma": "Importazione contatto LXMA...",
         "send_message": "Invia messaggio",
-        "call_contact": "Chiama"
+        "call_contact": "Chiama",
+        "export_contacts": "Esporta",
+        "import_contacts": "Importa",
+        "export_success": "Contatti esportati",
+        "export_failed": "Esportazione fallita",
+        "import_success": "Importati {added} contatto/i",
+        "import_failed": "Importazione fallita",
+        "import_modal_title": "Importa contatti",
+        "import_file_hint": "Seleziona un file JSON esportato da Contatti."
     },
     "about": {
         "title": "Informazioni",
@@ -710,6 +723,8 @@
         "profile_icon_removed": "Icona del profilo rimossa con successo",
         "user_banished": "Utente esiliato con successo",
         "failed_banish_user": "Impossibile esiliare l'utente",
+        "banish_user": "Esilia utente",
+        "banish_confirm": "Sei sicuro di voler esiliare questo utente? Non potrà più inviarti messaggi o stabilire collegamenti.",
         "delete_conversation_confirm": "Sei sicuro di voler eliminare questa conversazione?",
         "failed_delete_conversation": "impossibile eliminare la conversazione",
         "delete_history_confirm": "Sei sicuro di voler eliminare tutti i messaggi in questa conversazione? L'azione non può essere annullata!",
@@ -726,6 +741,7 @@
         "snr_val": "SNR: {snr}dB",
         "reply": "Rispondi",
         "replying_to": "In risposta a",
+        "message_actions": "Azioni messaggio",
         "message_not_found_in_cache": "Messaggio non trovato nella cache"
     },
     "settings": {
@@ -860,6 +876,7 @@
         "identify_confirm": "Sei sicuro di volerti identificare su questo nodo NomadNetwork? La pagina si ricaricherà dopo l'invio della tua identità.",
         "banishment_lifted": "Esilio revocato con successo",
         "failed_lift_banishment": "Impossibile revocare l'esilio",
+        "lift_banishment": "Revoca esilio",
         "enter_section_name": "Inserisci il nome della sezione",
         "new_section": "Nuova Sezione",
         "rename_section": "Rinomina sezione",

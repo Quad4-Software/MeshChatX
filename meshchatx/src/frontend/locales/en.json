@@ -206,6 +206,11 @@
         "emergency_mode_active": "Emergency Mode Active - Using in-memory database and restricted services.",
         "blackhole_integration_enabled": "Blackhole Integration",
         "blackhole_integration_description": "Automatically blackhole identities at the Reticulum transport layer when banishing users in MeshChatX.",
+        "announce_limits": "Announce Limits",
+        "announce_limits_description": "Optional max count per aspect. Leave empty for no limit. Protects against flood attacks on public networks.",
+        "announce_limit_lxmf": "LXMF",
+        "announce_limit_nomadnet": "NomadNet",
+        "announce_limit_prop": "Prop Nodes",
         "csp_settings": "Content Security Policy (CSP)",
         "csp_description": "Manually add allowed domains and sources for various resource types. This is useful for custom tile servers, bots, or external integrations.",
         "csp_extra_connect_src": "Extra Connect Sources",
@@ -672,6 +677,8 @@
         "profile_icon_removed": "Profile icon removed successfully",
         "user_banished": "User banished successfully",
         "failed_banish_user": "Failed to banish user",
+        "banish_user": "Banish user",
+        "banish_confirm": "Are you sure you want to banish this user? They will not be able to send you messages or establish links.",
         "delete_conversation_confirm": "Are you sure you want to delete this conversation?",
         "failed_delete_conversation": "failed to delete conversation",
         "delete_history_confirm": "Are you sure you want to delete all messages in this conversation? This can not be undone!",
@@ -688,6 +695,7 @@
         "snr_val": "SNR: {snr}dB",
         "reply": "Reply",
         "replying_to": "Replying to",
+        "message_actions": "Message actions",
         "message_not_found_in_cache": "Message not found in cache"
     },
     "settings": {
@@ -822,6 +830,7 @@
         "identify_confirm": "Are you sure you want to identify yourself to this NomadNetwork Node? The page will reload after your identity has been sent.",
         "banishment_lifted": "Banishment lifted successfully",
         "failed_lift_banishment": "Failed to lift banishment",
+        "lift_banishment": "Lift Banishment",
         "enter_section_name": "Enter section name",
         "new_section": "New Section",
         "rename_section": "Rename section",
@@ -1451,7 +1460,15 @@
         "qr_scanned": "QR code scanned",
         "importing_lxma": "Importing LXMA contact...",
         "send_message": "Send Message",
-        "call_contact": "Call"
+        "call_contact": "Call",
+        "export_contacts": "Export",
+        "import_contacts": "Import",
+        "export_success": "Contacts exported",
+        "export_failed": "Failed to export contacts",
+        "import_success": "Imported {added} contact(s)",
+        "import_failed": "Failed to import contacts",
+        "import_modal_title": "Import Contacts",
+        "import_file_hint": "Select a JSON file exported from Contacts."
     },
     "tutorial": {
         "title": "Getting Started",
