@@ -96,3 +96,46 @@ def test_get_filtered_announces_robustness(announce_dao):
         aspect="non_existent_aspect",
     )
     assert len(results) == 0
+
+
+def test_get_announce_count_by_aspect(announce_dao):
+    announce_dao.upsert_announce(
+        {
+            "destination_hash": "d1",
+            "aspect": "lxmf.delivery",
+            "identity_hash": "i1",
+            "identity_public_key": "p1",
+            "app_data": None,
+            "rssi": -50,
+            "snr": 10,
+            "quality": 1.0,
+        },
+    )
+    announce_dao.upsert_announce(
+        {
+            "destination_hash": "d2",
+            "aspect": "lxmf.delivery",
+            "identity_hash": "i2",
+            "identity_public_key": "p2",
+            "app_data": None,
+            "rssi": -50,
+            "snr": 10,
+            "quality": 1.0,
+        },
+    )
+    announce_dao.upsert_announce(
+        {
+            "destination_hash": "d3",
+            "aspect": "nomadnetwork.node",
+            "identity_hash": "i3",
+            "identity_public_key": "p3",
+            "app_data": None,
+            "rssi": -50,
+            "snr": 10,
+            "quality": 1.0,
+        },
+    )
+
+    assert announce_dao.get_announce_count_by_aspect("lxmf.delivery") == 2
+    assert announce_dao.get_announce_count_by_aspect("nomadnetwork.node") == 1
+    assert announce_dao.get_announce_count_by_aspect("lxmf.propagation") == 0
