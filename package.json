@@ -230,7 +230,7 @@
         "click-outside-vue3": "^4.0.1",
         "compressorjs": "^1.2.1",
         "dayjs": "^1.11.19",
-        "dompurify": "^3.3.2",
+        "dompurify": "^3.3.3",
         "electron-prompt": "^1.7.0",
         "electron-squirrel-startup": "^1.0.1",
         "micron-parser": "^1.0.3",
