@@ -313,6 +313,23 @@ class ConfigManager:
             "#ef4444",
         )
 
+        # announce limits (optional, None = no limit; protects against flood on public networks)
+        self.announce_limit_lxmf_delivery = self.IntConfig(
+            self,
+            "announce_limit_lxmf_delivery",
+            None,
+        )
+        self.announce_limit_nomadnetwork_node = self.IntConfig(
+            self,
+            "announce_limit_nomadnetwork_node",
+            None,
+        )
+        self.announce_limit_lxmf_propagation = self.IntConfig(
+            self,
+            "announce_limit_lxmf_propagation",
+            None,
+        )
+
         # blackhole integration config
         self.blackhole_integration_enabled = self.BoolConfig(
             self,

@@ -5946,6 +5946,63 @@ class ReticulumMeshChat:
                 },
             )
 
+        @routes.get("/api/v1/telephone/contacts/export")
+        async def telephone_contacts_export(request):
+            try:
+                rows = self.database.contacts.get_contacts(limit=10000, offset=0)
+                export_data = []
+                for row in rows:
+                    d = dict(row)
+                    for k in ("id", "created_at", "updated_at"):
+                        d.pop(k, None)
+                    export_data.append(d)
+                return web.json_response({"contacts": export_data})
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Failed to export contacts: {e!s}"},
+                    status=500,
+                )
+
+        @routes.post("/api/v1/telephone/contacts/import")
+        async def telephone_contacts_import(request):
+            try:
+                data = await request.json()
+                contacts = data.get("contacts", [])
+                if not isinstance(contacts, list):
+                    return web.json_response(
+                        {"message": "Invalid import format: contacts must be an array"},
+                        status=400,
+                    )
+                added = 0
+                skipped = 0
+                for c in contacts:
+                    name = c.get("name")
+                    remote_identity_hash = c.get("remote_identity_hash")
+                    if not name or not remote_identity_hash:
+                        skipped += 1
+                        continue
+                    try:
+                        self.database.contacts.add_contact(
+                            name,
+                            remote_identity_hash,
+                            lxmf_address=c.get("lxmf_address"),
+                            lxst_address=c.get("lxst_address"),
+                            preferred_ringtone_id=c.get("preferred_ringtone_id"),
+                            custom_image=c.get("custom_image"),
+                            is_telemetry_trusted=c.get("is_telemetry_trusted", 0),
+                        )
+                        added += 1
+                    except Exception:
+                        skipped += 1
+                return web.json_response(
+                    {"message": "Import complete", "added": added, "skipped": skipped},
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Failed to import contacts: {e!s}"},
+                    status=500,
+                )
+
         # announce
         @routes.get("/api/v1/announce")
         async def announce_trigger(request):
@@ -7607,17 +7664,34 @@ class ReticulumMeshChat:
 
         # get path table
         @routes.get("/api/v1/path-table")
+        @routes.post("/api/v1/path-table")
         async def path_table(request):
             limit = request.query.get("limit", None)
             offset = request.query.get("offset", None)
+            destination_hashes = None
+            if request.method == "POST":
+                try:
+                    body = await request.json()
+                    destination_hashes = body.get("destination_hashes")
+                    if destination_hashes and not isinstance(destination_hashes, list):
+                        destination_hashes = None
+                except Exception:  # noqa: S110
+                    pass
 
-            # get path table, making sure hash and via are in hex as json_response can't serialize bytes
             all_paths = []
             if hasattr(self, "reticulum") and self.reticulum:
                 try:
                     all_paths = self.reticulum.get_path_table()
                 except Exception:  # noqa: S110
                     pass
+
+            if destination_hashes:
+                hash_set = set(
+                    h.lower() for h in destination_hashes if isinstance(h, str)
+                )
+                all_paths = [
+                    p for p in all_paths if p["hash"].hex().lower() in hash_set
+                ]
 
             total_count = len(all_paths)
 
@@ -9457,6 +9531,22 @@ class ReticulumMeshChat:
             value = self._parse_bool(data["show_suggested_community_interfaces"])
             self.config.show_suggested_community_interfaces.set(value)
 
+        for key in (
+            "announce_limit_lxmf_delivery",
+            "announce_limit_nomadnetwork_node",
+            "announce_limit_lxmf_propagation",
+        ):
+            if key in data:
+                val = data[key]
+                if val is None or val == "":
+                    getattr(self.config, key).set(None)
+                else:
+                    try:
+                        v = int(val)
+                        getattr(self.config, key).set(max(0, v) if v >= 0 else None)
+                    except (TypeError, ValueError):
+                        getattr(self.config, key).set(None)
+
         if "lxmf_preferred_propagation_node_destination_hash" in data:
             # update config value
             value = data["lxmf_preferred_propagation_node_destination_hash"]
@@ -10824,6 +10914,9 @@ class ReticulumMeshChat:
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
             "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),
+            "announce_limit_lxmf_delivery": ctx.config.announce_limit_lxmf_delivery.get(),
+            "announce_limit_nomadnetwork_node": ctx.config.announce_limit_nomadnetwork_node.get(),
+            "announce_limit_lxmf_propagation": ctx.config.announce_limit_lxmf_propagation.get(),
             "csp_extra_connect_src": ctx.config.csp_extra_connect_src.get(),
             "csp_extra_img_src": ctx.config.csp_extra_img_src.get(),
             "csp_extra_frame_src": ctx.config.csp_extra_frame_src.get(),
@@ -11232,8 +11325,20 @@ class ReticulumMeshChat:
                             f"Telemetry request from untrusted peer {source_hash}, ignoring",
                         )
                     else:
-                        print(f"Responding to telemetry request from {source_hash}")
-                        self.handle_telemetry_request(source_hash)
+                        lat = self.database.config.get("map_default_lat")
+                        lon = self.database.config.get("map_default_lon")
+                        if lat is not None and lon is not None:
+                            print(f"Responding to telemetry request from {source_hash}")
+                            self.handle_telemetry_request(source_hash)
+                        else:
+                            if not hasattr(self, "_telemetry_no_location_warned"):
+                                self._telemetry_no_location_warned = set()
+                            if source_hash not in self._telemetry_no_location_warned:
+                                self._telemetry_no_location_warned.add(source_hash)
+                                print(
+                                    f"Cannot respond to telemetry request from {source_hash}: No location set. "
+                                    "Set manual coordinates in Settings > Location to respond."
+                                )
 
                 self.db_upsert_lxmf_message(lxmf_message, context=ctx)
 

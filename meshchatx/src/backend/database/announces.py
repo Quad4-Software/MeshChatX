@@ -54,6 +54,13 @@ class AnnounceDAO:
             (destination_hash,),
         )
 
+    def get_announce_count_by_aspect(self, aspect):
+        row = self.provider.fetchone(
+            "SELECT COUNT(*) as count FROM announces WHERE aspect = ?",
+            (aspect,),
+        )
+        return row["count"] if row else 0
+
     def delete_all_announces(self, aspect=None):
         if aspect:
             self.provider.execute(

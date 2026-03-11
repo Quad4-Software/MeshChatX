@@ -2,10 +2,26 @@ import base64
 
 from .database import Database
 
+_ASPECT_LIMIT_KEYS = {
+    "lxmf.delivery": "announce_limit_lxmf_delivery",
+    "nomadnetwork.node": "announce_limit_nomadnetwork_node",
+    "lxmf.propagation": "announce_limit_lxmf_propagation",
+}
+
 
 class AnnounceManager:
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, config=None):
         self.db = db
+        self.config = config
+
+    def _get_limit_for_aspect(self, aspect):
+        key = _ASPECT_LIMIT_KEYS.get(aspect)
+        if not key:
+            return None
+        attr = getattr(self.config, key, None)
+        if attr is None:
+            return None
+        return attr.get()
 
     def upsert_announce(
         self,
@@ -16,10 +32,24 @@ class AnnounceManager:
         app_data,
         announce_packet_hash,
     ):
-        # get rssi, snr and signal quality if available
-        rssi = reticulum.get_packet_rssi(announce_packet_hash)
-        snr = reticulum.get_packet_snr(announce_packet_hash)
-        quality = reticulum.get_packet_q(announce_packet_hash)
+        if self.config:
+            limit = self._get_limit_for_aspect(aspect)
+            if limit is not None and limit >= 0:
+                dest_hex = (
+                    destination_hash.hex()
+                    if isinstance(destination_hash, bytes)
+                    else destination_hash
+                )
+                existing = self.db.announces.get_announce_by_hash(dest_hex)
+                if not existing or existing.get("aspect") != aspect:
+                    count = self.db.announces.get_announce_count_by_aspect(aspect)
+                    if count >= limit:
+                        return
+        rssi = snr = quality = None
+        if announce_packet_hash and reticulum:
+            rssi = reticulum.get_packet_rssi(announce_packet_hash)
+            snr = reticulum.get_packet_snr(announce_packet_hash)
+            quality = reticulum.get_packet_q(announce_packet_hash)
 
         # prepare data to insert or update
         data = {

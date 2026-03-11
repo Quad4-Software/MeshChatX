@@ -156,7 +156,7 @@ class IdentityContext:
             self.config.docs_download_urls.set(self.app.docs_download_urls_override)
 
         self.message_handler = MessageHandler(self.database)
-        self.announce_manager = AnnounceManager(self.database)
+        self.announce_manager = AnnounceManager(self.database, self.config)
         self.archiver_manager = ArchiverManager(self.database)
         self.map_manager = MapManager(self.config, self.app.storage_dir)
         self.docs_manager = DocsManager(
