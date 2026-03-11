@@ -256,9 +256,17 @@ class Database:
         page_size = self._get_pragma_value("page_size", 0) or 0
         page_count = self._get_pragma_value("page_count", 0) or 0
         freelist_pages = self._get_pragma_value("freelist_count", 0) or 0
-        free_bytes = (
+        freelist_bytes = (
             page_size * freelist_pages if page_size > 0 and freelist_pages > 0 else 0
         )
+        if freelist_bytes > 0:
+            free_bytes = freelist_bytes
+        else:
+            try:
+                db_dir = os.path.dirname(os.path.abspath(self.provider.db_path))
+                free_bytes = shutil.disk_usage(db_dir).free if db_dir else 0
+            except OSError:
+                free_bytes = 0
 
         return {
             "quick_check": self._get_pragma_value("quick_check", "unknown"),

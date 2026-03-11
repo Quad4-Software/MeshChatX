@@ -4,6 +4,7 @@ import tempfile
 
 import pytest
 
+from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.database.legacy_migrator import LegacyMigrator
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
@@ -109,3 +110,14 @@ def test_legacy_migration_data(temp_db):
         assert config_row["value"] == "test_val"
 
     provider.close()
+
+
+def test_database_health_snapshot_free_space(temp_db):
+    db = Database(temp_db)
+    db.initialize()
+    health = db.get_database_health_snapshot()
+    assert "estimated_free_bytes" in health
+    assert health["estimated_free_bytes"] >= 0
+    assert health["journal_mode"] == "wal"
+    assert health["freelist_pages"] == 0
+    assert health["estimated_free_bytes"] > 0

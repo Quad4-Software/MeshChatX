@@ -218,4 +218,57 @@ describe("AboutPage.vue", () => {
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/database/vacuum");
         expect(wrapper.vm.databaseActionMessage).toBe("Vacuum success");
     });
+
+    it("displays Free Space from database health", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info") return Promise.resolve({ data: { app_info: { version: "1.0.0" } } });
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health")
+                return Promise.resolve({
+                    data: {
+                        database: {
+                            quick_check: "ok",
+                            journal_mode: "wal",
+                            page_size: 4096,
+                            page_count: 100,
+                            freelist_pages: 0,
+                            estimated_free_bytes: 1073741824,
+                        },
+                    },
+                });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        wrapper.vm.showAdvanced = true;
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("Free Space");
+        expect(wrapper.text()).toContain("1 GB");
+    });
+
+    it("displays 0 Bytes when database health has no estimated_free_bytes", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info") return Promise.resolve({ data: { app_info: { version: "1.0.0" } } });
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health")
+                return Promise.resolve({
+                    data: { database: { quick_check: "ok", journal_mode: "wal" } },
+                });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        wrapper.vm.showAdvanced = true;
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("Free Space");
+        expect(wrapper.text()).toContain("0 Bytes");
+    });
 });
