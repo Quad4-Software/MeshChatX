@@ -1039,7 +1039,7 @@
                     <!-- Network Security -->
                     <section
                         v-show="
-                                matchesSearch(
+                            matchesSearch(
                                 'RNS Security',
                                 'Network Security',
                                 'app.blackhole_integration_enabled',
@@ -1096,14 +1096,19 @@
                                             placeholder="-"
                                             @change="
                                                 updateConfig(
-                                                    { announce_limit_lxmf_delivery: config.announce_limit_lxmf_delivery ?? null },
+                                                    {
+                                                        announce_limit_lxmf_delivery:
+                                                            config.announce_limit_lxmf_delivery ?? null,
+                                                    },
                                                     'announce_limits'
                                                 )
                                             "
                                         />
                                     </div>
                                     <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_nomadnet") }}</label>
+                                        <label class="text-xs font-medium">{{
+                                            $t("app.announce_limit_nomadnet")
+                                        }}</label>
                                         <input
                                             v-model.number="config.announce_limit_nomadnetwork_node"
                                             type="number"
@@ -1112,7 +1117,10 @@
                                             placeholder="-"
                                             @change="
                                                 updateConfig(
-                                                    { announce_limit_nomadnetwork_node: config.announce_limit_nomadnetwork_node ?? null },
+                                                    {
+                                                        announce_limit_nomadnetwork_node:
+                                                            config.announce_limit_nomadnetwork_node ?? null,
+                                                    },
                                                     'announce_limits'
                                                 )
                                             "
@@ -1128,7 +1136,10 @@
                                             placeholder="-"
                                             @change="
                                                 updateConfig(
-                                                    { announce_limit_lxmf_propagation: config.announce_limit_lxmf_propagation ?? null },
+                                                    {
+                                                        announce_limit_lxmf_propagation:
+                                                            config.announce_limit_lxmf_propagation ?? null,
+                                                    },
                                                     'announce_limits'
                                                 )
                                             "

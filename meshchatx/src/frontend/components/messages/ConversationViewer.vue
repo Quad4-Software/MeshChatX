@@ -451,7 +451,9 @@
                         <button
                             type="button"
                             class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
-                            :class="chatItem.is_outbound ? 'hover:bg-white/20' : 'hover:bg-gray-200 dark:hover:bg-zinc-700'"
+                            :class="
+                                chatItem.is_outbound ? 'hover:bg-white/20' : 'hover:bg-gray-200 dark:hover:bg-zinc-700'
+                            "
                             :title="$t('messages.message_actions')"
                             @click.stop="onMessageContextMenu($event, chatItem)"
                         >
@@ -1229,52 +1231,52 @@
                 class="fixed z-[200] min-w-[180px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
                 :style="{ top: messageContextMenu.y + 'px', left: messageContextMenu.x + 'px' }"
             >
-            <button
-                type="button"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                @click="replyToMessage(messageContextMenu.chatItem)"
-            >
-                <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
-                <span class="font-medium">Reply</span>
-            </button>
-            <button
-                type="button"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                @click="
-                    showRawMessage(messageContextMenu.chatItem);
-                    messageContextMenu.show = false;
-                "
-            >
-                <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
-                <span class="font-medium">View Raw LXM</span>
-            </button>
-            <button
-                v-if="
-                    messageContextMenu.chatItem?.is_outbound &&
-                    ['failed', 'cancelled'].includes(messageContextMenu.chatItem?.lxmf_message?.state)
-                "
-                type="button"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all active:scale-95"
-                @click="
-                    retrySendingMessage(messageContextMenu.chatItem);
-                    messageContextMenu.show = false;
-                "
-            >
-                <MaterialDesignIcon icon-name="refresh" class="size-4" />
-                <span class="font-medium">Retry</span>
-            </button>
-            <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
-            <button
-                type="button"
-                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all active:scale-95"
-                @click="
-                    deleteChatItem(messageContextMenu.chatItem);
-                    messageContextMenu.show = false;
-                "
-            >
-                <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                <span class="font-medium">Delete</span>
-            </button>
+                <button
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                    @click="replyToMessage(messageContextMenu.chatItem)"
+                >
+                    <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
+                    <span class="font-medium">Reply</span>
+                </button>
+                <button
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                    @click="
+                        showRawMessage(messageContextMenu.chatItem);
+                        messageContextMenu.show = false;
+                    "
+                >
+                    <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
+                    <span class="font-medium">View Raw LXM</span>
+                </button>
+                <button
+                    v-if="
+                        messageContextMenu.chatItem?.is_outbound &&
+                        ['failed', 'cancelled'].includes(messageContextMenu.chatItem?.lxmf_message?.state)
+                    "
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all active:scale-95"
+                    @click="
+                        retrySendingMessage(messageContextMenu.chatItem);
+                        messageContextMenu.show = false;
+                    "
+                >
+                    <MaterialDesignIcon icon-name="refresh" class="size-4" />
+                    <span class="font-medium">Retry</span>
+                </button>
+                <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                <button
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all active:scale-95"
+                    @click="
+                        deleteChatItem(messageContextMenu.chatItem);
+                        messageContextMenu.show = false;
+                    "
+                >
+                    <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
+                    <span class="font-medium">Delete</span>
+                </button>
             </div>
         </Teleport>
     </div>

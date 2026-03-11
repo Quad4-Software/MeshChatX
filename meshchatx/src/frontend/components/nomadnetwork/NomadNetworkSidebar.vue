@@ -230,24 +230,24 @@
                         <MaterialDesignIcon icon-name="trash-can" class="size-4 text-red-400" />
                         <span class="font-medium">{{ $t("nomadnet.remove") }}</span>
                     </button>
-                <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
-                <div
-                    class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
-                >
-                    Move to Section
-                </div>
-                <div class="max-h-56 overflow-y-auto custom-scrollbar">
-                    <button
-                        v-for="section in sectionsWithFavourites"
-                        :key="section.id + '-move'"
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
-                        @click="moveContextFavouriteToSection(section.id)"
+                    <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                    <div
+                        class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
                     >
-                        <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
-                        <span class="truncate">{{ section.name }}</span>
-                    </button>
-                </div>
+                        Move to Section
+                    </div>
+                    <div class="max-h-56 overflow-y-auto custom-scrollbar">
+                        <button
+                            v-for="section in sectionsWithFavourites"
+                            :key="section.id + '-move'"
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
+                            @click="moveContextFavouriteToSection(section.id)"
+                        >
+                            <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
+                            <span class="truncate">{{ section.name }}</span>
+                        </button>
+                    </div>
                 </div>
             </Teleport>
 
@@ -259,24 +259,26 @@
                     class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
                     :style="{ top: sectionContextMenu.y + 'px', left: sectionContextMenu.x + 'px' }"
                 >
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                    @click="renameSectionFromContext"
-                >
-                    <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
-                    <span class="font-medium">Rename Section</span>
-                </button>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                    :disabled="sectionContextMenu.sectionId === defaultSectionId"
-                    :class="sectionContextMenu.sectionId === defaultSectionId ? 'opacity-50 cursor-not-allowed' : ''"
-                    @click="removeSectionFromContext"
-                >
-                    <MaterialDesignIcon icon-name="delete" class="size-4 text-red-400" />
-                    <span class="font-medium">Delete Section</span>
-                </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                        @click="renameSectionFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
+                        <span class="font-medium">Rename Section</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                        :disabled="sectionContextMenu.sectionId === defaultSectionId"
+                        :class="
+                            sectionContextMenu.sectionId === defaultSectionId ? 'opacity-50 cursor-not-allowed' : ''
+                        "
+                        @click="removeSectionFromContext"
+                    >
+                        <MaterialDesignIcon icon-name="delete" class="size-4 text-red-400" />
+                        <span class="font-medium">Delete Section</span>
+                    </button>
                 </div>
             </Teleport>
         </div>
@@ -340,22 +342,25 @@
                         </div>
                         <div class="flex-shrink-0">
                             <DropDownMenu>
-                            <template #button>
-                                <IconButton>
-                                    <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
-                                </IconButton>
-                            </template>
-                            <template #items>
-                                <DropDownMenuItem v-if="!isBlocked(node.identity_hash)" @click.stop="onBlockNode(node)">
-                                    <MaterialDesignIcon icon-name="gavel" class="w-5 h-5 text-red-500" />
-                                    <span class="text-red-500">{{ $t("nomadnet.block_node") }}</span>
-                                </DropDownMenuItem>
-                                <DropDownMenuItem v-else @click.stop="onUnblockNode(node.identity_hash)">
-                                    <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
-                                    <span class="text-green-500">{{ $t("nomadnet.lift_banishment") }}</span>
-                                </DropDownMenuItem>
-                            </template>
-                        </DropDownMenu>
+                                <template #button>
+                                    <IconButton>
+                                        <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
+                                    </IconButton>
+                                </template>
+                                <template #items>
+                                    <DropDownMenuItem
+                                        v-if="!isBlocked(node.identity_hash)"
+                                        @click.stop="onBlockNode(node)"
+                                    >
+                                        <MaterialDesignIcon icon-name="gavel" class="w-5 h-5 text-red-500" />
+                                        <span class="text-red-500">{{ $t("nomadnet.block_node") }}</span>
+                                    </DropDownMenuItem>
+                                    <DropDownMenuItem v-else @click.stop="onUnblockNode(node.identity_hash)">
+                                        <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
+                                        <span class="text-green-500">{{ $t("nomadnet.lift_banishment") }}</span>
+                                    </DropDownMenuItem>
+                                </template>
+                            </DropDownMenu>
                         </div>
                     </div>
 
@@ -929,7 +934,9 @@ export default {
             this.closeContextMenus();
             if (
                 !(await DialogUtils.confirm(
-                    this.$t("nomadnet.block_node_confirm", { name: favourite.display_name || favourite.custom_display_name })
+                    this.$t("nomadnet.block_node_confirm", {
+                        name: favourite.display_name || favourite.custom_display_name,
+                    })
                 ))
             ) {
                 return;

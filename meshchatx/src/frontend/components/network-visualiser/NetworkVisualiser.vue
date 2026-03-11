@@ -430,9 +430,13 @@ export default {
             try {
                 this.loadingStatus = "Loading paths...";
                 if (destinationHashes && destinationHashes.length > 0) {
-                    const resp = await window.axios.post(`/api/v1/path-table`, { destination_hashes: destinationHashes }, {
-                        signal: this.abortController.signal,
-                    });
+                    const resp = await window.axios.post(
+                        `/api/v1/path-table`,
+                        { destination_hashes: destinationHashes },
+                        {
+                            signal: this.abortController.signal,
+                        }
+                    );
                     this.pathTable.push(...resp.data.path_table);
                 } else {
                     const firstResp = await window.axios.get(`/api/v1/path-table`, {
