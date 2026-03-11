@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file.
 
 - **MicronParser**: Tests for `FT`/`BT` truecolor and 3-digit `F`/`B` formats, including precedence when both could match.
 
+### Updates
+
+- **pnpm-lock.yaml**: Updated Vue and Vue-i18n.
+
 ## [4.3.1] - 2026-03-10
 
 ### Fixes
