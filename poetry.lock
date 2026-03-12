@@ -867,14 +867,14 @@ mac_alias = ">=2.2.2"
 
 [[package]]
 name = "filelock"
-version = "3.25.1"
+version = "3.25.2"
 description = "A platform independent file lock."
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "filelock-3.25.1-py3-none-any.whl", hash = "sha256:18972df45473c4aa2c7921b609ee9ca4925910cc3a0fb226c96b92fc224ef7bf"},
-    {file = "filelock-3.25.1.tar.gz", hash = "sha256:b9a2e977f794ef94d77cdf7d27129ac648a61f585bff3ca24630c1629f701aa9"},
+    {file = "filelock-3.25.2-py3-none-any.whl", hash = "sha256:ca8afb0da15f229774c9ad1b455ed96e85a81373065fb10446672f64444ddf70"},
+    {file = "filelock-3.25.2.tar.gz", hash = "sha256:b64ece2b38f4ca29dd3e810287aa8c48182bbecd1ae6e9ae126c9b35f1382694"},
 ]
 
 [[package]]
@@ -1992,14 +1992,13 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "rns"
-version = "1.1.3"
+version = "1.1.4"
 description = "Self-configuring, encrypted and resilient mesh networking stack for LoRa, packet radio, WiFi and everything in between"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "rns-1.1.3-py3-none-any.whl", hash = "sha256:1de9b46c8f24931fa41974664ddbf4251d3fdd069be4de03c64b42a7cf4f8fb4"},
-    {file = "rns-1.1.3.tar.gz", hash = "sha256:cd2e1a1dbe0dd8c5691b3c7a01d23d060981b127aa71001d0d596d653e9f3eea"},
+    {file = "rns-1.1.4-py3-none-any.whl", hash = "sha256:b2a175abd64d1581dd058206832793dbf7053a304c819ff8bc143a79c49cb747"},
 ]
 
 [package.dependencies]
@@ -2303,4 +2302,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "6ffc48e99f547e9ec5940fdc3a405520a6367bd9a60f370f02b6e68b896cb7c9"
+content-hash = "a72c46864d898a8106950bf000395181d3645d0cb0d5d853d3082e0df861b312"
