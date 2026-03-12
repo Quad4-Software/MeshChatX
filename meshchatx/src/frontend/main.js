@@ -12,22 +12,19 @@ import "./fonts/RobotoMonoNerdFont/font.css";
 import { ensureCodec2ScriptsLoaded } from "./js/Codec2Loader";
 
 import App from "./components/App.vue";
-import en from "./locales/en.json";
-import de from "./locales/de.json";
-import ru from "./locales/ru.json";
-import it from "./locales/it.json";
 
-// init i18n
+const localeModules = import.meta.glob("./locales/*.json", { eager: true });
+const messages = {};
+for (const filePath in localeModules) {
+    const code = filePath.match(/\/([^/]+)\.json$/)[1];
+    messages[code] = localeModules[filePath].default;
+}
+
 const i18n = createI18n({
     legacy: false,
     locale: "en",
     fallbackLocale: "en",
-    messages: {
-        en,
-        de,
-        ru,
-        it,
-    },
+    messages,
 });
 
 // init vuetify
