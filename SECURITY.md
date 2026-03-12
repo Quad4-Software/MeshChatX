@@ -8,17 +8,16 @@ If you discover a security vulnerability or have concerns about the security of 
 
 ## Security Overview
 
-Reticulum MeshChatX is designed with a high degree of security in mind, leveraging multiple layers of protection and modern security practices. Detailed security enhancements are documented in the [CHANGELOG.md](CHANGELOG.md) and [README.md](README.md).
+Reticulum MeshChatX is designed with a high degree of security in mind, leveraging multiple layers of protection and modern security practices.
+
+We follow the [Electron Best Security Practices](https://www.electronjs.org/docs/latest/tutorial/security)
 
 ### Core Security Features
 
 - **ASAR Integrity Validation**: Utilizes Electron 39 features to protect the application against tampering.
 - **Backend Binary Verification**: Generates a SHA-256 manifest of the unpacked Python backend during build and verifies it on every startup.
 - **Data-at-Rest Integrity Monitoring**: Snapshots the state of identities and database files on clean shutdown and warns if they were modified while the app was closed.
-- **Redundant CSP Hardening**: Multi-layered Content Security Policy protection across the entire application stack:
-    1. **Backend Server CSP**: Applied via security middleware to all HTTP responses.
-    2. **Electron Session CSP**: Shell-level fallback CSP applied via `webRequest.onHeadersReceived`.
-    3. **Loading Screen CSP**: Bootloader CSP defined in HTML meta tags.
+- **CSP Hardening**: Multi-layered Content Security Policy protection across the entire application stack.
 - **Hardened Electron Environment**: Hardened security by disabling `runAsNode` and `nodeOptions` environment variables via Electron Fuses.
 - **Rootless Docker Images**: Support for running in restricted environments with rootless container images.
 
