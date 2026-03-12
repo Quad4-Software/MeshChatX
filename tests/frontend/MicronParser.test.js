@@ -116,6 +116,20 @@ describe("MicronParser.js", () => {
                 expect(html).toContain("rgb(171, 205, 239)");
                 expect(html).toContain("Text");
             });
+
+            it("handles fallback truecolor for NomadNet compat (Fbdf`Face)", () => {
+                const markup = "`Fbdf`FaceColored Text";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(171, 205, 239)");
+                expect(html).toContain("Colored Text");
+            });
+
+            it("fallback truecolor takes priority over plain 3-char F", () => {
+                const markup = "`Ff00`F0ffColored Text";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(15, 240, 240)");
+                expect(html).toContain("Colored Text");
+            });
         });
 
         describe("background color", () => {
@@ -138,6 +152,20 @@ describe("MicronParser.js", () => {
                 const html = parser.convertMicronToHtml(markup);
                 expect(html).toContain("rgb(17, 34, 51)");
                 expect(html).toContain("Text");
+            });
+
+            it("handles fallback truecolor for NomadNet compat (Bbdf`Bace)", () => {
+                const markup = "`Bbdf`BaceYellow BG";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(171, 205, 239)");
+                expect(html).toContain("Yellow BG");
+            });
+
+            it("fallback truecolor takes priority over plain 3-char B", () => {
+                const markup = "`Bf00`B0ffBG Text";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toContain("rgb(15, 240, 240)");
+                expect(html).toContain("BG Text");
             });
         });
 

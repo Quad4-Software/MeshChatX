@@ -755,6 +755,12 @@ class MicronParser {
                         break;
 
                     case "F":
+                        if (line[i + 4] === "`" && line[i + 5] === "F" && line.length >= i + 9) {
+                            let color = line[i+6]+line[i+1]+line[i+7]+line[i+2]+line[i+8]+line[i+3];
+                            state.fg_color = color;
+                            skip = 8;
+                            break;
+                        }
                         if (line[i + 1] === "T" && line.length >= i + 8) {
                             let color = line.substr(i + 2, 6);
                             state.fg_color = color;
@@ -772,6 +778,13 @@ class MicronParser {
                         state.fg_color = state.default_fg;
                         break;
                     case "B":
+                        if (line[i + 4] === "`" && line[i + 5] === "B" && line.length >= i + 9) {
+                            let color = line[i+6]+line[i+1]+line[i+7]+line[i+2]+line[i+8]+line[i+3];
+                            state.bg_color = color;
+                            skip = 8;
+                            flushPart();
+                            break;
+                        }
                         if (line[i + 1] === "T" && line.length >= i + 8) {
                             let color = line.substr(i + 2, 6);
                             state.bg_color = color;
