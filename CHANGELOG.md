@@ -16,15 +16,17 @@ All notable changes to this project will be documented in this file.
 
 - **Network visualizer data loading**: Fetches only `lxmf.delivery` and `nomadnetwork.node` announces instead of all; path table filtered by those destination hashes via new `POST /api/v1/path-table` endpoint. Dramatically reduces load time on large networks.
 - **NomadNet context menus**: Right-click context menu on announces and favourites (like conversation viewer): Rename, Banish, Lift Banishment, Remove, Add to Favourites, Move to Section. Menus use Teleport to body and `justOpened` delay to avoid immediate close on click.
+- **Dynamic locale discovery**: Locales are now discovered automatically from `meshchatx/src/frontend/locales/*.json` via `import.meta.glob`. Adding a new language only requires a single JSON file with a `_languageName` key; no code changes to `main.js`, `LanguageSelector.vue`, or tests needed.
 
 ### Testing
 
 - **NomadNetworkSidebar**: Tests for 3-dots on favourite cards, context menu options, rename/remove/banish from context, announce right-click menu, add favourite and block from announce context.
+- **i18n**: Dynamic locale file discovery in tests; added `_languageName` presence check for all locales.
 
 ### Updates
 
 - **pnpm-lock.yaml**: Updated Vue and Vue-i18n.
-- **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it.
+- **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files.
 
 ## [4.3.1] - 2026-03-10
 
