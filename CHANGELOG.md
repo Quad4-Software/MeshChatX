@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.3.2] - 2026-03-11
+## [4.3.2] - 2026-03-13 (Upcoming Release)
+
+### On Hold
+
+- MicronParser truecolor support - until NomadNet supports etc.
 
 ### Fixes
 
@@ -11,12 +15,10 @@ All notable changes to this project will be documented in this file.
 ### Improvements
 
 - **Network visualizer data loading**: Fetches only `lxmf.delivery` and `nomadnetwork.node` announces instead of all; path table filtered by those destination hashes via new `POST /api/v1/path-table` endpoint. Dramatically reduces load time on large networks.
-- **MicronParser truecolor**: Added `FT` and `BT` tags for 6-digit hex foreground/background colors, enabling 16.7M colors instead of 4,096. Backwards compatible with existing 3-digit `F`/`B` format. https://github.com/RFnexus/micron-parser-js/pull/20
 - **NomadNet context menus**: Right-click context menu on announces and favourites (like conversation viewer): Rename, Banish, Lift Banishment, Remove, Add to Favourites, Move to Section. Menus use Teleport to body and `justOpened` delay to avoid immediate close on click.
 
 ### Testing
 
-- **MicronParser**: Tests for `FT`/`BT` truecolor and 3-digit `F`/`B` formats, including precedence when both could match.
 - **NomadNetworkSidebar**: Tests for 3-dots on favourite cards, context menu options, rename/remove/banish from context, announce right-click menu, add favourite and block from announce context.
 
 ### Updates
