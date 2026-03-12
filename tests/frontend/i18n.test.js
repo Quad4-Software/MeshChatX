@@ -1,8 +1,4 @@
 import { describe, it, expect } from "vitest";
-import en from "../../meshchatx/src/frontend/locales/en.json";
-import de from "../../meshchatx/src/frontend/locales/de.json";
-import ru from "../../meshchatx/src/frontend/locales/ru.json";
-import itLocale from "../../meshchatx/src/frontend/locales/it.json";
 import fs from "fs";
 import path from "path";
 
@@ -17,13 +13,32 @@ function getKeys(obj, prefix = "") {
     }, []);
 }
 
+const localesDir = path.resolve(__dirname, "../../meshchatx/src/frontend/locales");
+const localeFiles = fs.readdirSync(localesDir).filter((f) => f.endsWith(".json"));
+const allLocales = {};
+for (const file of localeFiles) {
+    const code = file.replace(".json", "");
+    allLocales[code] = JSON.parse(fs.readFileSync(path.join(localesDir, file), "utf-8"));
+}
+
+const en = allLocales["en"];
+
 describe("i18n Localization Tests", () => {
     const enKeys = getKeys(en);
-    const locales = [
-        { name: "German", data: de, keys: getKeys(de) },
-        { name: "Russian", data: ru, keys: getKeys(ru) },
-        { name: "Italian", data: itLocale, keys: getKeys(itLocale) },
-    ];
+    const locales = Object.entries(allLocales)
+        .filter(([code]) => code !== "en")
+        .map(([code, data]) => ({
+            name: data._languageName || code,
+            data,
+            keys: getKeys(data),
+        }));
+
+    it("should have _languageName in every locale", () => {
+        const missing = Object.entries(allLocales)
+            .filter(([, data]) => !data._languageName || typeof data._languageName !== "string")
+            .map(([code]) => code);
+        expect(missing).toEqual([]);
+    });
 
     locales.forEach((locale) => {
         it(`should have all keys from en.json in ${locale.name}`, () => {

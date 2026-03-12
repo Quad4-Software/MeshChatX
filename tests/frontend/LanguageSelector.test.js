@@ -46,8 +46,8 @@ describe("LanguageSelector.vue", () => {
         expect(languageButtons).toHaveLength(4);
         expect(languageButtons[0].text()).toContain("English");
         expect(languageButtons[1].text()).toContain("Deutsch");
-        expect(languageButtons[2].text()).toContain("Русский");
-        expect(languageButtons[3].text()).toContain("Italiano");
+        expect(languageButtons[2].text()).toContain("Italiano");
+        expect(languageButtons[3].text()).toContain("\u0420\u0443\u0441\u0441\u043a\u0438\u0439");
     });
 
     it("emits language-change when a different language is selected", async () => {
