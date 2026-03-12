@@ -41,6 +41,18 @@
 <script>
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
+const localeModules = import.meta.glob("../locales/*.json", { eager: true });
+const discoveredLanguages = Object.entries(localeModules)
+    .map(([filePath, mod]) => ({
+        code: filePath.match(/\/([^/]+)\.json$/)[1],
+        name: mod.default?._languageName || filePath.match(/\/([^/]+)\.json$/)[1],
+    }))
+    .sort((a, b) => {
+        if (a.code === "en") return -1;
+        if (b.code === "en") return 1;
+        return a.name.localeCompare(b.name);
+    });
+
 export default {
     name: "LanguageSelector",
     components: {
@@ -66,17 +78,14 @@ export default {
         return {
             isDropdownOpen: false,
             dropdownPosition: { top: 0, left: 0 },
-            languages: [
-                { code: "en", name: "English" },
-                { code: "de", name: "Deutsch" },
-                { code: "ru", name: "Русский" },
-                { code: "it", name: "Italiano" },
-            ],
         };
     },
     computed: {
         currentLanguage() {
             return this.$i18n.locale;
+        },
+        languages() {
+            return discoveredLanguages;
         },
         dropdownStyle() {
             return {
