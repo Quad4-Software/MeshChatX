@@ -223,6 +223,30 @@ task build:all
 - 組み込みの整合性チェックと HTTPS/WSS デフォルト設定
 - `.gitea/workflows/` の CI スキャンワークフロー
 
+## 言語の追加
+
+ロケールの検出は自動です。新しい言語を追加するには JSON ファイル1つだけで済みます:
+
+1. `en.json` からテンプレートを生成:
+
+```bash
+python scripts/generate_locale_template.py
+```
+
+2. ファイル名を変更しロケールディレクトリに移動:
+
+```bash
+mv locales.json meshchatx/src/frontend/locales/xx.json
+```
+
+3. ファイル先頭の `_languageName` にその言語の母語名を設定 (例: `"Espanol"`, `"Francais"`)。
+
+4. 残りの値をすべて翻訳。
+
+5. キーの整合性を確認: `pnpm test -- tests/frontend/i18n.test.js --run`
+
+他のコード変更は不要です。
+
 ## クレジット
 
 - [Liam Cottle](https://github.com/liamcottle) - オリジナル Reticulum MeshChat

@@ -223,6 +223,30 @@ task build:all
 - Встроенные проверки целостности и HTTPS/WSS по умолчанию
 - CI-сканирование в `.gitea/workflows/`
 
+## Добавление языка
+
+Обнаружение локалей происходит автоматически. Для добавления нового языка достаточно одного JSON-файла:
+
+1. Сгенерировать шаблон из `en.json`:
+
+```bash
+python scripts/generate_locale_template.py
+```
+
+2. Переименовать и переместить в каталог локалей:
+
+```bash
+mv locales.json meshchatx/src/frontend/locales/xx.json
+```
+
+3. Установить `_languageName` в начале файла на название языка на этом языке (например `"Espanol"`, `"Francais"`).
+
+4. Перевести все остальные значения.
+
+5. Проверить соответствие ключей: `pnpm test -- tests/frontend/i18n.test.js --run`
+
+Никаких других изменений кода не требуется.
+
 ## Авторы
 
 - [Liam Cottle](https://github.com/liamcottle) - Оригинальный Reticulum MeshChat

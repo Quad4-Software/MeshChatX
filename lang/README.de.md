@@ -223,6 +223,30 @@ task build:all
 - Integrierte Integritaetspruefungen und HTTPS/WSS-Standardeinstellungen
 - CI-Scanning-Workflows in `.gitea/workflows/`
 
+## Sprache hinzufuegen
+
+Die Spracherkennung erfolgt automatisch. Um eine neue Sprache hinzuzufuegen, genuegt eine einzige JSON-Datei:
+
+1. Vorlage aus `en.json` generieren:
+
+```bash
+python scripts/generate_locale_template.py
+```
+
+2. Datei umbenennen und in das Locale-Verzeichnis verschieben:
+
+```bash
+mv locales.json meshchatx/src/frontend/locales/xx.json
+```
+
+3. `_languageName` am Anfang der Datei auf den nativen Sprachnamen setzen (z.B. `"Espanol"`, `"Francais"`).
+
+4. Alle uebrigen Werte uebersetzen.
+
+5. Schluesselparitaet pruefen: `pnpm test -- tests/frontend/i18n.test.js --run`
+
+Keine weiteren Code-Aenderungen noetig.
+
 ## Mitwirkende
 
 - [Liam Cottle](https://github.com/liamcottle) - Originales Reticulum MeshChat

@@ -223,6 +223,30 @@ task build:all
 - Controlli di integrita integrati e HTTPS/WSS predefiniti
 - Workflow di scansione CI in `.gitea/workflows/`
 
+## Aggiungere una lingua
+
+Il rilevamento delle lingue e automatico. Per aggiungere una nuova lingua basta un singolo file JSON:
+
+1. Generare un modello da `en.json`:
+
+```bash
+python scripts/generate_locale_template.py
+```
+
+2. Rinominare e spostare nella cartella delle lingue:
+
+```bash
+mv locales.json meshchatx/src/frontend/locales/xx.json
+```
+
+3. Impostare `_languageName` all'inizio del file con il nome nativo della lingua (es. `"Espanol"`, `"Francais"`).
+
+4. Tradurre tutti i valori rimanenti.
+
+5. Verificare la corrispondenza delle chiavi: `pnpm test -- tests/frontend/i18n.test.js --run`
+
+Nessuna altra modifica al codice necessaria.
+
 ## Crediti
 
 - [Liam Cottle](https://github.com/liamcottle) - Reticulum MeshChat originale

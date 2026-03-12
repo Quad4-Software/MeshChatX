@@ -223,6 +223,30 @@ task build:all
 - 内置完整性检查和 HTTPS/WSS 默认设置
 - `.gitea/workflows/` 中的 CI 扫描工作流
 
+## 添加语言
+
+语言发现是自动的。添加新语言只需一个 JSON 文件:
+
+1. 从 `en.json` 生成模板:
+
+```bash
+python scripts/generate_locale_template.py
+```
+
+2. 重命名并移动到语言目录:
+
+```bash
+mv locales.json meshchatx/src/frontend/locales/xx.json
+```
+
+3. 将文件顶部的 `_languageName` 设置为该语言的母语名称 (例如 `"Espanol"`, `"Francais"`)。
+
+4. 翻译所有其他值。
+
+5. 验证键一致性: `pnpm test -- tests/frontend/i18n.test.js --run`
+
+无需其他代码更改。
+
 ## 致谢
 
 - [Liam Cottle](https://github.com/liamcottle) - 原始 Reticulum MeshChat

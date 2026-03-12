@@ -270,6 +270,32 @@ Security and integrity details:
 - Built-in integrity checks and HTTPS/WSS defaults in app runtime
 - CI scanning workflows in `.gitea/workflows/`
 
+## Adding a Language
+
+Locale discovery is automatic. To add a new language, create a single JSON file:
+
+1. Generate a blank template from `en.json`:
+
+```bash
+python scripts/generate_locale_template.py
+```
+
+This writes `locales.json` with every key set to an empty string.
+
+2. Rename it to your language code and move it into the locales directory:
+
+```bash
+mv locales.json meshchatx/src/frontend/locales/xx.json
+```
+
+3. Set `_languageName` at the top of the file to the native name of the language (e.g. `"Espanol"`, `"Francais"`). This is displayed in the language selector.
+
+4. Translate all remaining values.
+
+5. Run `pnpm test -- tests/frontend/i18n.test.js --run` to verify key parity with `en.json`.
+
+No other code changes are required. The app, language selector, and tests all discover locales from the `meshchatx/src/frontend/locales/` directory at build time.
+
 ## Credits
 
 - [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
