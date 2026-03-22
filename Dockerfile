@@ -14,7 +14,7 @@ FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 COPY package.json pnpm-lock.yaml vite.config.js tailwind.config.js postcss.config.js ./
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
-RUN corepack enable && corepack prepare pnpm@10.30.0 --activate && \
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate && \
     pnpm install --frozen-lockfile && \
     pnpm run build-frontend
 
@@ -43,20 +43,21 @@ RUN pip install --no-cache-dir . && \
 
 # ---- STAGE 3: Final Image ----
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
-WORKDIR /app
 
 RUN apk upgrade --no-cache && \
-    apk add --no-cache ffmpeg opusfile libffi py3-setuptools espeak-ng && \
+    apk add --no-cache ffmpeg opusfile libffi py3-setuptools espeak-ng su-exec && \
     python -m pip install --no-cache-dir --upgrade "pip>=26.0" "jaraco.context>=6.1.0" && \
     rm -rf /root/.cache/pip && \
     addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
     mkdir -p /config && chown meshchat:meshchat /config
 
 COPY --from=builder --chown=meshchat:meshchat /opt/venv /opt/venv
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-USER meshchat
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["meshchat", "--host=0.0.0.0", "--reticulum-config-dir=/config/.reticulum", "--storage-dir=/config/.meshchat", "--headless"]
