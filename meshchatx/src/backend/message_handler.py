@@ -1,6 +1,12 @@
 from .database import Database
 
 
+def _strip_utf16_surrogates(text):
+    if text is None:
+        return None
+    return "".join(c for c in str(text) if not (0xD800 <= ord(c) <= 0xDFFF))
+
+
 class MessageHandler:
     def __init__(self, db: Database):
         self.db = db
@@ -42,6 +48,7 @@ class MessageHandler:
         )
 
     def search_messages(self, local_hash, search_term, limit=500):
+        search_term = _strip_utf16_surrogates(search_term) or ""
         like_term = f"%{search_term}%"
         query = """
             SELECT peer_hash, MAX(timestamp) as max_ts
@@ -126,15 +133,17 @@ class MessageHandler:
             )
 
         if search:
-            like_term = f"%{search}%"
-            # Search in latest message info OR search across ALL messages for this peer
-            where_clauses.append("""
-                (m1.title LIKE ? OR m1.content LIKE ? OR m1.peer_hash LIKE ? OR c.display_name LIKE ?
-                 OR m1.peer_hash IN (SELECT peer_hash FROM lxmf_messages WHERE title LIKE ? OR content LIKE ?))
-            """)
-            params.extend(
-                [like_term, like_term, like_term, like_term, like_term, like_term],
-            )
+            search = _strip_utf16_surrogates(search) or ""
+            if search:
+                like_term = f"%{search}%"
+                # Search in latest message info OR search across ALL messages for this peer
+                where_clauses.append("""
+                    (m1.title LIKE ? OR m1.content LIKE ? OR m1.peer_hash LIKE ? OR c.display_name LIKE ?
+                     OR m1.peer_hash IN (SELECT peer_hash FROM lxmf_messages WHERE title LIKE ? OR content LIKE ?))
+                """)
+                params.extend(
+                    [like_term, like_term, like_term, like_term, like_term, like_term],
+                )
 
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)

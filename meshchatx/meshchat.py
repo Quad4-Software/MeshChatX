@@ -1475,7 +1475,7 @@ class ReticulumMeshChat:
             )
             if not cleaned:
                 continue
-            cleaned = "".join(ch for ch in cleaned if ch.isprintable())
+            cleaned = "".join(ch for ch in cleaned if ch.isprintable()).strip()
             if not cleaned:
                 continue
             if len(cleaned) > max_pattern_length:
