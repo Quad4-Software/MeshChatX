@@ -36,7 +36,7 @@
 
 - Python `>=3.11` (из `pyproject.toml`)
 - Node.js `>=24` (из `package.json`)
-- pnpm `10.30.0` (из `package.json`)
+- pnpm `10.32.1` (из `package.json`)
 - Poetry (используется в `Taskfile.yml` и CI)
 
 ## Nix (flake.nix)
@@ -154,6 +154,14 @@ poetry install
 pnpm run build-frontend
 poetry run meshchat --headless --host 127.0.0.1
 ```
+
+## Запуск в песочнице (Linux)
+
+Чтобы запускать нативный бинарник `meshchat` с дополнительной изоляцией файловой системы, можно использовать **Firejail** или **Bubblewrap** (`bwrap`), сохраняя обычный сетевой доступ для Reticulum и веб-интерфейса. Полные примеры (pip/pipx, Poetry, заметки про USB-serial) в:
+
+- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+
+Та же страница отображается во встроенном разделе **Документация** (документация MeshChatX), когда она отдаётся из входящих в сборку или синхронизируемых файлов `meshchatx-docs`.
 
 ## Сборка пакетов из исходников
 

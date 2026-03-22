@@ -36,7 +36,7 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 
 - Python `>=3.11`（来自 `pyproject.toml`）
 - Node.js `>=24`（来自 `package.json`）
-- pnpm `10.30.0`（来自 `package.json`）
+- pnpm `10.32.1`（来自 `package.json`）
 - Poetry（用于 `Taskfile.yml` 和 CI 工作流）
 
 ## Nix (flake.nix)
@@ -154,6 +154,14 @@ poetry install
 pnpm run build-frontend
 poetry run meshchat --headless --host 127.0.0.1
 ```
+
+## 在沙盒中运行（Linux）
+
+若要在额外隔离文件系统的情况下运行原生 `meshchat` 可执行文件，可使用 **Firejail** 或 **Bubblewrap**（`bwrap`），同时保留 Reticulum 与 Web 界面所需的正常网络访问。完整示例（pip/pipx、Poetry、USB 串口说明）见：
+
+- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+
+应用内 **文档**（MeshChatX 文档）列表在提供已捆绑或已同步的 `meshchatx-docs` 文件时也会显示同一页面。
 
 ## 从源码构建桌面包
 

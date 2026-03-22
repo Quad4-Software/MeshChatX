@@ -36,7 +36,7 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 
 - Python `>=3.11`（`pyproject.toml` より）
 - Node.js `>=24`（`package.json` より）
-- pnpm `10.30.0`（`package.json` より）
+- pnpm `10.32.1`（`package.json` より）
 - Poetry（`Taskfile.yml` および CI ワークフローで使用）
 
 ## Nix (flake.nix)
@@ -154,6 +154,14 @@ poetry install
 pnpm run build-frontend
 poetry run meshchat --headless --host 127.0.0.1
 ```
+
+## サンドボックスで実行（Linux）
+
+ネイティブの `meshchat` バイナリを、ファイルシステムをより隔離した状態で動かすには、Reticulum と Web UI 向けの通常のネットワークアクセスを保ちつつ **Firejail** または **Bubblewrap**（`bwrap`）を使えます。詳しい例（pip/pipx、Poetry、USB シリアルの注意）は次を参照してください。
+
+- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+
+同じページは、同梱または同期された `meshchatx-docs` から配信される場合、アプリ内の **ドキュメント**（MeshChatX ドキュメント）一覧にも表示されます。
 
 ## ソースからのデスクトップパッケージビルド
 

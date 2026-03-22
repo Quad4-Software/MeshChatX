@@ -36,7 +36,7 @@ Questo progetto e indipendente dal progetto originale Reticulum MeshChat e non e
 
 - Python `>=3.11` (da `pyproject.toml`)
 - Node.js `>=24` (da `package.json`)
-- pnpm `10.30.0` (da `package.json`)
+- pnpm `10.32.1` (da `package.json`)
 - Poetry (utilizzato in `Taskfile.yml` e nei workflow CI)
 
 ## Nix (flake.nix)
@@ -154,6 +154,14 @@ poetry install
 pnpm run build-frontend
 poetry run meshchat --headless --host 127.0.0.1
 ```
+
+## Esecuzione in sandbox (Linux)
+
+Per eseguire il binario nativo `meshchat` con isolamento aggiuntivo del filesystem, puoi usare **Firejail** o **Bubblewrap** (`bwrap`) mantenendo l'accesso di rete normale per Reticulum e l'interfaccia web. Esempi completi (pip/pipx, Poetry, note sulla seriale USB) sono in:
+
+- [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
+
+La stessa pagina compare nell'elenco **Documentazione** in-app (documentazione MeshChatX) quando viene servita dai file `meshchatx-docs` inclusi o sincronizzati.
 
 ## Compilazione pacchetti desktop da sorgente
 
