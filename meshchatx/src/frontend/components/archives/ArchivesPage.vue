@@ -200,7 +200,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Utils from "../../js/Utils";
-import MicronParser from "micron-parser";
+import MicronParser from "../../js/MicronParser.js";
 import ArchiveSidebar from "./ArchiveSidebar.vue";
 
 export default {

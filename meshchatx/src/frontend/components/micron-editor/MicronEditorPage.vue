@@ -168,7 +168,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
-import MicronParser from "micron-parser";
+import MicronParser from "../../js/MicronParser.js";
 import { micronStorage } from "../../js/MicronStorage";
 import DialogUtils from "../../js/DialogUtils";
 
