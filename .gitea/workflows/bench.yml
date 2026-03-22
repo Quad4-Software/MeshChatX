@@ -9,8 +9,18 @@ jobs:
         steps:
             - name: Checkout
               run: |
-                  git config --global credential.helper "!f() { echo username=x-access-token; echo password=${GITEA_TOKEN}; }; f"
-                  git init -q && git remote add origin "${GITEA_SERVER_URL}/${GITEA_REPOSITORY}.git"
+                  set -eu
+                  SERVER="${GITEA_SERVER_URL:-${GITHUB_SERVER_URL:-}}"
+                  REPO="${GITEA_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
+                  if [ -z "$SERVER" ] || [ -z "$REPO" ]; then
+                    echo "Checkout: set GITEA_SERVER_URL/GITEA_REPOSITORY or GITHUB_SERVER_URL/GITHUB_REPOSITORY" >&2
+                    exit 1
+                  fi
+                  if [ -n "${GITEA_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+                    TOKEN="${GITEA_TOKEN:-$GITHUB_TOKEN}"
+                    git config --global credential.helper "!f() { echo username=x-access-token; echo password=${TOKEN}; }; f"
+                  fi
+                  git init -q && git remote add origin "${SERVER}/${REPO}.git"
                   git fetch -q --depth=1 origin "${GITHUB_SHA}" && git checkout -q FETCH_HEAD
 
             - name: Setup Node.js
