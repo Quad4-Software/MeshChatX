@@ -39,16 +39,20 @@ jobs:
               run: pip install poetry
 
             - name: Install dependencies
-              run: task install
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  task install
 
             - name: Run Benchmarks
               id: bench
               run: |
+                  . scripts/ci/ci-node-path.sh
                   set -o pipefail
                   task bench 2>&1 | tee bench_results.txt
 
             - name: Run Integrity Tests
               id: integrity
               run: |
+                  . scripts/ci/ci-node-path.sh
                   set -o pipefail
                   task test-integrity 2>&1 | tee -a bench_results.txt

@@ -49,9 +49,12 @@ jobs:
               run: pip install poetry
 
             - name: Install dependencies
-              run: task install
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  task install
 
             - name: Run tests
               run: |
+                  . scripts/ci/ci-node-path.sh
                   set -o pipefail
                   task test:all 2>&1 | tee test_results.txt

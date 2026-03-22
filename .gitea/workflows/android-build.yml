@@ -70,13 +70,19 @@ jobs:
               run: sh scripts/ci/setup-task.sh
 
             - name: Sync versions
-              run: node scripts/sync_version.js
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  node scripts/sync_version.js
 
             - name: Install dependencies
-              run: task install
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  task install
 
             - name: Build Frontend and Prepare Android
-              run: task android:prepare
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  task android:prepare
 
             - name: Build Android APK
               run: |

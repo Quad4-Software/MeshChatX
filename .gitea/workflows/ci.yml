@@ -49,11 +49,16 @@ jobs:
                   poetry run pip install --upgrade "pip>=26.0" pip-audit
                   poetry run pip-audit
             - name: Install Node dependencies
-              run: task deps:fe
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  task deps:fe
             - name: pnpm audit
-              run: pnpm audit --audit-level=high
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  pnpm audit --audit-level=high
             - name: Lint
               run: |
+                  . scripts/ci/ci-node-path.sh
                   set -o pipefail
                   task lint:all 2>&1 | tee lint_results.txt
 
@@ -82,9 +87,13 @@ jobs:
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
             - name: Install dependencies
-              run: task deps:fe
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  task deps:fe
             - name: pnpm audit
-              run: pnpm audit --audit-level=high
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  pnpm audit --audit-level=high
             - name: Determine version
               id: version
               run: |
@@ -92,6 +101,7 @@ jobs:
                   echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
             - name: Build frontend
               run: |
+                  . scripts/ci/ci-node-path.sh
                   set -o pipefail
                   task build:fe 2>&1 | tee build_results.txt
               env:
@@ -153,14 +163,19 @@ jobs:
             - name: Setup Poetry
               run: pip install poetry
             - name: Install dependencies
-              run: task install
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  task install
             - name: pip-audit
               run: |
                   poetry run pip install --upgrade "pip>=26.0" pip-audit
                   poetry run pip-audit
             - name: pnpm audit
-              run: pnpm audit --audit-level=high
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  pnpm audit --audit-level=high
             - name: Run language tests
               run: |
+                  . scripts/ci/ci-node-path.sh
                   set -o pipefail
                   task test:lang 2>&1 | tee lang_results.txt
