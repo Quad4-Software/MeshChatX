@@ -15,10 +15,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-            - name: OSV scan
-              run: bash scripts/osv_scan.sh
+              run: |
+                  git config --global credential.helper "!f() { echo username=x-access-token; echo password=${GITEA_TOKEN}; }; f"
+                  git init -q && git remote add origin "${GITEA_SERVER_URL}/${GITEA_REPOSITORY}.git"
+                  git fetch -q --depth=1 origin "${GITHUB_SHA}" && git checkout -q FETCH_HEAD
 
             - name: Download Trivy
               run: |

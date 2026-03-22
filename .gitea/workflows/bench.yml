@@ -8,25 +8,22 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              run: |
+                  git config --global credential.helper "!f() { echo username=x-access-token; echo password=${GITEA_TOKEN}; }; f"
+                  git init -q && git remote add origin "${GITEA_SERVER_URL}/${GITEA_REPOSITORY}.git"
+                  git fetch -q --depth=1 origin "${GITHUB_SHA}" && git checkout -q FETCH_HEAD
 
             - name: Setup Node.js
-              uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
-              with:
-                  node-version: 24
+              run: sh scripts/ci/setup-node.sh 24
 
-            - name: Install pnpm
-              run: corepack enable && corepack prepare pnpm@10.30.0 --activate
+            - name: Setup pnpm
+              run: sh scripts/ci/setup-pnpm.sh
 
             - name: Setup Python
-              uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
-              with:
-                  python-version: "3.13"
+              run: sh scripts/ci/setup-python.sh 3.13
 
             - name: Setup Task
-              uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
-              with:
-                  version: "3.46.3"
+              run: sh scripts/ci/setup-task.sh
 
             - name: Setup Poetry
               run: pip install poetry

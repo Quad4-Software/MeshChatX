@@ -27,9 +27,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Clone Repo
-              uses: https://git.quad4.io/actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-              with:
-                  fetch-depth: 0
+              run: |
+                  git config --global credential.helper "!f() { echo username=x-access-token; echo password=${GITEA_TOKEN}; }; f"
+                  git clone "${GITEA_SERVER_URL}/${GITEA_REPOSITORY}.git" .
+                  git checkout "${GITHUB_SHA}"
 
             - name: Determine version
               id: version
@@ -58,23 +59,17 @@ jobs:
                   fi
                   echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-            - name: Install NodeJS
-              uses: https://git.quad4.io/actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
-              with:
-                  node-version: 24
+            - name: Setup Node.js
+              run: sh scripts/ci/setup-node.sh 24
 
-            - name: Install Python
-              uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
-              with:
-                  python-version: "3.13"
+            - name: Setup Python
+              run: sh scripts/ci/setup-python.sh 3.13
 
             - name: Install Poetry
-              run: python -m pip install --upgrade pip poetry>=2.0.0
+              run: python3 -m pip install --upgrade pip poetry>=2.0.0
 
-            - name: Install pnpm
-              uses: https://git.quad4.io/actions/setup-pnpm@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
-              with:
-                  version: 10.30.0
+            - name: Setup pnpm
+              run: sh scripts/ci/setup-pnpm.sh
 
             - name: Install system dependencies
               run: |
@@ -83,9 +78,7 @@ jobs:
                   sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng zip rpm elfutils
 
             - name: Setup Task
-              uses: https://git.quad4.io/actions/setup-task@0ab1b2a65bc55236a3bc64cde78f80e20e8885c2 # v1
-              with:
-                  version: "3.46.3"
+              run: sh scripts/ci/setup-task.sh
 
             - name: Install dependencies
               run: task install
@@ -109,10 +102,7 @@ jobs:
             - name: Prepare release assets
               run: |
                   mkdir -p release-assets
-                  # Collect artifacts from dist/
-                  # Linux artifacts
                   find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" \) -exec cp {} release-assets/ \;
-                  # Python artifacts
                   find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp {} release-assets/ \;
 
                   # Create frontend zip
