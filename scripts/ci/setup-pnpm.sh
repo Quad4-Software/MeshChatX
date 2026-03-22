@@ -3,6 +3,8 @@
 # Usage: setup-pnpm.sh [version]
 set -eu
 
+export PATH="/usr/local/bin:$PATH"
+
 PNPM_VERSION="${1:-10.32.1}"
 
 corepack enable

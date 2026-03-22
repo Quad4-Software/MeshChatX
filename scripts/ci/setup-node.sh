@@ -46,5 +46,21 @@ echo "SHA256 verified: ${ACTUAL}"
 sudo tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1
 rm -f /tmp/node.tar.xz /tmp/node-shasums.txt
 
+export PATH="/usr/local/bin:$PATH"
+
+# Act / Gitea runners often ship an older Node in /usr/bin; later steps start a new shell.
+if [ -n "${GITHUB_ENV:-}" ]; then
+    echo "PATH=/usr/local/bin:$PATH" >> "$GITHUB_ENV"
+fi
+if [ -n "${GITEA_ENV:-}" ]; then
+    echo "PATH=/usr/local/bin:$PATH" >> "$GITEA_ENV"
+fi
+if [ -n "${GITHUB_PATH:-}" ]; then
+    echo "/usr/local/bin" >> "$GITHUB_PATH"
+fi
+if [ -n "${GITEA_PATH:-}" ]; then
+    echo "/usr/local/bin" >> "$GITEA_PATH"
+fi
+
 node --version
 npm --version
