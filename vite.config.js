@@ -89,7 +89,7 @@ export default {
                         if (id.includes("mitt")) {
                             return "vendor-mitt";
                         }
-                        if (id.includes("micron-parser")) {
+                        if (id.includes("micron-parser") || id.includes("MicronParser.js")) {
                             return "vendor-micron";
                         }
                         if (id.includes("electron-prompt")) {
