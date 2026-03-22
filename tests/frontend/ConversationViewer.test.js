@@ -3,6 +3,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 
+vi.mock("@/js/DialogUtils", () => ({
+    default: {
+        confirm: vi.fn(() => Promise.resolve(true)),
+    },
+}));
+
 describe("ConversationViewer.vue", () => {
     let axiosMock;
 
@@ -39,7 +45,9 @@ describe("ConversationViewer.vue", () => {
         };
         vi.stubGlobal(
             "FileReader",
-            vi.fn(() => mockFileReader)
+            vi.fn(function () {
+                return mockFileReader;
+            })
         );
     });
 
@@ -100,13 +108,6 @@ describe("ConversationViewer.vue", () => {
         await wrapper.vm.onImageSelected(image1);
 
         expect(wrapper.vm.newMessageImages).toHaveLength(1);
-
-        // Mock confirm dialog
-        vi.mock("@/js/DialogUtils", () => ({
-            default: {
-                confirm: vi.fn(() => Promise.resolve(true)),
-            },
-        }));
 
         await wrapper.vm.removeImageAttachment(0);
         expect(wrapper.vm.newMessageImages).toHaveLength(0);

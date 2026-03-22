@@ -4,17 +4,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // Mock vis-network
 vi.mock("vis-network", () => {
     return {
-        Network: vi.fn().mockImplementation(() => ({
-            on: vi.fn(),
-            off: vi.fn(),
-            destroy: vi.fn(),
-            setOptions: vi.fn(),
-            setData: vi.fn(),
-            getPositions: vi.fn(),
-            storePositions: vi.fn(),
-            fit: vi.fn(),
-            focus: vi.fn(),
-        })),
+        Network: vi.fn().mockImplementation(function () {
+            return {
+                on: vi.fn(),
+                off: vi.fn(),
+                destroy: vi.fn(),
+                setOptions: vi.fn(),
+                setData: vi.fn(),
+                getPositions: vi.fn(),
+                storePositions: vi.fn(),
+                fit: vi.fn(),
+                focus: vi.fn(),
+            };
+        }),
     };
 });
 

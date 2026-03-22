@@ -4,14 +4,16 @@ import NetworkVisualiser from "@/components/network-visualiser/NetworkVisualiser
 
 // Mock vis-network and vis-data
 vi.mock("vis-network", () => ({
-    Network: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-        off: vi.fn(),
-        destroy: vi.fn(),
-        setOptions: vi.fn(),
-        setData: vi.fn(),
-        getPositions: vi.fn().mockReturnValue({ me: { x: 0, y: 0 } }),
-    })),
+    Network: vi.fn().mockImplementation(function () {
+        return {
+            on: vi.fn(),
+            off: vi.fn(),
+            destroy: vi.fn(),
+            setOptions: vi.fn(),
+            setData: vi.fn(),
+            getPositions: vi.fn().mockReturnValue({ me: { x: 0, y: 0 } }),
+        };
+    }),
 }));
 
 vi.mock("vis-data", () => {

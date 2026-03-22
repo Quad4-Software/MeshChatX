@@ -1,5 +1,12 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("compressorjs", () => ({
+    default: vi.fn(function (file, options) {
+        options.success(file);
+    }),
+}));
+
 import CallPage from "@/components/call/CallPage.vue";
 
 describe("CallPage.vue - Custom Contact Images", () => {
@@ -23,17 +30,10 @@ describe("CallPage.vue - Custom Contact Images", () => {
         };
         vi.stubGlobal(
             "FileReader",
-            vi.fn(() => mockFileReader)
+            vi.fn(function () {
+                return mockFileReader;
+            })
         );
-
-        // Mock Compressor
-        vi.mock("compressorjs", () => {
-            return {
-                default: vi.fn().mockImplementation((file, options) => {
-                    options.success(file);
-                }),
-            };
-        });
 
         axiosMock.get.mockImplementation((url) => {
             if (url.includes("/api/v1/telephone/contacts")) return Promise.resolve({ data: [] });

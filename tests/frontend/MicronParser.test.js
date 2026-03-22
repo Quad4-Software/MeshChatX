@@ -42,6 +42,36 @@ describe("MicronParser.js", () => {
         });
     });
 
+    describe("isWideMonospaceCell", () => {
+        it("detects Han, kana, Hangul syllables", () => {
+            expect(MicronParser.isWideMonospaceCell("中")).toBe(true);
+            expect(MicronParser.isWideMonospaceCell("あ")).toBe(true);
+            expect(MicronParser.isWideMonospaceCell("ア")).toBe(true);
+            expect(MicronParser.isWideMonospaceCell("한")).toBe(true);
+        });
+
+        it("detects CJK punctuation and fullwidth ASCII", () => {
+            expect(MicronParser.isWideMonospaceCell("\u3000")).toBe(true);
+            expect(MicronParser.isWideMonospaceCell("\uff01")).toBe(true);
+        });
+
+        it("treats Latin as narrow", () => {
+            expect(MicronParser.isWideMonospaceCell("A")).toBe(false);
+            expect(MicronParser.isWideMonospaceCell("9")).toBe(false);
+        });
+    });
+
+    describe("forceMonospace wide cells", () => {
+        it("uses Mu-mnt-full for CJK and Mu-mnt for Latin in the same line", () => {
+            const monoParser = new MicronParser(true, true);
+            const html = monoParser.splitAtSpaces("Hi \u4e2d\u6587");
+            expect(html).toContain("class='Mu-mnt'>H</span>");
+            expect(html).toContain("class='Mu-mnt'>i</span>");
+            expect(html).toContain("class='Mu-mnt-full'>\u4e2d</span>");
+            expect(html).toContain("class='Mu-mnt-full'>\u6587</span>");
+        });
+    });
+
     describe("convertMicronToHtml", () => {
         it("converts simple text to HTML", () => {
             const markup = "Hello World";

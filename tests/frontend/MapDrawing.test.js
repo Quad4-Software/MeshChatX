@@ -14,61 +14,67 @@ vi.mock("@/js/TileCache", () => ({
     },
 }));
 
-// Mock OpenLayers
+// Mock OpenLayers (Vitest 4: constructor mocks must use function/class, not arrow fns)
 vi.mock("ol/Map", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-        un: vi.fn(),
-        addLayer: vi.fn(),
-        removeLayer: vi.fn(),
-        addInteraction: vi.fn(),
-        removeInteraction: vi.fn(),
-        addOverlay: vi.fn(),
-        removeOverlay: vi.fn(),
-        getView: vi.fn().mockReturnValue({
+    default: vi.fn().mockImplementation(function () {
+        return {
             on: vi.fn(),
-            setCenter: vi.fn(),
-            setZoom: vi.fn(),
-            getCenter: vi.fn().mockReturnValue([0, 0]),
-            getZoom: vi.fn().mockReturnValue(2),
-            fit: vi.fn(),
-            animate: vi.fn(),
-        }),
-        getLayers: vi.fn().mockReturnValue({
-            clear: vi.fn(),
-            push: vi.fn(),
-            getArray: vi.fn().mockReturnValue([]),
-        }),
-        getOverlays: vi.fn().mockReturnValue({
-            getArray: vi.fn().mockReturnValue([]),
-        }),
-        forEachFeatureAtPixel: vi.fn(),
-        setTarget: vi.fn(),
-        updateSize: vi.fn(),
-        getViewport: vi.fn().mockReturnValue({
-            addEventListener: vi.fn(),
-            removeEventListener: vi.fn(),
-        }),
-    })),
+            un: vi.fn(),
+            addLayer: vi.fn(),
+            removeLayer: vi.fn(),
+            addInteraction: vi.fn(),
+            removeInteraction: vi.fn(),
+            addOverlay: vi.fn(),
+            removeOverlay: vi.fn(),
+            getView: vi.fn().mockReturnValue({
+                on: vi.fn(),
+                setCenter: vi.fn(),
+                setZoom: vi.fn(),
+                getCenter: vi.fn().mockReturnValue([0, 0]),
+                getZoom: vi.fn().mockReturnValue(2),
+                fit: vi.fn(),
+                animate: vi.fn(),
+            }),
+            getLayers: vi.fn().mockReturnValue({
+                clear: vi.fn(),
+                push: vi.fn(),
+                getArray: vi.fn().mockReturnValue([]),
+            }),
+            getOverlays: vi.fn().mockReturnValue({
+                getArray: vi.fn().mockReturnValue([]),
+            }),
+            forEachFeatureAtPixel: vi.fn(),
+            setTarget: vi.fn(),
+            updateSize: vi.fn(),
+            getViewport: vi.fn().mockReturnValue({
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+            }),
+        };
+    }),
 }));
 
-vi.mock("ol/View", () => ({ default: vi.fn() }));
-vi.mock("ol/layer/Tile", () => ({ default: vi.fn() }));
-vi.mock("ol/layer/Vector", () => ({ default: vi.fn() }));
+vi.mock("ol/View", () => ({ default: vi.fn(function () {}) }));
+vi.mock("ol/layer/Tile", () => ({ default: vi.fn(function () {}) }));
+vi.mock("ol/layer/Vector", () => ({ default: vi.fn(function () {}) }));
 vi.mock("ol/source/XYZ", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        getTileLoadFunction: vi.fn().mockReturnValue(vi.fn()),
-        setTileLoadFunction: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return {
+            getTileLoadFunction: vi.fn().mockReturnValue(vi.fn()),
+            setTileLoadFunction: vi.fn(),
+        };
+    }),
 }));
 vi.mock("ol/source/Vector", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        clear: vi.fn(),
-        addFeature: vi.fn(),
-        addFeatures: vi.fn(),
-        getFeatures: vi.fn().mockReturnValue([]),
-        on: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return {
+            clear: vi.fn(),
+            addFeature: vi.fn(),
+            addFeatures: vi.fn(),
+            getFeatures: vi.fn().mockReturnValue([]),
+            on: vi.fn(),
+        };
+    }),
 }));
 vi.mock("ol/proj", () => ({
     fromLonLat: vi.fn((coords) => coords),
@@ -78,65 +84,80 @@ vi.mock("ol/control", () => ({
     defaults: vi.fn().mockReturnValue([]),
 }));
 vi.mock("ol/interaction/Draw", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-        setActive: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return { on: vi.fn(), setActive: vi.fn() };
+    }),
 }));
 vi.mock("ol/interaction/Modify", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-        setActive: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return { on: vi.fn(), setActive: vi.fn() };
+    }),
 }));
 vi.mock("ol/interaction/Select", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-        setActive: vi.fn(),
-        getFeatures: vi.fn().mockReturnValue({
-            getArray: vi.fn().mockReturnValue([]),
-            clear: vi.fn(),
-            push: vi.fn(),
-        }),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return {
+            on: vi.fn(),
+            setActive: vi.fn(),
+            getFeatures: vi.fn().mockReturnValue({
+                getArray: vi.fn().mockReturnValue([]),
+                clear: vi.fn(),
+                push: vi.fn(),
+            }),
+        };
+    }),
 }));
 vi.mock("ol/interaction/Translate", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-        setActive: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return { on: vi.fn(), setActive: vi.fn() };
+    }),
 }));
 vi.mock("ol/interaction/Snap", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return { on: vi.fn() };
+    }),
 }));
 vi.mock("ol/interaction/DragBox", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return { on: vi.fn() };
+    }),
 }));
 vi.mock("ol/Overlay", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        set: vi.fn(),
-        get: vi.fn(),
-        setPosition: vi.fn(),
-        setOffset: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return {
+            set: vi.fn(),
+            get: vi.fn(),
+            setPosition: vi.fn(),
+            setOffset: vi.fn(),
+        };
+    }),
 }));
 vi.mock("ol/format/GeoJSON", () => ({
-    default: vi.fn().mockImplementation(() => ({
-        writeFeatures: vi.fn().mockReturnValue('{"type":"FeatureCollection","features":[]}'),
-        readFeatures: vi.fn().mockReturnValue([]),
-    })),
+    default: vi.fn().mockImplementation(function () {
+        return {
+            writeFeatures: vi.fn().mockReturnValue('{"type":"FeatureCollection","features":[]}'),
+            readFeatures: vi.fn().mockReturnValue([]),
+        };
+    }),
 }));
 vi.mock("ol/style", () => ({
-    Style: vi.fn().mockImplementation(() => ({})),
-    Text: vi.fn().mockImplementation(() => ({})),
-    Fill: vi.fn().mockImplementation(() => ({})),
-    Stroke: vi.fn().mockImplementation(() => ({})),
-    Circle: vi.fn().mockImplementation(() => ({})),
-    Icon: vi.fn().mockImplementation(() => ({})),
+    Style: vi.fn(function () {
+        return {};
+    }),
+    Text: vi.fn(function () {
+        return {};
+    }),
+    Fill: vi.fn(function () {
+        return {};
+    }),
+    Stroke: vi.fn(function () {
+        return {};
+    }),
+    Circle: vi.fn(function () {
+        return {};
+    }),
+    Icon: vi.fn(function () {
+        return {};
+    }),
 }));
 vi.mock("ol/sphere", () => ({
     getArea: vi.fn(),
