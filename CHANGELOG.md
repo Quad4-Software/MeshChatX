@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.3.2] - 2026-03-13 (Upcoming Release)
+## [4.3.2] - 2026-03-22
 
 ### On Hold
 
@@ -17,6 +17,11 @@ All notable changes to this project will be documented in this file.
 - **Network visualizer data loading**: Fetches only `lxmf.delivery` and `nomadnetwork.node` announces instead of all; path table filtered by those destination hashes via new `POST /api/v1/path-table` endpoint. Dramatically reduces load time on large networks.
 - **NomadNet context menus**: Right-click context menu on announces and favourites (like conversation viewer): Rename, Banish, Lift Banishment, Remove, Add to Favourites, Move to Section. Menus use Teleport to body and `justOpened` delay to avoid immediate close on click.
 - **Dynamic locale discovery**: Locales are now discovered automatically from `meshchatx/src/frontend/locales/*.json` via `import.meta.glob`. Adding a new language only requires a single JSON file with a `_languageName` key; no code changes to `main.js`, `LanguageSelector.vue`, or tests needed.
+- **CI supply chain hardening**: Replaced all third-party Gitea Actions with POSIX-compliant shell scripts in `scripts/ci/`. Checkout is inlined as plain git commands; Node.js, go-task, and Java binaries are SHA256-verified against upstream checksums; Python is built from official python.org source with GPG signature verification. Only `gitea-release-action` and `upload-artifact` remain as external actions.
+
+### Removed
+
+- **OSV-Scanner workflow**: Removed `osv-pr.yml` and `scripts/osv_scan.sh` in favour of Trivy.
 
 ### Testing
 
@@ -27,6 +32,7 @@ All notable changes to this project will be documented in this file.
 
 - **pnpm-lock.yaml**: Updated Vue and Vue-i18n.
 - **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files.
+- **Python dependencies**: `websockets` >= 16.0, `aiohttp` >= 3.13.3, `psutil` >= 7.2.2, `jaraco.context` >= 6.1.1, `hypothesis` >= 6.151.9.
 
 ## [4.3.1] - 2026-03-10
 
@@ -149,7 +155,7 @@ All notable changes to this project will be documented in this file.
 - **Integrity management**: Advanced checks and metadata support; identity manager metadata loading and legacy migrator column handling.
 - **Database backup and health**: Backup data-loss guards: baseline file (message count and total bytes) after each successful backup; detection of suspicious state (e.g. DB was non-empty and now empty, or size collapsed); when suspicious, backups written as `backup-SUSPICIOUS-*.zip` without overwriting good backups, rotation and baseline update skipped; rotation only applies to normal `backup-*.zip`. Database health checks at app start and close (integrity plus baseline comparison) with logging; issues exposed as `database_health_issues` on app and in `/api/v1/app/info`; toast notification when issues are present; websocket message type `database_health_warning` for real-time alert. Integrity result handling fixed for provider returning dict rows.
 - **Vite**: API and WebSocket proxy configuration; sourcemaps disabled in build.
-- **Node and tooling**: Node.js engine requirement set to >=24; Node 24 in Raspberry Pi install guide; pnpm 10.30.0; Node and pnpm version updates in Dockerfile and workflows; pip 26.0 in Dockerfile; pip install with `--no-cache-dir`.
+- **Node and tooling**: Node.js engine requirement set to >=24; Node 24 in Raspberry Pi install guide; pnpm 10.32.1; Node and pnpm version updates in Dockerfile and workflows; pip 26.0 in Dockerfile; pip install with `--no-cache-dir`.
 - **Dependencies**: rns 1.1.3, Vuetify 3.12.1, Electron 39.7.0, autoprefixer 10.4.27, axios 1.13.6, Vue 3.5.29, serialize-javascript; ajv removed in favour of fast-json-stable-stringify and json-schema-traverse; various package and lockfile updates.
 - **CI**: pnpm installation step in CI and test workflows; pnpm cache removed from CI/test workflows; ESLint security rule tuning.
 - **Docs and legal**: README and TODO updates; LICENSE copyright holder updated from Sudo-Ivan to Quad4; Docker arch builder removed.
