@@ -7,6 +7,7 @@
 
 # Dependencies
 node_modules/
+.pnpm-store/
 
 # Python
 __pycache__/
@@ -70,6 +71,9 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Docker (local compose overrides)
+docker-compose.override.yml
 
 .coverage
 
