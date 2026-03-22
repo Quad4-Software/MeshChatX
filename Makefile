@@ -17,7 +17,7 @@ lint:
 
 test:
 	pnpm run test
-	poetry run pytest tests/backend --cov=meshchatx/src/backend
+	poetry run python -m pytest tests/backend --cov=meshchatx/src/backend
 
 clean:
 	rm -rf node_modules build dist python-dist meshchatx/public build-dir out
