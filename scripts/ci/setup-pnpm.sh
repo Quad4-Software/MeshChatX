@@ -3,7 +3,7 @@
 # Usage: setup-pnpm.sh [version]
 set -eu
 
-PNPM_VERSION="${1:-10.30.0}"
+PNPM_VERSION="${1:-10.32.1}"
 
 corepack enable
 corepack prepare "pnpm@${PNPM_VERSION}" --activate
