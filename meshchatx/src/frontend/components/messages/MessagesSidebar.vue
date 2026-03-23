@@ -440,6 +440,15 @@
                             <MaterialDesignIcon icon-name="qrcode-scan" class="size-4 text-gray-400" />
                             <span class="font-medium">{{ $t("messages.ingest_paper_message") }}</span>
                         </button>
+                        <button
+                            v-if="contextMenu.targetHash && isBlocked(contextMenu.targetHash)"
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all active:scale-95"
+                            @click="liftBanishmentFromConversationMenu"
+                        >
+                            <MaterialDesignIcon icon-name="check-circle" class="size-4" />
+                            <span class="font-medium">{{ $t("banishment.lift_banishment") }}</span>
+                        </button>
                         <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
                         <button
                             v-if="GlobalState.config.telemetry_enabled"
@@ -1039,6 +1048,22 @@ export default {
         contextMenuIngestPaperMessage() {
             this.contextMenu.show = false;
             this.$emit("ingest-paper-message");
+        },
+        async liftBanishmentFromConversationMenu() {
+            const hash = this.contextMenu.targetHash;
+            if (!hash) {
+                this.contextMenu.show = false;
+                return;
+            }
+            try {
+                await window.axios.delete(`/api/v1/blocked-destinations/${hash}`);
+                GlobalEmitter.emit("block-status-changed");
+                DialogUtils.alert(this.$t("banishment.banishment_lifted"));
+            } catch (e) {
+                DialogUtils.alert(this.$t("banishment.failed_lift_banishment"));
+                console.error(e);
+            }
+            this.contextMenu.show = false;
         },
         onConversationClick(conversation) {
             if (this.isBlocked(conversation.destination_hash)) {
