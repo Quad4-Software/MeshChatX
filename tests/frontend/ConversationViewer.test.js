@@ -84,6 +84,25 @@ describe("ConversationViewer.vue", () => {
         });
     };
 
+    it("onMessagePaste adds images from clipboard and prevents default", async () => {
+        const wrapper = mountConversationViewer();
+        const file = new File([""], "clip.png", { type: "image/png" });
+        const items = [
+            {
+                kind: "file",
+                type: "image/png",
+                getAsFile: () => file,
+            },
+        ];
+        const event = {
+            preventDefault: vi.fn(),
+            clipboardData: { items },
+        };
+        wrapper.vm.onMessagePaste(event);
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(wrapper.vm.newMessageImages).toHaveLength(1);
+    });
+
     it("adds multiple images and renders previews", async () => {
         const wrapper = mountConversationViewer();
 

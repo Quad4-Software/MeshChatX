@@ -30,7 +30,7 @@ async def test_rnstatus_integration_simulated():
                 "txb": 200,
             },
             {
-                "name": "Quad4 TCP Node 1",
+                "name": "Remote TCP relay",
                 "status": False,
                 "rxb": 0,
                 "txb": 0,
@@ -44,7 +44,7 @@ async def test_rnstatus_integration_simulated():
     assert len(status["interfaces"]) == 2
     assert status["interfaces"][0]["name"] == "noDNS1"
     assert status["interfaces"][0]["status"] == "Up"
-    assert status["interfaces"][1]["name"] == "Quad4 TCP Node 1"
+    assert status["interfaces"][1]["name"] == "Remote TCP relay"
     assert status["interfaces"][1]["status"] == "Down"
 
 
