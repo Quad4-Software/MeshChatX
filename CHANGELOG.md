@@ -2,18 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.3.2] - 2026-03-22
+## [4.4.0] - 2026-03-23
 
 ### On Hold
 
 - MicronParser truecolor support - until NomadNet supports etc.
 
+### Changed
+
+- **Announce storage and fetch limits**: Per-aspect stored announces are capped (default **1000**); after each upsert, excess rows are trimmed **oldest first** (`trim_announces_for_aspect`). Default client fetch size (**500**), search fetch cap (`announce_search_max_fetch`), and discovered-interface list cap (`discovered_interfaces_max_return`) are configurable. Legacy `announce_limit_*` migrates to **`announce_max_stored_*`**; new keys include `announce_fetch_limit_*` per aspect. Clearing a numeric setting restores the default (`IntConfig.set(None)` removes the key). Settings UI and locales (en, de, it, ru) expose the new options; telephony-related aspects share LXMF announce keys where applicable.
+
+### New Features
+
+- **LXMF Lift Banishment from context menus**: Right-click on a message in the conversation viewer or on a row in the messages sidebar shows **Lift Banishment** when that peer is blocked, calling the blocked-destinations API and refreshing UI state (aligned with NomadNet banish/lift patterns).
+
 ### Fixes
 
+- **Multi-context shutdown**: Application shutdown tears down **every** `IdentityContext` (not only the active one): `ForwardingManager.teardown` for alias LXMF routers and links, `BotHandler.stop_all` including orphan entries in `bots_state`, per-context databases and resources, then clears context maps and stops the health monitor before websockets and RNS teardown. Mesh Server / page node shutdown order preserved.
 - **NomadNet favourites 3-dots**: Fixed 3-dots button on favourite cards not responding; added `flex-shrink-0` so the button is not squished in the flex layout. Wrapped announce tab dropdown in `flex-shrink-0` for consistency.
+- **LXMF inbound stamps**: Settings could not disable proof-of-work stamps for direct inbound messages (UI enforced minimum 1; API coerced sub-1 values to `None` and broke `IntConfig`). Added a **Require inbound stamps** toggle, allowed stored cost `0`, and clamp validation to `0–254` so LXMF correctly clears the delivery stamp requirement.
+- **Identity recall hex parsing**: UUID-style strings (hyphens in `bytes.fromhex`) no longer spam `Error recalling identity`; `recall_identity` and telephone identity resolution normalize separators. LXMF/telephony announce lookups compare normalized identity hashes so hyphenated inputs match stored hex.
 
 ### Improvements
 
+- **Conversation image paste**: Pasting image data into the message field (e.g. screenshot or copied image) now attaches it like the image picker, without using the separate text-only paste button.
+- **Page Archives export**: Archives tool can download the current snapshot or all selected snapshots as `.mu` files (raw page body; multi-export uses path plus a short hash in the filename to avoid collisions).
 - **Network visualizer data loading**: Fetches only `lxmf.delivery` and `nomadnetwork.node` announces instead of all; path table filtered by those destination hashes via new `POST /api/v1/path-table` endpoint. Dramatically reduces load time on large networks.
 - **NomadNet context menus**: Right-click context menu on announces and favourites (like conversation viewer): Rename, Banish, Lift Banishment, Remove, Add to Favourites, Move to Section. Menus use Teleport to body and `justOpened` delay to avoid immediate close on click.
 - **Dynamic locale discovery**: Locales are now discovered automatically from `meshchatx/src/frontend/locales/*.json` via `import.meta.glob`. Adding a new language only requires a single JSON file with a `_languageName` key; no code changes to `main.js`, `LanguageSelector.vue`, or tests needed.
@@ -25,13 +38,19 @@ All notable changes to this project will be documented in this file.
 
 ### Testing
 
+- **Announce limits**: DAO trim, manager upsert/limits, fuzzing, flood-load, smoke expectations, meshchat coverage mocks, and benchmark scripts updated for capped storage and fetch behaviour.
+- **ForwardingManager**: Teardown coverage for alias deregistration and cleanup.
 - **NomadNetworkSidebar**: Tests for 3-dots on favourite cards, context menu options, rename/remove/banish from context, announce right-click menu, add favourite and block from announce context.
+- **ConversationViewer**: Clipboard image paste on the compose field; context menu / banishment-related coverage as applicable.
+- **ArchivesPage**: Tests for `.mu` export filename helpers and download helper.
 - **i18n**: Dynamic locale file discovery in tests; added `_languageName` presence check for all locales.
+- **ConfigManager**: Inbound stamp cost may be set to `0`.
+- **meshchat_utils**: Tests for `normalize_hex_identifier` / `hex_identifier_to_bytes`.
 
 ### Updates
 
 - **pnpm-lock.yaml**: Updated Vue and Vue-i18n.
-- **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files.
+- **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files. Added `archives.export_mu` and `archives.export_selected_mu` for the archives export buttons. Strings for announce and discovered-interface limits were added for this release.
 - **Python dependencies**: `websockets` >= 16.0, `aiohttp` >= 3.13.3, `psutil` >= 7.2.2, `jaraco.context` >= 6.1.1, `hypothesis` >= 6.151.9.
 
 ## [4.3.1] - 2026-03-10
