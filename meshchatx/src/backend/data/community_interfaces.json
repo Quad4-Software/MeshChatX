@@ -1,0 +1,249 @@
+{
+  "_comment": "build_community_interfaces_json.py; source: directory.rns.recipes online listings. RNode omitted. Backbone without transport_identity -> TCPClientInterface. Optional override: public/community_interfaces.json.",
+  "_source": "https://directory.rns.recipes/api/directory/submitted?search=&type=&status=online",
+  "interfaces": [
+    {
+      "name": "CRN IPv4 / IPv6",
+      "type": "TCPClientInterface",
+      "target_host": "rns.noderage.org",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "Ether Whisperer",
+      "type": "TCPClientInterface",
+      "target_host": "132.145.75.143",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "Ether Whisperer London",
+      "type": "TCPClientInterface",
+      "target_host": "132.145.75.143",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "GhostMesh TX",
+      "type": "TCPClientInterface",
+      "target_host": "rns.ghostmesh.net",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "MichMesh",
+      "type": "TCPClientInterface",
+      "target_host": "rns.michmesh.net",
+      "target_port": 7822,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "R-Net TCP",
+      "type": "TCPClientInterface",
+      "target_host": "istanbul.reserve.network",
+      "target_port": 9034,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RETICULUM WORLD",
+      "type": "TCPClientInterface",
+      "target_host": "world.reticulum.is",
+      "target_port": 3400,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RMAP",
+      "type": "TCPClientInterface",
+      "target_host": "rmap.world",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RNS TCP Node Germany 002",
+      "type": "TCPClientInterface",
+      "target_host": "193.26.158.230",
+      "target_port": 4965,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RNS Testnet BetweenTheBorders",
+      "type": "TCPClientInterface",
+      "target_host": "reticulum.betweentheborders.com",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RNS Testnet StoppedCold",
+      "type": "TCPClientInterface",
+      "target_host": "rns.stoppedcold.com",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RNS Wiegand",
+      "type": "TCPClientInterface",
+      "target_host": "rns.wiegandtech.net",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RNS at chadobear.world",
+      "type": "TCPClientInterface",
+      "target_host": "rns.chadobear.world",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RNS_Transport_US-East",
+      "type": "TCPClientInterface",
+      "target_host": "45.77.109.86",
+      "target_port": 4965,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "SPAGOnet",
+      "type": "TCPClientInterface",
+      "target_host": "rns.pawgslayers.club",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "SparkN0de",
+      "type": "TCPClientInterface",
+      "target_host": "aspark.uber.space",
+      "target_port": 44860,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "Sydney RNS",
+      "type": "TCPClientInterface",
+      "target_host": "sydney.reticulum.au",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "bnZ-NODE01 (Gothenburg SE)",
+      "type": "TCPClientInterface",
+      "target_host": "91.207.113.250",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "bnZ-RET01 (Gothenburg SE)",
+      "type": "TCPClientInterface",
+      "target_host": "213.89.12.80",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "dismails TCP Interface",
+      "type": "TCPClientInterface",
+      "target_host": "rns.dismail.de",
+      "target_port": 7822,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "g00n.cloud Hub",
+      "type": "TCPClientInterface",
+      "target_host": "dfw.us.g00n.cloud",
+      "target_port": 6969,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "mobilefabrik TCP",
+      "type": "TCPClientInterface",
+      "target_host": "phantom.mobilefabrik.com",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "reticulum.hardenedbsd.org",
+      "type": "TCPClientInterface",
+      "target_host": "reticulum.hardenedbsd.org",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "rns.noderage.org (IPv4 / IPv6)",
+      "type": "TCPClientInterface",
+      "target_host": "rns.noderage.org",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "www.vanheusden.com",
+      "type": "TCPClientInterface",
+      "target_host": "vps001.vanheusden.com",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "Beleth RNS Hub - Yggdrasil",
+      "type": "TCPClientInterface",
+      "target_host": "202:c6ff:5e33:94ca:512f:b192:36f3:1045",
+      "target_port": 4343,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "Spaceman-ygg",
+      "type": "TCPClientInterface",
+      "target_host": "201:e73a:61ee:ca68:4bc5:99d5:fd70:ded1",
+      "target_port": 4343,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "Triplebit_Minneapolis_B-Yggdrasil",
+      "type": "TCPClientInterface",
+      "target_host": "201:1160:3f65:28ea:22b2:efb:a3c0:e012",
+      "target_port": 9055,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "rothbard_RNS_transport_ZA_ygg",
+      "type": "TCPClientInterface",
+      "target_host": "200:73eb:2e4:14be:aac7:90b3:784b:71a3",
+      "target_port": 4242,
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "Casbah I2P Relay",
+      "type": "I2PInterface",
+      "i2p_peers": [
+        "nckymqd5qchedbvjqsrlovgwc5iupasu3jjnt7fwws5vd4l552yq.b32.i2p"
+      ],
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "RNS Oren I2P",
+      "type": "I2PInterface",
+      "i2p_peers": [
+        "q6qth2xl5fisekhvm2lbplprwaof4plkbh4cthjnlj2pck7ahp5q.b32.i2p"
+      ],
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "SparkN0de I2P",
+      "type": "I2PInterface",
+      "i2p_peers": [
+        "ccrlk4gdxkgrqr633b4msujteaf7gnqw5akxjiek5dhoosfmrdka.b32.i2p"
+      ],
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "akku i2p",
+      "type": "I2PInterface",
+      "i2p_peers": [
+        "j4qvsmifjuq2fqn4wj34xu7swgqjyror4hx3qgl3aj3ggxmg6hrq.b32.i2p"
+      ],
+      "description": "directory.rns.recipes (user-submitted, online)"
+    },
+    {
+      "name": "rothbard_RNS_transport_ZA_i2p",
+      "type": "I2PInterface",
+      "i2p_peers": [
+        "guuahj7pyb6ksmjv2bqrjg4cs2wou6cor3ivsi6crntqbzsxnbna.b32.i2p"
+      ],
+      "description": "directory.rns.recipes (user-submitted, online)"
+    }
+  ]
+}
