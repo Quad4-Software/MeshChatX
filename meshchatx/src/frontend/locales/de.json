@@ -207,7 +207,13 @@
         "blackhole_integration_enabled": "Blackhole-Integration",
         "blackhole_integration_description": "Identitäten automatisch auf der Reticulum-Transportebene sperren (Blackhole), wenn Benutzer in MeshChatX verbannt werden.",
         "announce_limits": "Ankündigungslimits",
-        "announce_limits_description": "Optionale maximale Anzahl pro Aspekt. Leer lassen für kein Limit. Schützt vor Flood-Angriffen in öffentlichen Netzen.",
+        "announce_limits_description": "Begrenzt gespeicherte Ankündigungen pro Aspekt (älteste werden entfernt) und wie viele pro API-Anfrage geladen werden. Begrenzt auch Suche und erkannte Schnittstellen. Feld leeren und speichern setzt Standardwerte.",
+        "announce_max_stored_heading": "Max. gespeichert pro Aspekt (Datenbank)",
+        "announce_fetch_limit_heading": "Standard-Seitengröße (API)",
+        "announce_search_max_fetch": "Max. Ankündigungen für Suche",
+        "announce_search_max_fetch_hint": "Maximale Zeilen aus der Datenbank bei Textsuche (pro Anfrage).",
+        "discovered_interfaces_max_return": "Limit erkannte Schnittstellen",
+        "discovered_interfaces_max_return_hint": "Maximale Einträge für erkannte und aktive Schnittstellen in der Oberfläche.",
         "announce_limit_lxmf": "LXMF",
         "announce_limit_nomadnet": "NomadNet",
         "announce_limit_prop": "Prop-Knoten",
@@ -505,7 +511,20 @@
         "select_config_file": "Please select a configuration file",
         "select_at_least_one": "Please select at least one interface to import",
         "import_success": "Interfaces imported successfully. MeshChat must be restarted for these changes to take effect.",
-        "failed_import_all": "Failed to import interfaces"
+        "failed_import_all": "Failed to import interfaces",
+        "add_interface_sidebar_a11y": "Verknüpfungen und Community-Voreinstellungen",
+        "community_quick_start": "Community-Schnellstart",
+        "community_quick_start_hint": "Voreinstellungen von directory.rns.recipes (Online-Listings).",
+        "community_quick_start_hide": "Vorschläge ausblenden",
+        "community_use_preset": "Übernehmen",
+        "community_presets_hidden_hint": "Community-Voreinstellungen sind ausgeblendet. Hier oder in den Einstellungen wieder anzeigen.",
+        "community_presets_show_again": "Community-Voreinstellungen anzeigen",
+        "community_presets_empty": "Keine Voreinstellungen. Bundle neu bauen oder public/community_interfaces.json bereitstellen.",
+        "find_more_nodes": "Weitere Knoten finden",
+        "quick_import": "Schnellimport",
+        "quick_import_paste_hint": "Rohkonfiguration einfügen",
+        "quick_import_placeholder": "[[Interface Name]]\ntype = TCPClientInterface\ntarget_host = 1.2.3.4",
+        "quick_import_apply": "Anwenden: {name}"
     },
     "map": {
         "title": "Karte",
@@ -827,7 +846,9 @@
         "pages": "Seiten",
         "view": "Anzeigen",
         "showing_range": "Zeige {start} bis {end} von {total} Archiven",
-        "page_of": "Seite {page} von {total_pages}"
+        "page_of": "Seite {page} von {total_pages}",
+        "export_mu": "Als .mu exportieren",
+        "export_selected_mu": ".mu exportieren ({count})"
     },
     "docs": {
         "title": "Dokumentation",

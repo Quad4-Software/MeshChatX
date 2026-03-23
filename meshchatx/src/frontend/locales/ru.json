@@ -207,7 +207,13 @@
         "blackhole_integration_enabled": "Интеграция Blackhole",
         "blackhole_integration_description": "Автоматически блокировать (blackhole) личности на транспортном уровне Reticulum при изгнании пользователей в MeshChatX.",
         "announce_limits": "Лимиты объявлений",
-        "announce_limits_description": "Необязательный максимум по аспекту. Оставьте пустым для отсутствия лимита. Защита от флуд-атак в публичных сетях.",
+        "announce_limits_description": "Ограничение числа объявлений в базе по аспекту (удаляются самые старые) и сколько загружается за запрос API. Также лимит поиска и списка обнаруженных интерфейсов. Очистите поле и сохраните для значений по умолчанию.",
+        "announce_max_stored_heading": "Макс. в базе на аспект",
+        "announce_fetch_limit_heading": "Размер страницы по умолчанию (API)",
+        "announce_search_max_fetch": "Макс. объявлений для поиска",
+        "announce_search_max_fetch_hint": "Максимум строк из БД при текстовом поиске (на запрос).",
+        "discovered_interfaces_max_return": "Лимит обнаруженных интерфейсов",
+        "discovered_interfaces_max_return_hint": "Максимум записей об обнаруженных и активных интерфейсах в интерфейсе.",
         "announce_limit_lxmf": "LXMF",
         "announce_limit_nomadnet": "NomadNet",
         "announce_limit_prop": "Prop-узлы",
@@ -505,7 +511,20 @@
         "select_config_file": "Please select a configuration file",
         "select_at_least_one": "Please select at least one interface to import",
         "import_success": "Interfaces imported successfully. MeshChat must be restarted for these changes to take effect.",
-        "failed_import_all": "Failed to import interfaces"
+        "failed_import_all": "Failed to import interfaces",
+        "add_interface_sidebar_a11y": "Ярлыки и пресеты сообщества",
+        "community_quick_start": "Быстрый старт (сообщество)",
+        "community_quick_start_hint": "Пресеты из онлайн-списков directory.rns.recipes.",
+        "community_quick_start_hide": "Скрыть подсказки",
+        "community_use_preset": "Применить",
+        "community_presets_hidden_hint": "Пресеты сообщества скрыты. Показать снова здесь или в настройках.",
+        "community_presets_show_again": "Показать пресеты сообщества",
+        "community_presets_empty": "Пресеты не загружены. Пересоберите bundle или добавьте public/community_interfaces.json.",
+        "find_more_nodes": "Найти узлы",
+        "quick_import": "Быстрый импорт",
+        "quick_import_paste_hint": "Вставьте сырую конфигурацию",
+        "quick_import_placeholder": "[[Interface Name]]\ntype = TCPClientInterface\ntarget_host = 1.2.3.4",
+        "quick_import_apply": "Применить: {name}"
     },
     "map": {
         "title": "Карта",
@@ -827,7 +846,9 @@
         "pages": "Страницы",
         "view": "Просмотр",
         "showing_range": "Показано с {start} по {end} из {total} архивов",
-        "page_of": "Страница {page} из {total_pages}"
+        "page_of": "Страница {page} из {total_pages}",
+        "export_mu": "Экспорт .mu",
+        "export_selected_mu": "Экспорт .mu ({count})"
     },
     "docs": {
         "title": "Документация",

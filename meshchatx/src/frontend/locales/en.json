@@ -210,7 +210,13 @@
         "blackhole_integration_enabled": "Blackhole Integration",
         "blackhole_integration_description": "Automatically blackhole identities at the Reticulum transport layer when banishing users in MeshChatX.",
         "announce_limits": "Announce Limits",
-        "announce_limits_description": "Optional max count per aspect. Leave empty for no limit. Protects against flood attacks on public networks.",
+        "announce_limits_description": "Limit how many announces are kept in the database per aspect (oldest removed first) and how many load per API request. Also caps search and discovered-interface payloads. Clear a numeric field and save to restore defaults.",
+        "announce_max_stored_heading": "Max stored per aspect (database)",
+        "announce_fetch_limit_heading": "Default page size (API)",
+        "announce_search_max_fetch": "Max announces for search",
+        "announce_search_max_fetch_hint": "Maximum rows read from the database when you use text search on announces (per request).",
+        "discovered_interfaces_max_return": "Discovered interfaces cap",
+        "discovered_interfaces_max_return_hint": "Maximum discovered and active interface entries returned to the UI.",
         "announce_limit_lxmf": "LXMF",
         "announce_limit_nomadnet": "NomadNet",
         "announce_limit_prop": "Prop Nodes",
@@ -459,7 +465,20 @@
         "select_config_file": "Please select a configuration file",
         "select_at_least_one": "Please select at least one interface to import",
         "import_success": "Interfaces imported successfully. MeshChat must be restarted for these changes to take effect.",
-        "failed_import_all": "Failed to import interfaces"
+        "failed_import_all": "Failed to import interfaces",
+        "add_interface_sidebar_a11y": "Shortcuts and community presets",
+        "community_quick_start": "Community Quick-Start",
+        "community_quick_start_hint": "Presets from directory.rns.recipes online listings.",
+        "community_quick_start_hide": "Hide suggested interfaces",
+        "community_use_preset": "Use This",
+        "community_presets_hidden_hint": "Community presets are hidden. Show them again here or in Settings.",
+        "community_presets_show_again": "Show community presets",
+        "community_presets_empty": "No presets loaded. Rebuild the bundle or add public/community_interfaces.json.",
+        "find_more_nodes": "Find more nodes",
+        "quick_import": "Quick Import",
+        "quick_import_paste_hint": "Paste raw config",
+        "quick_import_placeholder": "[[Interface Name]]\ntype = TCPClientInterface\ntarget_host = 1.2.3.4",
+        "quick_import_apply": "Apply: {name}"
     },
     "map": {
         "title": "Map",
@@ -870,7 +889,9 @@
         "pages": "Pages",
         "view": "View",
         "showing_range": "Showing {start} to {end} of {total} archives",
-        "page_of": "Page {page} of {total_pages}"
+        "page_of": "Page {page} of {total_pages}",
+        "export_mu": "Export .mu",
+        "export_selected_mu": "Export .mu ({count})"
     },
     "docs": {
         "title": "Documentation",

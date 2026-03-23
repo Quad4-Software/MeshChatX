@@ -1,795 +1,958 @@
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
-        <div class="overflow-y-auto p-4 md:p-8 space-y-6 max-w-5xl mx-auto w-full">
-            <!-- Header Section -->
-            <div class="flex items-center justify-between gap-4">
-                <div class="min-w-0">
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <MaterialDesignIcon
-                            :icon-name="isEditingInterface ? 'pencil' : 'plus-circle-outline'"
-                            class="size-7 text-blue-500"
-                        />
-                        {{ isEditingInterface ? $t("interfaces.edit_interface") : $t("interfaces.add_interface") }}
-                    </h1>
-                    <p class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
-                        {{
-                            isEditingInterface
-                                ? "Update existing connection settings."
-                                : "Create a new connection to the Reticulum network."
-                        }}
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <RouterLink :to="{ name: 'interfaces' }" class="secondary-chip">
-                        <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                        Back to List
-                    </RouterLink>
-                </div>
-            </div>
-
-            <!-- Community Interfaces (Quick Start) -->
-            <div
-                v-if="!isEditingInterface && config != null && config.show_suggested_community_interfaces"
-                class="glass-card !p-0 overflow-hidden"
-            >
-                <div
-                    class="bg-gray-50/50 dark:bg-zinc-800/50 p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between"
-                >
-                    <div>
-                        <h2 class="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="lightning-bolt" class="size-5 text-yellow-500" />
-                            Community Quick-Start
-                        </h2>
-                        <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                            One-click configurations for public TCP relays.
+        <div class="overflow-y-auto flex-1 min-h-0">
+            <div class="w-full max-w-[1920px] mx-auto px-4 md:px-8 py-4 md:py-8 space-y-6">
+                <!-- Header Section -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <MaterialDesignIcon
+                                :icon-name="isEditingInterface ? 'pencil' : 'plus-circle-outline'"
+                                class="size-7 text-blue-500"
+                            />
+                            {{ isEditingInterface ? $t("interfaces.edit_interface") : $t("interfaces.add_interface") }}
+                        </h1>
+                        <p class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
+                            {{
+                                isEditingInterface
+                                    ? "Update existing connection settings."
+                                    : "Create a new connection to the Reticulum network."
+                            }}
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1"
-                        title="Hide suggested interfaces"
-                        @click="updateConfig({ show_suggested_community_interfaces: false })"
-                    >
-                        <MaterialDesignIcon icon-name="close" class="size-5" />
-                    </button>
+                    <div class="flex gap-2 shrink-0">
+                        <RouterLink :to="{ name: 'interfaces' }" class="secondary-chip">
+                            <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
+                            Back to List
+                        </RouterLink>
+                    </div>
                 </div>
 
-                <div class="divide-y divide-gray-100 dark:divide-zinc-800">
-                    <div
-                        v-for="communityIface in communityInterfaces"
-                        :key="communityIface.name"
-                        class="flex p-4 items-center hover:bg-gray-50/30 dark:hover:bg-zinc-800/20 transition-colors"
-                    >
-                        <div class="min-w-0 flex-1">
-                            <div class="font-bold text-gray-900 dark:text-zinc-100">{{ communityIface.name }}</div>
-                            <div
-                                class="text-xs font-mono text-gray-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2"
-                            >
-                                <MaterialDesignIcon icon-name="server-network" class="size-3" />
-                                {{ communityIface.target_host }}:{{ communityIface.target_port }}
-                                <span
-                                    v-if="communityIface.online === true"
-                                    class="text-green-500 flex items-center gap-1"
+                <div class="flex flex-col-reverse gap-8 xl:flex-row xl:items-start xl:gap-10">
+                    <div class="flex-1 min-w-0 space-y-6 xl:max-w-4xl 2xl:max-w-5xl">
+                        <!-- Main Form Card -->
+                        <div class="glass-card space-y-8">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <!-- Basic Info Column -->
+                                <div class="space-y-6">
+                                    <div
+                                        class="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-zinc-800"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="information-outline"
+                                            class="size-5 text-gray-400"
+                                        />
+                                        <h3 class="font-bold text-gray-900 dark:text-white">Basic Configuration</h3>
+                                    </div>
+
+                                    <div>
+                                        <FormLabel class="glass-label">Interface Name</FormLabel>
+                                        <input
+                                            v-model="newInterfaceName"
+                                            type="text"
+                                            :disabled="isEditingInterface"
+                                            placeholder="e.g. Home Node or Mobile TCP"
+                                            class="input-field"
+                                            :class="[isEditingInterface ? 'cursor-not-allowed opacity-60' : '']"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <FormLabel class="glass-label">Transport Type</FormLabel>
+
+                                        <!-- Visual Transport Selection -->
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <button
+                                                v-for="type in [
+                                                    {
+                                                        id: 'TCPClientInterface',
+                                                        name: 'TCP Client',
+                                                        icon: 'lan-connect',
+                                                        color: 'text-blue-500',
+                                                    },
+                                                    {
+                                                        id: 'BackboneInterface',
+                                                        name: 'Backbone',
+                                                        icon: 'transit-connection-variant',
+                                                        color: 'text-sky-500',
+                                                    },
+                                                    {
+                                                        id: 'TCPServerInterface',
+                                                        name: 'TCP Server',
+                                                        icon: 'server-network',
+                                                        color: 'text-indigo-500',
+                                                    },
+                                                    {
+                                                        id: 'UDPInterface',
+                                                        name: 'UDP',
+                                                        icon: 'broadcast',
+                                                        color: 'text-cyan-500',
+                                                    },
+                                                    {
+                                                        id: 'RNodeInterface',
+                                                        name: 'RNode (LoRa)',
+                                                        icon: 'radio-handheld',
+                                                        color: 'text-emerald-500',
+                                                    },
+                                                    {
+                                                        id: 'I2PInterface',
+                                                        name: 'I2P Tunnel',
+                                                        icon: 'tunnel',
+                                                        color: 'text-purple-500',
+                                                    },
+                                                    {
+                                                        id: 'SerialInterface',
+                                                        name: 'Serial (Generic)',
+                                                        icon: 'serial-port',
+                                                        color: 'text-amber-500',
+                                                    },
+                                                    {
+                                                        id: 'KISSInterface',
+                                                        name: 'KISS (TNC)',
+                                                        icon: 'radio-tower',
+                                                        color: 'text-orange-500',
+                                                    },
+                                                    {
+                                                        id: 'AutoInterface',
+                                                        name: 'Auto (Local)',
+                                                        icon: 'auto-fix',
+                                                        color: 'text-pink-500',
+                                                    },
+                                                ]"
+                                                :key="type.id"
+                                                type="button"
+                                                class="flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 text-center gap-1 group"
+                                                :class="[
+                                                    newInterfaceType === type.id
+                                                        ? 'bg-blue-500/10 border-blue-500 ring-1 ring-blue-500/50'
+                                                        : 'bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-600',
+                                                ]"
+                                                @click="newInterfaceType = type.id"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="type.icon"
+                                                    class="size-6 transition-transform group-hover:scale-110"
+                                                    :class="[
+                                                        newInterfaceType === type.id ? 'text-blue-500' : type.color,
+                                                    ]"
+                                                />
+                                                <span
+                                                    class="text-[10px] font-bold uppercase tracking-tight"
+                                                    :class="[
+                                                        newInterfaceType === type.id
+                                                            ? 'text-blue-700 dark:text-blue-400'
+                                                            : 'text-gray-600 dark:text-zinc-400',
+                                                    ]"
+                                                >
+                                                    {{ type.name }}
+                                                </span>
+                                            </button>
+                                        </div>
+
+                                        <!-- Fallback/More select for less common types -->
+                                        <div class="mt-3">
+                                            <select
+                                                v-model="newInterfaceType"
+                                                class="input-field appearance-none pr-10 !py-1.5 !text-[11px] opacity-70 hover:opacity-100"
+                                            >
+                                                <option :value="null">More options...</option>
+                                                <option value="AX25KISSInterface">AX.25 KISS (Amateur Radio)</option>
+                                                <option value="LocalInterface">Local Interface (Loopback)</option>
+                                                <option value="PipeInterface">Pipe Interface (External)</option>
+                                                <option value="RNodeIPInterface">RNode over IP</option>
+                                                <option value="BackboneInterface">Backbone (public relay)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Interface Specific Settings Column -->
+                                <div class="space-y-6">
+                                    <div
+                                        class="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-zinc-800"
+                                    >
+                                        <MaterialDesignIcon icon-name="cog-outline" class="size-5 text-gray-400" />
+                                        <h3 class="font-bold text-gray-900 dark:text-white">Connection Details</h3>
+                                    </div>
+
+                                    <!-- No selection placeholder -->
+                                    <div
+                                        v-if="!newInterfaceType"
+                                        class="h-48 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-3xl"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="arrow-left-bold"
+                                            class="size-10 text-gray-200 dark:text-zinc-800 animate-bounce-left"
+                                        />
+                                        <p class="text-sm text-gray-400 dark:text-zinc-600 mt-2">
+                                            Select an interface type to configure connection settings.
+                                        </p>
+                                    </div>
+
+                                    <!-- Interface Specific Fields -->
+                                    <div v-else class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                        <!-- TCP Client -->
+                                        <div v-if="newInterfaceType === 'TCPClientInterface'" class="space-y-4">
+                                            <div>
+                                                <FormLabel class="glass-label">Target Host</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceTargetHost"
+                                                    type="text"
+                                                    placeholder="e.g. 1.2.3.4 or example.com"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Target Port</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceTargetPort"
+                                                    type="number"
+                                                    placeholder="4242"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div v-if="newInterfaceType === 'BackboneInterface'" class="space-y-4">
+                                            <div>
+                                                <FormLabel class="glass-label">Remote host</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceTargetHost"
+                                                    type="text"
+                                                    placeholder="e.g. example.com or 1.2.3.4"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Target port</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceTargetPort"
+                                                    type="number"
+                                                    placeholder="4242"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Transport identity (hex)</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceTransportIdentity"
+                                                    type="text"
+                                                    placeholder="32 hex chars from the directory"
+                                                    class="input-field font-mono text-xs"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <!-- TCP Server / UDP -->
+                                        <div
+                                            v-if="['TCPServerInterface', 'UDPInterface'].includes(newInterfaceType)"
+                                            class="space-y-4"
+                                        >
+                                            <div>
+                                                <FormLabel class="glass-label">Listen IP (Optional)</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceListenIp"
+                                                    type="text"
+                                                    placeholder="0.0.0.0"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Listen Port</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceListenPort"
+                                                    type="number"
+                                                    placeholder="4242"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <!-- UDP Extras -->
+                                        <div v-if="newInterfaceType === 'UDPInterface'" class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <FormLabel class="glass-label">Forward IP</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceForwardIp"
+                                                    type="text"
+                                                    placeholder="255.255.255.255"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Forward Port</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceForwardPort"
+                                                    type="number"
+                                                    placeholder="4242"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <!-- I2P Interface -->
+                                        <div v-if="newInterfaceType === 'I2PInterface'" class="space-y-4">
+                                            <div
+                                                class="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-900/20 text-xs text-blue-800 dark:text-blue-300"
+                                            >
+                                                ⓘ To use the I2P interface, you must have an I2P router running on your
+                                                system.
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Initial Peers (Optional)</FormLabel>
+                                                <div class="space-y-2">
+                                                    <div
+                                                        v-for="(peer, index) in I2PSettings.newInterfacePeers"
+                                                        :key="index"
+                                                        class="flex items-center gap-2"
+                                                    >
+                                                        <input
+                                                            v-model="I2PSettings.newInterfacePeers[index]"
+                                                            type="text"
+                                                            placeholder="b32.i2p address"
+                                                            class="input-field"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            class="text-red-500 hover:text-red-400 p-1"
+                                                            @click="removeI2PPeer(index)"
+                                                        >
+                                                            <MaterialDesignIcon
+                                                                icon-name="trash-can-outline"
+                                                                class="size-5"
+                                                            />
+                                                        </button>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        class="secondary-chip !py-1 !px-3 !text-[10px]"
+                                                        @click="addI2PPeer('')"
+                                                    >
+                                                        <MaterialDesignIcon icon-name="plus" class="size-3" /> Add Peer
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- RNode / Hardware -->
+                                        <div
+                                            v-if="
+                                                [
+                                                    'RNodeInterface',
+                                                    'RNodeIPInterface',
+                                                    'SerialInterface',
+                                                    'KISSInterface',
+                                                    'AX25KISSInterface',
+                                                ].includes(newInterfaceType)
+                                            "
+                                            class="space-y-4"
+                                        >
+                                            <div
+                                                v-if="newInterfaceType === 'RNodeInterface'"
+                                                class="flex items-center gap-2 pb-2"
+                                            >
+                                                <Toggle id="rnode-use-ip" v-model="newInterfaceRNodeUseIP" />
+                                                <FormLabel for="rnode-use-ip" class="cursor-pointer !mb-0 text-sm"
+                                                    >Connect over network (IP)</FormLabel
+                                                >
+                                            </div>
+
+                                            <div
+                                                v-if="newInterfaceRNodeUseIP || newInterfaceType === 'RNodeIPInterface'"
+                                                class="grid grid-cols-2 gap-4"
+                                            >
+                                                <div>
+                                                    <FormLabel class="glass-label">Host</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceRNodeIPHost"
+                                                        type="text"
+                                                        placeholder="10.0.0.1"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Port</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceRNodeIPPort"
+                                                        type="number"
+                                                        placeholder="7633"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div v-else>
+                                                <FormLabel class="glass-label">Serial Port</FormLabel>
+                                                <div class="relative">
+                                                    <select
+                                                        v-model="newInterfacePort"
+                                                        class="input-field appearance-none pr-10"
+                                                    >
+                                                        <option :value="null" disabled>Select a port...</option>
+                                                        <option
+                                                            v-for="port in comports"
+                                                            :key="port.device"
+                                                            :value="port.device"
+                                                        >
+                                                            {{ port.device }} ({{ port.product ?? "?" }})
+                                                        </option>
+                                                    </select>
+                                                    <div
+                                                        class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400"
+                                                    >
+                                                        <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2 flex justify-end">
+                                                    <button
+                                                        type="button"
+                                                        class="text-[10px] uppercase font-bold text-blue-500 hover:text-blue-600 tracking-wider"
+                                                        @click="loadComports"
+                                                    >
+                                                        Refresh Ports
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- RNode Radio Parameters -->
+                                        <div
+                                            v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)"
+                                            class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                        >
+                                            <div>
+                                                <FormLabel class="glass-label">Frequency (Hz)</FormLabel>
+                                                <div class="flex items-center gap-2">
+                                                    <div class="flex-1">
+                                                        <input
+                                                            v-model.number="RNodeGHzValue"
+                                                            type="number"
+                                                            min="0"
+                                                            class="input-field text-center"
+                                                        />
+                                                        <div class="text-[10px] text-center text-gray-400 mt-1">
+                                                            GHz
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <input
+                                                            v-model.number="RNodeMHzValue"
+                                                            type="number"
+                                                            min="0"
+                                                            class="input-field text-center"
+                                                        />
+                                                        <div class="text-[10px] text-center text-gray-400 mt-1">
+                                                            MHz
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex-1">
+                                                        <input
+                                                            v-model.number="RNodekHzValue"
+                                                            type="number"
+                                                            min="0"
+                                                            class="input-field text-center"
+                                                        />
+                                                        <div class="text-[10px] text-center text-gray-400 mt-1">
+                                                            kHz
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    v-if="formattedFrequency"
+                                                    class="mt-2 text-center text-sm font-mono text-blue-500 font-bold"
+                                                >
+                                                    {{ formattedFrequency }}
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Bandwidth</FormLabel>
+                                                    <select v-model="newInterfaceBandwidth" class="input-field">
+                                                        <option
+                                                            v-for="bw in RNodeInterfaceDefaults.bandwidths"
+                                                            :key="bw"
+                                                            :value="bw"
+                                                        >
+                                                            {{ bw / 1000 }} kHz
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Power (dBm)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceTxpower"
+                                                        type="number"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Pipe Interface -->
+                                        <div v-if="newInterfaceType === 'PipeInterface'" class="space-y-4">
+                                            <div
+                                                class="bg-gray-50/50 dark:bg-zinc-800/30 p-3 rounded-2xl border border-gray-100 dark:border-zinc-800 text-xs text-gray-600 dark:text-zinc-400"
+                                            >
+                                                ⓘ Interface with external programs via stdin/stdout.
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Command</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceCommand"
+                                                    type="text"
+                                                    placeholder="e.g. netcat -l 5757"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Respawn Delay (s)</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceRespawnDelay"
+                                                    type="number"
+                                                    placeholder="5"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Advanced Sections -->
+                            <div class="space-y-4 pt-4">
+                                <!-- RNode Advanced Tools -->
+                                <ExpandingSection
+                                    v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)"
+                                    class="glass-card !p-0 overflow-hidden"
                                 >
-                                    <span class="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                    Online
-                                </span>
-                                <span v-else-if="communityIface.online === false" class="text-red-500">Offline</span>
+                                    <template #title
+                                        ><span class="text-sm font-bold">Calculated Parameters</span></template
+                                    >
+                                    <template #content>
+                                        <div class="p-6 space-y-6">
+                                            <div>
+                                                <FormLabel class="glass-label">Antenna Gain (dBi)</FormLabel>
+                                                <input
+                                                    v-model.number="RNodeInterfaceLoRaParameters.antennaGain"
+                                                    type="number"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-3">
+                                                <div
+                                                    class="bg-blue-500/5 p-3 rounded-2xl border border-blue-500/10 text-center"
+                                                >
+                                                    <div class="text-[10px] uppercase font-bold text-blue-500 mb-1">
+                                                        Sensitivity
+                                                    </div>
+                                                    <div class="text-lg font-mono font-bold">
+                                                        {{ RNodeInterfaceLoRaParameters.sensitivity ?? "???" }}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="bg-blue-500/5 p-3 rounded-2xl border border-blue-500/10 text-center"
+                                                >
+                                                    <div class="text-[10px] uppercase font-bold text-blue-500 mb-1">
+                                                        Data Rate
+                                                    </div>
+                                                    <div class="text-lg font-mono font-bold">
+                                                        {{ RNodeInterfaceLoRaParameters.dataRate ?? "???" }}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="bg-blue-500/5 p-3 rounded-2xl border border-blue-500/10 text-center"
+                                                >
+                                                    <div class="text-[10px] uppercase font-bold text-blue-500 mb-1">
+                                                        Link Budget
+                                                    </div>
+                                                    <div class="text-lg font-mono font-bold">
+                                                        {{ RNodeInterfaceLoRaParameters.linkBudget ?? "???" }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </ExpandingSection>
+
+                                <!-- Interface Discovery Settings -->
+                                <ExpandingSection class="glass-card !p-0 overflow-hidden">
+                                    <template #title
+                                        ><span class="text-sm font-bold">Interface Discovery</span></template
+                                    >
+                                    <template #content>
+                                        <div class="p-6 space-y-6">
+                                            <div class="flex items-center justify-between">
+                                                <div class="max-w-md">
+                                                    <FormLabel class="glass-label !mb-0"
+                                                        >Publish Discovery Announce</FormLabel
+                                                    >
+                                                    <p class="text-xs text-gray-400">
+                                                        Makes your node visible to others on the network.
+                                                    </p>
+                                                </div>
+                                                <Toggle v-model="discovery.discoverable" />
+                                            </div>
+                                            <div
+                                                v-if="discovery.discoverable"
+                                                class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2"
+                                            >
+                                                <div>
+                                                    <FormLabel class="glass-label">Discovery Name</FormLabel>
+                                                    <input
+                                                        v-model="discovery.discovery_name"
+                                                        type="text"
+                                                        placeholder="Human-friendly name"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <FormLabel class="glass-label">Announce Interval (m)</FormLabel>
+                                                        <input
+                                                            v-model.number="discovery.announce_interval"
+                                                            type="number"
+                                                            class="input-field"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <FormLabel class="glass-label">Reachable On</FormLabel>
+                                                        <input
+                                                            v-model="discovery.reachable_on"
+                                                            type="text"
+                                                            placeholder="IP or Hostname"
+                                                            class="input-field"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </ExpandingSection>
+
+                                <!-- Global Discovery Settings -->
+                                <ExpandingSection class="glass-card !p-0 overflow-hidden">
+                                    <template #title
+                                        ><span class="text-sm font-bold">Discovery Listener (Peer)</span></template
+                                    >
+                                    <template #content>
+                                        <div class="p-6 space-y-6">
+                                            <div class="flex items-center justify-between">
+                                                <div class="max-w-md">
+                                                    <FormLabel class="glass-label !mb-0"
+                                                        >Enable Discovery Listener</FormLabel
+                                                    >
+                                                    <p class="text-xs text-gray-400">
+                                                        Listen for announced interfaces and optionally auto-connect.
+                                                    </p>
+                                                </div>
+                                                <Toggle v-model="reticulumDiscovery.discover_interfaces" />
+                                            </div>
+                                            <div
+                                                v-if="reticulumDiscovery.discover_interfaces"
+                                                class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2"
+                                            >
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <input
+                                                        v-model="reticulumDiscovery.interface_discovery_whitelist"
+                                                        type="text"
+                                                        placeholder="Whitelist (names, hosts, IDs)"
+                                                        class="input-field"
+                                                    />
+                                                    <input
+                                                        v-model="reticulumDiscovery.interface_discovery_blacklist"
+                                                        type="text"
+                                                        placeholder="Blacklist (names, hosts, IDs)"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div class="flex justify-end">
+                                                    <button
+                                                        type="button"
+                                                        class="primary-chip !text-[10px]"
+                                                        :disabled="savingDiscovery"
+                                                        @click="saveReticulumDiscoveryConfig"
+                                                    >
+                                                        <MaterialDesignIcon icon-name="content-save" class="size-3" />
+                                                        Save Listener Prefs
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </ExpandingSection>
+
+                                <!-- Shared Advanced Settings -->
+                                <ExpandingSection class="glass-card !p-0 overflow-hidden">
+                                    <template #title
+                                        ><span class="text-sm font-bold"
+                                            >Advanced Parameters (IFAC, Mode)</span
+                                        ></template
+                                    >
+                                    <template #content>
+                                        <div class="p-6 space-y-6">
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Interface Mode</FormLabel>
+                                                    <select v-model="sharedInterfaceSettings.mode" class="input-field">
+                                                        <option :value="undefined">Default (Full)</option>
+                                                        <option value="full">Full</option>
+                                                        <option value="gateway">Gateway</option>
+                                                        <option value="access_point">Access Point</option>
+                                                        <option value="roaming">Roaming</option>
+                                                        <option value="boundary">Boundary</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Forced Bitrate</FormLabel>
+                                                    <input
+                                                        v-model="sharedInterfaceSettings.bitrate"
+                                                        type="number"
+                                                        placeholder="bps"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
+                                                <FormLabel class="glass-label">Interface Access Code (IFAC)</FormLabel>
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <input
+                                                        v-model="sharedInterfaceSettings.network_name"
+                                                        type="text"
+                                                        placeholder="Network Name"
+                                                        class="input-field"
+                                                    />
+                                                    <input
+                                                        v-model="sharedInterfaceSettings.passphrase"
+                                                        type="text"
+                                                        placeholder="Passphrase"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </ExpandingSection>
                             </div>
+
+                            <!-- Footer Save Action -->
                             <div
-                                v-if="communityIface.description"
-                                class="text-xs text-gray-400 dark:text-zinc-500 mt-1 italic line-clamp-1"
+                                class="pt-8 flex items-center justify-between gap-4 border-t border-gray-200 dark:border-zinc-800"
                             >
-                                {{ communityIface.description }}
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            class="primary-chip !py-1.5 !px-3"
-                            @click="
-                                newInterfaceName = communityIface.name;
-                                newInterfaceType = communityIface.type;
-                                newInterfaceTargetHost = communityIface.target_host;
-                                newInterfaceTargetPort = communityIface.target_port;
-                            "
-                        >
-                            <span>Use This</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Find More Directory Links (Helpful Card) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                    class="glass-card flex items-center gap-4 bg-blue-50/30 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30"
-                >
-                    <div
-                        class="size-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0"
-                    >
-                        <MaterialDesignIcon icon-name="map-search-outline" class="size-6" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="text-sm font-bold text-gray-900 dark:text-white">Find more nodes</h3>
-                        <div class="flex gap-2 mt-1">
-                            <a
-                                href="https://directory.rns.recipes/"
-                                target="_blank"
-                                class="secondary-chip !py-1 !px-2 !text-[9px]"
-                                >rns.recipes</a
-                            >
-                            <a href="https://rmap.world/" target="_blank" class="secondary-chip !py-1 !px-2 !text-[9px]"
-                                >rmap.world</a
-                            >
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Import from Raw Config -->
-                <div
-                    class="glass-card flex flex-col gap-2 !p-4 bg-emerald-50/20 dark:bg-emerald-900/5 border-emerald-100 dark:border-emerald-900/20"
-                >
-                    <div class="flex items-center justify-between">
-                        <h3
-                            class="text-xs font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest flex items-center gap-2"
-                        >
-                            <MaterialDesignIcon icon-name="import" class="size-4" />
-                            Quick Import
-                        </h3>
-                        <span class="text-[10px] text-gray-400">Paste raw config here</span>
-                    </div>
-                    <textarea
-                        v-model="rawConfigInput"
-                        placeholder="[[Interface Name]]&#10;type = TCPClientInterface&#10;target_host = 1.2.3.4"
-                        class="w-full h-16 bg-white/50 dark:bg-zinc-900/50 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl p-2 text-[10px] font-mono focus:ring-1 focus:ring-emerald-500 outline-none transition"
-                        @input="handleRawConfigInput"
-                    ></textarea>
-
-                    <!-- Multiple detected configs picker -->
-                    <div v-if="detectedConfigs.length > 1" class="flex flex-wrap gap-2 mt-1">
-                        <button
-                            v-for="cfg in detectedConfigs"
-                            :key="cfg.name"
-                            type="button"
-                            class="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg px-2 py-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 transition"
-                            @click="applyConfig(cfg)"
-                        >
-                            Apply: {{ cfg.name }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Main Form Card -->
-            <div class="glass-card space-y-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Basic Info Column -->
-                    <div class="space-y-6">
-                        <div class="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-zinc-800">
-                            <MaterialDesignIcon icon-name="information-outline" class="size-5 text-gray-400" />
-                            <h3 class="font-bold text-gray-900 dark:text-white">Basic Configuration</h3>
-                        </div>
-
-                        <div>
-                            <FormLabel class="glass-label">Interface Name</FormLabel>
-                            <input
-                                v-model="newInterfaceName"
-                                type="text"
-                                :disabled="isEditingInterface"
-                                placeholder="e.g. Home Node or Mobile TCP"
-                                class="input-field"
-                                :class="[isEditingInterface ? 'cursor-not-allowed opacity-60' : '']"
-                            />
-                        </div>
-
-                        <div>
-                            <FormLabel class="glass-label">Transport Type</FormLabel>
-
-                            <!-- Visual Transport Selection -->
-                            <div class="grid grid-cols-2 gap-2">
                                 <button
-                                    v-for="type in [
-                                        {
-                                            id: 'TCPClientInterface',
-                                            name: 'TCP Client',
-                                            icon: 'lan-connect',
-                                            color: 'text-blue-500',
-                                        },
-                                        {
-                                            id: 'TCPServerInterface',
-                                            name: 'TCP Server',
-                                            icon: 'server-network',
-                                            color: 'text-indigo-500',
-                                        },
-                                        { id: 'UDPInterface', name: 'UDP', icon: 'broadcast', color: 'text-cyan-500' },
-                                        {
-                                            id: 'RNodeInterface',
-                                            name: 'RNode (LoRa)',
-                                            icon: 'radio-handheld',
-                                            color: 'text-emerald-500',
-                                        },
-                                        {
-                                            id: 'I2PInterface',
-                                            name: 'I2P Tunnel',
-                                            icon: 'tunnel',
-                                            color: 'text-purple-500',
-                                        },
-                                        {
-                                            id: 'SerialInterface',
-                                            name: 'Serial (Generic)',
-                                            icon: 'serial-port',
-                                            color: 'text-amber-500',
-                                        },
-                                        {
-                                            id: 'KISSInterface',
-                                            name: 'KISS (TNC)',
-                                            icon: 'radio-tower',
-                                            color: 'text-orange-500',
-                                        },
-                                        {
-                                            id: 'AutoInterface',
-                                            name: 'Auto (Local)',
-                                            icon: 'auto-fix',
-                                            color: 'text-pink-500',
-                                        },
-                                    ]"
-                                    :key="type.id"
                                     type="button"
-                                    class="flex flex-col items-center justify-center p-3 rounded-2xl border transition-all duration-200 text-center gap-1 group"
-                                    :class="[
-                                        newInterfaceType === type.id
-                                            ? 'bg-blue-500/10 border-blue-500 ring-1 ring-blue-500/50'
-                                            : 'bg-gray-50/50 dark:bg-zinc-800/30 border-gray-100 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-600',
-                                    ]"
-                                    @click="newInterfaceType = type.id"
+                                    class="secondary-chip !px-10 !py-3 !text-sm"
+                                    @click="$router.push({ name: 'interfaces' })"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    class="primary-chip !px-16 !py-3 !text-sm"
+                                    :disabled="isSaving"
+                                    @click="saveInterface"
                                 >
                                     <MaterialDesignIcon
-                                        :icon-name="type.icon"
-                                        class="size-6 transition-transform group-hover:scale-110"
-                                        :class="[newInterfaceType === type.id ? 'text-blue-500' : type.color]"
+                                        :icon-name="isSaving ? 'loading' : isEditingInterface ? 'content-save' : 'plus'"
+                                        class="size-5"
+                                        :class="{ 'animate-spin': isSaving }"
                                     />
-                                    <span
-                                        class="text-[10px] font-bold uppercase tracking-tight"
-                                        :class="[
-                                            newInterfaceType === type.id
-                                                ? 'text-blue-700 dark:text-blue-400'
-                                                : 'text-gray-600 dark:text-zinc-400',
-                                        ]"
-                                    >
-                                        {{ type.name }}
-                                    </span>
+                                    {{ isEditingInterface ? "Update Connection" : "Create Connection" }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside
+                        class="w-full shrink-0 space-y-4 xl:w-96 xl:sticky xl:top-4 xl:self-start xl:max-h-[min(calc(100dvh-6rem),920px)] xl:overflow-y-auto xl:border-l border-gray-200/80 dark:border-zinc-800 xl:pl-8"
+                        :aria-label="$t('interfaces.add_interface_sidebar_a11y')"
+                    >
+                        <div
+                            v-if="!isEditingInterface && communityPresetsEnabled && communityInterfaces.length > 0"
+                            class="glass-card !p-0 overflow-hidden"
+                        >
+                            <div
+                                class="bg-gray-50/50 dark:bg-zinc-800/50 p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between gap-2"
+                            >
+                                <div class="min-w-0">
+                                    <h2 class="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
+                                        <MaterialDesignIcon icon-name="lightning-bolt" class="size-5 text-yellow-500" />
+                                        {{ $t("interfaces.community_quick_start") }}
+                                    </h2>
+                                    <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                                        {{ $t("interfaces.community_quick_start_hint") }}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1 shrink-0"
+                                    :title="$t('interfaces.community_quick_start_hide')"
+                                    @click="updateConfig({ show_suggested_community_interfaces: false })"
+                                >
+                                    <MaterialDesignIcon icon-name="close" class="size-5" />
                                 </button>
                             </div>
 
-                            <!-- Fallback/More select for less common types -->
-                            <div class="mt-3">
-                                <select
-                                    v-model="newInterfaceType"
-                                    class="input-field appearance-none pr-10 !py-1.5 !text-[11px] opacity-70 hover:opacity-100"
+                            <div
+                                class="divide-y divide-gray-100 dark:divide-zinc-800 max-h-[min(50vh,28rem)] overflow-y-auto"
+                            >
+                                <div
+                                    v-for="communityIface in communityInterfaces"
+                                    :key="
+                                        communityIface.name +
+                                        (communityIface.target_host || '') +
+                                        (communityIface.target_port || '')
+                                    "
+                                    class="flex p-3 sm:p-4 items-center gap-2 hover:bg-gray-50/30 dark:hover:bg-zinc-800/20 transition-colors"
                                 >
-                                    <option :value="null">More options...</option>
-                                    <option value="AX25KISSInterface">AX.25 KISS (Amateur Radio)</option>
-                                    <option value="LocalInterface">Local Interface (Loopback)</option>
-                                    <option value="PipeInterface">Pipe Interface (External)</option>
-                                    <option value="RNodeIPInterface">RNode over IP</option>
-                                </select>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-bold text-sm text-gray-900 dark:text-zinc-100">
+                                            {{ communityIface.name }}
+                                        </div>
+                                        <div
+                                            class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 mt-0.5 flex flex-wrap items-center gap-2"
+                                        >
+                                            <MaterialDesignIcon icon-name="server-network" class="size-3 shrink-0" />
+                                            <template v-if="communityIface.type === 'I2PInterface'">
+                                                {{ communityIface.target_host }}
+                                            </template>
+                                            <template v-else>
+                                                {{ communityIface.target_host }}:{{ communityIface.target_port }}
+                                            </template>
+                                            <span
+                                                v-if="communityIface.online === true"
+                                                class="text-green-500 flex items-center gap-1"
+                                            >
+                                                <span class="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                                Online
+                                            </span>
+                                            <span v-else-if="communityIface.online === false" class="text-red-500"
+                                                >Offline</span
+                                            >
+                                        </div>
+                                        <div
+                                            v-if="communityIface.description"
+                                            class="text-[10px] text-gray-400 dark:text-zinc-500 mt-1 italic line-clamp-2"
+                                        >
+                                            {{ communityIface.description }}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="primary-chip !py-1.5 !px-2 !text-[10px] shrink-0"
+                                        @click="
+                                            newInterfaceName = communityIface.name;
+                                            newInterfaceType = communityIface.type;
+                                            newInterfaceTargetHost = communityIface.target_host;
+                                            newInterfaceTargetPort = communityIface.target_port;
+                                            newInterfaceTransportIdentity = communityIface.transport_identity || null;
+                                            I2PSettings.newInterfacePeers =
+                                                communityIface.type === 'I2PInterface' && communityIface.i2p_peers
+                                                    ? [...communityIface.i2p_peers]
+                                                    : [];
+                                        "
+                                    >
+                                        {{ $t("interfaces.community_use_preset") }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Dynamic Interface Specific Settings Column -->
-                    <div class="space-y-6">
-                        <div class="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-zinc-800">
-                            <MaterialDesignIcon icon-name="cog-outline" class="size-5 text-gray-400" />
-                            <h3 class="font-bold text-gray-900 dark:text-white">Connection Details</h3>
-                        </div>
-
-                        <!-- No selection placeholder -->
                         <div
-                            v-if="!newInterfaceType"
-                            class="h-48 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-3xl"
+                            v-else-if="
+                                !isEditingInterface && communityPresetsDismissed && communityInterfaces.length > 0
+                            "
+                            class="glass-card p-4 space-y-3"
                         >
-                            <MaterialDesignIcon
-                                icon-name="arrow-left-bold"
-                                class="size-10 text-gray-200 dark:text-zinc-800 animate-bounce-left"
-                            />
-                            <p class="text-sm text-gray-400 dark:text-zinc-600 mt-2">
-                                Select an interface type to configure connection settings.
+                            <p class="text-sm text-gray-600 dark:text-zinc-400">
+                                {{ $t("interfaces.community_presets_hidden_hint") }}
                             </p>
+                            <button
+                                type="button"
+                                class="primary-chip !py-2 !px-4 !text-xs w-full"
+                                @click="updateConfig({ show_suggested_community_interfaces: true })"
+                            >
+                                {{ $t("interfaces.community_presets_show_again") }}
+                            </button>
                         </div>
 
-                        <!-- Interface Specific Fields -->
-                        <div v-else class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <!-- TCP Client -->
-                            <div v-if="newInterfaceType === 'TCPClientInterface'" class="space-y-4">
-                                <div>
-                                    <FormLabel class="glass-label">Target Host</FormLabel>
-                                    <input
-                                        v-model="newInterfaceTargetHost"
-                                        type="text"
-                                        placeholder="e.g. 1.2.3.4 or example.com"
-                                        class="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <FormLabel class="glass-label">Target Port</FormLabel>
-                                    <input
-                                        v-model="newInterfaceTargetPort"
-                                        type="number"
-                                        placeholder="4242"
-                                        class="input-field"
-                                    />
-                                </div>
-                            </div>
-
-                            <!-- TCP Server / UDP -->
-                            <div
-                                v-if="['TCPServerInterface', 'UDPInterface'].includes(newInterfaceType)"
-                                class="space-y-4"
-                            >
-                                <div>
-                                    <FormLabel class="glass-label">Listen IP (Optional)</FormLabel>
-                                    <input
-                                        v-model="newInterfaceListenIp"
-                                        type="text"
-                                        placeholder="0.0.0.0"
-                                        class="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <FormLabel class="glass-label">Listen Port</FormLabel>
-                                    <input
-                                        v-model="newInterfaceListenPort"
-                                        type="number"
-                                        placeholder="4242"
-                                        class="input-field"
-                                    />
-                                </div>
-                            </div>
-
-                            <!-- UDP Extras -->
-                            <div v-if="newInterfaceType === 'UDPInterface'" class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <FormLabel class="glass-label">Forward IP</FormLabel>
-                                    <input
-                                        v-model="newInterfaceForwardIp"
-                                        type="text"
-                                        placeholder="255.255.255.255"
-                                        class="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <FormLabel class="glass-label">Forward Port</FormLabel>
-                                    <input
-                                        v-model="newInterfaceForwardPort"
-                                        type="number"
-                                        placeholder="4242"
-                                        class="input-field"
-                                    />
-                                </div>
-                            </div>
-
-                            <!-- I2P Interface -->
-                            <div v-if="newInterfaceType === 'I2PInterface'" class="space-y-4">
-                                <div
-                                    class="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-900/20 text-xs text-blue-800 dark:text-blue-300"
-                                >
-                                    ⓘ To use the I2P interface, you must have an I2P router running on your system.
-                                </div>
-                                <div>
-                                    <FormLabel class="glass-label">Initial Peers (Optional)</FormLabel>
-                                    <div class="space-y-2">
-                                        <div
-                                            v-for="(peer, index) in I2PSettings.newInterfacePeers"
-                                            :key="index"
-                                            class="flex items-center gap-2"
-                                        >
-                                            <input
-                                                v-model="I2PSettings.newInterfacePeers[index]"
-                                                type="text"
-                                                placeholder="b32.i2p address"
-                                                class="input-field"
-                                            />
-                                            <button
-                                                type="button"
-                                                class="text-red-500 hover:text-red-400 p-1"
-                                                @click="removeI2PPeer(index)"
-                                            >
-                                                <MaterialDesignIcon icon-name="trash-can-outline" class="size-5" />
-                                            </button>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            class="secondary-chip !py-1 !px-3 !text-[10px]"
-                                            @click="addI2PPeer('')"
-                                        >
-                                            <MaterialDesignIcon icon-name="plus" class="size-3" /> Add Peer
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- RNode / Hardware -->
-                            <div
-                                v-if="
-                                    [
-                                        'RNodeInterface',
-                                        'RNodeIPInterface',
-                                        'SerialInterface',
-                                        'KISSInterface',
-                                        'AX25KISSInterface',
-                                    ].includes(newInterfaceType)
-                                "
-                                class="space-y-4"
-                            >
-                                <div v-if="newInterfaceType === 'RNodeInterface'" class="flex items-center gap-2 pb-2">
-                                    <Toggle id="rnode-use-ip" v-model="newInterfaceRNodeUseIP" />
-                                    <FormLabel for="rnode-use-ip" class="cursor-pointer !mb-0 text-sm"
-                                        >Connect over network (IP)</FormLabel
-                                    >
-                                </div>
-
-                                <div
-                                    v-if="newInterfaceRNodeUseIP || newInterfaceType === 'RNodeIPInterface'"
-                                    class="grid grid-cols-2 gap-4"
-                                >
-                                    <div>
-                                        <FormLabel class="glass-label">Host</FormLabel>
-                                        <input
-                                            v-model="newInterfaceRNodeIPHost"
-                                            type="text"
-                                            placeholder="10.0.0.1"
-                                            class="input-field"
-                                        />
-                                    </div>
-                                    <div>
-                                        <FormLabel class="glass-label">Port</FormLabel>
-                                        <input
-                                            v-model="newInterfaceRNodeIPPort"
-                                            type="number"
-                                            placeholder="7633"
-                                            class="input-field"
-                                        />
-                                    </div>
-                                </div>
-                                <div v-else>
-                                    <FormLabel class="glass-label">Serial Port</FormLabel>
-                                    <div class="relative">
-                                        <select v-model="newInterfacePort" class="input-field appearance-none pr-10">
-                                            <option :value="null" disabled>Select a port...</option>
-                                            <option v-for="port in comports" :key="port.device" :value="port.device">
-                                                {{ port.device }} ({{ port.product ?? "?" }})
-                                            </option>
-                                        </select>
-                                        <div
-                                            class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400"
-                                        >
-                                            <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
-                                        </div>
-                                    </div>
-                                    <div class="mt-2 flex justify-end">
-                                        <button
-                                            type="button"
-                                            class="text-[10px] uppercase font-bold text-blue-500 hover:text-blue-600 tracking-wider"
-                                            @click="loadComports"
-                                        >
-                                            Refresh Ports
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- RNode Radio Parameters -->
-                            <div
-                                v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)"
-                                class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
-                            >
-                                <div>
-                                    <FormLabel class="glass-label">Frequency (Hz)</FormLabel>
-                                    <div class="flex items-center gap-2">
-                                        <div class="flex-1">
-                                            <input
-                                                v-model.number="RNodeGHzValue"
-                                                type="number"
-                                                min="0"
-                                                class="input-field text-center"
-                                            />
-                                            <div class="text-[10px] text-center text-gray-400 mt-1">GHz</div>
-                                        </div>
-                                        <div class="flex-1">
-                                            <input
-                                                v-model.number="RNodeMHzValue"
-                                                type="number"
-                                                min="0"
-                                                class="input-field text-center"
-                                            />
-                                            <div class="text-[10px] text-center text-gray-400 mt-1">MHz</div>
-                                        </div>
-                                        <div class="flex-1">
-                                            <input
-                                                v-model.number="RNodekHzValue"
-                                                type="number"
-                                                min="0"
-                                                class="input-field text-center"
-                                            />
-                                            <div class="text-[10px] text-center text-gray-400 mt-1">kHz</div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        v-if="formattedFrequency"
-                                        class="mt-2 text-center text-sm font-mono text-blue-500 font-bold"
-                                    >
-                                        {{ formattedFrequency }}
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <FormLabel class="glass-label">Bandwidth</FormLabel>
-                                        <select v-model="newInterfaceBandwidth" class="input-field">
-                                            <option
-                                                v-for="bw in RNodeInterfaceDefaults.bandwidths"
-                                                :key="bw"
-                                                :value="bw"
-                                            >
-                                                {{ bw / 1000 }} kHz
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <FormLabel class="glass-label">Power (dBm)</FormLabel>
-                                        <input v-model="newInterfaceTxpower" type="number" class="input-field" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Pipe Interface -->
-                            <div v-if="newInterfaceType === 'PipeInterface'" class="space-y-4">
-                                <div
-                                    class="bg-gray-50/50 dark:bg-zinc-800/30 p-3 rounded-2xl border border-gray-100 dark:border-zinc-800 text-xs text-gray-600 dark:text-zinc-400"
-                                >
-                                    ⓘ Interface with external programs via stdin/stdout.
-                                </div>
-                                <div>
-                                    <FormLabel class="glass-label">Command</FormLabel>
-                                    <input
-                                        v-model="newInterfaceCommand"
-                                        type="text"
-                                        placeholder="e.g. netcat -l 5757"
-                                        class="input-field"
-                                    />
-                                </div>
-                                <div>
-                                    <FormLabel class="glass-label">Respawn Delay (s)</FormLabel>
-                                    <input
-                                        v-model="newInterfaceRespawnDelay"
-                                        type="number"
-                                        placeholder="5"
-                                        class="input-field"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Advanced Sections -->
-                <div class="space-y-4 pt-4">
-                    <!-- RNode Advanced Tools -->
-                    <ExpandingSection
-                        v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)"
-                        class="glass-card !p-0 overflow-hidden"
-                    >
-                        <template #title><span class="text-sm font-bold">Calculated Parameters</span></template>
-                        <template #content>
-                            <div class="p-6 space-y-6">
-                                <div>
-                                    <FormLabel class="glass-label">Antenna Gain (dBi)</FormLabel>
-                                    <input
-                                        v-model.number="RNodeInterfaceLoRaParameters.antennaGain"
-                                        type="number"
-                                        class="input-field"
-                                    />
-                                </div>
-                                <div class="grid grid-cols-3 gap-3">
-                                    <div class="bg-blue-500/5 p-3 rounded-2xl border border-blue-500/10 text-center">
-                                        <div class="text-[10px] uppercase font-bold text-blue-500 mb-1">
-                                            Sensitivity
-                                        </div>
-                                        <div class="text-lg font-mono font-bold">
-                                            {{ RNodeInterfaceLoRaParameters.sensitivity ?? "???" }}
-                                        </div>
-                                    </div>
-                                    <div class="bg-blue-500/5 p-3 rounded-2xl border border-blue-500/10 text-center">
-                                        <div class="text-[10px] uppercase font-bold text-blue-500 mb-1">Data Rate</div>
-                                        <div class="text-lg font-mono font-bold">
-                                            {{ RNodeInterfaceLoRaParameters.dataRate ?? "???" }}
-                                        </div>
-                                    </div>
-                                    <div class="bg-blue-500/5 p-3 rounded-2xl border border-blue-500/10 text-center">
-                                        <div class="text-[10px] uppercase font-bold text-blue-500 mb-1">
-                                            Link Budget
-                                        </div>
-                                        <div class="text-lg font-mono font-bold">
-                                            {{ RNodeInterfaceLoRaParameters.linkBudget ?? "???" }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                    </ExpandingSection>
-
-                    <!-- Interface Discovery Settings -->
-                    <ExpandingSection class="glass-card !p-0 overflow-hidden">
-                        <template #title><span class="text-sm font-bold">Interface Discovery</span></template>
-                        <template #content>
-                            <div class="p-6 space-y-6">
-                                <div class="flex items-center justify-between">
-                                    <div class="max-w-md">
-                                        <FormLabel class="glass-label !mb-0">Publish Discovery Announce</FormLabel>
-                                        <p class="text-xs text-gray-400">
-                                            Makes your node visible to others on the network.
-                                        </p>
-                                    </div>
-                                    <Toggle v-model="discovery.discoverable" />
-                                </div>
-                                <div
-                                    v-if="discovery.discoverable"
-                                    class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2"
-                                >
-                                    <div>
-                                        <FormLabel class="glass-label">Discovery Name</FormLabel>
-                                        <input
-                                            v-model="discovery.discovery_name"
-                                            type="text"
-                                            placeholder="Human-friendly name"
-                                            class="input-field"
-                                        />
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <FormLabel class="glass-label">Announce Interval (m)</FormLabel>
-                                            <input
-                                                v-model.number="discovery.announce_interval"
-                                                type="number"
-                                                class="input-field"
-                                            />
-                                        </div>
-                                        <div>
-                                            <FormLabel class="glass-label">Reachable On</FormLabel>
-                                            <input
-                                                v-model="discovery.reachable_on"
-                                                type="text"
-                                                placeholder="IP or Hostname"
-                                                class="input-field"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                    </ExpandingSection>
-
-                    <!-- Global Discovery Settings -->
-                    <ExpandingSection class="glass-card !p-0 overflow-hidden">
-                        <template #title><span class="text-sm font-bold">Discovery Listener (Peer)</span></template>
-                        <template #content>
-                            <div class="p-6 space-y-6">
-                                <div class="flex items-center justify-between">
-                                    <div class="max-w-md">
-                                        <FormLabel class="glass-label !mb-0">Enable Discovery Listener</FormLabel>
-                                        <p class="text-xs text-gray-400">
-                                            Listen for announced interfaces and optionally auto-connect.
-                                        </p>
-                                    </div>
-                                    <Toggle v-model="reticulumDiscovery.discover_interfaces" />
-                                </div>
-                                <div
-                                    v-if="reticulumDiscovery.discover_interfaces"
-                                    class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2"
-                                >
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <input
-                                            v-model="reticulumDiscovery.interface_discovery_whitelist"
-                                            type="text"
-                                            placeholder="Whitelist (names, hosts, IDs)"
-                                            class="input-field"
-                                        />
-                                        <input
-                                            v-model="reticulumDiscovery.interface_discovery_blacklist"
-                                            type="text"
-                                            placeholder="Blacklist (names, hosts, IDs)"
-                                            class="input-field"
-                                        />
-                                    </div>
-                                    <div class="flex justify-end">
-                                        <button
-                                            type="button"
-                                            class="primary-chip !text-[10px]"
-                                            :disabled="savingDiscovery"
-                                            @click="saveReticulumDiscoveryConfig"
-                                        >
-                                            <MaterialDesignIcon icon-name="content-save" class="size-3" /> Save Listener
-                                            Prefs
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                    </ExpandingSection>
-
-                    <!-- Shared Advanced Settings -->
-                    <ExpandingSection class="glass-card !p-0 overflow-hidden">
-                        <template #title
-                            ><span class="text-sm font-bold">Advanced Parameters (IFAC, Mode)</span></template
+                        <div
+                            v-else-if="
+                                !isEditingInterface &&
+                                communityPresetsEnabled &&
+                                communityInterfacesFetchDone &&
+                                communityInterfaces.length === 0
+                            "
+                            class="glass-card p-4 text-sm text-gray-500 dark:text-zinc-400"
                         >
-                        <template #content>
-                            <div class="p-6 space-y-6">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <FormLabel class="glass-label">Interface Mode</FormLabel>
-                                        <select v-model="sharedInterfaceSettings.mode" class="input-field">
-                                            <option :value="undefined">Default (Full)</option>
-                                            <option value="full">Full</option>
-                                            <option value="gateway">Gateway</option>
-                                            <option value="access_point">Access Point</option>
-                                            <option value="roaming">Roaming</option>
-                                            <option value="boundary">Boundary</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <FormLabel class="glass-label">Forced Bitrate</FormLabel>
-                                        <input
-                                            v-model="sharedInterfaceSettings.bitrate"
-                                            type="number"
-                                            placeholder="bps"
-                                            class="input-field"
-                                        />
-                                    </div>
+                            {{ $t("interfaces.community_presets_empty") }}
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4">
+                            <div
+                                class="glass-card flex items-center gap-4 bg-blue-50/30 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30"
+                            >
+                                <div
+                                    class="size-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0"
+                                >
+                                    <MaterialDesignIcon icon-name="map-search-outline" class="size-6" />
                                 </div>
-                                <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
-                                    <FormLabel class="glass-label">Interface Access Code (IFAC)</FormLabel>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <input
-                                            v-model="sharedInterfaceSettings.network_name"
-                                            type="text"
-                                            placeholder="Network Name"
-                                            class="input-field"
-                                        />
-                                        <input
-                                            v-model="sharedInterfaceSettings.passphrase"
-                                            type="text"
-                                            placeholder="Passphrase"
-                                            class="input-field"
-                                        />
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">
+                                        {{ $t("interfaces.find_more_nodes") }}
+                                    </h3>
+                                    <div class="flex flex-wrap gap-2 mt-1">
+                                        <a
+                                            href="https://directory.rns.recipes/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="secondary-chip !py-1 !px-2 !text-[9px]"
+                                            >rns.recipes</a
+                                        >
+                                        <a
+                                            href="https://rmap.world/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="secondary-chip !py-1 !px-2 !text-[9px]"
+                                            >rmap.world</a
+                                        >
                                     </div>
                                 </div>
                             </div>
-                        </template>
-                    </ExpandingSection>
-                </div>
 
-                <!-- Footer Save Action -->
-                <div class="pt-8 flex items-center justify-between gap-4 border-t border-gray-200 dark:border-zinc-800">
-                    <button
-                        type="button"
-                        class="secondary-chip !px-10 !py-3 !text-sm"
-                        @click="$router.push({ name: 'interfaces' })"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        class="primary-chip !px-16 !py-3 !text-sm"
-                        :disabled="isSaving"
-                        @click="saveInterface"
-                    >
-                        <MaterialDesignIcon
-                            :icon-name="isSaving ? 'loading' : isEditingInterface ? 'content-save' : 'plus'"
-                            class="size-5"
-                            :class="{ 'animate-spin': isSaving }"
-                        />
-                        {{ isEditingInterface ? "Update Connection" : "Create Connection" }}
-                    </button>
+                            <div
+                                class="glass-card flex flex-col gap-2 !p-4 bg-emerald-50/20 dark:bg-emerald-900/5 border-emerald-100 dark:border-emerald-900/20"
+                            >
+                                <div class="flex items-center justify-between gap-2">
+                                    <h3
+                                        class="text-xs font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest flex items-center gap-2"
+                                    >
+                                        <MaterialDesignIcon icon-name="import" class="size-4" />
+                                        {{ $t("interfaces.quick_import") }}
+                                    </h3>
+                                    <span class="text-[10px] text-gray-400 shrink-0">{{
+                                        $t("interfaces.quick_import_paste_hint")
+                                    }}</span>
+                                </div>
+                                <textarea
+                                    v-model="rawConfigInput"
+                                    :placeholder="$t('interfaces.quick_import_placeholder')"
+                                    class="w-full h-20 bg-white/50 dark:bg-zinc-900/50 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl p-2 text-[10px] font-mono focus:ring-1 focus:ring-emerald-500 outline-none transition"
+                                    @input="handleRawConfigInput"
+                                ></textarea>
+
+                                <div v-if="detectedConfigs.length > 1" class="flex flex-wrap gap-2 mt-1">
+                                    <button
+                                        v-for="cfg in detectedConfigs"
+                                        :key="cfg.name"
+                                        type="button"
+                                        class="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg px-2 py-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 transition"
+                                        @click="applyConfig(cfg)"
+                                    >
+                                        {{ $t("interfaces.quick_import_apply", { name: cfg.name }) }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
                 </div>
             </div>
         </div>
@@ -823,6 +986,7 @@ export default {
             config: null,
 
             communityInterfaces: [],
+            communityInterfacesFetchDone: false,
 
             comports: [],
 
@@ -839,6 +1003,7 @@ export default {
 
             newInterfaceTargetHost: null,
             newInterfaceTargetPort: null,
+            newInterfaceTransportIdentity: null,
 
             newInterfaceListenIp: null,
             newInterfaceListenPort: null,
@@ -965,6 +1130,30 @@ export default {
         };
     },
     computed: {
+        communityPresetsEnabled() {
+            if (this.isEditingInterface) {
+                return false;
+            }
+            const c = this.config;
+            if (!c) {
+                return true;
+            }
+            const v = c.show_suggested_community_interfaces;
+            if (v === undefined || v === null) {
+                return true;
+            }
+            return this.parseBool(v);
+        },
+        communityPresetsDismissed() {
+            if (this.isEditingInterface || !this.config) {
+                return false;
+            }
+            const v = this.config.show_suggested_community_interfaces;
+            if (v === undefined || v === null) {
+                return false;
+            }
+            return !this.parseBool(v);
+        },
         formattedFrequency() {
             const totalHz = this.calculateFrequencyInHz();
             if (totalHz >= 1e9) {
@@ -1061,9 +1250,12 @@ export default {
         async loadCommunityInterfaces() {
             try {
                 const response = await window.axios.get(`/api/v1/community-interfaces`);
-                this.communityInterfaces = response.data.interfaces;
+                this.communityInterfaces = response.data.interfaces ?? [];
             } catch (e) {
                 console.log(e);
+                this.communityInterfaces = [];
+            } finally {
+                this.communityInterfacesFetchDone = true;
             }
         },
         async loadInterfaceToEdit(interfaceName) {
@@ -1079,8 +1271,12 @@ export default {
 
                 this.newInterfaceName = interfaceName;
                 this.newInterfaceType = iface.type;
-                this.newInterfaceTargetHost = iface.target_host;
-                this.newInterfaceTargetPort = iface.target_port;
+                this.newInterfaceTargetHost = iface.target_host ?? iface.remote ?? null;
+                this.newInterfaceTargetPort = iface.target_port ?? null;
+                this.newInterfaceTransportIdentity = iface.transport_identity ?? null;
+                if (iface.type === "I2PInterface" && Array.isArray(iface.peers)) {
+                    this.I2PSettings.newInterfacePeers = [...iface.peers];
+                }
                 this.newInterfaceListenIp = iface.listen_ip;
                 this.newInterfaceListenPort = iface.listen_port;
                 this.newInterfacePort = iface.port;
@@ -1211,12 +1407,19 @@ export default {
                 const discoveryEnabled = this.discovery.discoverable === true;
                 const freqHz = this.calculateFrequencyInHz();
 
+                const i2pPeers =
+                    this.newInterfaceType === "I2PInterface"
+                        ? (this.I2PSettings.newInterfacePeers || []).map((p) => String(p).trim()).filter(Boolean)
+                        : undefined;
+
                 const response = await window.axios.post(`/api/v1/reticulum/interfaces/add`, {
                     allow_overwriting_interface: this.isEditingInterface,
                     name: this.newInterfaceName,
                     type: this.newInterfaceType,
                     target_host: this.newInterfaceTargetHost,
                     target_port: this.newInterfaceTargetPort,
+                    transport_identity: this.newInterfaceTransportIdentity,
+                    peers: i2pPeers,
                     listen_ip: this.newInterfaceListenIp,
                     listen_port: this.newInterfaceListenPort,
                     port: this.newInterfaceRNodeUseIP

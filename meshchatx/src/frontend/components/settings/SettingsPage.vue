@@ -1078,31 +1078,25 @@
                                     "
                                 />
                             </div>
-                            <div class="space-y-3">
+                            <div class="space-y-4">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {{ $t("app.announce_limits") }}
                                 </div>
                                 <div class="text-xs text-gray-600 dark:text-gray-400">
                                     {{ $t("app.announce_limits_description") }}
                                 </div>
+                                <div class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide">
+                                    {{ $t("app.announce_max_stored_heading") }}
+                                </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div class="space-y-1">
                                         <label class="text-xs font-medium">{{ $t("app.announce_limit_lxmf") }}</label>
                                         <input
-                                            v-model.number="config.announce_limit_lxmf_delivery"
+                                            v-model.number="config.announce_max_stored_lxmf_delivery"
                                             type="number"
-                                            min="0"
+                                            min="1"
                                             class="input-field"
-                                            placeholder="-"
-                                            @change="
-                                                updateConfig(
-                                                    {
-                                                        announce_limit_lxmf_delivery:
-                                                            config.announce_limit_lxmf_delivery ?? null,
-                                                    },
-                                                    'announce_limits'
-                                                )
-                                            "
+                                            @change="onAnnounceLimitsChange"
                                         />
                                     </div>
                                     <div class="space-y-1">
@@ -1110,40 +1104,89 @@
                                             $t("app.announce_limit_nomadnet")
                                         }}</label>
                                         <input
-                                            v-model.number="config.announce_limit_nomadnetwork_node"
+                                            v-model.number="config.announce_max_stored_nomadnetwork_node"
                                             type="number"
-                                            min="0"
+                                            min="1"
                                             class="input-field"
-                                            placeholder="-"
-                                            @change="
-                                                updateConfig(
-                                                    {
-                                                        announce_limit_nomadnetwork_node:
-                                                            config.announce_limit_nomadnetwork_node ?? null,
-                                                    },
-                                                    'announce_limits'
-                                                )
-                                            "
+                                            @change="onAnnounceLimitsChange"
                                         />
                                     </div>
                                     <div class="space-y-1">
                                         <label class="text-xs font-medium">{{ $t("app.announce_limit_prop") }}</label>
                                         <input
-                                            v-model.number="config.announce_limit_lxmf_propagation"
+                                            v-model.number="config.announce_max_stored_lxmf_propagation"
                                             type="number"
-                                            min="0"
+                                            min="1"
                                             class="input-field"
-                                            placeholder="-"
-                                            @change="
-                                                updateConfig(
-                                                    {
-                                                        announce_limit_lxmf_propagation:
-                                                            config.announce_limit_lxmf_propagation ?? null,
-                                                    },
-                                                    'announce_limits'
-                                                )
-                                            "
+                                            @change="onAnnounceLimitsChange"
                                         />
+                                    </div>
+                                </div>
+                                <div class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide">
+                                    {{ $t("app.announce_fetch_limit_heading") }}
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="space-y-1">
+                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_lxmf") }}</label>
+                                        <input
+                                            v-model.number="config.announce_fetch_limit_lxmf_delivery"
+                                            type="number"
+                                            min="1"
+                                            class="input-field"
+                                            @change="onAnnounceLimitsChange"
+                                        />
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-xs font-medium">{{
+                                            $t("app.announce_limit_nomadnet")
+                                        }}</label>
+                                        <input
+                                            v-model.number="config.announce_fetch_limit_nomadnetwork_node"
+                                            type="number"
+                                            min="1"
+                                            class="input-field"
+                                            @change="onAnnounceLimitsChange"
+                                        />
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_prop") }}</label>
+                                        <input
+                                            v-model.number="config.announce_fetch_limit_lxmf_propagation"
+                                            type="number"
+                                            min="1"
+                                            class="input-field"
+                                            @change="onAnnounceLimitsChange"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div class="space-y-1">
+                                        <label class="text-xs font-medium">{{ $t("app.announce_search_max_fetch") }}</label>
+                                        <input
+                                            v-model.number="config.announce_search_max_fetch"
+                                            type="number"
+                                            min="100"
+                                            class="input-field"
+                                            @change="onAnnounceLimitsChange"
+                                        />
+                                        <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                            {{ $t("app.announce_search_max_fetch_hint") }}
+                                        </p>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="text-xs font-medium">{{
+                                            $t("app.discovered_interfaces_max_return")
+                                        }}</label>
+                                        <input
+                                            v-model.number="config.discovered_interfaces_max_return"
+                                            type="number"
+                                            min="1"
+                                            class="input-field"
+                                            @change="onAnnounceLimitsChange"
+                                        />
+                                        <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                            {{ $t("app.discovered_interfaces_max_return_hint") }}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -1496,7 +1539,9 @@
                                     @update:model-value="onInboundStampsEnabledChange"
                                 />
                                 <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.inbound_stamps_required_title") }}</span>
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.inbound_stamps_required_title")
+                                    }}</span>
                                     <span class="setting-toggle__description">{{
                                         $t("app.inbound_stamps_required_description")
                                     }}</span>
@@ -1762,9 +1807,14 @@ export default {
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
                 blackhole_integration_enabled: true,
-                announce_limit_lxmf_delivery: null,
-                announce_limit_nomadnetwork_node: null,
-                announce_limit_lxmf_propagation: null,
+                announce_max_stored_lxmf_delivery: 1000,
+                announce_max_stored_nomadnetwork_node: 1000,
+                announce_max_stored_lxmf_propagation: 1000,
+                announce_fetch_limit_lxmf_delivery: 500,
+                announce_fetch_limit_nomadnetwork_node: 500,
+                announce_fetch_limit_lxmf_propagation: 500,
+                announce_search_max_fetch: 2000,
+                discovered_interfaces_max_return: 500,
                 message_font_size: 14,
                 message_icon_size: 28,
                 message_outbound_bubble_color: "#4f46e5",
@@ -1867,6 +1917,10 @@ export default {
                     "app.announce_limit_lxmf",
                     "app.announce_limit_nomadnet",
                     "app.announce_limit_prop",
+                    "app.announce_max_stored_heading",
+                    "app.announce_fetch_limit_heading",
+                    "app.announce_search_max_fetch",
+                    "app.discovered_interfaces_max_return",
                 ],
                 transport: [
                     "Reticulum",
@@ -2083,6 +2137,37 @@ export default {
                 console.log(e);
             }
         },
+        numOrNull(v) {
+            if (v === null || v === undefined || v === "") {
+                return null;
+            }
+            const n = Number(v);
+            return Number.isFinite(n) ? n : null;
+        },
+        async onAnnounceLimitsChange() {
+            const c = this.config;
+            await this.updateConfig(
+                {
+                    announce_max_stored_lxmf_delivery: this.numOrNull(c.announce_max_stored_lxmf_delivery),
+                    announce_max_stored_nomadnetwork_node: this.numOrNull(
+                        c.announce_max_stored_nomadnetwork_node
+                    ),
+                    announce_max_stored_lxmf_propagation: this.numOrNull(
+                        c.announce_max_stored_lxmf_propagation
+                    ),
+                    announce_fetch_limit_lxmf_delivery: this.numOrNull(c.announce_fetch_limit_lxmf_delivery),
+                    announce_fetch_limit_nomadnetwork_node: this.numOrNull(
+                        c.announce_fetch_limit_nomadnetwork_node
+                    ),
+                    announce_fetch_limit_lxmf_propagation: this.numOrNull(
+                        c.announce_fetch_limit_lxmf_propagation
+                    ),
+                    announce_search_max_fetch: this.numOrNull(c.announce_search_max_fetch),
+                    discovered_interfaces_max_return: this.numOrNull(c.discovered_interfaces_max_return),
+                },
+                "announce_limits"
+            );
+        },
         async copyValue(value, label) {
             if (!value) {
                 ToastUtils.warning(`Nothing to copy for ${label}`);
@@ -2265,10 +2350,7 @@ export default {
                 );
                 return;
             }
-            const restore = Math.min(
-                254,
-                Math.max(1, Number(this.lastRememberedInboundStampCost) || 8)
-            );
+            const restore = Math.min(254, Math.max(1, Number(this.lastRememberedInboundStampCost) || 8));
             this.config.lxmf_inbound_stamp_cost = restore;
             await this.updateConfig(
                 {

@@ -1105,6 +1105,7 @@
                         :placeholder="$t('messages.send_placeholder')"
                         @keydown.enter.exact.prevent="onEnterPressed"
                         @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
+                        @paste="onMessagePaste"
                     ></textarea>
 
                     <!-- reply preview -->
@@ -1264,6 +1265,15 @@
                 >
                     <MaterialDesignIcon icon-name="refresh" class="size-4" />
                     <span class="font-medium">Retry</span>
+                </button>
+                <button
+                    v-if="isSelectedPeerBlocked && selectedPeer"
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all active:scale-95"
+                    @click="liftBanishmentFromMessageMenu"
+                >
+                    <MaterialDesignIcon icon-name="check-circle" class="size-4" />
+                    <span class="font-medium">{{ $t("banishment.lift_banishment") }}</span>
                 </button>
                 <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
                 <button
@@ -2925,6 +2935,23 @@ export default {
                 console.error(e);
             }
         },
+        async liftBanishmentFromMessageMenu() {
+            if (!this.selectedPeer?.destination_hash) {
+                this.messageContextMenu.show = false;
+                return;
+            }
+            try {
+                await window.axios.delete(
+                    `/api/v1/blocked-destinations/${this.selectedPeer.destination_hash}`
+                );
+                GlobalEmitter.emit("block-status-changed");
+                DialogUtils.alert(this.$t("banishment.banishment_lifted"));
+            } catch (e) {
+                DialogUtils.alert(this.$t("banishment.failed_lift_banishment"));
+                console.error(e);
+            }
+            this.messageContextMenu.show = false;
+        },
         onChatItemClick: function (chatItem) {
             if (!chatItem.is_actions_expanded) {
                 chatItem.is_actions_expanded = true;
@@ -2973,8 +3000,8 @@ export default {
             this.messageContextMenu.show = true;
 
             this.$nextTick(() => {
-                const menuWidth = 180;
-                const menuHeight = 150;
+                const menuWidth = 200;
+                const menuHeight = 280;
 
                 let x = event.clientX;
                 let y = event.clientY;
@@ -3672,6 +3699,35 @@ export default {
                 const message = e.response?.data?.message ?? "Failed to start call";
                 DialogUtils.alert(message);
             }
+        },
+        onMessagePaste(event) {
+            const cd = event.clipboardData;
+            if (!cd?.items?.length) {
+                return;
+            }
+            const imageBlobs = [];
+            for (let i = 0; i < cd.items.length; i++) {
+                const item = cd.items[i];
+                if (item.kind === "file" && item.type.startsWith("image/")) {
+                    const f = item.getAsFile();
+                    if (f) {
+                        imageBlobs.push(f);
+                    }
+                }
+            }
+            if (imageBlobs.length === 0) {
+                return;
+            }
+            event.preventDefault();
+            const t = Date.now();
+            imageBlobs.forEach((file, idx) => {
+                let f = file;
+                const ext = (file.type.split("/")[1] || "png").replace("jpeg", "jpg");
+                if (!file.name || file.name === "image.png" || file.name === "image.jpeg") {
+                    f = new File([file], `paste-${t}-${idx}.${ext}`, { type: file.type });
+                }
+                this.onImageSelected(f);
+            });
         },
         async pasteFromClipboard() {
             try {

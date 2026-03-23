@@ -210,7 +210,13 @@
         "blackhole_integration_enabled": "Integrazione Blackhole",
         "blackhole_integration_description": "Metti automaticamente in blackhole le identità a livello di trasporto Reticulum quando esili gli utenti in MeshChatX.",
         "announce_limits": "Limiti annunci",
-        "announce_limits_description": "Numero massimo opzionale per aspetto. Lasciare vuoto per nessun limite. Protegge da attacchi flood su reti pubbliche.",
+        "announce_limits_description": "Limita quanti annunci restano nel database per aspetto (si eliminano i più vecchi) e quanti vengono caricati per richiesta API. Limita anche ricerca e interfacce scoperte. Svuota un campo e salva per i default.",
+        "announce_max_stored_heading": "Massimo salvato per aspetto (database)",
+        "announce_fetch_limit_heading": "Dimensione pagina predefinita (API)",
+        "announce_search_max_fetch": "Massimo annunci per ricerca",
+        "announce_search_max_fetch_hint": "Righe massime lette dal database con ricerca testuale (per richiesta).",
+        "discovered_interfaces_max_return": "Limite interfacce scoperte",
+        "discovered_interfaces_max_return_hint": "Massimo elementi per interfacce scoperte e attive nell'interfaccia.",
         "announce_limit_lxmf": "LXMF",
         "announce_limit_nomadnet": "NomadNet",
         "announce_limit_prop": "Nodi prop",
@@ -505,7 +511,20 @@
         "select_config_file": "Seleziona un file di configurazione",
         "select_at_least_one": "Seleziona almeno un'interfaccia da importare",
         "import_success": "Interfacce importate con successo. MeshChat deve essere riavviato per applicare le modifiche.",
-        "failed_import_all": "Impossibile importare le interfacce"
+        "failed_import_all": "Impossibile importare le interfacce",
+        "add_interface_sidebar_a11y": "Collegamenti e preset community",
+        "community_quick_start": "Avvio rapido community",
+        "community_quick_start_hint": "Preset da directory.rns.recipes (elenchi online).",
+        "community_quick_start_hide": "Nascondi suggerimenti",
+        "community_use_preset": "Usa",
+        "community_presets_hidden_hint": "I preset community sono nascosti. Mostra di nuovo qui o in Impostazioni.",
+        "community_presets_show_again": "Mostra preset community",
+        "community_presets_empty": "Nessun preset. Ricostruisci il bundle o aggiungi public/community_interfaces.json.",
+        "find_more_nodes": "Trova altri nodi",
+        "quick_import": "Import rapido",
+        "quick_import_paste_hint": "Incolla config grezza",
+        "quick_import_placeholder": "[[Interface Name]]\ntype = TCPClientInterface\ntarget_host = 1.2.3.4",
+        "quick_import_apply": "Applica: {name}"
     },
     "map": {
         "title": "Mappa",
@@ -916,7 +935,9 @@
         "pages": "Pagine",
         "view": "Visualizza",
         "showing_range": "Visualizzazione da {start} a {end} di {total} archivi",
-        "page_of": "Pagina {page} di {total_pages}"
+        "page_of": "Pagina {page} di {total_pages}",
+        "export_mu": "Esporta .mu",
+        "export_selected_mu": "Esporta .mu ({count})"
     },
     "docs": {
         "title": "Documentazione",

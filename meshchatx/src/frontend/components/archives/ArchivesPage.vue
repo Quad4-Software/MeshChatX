@@ -57,6 +57,14 @@
 
                     <button
                         v-if="selectedArchives.length > 0"
+                        class="text-[10px] font-bold uppercase tracking-wider text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 mr-2"
+                        @click="exportSelectedArchivesAsMu"
+                    >
+                        <MaterialDesignIcon icon-name="download" class="size-3.5" />
+                        {{ $t("archives.export_selected_mu", { count: selectedArchives.length }) }}
+                    </button>
+                    <button
+                        v-if="selectedArchives.length > 0"
                         class="text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors flex items-center gap-1"
                         @click="deleteSelected"
                     >
@@ -158,6 +166,17 @@
                     </button>
                     <div class="hidden sm:block w-px h-6 bg-zinc-800 mx-1"></div>
                     <button
+                        class="p-2 hover:bg-zinc-800 rounded transition-colors text-zinc-300 flex items-center gap-2"
+                        :title="$t('archives.export_mu')"
+                        @click="exportArchiveAsMu(viewingArchive)"
+                    >
+                        <MaterialDesignIcon icon-name="download" class="size-4" />
+                        <span class="hidden xs:inline text-xs font-bold uppercase tracking-wider">{{
+                            $t("archives.export_mu")
+                        }}</span>
+                    </button>
+                    <div class="hidden xs:block w-px h-6 bg-zinc-800 mx-1"></div>
+                    <button
                         class="p-2 hover:bg-zinc-800 rounded transition-colors text-blue-400 flex items-center gap-2"
                         @click="openInNomadnet(viewingArchive)"
                     >
@@ -239,8 +258,9 @@ export default {
         groupedArchives() {
             // Optimization: Use a simple object for grouping
             const groups = {};
-            for (let i = 0; i < this.archives.length; i++) {
-                const archive = this.archives[i];
+            const list = this.archives || [];
+            for (let i = 0; i < list.length; i++) {
+                const archive = list[i];
                 const hash = archive.destination_hash;
                 if (!groups[hash]) {
                     groups[hash] = {
@@ -397,6 +417,50 @@ export default {
         },
         formatDate(dateStr) {
             return Utils.formatTimeAgo(dateStr);
+        },
+        downloadTextAsFile(content, filename) {
+            const blob = new Blob([content ?? ""], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.rel = "noopener";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        },
+        muExportBasename(archive) {
+            let base = (archive.page_path || "page").split("/").pop() || "page";
+            base = base.replace(/[\\/:*?"<>|]+/g, "_").trim() || "page";
+            return base;
+        },
+        muExportFilename(archive) {
+            let base = this.muExportBasename(archive);
+            if (base.toLowerCase().endsWith(".mu")) {
+                return base;
+            }
+            const without = base.includes(".") ? base.replace(/\.[^.]+$/, "") : base;
+            return `${without || "page"}.mu`;
+        },
+        muExportFilenameDisambiguated(archive) {
+            const stem = this.muExportFilename(archive).replace(/\.mu$/i, "");
+            const short = (archive.hash || "snap").substring(0, 8);
+            return `${stem}_${short}.mu`;
+        },
+        exportArchiveAsMu(archive) {
+            if (!archive) {
+                return;
+            }
+            this.downloadTextAsFile(archive.content, this.muExportFilename(archive));
+        },
+        exportSelectedArchivesAsMu() {
+            const list = this.archives.filter((a) => this.selectedArchives.includes(a.id));
+            list.forEach((archive, i) => {
+                window.setTimeout(() => {
+                    this.downloadTextAsFile(archive.content, this.muExportFilenameDisambiguated(archive));
+                }, i * 120);
+            });
         },
         renderFullContent(archive) {
             if (!archive.content) return "";
