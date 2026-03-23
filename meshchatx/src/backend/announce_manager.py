@@ -2,10 +2,18 @@ import base64
 
 from .database import Database
 
-_ASPECT_LIMIT_KEYS = {
-    "lxmf.delivery": "announce_limit_lxmf_delivery",
-    "nomadnetwork.node": "announce_limit_nomadnetwork_node",
-    "lxmf.propagation": "announce_limit_lxmf_propagation",
+_ASPECT_MAX_STORED_KEYS = {
+    "lxmf.delivery": "announce_max_stored_lxmf_delivery",
+    "nomadnetwork.node": "announce_max_stored_nomadnetwork_node",
+    "lxmf.propagation": "announce_max_stored_lxmf_propagation",
+    "lxst.telephony": "announce_max_stored_lxmf_delivery",
+}
+
+_ASPECT_FETCH_LIMIT_KEYS = {
+    "lxmf.delivery": "announce_fetch_limit_lxmf_delivery",
+    "nomadnetwork.node": "announce_fetch_limit_nomadnetwork_node",
+    "lxmf.propagation": "announce_fetch_limit_lxmf_propagation",
+    "lxst.telephony": "announce_fetch_limit_lxmf_delivery",
 }
 
 
@@ -14,14 +22,31 @@ class AnnounceManager:
         self.db = db
         self.config = config
 
-    def _get_limit_for_aspect(self, aspect):
-        key = _ASPECT_LIMIT_KEYS.get(aspect)
-        if not key:
+    def _get_max_stored_for_aspect(self, aspect):
+        key = _ASPECT_MAX_STORED_KEYS.get(aspect)
+        if not key or not self.config:
             return None
         attr = getattr(self.config, key, None)
         if attr is None:
             return None
-        return attr.get()
+        v = attr.get()
+        if v is None or v < 1:
+            return None
+        return min(v, 1_000_000)
+
+    def _get_fetch_limit_for_aspect(self, aspect):
+        if not self.config:
+            return 500
+        key = _ASPECT_FETCH_LIMIT_KEYS.get(aspect)
+        if not key:
+            return 500
+        attr = getattr(self.config, key, None)
+        if attr is None:
+            return 500
+        v = attr.get()
+        if v is None or v < 1:
+            return 500
+        return min(v, 100_000)
 
     def upsert_announce(
         self,
@@ -32,26 +57,12 @@ class AnnounceManager:
         app_data,
         announce_packet_hash,
     ):
-        if self.config:
-            limit = self._get_limit_for_aspect(aspect)
-            if limit is not None and limit >= 0:
-                dest_hex = (
-                    destination_hash.hex()
-                    if isinstance(destination_hash, bytes)
-                    else destination_hash
-                )
-                existing = self.db.announces.get_announce_by_hash(dest_hex)
-                if not existing or existing.get("aspect") != aspect:
-                    count = self.db.announces.get_announce_count_by_aspect(aspect)
-                    if count >= limit:
-                        return
         rssi = snr = quality = None
         if announce_packet_hash and reticulum:
             rssi = reticulum.get_packet_rssi(announce_packet_hash)
             snr = reticulum.get_packet_snr(announce_packet_hash)
             quality = reticulum.get_packet_q(announce_packet_hash)
 
-        # prepare data to insert or update
         data = {
             "destination_hash": destination_hash.hex()
             if isinstance(destination_hash, bytes)
@@ -66,11 +77,14 @@ class AnnounceManager:
             "quality": quality,
         }
 
-        # only set app data if provided
         if app_data is not None:
             data["app_data"] = base64.b64encode(app_data).decode("utf-8")
 
         self.db.announces.upsert_announce(data)
+
+        max_stored = self._get_max_stored_for_aspect(aspect)
+        if max_stored is not None:
+            self.db.announces.trim_announces_for_aspect(aspect, max_stored)
 
     def get_filtered_announces(
         self,
@@ -79,9 +93,12 @@ class AnnounceManager:
         destination_hash=None,
         query=None,
         blocked_identity_hashes=None,
-        limit=500,
+        limit=None,
         offset=0,
     ):
+        if limit is None:
+            limit = self._get_fetch_limit_for_aspect(aspect)
+
         sql = """
             SELECT a.*, c.custom_image as contact_image 
             FROM announces a

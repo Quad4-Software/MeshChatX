@@ -5,6 +5,7 @@ import asyncio
 import atexit
 import base64
 import configparser
+import contextlib
 import copy
 import gc
 import hashlib
@@ -72,7 +73,9 @@ from meshchatx.src.backend.meshchat_utils import (
     convert_db_favourite_to_dict,
     convert_propagation_node_state_to_string,
     has_attachments,
+    hex_identifier_to_bytes,
     message_fields_have_attachments,
+    normalize_hex_identifier,
     parse_bool_query_param,
     parse_lxmf_display_name,
     parse_lxmf_propagation_node_app_data,
@@ -1564,6 +1567,24 @@ class ReticulumMeshChat:
             )
         ]
 
+    def _default_announce_fetch_limit(self, aspect):
+        ctx = self.current_context
+        if not ctx or not ctx.config:
+            return 500
+        keys = {
+            "lxmf.delivery": ctx.config.announce_fetch_limit_lxmf_delivery,
+            "nomadnetwork.node": ctx.config.announce_fetch_limit_nomadnetwork_node,
+            "lxmf.propagation": ctx.config.announce_fetch_limit_lxmf_propagation,
+            "lxst.telephony": ctx.config.announce_fetch_limit_lxmf_delivery,
+        }
+        cfg = keys.get(aspect)
+        if cfg is None:
+            return 500
+        v = cfg.get()
+        if v is None or v < 1:
+            return 500
+        return min(int(v), 100_000)
+
     def get_lxst_version(self) -> str:
         return self.get_package_version("lxst", getattr(LXST, "__version__", "unknown"))
 
@@ -2327,9 +2348,23 @@ class ReticulumMeshChat:
 
     # web server has shutdown, likely ctrl+c, but if we don't do the following, the script never exits
     async def shutdown(self, app):
-        # stop page nodes before tearing down reticulum
         if hasattr(self, "page_node_manager"):
             self.page_node_manager.teardown()
+
+        for identity_hash in list(self.contexts.keys()):
+            ctx = self.contexts.get(identity_hash)
+            if ctx is None:
+                continue
+            try:
+                ctx.teardown()
+            except Exception:  # noqa: S110
+                pass
+        self.contexts.clear()
+        self.current_context = None
+
+        if hasattr(self, "_health_monitor") and self._health_monitor is not None:
+            with contextlib.suppress(Exception):
+                self._health_monitor.stop()
 
         # force close websocket clients
         for websocket_client in self.websocket_clients:
@@ -3206,10 +3241,58 @@ class ReticulumMeshChat:
                 InterfaceEditor.update_value(interface_details, data, "kiss_framing")
                 InterfaceEditor.update_value(interface_details, data, "i2p_tunneled")
 
+            if interface_type == "BackboneInterface":
+                remote = data.get("remote") or data.get("target_host")
+                if remote is None or str(remote).strip() == "":
+                    return web.json_response(
+                        {
+                            "message": "Remote host is required",
+                        },
+                        status=422,
+                    )
+                interface_target_port = data.get("target_port")
+                if interface_target_port is None or interface_target_port == "":
+                    return web.json_response(
+                        {
+                            "message": "Target Port is required",
+                        },
+                        status=422,
+                    )
+                transport_identity = data.get("transport_identity")
+                if transport_identity is None or str(transport_identity).strip() == "":
+                    return web.json_response(
+                        {
+                            "message": "Transport identity is required",
+                        },
+                        status=422,
+                    )
+                interface_details["remote"] = str(remote).strip()
+                interface_details["target_port"] = interface_target_port
+                interface_details["transport_identity"] = str(
+                    transport_identity
+                ).strip()
+
             # handle I2P interface
             if interface_type == "I2PInterface":
                 interface_details["connectable"] = "True"
-                InterfaceEditor.update_value(interface_details, data, "peers")
+                peers = data.get("peers")
+                cleaned_peers: list[str] = []
+                if isinstance(peers, list):
+                    cleaned_peers = [str(p).strip() for p in peers if str(p).strip()]
+                elif peers is not None and str(peers).strip() != "":
+                    cleaned_peers = [
+                        s.strip()
+                        for s in str(peers).replace(",", " ").split()
+                        if s.strip()
+                    ]
+                if not cleaned_peers:
+                    return web.json_response(
+                        {
+                            "message": "At least one I2P peer is required",
+                        },
+                        status=422,
+                    )
+                interface_details["peers"] = cleaned_peers
 
             # handle tcp server interface
             if interface_type == "TCPServerInterface":
@@ -4794,6 +4877,13 @@ class ReticulumMeshChat:
                     whitelist_patterns,
                     blacklist_patterns,
                 )
+                max_disc = 500
+                if self.current_context and self.current_context.config:
+                    mv = self.current_context.config.discovered_interfaces_max_return.get()
+                    if mv is not None and mv > 0:
+                        max_disc = min(int(mv), 50_000)
+                if len(interfaces) > max_disc:
+                    interfaces = interfaces[:max_disc]
                 active = []
                 try:
                     if hasattr(self, "reticulum") and self.reticulum:
@@ -4852,6 +4942,9 @@ class ReticulumMeshChat:
                             )
                 except Exception as e:
                     logger.debug(f"Failed to get interface stats: {e}")
+
+                if len(active) > max_disc:
+                    active = active[:max_disc]
 
                 def to_jsonable(obj):
                     if isinstance(obj, bytes):
@@ -6025,7 +6118,7 @@ class ReticulumMeshChat:
 
             try:
                 limit = request.query.get("limit")
-                limit = int(limit) if limit is not None else None
+                limit = int(limit) if limit is not None and limit != "" else None
             except ValueError:
                 limit = None
 
@@ -6034,6 +6127,15 @@ class ReticulumMeshChat:
                 offset = int(offset) if offset is not None else 0
             except ValueError:
                 offset = 0
+
+            if not search_query and limit is None:
+                limit = self._default_announce_fetch_limit(aspect)
+
+            search_max = 2000
+            if self.current_context and self.current_context.config:
+                sm = self.current_context.config.announce_search_max_fetch.get()
+                if sm is not None and sm > 0:
+                    search_max = min(int(sm), 10_000)
 
             include_blocked = (
                 request.query.get("include_blocked", "false").lower() == "true"
@@ -6046,7 +6148,10 @@ class ReticulumMeshChat:
                 )
                 blocked_identity_hashes = [b["destination_hash"] for b in blocked]
 
-            db_limit = limit if not search_query else None
+            if search_query:
+                db_limit = min(search_max, limit) if limit is not None else search_max
+            else:
+                db_limit = limit
             db_offset = offset if not search_query else 0
 
             results = await asyncio.to_thread(
@@ -6073,8 +6178,6 @@ class ReticulumMeshChat:
                         query=None,
                         blocked_identity_hashes=blocked_identity_hashes,
                     )
-
-            # ... rest of processing ...
 
             # pre-fetch icons and other data to avoid N+1 queries in convert_db_announce_to_dict
             other_user_hashes = [r["destination_hash"] for r in results]
@@ -9531,21 +9634,29 @@ class ReticulumMeshChat:
             value = self._parse_bool(data["show_suggested_community_interfaces"])
             self.config.show_suggested_community_interfaces.set(value)
 
-        for key in (
-            "announce_limit_lxmf_delivery",
-            "announce_limit_nomadnetwork_node",
-            "announce_limit_lxmf_propagation",
-        ):
-            if key in data:
-                val = data[key]
-                if val is None or val == "":
-                    getattr(self.config, key).set(None)
-                else:
-                    try:
-                        v = int(val)
-                        getattr(self.config, key).set(max(0, v) if v >= 0 else None)
-                    except (TypeError, ValueError):
-                        getattr(self.config, key).set(None)
+        _announce_int_fields = [
+            ("announce_max_stored_lxmf_delivery", 1, 1_000_000),
+            ("announce_max_stored_nomadnetwork_node", 1, 1_000_000),
+            ("announce_max_stored_lxmf_propagation", 1, 1_000_000),
+            ("announce_fetch_limit_lxmf_delivery", 1, 100_000),
+            ("announce_fetch_limit_nomadnetwork_node", 1, 100_000),
+            ("announce_fetch_limit_lxmf_propagation", 1, 100_000),
+            ("announce_search_max_fetch", 100, 10_000),
+            ("discovered_interfaces_max_return", 1, 50_000),
+        ]
+        for key, lo, hi in _announce_int_fields:
+            if key not in data:
+                continue
+            val = data[key]
+            if val is None or val == "":
+                getattr(self.config, key).set(None)
+                continue
+            try:
+                v = int(val)
+                v = max(lo, min(hi, v))
+                getattr(self.config, key).set(v)
+            except (TypeError, ValueError):
+                getattr(self.config, key).set(None)
 
         if "lxmf_preferred_propagation_node_destination_hash" in data:
             # update config value
@@ -10914,9 +11025,14 @@ class ReticulumMeshChat:
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
             "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),
-            "announce_limit_lxmf_delivery": ctx.config.announce_limit_lxmf_delivery.get(),
-            "announce_limit_nomadnetwork_node": ctx.config.announce_limit_nomadnetwork_node.get(),
-            "announce_limit_lxmf_propagation": ctx.config.announce_limit_lxmf_propagation.get(),
+            "announce_max_stored_lxmf_delivery": ctx.config.announce_max_stored_lxmf_delivery.get(),
+            "announce_max_stored_nomadnetwork_node": ctx.config.announce_max_stored_nomadnetwork_node.get(),
+            "announce_max_stored_lxmf_propagation": ctx.config.announce_max_stored_lxmf_propagation.get(),
+            "announce_fetch_limit_lxmf_delivery": ctx.config.announce_fetch_limit_lxmf_delivery.get(),
+            "announce_fetch_limit_nomadnetwork_node": ctx.config.announce_fetch_limit_nomadnetwork_node.get(),
+            "announce_fetch_limit_lxmf_propagation": ctx.config.announce_fetch_limit_lxmf_propagation.get(),
+            "announce_search_max_fetch": ctx.config.announce_search_max_fetch.get(),
+            "discovered_interfaces_max_return": ctx.config.discovered_interfaces_max_return.get(),
             "csp_extra_connect_src": ctx.config.csp_extra_connect_src.get(),
             "csp_extra_img_src": ctx.config.csp_extra_img_src.get(),
             "csp_extra_frame_src": ctx.config.csp_extra_frame_src.get(),
@@ -10933,6 +11049,7 @@ class ReticulumMeshChat:
 
     # try and get a name for the provided identity hash
     def get_name_for_identity_hash(self, identity_hash: str):
+        id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
         # 1. try recall identity and calculate lxmf destination hash
         identity = self.recall_identity(identity_hash)
         if identity is not None:
@@ -10960,15 +11077,17 @@ class ReticulumMeshChat:
 
         # 2. if identity recall failed, or we couldn't find a name for the calculated hash
         # try to look up an lxmf.delivery announce with this identity_hash in the database
+        search = id_norm if len(id_norm) >= 8 else identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxmf.delivery",
-            search_term=identity_hash,
+            search_term=search,
         )
         if announces:
             for announce in announces:
                 # search_term matches destination_hash OR identity_hash in the DAO.
                 # We want to be sure it's the identity_hash we're looking for.
-                if announce["identity_hash"] == identity_hash:
+                ann_id = announce.get("identity_hash") or ""
+                if ann_id and normalize_hex_identifier(ann_id) == id_norm:
                     lxmf_destination_hash = announce["destination_hash"]
 
                     # check custom name for this hash
@@ -10992,30 +11111,36 @@ class ReticulumMeshChat:
 
     # recall identity from reticulum or database
     def get_lxmf_destination_hash_for_identity_hash(self, identity_hash: str):
+        id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
         identity = self.recall_identity(identity_hash)
         if identity is not None:
             return RNS.Destination.hash(identity, "lxmf", "delivery").hex()
 
         # fallback to announces
+        search = id_norm if len(id_norm) >= 8 else identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxmf.delivery",
-            search_term=identity_hash,
+            search_term=search,
         )
         if announces:
             for announce in announces:
-                if announce["identity_hash"] == identity_hash:
+                ann_id = announce.get("identity_hash") or ""
+                if ann_id and normalize_hex_identifier(ann_id) == id_norm:
                     return announce["destination_hash"]
         return None
 
     def get_lxst_telephony_hash_for_identity_hash(self, identity_hash: str):
+        id_norm = normalize_hex_identifier(identity_hash) if identity_hash else ""
         # Primary: use announces table for lxst.telephony aspect
+        search = id_norm if len(id_norm) >= 8 else identity_hash
         announces = self.database.announces.get_filtered_announces(
             aspect="lxst.telephony",
-            search_term=identity_hash,
+            search_term=search,
         )
         if announces:
             for announce in announces:
-                if announce["identity_hash"] == identity_hash:
+                ann_id = announce.get("identity_hash") or ""
+                if ann_id and normalize_hex_identifier(ann_id) == id_norm:
                     return announce.get("destination_hash")
 
         # Fallback: derive from identity if available (same identity, different aspect)
@@ -11029,22 +11154,32 @@ class ReticulumMeshChat:
 
     def recall_identity(self, hash_hex: str) -> RNS.Identity | None:
         try:
+            if not hash_hex or not isinstance(hash_hex, str):
+                return None
+
+            stripped = hash_hex.strip()
+            canonical = normalize_hex_identifier(stripped)
+
             # 1. try reticulum recall (works for both identity and destination hashes)
-            hash_bytes = bytes.fromhex(hash_hex)
-            identity = RNS.Identity.recall(hash_bytes)
-            if identity:
-                return identity
+            hash_bytes = hex_identifier_to_bytes(stripped)
+            if hash_bytes:
+                identity = RNS.Identity.recall(hash_bytes)
+                if identity:
+                    return identity
 
             # 2. try database lookup
             # lookup by destination hash first
-            announce = self.database.announces.get_announce_by_hash(hash_hex)
+            announce = self.database.announces.get_announce_by_hash(stripped)
+            if not announce and canonical:
+                announce = self.database.announces.get_announce_by_hash(canonical)
             if announce:
                 announce = dict(announce)
 
             if not announce:
                 # lookup by identity hash
+                search_term = canonical if len(canonical) >= 8 else stripped
                 results = self.database.announces.get_filtered_announces(
-                    search_term=hash_hex,
+                    search_term=search_term,
                 )
                 if results:
                     # find first one with a public key

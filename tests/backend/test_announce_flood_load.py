@@ -35,24 +35,15 @@ def test_flood_announces_no_limit(mock_db):
         )
 
     assert mock_db.announces.upsert_announce.call_count == 500
+    mock_db.announces.trim_announces_for_aspect.assert_not_called()
 
 
-def test_flood_announces_with_limit_caps_at_limit(mock_db):
+def test_flood_announces_trims_each_upsert(mock_db):
     config = MagicMock()
-    config.announce_limit_lxmf_delivery = MagicMock()
-    config.announce_limit_lxmf_delivery.get.return_value = 50
-    mock_db.announces.get_announce_by_hash.return_value = None
-
-    count = [0]
-
-    def get_count(aspect):
-        return count[0]
-
-    def on_upsert(*args, **kwargs):
-        count[0] += 1
-
-    mock_db.announces.get_announce_count_by_aspect.side_effect = get_count
-    mock_db.announces.upsert_announce.side_effect = on_upsert
+    config.announce_max_stored_lxmf_delivery = MagicMock()
+    config.announce_max_stored_lxmf_delivery.get.return_value = 50
+    config.announce_max_stored_nomadnetwork_node = MagicMock()
+    config.announce_max_stored_lxmf_propagation = MagicMock()
 
     manager = AnnounceManager(mock_db, config)
     reticulum = MagicMock()
@@ -72,7 +63,8 @@ def test_flood_announces_with_limit_caps_at_limit(mock_db):
             os.urandom(16),
         )
 
-    assert count[0] == 50
+    assert mock_db.announces.upsert_announce.call_count == 100
+    assert mock_db.announces.trim_announces_for_aspect.call_count == 100
 
 
 def test_load_rapid_nomadnet_announces(mock_db):

@@ -153,6 +153,39 @@ class PerformanceBenchmarker:
             count,
         )
 
+    def benchmark_announce_trim(self, seed_count=800, runs=40):
+        aspect = "lxmf.delivery"
+
+        def seed():
+            with self.db.provider:
+                for _ in range(seed_count):
+                    self.db.announces.upsert_announce(
+                        {
+                            "destination_hash": generate_hash(),
+                            "aspect": aspect,
+                            "identity_hash": generate_hash(),
+                            "identity_public_key": "cHVibmtleQ==",
+                            "app_data": None,
+                            "rssi": None,
+                            "snr": None,
+                            "quality": None,
+                        },
+                    )
+
+        seed()
+
+        def run_trim():
+            for _ in range(runs):
+                self.db.announces.trim_announces_for_aspect(
+                    aspect, max(1, seed_count // 2)
+                )
+
+        self.record_benchmark(
+            f"Announce trim ({seed_count} rows, {runs} trims)",
+            run_trim,
+            runs,
+        )
+
 
 def main():
     print("Starting Backend Memory & Performance Benchmarking...")
@@ -163,6 +196,7 @@ def main():
         bench.benchmark_crash_recovery_overhead()
         bench.benchmark_identity_generation()
         bench.benchmark_identity_listing()
+        bench.benchmark_announce_trim()
 
         print("\n" + "=" * 80)
         print(f"{'Benchmark Name':40} | {'Avg Time':10} | {'Mem Growth':10}")

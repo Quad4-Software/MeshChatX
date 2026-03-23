@@ -116,6 +116,12 @@ def test_db_performance():
     end_time = time.time()
     print(f"get_filtered_announces() took {end_time - start_time:.4f} seconds")
 
+    print("Testing trim_announces_for_aspect()...")
+    start_time = time.time()
+    db.announces.trim_announces_for_aspect("lxmf.delivery", 1000)
+    end_time = time.time()
+    print(f"trim_announces_for_aspect() took {end_time - start_time:.4f} seconds")
+
     shutil.rmtree(dir_path)
 
 

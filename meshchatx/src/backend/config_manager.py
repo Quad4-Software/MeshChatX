@@ -313,21 +313,48 @@ class ConfigManager:
             "#ef4444",
         )
 
-        # announce limits (optional, None = no limit; protects against flood on public networks)
-        self.announce_limit_lxmf_delivery = self.IntConfig(
+        # announce caps: max rows stored per aspect (oldest dropped). Default 1000.
+        self.announce_max_stored_lxmf_delivery = self.IntConfig(
             self,
-            "announce_limit_lxmf_delivery",
-            None,
+            "announce_max_stored_lxmf_delivery",
+            1000,
         )
-        self.announce_limit_nomadnetwork_node = self.IntConfig(
+        self.announce_max_stored_nomadnetwork_node = self.IntConfig(
             self,
-            "announce_limit_nomadnetwork_node",
-            None,
+            "announce_max_stored_nomadnetwork_node",
+            1000,
         )
-        self.announce_limit_lxmf_propagation = self.IntConfig(
+        self.announce_max_stored_lxmf_propagation = self.IntConfig(
             self,
-            "announce_limit_lxmf_propagation",
-            None,
+            "announce_max_stored_lxmf_propagation",
+            1000,
+        )
+        # default API page size per aspect when limit query param omitted. Default 500.
+        self.announce_fetch_limit_lxmf_delivery = self.IntConfig(
+            self,
+            "announce_fetch_limit_lxmf_delivery",
+            500,
+        )
+        self.announce_fetch_limit_nomadnetwork_node = self.IntConfig(
+            self,
+            "announce_fetch_limit_nomadnetwork_node",
+            500,
+        )
+        self.announce_fetch_limit_lxmf_propagation = self.IntConfig(
+            self,
+            "announce_fetch_limit_lxmf_propagation",
+            500,
+        )
+        # lxst.telephony shares LXMF caps in announce_manager aspect mapping
+        self.announce_search_max_fetch = self.IntConfig(
+            self,
+            "announce_search_max_fetch",
+            2000,
+        )
+        self.discovered_interfaces_max_return = self.IntConfig(
+            self,
+            "discovered_interfaces_max_return",
+            500,
         )
 
         # blackhole integration config
@@ -348,11 +375,28 @@ class ConfigManager:
         self.csp_extra_script_src = self.StringConfig(self, "csp_extra_script_src", "")
         self.csp_extra_style_src = self.StringConfig(self, "csp_extra_style_src", "")
 
+        self._migrate_legacy_announce_limit_keys()
+
     def get(self, key: str, default_value=None) -> str | None:
         return self.db.config.get(key, default_value)
 
     def set(self, key: str, value: str | None):
         self.db.config.set(key, value)
+
+    def _migrate_legacy_announce_limit_keys(self):
+        pairs = [
+            ("announce_limit_lxmf_delivery", "announce_max_stored_lxmf_delivery"),
+            (
+                "announce_limit_nomadnetwork_node",
+                "announce_max_stored_nomadnetwork_node",
+            ),
+            ("announce_limit_lxmf_propagation", "announce_max_stored_lxmf_propagation"),
+        ]
+        for old_key, new_key in pairs:
+            old_val = self.db.config.get(old_key, default=None)
+            new_val = self.db.config.get(new_key, default=None)
+            if old_val is not None and new_val is None:
+                self.db.config.set(new_key, old_val)
 
     class StringConfig:
         def __init__(self, manager, key: str, default_value: str | None = None):
@@ -397,5 +441,8 @@ class ConfigManager:
             except (ValueError, TypeError):
                 return self.default_value
 
-        def set(self, value: int):
-            self.manager.set(self.key, str(value))
+        def set(self, value: int | None):
+            if value is None:
+                self.manager.db.config.delete(self.key)
+            else:
+                self.manager.db.config.set(self.key, str(value))

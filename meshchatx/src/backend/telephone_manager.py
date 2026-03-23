@@ -7,6 +7,11 @@ import time
 import RNS
 from LXST import Telephone
 
+from meshchatx.src.backend.meshchat_utils import (
+    hex_identifier_to_bytes,
+    normalize_hex_identifier,
+)
+
 
 class Tee:
     def __init__(self, sink):
@@ -223,7 +228,9 @@ class TelephoneManager:
 
             def resolve_identity(target_hash_hex):
                 """Resolve identity from multiple hints: direct recall, destination_hash announce, identity_hash announce, or public key."""
-                target_hash = bytes.fromhex(target_hash_hex)
+                target_hash = hex_identifier_to_bytes(target_hash_hex)
+                if not target_hash:
+                    return None
 
                 # 1) Direct recall (identity hash)
                 ident = RNS.Identity.recall(target_hash)
@@ -233,12 +240,18 @@ class TelephoneManager:
                 if not self.db:
                     return None
 
+                th = target_hash_hex.strip()
+                canonical = normalize_hex_identifier(th)
+
                 # 2) By destination_hash (could be lxst.telephony or lxmf.delivery hash)
-                announce = self.db.announces.get_announce_by_hash(target_hash_hex)
+                announce = self.db.announces.get_announce_by_hash(th)
+                if not announce and canonical:
+                    announce = self.db.announces.get_announce_by_hash(canonical)
                 if not announce:
                     # 3) By identity_hash field (if user entered identity hash but we missed recall, or other announce types)
+                    id_key = canonical if canonical else th
                     announces = self.db.announces.get_filtered_announces(
-                        identity_hash=target_hash_hex,
+                        identity_hash=id_key,
                     )
                     if announces:
                         announce = announces[0]
@@ -249,9 +262,11 @@ class TelephoneManager:
                 # Try identity_hash from announce
                 identity_hex = announce.get("identity_hash")
                 if identity_hex:
-                    ident = RNS.Identity.recall(bytes.fromhex(identity_hex))
-                    if ident:
-                        return ident
+                    id_bytes = hex_identifier_to_bytes(identity_hex)
+                    if id_bytes:
+                        ident = RNS.Identity.recall(id_bytes)
+                        if ident:
+                            return ident
 
                 # Try reconstructing from public key
                 if announce.get("identity_public_key"):

@@ -34,32 +34,20 @@ def test_upsert_announce_fuzz_aspect_and_app_data(aspect, app_data):
 
 
 @pytest.mark.parametrize(
-    "limit_val,count,should_accept",
-    [
-        (None, 100, True),
-        (0, 0, False),
-        (10, 5, True),
-        (10, 10, False),
-        (100, 100, False),
-        (1000, 0, True),
-    ],
+    "max_stored",
+    [None, 0, 1, 10, 1000, 999_999],
 )
-def test_announce_limit_config_fuzz(limit_val, count, should_accept):
+def test_announce_max_stored_config_fuzz(max_stored):
     mock_db = MagicMock()
     mock_db.announces = MagicMock()
-    mock_db.announces.get_announce_by_hash.return_value = None
-    mock_db.announces.get_announce_count_by_aspect.return_value = count
-
     config = MagicMock()
-    config.announce_limit_lxmf_delivery = MagicMock()
-    config.announce_limit_lxmf_delivery.get.return_value = limit_val
-    config.announce_limit_nomadnetwork_node = MagicMock()
-    config.announce_limit_lxmf_propagation = MagicMock()
+    config.announce_max_stored_lxmf_delivery = MagicMock()
+    config.announce_max_stored_lxmf_delivery.get.return_value = max_stored
+    config.announce_max_stored_nomadnetwork_node = MagicMock()
+    config.announce_max_stored_lxmf_propagation = MagicMock()
 
     manager = AnnounceManager(mock_db, config)
     reticulum = MagicMock()
-    reticulum.get_packet_rssi.return_value = -50
-    reticulum.get_packet_snr.return_value = 10
     identity = MagicMock()
     identity.hash.hex.return_value = "id_hash"
     identity.get_public_key.return_value = b"pub_key"
@@ -68,7 +56,13 @@ def test_announce_limit_config_fuzz(limit_val, count, should_accept):
         reticulum, identity, b"new_dest", "lxmf.delivery", b"app_data", b"packet"
     )
 
-    if should_accept:
-        mock_db.announces.upsert_announce.assert_called_once()
+    mock_db.announces.upsert_announce.assert_called_once()
+    if max_stored is not None and max_stored >= 1:
+        mock_db.announces.trim_announces_for_aspect.assert_called_once()
+        cap = min(max_stored, 1_000_000)
+        mock_db.announces.trim_announces_for_aspect.assert_called_with(
+            "lxmf.delivery",
+            cap,
+        )
     else:
-        mock_db.announces.upsert_announce.assert_not_called()
+        mock_db.announces.trim_announces_for_aspect.assert_not_called()

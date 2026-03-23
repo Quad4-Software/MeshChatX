@@ -315,7 +315,9 @@ class IdentityContext:
             storage_dir=self.storage_path,
         )
 
-        self.community_interfaces_manager = CommunityInterfacesManager()
+        self.community_interfaces_manager = CommunityInterfacesManager(
+            public_override_path=self.app.get_public_path("community_interfaces.json"),
+        )
 
         self.auto_propagation_manager = AutoPropagationManager(
             app=self.app,
@@ -466,6 +468,15 @@ class IdentityContext:
                 RNS.Transport.deregister_announce_handler(handler)
         self.announce_handlers = []
 
+        if self.forwarding_manager:
+            try:
+                self.forwarding_manager.teardown()
+            except Exception as e:
+                print(
+                    f"Error tearing down forwarding manager for {self.identity_hash}: {e}",
+                )
+            self.forwarding_manager = None
+
         # 2. Cleanup RNS destinations and links
         try:
             if self.message_router:
@@ -563,9 +574,6 @@ class IdentityContext:
             except Exception as e:
                 print(f"Error while stopping bots for {self.identity_hash}: {e}")
             self.bot_handler = None
-
-        if self.forwarding_manager:
-            self.forwarding_manager = None
 
         if self.database:
             try:

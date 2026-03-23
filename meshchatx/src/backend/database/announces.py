@@ -40,6 +40,29 @@ class AnnounceDAO:
         params.append(now)
         self.provider.execute(query, params)
 
+    def trim_announces_for_aspect(self, aspect, max_rows):
+        """Delete oldest rows for this aspect until at most max_rows remain."""
+        if max_rows < 1 or not aspect:
+            return
+        row = self.provider.fetchone(
+            "SELECT COUNT(*) AS c FROM announces WHERE aspect = ?",
+            (aspect,),
+        )
+        count = row["c"] if row else 0
+        excess = count - max_rows
+        if excess <= 0:
+            return
+        self.provider.execute(
+            """
+            DELETE FROM announces WHERE id IN (
+                SELECT id FROM announces WHERE aspect = ?
+                ORDER BY updated_at ASC, id ASC
+                LIMIT ?
+            )
+            """,
+            (aspect, excess),
+        )
+
     def get_announces(self, aspect=None):
         if aspect:
             return self.provider.fetchall(

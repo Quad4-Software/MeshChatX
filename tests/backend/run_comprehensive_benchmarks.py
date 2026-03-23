@@ -255,9 +255,15 @@ class BackendBenchmarker:
         def get_announces():
             return self.db.announces.get_filtered_announces(limit=50)
 
+        @benchmark("Trim Announces for Aspect", iterations=20)
+        def trim_announces():
+            return self.db.announces.trim_announces_for_aspect("lxmf.delivery", 500)
+
         _, res = upsert_announces()
         self.results.append(res)
         _, res = get_announces()
+        self.results.append(res)
+        _, res = trim_announces()
         self.results.append(res)
 
     def bench_identity_operations(self):

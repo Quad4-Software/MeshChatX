@@ -1,4 +1,5 @@
 import base64
+import contextlib
 import os
 
 import RNS
@@ -115,3 +116,48 @@ class ForwardingManager:
         for alias_hash in self.forwarding_destinations:
             destination = self.forwarding_destinations[alias_hash]
             destination.announce()
+
+    def teardown(self):
+        """Stop alias LXMF routers and deregister their RNS destinations."""
+        for alias_hash, router in list(self.forwarding_routers.items()):
+            try:
+                if hasattr(router, "register_delivery_callback"):
+                    with contextlib.suppress(Exception):
+                        router.register_delivery_callback(None)
+                if hasattr(router, "delivery_destinations"):
+                    for dest_hash in list(router.delivery_destinations.keys()):
+                        dest = router.delivery_destinations[dest_hash]
+                        with contextlib.suppress(Exception):
+                            RNS.Transport.deregister_destination(dest)
+                if getattr(router, "propagation_destination", None):
+                    with contextlib.suppress(Exception):
+                        RNS.Transport.deregister_destination(
+                            router.propagation_destination,
+                        )
+            except Exception as e:
+                print(f"Error deregistering forwarding destinations {alias_hash}: {e}")
+            try:
+                if hasattr(router, "identity") and router.identity:
+                    ih = router.identity.hash
+                    for link in list(RNS.Transport.active_links):
+                        match = False
+                        if hasattr(link, "destination") and link.destination:
+                            if (
+                                hasattr(link.destination, "identity")
+                                and link.destination.identity
+                            ):
+                                if link.destination.identity.hash == ih:
+                                    match = True
+                        if match:
+                            with contextlib.suppress(Exception):
+                                link.teardown()
+            except Exception as e:
+                print(f"Error cleaning forwarding links {alias_hash}: {e}")
+            try:
+                router.jobs = lambda: None
+                if hasattr(router, "exit_handler"):
+                    router.exit_handler()
+            except Exception as e:
+                print(f"Error stopping forwarding LXMF router {alias_hash}: {e}")
+        self.forwarding_destinations.clear()
+        self.forwarding_routers.clear()

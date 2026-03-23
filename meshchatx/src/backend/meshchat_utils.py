@@ -214,3 +214,21 @@ def parse_lxmf_propagation_node_app_data(app_data_base64: str | bytes | None):
     except Exception as e:
         print(f"Failed to parse LXMF propagation node app data: {e}")
         return None
+
+
+def normalize_hex_identifier(value: str | None) -> str:
+    """Return lowercase hex digits only (strips UUID hyphens, colons, whitespace)."""
+    if not value or not isinstance(value, str):
+        return ""
+    return "".join(c for c in value.strip().lower() if c in "0123456789abcdef")
+
+
+def hex_identifier_to_bytes(value: str | None) -> bytes | None:
+    """Parse a hex identity or hash string for ``bytes.fromhex`` (tolerates UUID-style separators)."""
+    h = normalize_hex_identifier(value)
+    if not h or len(h) % 2:
+        return None
+    try:
+        return bytes.fromhex(h)
+    except ValueError:
+        return None

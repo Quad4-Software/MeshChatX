@@ -336,5 +336,14 @@ class BotHandler:
             return False
 
     def stop_all(self):
+        seen = set()
         for bot_id in list(self.running_bots.keys()):
+            seen.add(bot_id)
             self.stop_bot(bot_id)
+        for entry in list(self.bots_state):
+            bot_id = entry.get("id")
+            if not bot_id or bot_id in seen:
+                continue
+            pid = entry.get("pid")
+            if pid and self._is_pid_alive(pid):
+                self.stop_bot(bot_id)
