@@ -9564,9 +9564,9 @@ class ReticulumMeshChat:
         # update inbound stamp cost (for direct delivery messages)
         if "lxmf_inbound_stamp_cost" in data:
             value = int(data["lxmf_inbound_stamp_cost"])
-            # validate stamp cost (must be between 1 and 254)
-            if value < 1:
-                value = None
+            # 0 disables inbound stamps; otherwise clamp to 1-254 (LXMF/LXMRouter)
+            if value < 0:
+                value = 0
             elif value >= 255:
                 value = 254
             self.config.lxmf_inbound_stamp_cost.set(value)

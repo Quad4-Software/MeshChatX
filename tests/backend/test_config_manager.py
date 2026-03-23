@@ -34,6 +34,9 @@ def test_config_manager_set_get(db):
     config.lxmf_inbound_stamp_cost.set(20)
     assert config.lxmf_inbound_stamp_cost.get() == 20
 
+    config.lxmf_inbound_stamp_cost.set(0)
+    assert config.lxmf_inbound_stamp_cost.get() == 0
+
     config.auto_announce_enabled.set(True)
     assert config.auto_announce_enabled.get() is True
 

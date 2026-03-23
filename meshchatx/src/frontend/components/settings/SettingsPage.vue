@@ -1489,7 +1489,20 @@
                                     }}</span>
                                 </span>
                             </label>
-                            <div class="space-y-2">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="inbound-stamps-required"
+                                    :model-value="inboundStampsEnabled"
+                                    @update:model-value="onInboundStampsEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.inbound_stamps_required_title") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.inbound_stamps_required_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                            <div v-show="inboundStampsEnabled" class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {{ $t("app.inbound_stamp_cost") }}
                                 </div>
@@ -1773,6 +1786,7 @@ export default {
                 csp_extra_style_src: "",
             },
             saveTimeouts: {},
+            lastRememberedInboundStampCost: 8,
             shortcuts: [],
             reloadingRns: false,
             searchQuery: "",
@@ -1891,6 +1905,8 @@ export default {
                     "app.auto_fallback_description",
                     "app.inbound_stamp_cost",
                     "app.inbound_stamp_description",
+                    "app.inbound_stamps_required_title",
+                    "app.inbound_stamps_required_description",
                 ],
                 propagation: [
                     "LXMF",
@@ -1953,6 +1969,10 @@ export default {
                 minHeight: `${size}px`,
                 transition: "width 120ms linear, height 120ms linear",
             };
+        },
+        inboundStampsEnabled() {
+            const c = this.config?.lxmf_inbound_stamp_cost;
+            return (typeof c === "number" ? c : Number(c) || 0) > 0;
         },
     },
     beforeUnmount() {
@@ -2017,6 +2037,10 @@ export default {
                 const response = await window.axios.get("/api/v1/config");
                 if (response?.data?.config) {
                     this.config = { ...this.config, ...response.data.config };
+                    const inbound = Number(this.config.lxmf_inbound_stamp_cost);
+                    if (inbound > 0) {
+                        this.lastRememberedInboundStampCost = Math.min(254, inbound);
+                    }
                 }
                 this.getKeyboardShortcuts();
             } catch (e) {
@@ -2226,12 +2250,48 @@ export default {
                 "auto_sync"
             );
         },
+        async onInboundStampsEnabledChange(enabled) {
+            if (!enabled) {
+                const cur = Number(this.config.lxmf_inbound_stamp_cost);
+                if (cur > 0) {
+                    this.lastRememberedInboundStampCost = Math.min(254, cur);
+                }
+                this.config.lxmf_inbound_stamp_cost = 0;
+                await this.updateConfig(
+                    {
+                        lxmf_inbound_stamp_cost: 0,
+                    },
+                    "inbound_stamp_cost_label"
+                );
+                return;
+            }
+            const restore = Math.min(
+                254,
+                Math.max(1, Number(this.lastRememberedInboundStampCost) || 8)
+            );
+            this.config.lxmf_inbound_stamp_cost = restore;
+            await this.updateConfig(
+                {
+                    lxmf_inbound_stamp_cost: restore,
+                },
+                "inbound_stamp_cost_label"
+            );
+        },
         async onLxmfInboundStampCostChange() {
             if (this.saveTimeouts.inbound_stamp) clearTimeout(this.saveTimeouts.inbound_stamp);
             this.saveTimeouts.inbound_stamp = setTimeout(async () => {
+                let cost = Number(this.config.lxmf_inbound_stamp_cost);
+                if (!cost || cost < 1) {
+                    cost = 8;
+                    this.config.lxmf_inbound_stamp_cost = cost;
+                } else if (cost > 254) {
+                    cost = 254;
+                    this.config.lxmf_inbound_stamp_cost = cost;
+                }
+                this.lastRememberedInboundStampCost = cost;
                 await this.updateConfig(
                     {
-                        lxmf_inbound_stamp_cost: this.config.lxmf_inbound_stamp_cost,
+                        lxmf_inbound_stamp_cost: cost,
                     },
                     "inbound_stamp_cost_label"
                 );
