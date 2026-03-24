@@ -8,6 +8,7 @@ const globalState = reactive({
     modifiedInterfaceNames: new Set(),
     hasPendingInterfaceChanges: false,
     config: {
+        show_unknown_contact_banner: true,
         banished_effect_enabled: true,
         banished_text: "BANISHED",
         banished_color: "#dc2626",

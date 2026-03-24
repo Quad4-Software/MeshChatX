@@ -143,7 +143,9 @@
                 <div v-show="hasSearchResults" class="columns-1 lg:columns-2 gap-4 space-y-4">
                     <!-- Banishment -->
                     <section
-                        v-show="matchesSearch('stranger', 'attachments', 'trust', 'block')"
+                        v-show="
+                            matchesSearch('stranger', 'attachments', 'trust', 'block', 'banner', 'unknown', 'contact')
+                        "
                         class="glass-card break-inside-avoid"
                     >
                         <header class="glass-card__header">
@@ -179,6 +181,21 @@
                                     <span class="setting-toggle__title">{{ $t("app.block_all_from_strangers") }}</span>
                                     <span class="setting-toggle__description">{{
                                         $t("app.block_all_from_strangers_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="show-unknown-contact-banner"
+                                    v-model="config.show_unknown_contact_banner"
+                                    @update:model-value="onShowUnknownContactBannerChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.show_unknown_contact_banner")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.show_unknown_contact_banner_description")
                                     }}</span>
                                 </span>
                             </label>
@@ -1085,7 +1102,9 @@
                                 <div class="text-xs text-gray-600 dark:text-gray-400">
                                     {{ $t("app.announce_limits_description") }}
                                 </div>
-                                <div class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide">
+                                <div
+                                    class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
+                                >
                                     {{ $t("app.announce_max_stored_heading") }}
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1122,7 +1141,9 @@
                                         />
                                     </div>
                                 </div>
-                                <div class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide">
+                                <div
+                                    class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
+                                >
                                     {{ $t("app.announce_fetch_limit_heading") }}
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1161,7 +1182,9 @@
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{ $t("app.announce_search_max_fetch") }}</label>
+                                        <label class="text-xs font-medium">{{
+                                            $t("app.announce_search_max_fetch")
+                                        }}</label>
                                         <input
                                             v-model.number="config.announce_search_max_fetch"
                                             type="number"
@@ -1803,6 +1826,7 @@ export default {
                 backup_max_count: 5,
                 block_attachments_from_strangers: true,
                 block_all_from_strangers: false,
+                show_unknown_contact_banner: true,
                 banished_effect_enabled: true,
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
@@ -2149,19 +2173,11 @@ export default {
             await this.updateConfig(
                 {
                     announce_max_stored_lxmf_delivery: this.numOrNull(c.announce_max_stored_lxmf_delivery),
-                    announce_max_stored_nomadnetwork_node: this.numOrNull(
-                        c.announce_max_stored_nomadnetwork_node
-                    ),
-                    announce_max_stored_lxmf_propagation: this.numOrNull(
-                        c.announce_max_stored_lxmf_propagation
-                    ),
+                    announce_max_stored_nomadnetwork_node: this.numOrNull(c.announce_max_stored_nomadnetwork_node),
+                    announce_max_stored_lxmf_propagation: this.numOrNull(c.announce_max_stored_lxmf_propagation),
                     announce_fetch_limit_lxmf_delivery: this.numOrNull(c.announce_fetch_limit_lxmf_delivery),
-                    announce_fetch_limit_nomadnetwork_node: this.numOrNull(
-                        c.announce_fetch_limit_nomadnetwork_node
-                    ),
-                    announce_fetch_limit_lxmf_propagation: this.numOrNull(
-                        c.announce_fetch_limit_lxmf_propagation
-                    ),
+                    announce_fetch_limit_nomadnetwork_node: this.numOrNull(c.announce_fetch_limit_nomadnetwork_node),
+                    announce_fetch_limit_lxmf_propagation: this.numOrNull(c.announce_fetch_limit_lxmf_propagation),
                     announce_search_max_fetch: this.numOrNull(c.announce_search_max_fetch),
                     discovered_interfaces_max_return: this.numOrNull(c.discovered_interfaces_max_return),
                 },
@@ -2418,6 +2434,10 @@ export default {
         async onBlockAllFromStrangersChange(value) {
             this.config.block_all_from_strangers = value;
             await this.updateConfig({ block_all_from_strangers: value }, "stranger_protection");
+        },
+        async onShowUnknownContactBannerChange(value) {
+            this.config.show_unknown_contact_banner = value;
+            await this.updateConfig({ show_unknown_contact_banner: value }, "stranger_protection");
         },
         async onBanishedEffectEnabledChange(value) {
             this.config.banished_effect_enabled = value;

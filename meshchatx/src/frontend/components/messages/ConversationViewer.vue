@@ -384,7 +384,7 @@
 
         <!-- stranger trust banner -->
         <div
-            v-if="isStrangerPeer && !strangerBannerDismissed"
+            v-if="isStrangerPeer && !strangerBannerDismissed && showUnknownContactBanner"
             class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex items-center gap-3 text-sm"
         >
             <svg
@@ -1920,6 +1920,9 @@ export default {
         blockedDestinations() {
             return GlobalState.blockedDestinations;
         },
+        showUnknownContactBanner() {
+            return GlobalState.config?.show_unknown_contact_banner !== false;
+        },
         filteredContacts() {
             if (!this.contactsSearch) return this.contacts;
             const s = this.contactsSearch.toLowerCase();
@@ -2941,9 +2944,7 @@ export default {
                 return;
             }
             try {
-                await window.axios.delete(
-                    `/api/v1/blocked-destinations/${this.selectedPeer.destination_hash}`
-                );
+                await window.axios.delete(`/api/v1/blocked-destinations/${this.selectedPeer.destination_hash}`);
                 GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert(this.$t("banishment.banishment_lifted"));
             } catch (e) {
