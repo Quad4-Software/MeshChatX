@@ -172,6 +172,8 @@
         "block_stranger_attachments_description": "Datei-, Bild- und Audioanhänge von Peers, die nicht in Ihren Kontakten sind, automatisch entfernen. Textnachrichten werden weiterhin zugestellt.",
         "block_all_from_strangers": "Alles von Fremden blockieren",
         "block_all_from_strangers_description": "Alle Nachrichten, Anhänge und Anrufe von Peers, die nicht in Ihren Kontakten sind, stillschweigend verwerfen. Nichts wird zugestellt oder gespeichert.",
+        "show_unknown_contact_banner": "Hinweis für unbekannte Kontakte anzeigen",
+        "show_unknown_contact_banner_description": "Wenn aktiviert, erscheint oben in Unterhaltungen mit Peers, die nicht in Ihren Kontakten sind, ein Hinweis.",
         "banishment": "Verbannung",
         "banishment_description": "Passen Sie den visuellen Effekt an, der für blockierte Peers und Knoten angezeigt wird.",
         "banished_effect_enabled": "Verbannungseffekt aktivieren",

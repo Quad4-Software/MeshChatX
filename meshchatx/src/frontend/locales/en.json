@@ -175,6 +175,8 @@
         "block_stranger_attachments_description": "Automatically strip file, image, and audio attachments from peers who are not in your contacts. Text messages are still delivered.",
         "block_all_from_strangers": "Block Everything from Strangers",
         "block_all_from_strangers_description": "Silently drop all messages, attachments, and calls from peers who are not in your contacts. Nothing is delivered or stored.",
+        "show_unknown_contact_banner": "Show Unknown Contact Banner",
+        "show_unknown_contact_banner_description": "When enabled, a notice appears at the top of conversations with peers who are not in your contacts.",
         "banishment": "Banishment",
         "banishment_description": "Customize the visual effect shown for banished peers and nodes.",
         "banished_effect_enabled": "Enable Banishment Effect",
