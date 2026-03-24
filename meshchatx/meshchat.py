@@ -9855,6 +9855,11 @@ class ReticulumMeshChat:
                 self._parse_bool(data["block_all_from_strangers"]),
             )
 
+        if "show_unknown_contact_banner" in data:
+            self.config.show_unknown_contact_banner.set(
+                self._parse_bool(data["show_unknown_contact_banner"]),
+            )
+
         # update banishment settings
         if "banished_effect_enabled" in data:
             self.config.banished_effect_enabled.set(
@@ -11012,6 +11017,7 @@ class ReticulumMeshChat:
             "call_recording_enabled": ctx.config.call_recording_enabled.get(),
             "block_attachments_from_strangers": ctx.config.block_attachments_from_strangers.get(),
             "block_all_from_strangers": ctx.config.block_all_from_strangers.get(),
+            "show_unknown_contact_banner": ctx.config.show_unknown_contact_banner.get(),
             "banished_effect_enabled": ctx.config.banished_effect_enabled.get(),
             "banished_text": ctx.config.banished_text.get(),
             "banished_color": ctx.config.banished_color.get(),

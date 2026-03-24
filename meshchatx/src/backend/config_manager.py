@@ -278,6 +278,11 @@ class ConfigManager:
             "block_all_from_strangers",
             False,
         )
+        self.show_unknown_contact_banner = self.BoolConfig(
+            self,
+            "show_unknown_contact_banner",
+            True,
+        )
 
         # banishment config
         self.banished_effect_enabled = self.BoolConfig(
