@@ -11,6 +11,18 @@ export default defineConfig({
         setupFiles: ["tests/frontend/setup.js"],
         ui: false,
         open: false,
+        coverage: {
+            provider: "v8",
+            reporter: ["text", "json-summary"],
+            reportsDirectory: "./coverage",
+            include: ["meshchatx/src/frontend/**/*.{js,vue}"],
+            exclude: [
+                "meshchatx/src/frontend/**/*.d.ts",
+                "meshchatx/src/frontend/public/**",
+                "meshchatx/src/frontend/locales/**",
+                "**/node_modules/**",
+            ],
+        },
     },
     resolve: {
         alias: {
