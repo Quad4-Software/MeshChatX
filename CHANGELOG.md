@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.4.0] - 2026-03-23
+## [4.4.0] - 2026-04-TBD
 
 ### On Hold
 
@@ -31,13 +31,16 @@ All notable changes to this project will be documented in this file.
 - **NomadNet context menus**: Right-click context menu on announces and favourites (like conversation viewer): Rename, Banish, Lift Banishment, Remove, Add to Favourites, Move to Section. Menus use Teleport to body and `justOpened` delay to avoid immediate close on click.
 - **Dynamic locale discovery**: Locales are now discovered automatically from `meshchatx/src/frontend/locales/*.json` via `import.meta.glob`. Adding a new language only requires a single JSON file with a `_languageName` key; no code changes to `main.js`, `LanguageSelector.vue`, or tests needed.
 - **CI supply chain hardening**: Replaced all third-party Gitea Actions with POSIX-compliant shell scripts in `scripts/ci/`. Checkout is inlined as plain git commands; Node.js, go-task, and Java binaries are SHA256-verified against upstream checksums; Python is built from official python.org source with GPG signature verification. Only `gitea-release-action` and `upload-artifact` remain as external actions.
+- **SLSA v1 release provenance**: Release workflow (`build.yml`) can attach cosign **SLSA v1** blob attestations (`*.cosign.bundle`) beside each release artifact when `COSIGN_PRIVATE_KEY` is configured; `scripts/ci/slsa-predicate.py`, `attest-release-assets.sh`, and `verify-release-attestation.sh` support signing and verification with Rekor transparency-log upload. Documented in `SECURITY.md` with `cosign.pub` at the repo root for downstream verification.
 
 ### Removed
 
 - **Legacy PR vulnerability scanner**: Removed the old PR-oriented workflow and its helper script in favour of Trivy.
+- **Nix flakes**: Removed due to no longer used and maintained.
 
 ### Testing
 
+- **End-to-end (Playwright)**: Added `tests/e2e/` with `pnpm run test:e2e` and `scripts/e2e/start-e2e-stack.sh` (isolated backend storage, headless MeshChat HTTP server, Vite dev server). CI installs Chromium and runs the suite against the proxied app. `tests/e2e/smoke.spec.js` checks `/api/v1/status` via the Vite proxy, direct `app/info`, document shell, and key routes. `tests/e2e/navigation.spec.js` covers the standalone tutorial route, command palette (Ctrl+K, jump to Settings, Escape, Getting Started modal), sidebar navigation across main sections (with `prepareE2eSession` calling `POST /api/v1/app/tutorial/seen` and changelog seen so tutorial/changelog overlays do not block pointer clicks), Alt+1 / Alt+S shortcuts, and the tools hub including a paper-message deep link. `tests/e2e/shell.spec.js` covers desktop sidebar collapse and expand, header theme toggle (config-backed dark class on the root shell), notifications bell dropdown open and close, the Call page Phone tab, Messages Announces tab peer search input, and NomadNet favourites plus announces search inputs. Shell tests scope the top bar via the sticky chrome strip (the app does not use a `<header>` landmark). Related UI fixes for reliable palette tests: `KeyboardShortcuts` skips handling when the action is `command_palette` so Ctrl+K reaches the palette; `CommandPalette` listens for keydown in the capture phase and stops propagation on the palette shortcut.
 - **Announce limits**: DAO trim, manager upsert/limits, fuzzing, flood-load, smoke expectations, meshchat coverage mocks, and benchmark scripts updated for capped storage and fetch behaviour.
 - **ForwardingManager**: Teardown coverage for alias deregistration and cleanup.
 - **NomadNetworkSidebar**: Tests for 3-dots on favourite cards, context menu options, rename/remove/banish from context, announce right-click menu, add favourite and block from announce context.
