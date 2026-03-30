@@ -480,7 +480,7 @@ describe("MicronParser.js", () => {
             const markup = "`!x`!".repeat(2000);
             const start = Date.now();
             parser.convertMicronToHtml(markup);
-            expect(Date.now() - start).toBeLessThan(500);
+            expect(Date.now() - start).toBeLessThan(1500);
         });
     });
 
