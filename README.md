@@ -40,26 +40,6 @@ This project is independent from the original Reticulum MeshChat project and is 
 - pnpm `10.32.1` (from `package.json`)
 - Poetry (used by `Taskfile.yml` and CI workflows)
 
-## Nix (flake.nix)
-
-This repo includes a Nix flake at `flake.nix`.
-
-### Enter the dev shell
-
-```bash
-nix develop
-```
-
-The flake dev shell provides Python, Poetry, Node, pnpm, Task, packaging tools (`rpm`, `dpkg`, `fakeroot`), Android build tools, and Docker tooling.
-
-### Build the default Nix package
-
-```bash
-nix build .#default
-```
-
-### Typical workflow inside `nix develop`
-
 ```bash
 task install
 task lint:all

@@ -39,31 +39,6 @@ Questo progetto e indipendente dal progetto originale Reticulum MeshChat e non e
 - pnpm `10.32.1` (da `package.json`)
 - Poetry (utilizzato in `Taskfile.yml` e nei workflow CI)
 
-## Nix (flake.nix)
-
-Il repository include un Nix flake in `flake.nix`.
-
-### Entrare nella dev shell
-
-```bash
-nix develop
-```
-
-### Compilare il pacchetto Nix predefinito
-
-```bash
-nix build .#default
-```
-
-### Flusso di lavoro tipico dentro `nix develop`
-
-```bash
-task install
-task lint:all
-task test:all
-task build:all
-```
-
 ## Metodi di installazione
 
 | Metodo                    | Include frontend     | Architetture                                | Ideale per                                         |

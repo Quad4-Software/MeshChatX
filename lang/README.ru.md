@@ -39,31 +39,6 @@
 - pnpm `10.32.1` (из `package.json`)
 - Poetry (используется в `Taskfile.yml` и CI)
 
-## Nix (flake.nix)
-
-В репозитории есть Nix-флейк `flake.nix`.
-
-### Войти в dev-оболочку
-
-```bash
-nix develop
-```
-
-### Собрать пакет по умолчанию
-
-```bash
-nix build .#default
-```
-
-### Типичный рабочий процесс внутри `nix develop`
-
-```bash
-task install
-task lint:all
-task test:all
-task build:all
-```
-
 ## Способы установки
 
 | Метод                 | Включает фронтенд   | Архитектуры                              | Лучше всего подходит для              |

@@ -39,31 +39,6 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 - pnpm `10.32.1`（`package.json` より）
 - Poetry（`Taskfile.yml` および CI ワークフローで使用）
 
-## Nix (flake.nix)
-
-リポジトリに `flake.nix` が含まれています。
-
-### 開発シェルに入る
-
-```bash
-nix develop
-```
-
-### デフォルトの Nix パッケージをビルド
-
-```bash
-nix build .#default
-```
-
-### `nix develop` 内の典型的なワークフロー
-
-```bash
-task install
-task lint:all
-task test:all
-task build:all
-```
-
 ## インストール方法
 
 | 方法                       | フロントエンド含む | アーキテクチャ                        | 最適な用途                               |
