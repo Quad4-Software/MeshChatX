@@ -67,6 +67,8 @@ telemetry_test_lxmf/
 ehthumbs.db
 Thumbs.db
 
+cosign.key
+
 # Environment variables
 .env
 .env.local
@@ -76,6 +78,7 @@ Thumbs.db
 docker-compose.override.yml
 
 .coverage
+coverage/
 
 meshchat-config/
 
