@@ -170,6 +170,11 @@ tasks:
         cmds:
             - "{{.NPM}} run test -- --exclude tests/frontend/i18n.test.js"
 
+    test:fe:cov:
+        desc: Run frontend tests with line coverage (Vitest v8)
+        cmds:
+            - "{{.NPM}} run test:coverage"
+
     test:lang:
         desc: Run localization tests
         cmds:
@@ -182,8 +187,10 @@ tasks:
             - poetry run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
 
     test:cov:
-        desc: Run all tests with coverage
-        deps: [test:be:cov, test:fe]
+        desc: Run all tests with coverage (Python + frontend JS/Vue + translator pytest)
+        deps: [test:be:cov, test:fe:cov]
+        cmds:
+            - "poetry run pytest tests/backend/test_translator_handler.py"
 
     bench:be:
         desc: Run backend benchmarks
