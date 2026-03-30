@@ -34,7 +34,7 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 
-- **OSV-Scanner workflow**: Removed `osv-pr.yml` and `scripts/osv_scan.sh` in favour of Trivy.
+- **Legacy PR vulnerability scanner**: Removed the old PR-oriented workflow and its helper script in favour of Trivy.
 
 ### Testing
 
