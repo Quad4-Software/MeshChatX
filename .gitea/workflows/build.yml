@@ -21,6 +21,9 @@ permissions:
     contents: write
     packages: write
 
+env:
+    COSIGN_VERSION: "3.0.5"
+
 jobs:
     build:
         name: Build and Release
@@ -146,7 +149,7 @@ jobs:
                   echo "## SHA256 Checksums" > release-body.md
                   echo "" >> release-body.md
                   for file in release-assets/*; do
-                    if [ -f "$file" ] && [[ "$file" != *.sha256 ]] && [[ "$file" != *release-body.md* ]]; then
+                    if [ -f "$file" ] && [[ "$file" != *.sha256 ]] && [[ "$file" != *.cosign.bundle ]] && [[ "$file" != *release-body.md* ]]; then
                       filename=$(basename "$file")
                       if [ -f "release-assets/${filename}.sha256" ]; then
                         # Extract just the filename and its sha256 (format: <sha256> <filename>)
@@ -154,6 +157,30 @@ jobs:
                       fi
                     fi
                   done
+
+            - name: SLSA attestations (cosign)
+              env:
+                  COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+                  COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+                  GITHUB_SERVER_URL: ${{ github.server_url }}
+                  GITHUB_REPOSITORY: ${{ github.repository }}
+                  GITHUB_SHA: ${{ github.sha }}
+                  GITHUB_REF: ${{ github.ref }}
+                  GITHUB_RUN_ID: ${{ github.run_id }}
+                  GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+                  GITHUB_WORKFLOW: ${{ github.workflow }}
+              run: |
+                  set -eu
+                  if [ -z "${COSIGN_PRIVATE_KEY:-}" ]; then
+                    echo "Skipping SLSA attestations: add repository secret COSIGN_PRIVATE_KEY (PEM) to sign releases."
+                    exit 0
+                  fi
+                  sh scripts/ci/setup-cosign.sh "${COSIGN_VERSION}"
+                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > /tmp/cosign.key
+                  chmod 600 /tmp/cosign.key
+                  export COSIGN_KEY_PATH=/tmp/cosign.key
+                  sh scripts/ci/attest-release-assets.sh ./release-assets
+                  rm -f /tmp/cosign.key
 
             - name: Validate version
               run: |
@@ -176,14 +203,7 @@ jobs:
                   gitea_token: ${{ secrets.GITEA_TOKEN }}
                   title: ${{ steps.version.outputs.version }}
                   tag: ${{ steps.version.outputs.version }}
-                  files: |
-                      release-assets/*.AppImage
-                      release-assets/*.deb
-                      release-assets/*.rpm
-                      release-assets/*.whl
-                      release-assets/*.zip
-                      release-assets/*.sha256
-                      release-assets/sbom.cyclonedx.json
+                  files: release-assets/*
                   body_path: "release-body.md"
                   draft: true
                   prerelease: false

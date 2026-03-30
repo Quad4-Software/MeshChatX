@@ -30,6 +30,25 @@ jobs:
                   git init -q && git remote add origin "${SERVER}/${REPO}.git"
                   git fetch -q --depth=1 origin "${GITHUB_SHA}" && git checkout -q FETCH_HEAD
 
+            - name: Setup Node.js
+              run: sh scripts/ci/setup-node.sh 24
+
+            - name: Setup pnpm
+              run: sh scripts/ci/setup-pnpm.sh
+
+            - name: Setup Task
+              run: sh scripts/ci/setup-task.sh
+
+            - name: Install frontend dependencies
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  task deps:fe
+
+            - name: pnpm audit
+              run: |
+                  . scripts/ci/ci-node-path.sh
+                  pnpm audit --audit-level=high
+
             - name: Download Trivy
               run: |
                   curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/fdfe96b77d2f7b7f5a90cea00af5024c9f728f17/trivy_0.69.3_Linux-64bit.deb
