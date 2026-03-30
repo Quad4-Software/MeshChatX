@@ -8,9 +8,9 @@ If you discover a security vulnerability or have concerns about the security of 
 
 ## Security Overview
 
-Reticulum MeshChatX is designed with a high degree of security in mind, leveraging multiple layers of protection and modern security practices.
+Reticulum MeshChatX is designed with a high degree of security and privacy in mind, leveraging multiple layers of protection and modern security practices.
 
-We follow the [Electron Best Security Practices](https://www.electronjs.org/docs/latest/tutorial/security)
+We follow the [Electron Best Security Practices](https://www.electronjs.org/docs/latest/tutorial/security).
 
 ### Core Security Features
 
@@ -25,7 +25,54 @@ We follow the [Electron Best Security Practices](https://www.electronjs.org/docs
 
 The project employs continuous security monitoring and testing:
 
-- **Security Scanning**: Automated daily scans using OSV-Scanner and Trivy for container image vulnerabilities.
-- **Pinned Actions**: All CI/CD workflows use pinned actions with full URLs to forked, vetted actions hosted on our Gitea instance (`git.quad4.io`) to prevent supply chain attacks.
-- **Extensive Testing & Fuzzing**: Comprehensive backend benchmarking suite with high-precision timing, memory delta tracking, and extreme stress modes to ensure stability and prevent resource exhaustion.
-- **Linting & Code Quality**: Strict linting rules and static analysis are enforced on every push.
+- **Security Scanning**: `.gitea/workflows/scan.yml` runs on a weekly schedule and on pushes to `master` and `dev`. It installs frontend dependencies and runs **`pnpm audit`** (high severity threshold) and a **Trivy filesystem** scan (`trivy fs --exit-code 1`). The **Docker** workflow runs **Trivy** on the built image (`trivy image`) separately from that job.
+- **CI**: On pushes and pull requests, **`pip-audit`** (Python) and **`pnpm audit`** run against the resolved dependency trees.
+- **Pinned Actions**: CI/CD workflows use pinned actions with full URLs to forked, vetted actions hosted on our Gitea instance (`git.quad4.io`) where an action is used at all.
+- **Extensive Testing & Fuzzing**: Backend benchmarking and stress coverage to reduce instability and resource-exhaustion risks.
+- **Linting & Code Quality**: Linting and static analysis run on CI paths.
+
+## Release provenance
+
+Tagged releases are built from `.gitea/workflows/build.yml`. Release assets include SHA256 sidecars (`.sha256` files next to each file) and a CycloneDX SBOM (`sbom.cyclonedx.json`). When the repository secret **`COSIGN_PRIVATE_KEY`** is set (PEM from `cosign generate-key-pair`, with **`COSIGN_PASSWORD`** if the key is encrypted), the workflow also produces **SLSA v1**-style cosign bundle files (`*.cosign.bundle`) next to each attested artifact.
+
+Attestations are uploaded to the **Sigstore public transparency log (Rekor)** by default. The build runner must be able to reach the Rekor endpoint (default `https://rekor.sigstore.dev`; override with **`COSIGN_REKOR_URL`** if you use another instance).
+
+Commit the cosign **public** key at the **repository root** as **`cosign.pub`** so others can verify without hunting for the key out of band.
+
+### Signing key rotation
+
+Rotate the signing key when it may be compromised or on an internal schedule (for example annually). Generate a new key pair, replace the **`COSIGN_PRIVATE_KEY`** (and password) secret in Gitea, and replace **`cosign.pub`** in the repository with the new public key. Releases built **before** rotation remain verifiable using the **old** public key kept alongside the download or in git history; document which key applies to which release tag if you maintain multiple keys.
+
+## Verifying releases
+
+Install **[cosign](https://docs.sigstore.dev/cosign/installation/)** for bundle verification. You need the **`cosign.pub`** file from the repository (same tag or `master` as the release you are checking).
+
+### SHA256 checksums
+
+Each released file has a sidecar `filename.sha256` containing the output of `sha256sum` (hex digest and filename). After downloading both files into the same directory:
+
+```bash
+sha256sum -c path/to/your-artifact.sha256
+```
+
+On macOS without GNU coreutils, compare the printed digest to `shasum -a 256 your-artifact` or use `openssl dgst -sha256 your-artifact`.
+
+### Cosign attestation (SLSA v1 bundle)
+
+From the repository root (so `scripts/ci/verify-release-attestation.sh` resolves), or with **`COSIGN_PUBLIC_KEY`** pointing at your copy of `cosign.pub`:
+
+```bash
+sh scripts/ci/verify-release-attestation.sh path/to/your-artifact path/to/your-artifact.cosign.bundle
+```
+
+This checks the signature and **Rekor** transparency-log inclusion for the attestation. If you intentionally use a private Sigstore deployment, set the same **`COSIGN_REKOR_URL`** (and any other Sigstore env vars) your builder used.
+
+### Container images
+
+Published images are built in `.gitea/workflows/docker.yml`. **OCI image cosign signing is not wired in that workflow yet.** Until it is, treat digest pinning as the main integrity check: pull or reference the image by **`@sha256:<digest>`** from a trusted manifest or registry UI, and optionally run **`trivy image`** against that digest. When cosign image signing is added, verification will look like:
+
+```bash
+cosign verify --key cosign.pub <registry>/<image>@sha256:<digest>
+```
+
+(Exact flags may depend on keyless versus key-based signing; follow the release notes when signing lands.)
