@@ -8,7 +8,6 @@ class WebSocketConnection {
         this.reconnectTimeout = null;
         this.initialized = false;
         this.destroyed = false;
-        this.connect();
     }
 
     async connect() {
@@ -55,7 +54,9 @@ class WebSocketConnection {
         this.ws.addEventListener("close", () => {
             if (this.destroyed) return;
             this.reconnectTimeout = setTimeout(() => {
-                this.reconnect();
+                if (!this.destroyed) {
+                    this.reconnect();
+                }
             }, 1000);
         });
 

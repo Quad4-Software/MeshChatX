@@ -2,6 +2,9 @@ import { reactive } from "vue";
 
 // global state
 const globalState = reactive({
+    authSessionResolved: true,
+    authEnabled: false,
+    authenticated: false,
     unreadConversationsCount: 0,
     activeCallTab: "phone",
     blockedDestinations: [],

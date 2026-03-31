@@ -12,6 +12,7 @@ import "./fonts/RobotoMonoNerdFont/font.css";
 import { ensureCodec2ScriptsLoaded } from "./js/Codec2Loader";
 
 import App from "./components/App.vue";
+import GlobalState from "./js/GlobalState";
 
 const localeModules = import.meta.glob("./locales/*.json", { eager: true });
 const messages = {};
@@ -71,8 +72,8 @@ axios.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401 || error.response?.status === 403) {
-            // only redirect if we're not already on the auth page
             if (router.currentRoute.value.name !== "auth") {
+                GlobalState.authenticated = false;
                 router.push("/auth");
             }
         }
@@ -296,6 +297,9 @@ router.beforeEach(async (to, from, next) => {
     try {
         const response = await window.axios.get("/api/v1/auth/status");
         const status = response.data;
+        GlobalState.authEnabled = !!status.auth_enabled;
+        GlobalState.authenticated = !!status.authenticated;
+        GlobalState.authSessionResolved = true;
 
         if (!status.auth_enabled) {
             next();
@@ -318,7 +322,9 @@ router.beforeEach(async (to, from, next) => {
 
         next("/auth");
     } catch (e) {
+        GlobalState.authSessionResolved = true;
         if (e.response?.status === 401 || e.response?.status === 403) {
+            GlobalState.authenticated = false;
             next("/auth");
         } else {
             next();
