@@ -1,7 +1,26 @@
 import path from "path";
 import fs from "fs";
+import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vuetify from "vite-plugin-vuetify";
+
+const nm = /[/\\]node_modules[/\\]/;
+const vendorChunkGroups = [
+    { test: new RegExp(`${nm.source}vuetify`), name: "vendor-vuetify" },
+    { test: new RegExp(`${nm.source}(vis-network|vis-data)`), name: "vendor-vis" },
+    { test: new RegExp(`${nm.source}vue-router`), name: "vendor-vue-router" },
+    { test: new RegExp(`${nm.source}(protobufjs|@protobufjs)`), name: "vendor-protobuf" },
+    { test: new RegExp(`${nm.source}dayjs`), name: "vendor-dayjs" },
+    { test: new RegExp(`${nm.source}@mdi(?:\\/|\\\\)js`), name: "vendor-mdi" },
+    { test: new RegExp(`${nm.source}compressorjs`), name: "vendor-compressor" },
+    { test: new RegExp(`${nm.source}click-outside-vue3`), name: "vendor-click-outside" },
+    { test: new RegExp(`${nm.source}mitt`), name: "vendor-mitt" },
+    { test: new RegExp(`${nm.source}micron-parser`), name: "vendor-micron" },
+    { test: /MicronParser\.js/, name: "vendor-micron" },
+    { test: new RegExp(`${nm.source}electron-prompt`), name: "vendor-electron-prompt" },
+    { test: new RegExp(`${nm.source}.*vue`), name: "vendor-vue" },
+    { test: nm, name: "vendor-other" },
+];
 
 // Purge old assets before build to prevent accumulation
 const assetsDir = path.join(__dirname, "meshchatx", "public", "assets");
@@ -13,7 +32,7 @@ const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
 const e2eBackendOrigin = `http://127.0.0.1:${e2eBackendPort}`;
 const e2eBackendWs = `ws://127.0.0.1:${e2eBackendPort}`;
 
-export default {
+export default defineConfig({
     plugins: [vue(), vuetify()],
 
     server: {
@@ -44,7 +63,7 @@ export default {
         outDir: path.join(__dirname, "meshchatx", "public"),
         emptyOutDir: false,
 
-        rollupOptions: {
+        rolldownOptions: {
             treeshake: {
                 moduleSideEffects: (id) => {
                     if (id.includes("@mdi/js")) {
@@ -54,53 +73,11 @@ export default {
                 },
             },
             input: {
-                // we want to use /meshchatx/src/frontend/index.html as the entrypoint for this vite app
                 app: path.join(__dirname, "meshchatx", "src", "frontend", "index.html"),
             },
             output: {
-                manualChunks(id) {
-                    if (id.includes("node_modules")) {
-                        if (id.includes("vuetify")) {
-                            return "vendor-vuetify";
-                        }
-                        if (id.includes("vis-network") || id.includes("vis-data")) {
-                            return "vendor-vis";
-                        }
-                        if (id.includes("vue-router")) {
-                            return "vendor-vue-router";
-                        }
-                        if (id.includes("vue")) {
-                            return "vendor-vue";
-                        }
-                        if (id.includes("protobufjs") || id.includes("@protobufjs")) {
-                            return "vendor-protobuf";
-                        }
-                        if (id.includes("dayjs")) {
-                            return "vendor-dayjs";
-                        }
-                        if (id.includes("axios")) {
-                            return "vendor-axios";
-                        }
-                        if (id.includes("@mdi/js")) {
-                            return "vendor-mdi";
-                        }
-                        if (id.includes("compressorjs")) {
-                            return "vendor-compressor";
-                        }
-                        if (id.includes("click-outside-vue3")) {
-                            return "vendor-click-outside";
-                        }
-                        if (id.includes("mitt")) {
-                            return "vendor-mitt";
-                        }
-                        if (id.includes("micron-parser") || id.includes("MicronParser.js")) {
-                            return "vendor-micron";
-                        }
-                        if (id.includes("electron-prompt")) {
-                            return "vendor-electron-prompt";
-                        }
-                        return "vendor-other";
-                    }
+                codeSplitting: {
+                    groups: vendorChunkGroups,
                 },
             },
         },
@@ -113,4 +90,4 @@ export default {
     resolve: {
         dedupe: ["vue"],
     },
-};
+});
