@@ -5,6 +5,7 @@ import shutil
 import zipfile
 from datetime import UTC, datetime
 
+from .access_attempts import AccessAttemptsDAO
 from .announces import AnnounceDAO
 from .config import ConfigDAO
 from .contacts import ContactsDAO
@@ -42,6 +43,7 @@ class Database:
         self.contacts = ContactsDAO(self.provider)
         self.map_drawings = MapDrawingsDAO(self.provider)
         self.debug_logs = DebugLogsDAO(self.provider)
+        self.access_attempts = AccessAttemptsDAO(self.provider)
         self.crash_history = CrashHistoryDAO(self.provider)
 
     def initialize(self):
