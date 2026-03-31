@@ -12,6 +12,12 @@ Reticulum MeshChatX is designed with a high degree of security and privacy in mi
 
 We follow the [Electron Best Security Practices](https://www.electronjs.org/docs/latest/tutorial/security).
 
+### Exposing to the public internet (with authentication)
+
+MeshChatX is primarily intended for **local or trusted networks** (for example behind a home router or VPN). Putting the HTTP(S) UI on the **public internet** is **not recommended**: you enlarge the attack surface (credential stuffing, TLS and certificate management, reverse-proxy misconfiguration, automated scanning, and denial-of-service against the single-node service).
+
+If you still choose to expose it, **enable authentication**, use **HTTPS** (valid certificates on the public name), restrict **who can reach the port** where possible (firewall allowlists, VPN, or a reverse proxy with additional controls), and keep the app **updated**. The application includes **defence-in-depth** for the login and initial-setup endpoints: **per-IP rate limiting**, **lockout** after repeated failed passwords from an address (with **trusted client** recognition after a successful login so your own browsers are less likely to be blocked during broad attacks), **logging** of access attempts (IP, User-Agent, path, time) inspectable under **Debug Logs → Access attempts**, and session cookies configured as **HttpOnly** with **SameSite=Lax**. None of this removes the inherent risks of a public-facing service; it only reduces some abuse and accident scenarios.
+
 ### Core Security Features
 
 - **ASAR Integrity Validation**: Utilizes Electron 39 features to protect the application against tampering.
@@ -25,7 +31,8 @@ We follow the [Electron Best Security Practices](https://www.electronjs.org/docs
 
 The project employs continuous security monitoring and testing:
 
-- **Security Scanning**: `.gitea/workflows/scan.yml` runs on a weekly schedule and on pushes to `master` and `dev`. It installs frontend dependencies and runs **`pnpm audit`** (high severity threshold) and a **Trivy filesystem** scan (`trivy fs --exit-code 1`). The **Docker** workflow runs **Trivy** on the built image (`trivy image`) separately from that job.
+- **Security Scanning**: `.gitea/workflows/scan.yml` runs on a weekly schedule and on pushes to `master` and `dev`. It installs frontend dependencies and runs **`pnpm audit`** (high severity threshold), **Trivy filesystem** vulnerabilities (`trivy fs --exit-code 1`), and **Trivy Dockerfile** misconfiguration (`trivy config --exit-code 1 Dockerfile`). The **Docker** workflow runs **Trivy** on the built image (`trivy image`) separately from that job.
+- **Auth and path-safety tests**: Pytest covers HTTP **401** on protected `/api/*` when `auth_enabled` is on and no session (`tests/backend/test_notifications.py`), **ValueError** on backup/snapshot delete paths that escape storage (`tests/backend/test_security_path_and_backup.py`), and **schema upgrade** from version **N-1** (`tests/backend/test_schema_migration_upgrade.py`). Database **backup/restore** round-trips are covered in `tests/backend/test_database_snapshots.py`. Login and setup **rate limiting**, **lockout**, and **access attempt** logging are covered in `tests/backend/test_access_attempts_dao.py` and `tests/backend/test_access_attempts_enforcement.py` (including Hypothesis and HTTP smoke tests).
 - **CI**: On pushes and pull requests, **`pip-audit`** (Python) and **`pnpm audit`** run against the resolved dependency trees.
 - **Pinned Actions**: CI/CD workflows use pinned actions with full URLs to forked, vetted actions hosted on our Gitea instance (`git.quad4.io`) where an action is used at all.
 - **Extensive Testing & Fuzzing**: Backend benchmarking and stress coverage to reduce instability and resource-exhaustion risks.
