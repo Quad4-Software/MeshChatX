@@ -1,148 +1,11 @@
-import os
 import time
-from contextlib import ExitStack
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import RNS
+from aiohttp import web
+from aiohttp.test_utils import TestClient, TestServer
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
-
-from meshchatx.meshchat import ReticulumMeshChat
-from meshchatx.src.backend.database import Database
-from meshchatx.src.backend.database.provider import DatabaseProvider
-from meshchatx.src.backend.database.schema import DatabaseSchema
-
-
-@pytest.fixture
-def temp_db(tmp_path):
-    db_path = os.path.join(tmp_path, "test_notifications.db")
-    yield db_path
-    if os.path.exists(db_path):
-        os.remove(db_path)
-
-
-@pytest.fixture
-def db(temp_db):
-    provider = DatabaseProvider(temp_db)
-    schema = DatabaseSchema(provider)
-    schema.initialize()
-    database = Database(temp_db)
-    yield database
-    database.close_all()
-    provider.close_all()
-
-
-@pytest.fixture
-def mock_app(db, tmp_path):
-    # Save real Identity class to use as base for our mock class
-    real_identity_class = RNS.Identity
-
-    class MockIdentityClass(real_identity_class):
-        def __init__(self, *args, **kwargs):
-            self.hash = b"test_hash_32_bytes_long_01234567"
-            self.hexhash = self.hash.hex()
-
-    with ExitStack() as stack:
-        stack.enter_context(patch("RNS.Identity", MockIdentityClass))
-        stack.enter_context(patch("RNS.Reticulum"))
-        stack.enter_context(patch("RNS.Transport"))
-        stack.enter_context(patch("LXMF.LXMRouter"))
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TelephoneManager"),
-        )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.VoicemailManager"),
-        )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RingtoneManager"),
-        )
-        stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
-        )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
-        )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
-        )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.ArchiverManager"),
-        )
-        stack.enter_context(patch("meshchatx.src.backend.identity_context.MapManager"))
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.MessageHandler"),
-        )
-        stack.enter_context(
-            patch("meshchatx.src.backend.identity_context.AnnounceManager"),
-        )
-        stack.enter_context(patch("threading.Thread"))
-
-        mock_id = MockIdentityClass()
-        mock_id.get_private_key = MagicMock(return_value=b"test_private_key")
-
-        stack.enter_context(
-            patch.object(MockIdentityClass, "from_file", return_value=mock_id),
-        )
-        stack.enter_context(
-            patch.object(MockIdentityClass, "recall", return_value=mock_id),
-        )
-        stack.enter_context(
-            patch.object(MockIdentityClass, "from_bytes", return_value=mock_id),
-        )
-
-        # Patch background threads and other heavy init
-        stack.enter_context(
-            patch.object(
-                ReticulumMeshChat,
-                "announce_loop",
-                new=MagicMock(return_value=None),
-            ),
-        )
-        stack.enter_context(
-            patch.object(
-                ReticulumMeshChat,
-                "announce_sync_propagation_nodes",
-                new=MagicMock(return_value=None),
-            ),
-        )
-        stack.enter_context(
-            patch.object(
-                ReticulumMeshChat,
-                "crawler_loop",
-                new=MagicMock(return_value=None),
-            ),
-        )
-
-        stack.enter_context(
-            patch.object(
-                ReticulumMeshChat,
-                "auto_backup_loop",
-                new=MagicMock(return_value=None),
-            ),
-        )
-        # Prevent JSON serialization issues with MagicMocks
-        stack.enter_context(
-            patch.object(
-                ReticulumMeshChat,
-                "send_config_to_websocket_clients",
-                return_value=None,
-            ),
-        )
-
-        app = ReticulumMeshChat(
-            identity=mock_id,
-            storage_dir=str(tmp_path),
-            reticulum_config_dir=str(tmp_path),
-        )
-
-        # Use our real test database
-        app.database = db
-        app.websocket_broadcast = MagicMock(side_effect=lambda data: None)
-
-        yield app
-        app.teardown_identity()
 
 
 def test_add_get_notifications(db):
@@ -578,3 +441,23 @@ def test_random_notification_operations(db, operations):
 
     count = db.misc.get_unread_notification_count()
     assert count >= 0
+
+
+@pytest.mark.asyncio
+async def test_auth_middleware_returns_401_for_api_without_session_when_auth_enabled(
+    mock_app,
+):
+    app = mock_app
+    app.current_context = MagicMock(running=True)
+    app.config.auth_enabled.set(True)
+
+    routes = web.RouteTableDef()
+    auth_mw, mime_mw, sec_mw = app._define_routes(routes)
+    aio_app = web.Application(middlewares=[auth_mw, mime_mw, sec_mw])
+    aio_app.add_routes(routes)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        with patch("meshchatx.meshchat.get_session", new_callable=AsyncMock) as gs:
+            gs.return_value = {}
+            resp = await client.get("/api/v1/config")
+            assert resp.status == 401
