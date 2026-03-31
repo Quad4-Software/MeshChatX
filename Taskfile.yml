@@ -155,6 +155,11 @@ tasks:
         desc: Run all tests
         deps: [test:be, test:fe, test:lang]
 
+    test:e2e:
+        desc: Playwright E2E (starts MeshChat backend + Vite; requires poetry, curl, pnpm exec playwright install chromium)
+        cmds:
+            - "{{.NPM}} run test:e2e"
+
     test:be:
         desc: Run Python tests (pytest)
         cmds:
