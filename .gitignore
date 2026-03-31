@@ -80,6 +80,10 @@ docker-compose.override.yml
 .coverage
 coverage/
 
+test-results/
+playwright-report/
+blob-report/
+
 meshchat-config/
 
 .hypothesis

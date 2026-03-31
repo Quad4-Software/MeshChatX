@@ -78,6 +78,10 @@ telemetry_test_lxmf/
 
 .coverage
 
+test-results/
+playwright-report/
+blob-report/
+
 .hypothesis
 .hypothesis/
 
