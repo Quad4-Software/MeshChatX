@@ -48,4 +48,13 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
         await expect(page).toHaveURL(/#\/messages/);
         await expect(page.locator("#app")).toBeVisible();
     });
+
+    test("debug logs route shows Logs and Access attempts tabs", async ({ page }) => {
+        await page.goto("/#/debug/logs");
+        await expect(page).toHaveURL(/#\/debug\/logs/);
+        await expect(page.getByRole("button", { name: "Logs", exact: true })).toBeVisible({ timeout: 30000 });
+        await expect(page.getByRole("button", { name: "Access attempts", exact: true })).toBeVisible({
+            timeout: 30000,
+        });
+    });
 });

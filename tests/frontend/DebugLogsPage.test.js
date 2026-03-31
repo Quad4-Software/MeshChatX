@@ -37,14 +37,15 @@ describe("DebugLogsPage.vue", () => {
         const wrapper = mount(DebugLogsPage, {
             global: {
                 stubs: ["MaterialDesignIcon"],
+                mocks: { $t: (key) => key },
             },
         });
 
-        // Wait for axios
         await new Promise((resolve) => setTimeout(resolve, 10));
         await wrapper.vm.$nextTick();
 
-        const logRows = wrapper.findAll(".border-b");
+        const container = wrapper.find(".flex-1.overflow-auto.p-4.font-mono");
+        const logRows = container.findAll(".border-b");
         expect(logRows.length).toBe(2);
         expect(wrapper.text()).toContain("Hello");
         expect(wrapper.text()).toContain("Boom");
@@ -52,13 +53,18 @@ describe("DebugLogsPage.vue", () => {
     });
 
     it("handles search input", async () => {
+        window.axios.get.mockResolvedValue({
+            data: { logs: [], total: 0, limit: 100, offset: 0 },
+        });
+
         const wrapper = mount(DebugLogsPage, {
             global: {
                 stubs: ["MaterialDesignIcon"],
+                mocks: { $t: (key) => key },
             },
         });
 
-        const searchInput = wrapper.find("input[placeholder='Search logs...']");
+        const searchInput = wrapper.find("input[placeholder='debug.search_logs_placeholder']");
         await searchInput.setValue("error");
 
         // Wait for debounce (500ms)
@@ -85,12 +91,12 @@ describe("DebugLogsPage.vue", () => {
         const wrapper = mount(DebugLogsPage, {
             global: {
                 stubs: ["MaterialDesignIcon"],
+                mocks: { $t: (key) => key },
             },
         });
 
         await new Promise((resolve) => setTimeout(resolve, 10));
 
-        // Click next
         const nextButton = wrapper.findAll("button").find((b) => b.text().includes("Next"));
         await nextButton.trigger("click");
 
@@ -100,5 +106,58 @@ describe("DebugLogsPage.vue", () => {
                 params: expect.objectContaining({ offset: 100 }),
             })
         );
+    });
+
+    it("loads access attempts when switching to Access attempts tab", async () => {
+        window.axios.get.mockImplementation((url) => {
+            if (url.includes("access-attempts")) {
+                return Promise.resolve({
+                    data: {
+                        attempts: [
+                            {
+                                id: 1,
+                                created_at: Date.now() / 1000,
+                                identity_hash: "ab",
+                                client_ip: "10.0.0.1",
+                                user_agent: "TestUA/1",
+                                path: "/api/v1/auth/login",
+                                method: "POST",
+                                outcome: "failed_password",
+                                detail: "",
+                            },
+                        ],
+                        total: 1,
+                        limit: 100,
+                        offset: 0,
+                    },
+                });
+            }
+            return Promise.resolve({
+                data: { logs: [], total: 0, limit: 100, offset: 0 },
+            });
+        });
+
+        const wrapper = mount(DebugLogsPage, {
+            global: {
+                stubs: ["MaterialDesignIcon"],
+                mocks: { $t: (key) => key },
+            },
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        await wrapper.vm.$nextTick();
+
+        const accessTab = wrapper.findAll("button").find((b) => b.text().includes("debug.tab_access_attempts"));
+        expect(accessTab).toBeTruthy();
+        await accessTab.trigger("click");
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        await wrapper.vm.$nextTick();
+
+        expect(window.axios.get).toHaveBeenCalledWith(
+            expect.stringContaining("/api/v1/debug/access-attempts"),
+            expect.any(Object)
+        );
+        expect(wrapper.text()).toContain("failed_password");
+        expect(wrapper.text()).toContain("10.0.0.1");
     });
 });

@@ -22,6 +22,8 @@ vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
         off: vi.fn(),
         emit: vi.fn(),
         send: vi.fn(),
+        connect: vi.fn(),
+        destroy: vi.fn(),
     },
 }));
 
@@ -34,6 +36,9 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
 
 vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
     default: {
+        authSessionResolved: true,
+        authEnabled: false,
+        authenticated: false,
         unreadConversationsCount: 0,
         activeCallTab: null,
         config: {},
