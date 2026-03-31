@@ -737,9 +737,23 @@
     "debug": {
         "title": "Debug Logs",
         "description": "View application logs and detected anomalies.",
+        "tab_logs": "Logs",
+        "tab_access_attempts": "Access attempts",
+        "search_logs_placeholder": "Search logs...",
+        "search_access_placeholder": "Search IP, path, outcome...",
+        "level_all": "All levels",
+        "anomalies_only": "Anomalies only",
+        "outcome_all": "All outcomes",
+        "loading_logs": "Loading logs...",
+        "no_logs": "No logs found.",
+        "loading_access": "Loading access attempts...",
+        "no_access": "No access attempts recorded.",
         "failed_fetch_logs": "Failed to fetch logs",
+        "failed_fetch_access": "Failed to fetch access attempts",
         "logs_copied": "Logs on this page copied to clipboard",
-        "failed_copy_logs": "Failed to copy logs"
+        "access_copied": "Access attempts copied to clipboard",
+        "failed_copy_logs": "Failed to copy logs",
+        "failed_copy_access": "Failed to copy access attempts"
     },
     "visualiser": {
         "title": "Network Visualiser",

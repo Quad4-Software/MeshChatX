@@ -783,9 +783,23 @@
     "debug": {
         "title": "Log di Debug",
         "description": "Visualizza i log dell'applicazione e le anomalie rilevate.",
+        "tab_logs": "Log",
+        "tab_access_attempts": "Tentativi di accesso",
+        "search_logs_placeholder": "Cerca nei log...",
+        "search_access_placeholder": "Cerca IP, percorso, esito...",
+        "level_all": "Tutti i livelli",
+        "anomalies_only": "Solo anomalie",
+        "outcome_all": "Tutti gli esiti",
+        "loading_logs": "Caricamento log...",
+        "no_logs": "Nessun log trovato.",
+        "loading_access": "Caricamento tentativi di accesso...",
+        "no_access": "Nessun tentativo di accesso registrato.",
         "failed_fetch_logs": "Impossibile recuperare i log",
+        "failed_fetch_access": "Impossibile recuperare i tentativi di accesso",
         "logs_copied": "I log in questa pagina sono stati copiati negli appunti",
-        "failed_copy_logs": "Impossibile copiare i log"
+        "access_copied": "Tentativi di accesso copiati negli appunti",
+        "failed_copy_logs": "Impossibile copiare i log",
+        "failed_copy_access": "Impossibile copiare i tentativi di accesso"
     },
     "visualiser": {
         "title": "Visualizzatore di Rete",

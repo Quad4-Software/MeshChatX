@@ -1570,9 +1570,23 @@
     "debug": {
         "title": "Debug Logs",
         "description": "View application logs and detected anomalies.",
-        "failed_fetch_logs": "Failed to fetch logs",
-        "logs_copied": "Logs on this page copied to clipboard",
-        "failed_copy_logs": "Failed to copy logs"
+        "tab_logs": "Protokolle",
+        "tab_access_attempts": "Zugriffsversuche",
+        "search_logs_placeholder": "Protokolle durchsuchen...",
+        "search_access_placeholder": "IP, Pfad, Ergebnis suchen...",
+        "level_all": "Alle Stufen",
+        "anomalies_only": "Nur Anomalien",
+        "outcome_all": "Alle Ergebnisse",
+        "loading_logs": "Protokolle werden geladen...",
+        "no_logs": "Keine Protokolle gefunden.",
+        "loading_access": "Zugriffsversuche werden geladen...",
+        "no_access": "Keine Zugriffsversuche erfasst.",
+        "failed_fetch_logs": "Protokolle konnten nicht geladen werden",
+        "failed_fetch_access": "Zugriffsversuche konnten nicht geladen werden",
+        "logs_copied": "Protokolle auf dieser Seite in die Zwischenablage kopiert",
+        "access_copied": "Zugriffsversuche in die Zwischenablage kopiert",
+        "failed_copy_logs": "Protokolle konnten nicht kopiert werden",
+        "failed_copy_access": "Zugriffsversuche konnten nicht kopiert werden"
     },
     "visualiser": {
         "title": "Network Visualiser",

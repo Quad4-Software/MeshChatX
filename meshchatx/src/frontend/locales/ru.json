@@ -1568,11 +1568,25 @@
         "failed_import_folders": "Failed to import folders"
     },
     "debug": {
-        "title": "Debug Logs",
-        "description": "View application logs and detected anomalies.",
-        "failed_fetch_logs": "Failed to fetch logs",
-        "logs_copied": "Logs on this page copied to clipboard",
-        "failed_copy_logs": "Failed to copy logs"
+        "title": "Журнал отладки",
+        "description": "Просмотр журналов приложения и обнаруженных аномалий.",
+        "tab_logs": "Журналы",
+        "tab_access_attempts": "Попытки доступа",
+        "search_logs_placeholder": "Поиск в журналах...",
+        "search_access_placeholder": "Поиск по IP, пути, результату...",
+        "level_all": "Все уровни",
+        "anomalies_only": "Только аномалии",
+        "outcome_all": "Все результаты",
+        "loading_logs": "Загрузка журналов...",
+        "no_logs": "Записей не найдено.",
+        "loading_access": "Загрузка попыток доступа...",
+        "no_access": "Попытки доступа не зарегистрированы.",
+        "failed_fetch_logs": "Не удалось загрузить журналы",
+        "failed_fetch_access": "Не удалось загрузить попытки доступа",
+        "logs_copied": "Журналы на этой странице скопированы в буфер",
+        "access_copied": "Попытки доступа скопированы в буфер",
+        "failed_copy_logs": "Не удалось скопировать журналы",
+        "failed_copy_access": "Не удалось скопировать попытки доступа"
     },
     "visualiser": {
         "title": "Network Visualiser",
