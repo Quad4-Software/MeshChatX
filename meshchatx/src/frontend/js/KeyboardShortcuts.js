@@ -50,6 +50,9 @@ class KeyboardShortcuts {
         // Check for matches
         for (const shortcut of this.shortcuts) {
             if (this.matches(shortcut.keys, e)) {
+                if (shortcut.action === "command_palette") {
+                    continue;
+                }
                 // Check if we should ignore because we're in an input
                 const isInput =
                     ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName) ||
