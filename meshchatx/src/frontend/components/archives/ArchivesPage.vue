@@ -491,9 +491,12 @@ export default {
 
 <style scoped>
 pre {
-    font-family: "JetBrains Mono", "Roboto Mono", monospace;
+    font-family: "Roboto Mono Nerd Font", ui-monospace, monospace;
     font-size: 13px;
     line-height: 1.5;
+    letter-spacing: normal;
+    font-variant-ligatures: none;
+    font-feature-settings: normal;
 }
 
 /* Ensure long pages don't lag the layout */

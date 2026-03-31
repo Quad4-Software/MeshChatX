@@ -1624,11 +1624,19 @@ export default {
 </script>
 
 <style>
-pre {
-    font-family:
-        Roboto Mono Nerd Font,
-        monospace;
+.nodeContainer {
+    font-family: "Roboto Mono Nerd Font", ui-monospace, monospace;
+    letter-spacing: normal;
+    font-variant-ligatures: none;
+    font-feature-settings: normal;
+}
+
+.nodeContainer pre {
+    font-family: inherit;
     line-height: normal;
+    letter-spacing: inherit;
+    font-variant-ligatures: inherit;
+    font-feature-settings: inherit;
 }
 
 pre.text-wrap > div {
@@ -1641,15 +1649,13 @@ pre.text-wrap > div > :last-child {
     white-space: pre-wrap;
 }
 
-pre a:hover {
+.nodeContainer pre a:hover {
     text-decoration: underline;
 }
 
 .nodeContainer input[type="text"],
 .nodeContainer input[type="password"] {
-    font-family:
-        Roboto Mono Nerd Font,
-        monospace;
+    font-family: inherit;
     font-size: 1em;
     line-height: 1;
     padding: 0;

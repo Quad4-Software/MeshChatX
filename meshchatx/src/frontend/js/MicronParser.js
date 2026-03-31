@@ -9,9 +9,6 @@ const ALLOWED_URI_REGEXP =
  * partial includes, overlay style stripping, wide CJK monospace cells, and lxmf/nomadnetwork in DOMPurify.
  */
 export default class MicronParser extends BaseMicronParser {
-    static MU_CELL_EM_NARROW = 0.72;
-    static MU_CELL_EM_WIDE = 1.22;
-
     constructor(darkTheme = true, enableForceMonospace = true) {
         super(darkTheme, enableForceMonospace);
         if (this.enableForceMonospace) {
@@ -77,8 +74,6 @@ export default class MicronParser extends BaseMicronParser {
         const styleEl = document.createElement("style");
         styleEl.id = "micron-monospace-styles";
 
-        const n = MicronParser.MU_CELL_EM_NARROW;
-        const w = MicronParser.MU_CELL_EM_WIDE;
         styleEl.textContent = `
             .Mu-nl {
                 cursor: pointer;
@@ -86,32 +81,35 @@ export default class MicronParser extends BaseMicronParser {
             .Mu-mnt {
                 display: inline-block;
                 box-sizing: border-box;
-                min-width: ${n}em;
-                width: ${n}em;
+                min-width: 1ch;
+                width: 1ch;
+                max-width: 1ch;
                 text-align: center;
                 white-space: pre;
                 text-decoration: inherit;
                 vertical-align: baseline;
-                line-height: 1.45;
+                line-height: 1.25;
             }
             .Mu-mnt-full {
                 display: inline-block;
                 box-sizing: border-box;
-                min-width: ${w}em;
-                width: ${w}em;
+                min-width: 2ch;
+                width: 2ch;
+                max-width: 2ch;
                 text-align: center;
                 white-space: pre;
                 text-decoration: inherit;
                 vertical-align: baseline;
-                line-height: 1.45;
+                line-height: 1.25;
             }
             .Mu-mws {
                 text-decoration: inherit;
                 display: inline-flex;
                 flex-wrap: wrap;
                 align-items: baseline;
-                column-gap: 0.06em;
+                column-gap: 0;
                 row-gap: 0;
+                gap: 0;
             }
         `;
         document.head.appendChild(styleEl);
