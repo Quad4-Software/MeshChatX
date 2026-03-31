@@ -21,7 +21,10 @@ _RUN = os.environ.get("MESHCHAT_LIVE_RETICULUM") == "1"
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1 to run live Reticulum subprocess smoke test")
+@pytest.mark.skipif(
+    not _RUN,
+    reason="Set MESHCHAT_LIVE_RETICULUM=1 to run live Reticulum subprocess smoke test",
+)
 def test_reticulum_subprocess_start_and_exit():
     script = r"""
 import tempfile

@@ -8,9 +8,9 @@ test.describe("Getting started (tutorial page)", () => {
         await expect(page.getByRole("heading", { name: /Welcome to\s*MeshChatX/i }).first()).toBeVisible({
             timeout: 30000,
         });
-        await expect(
-            page.getByText("The future of off-grid communication", { exact: false }).first(),
-        ).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText("The future of off-grid communication", { exact: false }).first()).toBeVisible({
+            timeout: 10000,
+        });
     });
 });
 

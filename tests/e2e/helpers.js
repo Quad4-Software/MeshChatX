@@ -30,7 +30,7 @@ async function openCommandPalette(page) {
                     ctrlKey: true,
                     bubbles: true,
                     cancelable: true,
-                }),
+                })
             );
         });
         input = page.getByPlaceholder(PALETTE_PLACEHOLDER);

@@ -23,11 +23,10 @@ describe("UI Accessibility and Keyboard Navigation", () => {
     it("verifies that keyboard shortcuts trigger global events", async () => {
         const emitSpy = vi.spyOn(GlobalEmitter, "emit");
 
-        // Test a few shortcuts
+        // Test a few shortcuts (Ctrl+K is handled by CommandPalette in capture phase; KeyboardShortcuts skips emitting it)
         const shortcuts = [
             { key: "1", altKey: true, action: "nav_messages" },
             { key: "s", altKey: true, action: "nav_settings" },
-            { key: "k", ctrlKey: true, action: "command_palette" },
         ];
 
         for (const shortcut of shortcuts) {
@@ -41,6 +40,15 @@ describe("UI Accessibility and Keyboard Navigation", () => {
             window.dispatchEvent(event);
             expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", shortcut.action);
         }
+
+        const ctrlK = new KeyboardEvent("keydown", {
+            key: "k",
+            ctrlKey: true,
+            code: "KeyK",
+            bubbles: true,
+        });
+        window.dispatchEvent(ctrlK);
+        expect(emitSpy).toHaveBeenCalledTimes(2);
     });
 
     it("ensures shortcuts are ignored in inputs without modifiers", async () => {
