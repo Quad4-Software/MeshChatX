@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 
+- **Auth access control (login and setup)**: Failed attempts and outcomes are stored in **`access_attempts`** (IP, User-Agent, path, method, time, outcome). **Untrusted** clients are **rate limited** per IP and path and **locked out** after repeated wrong passwords from the same IP (fingerprints that have successfully logged in for the current identity are **trusted** and use higher per-window limits and are excluded from lockout counting for their own UA). **`trusted_login_clients`** stores IP plus User-Agent hash per identity after a successful login or setup, with pruning of the oldest entries when the cap is exceeded. **`GET /api/v1/debug/access-attempts`** lists attempts for the debug tools (search, outcome filter, pagination). Database schema version **42** adds these tables.
+- **Debug Logs UI**: The debug logs page has tabs for **Logs** and **Access attempts**, with refresh, copy, search, outcome filter, and pagination for access attempts.
 - **LXMF Lift Banishment from context menus**: Right-click on a message in the conversation viewer or on a row in the messages sidebar shows **Lift Banishment** when that peer is blocked, calling the blocked-destinations API and refreshing UI state (aligned with NomadNet banish/lift patterns).
 
 ### Fixes
@@ -49,6 +51,7 @@ All notable changes to this project will be documented in this file.
 - **i18n**: Dynamic locale file discovery in tests; added `_languageName` presence check for all locales.
 - **ConfigManager**: Inbound stamp cost may be set to `0`.
 - **meshchat_utils**: Tests for `normalize_hex_identifier` / `hex_identifier_to_bytes`.
+- **Auth access attempts**: `tests/backend/test_access_attempts_dao.py` (DAO behaviour, trusted pruning, cleanup, lockout counting, Hypothesis invariants for `user_agent_hash` and insert/list). `tests/backend/test_access_attempts_enforcement.py` (`_request_client_ip`, `_enforce_login_access` for untrusted rate limit and lockout, trusted bypass and trusted rate limit, Hypothesis monotone check, HTTP smoke for login logging, lockout and rate-limit **429** responses, debug access-attempts JSON shape). **Vitest**: `DebugLogsPage` access tab loads `/api/v1/debug/access-attempts`. **Playwright**: `smoke.spec.js` asserts **Logs** and **Access attempts** on `#/debug/logs`.
 
 ### Updates
 
