@@ -431,7 +431,7 @@ export default {
                 formData.append("file", blob, filename);
 
                 if (this.saveAsNew) {
-                    await window.axios.post("/api/v1/telephone/ringtones/upload", formData, {
+                    await window.api.post("/api/v1/telephone/ringtones/upload", formData, {
                         headers: { "Content-Type": "multipart/form-data" },
                     });
                 } else {
@@ -441,12 +441,12 @@ export default {
                     // but the user might expect replacement.
                     // The backend doesn't seem to support direct replacement via the upload endpoint.
                     // Let's just upload it.
-                    await window.axios.post("/api/v1/telephone/ringtones/upload", formData, {
+                    await window.api.post("/api/v1/telephone/ringtones/upload", formData, {
                         headers: { "Content-Type": "multipart/form-data" },
                     });
 
                     // If not saving as new, maybe delete the old one?
-                    // await window.axios.delete(`/api/v1/telephone/ringtones/${this.ringtone.id}`);
+                    // await window.api.delete(`/api/v1/telephone/ringtones/${this.ringtone.id}`);
                 }
 
                 ToastUtils.success(this.$t("call.ringtone_saved"));

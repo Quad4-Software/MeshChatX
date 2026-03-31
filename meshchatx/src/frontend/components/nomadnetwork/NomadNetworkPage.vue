@@ -753,7 +753,7 @@ export default {
         },
         async getFavourites() {
             try {
-                const response = await window.axios.get("/api/v1/favourites", {
+                const response = await window.api.get("/api/v1/favourites", {
                     params: {
                         aspect: "nomadnetwork.node",
                     },
@@ -774,7 +774,7 @@ export default {
         async addFavourite(node) {
             // add to favourites
             try {
-                await window.axios.post("/api/v1/favourites/add", {
+                await window.api.post("/api/v1/favourites/add", {
                     destination_hash: node.destination_hash,
                     display_name: node.display_name,
                     aspect: "nomadnetwork.node",
@@ -789,7 +789,7 @@ export default {
         async removeFavourite(node) {
             // remove from favourites
             try {
-                await window.axios.delete(`/api/v1/favourites/${node.destination_hash}`);
+                await window.api.delete(`/api/v1/favourites/${node.destination_hash}`);
             } catch (e) {
                 console.log(e);
             }
@@ -800,7 +800,7 @@ export default {
         async getNomadnetworkNodeAnnounces(append = false) {
             try {
                 const offset = append ? Object.keys(this.nodes).length : 0;
-                const response = await window.axios.get(`/api/v1/announces`, {
+                const response = await window.api.get(`/api/v1/announces`, {
                     params: {
                         aspect: "nomadnetwork.node",
                         limit: this.pageSize,
@@ -823,7 +823,7 @@ export default {
 
                 this.hasMoreNodes = nodeAnnounces.length === this.pageSize;
             } catch (e) {
-                if (window.axios.isCancel?.(e)) return;
+                if (window.api.isCancel?.(e)) return;
                 console.log(e);
             } finally {
                 this.isLoadingMoreNodes = false;
@@ -845,7 +845,7 @@ export default {
         },
         async getNomadnetworkNodeAnnounce(destinationHash) {
             try {
-                const response = await window.axios.get(`/api/v1/announces`, {
+                const response = await window.api.get(`/api/v1/announces`, {
                     params: {
                         destination_hash: destinationHash,
                         limit: 1,
@@ -858,7 +858,7 @@ export default {
                     this.updateNodeFromAnnounce(nodeAnnounce);
                 }
             } catch (e) {
-                if (window.axios.isCancel?.(e)) return;
+                if (window.api.isCancel?.(e)) return;
                 console.log(e);
             }
         },
@@ -1399,7 +1399,7 @@ export default {
 
             try {
                 // rename on server
-                await window.axios.post(`/api/v1/favourites/${favourite.destination_hash}/rename`, {
+                await window.api.post(`/api/v1/favourites/${favourite.destination_hash}/rename`, {
                     display_name: displayName,
                 });
 
@@ -1511,7 +1511,7 @@ export default {
 
             try {
                 // get path to destination
-                const response = await window.axios.get(`/api/v1/destination/${destinationHash}/path`);
+                const response = await window.api.get(`/api/v1/destination/${destinationHash}/path`);
 
                 // update ui
                 this.selectedNodePath = response.data.path;
@@ -1527,7 +1527,7 @@ export default {
                 }
 
                 // identify self to nomadnetwork node
-                await window.axios.post(`/api/v1/nomadnetwork/${destinationHash}/identify`);
+                await window.api.post(`/api/v1/nomadnetwork/${destinationHash}/identify`);
 
                 // reload page
                 this.reloadNodePage();

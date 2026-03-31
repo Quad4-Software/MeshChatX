@@ -2198,7 +2198,7 @@ export default {
         },
         async updatePropagationNodeStatus() {
             try {
-                const response = await window.axios.get("/api/v1/lxmf/propagation-node/status");
+                const response = await window.api.get("/api/v1/lxmf/propagation-node/status");
                 this.propagationNodeStatus = response.data.propagation_node_status;
             } catch {
                 // do nothing on error
@@ -2226,7 +2226,7 @@ export default {
         },
         async fetchContacts() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/contacts");
+                const response = await window.api.get("/api/v1/telephone/contacts");
                 this.contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
             } catch (e) {
                 console.log("Failed to fetch contacts:", e);
@@ -2238,7 +2238,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.axios.get("/api/v1/translator/languages");
+                const response = await window.api.get("/api/v1/translator/languages");
                 this.translatorLanguages = response.data.languages || [];
                 this.hasTranslator = this.translatorLanguages.length > 0;
             } catch (e) {
@@ -2252,7 +2252,7 @@ export default {
             try {
                 this.isSendingMessage = true;
                 const targetLang = this.$i18n.locale || "en";
-                const response = await window.axios.post("/api/v1/translator/translate", {
+                const response = await window.api.post("/api/v1/translator/translate", {
                     text: this.newMessageText,
                     source_lang: "auto",
                     target_lang: targetLang,
@@ -2303,7 +2303,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.axios.get(
+                const response = await window.api.get(
                     `/api/v1/telephone/contacts/check/${this.selectedPeer.destination_hash}`
                 );
                 this.isStrangerPeer = !response.data.is_contact;
@@ -2415,7 +2415,7 @@ export default {
 
                 // fetch lxmf messages from "us to destination" and from "destination to us"
                 const pageSize = 30;
-                const response = await window.axios.get(
+                const response = await window.api.get(
                     `/api/v1/lxmf-messages/conversation/${this.selectedPeer.destination_hash}`,
                     {
                         params: {
@@ -2515,13 +2515,13 @@ export default {
         async addContact(name, hash, lxmf_address = null, lxst_address = null) {
             try {
                 // Check if contact already exists
-                const checkResponse = await window.axios.get(`/api/v1/telephone/contacts/check/${hash}`);
+                const checkResponse = await window.api.get(`/api/v1/telephone/contacts/check/${hash}`);
                 if (checkResponse.data?.id) {
                     ToastUtils.info(`${name} is already in your contacts`);
                     return;
                 }
 
-                await window.axios.post("/api/v1/telephone/contacts", {
+                await window.api.post("/api/v1/telephone/contacts", {
                     name: name,
                     remote_identity_hash: hash,
                     lxmf_address: lxmf_address,
@@ -2752,7 +2752,7 @@ export default {
             if (this.selectedPeer) {
                 try {
                     // get path to destination
-                    const response = await window.axios.get(
+                    const response = await window.api.get(
                         `/api/v1/destination/${this.selectedPeer.destination_hash}/path`
                     );
 
@@ -2770,7 +2770,7 @@ export default {
             if (this.selectedPeer) {
                 try {
                     // get lxmf stamp info
-                    const response = await window.axios.get(
+                    const response = await window.api.get(
                         `/api/v1/destination/${this.selectedPeer.destination_hash}/lxmf-stamp-info`
                     );
 
@@ -2788,7 +2788,7 @@ export default {
             if (this.selectedPeer) {
                 try {
                     // get signal metrics
-                    const response = await window.axios.get(
+                    const response = await window.api.get(
                         `/api/v1/destination/${this.selectedPeer.destination_hash}/signal-metrics`
                     );
 
@@ -2868,7 +2868,7 @@ export default {
             if (this.selectedPeer) {
                 try {
                     // get custom display name
-                    const response = await window.axios.get(
+                    const response = await window.api.get(
                         `/api/v1/destination/${this.selectedPeer.destination_hash}/custom-display-name`
                     );
 
@@ -2896,7 +2896,7 @@ export default {
 
             try {
                 // update display name on server
-                await axios.post(
+                await window.api.post(
                     `/api/v1/destination/${this.selectedPeer.destination_hash}/custom-display-name/update`,
                     {
                         display_name: displayName,
@@ -2928,7 +2928,7 @@ export default {
                 return;
             }
             try {
-                await window.axios.post("/api/v1/blocked-destinations", {
+                await window.api.post("/api/v1/blocked-destinations", {
                     destination_hash: this.selectedPeer.destination_hash,
                 });
                 GlobalEmitter.emit("block-status-changed");
@@ -2944,7 +2944,7 @@ export default {
                 return;
             }
             try {
-                await window.axios.delete(`/api/v1/blocked-destinations/${this.selectedPeer.destination_hash}`);
+                await window.api.delete(`/api/v1/blocked-destinations/${this.selectedPeer.destination_hash}`);
                 GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert(this.$t("banishment.banishment_lifted"));
             } catch (e) {
@@ -3024,7 +3024,7 @@ export default {
         async showRawMessage(chatItem) {
             try {
                 // we'll try to get the URI first as it contains the raw signed message
-                const response = await window.axios.get(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}/uri`);
+                const response = await window.api.get(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}/uri`);
                 this.rawMessageData = {
                     ...chatItem.lxmf_message,
                     raw_uri: response.data.uri,
@@ -3041,7 +3041,7 @@ export default {
             this.isDownloadingAudio[chatItem.lxmf_message.hash] = true;
             try {
                 // fetch audio bytes from api
-                const response = await window.axios.get(
+                const response = await window.api.get(
                     `/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/audio`,
                     {
                         responseType: "arraybuffer",
@@ -3238,7 +3238,7 @@ export default {
                 }
 
                 // delete lxmf message from server
-                await window.axios.delete(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}`);
+                await window.api.delete(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}`);
 
                 // remove lxmf message from chat items using hash, as other pending items might not have an id yet
                 this.chatItems = this.chatItems.filter((item) => {
@@ -3250,7 +3250,7 @@ export default {
         },
         async openShareContactModal() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/contacts");
+                const response = await window.api.get("/api/v1/telephone/contacts");
                 this.contacts = response.data?.contacts ?? (Array.isArray(response.data) ? response.data : []);
 
                 if (this.contacts.length === 0) {
@@ -3359,7 +3359,7 @@ export default {
                 if (images.length === 0) {
                     const repliedContent =
                         this.replyingTo && this.getRepliedMessage(this.replyingTo.lxmf_message?.hash)?.content;
-                    const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                    const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
                         delivery_method: this.newMessageDeliveryMethod,
                         lxmf_message: {
                             destination_hash: this.selectedPeer.destination_hash,
@@ -3386,7 +3386,7 @@ export default {
 
                     const repliedContent =
                         this.replyingTo && this.getRepliedMessage(this.replyingTo.lxmf_message?.hash)?.content;
-                    const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                    const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
                         delivery_method: this.newMessageDeliveryMethod,
                         lxmf_message: {
                             destination_hash: this.selectedPeer.destination_hash,
@@ -3412,7 +3412,7 @@ export default {
                         };
 
                         try {
-                            const subResponse = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                            const subResponse = await window.api.post(`/api/v1/lxmf-messages/send`, {
                                 delivery_method: this.newMessageDeliveryMethod,
                                 lxmf_message: {
                                     destination_hash: this.selectedPeer.destination_hash,
@@ -3465,7 +3465,7 @@ export default {
 
             try {
                 // cancel sending lxmf message
-                const response = await window.axios.post(`/api/v1/lxmf-messages/${lxmfMessageHash}/cancel`);
+                const response = await window.api.post(`/api/v1/lxmf-messages/${lxmfMessageHash}/cancel`);
 
                 // get lxmf message from response
                 const lxmfMessage = response.data.lxmf_message;
@@ -3490,7 +3490,7 @@ export default {
                     chatItem.lxmf_message.fields?.reply_quoted_content ||
                     (chatItem.lxmf_message.reply_to_hash &&
                         this.getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content);
-                const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
                     lxmf_message: {
                         destination_hash: chatItem.lxmf_message.destination_hash,
                         content: chatItem.lxmf_message.content,
@@ -3604,7 +3604,7 @@ export default {
                 if (!this.selectedPeer) return;
 
                 // Send a telemetry request command
-                await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                await window.api.post(`/api/v1/lxmf-messages/send`, {
                     lxmf_message: {
                         destination_hash: this.selectedPeer.destination_hash,
                         content: "",
@@ -3643,7 +3643,7 @@ export default {
             if (!this.selectedPeer) return;
             const hash = this.selectedPeer.destination_hash;
             try {
-                const response = await window.axios.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
+                const response = await window.api.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
                     is_tracking: !this.selectedPeer.is_tracking,
                 });
                 // Emit event to parent to update peer status
@@ -3695,7 +3695,7 @@ export default {
         },
         async onStartCall() {
             try {
-                await window.axios.get(`/api/v1/telephone/call/${this.selectedPeer.destination_hash}`);
+                await window.api.get(`/api/v1/telephone/call/${this.selectedPeer.destination_hash}`);
             } catch (e) {
                 const message = e.response?.data?.message ?? "Failed to start call";
                 DialogUtils.alert(message);
@@ -3986,7 +3986,7 @@ export default {
 
             // mark conversation as read on server
             try {
-                await window.axios.get(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
+                await window.api.get(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
             } catch (e) {
                 // do nothing if failed to mark as read
                 console.log(e);

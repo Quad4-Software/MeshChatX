@@ -17,7 +17,7 @@ describe("App propagation sync metrics", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
-        globalThis.axios = axiosMock;
+        globalThis.api = axiosMock;
     });
 
     afterEach(() => {

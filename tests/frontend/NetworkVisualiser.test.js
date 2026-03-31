@@ -119,8 +119,9 @@ describe("NetworkVisualiser.vue", () => {
                 }
                 return Promise.resolve({ data: {} });
             }),
+            isCancel: vi.fn().mockReturnValue(false),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         // Mock URL.createObjectURL and URL.revokeObjectURL
         global.URL.createObjectURL = vi.fn().mockReturnValue("blob:mock-url");
@@ -128,7 +129,7 @@ describe("NetworkVisualiser.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 

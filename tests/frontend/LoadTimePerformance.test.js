@@ -90,7 +90,11 @@ describe("Load time with prefilled data", () => {
                 }
                 return Promise.resolve({ data: {} });
             });
-            window.axios = { get: axiosGet, patch: vi.fn(() => Promise.resolve({ data: {} })) };
+            window.api = {
+                get: axiosGet,
+                patch: vi.fn(() => Promise.resolve({ data: {} })),
+                isCancel: vi.fn().mockReturnValue(false),
+            };
 
             const start = performance.now();
             const wrapper = mount(PropagationNodesPage, {

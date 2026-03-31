@@ -19,7 +19,7 @@ describe("CallPage.vue - Custom Contact Images", () => {
             patch: vi.fn(),
             delete: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         // Mock FileReader
         const mockFileReader = {
@@ -44,7 +44,7 @@ describe("CallPage.vue - Custom Contact Images", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.unstubAllGlobals();
         vi.resetAllMocks();
     });

@@ -12,7 +12,7 @@ describe("BlockedPage.vue (Banished UI)", () => {
             post: vi.fn(),
             delete: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         // Mock localization
         const t = (key) => {
@@ -54,7 +54,7 @@ describe("BlockedPage.vue (Banished UI)", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
     });
 
     const mountBlockedPage = () => {

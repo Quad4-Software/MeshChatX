@@ -900,7 +900,7 @@ export default {
     methods: {
         async listSnapshots() {
             try {
-                const response = await window.axios.get("/api/v1/database/snapshots", {
+                const response = await window.api.get("/api/v1/database/snapshots", {
                     params: {
                         limit: this.snapshotsLimit,
                         offset: this.snapshotsOffset,
@@ -914,7 +914,7 @@ export default {
         },
         async listAutoBackups() {
             try {
-                const response = await window.axios.get("/api/v1/database/backups", {
+                const response = await window.api.get("/api/v1/database/backups", {
                     params: {
                         limit: this.autoBackupsLimit,
                         offset: this.autoBackupsOffset,
@@ -928,7 +928,7 @@ export default {
         },
         async downloadSnapshot(filename) {
             try {
-                const response = await window.axios.get(`/api/v1/database/snapshots/${filename}/download`, {
+                const response = await window.api.get(`/api/v1/database/snapshots/${filename}/download`, {
                     responseType: "blob",
                 });
                 const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -946,7 +946,7 @@ export default {
         },
         async downloadBackupFile(filename) {
             try {
-                const response = await window.axios.get(`/api/v1/database/backups/${filename}/download`, {
+                const response = await window.api.get(`/api/v1/database/backups/${filename}/download`, {
                     responseType: "blob",
                 });
                 const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -965,7 +965,7 @@ export default {
         async deleteSnapshot(filename) {
             if (!(await DialogUtils.confirm(this.$t("about.delete_snapshot_confirm")))) return;
             try {
-                await window.axios.delete(`/api/v1/database/snapshots/${filename}`);
+                await window.api.delete(`/api/v1/database/snapshots/${filename}`);
                 ToastUtils.success(this.$t("about.snapshot_deleted"));
                 await this.listSnapshots();
             } catch {
@@ -975,7 +975,7 @@ export default {
         async deleteBackup(filename) {
             if (!(await DialogUtils.confirm(this.$t("about.delete_backup_confirm")))) return;
             try {
-                await window.axios.delete(`/api/v1/database/backups/${filename}`);
+                await window.api.delete(`/api/v1/database/backups/${filename}`);
                 ToastUtils.success(this.$t("about.backup_deleted"));
                 await this.listAutoBackups();
             } catch {
@@ -1012,7 +1012,7 @@ export default {
             this.snapshotMessage = "";
             this.snapshotError = "";
             try {
-                await window.axios.post("/api/v1/database/snapshot", {
+                await window.api.post("/api/v1/database/snapshot", {
                     name: this.snapshotName || `snapshot-${Math.floor(Date.now() / 1000)}`,
                 });
                 this.snapshotMessage = "Snapshot created successfully";
@@ -1029,7 +1029,7 @@ export default {
                 return;
             }
             try {
-                const response = await window.axios.post("/api/v1/database/restore", { path });
+                const response = await window.api.post("/api/v1/database/restore", { path });
                 if (response.data.status === "success") {
                     ToastUtils.success(this.$t("about.database_restored"));
                     if (this.isElectron) {
@@ -1042,7 +1042,7 @@ export default {
         },
         async getAppInfo() {
             try {
-                const response = await window.axios.get("/api/v1/app/info");
+                const response = await window.api.get("/api/v1/app/info");
                 this.appInfo = response.data.app_info;
 
                 if (this.isElectron) {
@@ -1059,7 +1059,7 @@ export default {
         async acknowledgeIntegrity() {
             if (await DialogUtils.confirm(this.$t("about.integrity_acknowledge_confirm"))) {
                 try {
-                    await window.axios.post("/api/v1/app/integrity/acknowledge");
+                    await window.api.post("/api/v1/app/integrity/acknowledge");
                     ToastUtils.success(this.$t("about.integrity_acknowledged"));
                     await this.getAppInfo();
                 } catch {
@@ -1070,7 +1070,7 @@ export default {
         async getDatabaseHealth(showMessage = false) {
             this.healthLoading = true;
             try {
-                const response = await window.axios.get("/api/v1/database/health");
+                const response = await window.api.get("/api/v1/database/health");
                 this.databaseHealth = response.data.database;
                 if (showMessage) {
                     this.databaseActionMessage = "Database health refreshed";
@@ -1091,7 +1091,7 @@ export default {
             this.databaseActionError = "";
             this.databaseRecoveryActions = [];
             try {
-                const response = await window.axios.post("/api/v1/database/vacuum");
+                const response = await window.api.post("/api/v1/database/vacuum");
                 if (response.data.database?.health) {
                     this.databaseHealth = response.data.database.health;
                 }
@@ -1111,7 +1111,7 @@ export default {
             this.backupMessage = "";
             this.backupError = "";
             try {
-                const response = await window.axios.get("/api/v1/database/backup/download", {
+                const response = await window.api.get("/api/v1/database/backup/download", {
                     responseType: "blob",
                 });
                 const blob = new Blob([response.data], { type: "application/zip" });
@@ -1149,7 +1149,7 @@ export default {
             try {
                 const formData = new FormData();
                 formData.append("file", this.restoreFile);
-                const response = await window.axios.post("/api/v1/database/restore", formData, {
+                const response = await window.api.post("/api/v1/database/restore", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 this.restoreMessage = response.data.message || "Database restored";
@@ -1171,7 +1171,7 @@ export default {
             this.databaseActionMessage = "";
             this.databaseActionError = "";
             try {
-                const response = await window.axios.post("/api/v1/database/recover");
+                const response = await window.api.post("/api/v1/database/recover");
                 if (response.data.database?.health) {
                     this.databaseHealth = response.data.database.health;
                 }
@@ -1186,7 +1186,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
             } catch (e) {
                 // do nothing if failed to load config
@@ -1215,7 +1215,7 @@ export default {
             ) {
                 try {
                     // try to notify backend first
-                    await window.axios.post("/api/v1/app/shutdown");
+                    await window.api.post("/api/v1/app/shutdown");
                 } catch {
                     // ignore errors if backend is already stopping
                 }

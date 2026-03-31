@@ -41,11 +41,11 @@ describe("CallPage.vue", () => {
             patch: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
     });
 
     const mountCallPage = (routeQuery = {}) => {
@@ -144,7 +144,7 @@ describe("CallPage.vue", () => {
         const callButton = buttons.find((b) => b.text() === "Call");
         if (callButton) {
             await callButton.trigger("click");
-            // CallPage.vue uses window.axios.get(`/api/v1/telephone/call/${hashToCall}`)
+            // CallPage.vue uses window.api.get(`/api/v1/telephone/call/${hashToCall}`)
             expect(axiosMock.get).toHaveBeenCalledWith(
                 expect.stringContaining("/api/v1/telephone/call/test-destination")
             );

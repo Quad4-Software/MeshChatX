@@ -33,7 +33,7 @@ describe("NomadNetworkSidebar.vue", () => {
             post: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         GlobalState.blockedDestinations = [];
         GlobalState.config = { banished_effect_enabled: false };
@@ -46,7 +46,7 @@ describe("NomadNetworkSidebar.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.unstubAllGlobals();
     });
 

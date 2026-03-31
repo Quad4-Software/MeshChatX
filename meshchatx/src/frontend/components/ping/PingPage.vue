@@ -148,7 +148,6 @@
 </template>
 
 <script>
-import { CanceledError } from "axios";
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
@@ -230,7 +229,7 @@ export default {
                 this.seq++;
 
                 // ping destination
-                const response = await window.axios.get(`/api/v1/ping/${this.destinationHash}/lxmf.delivery`, {
+                const response = await window.api.get(`/api/v1/ping/${this.destinationHash}/lxmf.delivery`, {
                     signal: this.abortController.signal,
                     params: {
                         timeout: this.timeout,
@@ -279,7 +278,7 @@ export default {
                 };
             } catch (e) {
                 // ignore cancelled error
-                if (e instanceof CanceledError) {
+                if (window.api.isCancel(e)) {
                     return;
                 }
 
@@ -301,7 +300,7 @@ export default {
             }
 
             try {
-                const response = await window.axios.post(`/api/v1/destination/${this.destinationHash}/drop-path`);
+                const response = await window.api.post(`/api/v1/destination/${this.destinationHash}/drop-path`);
                 DialogUtils.alert(response.data.message);
             } catch (e) {
                 console.log(e);

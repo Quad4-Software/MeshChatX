@@ -414,7 +414,7 @@ export default {
 
                 formData.append("file", blob, filename);
 
-                await window.axios.post("/api/v1/telephone/ringtones/upload", formData, {
+                await window.api.post("/api/v1/telephone/ringtones/upload", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
 

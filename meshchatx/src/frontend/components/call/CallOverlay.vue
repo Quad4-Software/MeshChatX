@@ -416,7 +416,7 @@ export default {
         },
         async answerCall() {
             try {
-                await window.axios.get("/api/v1/telephone/answer");
+                await window.api.get("/api/v1/telephone/answer");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_answer_call"));
             }
@@ -424,14 +424,14 @@ export default {
         async hangupCall() {
             try {
                 this.$emit("hangup");
-                await window.axios.get("/api/v1/telephone/hangup");
+                await window.api.get("/api/v1/telephone/hangup");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_hangup_call"));
             }
         },
         async sendToVoicemail() {
             try {
-                await window.axios.get("/api/v1/telephone/send-to-voicemail");
+                await window.api.get("/api/v1/telephone/send-to-voicemail");
                 ToastUtils.success(this.$t("call.call_sent_to_voicemail"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_send_to_voicemail"));
@@ -449,7 +449,7 @@ export default {
                 const endpoint = isCurrentlyMuted
                     ? "/api/v1/telephone/unmute-transmit"
                     : "/api/v1/telephone/mute-transmit";
-                await window.axios.get(endpoint);
+                await window.api.get(endpoint);
 
                 setTimeout(() => {
                     this.isMicMuting = false;
@@ -473,7 +473,7 @@ export default {
                 const endpoint = isCurrentlyMuted
                     ? "/api/v1/telephone/unmute-receive"
                     : "/api/v1/telephone/mute-receive";
-                await window.axios.get(endpoint);
+                await window.api.get(endpoint);
 
                 setTimeout(() => {
                     this.isSpeakerMuting = false;

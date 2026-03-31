@@ -7,7 +7,7 @@ const mockAxios = {
     get: vi.fn(),
     post: vi.fn(),
 };
-window.axios = mockAxios;
+window.api = mockAxios;
 
 vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
     default: {

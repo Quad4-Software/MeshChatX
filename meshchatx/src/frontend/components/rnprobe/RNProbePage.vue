@@ -199,7 +199,7 @@ export default {
             this.summary = null;
 
             try {
-                const response = await window.axios.post(
+                const response = await window.api.post(
                     "/api/v1/rnprobe",
                     {
                         destination_hash: this.destinationHash,
@@ -221,7 +221,7 @@ export default {
                     failed: response.data.failed || 0,
                 };
             } catch (e) {
-                if (e.name !== "CanceledError") {
+                if (!window.api.isCancel(e)) {
                     console.error(e);
                     DialogUtils.alert(e.response?.data?.message || this.$t("rnprobe.failed_to_probe"));
                 }

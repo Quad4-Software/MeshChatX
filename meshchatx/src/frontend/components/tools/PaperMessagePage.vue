@@ -374,7 +374,7 @@ export default {
                 }
 
                 // send message
-                const response = await window.axios.post(`/api/v1/lxmf-messages/send`, {
+                const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
                     delivery_method: "opportunistic",
                     lxmf_message: lxmf_message,
                 });

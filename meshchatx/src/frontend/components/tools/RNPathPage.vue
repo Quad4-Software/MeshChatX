@@ -363,8 +363,8 @@ export default {
             try {
                 const [pathRes, rateRes, ifaceRes] = await Promise.all([
                     this.fetchPathTable(),
-                    window.axios.get("/api/v1/rnpath/rates"),
-                    window.axios.get("/api/v1/reticulum/interfaces"),
+                    window.api.get("/api/v1/rnpath/rates"),
+                    window.api.get("/api/v1/reticulum/interfaces"),
                 ]);
                 this.pathTable = pathRes.table;
                 this.totalItems = pathRes.total;
@@ -401,7 +401,7 @@ export default {
                 interface: this.filterInterface || undefined,
                 hops: this.filterHops !== null ? this.filterHops : undefined,
             };
-            const res = await window.axios.get("/api/v1/rnpath/table", { params });
+            const res = await window.api.get("/api/v1/rnpath/table", { params });
             return res.data;
         },
         getStateColor(state) {
@@ -419,7 +419,7 @@ export default {
                 return;
             }
             try {
-                const res = await window.axios.post("/api/v1/rnpath/drop", { destination_hash: hash });
+                const res = await window.api.post("/api/v1/rnpath/drop", { destination_hash: hash });
                 if (res.data.success) {
                     ToastUtils.success(this.$t("tools.rnpath.path_dropped"));
                     this.refreshAll();
@@ -432,7 +432,7 @@ export default {
         },
         async requestPath() {
             try {
-                await window.axios.post("/api/v1/rnpath/request", { destination_hash: this.requestHash });
+                await window.api.post("/api/v1/rnpath/request", { destination_hash: this.requestHash });
                 ToastUtils.success(`Path requested for ${this.requestHash.substring(0, 8)}...`);
                 this.requestHash = "";
                 // Path requests take time, don't refresh immediately
@@ -445,7 +445,7 @@ export default {
                 return;
             }
             try {
-                const res = await window.axios.post("/api/v1/rnpath/drop-via", {
+                const res = await window.api.post("/api/v1/rnpath/drop-via", {
                     transport_instance_hash: this.dropViaHash,
                 });
                 if (res.data.success) {
@@ -462,7 +462,7 @@ export default {
                 return;
             }
             try {
-                await window.axios.post("/api/v1/rnpath/drop-queues");
+                await window.api.post("/api/v1/rnpath/drop-queues");
                 ToastUtils.success(this.$t("tools.rnpath.queues_purged"));
             } catch {
                 ToastUtils.error(this.$t("tools.rnpath.failed_purge"));

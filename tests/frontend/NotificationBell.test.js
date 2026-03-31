@@ -45,8 +45,8 @@ describe("NotificationBell UI", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         wsHandlers = {};
-        global.axios.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
-        global.axios.post = vi.fn().mockResolvedValue({ data: {} });
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        global.api.post = vi.fn().mockResolvedValue({ data: {} });
     });
 
     afterEach(() => {
@@ -84,7 +84,7 @@ describe("NotificationBell UI", () => {
     });
 
     it("shows Clear button when dropdown open and notifications exist", async () => {
-        global.axios.get = vi.fn().mockResolvedValue({
+        global.api.get = vi.fn().mockResolvedValue({
             data: {
                 notifications: [
                     { destination_hash: "h1", display_name: "A", updated_at: new Date().toISOString(), content: "Hi" },
@@ -122,8 +122,8 @@ describe("NotificationBell websocket reliability", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         wsHandlers = {};
-        global.axios.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
-        global.axios.post = vi.fn().mockResolvedValue({ data: {} });
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        global.api.post = vi.fn().mockResolvedValue({ data: {} });
     });
 
     afterEach(() => {
@@ -134,7 +134,7 @@ describe("NotificationBell websocket reliability", () => {
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
 
-        global.axios.get = vi.fn().mockResolvedValue({
+        global.api.get = vi.fn().mockResolvedValue({
             data: { notifications: [{ destination_hash: "d1", display_name: "X", content: "msg" }], unread_count: 1 },
         });
 
@@ -148,7 +148,7 @@ describe("NotificationBell websocket reliability", () => {
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
 
-        global.axios.get = vi.fn().mockResolvedValue({
+        global.api.get = vi.fn().mockResolvedValue({
             data: {
                 notifications: [
                     {
@@ -173,7 +173,7 @@ describe("NotificationBell websocket reliability", () => {
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
 
-        global.axios.get = vi.fn().mockResolvedValue({
+        global.api.get = vi.fn().mockResolvedValue({
             data: {
                 notifications: [
                     {
@@ -197,27 +197,27 @@ describe("NotificationBell websocket reliability", () => {
     it("does NOT reload on unrelated websocket events", async () => {
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
-        const callsBefore = global.axios.get.mock.calls.length;
+        const callsBefore = global.api.get.mock.calls.length;
 
         simulateWsMessage("telephone_ringing");
         simulateWsMessage("telephone_call_ended");
         simulateWsMessage("lxmf_message_state_updated");
         await new Promise((r) => setTimeout(r, 50));
 
-        expect(global.axios.get.mock.calls.length).toBe(callsBefore);
+        expect(global.api.get.mock.calls.length).toBe(callsBefore);
     });
 
     it("rapid sequential websocket events all trigger reloads", async () => {
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
-        const initialCalls = global.axios.get.mock.calls.length;
+        const initialCalls = global.api.get.mock.calls.length;
 
         for (let i = 0; i < 5; i++) {
             simulateWsMessage("lxmf.delivery");
         }
         await new Promise((r) => setTimeout(r, 100));
 
-        expect(global.axios.get.mock.calls.length).toBeGreaterThan(initialCalls);
+        expect(global.api.get.mock.calls.length).toBeGreaterThan(initialCalls);
     });
 });
 
@@ -225,8 +225,8 @@ describe("NotificationBell badge accuracy", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         wsHandlers = {};
-        global.axios.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
-        global.axios.post = vi.fn().mockResolvedValue({ data: {} });
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        global.api.post = vi.fn().mockResolvedValue({ data: {} });
     });
 
     afterEach(() => {
@@ -275,7 +275,7 @@ describe("NotificationBell badge accuracy", () => {
     });
 
     it("opening dropdown resets unread count to 0", async () => {
-        global.axios.get = vi.fn().mockResolvedValue({
+        global.api.get = vi.fn().mockResolvedValue({
             data: { notifications: [{ destination_hash: "d1", display_name: "A", content: "m" }], unread_count: 3 },
         });
         const wrapper = mountBell({ attachTo: document.body });
@@ -290,7 +290,7 @@ describe("NotificationBell badge accuracy", () => {
     });
 
     it("API failure does not cause false badge", async () => {
-        global.axios.get = vi.fn().mockRejectedValue(new Error("Network error"));
+        global.api.get = vi.fn().mockRejectedValue(new Error("Network error"));
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
         await new Promise((r) => setTimeout(r, 50));
@@ -300,7 +300,7 @@ describe("NotificationBell badge accuracy", () => {
     });
 
     it("API returning null/empty fields does not cause false badge", async () => {
-        global.axios.get = vi.fn().mockResolvedValue({ data: { notifications: null, unread_count: null } });
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: null, unread_count: null } });
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
         await new Promise((r) => setTimeout(r, 50));
@@ -313,8 +313,8 @@ describe("NotificationBell mark-as-viewed", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         wsHandlers = {};
-        global.axios.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
-        global.axios.post = vi.fn().mockResolvedValue({ data: {} });
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        global.api.post = vi.fn().mockResolvedValue({ data: {} });
     });
 
     afterEach(() => {
@@ -322,7 +322,7 @@ describe("NotificationBell mark-as-viewed", () => {
     });
 
     it("calls mark-as-viewed API when dropdown is opened", async () => {
-        global.axios.get = vi.fn().mockResolvedValue({
+        global.api.get = vi.fn().mockResolvedValue({
             data: {
                 notifications: [
                     { type: "lxmf_message", destination_hash: "abc", display_name: "A", content: "x" },
@@ -335,7 +335,7 @@ describe("NotificationBell mark-as-viewed", () => {
         await wrapper.find("button").trigger("click");
         await new Promise((r) => setTimeout(r, 100));
 
-        const postCalls = global.axios.post.mock.calls;
+        const postCalls = global.api.post.mock.calls;
         const markCall = postCalls.find((c) => c[0] === "/api/v1/notifications/mark-as-viewed");
         expect(markCall).toBeTruthy();
         expect(markCall[1].destination_hashes).toContain("abc");
@@ -348,7 +348,7 @@ describe("NotificationBell mark-as-viewed", () => {
         await wrapper.find("button").trigger("click");
         await new Promise((r) => setTimeout(r, 50));
 
-        const markCalls = global.axios.post.mock.calls.filter((c) => c[0] === "/api/v1/notifications/mark-as-viewed");
+        const markCalls = global.api.post.mock.calls.filter((c) => c[0] === "/api/v1/notifications/mark-as-viewed");
         expect(markCalls.length).toBe(0);
         wrapper.unmount();
     });
@@ -358,7 +358,7 @@ describe("NotificationBell clear all", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         wsHandlers = {};
-        global.axios.post = vi.fn().mockResolvedValue({ data: {} });
+        global.api.post = vi.fn().mockResolvedValue({ data: {} });
     });
 
     afterEach(() => {
@@ -367,7 +367,7 @@ describe("NotificationBell clear all", () => {
 
     it("clears all notifications and marks conversations as read", async () => {
         let callCount = 0;
-        global.axios.get = vi.fn().mockImplementation((url) => {
+        global.api.get = vi.fn().mockImplementation((url) => {
             if (url === "/api/v1/notifications") {
                 callCount++;
                 if (callCount <= 2) {
@@ -400,7 +400,7 @@ describe("NotificationBell clear all", () => {
         await wrapper.vm.clearAllNotifications();
         await new Promise((r) => setTimeout(r, 100));
 
-        const readCalls = global.axios.get.mock.calls.filter((c) => c[0]?.includes("/mark-as-read"));
+        const readCalls = global.api.get.mock.calls.filter((c) => c[0]?.includes("/mark-as-read"));
         expect(readCalls.length).toBe(1);
         expect(readCalls[0][0]).toContain("conv1");
 

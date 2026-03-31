@@ -10,7 +10,7 @@ describe("RNPathPage.vue", () => {
             get: vi.fn(),
             post: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rnpath/table") {
@@ -48,7 +48,7 @@ describe("RNPathPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
     });
 
     const mountRNPathPage = () => {

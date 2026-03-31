@@ -1458,7 +1458,7 @@ export default {
         async toggleTheme() {
             const newTheme = this.config.theme === "dark" ? "light" : "dark";
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     theme: newTheme,
                 });
                 GlobalState.config.theme = newTheme;
@@ -1468,7 +1468,7 @@ export default {
         },
         async onLanguageChange(langCode) {
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     language: langCode,
                 });
                 this.$i18n.locale = langCode;
@@ -1495,7 +1495,7 @@ export default {
         async loadCommunityInterfaces() {
             this.loadingInterfaces = true;
             try {
-                const response = await window.axios.get("/api/v1/community-interfaces");
+                const response = await window.api.get("/api/v1/community-interfaces");
                 this.communityInterfaces = response.data.interfaces;
             } catch (e) {
                 console.error("Failed to load community interfaces:", e);
@@ -1506,7 +1506,7 @@ export default {
         async loadDiscoveredInterfaces() {
             this.loadingDiscovered = true;
             try {
-                const response = await window.axios.get(`/api/v1/reticulum/discovered-interfaces`);
+                const response = await window.api.get(`/api/v1/reticulum/discovered-interfaces`);
                 this.discoveredInterfaces = response.data?.interfaces ?? [];
                 this.discoveredActive = response.data?.active ?? [];
             } catch (e) {
@@ -1522,7 +1522,7 @@ export default {
                     discover_interfaces: true,
                     autoconnect_discovered_interfaces: 3, // default to 3 slots
                 };
-                await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.discoveryOption = "yes";
                 this.nextStep();
@@ -1536,7 +1536,7 @@ export default {
         async enableAutoPropagation() {
             this.savingPropagation = true;
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     lxmf_preferred_propagation_node_auto_select: true,
                 });
                 ToastUtils.success("Auto-propagation enabled");
@@ -1599,7 +1599,7 @@ export default {
         },
         async selectCommunityInterface(iface) {
             try {
-                await window.axios.post("/api/v1/reticulum/interfaces/add", {
+                await window.api.post("/api/v1/reticulum/interfaces/add", {
                     name: iface.name,
                     type: iface.type,
                     target_host: iface.target_host,
@@ -1651,7 +1651,7 @@ export default {
             if (this.markingSeen) return;
             this.markingSeen = true;
             try {
-                await window.axios.post("/api/v1/app/tutorial/seen");
+                await window.api.post("/api/v1/app/tutorial/seen");
             } catch (e) {
                 console.error("Failed to mark tutorial as seen:", e);
             } finally {

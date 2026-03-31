@@ -232,7 +232,7 @@ export default {
     methods: {
         async getStatus() {
             try {
-                const response = await window.axios.get("/api/v1/bots/status");
+                const response = await window.api.get("/api/v1/bots/status");
                 this.bots = response.data.status.bots || [];
                 this.runningBots = response.data.status.running_bots;
                 this.templates = response.data.templates;
@@ -249,7 +249,7 @@ export default {
             if (this.isStarting) return;
             this.isStarting = true;
             try {
-                await window.axios.post("/api/v1/bots/start", {
+                await window.api.post("/api/v1/bots/start", {
                     template_id: this.selectedTemplate.id,
                     name: this.newBotName,
                 });
@@ -265,7 +265,7 @@ export default {
         },
         async stopBot(botId) {
             try {
-                await window.axios.post("/api/v1/bots/stop", { bot_id: botId });
+                await window.api.post("/api/v1/bots/stop", { bot_id: botId });
                 ToastUtils.success(this.$t("bots.bot_stopped"));
                 this.getStatus();
             } catch (e) {
@@ -275,7 +275,7 @@ export default {
         },
         async startExisting(bot) {
             try {
-                await window.axios.post("/api/v1/bots/start", {
+                await window.api.post("/api/v1/bots/start", {
                     bot_id: bot.id,
                     template_id: bot.template_id || bot.template,
                     name: bot.name,
@@ -289,7 +289,7 @@ export default {
         },
         async restartExisting(bot) {
             try {
-                await window.axios.post("/api/v1/bots/restart", { bot_id: bot.id });
+                await window.api.post("/api/v1/bots/restart", { bot_id: bot.id });
                 ToastUtils.success(this.$t("bots.bot_started"));
                 this.getStatus();
             } catch (e) {
@@ -300,7 +300,7 @@ export default {
         async deleteBot(botId) {
             if (!confirm(this.$t("common.delete_confirm"))) return;
             try {
-                await window.axios.post("/api/v1/bots/delete", { bot_id: botId });
+                await window.api.post("/api/v1/bots/delete", { bot_id: botId });
                 ToastUtils.success(this.$t("bots.bot_deleted"));
                 this.getStatus();
             } catch (e) {

@@ -27,7 +27,7 @@ describe("DocsPage.vue", () => {
             }),
             post: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
         i18nMock = reactive({ locale: "en" });
     });
 
@@ -35,7 +35,7 @@ describe("DocsPage.vue", () => {
         if (wrapper) {
             wrapper.unmount();
         }
-        // Do not delete window.axios, as it might be used by async operations
+        // Do not delete window.api, as it might be used by async operations
         // and it is globally defined in setup.js anyway.
     });
 

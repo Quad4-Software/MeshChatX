@@ -11,7 +11,7 @@ describe("NomadNetworkPage.vue", () => {
             post: vi.fn(),
             delete: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
@@ -22,7 +22,7 @@ describe("NomadNetworkPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
     });
 
     const mountNomadNetworkPage = (props = { destinationHash: "" }) => {

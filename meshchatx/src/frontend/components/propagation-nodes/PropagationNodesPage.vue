@@ -362,7 +362,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
             } catch (e) {
                 // do nothing if failed to load config
@@ -371,7 +371,7 @@ export default {
         },
         async updateConfig(config) {
             try {
-                const response = await window.axios.patch("/api/v1/config", config);
+                const response = await window.api.patch("/api/v1/config", config);
                 this.config = response.data.config;
             } catch (e) {
                 ToastUtils.error(this.$t("common.save_failed"));
@@ -380,7 +380,7 @@ export default {
         },
         async loadPropagationNodes() {
             try {
-                const response = await window.axios.get(`/api/v1/lxmf/propagation-nodes`, {
+                const response = await window.api.get(`/api/v1/lxmf/propagation-nodes`, {
                     params: {
                         limit: 500,
                     },

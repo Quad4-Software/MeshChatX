@@ -50,12 +50,13 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
 }));
 
 // Mock axios
-global.axios = {
+global.api = {
     get: vi.fn(() => Promise.resolve({ data: {} })),
     post: vi.fn(() => Promise.resolve({ data: {} })),
     patch: vi.fn(() => Promise.resolve({ data: {} })),
+    isCancel: vi.fn().mockReturnValue(false),
 };
-window.axios = global.axios;
+window.api = global.api;
 
 // Mock localStorage
 const localStorageMock = {

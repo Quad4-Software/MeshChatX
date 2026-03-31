@@ -315,7 +315,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
             } catch (e) {
                 ToastUtils.error(this.$t("messages.failed_load_config"));
@@ -324,7 +324,7 @@ export default {
         },
         async updateConfig(config, silent = false) {
             try {
-                const response = await window.axios.patch("/api/v1/config", config);
+                const response = await window.api.patch("/api/v1/config", config);
                 this.config = response.data.config;
                 GlobalState.config = response.data.config;
                 GlobalEmitter.emit("config-updated", response.data.config);

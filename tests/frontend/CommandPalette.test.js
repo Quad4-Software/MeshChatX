@@ -16,7 +16,7 @@ describe("CommandPalette.vue", () => {
                 },
             }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         routerMock = {
             push: vi.fn(),
@@ -27,7 +27,7 @@ describe("CommandPalette.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         GlobalEmitter.off("sync-propagation-node");
         GlobalEmitter.off("toggle-orbit");
         vi.clearAllMocks();

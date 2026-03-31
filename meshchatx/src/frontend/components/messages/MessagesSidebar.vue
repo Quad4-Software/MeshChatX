@@ -883,7 +883,7 @@ export default {
         },
         async fetchContactForContextMenu(hash) {
             try {
-                const response = await window.axios.get(`/api/v1/telephone/contacts/check/${hash}`);
+                const response = await window.api.get(`/api/v1/telephone/contacts/check/${hash}`);
                 if (response.data.is_contact) {
                     this.contextMenu.targetContact = response.data.contact;
                 } else {
@@ -990,13 +990,13 @@ export default {
                 if (!contact) {
                     // find display name from conversations
                     const conv = this.conversations.find((c) => c.destination_hash === hash);
-                    await window.axios.post("/api/v1/telephone/contacts", {
+                    await window.api.post("/api/v1/telephone/contacts", {
                         name: conv?.display_name || hash.substring(0, 8),
                         remote_identity_hash: hash,
                         is_telemetry_trusted: true,
                     });
                 } else {
-                    await window.axios.patch(`/api/v1/telephone/contacts/${contact.id}`, {
+                    await window.api.patch(`/api/v1/telephone/contacts/${contact.id}`, {
                         is_telemetry_trusted: newStatus,
                     });
                 }
@@ -1056,7 +1056,7 @@ export default {
                 return;
             }
             try {
-                await window.axios.delete(`/api/v1/blocked-destinations/${hash}`);
+                await window.api.delete(`/api/v1/blocked-destinations/${hash}`);
                 GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert(this.$t("banishment.banishment_lifted"));
             } catch (e) {

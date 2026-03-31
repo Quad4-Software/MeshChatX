@@ -974,7 +974,7 @@ export default {
         },
         async getAppInfo() {
             try {
-                const response = await window.axios.get(`/api/v1/app/info`);
+                const response = await window.api.get(`/api/v1/app/info`);
                 this.appInfo = response.data.app_info;
 
                 if (this.appInfo.database_health_issues && this.appInfo.database_health_issues.length > 0) {
@@ -1019,7 +1019,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.axios.get(`/api/v1/config`);
+                const response = await window.api.get(`/api/v1/config`);
                 this.config = response.data.config;
                 GlobalState.config = response.data.config;
                 this.displayName = response.data.config.display_name;
@@ -1030,7 +1030,7 @@ export default {
         },
         async getBlockedDestinations() {
             try {
-                const response = await window.axios.get("/api/v1/blocked-destinations");
+                const response = await window.api.get("/api/v1/blocked-destinations");
                 GlobalState.blockedDestinations = response.data.blocked_destinations || [];
             } catch (e) {
                 console.log("Failed to load blocked destinations:", e);
@@ -1045,7 +1045,7 @@ export default {
         },
         async sendAnnounce() {
             try {
-                await window.axios.get(`/api/v1/announce`);
+                await window.api.get(`/api/v1/announce`);
             } catch (e) {
                 ToastUtils.error(this.$t("app.failed_announce"));
                 console.log(e);
@@ -1156,7 +1156,7 @@ export default {
 
             // request sync
             try {
-                await axios.get("/api/v1/lxmf/propagation-node/sync");
+                await window.api.get("/api/v1/lxmf/propagation-node/sync");
             } catch (e) {
                 const errorMessage = e.response?.data?.message ?? this.$t("app.sync_error_generic");
                 ToastUtils.error(errorMessage);
@@ -1194,7 +1194,7 @@ export default {
         async stopSyncingPropagationNode() {
             // stop sync
             try {
-                await axios.get("/api/v1/lxmf/propagation-node/stop-sync");
+                await window.api.get("/api/v1/lxmf/propagation-node/stop-sync");
             } catch {
                 // do nothing on error
             }
@@ -1204,7 +1204,7 @@ export default {
         },
         async updatePropagationNodeStatus() {
             try {
-                const response = await axios.get("/api/v1/lxmf/propagation-node/status");
+                const response = await window.api.get("/api/v1/lxmf/propagation-node/status");
                 this.propagationNodeStatus = response.data.propagation_node_status;
             } catch {
                 // do nothing on error
@@ -1222,7 +1222,7 @@ export default {
 
             if (this.config?.custom_ringtone_enabled) {
                 try {
-                    const response = await window.axios.get("/api/v1/telephone/ringtones/status");
+                    const response = await window.api.get("/api/v1/telephone/ringtones/status");
                     const status = response.data;
                     if (status.has_custom_ringtone && status.id) {
                         this.ringtonePlayer = new Audio(`/api/v1/telephone/ringtones/${status.id}/audio`);
@@ -1258,7 +1258,7 @@ export default {
         async updateTelephoneStatus() {
             try {
                 // fetch status
-                const response = await axios.get("/api/v1/telephone/status");
+                const response = await window.api.get("/api/v1/telephone/status");
                 const oldCall = this.activeCall;
                 const newCall = response.data.active_call;
 
@@ -1337,7 +1337,7 @@ export default {
                         this.isFetchingRingtone = true;
                         try {
                             const caller_hash = this.activeCall.remote_identity_hash;
-                            const ringResponse = await window.axios.get(
+                            const ringResponse = await window.api.get(
                                 `/api/v1/telephone/ringtones/status?caller_hash=${caller_hash}`
                             );
                             const status = ringResponse.data;

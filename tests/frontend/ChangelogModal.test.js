@@ -13,7 +13,7 @@ describe("ChangelogModal.vue", () => {
             get: vi.fn(),
             post: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
     });
 
     const mountChangelogModal = (props = {}) => {

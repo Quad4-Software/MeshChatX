@@ -397,7 +397,7 @@ describe("SettingsPage Component", () => {
             post: vi.fn().mockResolvedValue({ data: { success: true } }),
             patch: vi.fn().mockResolvedValue({ data: { success: true } }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         websocketMock = {
             on: vi.fn(),
@@ -407,7 +407,7 @@ describe("SettingsPage Component", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 

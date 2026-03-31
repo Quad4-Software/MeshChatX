@@ -1189,7 +1189,7 @@ export default {
     methods: {
         async getConfig() {
             try {
-                const response = await window.axios.get(`/api/v1/config`);
+                const response = await window.api.get(`/api/v1/config`);
                 this.config = response.data.config;
             } catch (e) {
                 console.log(e);
@@ -1197,7 +1197,7 @@ export default {
         },
         async updateConfig(config) {
             try {
-                const response = await window.axios.patch("/api/v1/config", config);
+                const response = await window.api.patch("/api/v1/config", config);
                 this.config = response.data.config;
             } catch (e) {
                 ToastUtils.error(this.$t("common.save_failed"));
@@ -1212,7 +1212,7 @@ export default {
         },
         async loadReticulumDiscoveryConfig() {
             try {
-                const response = await window.axios.get(`/api/v1/reticulum/discovery`);
+                const response = await window.api.get(`/api/v1/reticulum/discovery`);
                 const discovery = response.data?.discovery ?? {};
                 this.reticulumDiscovery.discover_interfaces = this.parseBool(discovery.discover_interfaces);
                 this.reticulumDiscovery.interface_discovery_whitelist = discovery.interface_discovery_whitelist ?? "";
@@ -1230,7 +1230,7 @@ export default {
                     interface_discovery_whitelist: this.reticulumDiscovery.interface_discovery_whitelist || null,
                     interface_discovery_blacklist: this.reticulumDiscovery.interface_discovery_blacklist || null,
                 };
-                await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
                 ToastUtils.success("Discovery listener preferences saved.");
             } catch (e) {
                 ToastUtils.error("Failed to save discovery preferences.");
@@ -1241,7 +1241,7 @@ export default {
         },
         async loadComports() {
             try {
-                const response = await window.axios.get(`/api/v1/comports`);
+                const response = await window.api.get(`/api/v1/comports`);
                 this.comports = response.data.comports;
             } catch (e) {
                 console.log(e);
@@ -1249,7 +1249,7 @@ export default {
         },
         async loadCommunityInterfaces() {
             try {
-                const response = await window.axios.get(`/api/v1/community-interfaces`);
+                const response = await window.api.get(`/api/v1/community-interfaces`);
                 this.communityInterfaces = response.data.interfaces ?? [];
             } catch (e) {
                 console.log(e);
@@ -1260,7 +1260,7 @@ export default {
         },
         async loadInterfaceToEdit(interfaceName) {
             try {
-                const response = await window.axios.get(`/api/v1/reticulum/interfaces`);
+                const response = await window.api.get(`/api/v1/reticulum/interfaces`);
                 const interfaces = response.data.interfaces;
                 const iface = interfaces[interfaceName];
                 if (!iface) {
@@ -1412,7 +1412,7 @@ export default {
                         ? (this.I2PSettings.newInterfacePeers || []).map((p) => String(p).trim()).filter(Boolean)
                         : undefined;
 
-                const response = await window.axios.post(`/api/v1/reticulum/interfaces/add`, {
+                const response = await window.api.post(`/api/v1/reticulum/interfaces/add`, {
                     allow_overwriting_interface: this.isEditingInterface,
                     name: this.newInterfaceName,
                     type: this.newInterfaceType,

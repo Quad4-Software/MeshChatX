@@ -11,7 +11,7 @@ const axiosMock = {
     post: vi.fn(),
     patch: vi.fn(),
 };
-window.axios = axiosMock;
+window.api = axiosMock;
 
 const vuetify = createVuetify();
 

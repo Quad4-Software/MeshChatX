@@ -408,7 +408,7 @@ export default {
         async getIdentities() {
             this.isLoading = true;
             try {
-                const response = await window.axios.get("/api/v1/identities");
+                const response = await window.api.get("/api/v1/identities");
                 this.identities = response.data?.identities ?? [];
             } catch (e) {
                 console.error(e);
@@ -419,7 +419,7 @@ export default {
         },
         async downloadIdentityFile() {
             try {
-                const response = await window.axios.get("/api/v1/identity/backup/download", {
+                const response = await window.api.get("/api/v1/identity/backup/download", {
                     responseType: "blob",
                 });
                 const blob = new Blob([response.data], { type: "application/octet-stream" });
@@ -438,7 +438,7 @@ export default {
         },
         async copyIdentityBase32() {
             try {
-                const response = await window.axios.get("/api/v1/identity/backup/base32");
+                const response = await window.api.get("/api/v1/identity/backup/base32");
                 const base32 = response.data?.identity_base32 ?? "";
                 if (!base32) {
                     ToastUtils.error(this.$t("identities.no_identity_available"));
@@ -452,7 +452,7 @@ export default {
         },
         async downloadAllIdentities() {
             try {
-                const response = await window.axios.get("/api/v1/identities/export-all", {
+                const response = await window.api.get("/api/v1/identities/export-all", {
                     responseType: "blob",
                 });
                 const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/zip" }));
@@ -487,7 +487,7 @@ export default {
             try {
                 const formData = new FormData();
                 formData.append("file", this.identityRestoreFile);
-                const response = await window.axios.post("/api/v1/identity/restore", formData, {
+                const response = await window.api.post("/api/v1/identity/restore", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 this.identityRestoreMessage = response.data?.message ?? this.$t("identities.identity_restored");
@@ -505,7 +505,7 @@ export default {
             this.identityRestoreMessage = "";
             this.identityRestoreError = "";
             try {
-                const response = await window.axios.post("/api/v1/identity/restore", {
+                const response = await window.api.post("/api/v1/identity/restore", {
                     base32: this.identityRestoreBase32.trim(),
                 });
                 this.identityRestoreMessage = response.data?.message ?? this.$t("identities.identity_restored");
@@ -525,7 +525,7 @@ export default {
 
             this.isCreating = true;
             try {
-                await window.axios.post("/api/v1/identities/create", {
+                await window.api.post("/api/v1/identities/create", {
                     display_name: this.newIdentityName,
                 });
                 ToastUtils.success(this.$t("identities.created"));
@@ -550,7 +550,7 @@ export default {
                 this.isCreating = true;
                 GlobalEmitter.emit("identity-switching-start");
 
-                const response = await window.axios.post("/api/v1/identities/switch", {
+                const response = await window.api.post("/api/v1/identities/switch", {
                     identity_hash: identity.hash,
                 });
 
@@ -581,7 +581,7 @@ export default {
             }
 
             try {
-                await window.axios.delete(`/api/v1/identities/${identity.hash}`);
+                await window.api.delete(`/api/v1/identities/${identity.hash}`);
                 ToastUtils.success(this.$t("identities.deleted"));
                 await this.getIdentities();
             } catch (e) {

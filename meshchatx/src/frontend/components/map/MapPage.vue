@@ -1662,7 +1662,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
                 this.offlineEnabled = this.config.map_offline_enabled;
                 this.cachingEnabled =
@@ -1680,7 +1680,7 @@ export default {
         },
         async loadMBTilesList() {
             try {
-                const response = await window.axios.get("/api/v1/map/mbtiles");
+                const response = await window.api.get("/api/v1/map/mbtiles");
                 this.mbtilesList = response.data;
             } catch (e) {
                 console.error("Failed to load MBTiles list", e);
@@ -1688,7 +1688,7 @@ export default {
         },
         async setActiveMBTiles(filename) {
             try {
-                await window.axios.post("/api/v1/map/mbtiles/active", { filename });
+                await window.api.post("/api/v1/map/mbtiles/active", { filename });
                 await this.checkOfflineMap();
                 await this.loadMBTilesList();
                 ToastUtils.success(this.$t("map.source_updated"));
@@ -1699,7 +1699,7 @@ export default {
         async deleteMBTiles(filename) {
             if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
             try {
-                await window.axios.delete(`/api/v1/map/mbtiles/${filename}`);
+                await window.api.delete(`/api/v1/map/mbtiles/${filename}`);
                 await this.loadMBTilesList();
                 if (this.metadata && this.metadata.path && this.metadata.path.endsWith(filename)) {
                     await this.checkOfflineMap();
@@ -1711,7 +1711,7 @@ export default {
         },
         async saveMBTilesDir() {
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     map_mbtiles_dir: this.mbtilesDir,
                 });
                 ToastUtils.success(this.$t("map.storage_saved"));
@@ -2142,7 +2142,7 @@ export default {
         },
         async checkOfflineMap() {
             try {
-                const response = await window.axios.get("/api/v1/map/offline");
+                const response = await window.api.get("/api/v1/map/offline");
                 if (response.data && response.data.loaded !== false && Object.keys(response.data).length > 0) {
                     this.metadata = response.data;
                     this.hasOfflineMap = true;
@@ -2240,7 +2240,7 @@ export default {
 
             // Persist setting
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     map_offline_enabled: enabled,
                 });
             } catch (e) {
@@ -2252,7 +2252,7 @@ export default {
             this.tileErrorCount = 0;
             this.showOfflineHint = false;
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     map_tile_cache_enabled: enabled,
                 });
             } catch (e) {
@@ -2275,7 +2275,7 @@ export default {
                 return;
             }
             try {
-                await window.axios.delete(`/api/v1/map/export/${this.exportId}`);
+                await window.api.delete(`/api/v1/map/export/${this.exportId}`);
                 this.exportStatus = null;
                 this.exportId = null;
                 ToastUtils.success(this.$t("map.export_cancelled"));
@@ -2287,7 +2287,7 @@ export default {
             if (!this.selectedBbox) return;
             this.isExporting = true;
             try {
-                const response = await window.axios.post("/api/v1/map/export", {
+                const response = await window.api.post("/api/v1/map/export", {
                     bbox: this.selectedBbox,
                     min_zoom: this.exportMinZoom,
                     max_zoom: this.exportMaxZoom,
@@ -2306,7 +2306,7 @@ export default {
             if (this.exportInterval) clearInterval(this.exportInterval);
             this.exportInterval = setInterval(async () => {
                 try {
-                    const response = await window.axios.get(`/api/v1/map/export/${this.exportId}`);
+                    const response = await window.api.get(`/api/v1/map/export/${this.exportId}`);
                     this.exportStatus = response.data;
                     if (this.exportStatus.status === "completed" || this.exportStatus.status === "failed") {
                         clearInterval(this.exportInterval);
@@ -2344,7 +2344,7 @@ export default {
             formData.append("file", file);
 
             try {
-                const response = await window.axios.post("/api/v1/map/offline", formData, {
+                const response = await window.api.post("/api/v1/map/offline", formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
@@ -2381,7 +2381,7 @@ export default {
             const zoom = Math.round(view.getZoom());
 
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     map_default_lat: center[1],
                     map_default_lon: center[0],
                     map_default_zoom: zoom,
@@ -2401,7 +2401,7 @@ export default {
         },
         async saveTileServerUrl() {
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     map_tile_server_url: this.tileServerUrl,
                 });
                 this.updateMapSource();
@@ -2427,7 +2427,7 @@ export default {
         },
         async saveNominatimApiUrl() {
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     map_nominatim_api_url: this.nominatimApiUrl,
                 });
                 ToastUtils.success(this.$t("map.nominatim_api_saved"));
@@ -2640,9 +2640,9 @@ export default {
             this.isMobileScreen = window.innerWidth < 640;
         },
         async fetchPeers() {
-            if (!window.axios) return;
+            if (!window.api) return;
             try {
-                const response = await window.axios.get("/api/v1/lxmf/conversations");
+                const response = await window.api.get("/api/v1/lxmf/conversations");
                 const peers = {};
                 for (const conv of response.data.conversations) {
                     peers[conv.destination_hash] = conv;
@@ -3259,7 +3259,7 @@ export default {
             this.showLoadDrawingModal = true;
             this.isLoadingDrawings = true;
             try {
-                const response = await window.axios.get("/api/v1/map/drawings");
+                const response = await window.api.get("/api/v1/map/drawings");
                 this.savedDrawings = response.data.drawings;
             } catch {
                 ToastUtils.error(this.$t("map.failed_load_drawings"));
@@ -3283,7 +3283,7 @@ export default {
             });
 
             try {
-                await window.axios.post("/api/v1/map/drawings", {
+                await window.api.post("/api/v1/map/drawings", {
                     name: this.newDrawingName,
                     data: json,
                 });
@@ -3311,7 +3311,7 @@ export default {
         async deleteDrawing(drawing) {
             if (!confirm(`Delete drawing "${drawing.name}"?`)) return;
             try {
-                await window.axios.delete(`/api/v1/map/drawings/${drawing.id}`);
+                await window.api.delete(`/api/v1/map/drawings/${drawing.id}`);
                 this.savedDrawings = this.savedDrawings.filter((d) => d.id !== drawing.id);
                 ToastUtils.success(this.$t("map.deleted"));
             } catch {
@@ -3368,9 +3368,9 @@ export default {
             }
         },
         async fetchTelemetryMarkers() {
-            if (!window.axios) return;
+            if (!window.api) return;
             try {
-                const response = await window.axios.get("/api/v1/telemetry/peers");
+                const response = await window.api.get("/api/v1/telemetry/peers");
                 this.telemetryList = response.data.telemetry;
                 this.updateMarkers();
             } catch (e) {
@@ -3520,7 +3520,7 @@ export default {
         async drawTelemetryPath(hash) {
             this.clearTelemetryPath();
             try {
-                const response = await window.axios.get(`/api/v1/telemetry/history/${hash}?limit=50`);
+                const response = await window.api.get(`/api/v1/telemetry/history/${hash}?limit=50`);
                 const history = response.data.telemetry;
                 if (!history || history.length < 2) return;
 
@@ -3622,7 +3622,7 @@ export default {
         },
         async toggleTracking(hash) {
             try {
-                const response = await window.axios.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
+                const response = await window.api.post(`/api/v1/telemetry/tracking/${hash}/toggle`, {
                     is_tracking: this.selectedMarker.telemetry.is_tracking ? false : true,
                 });
                 if (this.selectedMarker && this.selectedMarker.telemetry.destination_hash === hash) {
@@ -3640,7 +3640,7 @@ export default {
         },
         async mapDiscoveredNodes() {
             try {
-                const response = await window.axios.get("/api/v1/reticulum/discovered-interfaces");
+                const response = await window.api.get("/api/v1/reticulum/discovered-interfaces");
                 const discovered = response.data?.interfaces ?? [];
                 const nodesWithLoc = discovered.filter((n) => n.latitude != null && n.longitude != null);
 

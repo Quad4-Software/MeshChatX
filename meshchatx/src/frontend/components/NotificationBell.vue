@@ -228,7 +228,7 @@ export default {
             }
             this.isLoading = true;
             try {
-                const response = await window.axios.get(`/api/v1/notifications`, {
+                const response = await window.api.get(`/api/v1/notifications`, {
                     params: {
                         unread: true,
                         limit: 10,
@@ -258,7 +258,7 @@ export default {
                     .map((n) => n.destination_hash);
                 const notification_ids = this.notifications.filter((n) => n.type !== "lxmf_message").map((n) => n.id);
 
-                await window.axios.post("/api/v1/notifications/mark-as-viewed", {
+                await window.api.post("/api/v1/notifications/mark-as-viewed", {
                     destination_hashes: destination_hashes,
                     notification_ids: notification_ids,
                 });
@@ -271,18 +271,18 @@ export default {
                 return;
             }
             try {
-                await window.axios.post("/api/v1/notifications/mark-as-viewed", {
+                await window.api.post("/api/v1/notifications/mark-as-viewed", {
                     destination_hashes: [],
                     notification_ids: [],
                 });
 
-                const response = await window.axios.get("/api/v1/lxmf/conversations");
+                const response = await window.api.get("/api/v1/lxmf/conversations");
                 const conversations = response.data.conversations || [];
 
                 for (const conversation of conversations) {
                     if (conversation.is_unread) {
                         try {
-                            await window.axios.get(
+                            await window.api.get(
                                 `/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`
                             );
                         } catch (e) {
@@ -311,7 +311,7 @@ export default {
                 const destination_hashes = notification.type === "lxmf_message" ? [notification.destination_hash] : [];
                 const notification_ids = notification.type !== "lxmf_message" ? [notification.id] : [];
 
-                await window.axios.post("/api/v1/notifications/mark-as-viewed", {
+                await window.api.post("/api/v1/notifications/mark-as-viewed", {
                     destination_hashes: destination_hashes,
                     notification_ids: notification_ids,
                 });

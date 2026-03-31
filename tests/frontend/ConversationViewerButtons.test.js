@@ -31,7 +31,7 @@ describe("ConversationViewer.vue button interactions", () => {
             post: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         GlobalState.blockedDestinations = [];
         GlobalState.config = { banished_effect_enabled: false };
@@ -54,7 +54,7 @@ describe("ConversationViewer.vue button interactions", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.unstubAllGlobals();
         WebSocketConnection.destroy();
     });

@@ -61,7 +61,7 @@ describe("NetworkVisualiser Optimization and Abort", () => {
             }),
             isCancel: vi.fn().mockImplementation((e) => e && e.name === "AbortError"),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         // Mock URL methods
         global.URL.createObjectURL = vi.fn().mockReturnValue("blob:mock");
@@ -69,7 +69,7 @@ describe("NetworkVisualiser Optimization and Abort", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 

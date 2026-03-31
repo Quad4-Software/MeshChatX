@@ -27,7 +27,7 @@ describe("ContactsPage.vue", () => {
             post: vi.fn(),
             delete: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {

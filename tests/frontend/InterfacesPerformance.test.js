@@ -32,7 +32,7 @@ vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
 }));
 
 // Mock axios
-global.axios = {
+global.api = {
     get: vi.fn((url) => {
         if (url.includes("/api/v1/reticulum/interfaces")) {
             return Promise.resolve({ data: { interfaces: {} } });
@@ -53,8 +53,9 @@ global.axios = {
     }),
     post: vi.fn(() => Promise.resolve({ data: {} })),
     patch: vi.fn(() => Promise.resolve({ data: {} })),
+    isCancel: vi.fn().mockReturnValue(false),
 };
-window.axios = global.axios;
+window.api = global.api;
 
 // Mock MaterialDesignIcon
 const MaterialDesignIcon = {

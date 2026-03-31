@@ -2067,7 +2067,7 @@ export default {
     methods: {
         async getTrustedTelemetryPeers() {
             try {
-                const response = await window.axios.get("/api/v1/telemetry/trusted-peers");
+                const response = await window.api.get("/api/v1/telemetry/trusted-peers");
                 this.trustedTelemetryPeers = response.data.trusted_peers;
             } catch (e) {
                 console.error("Failed to fetch trusted telemetry peers", e);
@@ -2075,7 +2075,7 @@ export default {
         },
         async revokeTelemetryTrust(peer) {
             try {
-                await window.axios.patch(`/api/v1/telephone/contacts/${peer.id}`, {
+                await window.api.patch(`/api/v1/telephone/contacts/${peer.id}`, {
                     is_telemetry_trusted: false,
                 });
                 this.getTrustedTelemetryPeers();
@@ -2112,7 +2112,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.api.get("/api/v1/config");
                 if (response?.data?.config) {
                     this.config = { ...this.config, ...response.data.config };
                     const inbound = Number(this.config.lxmf_inbound_stamp_cost);
@@ -2151,7 +2151,7 @@ export default {
         },
         async updateConfig(config, label = null) {
             try {
-                const response = await window.axios.patch("/api/v1/config", config);
+                const response = await window.api.patch("/api/v1/config", config);
                 this.config = response.data.config;
                 if (label) {
                     ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
@@ -2593,13 +2593,13 @@ export default {
         async onIsTransportEnabledChange() {
             if (this.config.is_transport_enabled) {
                 try {
-                    await window.axios.post("/api/v1/reticulum/enable-transport");
+                    await window.api.post("/api/v1/reticulum/enable-transport");
                 } catch {
                     ToastUtils.error(this.$t("settings.failed_enable_transport"));
                 }
             } else {
                 try {
-                    await window.axios.post("/api/v1/reticulum/disable-transport");
+                    await window.api.post("/api/v1/reticulum/disable-transport");
                 } catch {
                     ToastUtils.error(this.$t("settings.failed_disable_transport"));
                 }
@@ -2610,7 +2610,7 @@ export default {
 
             try {
                 this.reloadingRns = true;
-                const response = await window.axios.post("/api/v1/reticulum/reload");
+                const response = await window.api.post("/api/v1/reticulum/reload");
                 ToastUtils.success(response.data.message);
             } catch {
                 ToastUtils.error(this.$t("settings.failed_reload_reticulum"));
@@ -2621,7 +2621,7 @@ export default {
         async clearMessages() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.axios.delete("/api/v1/maintenance/messages");
+                await window.api.delete("/api/v1/maintenance/messages");
                 ToastUtils.success(this.$t("maintenance.messages_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -2630,7 +2630,7 @@ export default {
         async clearAnnounces() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.axios.delete("/api/v1/maintenance/announces");
+                await window.api.delete("/api/v1/maintenance/announces");
                 ToastUtils.success(this.$t("maintenance.announces_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -2639,7 +2639,7 @@ export default {
         async clearNomadnetFavorites() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.axios.delete("/api/v1/maintenance/favourites", {
+                await window.api.delete("/api/v1/maintenance/favourites", {
                     params: { aspect: "nomadnetwork.node" },
                 });
                 ToastUtils.success(this.$t("maintenance.favourites_cleared"));
@@ -2650,7 +2650,7 @@ export default {
         async clearLxmfIcons() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.axios.delete("/api/v1/maintenance/lxmf-icons");
+                await window.api.delete("/api/v1/maintenance/lxmf-icons");
                 ToastUtils.success(this.$t("maintenance.lxmf_icons_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -2659,7 +2659,7 @@ export default {
         async clearArchives() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.axios.delete("/api/v1/maintenance/archives");
+                await window.api.delete("/api/v1/maintenance/archives");
                 ToastUtils.success(this.$t("maintenance.archives_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -2668,7 +2668,7 @@ export default {
         async clearReticulumDocs() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.axios.delete("/api/v1/maintenance/docs/reticulum");
+                await window.api.delete("/api/v1/maintenance/docs/reticulum");
                 ToastUtils.success(this.$t("maintenance.docs_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -2676,7 +2676,7 @@ export default {
         },
         async exportMessages() {
             try {
-                const response = await window.axios.get("/api/v1/maintenance/messages/export");
+                const response = await window.api.get("/api/v1/maintenance/messages/export");
                 const messages = response.data.messages;
                 const dataStr = JSON.stringify({ messages }, null, 2);
                 const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
@@ -2704,7 +2704,7 @@ export default {
                     const data = JSON.parse(e.target.result);
                     if (!data.messages) throw new Error("Invalid file format");
 
-                    await window.axios.post("/api/v1/maintenance/messages/import", {
+                    await window.api.post("/api/v1/maintenance/messages/import", {
                         messages: data.messages,
                     });
                     ToastUtils.success(this.$t("maintenance.import_success", { count: data.messages.length }));
@@ -2718,7 +2718,7 @@ export default {
         },
         async exportFolders() {
             try {
-                const response = await window.axios.get("/api/v1/lxmf/folders/export");
+                const response = await window.api.get("/api/v1/lxmf/folders/export");
                 const dataStr = JSON.stringify(response.data, null, 2);
                 const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
                 const exportFileDefaultName = `meshchat_folders_${new Date().toISOString().slice(0, 10)}.json`;
@@ -2744,7 +2744,7 @@ export default {
                     const data = JSON.parse(e.target.result);
                     if (!data.folders || !data.mappings) throw new Error("Invalid file format");
 
-                    await window.axios.post("/api/v1/lxmf/folders/import", data);
+                    await window.api.post("/api/v1/lxmf/folders/import", data);
                     ToastUtils.success(this.$t("settings.folders_imported"));
                 } catch {
                     ToastUtils.error(this.$t("settings.failed_import_folders"));

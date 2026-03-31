@@ -405,24 +405,24 @@ export default {
     methods: {
         async getInterfaceStats() {
             try {
-                const response = await window.axios.get(`/api/v1/interface-stats`, {
+                const response = await window.api.get(`/api/v1/interface-stats`, {
                     signal: this.abortController.signal,
                 });
                 this.interfaces = response.data.interface_stats?.interfaces ?? [];
             } catch (e) {
-                if (window.axios.isCancel(e)) return;
+                if (window.api.isCancel(e)) return;
                 console.error("Failed to fetch interface stats", e);
             }
         },
         async getDiscoveredInterfaces() {
             try {
-                const response = await window.axios.get(`/api/v1/reticulum/discovered-interfaces`, {
+                const response = await window.api.get(`/api/v1/reticulum/discovered-interfaces`, {
                     signal: this.abortController.signal,
                 });
                 this.discoveredInterfaces = response.data?.interfaces ?? [];
                 this.discoveredActive = response.data?.active ?? [];
             } catch (e) {
-                if (window.axios.isCancel(e)) return;
+                if (window.api.isCancel(e)) return;
             }
         },
         async getPathTableBatch(destinationHashes = null) {
@@ -430,7 +430,7 @@ export default {
             try {
                 this.loadingStatus = "Loading paths...";
                 if (destinationHashes && destinationHashes.length > 0) {
-                    const resp = await window.axios.post(
+                    const resp = await window.api.post(
                         `/api/v1/path-table`,
                         { destination_hashes: destinationHashes },
                         {
@@ -439,7 +439,7 @@ export default {
                     );
                     this.pathTable.push(...resp.data.path_table);
                 } else {
-                    const firstResp = await window.axios.get(`/api/v1/path-table`, {
+                    const firstResp = await window.api.get(`/api/v1/path-table`, {
                         params: { limit: this.pageSize, offset: 0 },
                         signal: this.abortController.signal,
                     });
@@ -454,7 +454,7 @@ export default {
                                 chunk.push(offset + i * this.pageSize);
                             }
                             const promises = chunk.map((o) =>
-                                window.axios.get(`/api/v1/path-table`, {
+                                window.api.get(`/api/v1/path-table`, {
                                     params: { limit: this.pageSize, offset: o },
                                     signal: this.abortController.signal,
                                 })
@@ -468,7 +468,7 @@ export default {
                     }
                 }
             } catch (e) {
-                if (window.axios.isCancel(e)) return;
+                if (window.api.isCancel(e)) return;
                 console.error("Failed to fetch path table batch", e);
             }
         },
@@ -482,7 +482,7 @@ export default {
                     let offset = 0;
                     let hasMore = true;
                     while (hasMore) {
-                        const resp = await window.axios.get(`/api/v1/announces`, {
+                        const resp = await window.api.get(`/api/v1/announces`, {
                             params: { aspect, limit: this.pageSize, offset },
                             signal: this.abortController.signal,
                         });
@@ -497,24 +497,24 @@ export default {
                     }
                 }
             } catch (e) {
-                if (window.axios.isCancel(e)) return;
+                if (window.api.isCancel(e)) return;
                 console.error("Failed to fetch announces batch", e);
             }
         },
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config", {
+                const response = await window.api.get("/api/v1/config", {
                     signal: this.abortController.signal,
                 });
                 this.config = response.data.config;
             } catch (e) {
-                if (window.axios.isCancel(e)) return;
+                if (window.api.isCancel(e)) return;
                 console.error("Failed to fetch config", e);
             }
         },
         async getConversations() {
             try {
-                const response = await window.axios.get(`/api/v1/lxmf/conversations`, {
+                const response = await window.api.get(`/api/v1/lxmf/conversations`, {
                     signal: this.abortController.signal,
                 });
                 this.conversations = {};
@@ -522,7 +522,7 @@ export default {
                     this.conversations[conversation.destination_hash] = conversation;
                 }
             } catch (e) {
-                if (window.axios.isCancel(e)) return;
+                if (window.api.isCancel(e)) return;
                 console.error("Failed to fetch conversations", e);
             }
         },

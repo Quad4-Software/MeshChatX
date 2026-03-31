@@ -307,7 +307,7 @@ export default {
         async getArchives() {
             this.isLoading = true;
             try {
-                const response = await window.axios.get("/api/v1/nomadnet/archives", {
+                const response = await window.api.get("/api/v1/nomadnet/archives", {
                     params: {
                         page: 1,
                         limit: 500,
@@ -354,7 +354,7 @@ export default {
             }
 
             try {
-                await window.axios.delete("/api/v1/nomadnet/archives", {
+                await window.api.delete("/api/v1/nomadnet/archives", {
                     data: { ids: this.selectedArchives },
                 });
 
@@ -381,7 +381,7 @@ export default {
             }
 
             try {
-                await window.axios.delete("/api/v1/nomadnet/archives", {
+                await window.api.delete("/api/v1/nomadnet/archives", {
                     data: { ids: [archive.id] },
                 });
 

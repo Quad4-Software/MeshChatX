@@ -90,12 +90,12 @@ describe("Theme Switching", () => {
             }),
             post: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
     });
 
     afterEach(() => {
         document.documentElement.classList.remove("dark");
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 
@@ -363,7 +363,7 @@ describe("Visibility Checks", () => {
             }),
             patch: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         const wrapper = mount(SettingsPage, {
             global: {
@@ -390,7 +390,7 @@ describe("Visibility Checks", () => {
             wrapper.text().includes("app.banished") || wrapper.findAll('input[type="text"]').length > 0;
         expect(hasBanishedConfig).toBe(true);
 
-        delete window.axios;
+        delete window.api;
     });
 
     it("SettingsPage shows blackhole integration toggle", async () => {
@@ -404,7 +404,7 @@ describe("Visibility Checks", () => {
             }),
             patch: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         const wrapper = mount(SettingsPage, {
             global: {
@@ -426,7 +426,7 @@ describe("Visibility Checks", () => {
 
         expect(wrapper.text()).toContain("app.blackhole_integration_enabled");
 
-        delete window.axios;
+        delete window.api;
     });
 
     it("SettingsPage hides banished config when toggle is disabled", async () => {
@@ -440,7 +440,7 @@ describe("Visibility Checks", () => {
             }),
             patch: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         const wrapper = mount(SettingsPage, {
             global: {
@@ -466,7 +466,7 @@ describe("Visibility Checks", () => {
         const colorInputs = wrapper.findAll('input[type="color"]');
         expect(colorInputs.length).toBe(3);
 
-        delete window.axios;
+        delete window.api;
     });
 });
 
@@ -594,7 +594,7 @@ describe("Dark Mode Class Application", () => {
             }),
             patch: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         const wrapper = mount(SettingsPage, {
             global: {
@@ -617,7 +617,7 @@ describe("Dark Mode Class Application", () => {
         const hasDarkClasses = wrapper.html().includes("dark:") || wrapper.html().includes("dark:");
         expect(hasDarkClasses).toBe(true);
 
-        delete window.axios;
+        delete window.api;
     });
 });
 
@@ -633,7 +633,7 @@ describe("Theme Persistence", () => {
             }),
             patch: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         const wrapper = mount(SettingsPage, {
             global: {
@@ -660,6 +660,6 @@ describe("Theme Persistence", () => {
             expect(wrapper.vm.config.theme).toBe("dark");
         }
 
-        delete window.axios;
+        delete window.api;
     });
 });

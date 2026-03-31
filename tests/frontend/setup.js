@@ -27,15 +27,16 @@ global.performance.getEntriesByName = vi.fn(() => []);
 global.performance.clearMarks = vi.fn();
 global.performance.clearMeasures = vi.fn();
 
-// Mock window.axios by default to prevent TypeErrors
-global.axios = {
+// Mock window.api by default to prevent TypeErrors
+global.api = {
     get: vi.fn().mockResolvedValue({ data: {} }),
     post: vi.fn().mockResolvedValue({ data: {} }),
     put: vi.fn().mockResolvedValue({ data: {} }),
     patch: vi.fn().mockResolvedValue({ data: {} }),
     delete: vi.fn().mockResolvedValue({ data: {} }),
+    isCancel: vi.fn().mockReturnValue(false),
 };
-window.axios = global.axios;
+window.api = global.api;
 
 // Stub all Vuetify components to avoid warnings and CSS issues
 config.global.stubs = {

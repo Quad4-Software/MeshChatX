@@ -23,7 +23,7 @@ describe("ConversationViewer.vue", () => {
             }),
             post: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         // Mock localStorage
         const localStorageMock = {
@@ -52,7 +52,7 @@ describe("ConversationViewer.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.unstubAllGlobals();
         WebSocketConnection.destroy();
     });

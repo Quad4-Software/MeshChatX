@@ -129,9 +129,7 @@ export default {
         async fetchContact() {
             if (!this.peer || !this.peer.destination_hash) return;
             try {
-                const response = await window.axios.get(
-                    `/api/v1/telephone/contacts/check/${this.peer.destination_hash}`
-                );
+                const response = await window.api.get(`/api/v1/telephone/contacts/check/${this.peer.destination_hash}`);
                 if (response.data.is_contact) {
                     this.contact = response.data.contact;
                 } else {
@@ -146,14 +144,14 @@ export default {
             try {
                 if (!this.contact) {
                     // create contact first
-                    await window.axios.post("/api/v1/telephone/contacts", {
+                    await window.api.post("/api/v1/telephone/contacts", {
                         name: this.peer.display_name,
                         remote_identity_hash: this.peer.destination_hash,
                         is_telemetry_trusted: true,
                     });
                     await this.fetchContact();
                 } else {
-                    await window.axios.patch(`/api/v1/telephone/contacts/${this.contact.id}`, {
+                    await window.api.patch(`/api/v1/telephone/contacts/${this.contact.id}`, {
                         is_telemetry_trusted: newStatus,
                     });
                     this.contact.is_telemetry_trusted = newStatus;
@@ -182,7 +180,7 @@ export default {
             }
 
             try {
-                await window.axios.post("/api/v1/blocked-destinations", {
+                await window.api.post("/api/v1/blocked-destinations", {
                     destination_hash: this.peer.destination_hash,
                 });
                 GlobalEmitter.emit("block-status-changed");
@@ -195,7 +193,7 @@ export default {
         },
         async onUnblockDestination() {
             try {
-                await window.axios.delete(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
+                await window.api.delete(`/api/v1/blocked-destinations/${this.peer.destination_hash}`);
                 GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert(this.$t("banishment.banishment_lifted"));
                 this.$emit("block-status-changed");
@@ -212,7 +210,7 @@ export default {
 
             // delete all lxmf messages from "us to destination" and from "destination to us"
             try {
-                await window.axios.delete(`/api/v1/lxmf-messages/conversation/${this.peer.destination_hash}`);
+                await window.api.delete(`/api/v1/lxmf-messages/conversation/${this.peer.destination_hash}`);
             } catch (e) {
                 DialogUtils.alert(this.$t("messages.failed_delete_history"));
                 console.log(e);
@@ -238,7 +236,7 @@ export default {
 
             try {
                 // ping destination
-                const response = await window.axios.get(`/api/v1/ping/${destinationHash}/lxmf.delivery`, {
+                const response = await window.api.get(`/api/v1/ping/${destinationHash}/lxmf.delivery`, {
                     params: {
                         timeout: 30,
                     },

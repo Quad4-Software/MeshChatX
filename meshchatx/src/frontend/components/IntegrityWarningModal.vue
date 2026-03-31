@@ -103,7 +103,7 @@ export default {
         },
         async acknowledgeAndReset() {
             try {
-                await window.axios.post("/api/v1/app/integrity/acknowledge");
+                await window.api.post("/api/v1/app/integrity/acknowledge");
                 ToastUtils.success(this.$t("about.integrity_acknowledged_reset"));
                 this.visible = false;
             } catch (e) {

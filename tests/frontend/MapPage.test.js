@@ -206,13 +206,13 @@ describe("MapPage.vue", () => {
             patch: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
-        vi.stubGlobal("axios", axiosMock);
-        window.axios = axiosMock;
+        vi.stubGlobal("api", axiosMock);
+        window.api = axiosMock;
     });
 
     beforeEach(() => {
-        vi.stubGlobal("axios", axiosMock);
-        window.axios = axiosMock;
+        vi.stubGlobal("api", axiosMock);
+        window.api = axiosMock;
         // Mock localStorage
         const localStorageMock = {
             getItem: vi.fn().mockReturnValue(null),
@@ -224,7 +224,7 @@ describe("MapPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
     });
 
     const mountMapPage = () => {

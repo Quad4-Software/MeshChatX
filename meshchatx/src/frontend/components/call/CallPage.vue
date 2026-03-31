@@ -2641,7 +2641,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
             } catch (e) {
                 console.log(e);
@@ -2649,7 +2649,7 @@ export default {
         },
         async updateConfig(config) {
             try {
-                const response = await window.axios.patch("/api/v1/config", config);
+                const response = await window.api.patch("/api/v1/config", config);
                 if (response.data?.config) {
                     this.config = response.data.config;
                 }
@@ -2660,7 +2660,7 @@ export default {
         },
         async getAudioProfiles() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/audio-profiles");
+                const response = await window.api.get("/api/v1/telephone/audio-profiles");
                 this.audioProfiles = response.data.audio_profiles;
                 this.selectedAudioProfileId = response.data.default_audio_profile_id;
             } catch (e) {
@@ -2669,7 +2669,7 @@ export default {
         },
         async getStatus() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/status");
+                const response = await window.api.get("/api/v1/telephone/status");
                 const oldCall = this.activeCall;
                 const newCall = response.data.active_call;
 
@@ -2756,7 +2756,7 @@ export default {
                     this.callHistoryOffset = 0;
                 }
 
-                const response = await window.axios.get(
+                const response = await window.api.get(
                     `/api/v1/telephone/history?limit=${this.callHistoryLimit}&offset=${this.callHistoryOffset}${
                         this.callHistorySearch ? `&search=${encodeURIComponent(this.callHistorySearch)}` : ""
                     }`
@@ -2792,7 +2792,7 @@ export default {
                     this.hasMoreDiscovery = true;
                 }
 
-                const response = await window.axios.get("/api/v1/announces", {
+                const response = await window.api.get("/api/v1/announces", {
                     params: {
                         aspect: "lxst.telephony",
                         limit: this.discoveryLimit,
@@ -2826,7 +2826,7 @@ export default {
         },
         async toggleDoNotDisturb(value) {
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     do_not_disturb_enabled: value,
                 });
                 if (this.config) {
@@ -2839,7 +2839,7 @@ export default {
         },
         async toggleAllowCallsFromContactsOnly(value) {
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     telephone_allow_calls_from_contacts_only: value,
                 });
                 if (this.config) {
@@ -2852,7 +2852,7 @@ export default {
         },
         async toggleCallRecording(value) {
             try {
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     call_recording_enabled: value,
                 });
                 if (this.config) {
@@ -2866,7 +2866,7 @@ export default {
         async clearHistory() {
             if (!confirm(this.$t("common.delete_confirm"))) return;
             try {
-                await window.axios.delete("/api/v1/telephone/history");
+                await window.api.delete("/api/v1/telephone/history");
                 this.callHistory = [];
                 ToastUtils.success(this.$t("call.call_history_cleared"));
             } catch (e) {
@@ -2877,7 +2877,7 @@ export default {
         async blockIdentity(hash) {
             if (!confirm(`Are you sure you want to banish this identity?`)) return;
             try {
-                await window.axios.post("/api/v1/blocked-destinations", {
+                await window.api.post("/api/v1/blocked-destinations", {
                     destination_hash: hash,
                 });
                 ToastUtils.success(this.$t("call.identity_banished"));
@@ -2888,7 +2888,7 @@ export default {
         },
         async getVoicemailStatus() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/voicemail/status");
+                const response = await window.api.get("/api/v1/telephone/voicemail/status");
                 this.voicemailStatus = response.data;
             } catch (e) {
                 console.log(e);
@@ -2896,7 +2896,7 @@ export default {
         },
         async getRingtoneStatus() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/ringtones/status");
+                const response = await window.api.get("/api/v1/telephone/ringtones/status");
                 this.ringtoneStatus = response.data;
             } catch (e) {
                 console.log(e);
@@ -2904,7 +2904,7 @@ export default {
         },
         async getRingtones() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/ringtones");
+                const response = await window.api.get("/api/v1/telephone/ringtones");
                 this.ringtones = response.data;
             } catch (e) {
                 console.error("Failed to get ringtones:", e);
@@ -2913,7 +2913,7 @@ export default {
         async deleteRingtone(ringtone) {
             if (!confirm(this.$t("common.delete_confirm"))) return;
             try {
-                await window.axios.delete(`/api/v1/telephone/ringtones/${ringtone.id}`);
+                await window.api.delete(`/api/v1/telephone/ringtones/${ringtone.id}`);
                 ToastUtils.success(this.$t("call.ringtone_deleted"));
                 await this.getRingtones();
                 await this.getRingtoneStatus();
@@ -2924,7 +2924,7 @@ export default {
         },
         async setPrimaryRingtone(ringtone) {
             try {
-                await window.axios.patch(`/api/v1/telephone/ringtones/${ringtone.id}`, {
+                await window.api.patch(`/api/v1/telephone/ringtones/${ringtone.id}`, {
                     is_primary: true,
                 });
                 ToastUtils.success(this.$t("call.primary_ringtone_set"));
@@ -2941,7 +2941,7 @@ export default {
         },
         async saveRingtoneName() {
             try {
-                await window.axios.patch(`/api/v1/telephone/ringtones/${this.editingRingtoneId}`, {
+                await window.api.patch(`/api/v1/telephone/ringtones/${this.editingRingtoneId}`, {
                     display_name: this.editingRingtoneName,
                 });
                 this.editingRingtoneId = null;
@@ -2960,7 +2960,7 @@ export default {
             formData.append("file", file);
 
             try {
-                await window.axios.post("/api/v1/telephone/ringtones/upload", formData, {
+                await window.api.post("/api/v1/telephone/ringtones/upload", formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
@@ -3016,7 +3016,7 @@ export default {
         },
         async getVoicemails() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/voicemails", {
+                const response = await window.api.get("/api/v1/telephone/voicemails", {
                     params: { search: this.voicemailSearch },
                 });
                 this.voicemails = response.data.voicemails || [];
@@ -3037,7 +3037,7 @@ export default {
         },
         async getContacts() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/contacts", {
+                const response = await window.api.get("/api/v1/telephone/contacts", {
                     params: { search: this.contactsSearch },
                 });
                 this.contacts = response.data.contacts || (Array.isArray(response.data) ? response.data : []);
@@ -3122,10 +3122,10 @@ export default {
                     if (this.editingContact && this.editingContact.custom_image && !contact.custom_image) {
                         contact.clear_image = true;
                     }
-                    await window.axios.patch(`/api/v1/telephone/contacts/${contact.id}`, contact);
+                    await window.api.patch(`/api/v1/telephone/contacts/${contact.id}`, contact);
                     ToastUtils.success(this.$t("call.contact_updated"));
                 } else {
-                    await window.axios.post("/api/v1/telephone/contacts", contact);
+                    await window.api.post("/api/v1/telephone/contacts", contact);
                     ToastUtils.success(this.$t("call.contact_added"));
                 }
                 this.isContactModalOpen = false;
@@ -3137,7 +3137,7 @@ export default {
         async deleteContact(contactId) {
             if (!confirm("Are you sure you want to delete this contact?")) return;
             try {
-                await window.axios.delete(`/api/v1/telephone/contacts/${contactId}`);
+                await window.api.delete(`/api/v1/telephone/contacts/${contactId}`);
                 ToastUtils.success(this.$t("call.contact_deleted"));
                 this.getContacts();
             } catch {
@@ -3178,7 +3178,7 @@ export default {
         async generateGreeting() {
             this.isGeneratingGreeting = true;
             try {
-                await window.axios.post("/api/v1/telephone/voicemail/generate-greeting");
+                await window.api.post("/api/v1/telephone/voicemail/generate-greeting");
                 ToastUtils.success(this.$t("call.greeting_generated_successfully"));
                 await this.getVoicemailStatus();
             } catch (e) {
@@ -3196,7 +3196,7 @@ export default {
             formData.append("file", file);
 
             try {
-                await window.axios.post("/api/v1/telephone/voicemail/greeting/upload", formData, {
+                await window.api.post("/api/v1/telephone/voicemail/greeting/upload", formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
@@ -3214,7 +3214,7 @@ export default {
             if (!confirm("Are you sure you want to delete your custom greeting?")) return;
 
             try {
-                await window.axios.delete("/api/v1/telephone/voicemail/greeting");
+                await window.api.delete("/api/v1/telephone/voicemail/greeting");
                 ToastUtils.success(this.$t("call.greeting_deleted"));
                 await this.getVoicemailStatus();
             } catch {
@@ -3223,7 +3223,7 @@ export default {
         },
         async startRecordingGreetingMic() {
             try {
-                await window.axios.post("/api/v1/telephone/voicemail/greeting/record/start");
+                await window.api.post("/api/v1/telephone/voicemail/greeting/record/start");
                 await this.getVoicemailStatus();
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_start_recording_greeting"));
@@ -3231,7 +3231,7 @@ export default {
         },
         async stopRecordingGreetingMic() {
             try {
-                await window.axios.post("/api/v1/telephone/voicemail/greeting/record/stop");
+                await window.api.post("/api/v1/telephone/voicemail/greeting/record/stop");
                 await this.getVoicemailStatus();
                 ToastUtils.success(this.$t("call.greeting_recorded_from_mic"));
             } catch {
@@ -3277,7 +3277,7 @@ export default {
         async markVoicemailAsRead(voicemail) {
             if (!voicemail.is_read) {
                 try {
-                    await window.axios.post(`/api/v1/telephone/voicemails/${voicemail.id}/read`);
+                    await window.api.post(`/api/v1/telephone/voicemails/${voicemail.id}/read`);
                     voicemail.is_read = 1;
                     this.unreadVoicemailsCount = Math.max(0, this.unreadVoicemailsCount - 1);
                 } catch (e) {
@@ -3292,7 +3292,7 @@ export default {
         },
         async deleteVoicemail(voicemailId) {
             try {
-                await window.axios.delete(`/api/v1/telephone/voicemails/${voicemailId}`);
+                await window.api.delete(`/api/v1/telephone/voicemails/${voicemailId}`);
                 this.getVoicemails();
                 ToastUtils.success(this.$t("call.voicemail_deleted"));
             } catch {
@@ -3301,7 +3301,7 @@ export default {
         },
         async getRecordings() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/recordings", {
+                const response = await window.api.get("/api/v1/telephone/recordings", {
                     params: { search: this.recordingSearch },
                 });
                 this.recordings = response.data.recordings || [];
@@ -3351,7 +3351,7 @@ export default {
         async deleteRecording(recordingId) {
             if (!confirm("Are you sure you want to delete this recording?")) return;
             try {
-                await window.axios.delete(`/api/v1/telephone/recordings/${recordingId}`);
+                await window.api.delete(`/api/v1/telephone/recordings/${recordingId}`);
                 this.getRecordings();
                 ToastUtils.success(this.$t("call.recording_deleted"));
             } catch {
@@ -3410,7 +3410,7 @@ export default {
             this.wasDeclined = false;
 
             try {
-                await window.axios.get(`/api/v1/telephone/call/${hashToCall}`);
+                await window.api.get(`/api/v1/telephone/call/${hashToCall}`);
             } catch (e) {
                 this.initiationStatus = null;
                 ToastUtils.error(e.response?.data?.message || "Failed to initiate call");
@@ -3457,7 +3457,7 @@ export default {
         },
         async answerCall() {
             try {
-                await window.axios.get("/api/v1/telephone/answer");
+                await window.api.get("/api/v1/telephone/answer");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_answer_call"));
             }
@@ -3467,14 +3467,14 @@ export default {
                 if (this.activeCall && this.activeCall.is_incoming && this.activeCall.status === 4) {
                     this.wasDeclined = true;
                 }
-                await window.axios.get("/api/v1/telephone/hangup");
+                await window.api.get("/api/v1/telephone/hangup");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_hangup_call"));
             }
         },
         async sendToVoicemail() {
             try {
-                await window.axios.get("/api/v1/telephone/send-to-voicemail");
+                await window.api.get("/api/v1/telephone/send-to-voicemail");
                 ToastUtils.success(this.$t("call.call_sent_to_voicemail"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_send_to_voicemail"));
@@ -3482,7 +3482,7 @@ export default {
         },
         async switchAudioProfile(audioProfileId) {
             try {
-                await window.axios.get(`/api/v1/telephone/switch-audio-profile/${audioProfileId}`);
+                await window.api.get(`/api/v1/telephone/switch-audio-profile/${audioProfileId}`);
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_switch_audio_profile"));
             }
@@ -3501,7 +3501,7 @@ export default {
                 const endpoint = isCurrentlyMuted
                     ? "/api/v1/telephone/unmute-transmit"
                     : "/api/v1/telephone/mute-transmit";
-                await window.axios.get(endpoint);
+                await window.api.get(endpoint);
 
                 // clear muting state after a short delay to allow backend to catch up
                 setTimeout(() => {
@@ -3528,7 +3528,7 @@ export default {
                 const endpoint = isCurrentlyMuted
                     ? "/api/v1/telephone/unmute-receive"
                     : "/api/v1/telephone/mute-receive";
-                await window.axios.get(endpoint);
+                await window.api.get(endpoint);
 
                 // clear muting state after a short delay to allow backend to catch up
                 setTimeout(() => {

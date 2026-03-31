@@ -172,7 +172,7 @@ export default {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.get("/api/v1/app/changelog");
+                const response = await window.api.get("/api/v1/app/changelog");
                 this.version = response.data.version;
 
                 // Process HTML to make version headers look better
@@ -192,7 +192,7 @@ export default {
             // mark as seen for current version automatically on close if not already marked
             if (!this.dontShowEver && !this.dontShowAgain) {
                 try {
-                    await window.axios.post("/api/v1/app/changelog/seen", {
+                    await window.api.post("/api/v1/app/changelog/seen", {
                         version: this.currentVersion || "0.0.0",
                     });
                 } catch (e) {
@@ -206,7 +206,7 @@ export default {
         async markAsSeen() {
             if (this.dontShowEver) {
                 try {
-                    await window.axios.post("/api/v1/app/changelog/seen", {
+                    await window.api.post("/api/v1/app/changelog/seen", {
                         version: "999.999.999",
                     });
                 } catch (e) {
@@ -214,7 +214,7 @@ export default {
                 }
             } else if (this.dontShowAgain) {
                 try {
-                    await window.axios.post("/api/v1/app/changelog/seen", {
+                    await window.api.post("/api/v1/app/changelog/seen", {
                         version: this.currentVersion,
                     });
                 } catch (e) {

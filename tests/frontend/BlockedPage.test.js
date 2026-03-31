@@ -24,7 +24,7 @@ function mountBlockedPage() {
 describe("BlockedPage UI", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        global.axios.get = vi.fn().mockImplementation((url) => {
+        global.api.get = vi.fn().mockImplementation((url) => {
             if (url === "/api/v1/blocked-destinations") return Promise.resolve({ data: { blocked_destinations: [] } });
             if (url === "/api/v1/reticulum/blackhole") return Promise.resolve({ data: { blackholed_identities: {} } });
             return Promise.resolve({ data: {} });
@@ -53,7 +53,7 @@ describe("BlockedPage UI", () => {
     });
 
     it("renders blocked items when provided", async () => {
-        global.axios.get = vi.fn().mockImplementation((url, opts) => {
+        global.api.get = vi.fn().mockImplementation((url, opts) => {
             if (url === "/api/v1/blocked-destinations")
                 return Promise.resolve({ data: { blocked_destinations: ["abc123"] } });
             if (url === "/api/v1/reticulum/blackhole") return Promise.resolve({ data: { blackholed_identities: {} } });

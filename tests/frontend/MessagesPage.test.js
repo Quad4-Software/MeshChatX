@@ -10,7 +10,7 @@ describe("MessagesPage.vue", () => {
             get: vi.fn(),
             post: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config")
@@ -22,7 +22,7 @@ describe("MessagesPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
     });
 
     const mountMessagesPage = (props = { destinationHash: "" }) => {

@@ -240,7 +240,7 @@ export default {
                 if (this.sorting) {
                     params.sorting = this.sorting;
                 }
-                const response = await window.axios.get("/api/v1/rnstatus", { params });
+                const response = await window.api.get("/api/v1/rnstatus", { params });
                 this.interfaces = response.data.interfaces || [];
                 this.linkCount = response.data.link_count;
                 this.blackholeEnabled = response.data.blackhole_enabled;

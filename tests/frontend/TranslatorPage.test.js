@@ -10,7 +10,7 @@ describe("TranslatorPage.vue", () => {
             get: vi.fn(),
             post: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {
@@ -34,7 +34,7 @@ describe("TranslatorPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 
@@ -76,7 +76,7 @@ describe("TranslatorPage.vue", () => {
     });
 
     it("calls translate API and displays result", async () => {
-        window.axios.post = vi.fn().mockResolvedValue({
+        window.api.post = vi.fn().mockResolvedValue({
             data: {
                 translated_text: "Hallo Welt",
                 source_lang: "en",
@@ -98,7 +98,7 @@ describe("TranslatorPage.vue", () => {
         // Call directly to verify logic
         await wrapper.vm.translateText();
 
-        expect(window.axios.post).toHaveBeenCalledWith(
+        expect(window.api.post).toHaveBeenCalledWith(
             "/api/v1/translator/translate",
             expect.objectContaining({
                 text: "Hello World",

@@ -195,13 +195,13 @@ export default {
             this.isLoading = true;
             try {
                 // Load local blocked destinations
-                const response = await window.axios.get("/api/v1/blocked-destinations");
+                const response = await window.api.get("/api/v1/blocked-destinations");
                 const blockedHashes = response.data.blocked_destinations || [];
 
                 // Load Reticulum blackholed identities
                 let reticulumBlackholed = {};
                 try {
-                    const rnsResponse = await window.axios.get("/api/v1/reticulum/blackhole");
+                    const rnsResponse = await window.api.get("/api/v1/reticulum/blackhole");
                     reticulumBlackholed = rnsResponse.data.blackholed_identities || {};
                 } catch (e) {
                     console.error("Failed to load Reticulum blackhole", e);
@@ -212,7 +212,7 @@ export default {
                     let isNode = false;
 
                     try {
-                        const announceResponse = await window.axios.get("/api/v1/announces", {
+                        const announceResponse = await window.api.get("/api/v1/announces", {
                             params: {
                                 identity_hash: hash,
                                 include_blocked: true,
@@ -272,7 +272,7 @@ export default {
             }
 
             try {
-                await window.axios.delete(`/api/v1/blocked-destinations/${item.destination_hash}`);
+                await window.api.delete(`/api/v1/blocked-destinations/${item.destination_hash}`);
                 await this.loadBlockedDestinations();
                 ToastUtils.success(this.$t("banishment.banishment_lifted"));
             } catch (e) {

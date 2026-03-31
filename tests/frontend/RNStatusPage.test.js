@@ -9,7 +9,7 @@ describe("RNStatusPage.vue", () => {
         axiosMock = {
             get: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/rnstatus") {
@@ -36,7 +36,7 @@ describe("RNStatusPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 

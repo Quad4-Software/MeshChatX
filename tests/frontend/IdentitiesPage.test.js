@@ -57,11 +57,11 @@ describe("IdentitiesPage.vue", () => {
             post: vi.fn().mockResolvedValue({ data: { hotswapped: true } }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 

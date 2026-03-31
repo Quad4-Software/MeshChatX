@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import DebugLogsPage from "@/components/debug/DebugLogsPage.vue";
 
 // Mock axios
-window.axios = {
+window.api = {
     get: vi.fn(),
 };
 
@@ -25,7 +25,7 @@ describe("DebugLogsPage.vue", () => {
             },
         ];
 
-        window.axios.get.mockResolvedValue({
+        window.api.get.mockResolvedValue({
             data: {
                 logs: mockLogs,
                 total: 2,
@@ -53,7 +53,7 @@ describe("DebugLogsPage.vue", () => {
     });
 
     it("handles search input", async () => {
-        window.axios.get.mockResolvedValue({
+        window.api.get.mockResolvedValue({
             data: { logs: [], total: 0, limit: 100, offset: 0 },
         });
 
@@ -70,7 +70,7 @@ describe("DebugLogsPage.vue", () => {
         // Wait for debounce (500ms)
         await new Promise((resolve) => setTimeout(resolve, 600));
 
-        expect(window.axios.get).toHaveBeenCalledWith(
+        expect(window.api.get).toHaveBeenCalledWith(
             expect.stringContaining("/api/v1/debug/logs"),
             expect.objectContaining({
                 params: expect.objectContaining({ search: "error" }),
@@ -79,7 +79,7 @@ describe("DebugLogsPage.vue", () => {
     });
 
     it("handles pagination", async () => {
-        window.axios.get.mockResolvedValue({
+        window.api.get.mockResolvedValue({
             data: {
                 logs: [],
                 total: 250,
@@ -100,7 +100,7 @@ describe("DebugLogsPage.vue", () => {
         const nextButton = wrapper.findAll("button").find((b) => b.text().includes("Next"));
         await nextButton.trigger("click");
 
-        expect(window.axios.get).toHaveBeenCalledWith(
+        expect(window.api.get).toHaveBeenCalledWith(
             expect.stringContaining("/api/v1/debug/logs"),
             expect.objectContaining({
                 params: expect.objectContaining({ offset: 100 }),
@@ -109,7 +109,7 @@ describe("DebugLogsPage.vue", () => {
     });
 
     it("loads access attempts when switching to Access attempts tab", async () => {
-        window.axios.get.mockImplementation((url) => {
+        window.api.get.mockImplementation((url) => {
             if (url.includes("access-attempts")) {
                 return Promise.resolve({
                     data: {
@@ -153,7 +153,7 @@ describe("DebugLogsPage.vue", () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         await wrapper.vm.$nextTick();
 
-        expect(window.axios.get).toHaveBeenCalledWith(
+        expect(window.api.get).toHaveBeenCalledWith(
             expect.stringContaining("/api/v1/debug/access-attempts"),
             expect.any(Object)
         );

@@ -796,11 +796,11 @@ export default {
         },
         async loadInterfaces() {
             try {
-                const response = await window.axios.get(`/api/v1/reticulum/interfaces`);
+                const response = await window.api.get(`/api/v1/reticulum/interfaces`);
                 this.interfaces = response.data.interfaces;
 
                 // also check app info for running state
-                const appInfoResponse = await window.axios.get(`/api/v1/app/info`);
+                const appInfoResponse = await window.api.get(`/api/v1/app/info`);
                 this.isReticulumRunning = appInfoResponse.data.app_info.is_reticulum_running;
             } catch {
                 // do nothing if failed to load interfaces
@@ -809,7 +809,7 @@ export default {
         async updateInterfaceStats() {
             try {
                 // fetch interface stats
-                const response = await window.axios.get(`/api/v1/interface-stats`);
+                const response = await window.api.get(`/api/v1/interface-stats`);
 
                 // update data
                 const interfaces = response.data.interface_stats?.interfaces ?? [];
@@ -823,7 +823,7 @@ export default {
         async enableInterface(interfaceName) {
             // enable interface
             try {
-                await window.axios.post(`/api/v1/reticulum/interfaces/enable`, {
+                await window.api.post(`/api/v1/reticulum/interfaces/enable`, {
                     name: interfaceName,
                 });
                 this.trackInterfaceChange(interfaceName);
@@ -838,7 +838,7 @@ export default {
         async disableInterface(interfaceName) {
             // disable interface
             try {
-                await window.axios.post(`/api/v1/reticulum/interfaces/disable`, {
+                await window.api.post(`/api/v1/reticulum/interfaces/disable`, {
                     name: interfaceName,
                 });
                 this.trackInterfaceChange(interfaceName);
@@ -866,7 +866,7 @@ export default {
 
             // delete interface
             try {
-                await window.axios.post(`/api/v1/reticulum/interfaces/delete`, {
+                await window.api.post(`/api/v1/reticulum/interfaces/delete`, {
                     name: interfaceName,
                 });
                 this.trackInterfaceChange(interfaceName);
@@ -881,7 +881,7 @@ export default {
         async exportInterfaces() {
             try {
                 // fetch exported interfaces
-                const response = await window.axios.post("/api/v1/reticulum/interfaces/export");
+                const response = await window.api.post("/api/v1/reticulum/interfaces/export");
 
                 // download file to browser
                 DownloadUtils.downloadFile("meshchat_interfaces.txt", new Blob([response.data]));
@@ -893,7 +893,7 @@ export default {
         async exportInterface(interfaceName) {
             try {
                 // fetch exported interfaces
-                const response = await window.axios.post("/api/v1/reticulum/interfaces/export", {
+                const response = await window.api.post("/api/v1/reticulum/interfaces/export", {
                     selected_interface_names: [interfaceName],
                 });
 
@@ -916,7 +916,7 @@ export default {
         },
         async loadDiscoveredInterfaces() {
             try {
-                const response = await window.axios.get(`/api/v1/reticulum/discovered-interfaces`);
+                const response = await window.api.get(`/api/v1/reticulum/discovered-interfaces`);
                 const incoming = response.data?.interfaces ?? [];
                 const active = response.data?.active ?? [];
 
@@ -1021,7 +1021,7 @@ export default {
         },
         async loadDiscoveryConfig() {
             try {
-                const response = await window.axios.get(`/api/v1/reticulum/discovery`);
+                const response = await window.api.get(`/api/v1/reticulum/discovery`);
                 const discovery = response.data?.discovery ?? {};
                 this.discoveryConfig.discover_interfaces = this.parseBool(discovery.discover_interfaces);
                 this.discoveryConfig.interface_discovery_sources = discovery.interface_discovery_sources ?? "";
@@ -1066,7 +1066,7 @@ export default {
                     network_identity: this.discoveryConfig.network_identity || null,
                 };
 
-                await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
                 ToastUtils.success(this.$t("interfaces.discovery_settings_saved"));
                 await this.loadDiscoveryConfig();
             } catch (e) {
@@ -1192,7 +1192,7 @@ export default {
                     interface_discovery_whitelist: nextWhitelist.length ? nextWhitelist.join(",") : null,
                     interface_discovery_blacklist: nextBlacklist.length ? nextBlacklist.join(",") : null,
                 };
-                await window.axios.patch(`/api/v1/reticulum/discovery`, payload);
+                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
                 this.discoveryConfig.interface_discovery_whitelist = payload.interface_discovery_whitelist || "";
                 this.discoveryConfig.interface_discovery_blacklist = payload.interface_discovery_blacklist || "";
                 ToastUtils.success(
@@ -1251,7 +1251,7 @@ export default {
 
             try {
                 this.reloadingRns = true;
-                const response = await window.axios.post("/api/v1/reticulum/reload");
+                const response = await window.api.post("/api/v1/reticulum/reload");
                 ToastUtils.success(response.data.message);
                 GlobalState.hasPendingInterfaceChanges = false;
                 GlobalState.modifiedInterfaceNames.clear();

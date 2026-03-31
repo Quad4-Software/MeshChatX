@@ -61,7 +61,7 @@ const mockAxios = {
     post: vi.fn(() => Promise.resolve({ data: {} })),
     patch: vi.fn(() => Promise.resolve({ data: {} })),
 };
-window.axios = mockAxios;
+window.api = mockAxios;
 
 describe("InterfacesPage discovery actions", () => {
     beforeEach(() => {

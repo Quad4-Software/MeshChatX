@@ -723,7 +723,7 @@ export default {
             }
 
             try {
-                await window.axios.post("/api/v1/blocked-destinations", {
+                await window.api.post("/api/v1/blocked-destinations", {
                     destination_hash: node.identity_hash,
                 });
                 GlobalEmitter.emit("block-status-changed");
@@ -735,7 +735,7 @@ export default {
         },
         async onUnblockNode(identityHash) {
             try {
-                await window.axios.delete(`/api/v1/blocked-destinations/${identityHash}`);
+                await window.api.delete(`/api/v1/blocked-destinations/${identityHash}`);
                 GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert(this.$t("nomadnet.banishment_lifted"));
             } catch (e) {
@@ -942,7 +942,7 @@ export default {
                 return;
             }
             try {
-                await window.axios.post("/api/v1/blocked-destinations", {
+                await window.api.post("/api/v1/blocked-destinations", {
                     destination_hash: favourite.destination_hash,
                 });
                 GlobalEmitter.emit("block-status-changed");
@@ -960,7 +960,7 @@ export default {
             }
             this.closeContextMenus();
             try {
-                await window.axios.delete(`/api/v1/blocked-destinations/${hash}`);
+                await window.api.delete(`/api/v1/blocked-destinations/${hash}`);
                 GlobalEmitter.emit("block-status-changed");
                 DialogUtils.alert(this.$t("nomadnet.banishment_lifted"));
             } catch (e) {

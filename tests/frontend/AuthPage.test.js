@@ -17,7 +17,7 @@ describe("AuthPage.vue", () => {
             }),
             post: vi.fn().mockResolvedValue({ data: { success: true } }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
 
         routerMock = {
             push: vi.fn(),
@@ -32,7 +32,7 @@ describe("AuthPage.vue", () => {
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 

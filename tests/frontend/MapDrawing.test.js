@@ -220,7 +220,7 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
             patch: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
     });
 
     const mountMapPage = () => {

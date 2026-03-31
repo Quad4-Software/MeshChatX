@@ -271,7 +271,7 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.axios.get(`/api/v1/config`);
+                const response = await window.api.get(`/api/v1/config`);
                 this.config = response.data.config;
             } catch (e) {
                 // do nothing if failed to load config
@@ -331,7 +331,7 @@ export default {
         async getLxmfDeliveryAnnounces(append = false) {
             try {
                 const offset = append ? Object.keys(this.peers).length : 0;
-                const response = await window.axios.get(`/api/v1/announces`, {
+                const response = await window.api.get(`/api/v1/announces`, {
                     params: {
                         aspect: "lxmf.delivery",
                         limit: this.pageSize,
@@ -366,7 +366,7 @@ export default {
         async getLxmfDeliveryAnnounce(destinationHash) {
             try {
                 // fetch announce for destination hash
-                const response = await window.axios.get(`/api/v1/announces`, {
+                const response = await window.api.get(`/api/v1/announces`, {
                     params: {
                         destination_hash: destinationHash,
                         limit: 1,
@@ -392,7 +392,7 @@ export default {
                 }
 
                 const offset = append ? this.conversations.length : 0;
-                const response = await window.axios.get(`/api/v1/lxmf/conversations`, {
+                const response = await window.api.get(`/api/v1/lxmf/conversations`, {
                     params: {
                         ...this.buildConversationQueryParams(),
                         limit: this.pageSize,
@@ -481,7 +481,7 @@ export default {
         },
         async resolvePeerDisplayName(peerHash) {
             try {
-                const response = await window.axios.get(`/api/v1/lxmf/conversations`, {
+                const response = await window.api.get(`/api/v1/lxmf/conversations`, {
                     params: { search: peerHash, limit: 1 },
                 });
                 const results = response.data.conversations;
@@ -514,7 +514,7 @@ export default {
         },
         async getFolders() {
             try {
-                const response = await window.axios.get("/api/v1/lxmf/folders");
+                const response = await window.api.get("/api/v1/lxmf/folders");
                 this.folders = response.data;
             } catch (e) {
                 console.error("Failed to load folders", e);
@@ -522,7 +522,7 @@ export default {
         },
         async onCreateFolder(name) {
             try {
-                await window.axios.post("/api/v1/lxmf/folders", { name });
+                await window.api.post("/api/v1/lxmf/folders", { name });
                 await this.getFolders();
                 ToastUtils.success(this.$t("messages.folder_created"));
             } catch {
@@ -531,7 +531,7 @@ export default {
         },
         async onRenameFolder({ id, name }) {
             try {
-                await window.axios.patch(`/api/v1/lxmf/folders/${id}`, { name });
+                await window.api.patch(`/api/v1/lxmf/folders/${id}`, { name });
                 await this.getFolders();
                 ToastUtils.success(this.$t("messages.folder_renamed"));
             } catch {
@@ -540,7 +540,7 @@ export default {
         },
         async onDeleteFolder(id) {
             try {
-                await window.axios.delete(`/api/v1/lxmf/folders/${id}`);
+                await window.api.delete(`/api/v1/lxmf/folders/${id}`);
                 if (this.selectedFolderId === id) {
                     this.selectedFolderId = null;
                 }
@@ -555,7 +555,7 @@ export default {
             try {
                 // Treat 0 as null (Uncategorized) for the backend
                 const targetFolderId = folder_id === 0 ? null : folder_id;
-                await window.axios.post("/api/v1/lxmf/conversations/move-to-folder", {
+                await window.api.post("/api/v1/lxmf/conversations/move-to-folder", {
                     peer_hashes,
                     folder_id: targetFolderId,
                 });
@@ -567,7 +567,7 @@ export default {
         },
         async onBulkMarkAsRead(destination_hashes) {
             try {
-                await window.axios.post("/api/v1/lxmf/conversations/bulk-mark-as-read", {
+                await window.api.post("/api/v1/lxmf/conversations/bulk-mark-as-read", {
                     destination_hashes,
                 });
                 await this.getConversations();
@@ -584,7 +584,7 @@ export default {
                 );
                 if (!confirmed) return;
 
-                await window.axios.post("/api/v1/lxmf/conversations/bulk-delete", {
+                await window.api.post("/api/v1/lxmf/conversations/bulk-delete", {
                     destination_hashes,
                 });
                 await this.getConversations();
@@ -595,7 +595,7 @@ export default {
         },
         async onExportFolders() {
             try {
-                const response = await window.axios.get("/api/v1/lxmf/folders/export");
+                const response = await window.api.get("/api/v1/lxmf/folders/export");
                 const data = JSON.stringify(response.data, null, 2);
                 const blob = new Blob([data], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
@@ -619,7 +619,7 @@ export default {
                 reader.onload = async (re) => {
                     try {
                         const data = JSON.parse(re.target.result);
-                        await window.axios.post("/api/v1/lxmf/folders/import", data);
+                        await window.api.post("/api/v1/lxmf/folders/import", data);
                         await this.getFolders();
                         await this.getConversations();
                         ToastUtils.success(this.$t("messages.folders_imported"));

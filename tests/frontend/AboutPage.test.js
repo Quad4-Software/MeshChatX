@@ -13,7 +13,7 @@ describe("AboutPage.vue", () => {
             get: vi.fn().mockImplementation(() => Promise.resolve({ data: {} })),
             post: vi.fn().mockImplementation(() => Promise.resolve({ data: {} })),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
         window.URL.createObjectURL = vi.fn();
         window.URL.revokeObjectURL = vi.fn();
 
@@ -29,7 +29,7 @@ describe("AboutPage.vue", () => {
 
     afterEach(() => {
         vi.useRealTimers();
-        delete window.axios;
+        delete window.api;
         delete window.electron;
     });
 

@@ -412,7 +412,7 @@ export default {
             this.sendResult = null;
 
             try {
-                const response = await window.axios.post("/api/v1/rncp/send", {
+                const response = await window.api.post("/api/v1/rncp/send", {
                     destination_hash: this.sendDestinationHash,
                     file_path: this.sendFilePath,
                     timeout: this.sendTimeout,
@@ -454,7 +454,7 @@ export default {
             this.fetchResult = null;
 
             try {
-                const response = await window.axios.post("/api/v1/rncp/fetch", {
+                const response = await window.api.post("/api/v1/rncp/fetch", {
                     destination_hash: this.fetchDestinationHash,
                     file_path: this.fetchFilePath,
                     timeout: this.fetchTimeout,
@@ -497,7 +497,7 @@ export default {
             this.listenResult = null;
 
             try {
-                const response = await window.axios.post("/api/v1/rncp/listen", {
+                const response = await window.api.post("/api/v1/rncp/listen", {
                     allowed_hashes: allowedHashes,
                     fetch_allowed: this.listenFetchAllowed,
                     fetch_jail: this.listenFetchJail || null,

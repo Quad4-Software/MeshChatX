@@ -25,11 +25,11 @@ describe("PaperMessagePage.vue", () => {
             get: vi.fn(),
             post: vi.fn(),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 

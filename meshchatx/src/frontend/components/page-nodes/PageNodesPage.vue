@@ -381,7 +381,7 @@ export default {
         async loadNodes() {
             this.loading = true;
             try {
-                const response = await window.axios.get("/api/v1/page-nodes");
+                const response = await window.api.get("/api/v1/page-nodes");
                 this.nodes = response.data;
                 if (this.selectedNode) {
                     const updated = this.nodes.find((n) => n.node_id === this.selectedNode.node_id);
@@ -405,7 +405,7 @@ export default {
         async createNode() {
             if (!this.createNodeName.trim()) return;
             try {
-                await window.axios.post("/api/v1/page-nodes", { name: this.createNodeName.trim() });
+                await window.api.post("/api/v1/page-nodes", { name: this.createNodeName.trim() });
                 this.createNodeName = "";
                 this.showCreateDialog = false;
                 this.showStatus("Server created", true);
@@ -417,7 +417,7 @@ export default {
         async deleteNode(nodeId) {
             if (!(await DialogUtils.confirm("Delete this mesh server and all its content?"))) return;
             try {
-                await window.axios.delete(`/api/v1/page-nodes/${nodeId}`);
+                await window.api.delete(`/api/v1/page-nodes/${nodeId}`);
                 if (this.selectedNode && this.selectedNode.node_id === nodeId) {
                     this.selectedNode = null;
                 }
@@ -429,7 +429,7 @@ export default {
         },
         async startNode(nodeId) {
             try {
-                const response = await window.axios.post(`/api/v1/page-nodes/${nodeId}/start`);
+                const response = await window.api.post(`/api/v1/page-nodes/${nodeId}/start`);
                 this.showStatus(`Server started: ${response.data.destination_hash}`, true);
                 await this.loadNodes();
             } catch (e) {
@@ -438,7 +438,7 @@ export default {
         },
         async stopNode(nodeId) {
             try {
-                await window.axios.post(`/api/v1/page-nodes/${nodeId}/stop`);
+                await window.api.post(`/api/v1/page-nodes/${nodeId}/stop`);
                 this.showStatus("Server stopped", true);
                 await this.loadNodes();
             } catch {
@@ -447,7 +447,7 @@ export default {
         },
         async announceNode(nodeId) {
             try {
-                await window.axios.post(`/api/v1/page-nodes/${nodeId}/announce`);
+                await window.api.post(`/api/v1/page-nodes/${nodeId}/announce`);
                 this.showStatus("Announced on mesh", true);
             } catch {
                 this.showStatus("Failed to announce", false);
@@ -456,7 +456,7 @@ export default {
         async renameNode() {
             if (!this.renameNodeName.trim() || !this.selectedNode) return;
             try {
-                await window.axios.put(`/api/v1/page-nodes/${this.selectedNode.node_id}/rename`, {
+                await window.api.put(`/api/v1/page-nodes/${this.selectedNode.node_id}/rename`, {
                     name: this.renameNodeName.trim(),
                 });
                 this.renameNodeName = "";
@@ -470,7 +470,7 @@ export default {
         async addPage() {
             if (!this.newPageName.trim() || !this.selectedNode) return;
             try {
-                await window.axios.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/pages`, {
+                await window.api.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/pages`, {
                     name: this.newPageName.trim(),
                     content: "",
                 });
@@ -483,7 +483,7 @@ export default {
         },
         async editPage(pageName) {
             try {
-                const response = await window.axios.get(
+                const response = await window.api.get(
                     `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
                 );
                 this.editingPage = pageName;
@@ -495,7 +495,7 @@ export default {
         async savePage() {
             if (!this.editingPage || !this.selectedNode) return;
             try {
-                await window.axios.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/pages`, {
+                await window.api.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/pages`, {
                     name: this.editingPage,
                     content: this.editingPageContent,
                 });
@@ -510,7 +510,7 @@ export default {
         async deletePage(pageName) {
             if (!(await DialogUtils.confirm(`Delete page "${pageName}"?`))) return;
             try {
-                await window.axios.delete(
+                await window.api.delete(
                     `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
                 );
                 if (this.editingPage === pageName) {
@@ -528,7 +528,7 @@ export default {
             const formData = new FormData();
             formData.append("file", file);
             try {
-                await window.axios.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/files`, formData, {
+                await window.api.post(`/api/v1/page-nodes/${this.selectedNode.node_id}/files`, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 this.showStatus("File uploaded", true);
@@ -541,7 +541,7 @@ export default {
         async deleteFile(fileName) {
             if (!(await DialogUtils.confirm(`Delete file "${fileName}"?`))) return;
             try {
-                await window.axios.delete(
+                await window.api.delete(
                     `/api/v1/page-nodes/${this.selectedNode.node_id}/files/${encodeURIComponent(fileName)}`
                 );
                 this.showStatus("File deleted", true);

@@ -15,12 +15,13 @@ describe("RNProbePage.vue", () => {
     beforeEach(() => {
         axiosMock = {
             post: vi.fn(),
+            isCancel: vi.fn().mockReturnValue(false),
         };
-        window.axios = axiosMock;
+        window.api = axiosMock;
     });
 
     afterEach(() => {
-        delete window.axios;
+        delete window.api;
         vi.clearAllMocks();
     });
 

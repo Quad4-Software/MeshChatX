@@ -318,7 +318,7 @@ export default {
             this.traceResult = null;
 
             try {
-                const res = await window.axios.get(`/api/v1/rnpath/trace/${this.destinationHash}`);
+                const res = await window.api.get(`/api/v1/rnpath/trace/${this.destinationHash}`);
                 if (res.data.error) {
                     this.error = res.data.error;
                 } else {

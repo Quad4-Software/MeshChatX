@@ -13,7 +13,7 @@ class WebSocketConnection {
     async connect() {
         this.destroyed = false;
 
-        if (typeof window === "undefined" || !window.axios) {
+        if (typeof window === "undefined" || !window.api) {
             setTimeout(() => this.connect(), 100);
             return;
         }

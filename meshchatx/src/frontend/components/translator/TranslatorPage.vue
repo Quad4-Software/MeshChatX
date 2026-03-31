@@ -430,7 +430,7 @@ export default {
     methods: {
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
                 if (this.config.translator_enabled) {
                     this.loadLanguages();
@@ -448,7 +448,7 @@ export default {
                 if (this.translationMode === "libretranslate" && this.libretranslateUrl) {
                     params.libretranslate_url = this.libretranslateUrl;
                 }
-                const response = await window.axios.get("/api/v1/translator/languages", { params });
+                const response = await window.api.get("/api/v1/translator/languages", { params });
                 this.languages = response.data.languages || [];
                 this.hasArgos = response.data.has_argos;
             } catch (e) {
@@ -489,7 +489,7 @@ export default {
                 if (this.translationMode === "libretranslate" && this.libretranslateUrl) {
                     payload.libretranslate_url = this.libretranslateUrl;
                 }
-                const response = await window.axios.post("/api/v1/translator/translate", payload);
+                const response = await window.api.post("/api/v1/translator/translate", payload);
 
                 this.translationResult = response.data;
                 if (this.translationResult.source_lang === "auto") {
@@ -548,7 +548,7 @@ export default {
             this.error = null;
 
             try {
-                const response = await window.axios.post("/api/v1/translator/install-languages", {
+                const response = await window.api.post("/api/v1/translator/install-languages", {
                     package: packageName,
                 });
 

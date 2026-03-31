@@ -630,7 +630,7 @@ export default {
     methods: {
         async fetchStatus() {
             try {
-                const response = await window.axios.get("/api/v1/docs/status");
+                const response = await window.api.get("/api/v1/docs/status");
                 this.status = response.data;
 
                 // Auto-download Reticulum docs if missing and we're not already doing something
@@ -650,7 +650,7 @@ export default {
         },
         async fetchMeshChatXDocs() {
             try {
-                const response = await window.axios.get("/api/v1/meshchatx-docs/list");
+                const response = await window.api.get("/api/v1/meshchatx-docs/list");
                 this.meshchatxDocs = response.data;
                 if (this.meshchatxDocs.length > 0 && !this.selectedDocPath) {
                     this.selectDoc(this.meshchatxDocs[0].path);
@@ -662,7 +662,7 @@ export default {
         async selectDoc(path) {
             this.selectedDocPath = path;
             try {
-                const response = await window.axios.get("/api/v1/meshchatx-docs/content", {
+                const response = await window.api.get("/api/v1/meshchatx-docs/content", {
                     params: { path },
                 });
                 this.selectedDocContent = response.data;
@@ -675,7 +675,7 @@ export default {
         },
         async updateDocs() {
             try {
-                await window.axios.post("/api/v1/docs/update");
+                await window.api.post("/api/v1/docs/update");
                 this.fetchStatus();
             } catch (error) {
                 console.error("Failed to trigger docs update:", error);
@@ -685,12 +685,12 @@ export default {
             if (!this.alternateDocsUrl) return;
             try {
                 // Get current config
-                const configResponse = await window.axios.get("/api/v1/config");
+                const configResponse = await window.api.get("/api/v1/config");
                 const currentUrls = configResponse.data.config.docs_download_urls || "";
                 const newUrls = currentUrls ? `${currentUrls},${this.alternateDocsUrl}` : this.alternateDocsUrl;
 
                 // Update config
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     docs_download_urls: newUrls,
                 });
 
@@ -704,7 +704,7 @@ export default {
         },
         async switchVersion(version) {
             try {
-                await window.axios.post("/api/v1/docs/switch", { version });
+                await window.api.post("/api/v1/docs/switch", { version });
                 this.showVersions = false;
                 this.selectedReticulumPath = null;
                 this.fetchStatus();
@@ -725,7 +725,7 @@ export default {
             }
 
             try {
-                await window.axios.delete(`/api/v1/docs/version/${encodeURIComponent(version)}`);
+                await window.api.delete(`/api/v1/docs/version/${encodeURIComponent(version)}`);
                 this.fetchStatus();
                 ToastUtils.success(`Version ${version} deleted`);
             } catch (error) {
@@ -744,7 +744,7 @@ export default {
             formData.append("file", file);
 
             try {
-                await window.axios.post(`/api/v1/docs/upload?version=${encodeURIComponent(version)}`, formData, {
+                await window.api.post(`/api/v1/docs/upload?version=${encodeURIComponent(version)}`, formData, {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
@@ -776,7 +776,7 @@ export default {
             try {
                 this.showLanguages = false;
                 this.selectedReticulumPath = null;
-                await window.axios.patch("/api/v1/config", {
+                await window.api.patch("/api/v1/config", {
                     language: langCode,
                 });
                 // The app will update automatically via websocket config sync
@@ -798,7 +798,7 @@ export default {
             if (!this.searchQuery) return;
             this.isSearching = true;
             try {
-                const response = await window.axios.get("/api/v1/docs/search", {
+                const response = await window.api.get("/api/v1/docs/search", {
                     params: {
                         q: this.searchQuery,
                         lang: this.currentLang,

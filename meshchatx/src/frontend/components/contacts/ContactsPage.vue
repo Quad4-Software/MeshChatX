@@ -453,7 +453,7 @@ export default {
     methods: {
         async getConfig() {
             try {
-                const response = await window.axios.get("/api/v1/config");
+                const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
                 this.myIdentityUri = this.buildMyIdentityUri();
                 if (this.myIdentityUri) {
@@ -478,7 +478,7 @@ export default {
                 this.contactsOffset = 0;
             }
             try {
-                const response = await window.axios.get("/api/v1/telephone/contacts", {
+                const response = await window.api.get("/api/v1/telephone/contacts", {
                     params: {
                         search: this.contactsSearch || undefined,
                         limit: this.contactsPageSize,
@@ -548,7 +548,7 @@ export default {
         },
         async importContacts(contacts) {
             try {
-                const response = await window.axios.post("/api/v1/telephone/contacts/import", {
+                const response = await window.api.post("/api/v1/telephone/contacts/import", {
                     contacts,
                 });
                 const added = response.data?.added ?? 0;
@@ -561,7 +561,7 @@ export default {
         },
         async exportContacts() {
             try {
-                const response = await window.axios.get("/api/v1/telephone/contacts/export");
+                const response = await window.api.get("/api/v1/telephone/contacts/export");
                 const contacts = response.data?.contacts ?? [];
                 const blob = new Blob([JSON.stringify({ contacts }, null, 2)], {
                     type: "application/json",
@@ -628,13 +628,13 @@ export default {
                     return;
                 }
 
-                const existing = await window.axios.get(`/api/v1/telephone/contacts/check/${destinationHash}`);
+                const existing = await window.api.get(`/api/v1/telephone/contacts/check/${destinationHash}`);
                 if (existing.data?.id) {
                     ToastUtils.info(this.$t("contacts.contact_already_exists"));
                     return;
                 }
 
-                await window.axios.post("/api/v1/telephone/contacts", {
+                await window.api.post("/api/v1/telephone/contacts", {
                     name: this.newContactName?.trim() || `Contact ${destinationHash.slice(0, 8)}`,
                     remote_identity_hash: destinationHash,
                     lxmf_address: destinationHash,
@@ -673,7 +673,7 @@ export default {
             if (!contact?.id) return;
             if (!window.confirm(this.$t("contacts.remove_contact_confirm"))) return;
             try {
-                await window.axios.delete(`/api/v1/telephone/contacts/${contact.id}`);
+                await window.api.delete(`/api/v1/telephone/contacts/${contact.id}`);
                 ToastUtils.success(this.$t("contacts.contact_removed"));
                 await this.getContacts();
             } catch {
@@ -707,7 +707,7 @@ export default {
             const destinationHash = (contact?.lxmf_address || contact?.remote_identity_hash || "").toLowerCase();
             if (!/^[0-9a-f]{32}$/.test(destinationHash)) return null;
             try {
-                const response = await window.axios.get("/api/v1/announces", {
+                const response = await window.api.get("/api/v1/announces", {
                     params: {
                         destination_hash: destinationHash,
                         limit: 1,

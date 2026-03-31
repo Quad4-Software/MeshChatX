@@ -789,7 +789,7 @@ ${b}=
             this.showPublishMenu = !this.showPublishMenu;
             if (this.showPublishMenu) {
                 try {
-                    const response = await window.axios.get("/api/v1/page-nodes");
+                    const response = await window.api.get("/api/v1/page-nodes");
                     this.pageNodes = response.data;
                 } catch {
                     this.pageNodes = [];
@@ -800,7 +800,7 @@ ${b}=
             const tab = this.tabs[this.activeTabIndex];
             const pageName = tab.name.replace(/\s+/g, "_");
             try {
-                await window.axios.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
                     name: pageName,
                     content: tab.content,
                 });
@@ -827,7 +827,7 @@ ${b}=
             for (const tab of this.tabs) {
                 const pageName = tab.name.replace(/\s+/g, "_");
                 try {
-                    await window.axios.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                    await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
                         name: pageName,
                         content: tab.content,
                     });

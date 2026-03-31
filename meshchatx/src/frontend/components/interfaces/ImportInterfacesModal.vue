@@ -186,7 +186,7 @@ export default {
 
             try {
                 // fetch preview of interfaces to import
-                const response = await window.axios.post("/api/v1/reticulum/interfaces/import-preview", {
+                const response = await window.api.post("/api/v1/reticulum/interfaces/import-preview", {
                     config: await file.text(),
                 });
 
@@ -249,7 +249,7 @@ export default {
 
             try {
                 // import interfaces
-                await window.axios.post("/api/v1/reticulum/interfaces/import", {
+                await window.api.post("/api/v1/reticulum/interfaces/import", {
                     config: await this.selectedFile.text(),
                     selected_interface_names: this.selectedInterfaces,
                 });

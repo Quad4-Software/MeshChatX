@@ -103,7 +103,7 @@ export default {
     methods: {
         async checkAuthStatus() {
             try {
-                const response = await window.axios.get("/api/v1/auth/status");
+                const response = await window.api.get("/api/v1/auth/status");
                 const status = response.data;
 
                 if (!status.auth_enabled) {
@@ -141,7 +141,7 @@ export default {
 
             try {
                 const endpoint = this.isSetup ? "/api/v1/auth/setup" : "/api/v1/auth/login";
-                await window.axios.post(endpoint, {
+                await window.api.post(endpoint, {
                     password: this.password,
                 });
 
