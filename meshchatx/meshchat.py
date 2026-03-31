@@ -278,10 +278,14 @@ class ReticulumMeshChat:
         emergency: bool = False,
         gitea_base_url: str | None = None,
         docs_download_urls: str | None = None,
+        ssl_cert_path: str | None = None,
+        ssl_key_path: str | None = None,
     ):
         self.running = True
         self.reticulum_config_dir = reticulum_config_dir
         self.storage_dir = storage_dir or os.path.join("storage")
+        self.ssl_cert_path = ssl_cert_path
+        self.ssl_key_path = ssl_key_path
         self.identity_file_path = identity_file_path
         self.auto_recover = auto_recover
         self.emergency = emergency
@@ -9574,17 +9578,35 @@ class ReticulumMeshChat:
         ssl_context = None
         use_https = enable_https
         if enable_https:
-            cert_dir = os.path.join(self.storage_path, "ssl")
-            cert_path = os.path.join(cert_dir, "cert.pem")
-            key_path = os.path.join(cert_dir, "key.pem")
+            custom_ssl = bool(self.ssl_cert_path and self.ssl_key_path)
+            if custom_ssl:
+                cert_path = os.path.abspath(self.ssl_cert_path)
+                key_path = os.path.abspath(self.ssl_key_path)
+            else:
+                cert_dir = os.path.join(self.storage_path, "ssl")
+                cert_path = os.path.join(cert_dir, "cert.pem")
+                key_path = os.path.join(cert_dir, "key.pem")
 
             try:
-                generate_ssl_certificate(cert_path, key_path)
-                ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-                ssl_context.load_cert_chain(cert_path, key_path)
-                print(f"HTTPS enabled with certificate at {cert_path}")
+                if custom_ssl:
+                    if not os.path.isfile(cert_path) or not os.path.isfile(key_path):
+                        msg = (
+                            f"Custom SSL files not found (cert={cert_path!r}, key={key_path!r})"
+                        )
+                        raise FileNotFoundError(msg)
+                    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+                    ssl_context.load_cert_chain(cert_path, key_path)
+                    print(f"HTTPS enabled with custom certificate at {cert_path}")
+                else:
+                    generate_ssl_certificate(cert_path, key_path)
+                    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+                    ssl_context.load_cert_chain(cert_path, key_path)
+                    print(f"HTTPS enabled with certificate at {cert_path}")
             except Exception as e:
-                print(f"Failed to generate SSL certificate: {e}")
+                if custom_ssl:
+                    print(f"Failed to load custom SSL certificate: {e}")
+                else:
+                    print(f"Failed to generate SSL certificate: {e}")
                 print("Falling back to HTTP")
                 use_https = False
 
@@ -13091,6 +13113,20 @@ def main():
         help="Disable HTTPS and use HTTP instead. Can also be set via MESHCHAT_NO_HTTPS environment variable.",
     )
     parser.add_argument(
+        "--ssl-cert",
+        type=str,
+        default=os.environ.get("MESHCHAT_SSL_CERT"),
+        metavar="PATH",
+        help="Path to PEM TLS certificate. Use with --ssl-key (or MESHCHAT_SSL_KEY). Overrides the default identity storage ssl/cert.pem.",
+    )
+    parser.add_argument(
+        "--ssl-key",
+        type=str,
+        default=os.environ.get("MESHCHAT_SSL_KEY"),
+        metavar="PATH",
+        help="Path to PEM TLS private key. Use with --ssl-cert (or MESHCHAT_SSL_CERT). Overrides the default identity storage ssl/key.pem.",
+    )
+    parser.add_argument(
         "--no-crash-recovery",
         action="store_true",
         default=env_bool("MESHCHAT_NO_CRASH_RECOVERY", False),
@@ -13160,6 +13196,13 @@ def main():
     )
 
     args = parser.parse_args()
+
+    ssl_cert = (args.ssl_cert or "").strip() or None
+    ssl_key = (args.ssl_key or "").strip() or None
+    if bool(ssl_cert) != bool(ssl_key):
+        parser.error(
+            "Both --ssl-cert and --ssl-key (or MESHCHAT_SSL_CERT and MESHCHAT_SSL_KEY) must be set together.",
+        )
 
     # Disable crash recovery if requested via flag
     if args.no_crash_recovery:
@@ -13263,6 +13306,8 @@ def main():
         emergency=args.emergency,
         gitea_base_url=args.gitea_base_url,
         docs_download_urls=args.docs_download_urls,
+        ssl_cert_path=ssl_cert,
+        ssl_key_path=ssl_key,
     )
 
     # store recovery on app for wiring with identity context
