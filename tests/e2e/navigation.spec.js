@@ -32,6 +32,18 @@ test.describe("Command palette", () => {
         await expect(page.getByText("Profile", { exact: true }).first()).toBeVisible({ timeout: 20000 });
     });
 
+    test("palette navigates to Documentation via filter and Enter", async ({ page }) => {
+        await page.goto("/#/map");
+        await openCommandPalette(page);
+        const input = page.getByPlaceholder(PALETTE_PLACEHOLDER);
+        await input.fill("Documentation");
+        await page.keyboard.press("Enter");
+        await expect(page).toHaveURL(/#\/documentation/, { timeout: 15000 });
+        await expect(page.getByRole("heading", { name: "Documentation", exact: true })).toBeVisible({
+            timeout: 20000,
+        });
+    });
+
     test("Escape closes command palette", async ({ page }) => {
         await page.goto("/#/messages");
         await openCommandPalette(page);
