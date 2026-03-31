@@ -52,6 +52,17 @@ from serial.tools import list_ports
 
 from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.colour_utils import ColourUtils
+from meshchatx.src.backend.database.access_attempts import (
+    LOGIN_PATH,
+    MAX_FAILED_BEFORE_LOCKOUT,
+    MAX_TRUSTED_LOGIN_PER_WINDOW,
+    MAX_UNTRUSTED_LOGIN_PER_WINDOW,
+    SETUP_PATH,
+    WINDOW_LOCKOUT_S,
+    WINDOW_RATE_TRUSTED_S,
+    WINDOW_RATE_UNTRUSTED_S,
+    user_agent_hash,
+)
 from meshchatx.src.backend.identity_context import IdentityContext
 from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
@@ -130,6 +141,15 @@ def resolve_log_dir():
             continue
 
     return None
+
+
+def _request_client_ip(request: web.Request) -> str:
+    xff = request.headers.get("X-Forwarded-For")
+    if xff:
+        return xff.split(",")[0].strip()
+    if request.remote:
+        return request.remote
+    return ""
 
 
 # Global log handler
@@ -2427,11 +2447,6 @@ class ReticulumMeshChat:
             # check if path is public
             is_public = any(path.startswith(public) for public in public_paths)
 
-            # Allow WebSocket connections without auth if it's the handshake/upgrade request
-            # Real auth for WS happens inside the connection if needed, or by cookie
-            if path == "/ws":
-                return await handler(request)
-
             # check if requesting setup page (index.html will show setup if needed)
             if (
                 path == "/"
@@ -2557,6 +2572,33 @@ class ReticulumMeshChat:
             return web.json_response(
                 {
                     "logs": logs,
+                    "total": total,
+                    "limit": limit,
+                    "offset": offset,
+                },
+            )
+
+        @routes.get("/api/v1/debug/access-attempts")
+        async def get_access_attempts(request):
+            search = request.query.get("search")
+            outcome = request.query.get("outcome") or None
+            limit = int(request.query.get("limit", 100))
+            offset = int(request.query.get("offset", 0))
+            if not self.database:
+                return web.json_response(
+                    {"attempts": [], "total": 0, "limit": limit, "offset": offset},
+                )
+            dao = self.database.access_attempts
+            attempts = dao.list_attempts(
+                limit=limit,
+                offset=offset,
+                search=search,
+                outcome=outcome,
+            )
+            total = dao.count_attempts(search=search, outcome=outcome)
+            return web.json_response(
+                {
+                    "attempts": attempts,
                     "total": total,
                     "limit": limit,
                     "offset": offset,
@@ -2819,68 +2861,185 @@ class ReticulumMeshChat:
         # auth setup
         @routes.post("/api/v1/auth/setup")
         async def auth_setup(request):
-            # check if password already set
+            blocked = self._enforce_login_access(request, SETUP_PATH)
+            if blocked is not None:
+                return blocked
+            ip = _request_client_ip(request)
+            ua = request.headers.get("User-Agent", "") or ""
+            ua_h = user_agent_hash(ua)
+            id_hash = self.identity.hash.hex()
+            dao = self.database.access_attempts if self.database else None
+
             if self.config.auth_password_hash.get() is not None:
+                if dao:
+                    dao.insert(
+                        id_hash,
+                        ip,
+                        ua,
+                        SETUP_PATH,
+                        request.method,
+                        "setup_already_done",
+                        "",
+                    )
                 return web.json_response(
                     {"error": "Initial setup already completed"},
                     status=403,
                 )
 
-            data = await request.json()
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+                if dao:
+                    dao.insert(
+                        id_hash,
+                        ip,
+                        ua,
+                        SETUP_PATH,
+                        request.method,
+                        "invalid_json",
+                        "",
+                    )
+                return web.json_response(
+                    {"error": "Invalid JSON body"},
+                    status=400,
+                )
             password = data.get("password")
 
             if not password or len(password) < 8:
+                if dao:
+                    dao.insert(
+                        id_hash,
+                        ip,
+                        ua,
+                        SETUP_PATH,
+                        request.method,
+                        "weak_password",
+                        "",
+                    )
                 return web.json_response(
                     {"error": "Password must be at least 8 characters long"},
                     status=400,
                 )
 
-            # hash password
             password_hash = bcrypt.hashpw(
                 password.encode("utf-8"),
                 bcrypt.gensalt(),
             ).decode("utf-8")
 
-            # save to config
             self.config.auth_password_hash.set(password_hash)
 
-            # set authenticated in session for THIS identity
             session = await get_session(request)
             session["authenticated"] = True
             session["identity_hash"] = self.identity.hash.hex()
+
+            if dao:
+                dao.insert(
+                    id_hash,
+                    ip,
+                    ua,
+                    SETUP_PATH,
+                    request.method,
+                    "success",
+                    "",
+                )
+                dao.upsert_trusted(id_hash, ip, ua_h)
 
             return web.json_response({"message": "Setup completed successfully"})
 
         # auth login
         @routes.post("/api/v1/auth/login")
         async def auth_login(request):
-            data = await request.json()
+            blocked = self._enforce_login_access(request, LOGIN_PATH)
+            if blocked is not None:
+                return blocked
+            ip = _request_client_ip(request)
+            ua = request.headers.get("User-Agent", "") or ""
+            ua_h = user_agent_hash(ua)
+            id_hash = self.identity.hash.hex()
+            dao = self.database.access_attempts if self.database else None
+
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+                if dao:
+                    dao.insert(
+                        id_hash,
+                        ip,
+                        ua,
+                        LOGIN_PATH,
+                        request.method,
+                        "invalid_json",
+                        "",
+                    )
+                return web.json_response(
+                    {"error": "Invalid JSON body"},
+                    status=400,
+                )
             password = data.get("password")
 
             password_hash = self.config.auth_password_hash.get()
             if password_hash is None:
+                if dao:
+                    dao.insert(
+                        id_hash,
+                        ip,
+                        ua,
+                        LOGIN_PATH,
+                        request.method,
+                        "auth_not_setup",
+                        "",
+                    )
                 return web.json_response(
                     {"error": "Auth not setup"},
                     status=403,
                 )
 
             if not password:
+                if dao:
+                    dao.insert(
+                        id_hash,
+                        ip,
+                        ua,
+                        LOGIN_PATH,
+                        request.method,
+                        "password_required",
+                        "",
+                    )
                 return web.json_response(
                     {"error": "Password required"},
                     status=400,
                 )
 
-            # verify password
             if bcrypt.checkpw(
                 password.encode("utf-8"),
                 password_hash.encode("utf-8"),
             ):
-                # set authenticated in session for THIS identity
                 session = await get_session(request)
                 session["authenticated"] = True
                 session["identity_hash"] = self.identity.hash.hex()
+                if dao:
+                    dao.insert(
+                        id_hash,
+                        ip,
+                        ua,
+                        LOGIN_PATH,
+                        request.method,
+                        "success",
+                        "",
+                    )
+                    dao.upsert_trusted(id_hash, ip, ua_h)
                 return web.json_response({"message": "Login successful"})
 
+            if dao:
+                dao.insert(
+                    id_hash,
+                    ip,
+                    ua,
+                    LOGIN_PATH,
+                    request.method,
+                    "failed_password",
+                    "",
+                )
             return web.json_response(
                 {"error": "Invalid password"},
                 status=401,
@@ -2890,7 +3049,7 @@ class ReticulumMeshChat:
         @routes.post("/api/v1/auth/logout")
         async def auth_logout(request):
             session = await get_session(request)
-            session["authenticated"] = False
+            session.invalidate()
             return web.json_response({"message": "Logged out successfully"})
 
         # fetch com ports
@@ -9315,6 +9474,96 @@ class ReticulumMeshChat:
 
         return auth_middleware, mime_type_middleware, security_middleware
 
+    def _encrypted_cookie_storage(self, use_https: bool) -> EncryptedCookieStorage:
+        try:
+            secret_key_bytes = base64.urlsafe_b64decode(self.session_secret_key + "===")
+            if len(secret_key_bytes) < 32:
+                secret_key_bytes = secret_key_bytes.ljust(32, b"\0")
+            elif len(secret_key_bytes) > 32:
+                secret_key_bytes = secret_key_bytes[:32]
+        except Exception:
+            secret_key_bytes = hashlib.sha256(
+                self.session_secret_key.encode("utf-8"),
+            ).digest()
+        return EncryptedCookieStorage(
+            secret_key_bytes,
+            secure=use_https,
+            httponly=True,
+            samesite="Lax",
+        )
+
+    def _enforce_login_access(self, request, path: str):
+        if not self.database:
+            return None
+        ip = _request_client_ip(request)
+        ua = request.headers.get("User-Agent", "") or ""
+        ua_h = user_agent_hash(ua)
+        id_hash = self.identity.hash.hex()
+        dao = self.database.access_attempts
+        trusted = dao.is_trusted(id_hash, ip, ua_h)
+        now = time.time()
+        if trusted:
+            if (
+                dao.count_login_attempts_ip_ua(
+                    ip,
+                    ua_h,
+                    path,
+                    now - WINDOW_RATE_TRUSTED_S,
+                )
+                >= MAX_TRUSTED_LOGIN_PER_WINDOW
+            ):
+                dao.insert(
+                    id_hash,
+                    ip,
+                    ua,
+                    path,
+                    request.method,
+                    "rate_limited",
+                    "trusted_window",
+                )
+                return web.json_response(
+                    {"error": "Too many requests. Try again later."},
+                    status=429,
+                )
+        else:
+            if (
+                dao.count_login_attempts_ip(ip, path, now - WINDOW_RATE_UNTRUSTED_S)
+                >= MAX_UNTRUSTED_LOGIN_PER_WINDOW
+            ):
+                dao.insert(
+                    id_hash,
+                    ip,
+                    ua,
+                    path,
+                    request.method,
+                    "rate_limited",
+                    "ip_window",
+                )
+                return web.json_response(
+                    {"error": "Too many requests. Try again later."},
+                    status=429,
+                )
+            if (
+                dao.count_lockout_failures(id_hash, ip, now - WINDOW_LOCKOUT_S)
+                >= MAX_FAILED_BEFORE_LOCKOUT
+            ):
+                dao.insert(
+                    id_hash,
+                    ip,
+                    ua,
+                    path,
+                    request.method,
+                    "lockout",
+                    "failures",
+                )
+                return web.json_response(
+                    {
+                        "error": "Too many failed login attempts from this address. Try again later.",
+                    },
+                    status=429,
+                )
+        return None
+
     def run(self, host, port, launch_browser: bool, enable_https: bool = True):
         # create route table
         routes = web.RouteTableDef()
@@ -9385,26 +9634,9 @@ class ReticulumMeshChat:
 
         # setup session storage
         # aiohttp_session.setup must be called before other middlewares that use sessions
-
-        # Ensure we have a valid 32-byte key for Fernet
-        try:
-            # First try decoding as base64 (since secrets.token_urlsafe produces base64)
-            secret_key_bytes = base64.urlsafe_b64decode(self.session_secret_key + "===")
-            if len(secret_key_bytes) < 32:
-                # If too short, pad it
-                secret_key_bytes = secret_key_bytes.ljust(32, b"\0")
-            elif len(secret_key_bytes) > 32:
-                # If too long, truncate it
-                secret_key_bytes = secret_key_bytes[:32]
-        except Exception:
-            # Fallback to direct encoding and hashing to get exactly 32 bytes
-            secret_key_bytes = hashlib.sha256(
-                self.session_secret_key.encode("utf-8"),
-            ).digest()
-
         setup_session(
             app,
-            EncryptedCookieStorage(secret_key_bytes),
+            self._encrypted_cookie_storage(use_https),
         )
 
         # add other middlewares
