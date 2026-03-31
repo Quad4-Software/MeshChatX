@@ -1,4 +1,3 @@
-import axios from "axios";
 import { createApp, defineAsyncComponent } from "vue";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
@@ -10,6 +9,7 @@ window.DOMPurify = DOMPurify;
 import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
 import { ensureCodec2ScriptsLoaded } from "./js/Codec2Loader";
+import { createApiClient } from "./js/apiClient.js";
 
 import App from "./components/App.vue";
 import GlobalState from "./js/GlobalState";
@@ -63,23 +63,6 @@ const vuetify = createVuetify({
         },
     },
 });
-
-// provide axios globally
-window.axios = axios;
-
-// setup global axios interceptor for auth errors
-axios.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401 || error.response?.status === 403) {
-            if (router.currentRoute.value.name !== "auth") {
-                GlobalState.authenticated = false;
-                router.push("/auth");
-            }
-        }
-        return Promise.reject(error);
-    }
-);
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -293,9 +276,18 @@ const router = createRouter({
     ],
 });
 
+window.api = createApiClient({
+    onAuthError() {
+        if (router.currentRoute.value.name !== "auth") {
+            GlobalState.authenticated = false;
+            router.push("/auth");
+        }
+    },
+});
+
 router.beforeEach(async (to, from, next) => {
     try {
-        const response = await window.axios.get("/api/v1/auth/status");
+        const response = await window.api.get("/api/v1/auth/status");
         const status = response.data;
         GlobalState.authEnabled = !!status.auth_enabled;
         GlobalState.authenticated = !!status.authenticated;
