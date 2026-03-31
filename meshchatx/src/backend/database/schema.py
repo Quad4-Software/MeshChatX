@@ -13,7 +13,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 41
+    LATEST_VERSION = 42
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1068,6 +1068,44 @@ class DatabaseSchema:
         if current_version < 41:
             self._safe_execute(
                 "ALTER TABLE lxmf_messages ADD COLUMN attachments_stripped INTEGER DEFAULT 0",
+            )
+
+        if current_version < 42:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS access_attempts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at REAL NOT NULL,
+                    identity_hash TEXT NOT NULL,
+                    client_ip TEXT NOT NULL,
+                    user_agent TEXT,
+                    user_agent_hash TEXT NOT NULL,
+                    path TEXT NOT NULL,
+                    method TEXT NOT NULL,
+                    outcome TEXT NOT NULL,
+                    detail TEXT
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_access_attempts_created ON access_attempts(created_at)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_access_attempts_ip_time ON access_attempts(client_ip, created_at)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_access_attempts_identity_time ON access_attempts(identity_hash, created_at)",
+            )
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS trusted_login_clients (
+                    identity_hash TEXT NOT NULL,
+                    client_ip TEXT NOT NULL,
+                    user_agent_hash TEXT NOT NULL,
+                    last_success_at REAL NOT NULL,
+                    created_at REAL NOT NULL,
+                    PRIMARY KEY (identity_hash, client_ip, user_agent_hash)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_trusted_login_identity ON trusted_login_clients(identity_hash)",
             )
 
         # Update version in config
