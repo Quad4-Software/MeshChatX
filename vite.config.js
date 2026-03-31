@@ -9,15 +9,19 @@ if (fs.existsSync(assetsDir)) {
     fs.rmSync(assetsDir, { recursive: true, force: true });
 }
 
+const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
+const e2eBackendOrigin = `http://127.0.0.1:${e2eBackendPort}`;
+const e2eBackendWs = `ws://127.0.0.1:${e2eBackendPort}`;
+
 export default {
     plugins: [vue(), vuetify()],
 
     server: {
         port: 5173,
         proxy: {
-            "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
-            "/ws": { target: "ws://127.0.0.1:8000", ws: true },
-            "/ws/telephone/audio": { target: "ws://127.0.0.1:8000", ws: true },
+            "/api": { target: e2eBackendOrigin, changeOrigin: true },
+            "/ws": { target: e2eBackendWs, ws: true },
+            "/ws/telephone/audio": { target: e2eBackendWs, ws: true },
         },
     },
 

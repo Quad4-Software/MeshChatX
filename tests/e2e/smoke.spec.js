@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
-const E2E_BACKEND_PORT = process.env.E2E_BACKEND_PORT || "8000";
+const E2E_BACKEND_PORT = process.env.E2E_BACKEND_PORT || "18079";
 const E2E_BACKEND_ORIGIN = `http://127.0.0.1:${E2E_BACKEND_PORT}`;
 
 test.describe("MeshChatX E2E (Vite + Python backend)", () => {

@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-BACKEND_PORT="${E2E_BACKEND_PORT:-8000}"
+export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-18079}"
+BACKEND_PORT="$E2E_BACKEND_PORT"
 VITE_HOST="${E2E_VITE_HOST:-127.0.0.1}"
 VITE_PORT="${E2E_VITE_PORT:-5173}"
 

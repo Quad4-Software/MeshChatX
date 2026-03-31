@@ -1,5 +1,10 @@
 const { defineConfig, devices } = require("@playwright/test");
 
+// Default avoids clashing with a normal dev server on 8000 (e.g. `make run`).
+if (process.env.E2E_BACKEND_PORT === undefined || process.env.E2E_BACKEND_PORT === "") {
+    process.env.E2E_BACKEND_PORT = "18079";
+}
+
 const HOST = process.env.E2E_VITE_HOST || "127.0.0.1";
 const PORT = parseInt(process.env.E2E_VITE_PORT || "5173", 10);
 const baseURL = `http://${HOST}:${PORT}`;
