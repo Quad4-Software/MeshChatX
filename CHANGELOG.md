@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Frontend HTTP**: Removed the **axios** dependency; API traffic uses native **`fetch`** through the shared client in **`meshchatx/src/frontend/js/apiClient.js`** (same call sites, no axios runtime).
+- **Frontend build**: Upgraded to **Vite 8** with **`@vitejs/plugin-vue` 6**; production bundles use Rolldown (`build.rolldownOptions` and **`output.codeSplitting`** for vendor chunks). Dev and build scripts are unchanged (`vite dev`, `vite build`).
 - **Announce storage and fetch limits**: Per-aspect stored announces are capped (default **1000**); after each upsert, excess rows are trimmed **oldest first** (`trim_announces_for_aspect`). Default client fetch size (**500**), search fetch cap (`announce_search_max_fetch`), and discovered-interface list cap (`discovered_interfaces_max_return`) are configurable. Legacy `announce_limit_*` migrates to **`announce_max_stored_*`**; new keys include `announce_fetch_limit_*` per aspect. Clearing a numeric setting restores the default (`IntConfig.set(None)` removes the key). Settings UI and locales (en, de, it, ru) expose the new options; telephony-related aspects share LXMF announce keys where applicable.
 
 ### New Features
@@ -39,6 +41,7 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 
+- **axios**: Dropped as a frontend dependency in favour of native **`fetch`** (see **Changed**).
 - **Legacy PR vulnerability scanner**: Removed the old PR-oriented workflow and its helper script in favour of Trivy.
 - **Nix flakes**: Removed due to no longer used and maintained.
 
@@ -59,7 +62,7 @@ All notable changes to this project will be documented in this file.
 ### Updates
 
 - **README**: Configuration table documents **`--ssl-cert` / `--ssl-key`** and **`MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY`**.
-- **pnpm-lock.yaml**: Updated Vue and Vue-i18n.
+- **pnpm-lock.yaml**: Updated Vue, Vue-i18n, **Vite 8**, and **`@vitejs/plugin-vue`**.
 - **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files. Added `archives.export_mu` and `archives.export_selected_mu` for the archives export buttons. Strings for announce and discovered-interface limits were added for this release.
 - **Python dependencies**: `websockets` >= 16.0, `aiohttp` >= 3.13.3, `psutil` >= 7.2.2, `jaraco.context` >= 6.1.1, `hypothesis` >= 6.151.9.
 
