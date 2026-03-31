@@ -9590,9 +9590,7 @@ class ReticulumMeshChat:
             try:
                 if custom_ssl:
                     if not os.path.isfile(cert_path) or not os.path.isfile(key_path):
-                        msg = (
-                            f"Custom SSL files not found (cert={cert_path!r}, key={key_path!r})"
-                        )
+                        msg = f"Custom SSL files not found (cert={cert_path!r}, key={key_path!r})"
                         raise FileNotFoundError(msg)
                     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
                     ssl_context.load_cert_chain(cert_path, key_path)
