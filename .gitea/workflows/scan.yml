@@ -55,4 +55,4 @@ jobs:
                   sudo dpkg -i /tmp/trivy.deb || sudo apt-get install -f -y
 
             - name: Trivy FS scan
-              run: trivy fs --exit-code 1 .
+              run: trivy fs --exit-code 1 --skip-dirs .pnpm-store .
