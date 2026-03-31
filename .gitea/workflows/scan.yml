@@ -56,3 +56,6 @@ jobs:
 
             - name: Trivy FS scan
               run: trivy fs --exit-code 1 --skip-dirs .pnpm-store .
+
+            - name: Trivy Dockerfile misconfiguration
+              run: trivy config --exit-code 1 Dockerfile
