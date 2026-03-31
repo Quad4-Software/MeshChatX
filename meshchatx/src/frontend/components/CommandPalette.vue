@@ -398,15 +398,16 @@ export default {
         },
     },
     mounted() {
-        window.addEventListener("keydown", this.handleGlobalKeydown);
+        window.addEventListener("keydown", this.handleGlobalKeydown, true);
     },
     beforeUnmount() {
-        window.removeEventListener("keydown", this.handleGlobalKeydown);
+        window.removeEventListener("keydown", this.handleGlobalKeydown, true);
     },
     methods: {
         handleGlobalKeydown(e) {
             if ((e.metaKey || e.ctrlKey) && e.key === "k") {
                 e.preventDefault();
+                e.stopPropagation();
                 this.toggle();
             }
         },
