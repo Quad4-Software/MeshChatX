@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 
+- **Custom TLS certificate paths**: Optional **`--ssl-cert`** and **`--ssl-key`** (and **`MESHCHAT_SSL_CERT`** / **`MESHCHAT_SSL_KEY`**) load PEM files for the web server; both must be set together. When unset, behaviour is unchanged (auto-generated or existing **`.../identities/<id>/ssl/cert.pem`** and **`key.pem`**).
 - **Auth access control (login and setup)**: Failed attempts and outcomes are stored in **`access_attempts`** (IP, User-Agent, path, method, time, outcome). **Untrusted** clients are **rate limited** per IP and path and **locked out** after repeated wrong passwords from the same IP (fingerprints that have successfully logged in for the current identity are **trusted** and use higher per-window limits and are excluded from lockout counting for their own UA). **`trusted_login_clients`** stores IP plus User-Agent hash per identity after a successful login or setup, with pruning of the oldest entries when the cap is exceeded. **`GET /api/v1/debug/access-attempts`** lists attempts for the debug tools (search, outcome filter, pagination). Database schema version **42** adds these tables.
 - **Debug Logs UI**: The debug logs page has tabs for **Logs** and **Access attempts**, with refresh, copy, search, outcome filter, and pagination for access attempts.
 - **LXMF Lift Banishment from context menus**: Right-click on a message in the conversation viewer or on a row in the messages sidebar shows **Lift Banishment** when that peer is blocked, calling the blocked-destinations API and refreshing UI state (aligned with NomadNet banish/lift patterns).
@@ -27,6 +28,7 @@ All notable changes to this project will be documented in this file.
 
 ### Improvements
 
+- **Container image (Docker/Podman)**: Final stage runs as non-root **`meshchat`** (`USER meshchat`). **`HEALTHCHECK`** probes **`https://127.0.0.1:8000/api/v1/status`** with TLS verification disabled for the self-signed default cert. **`podman build`** defaults to OCI layout, which omits **`HEALTHCHECK`**; use **`podman build --format docker`** when you rely on the embedded health check. Bind mounts for **`/config`** under rootless Podman may need **`:U`**, **`podman unshare chown`**, or host permissions so uid **1000** can write (same class of issue as Docker **`chown 1000:1000`** on a volume).
 - **Conversation image paste**: Pasting image data into the message field (e.g. screenshot or copied image) now attaches it like the image picker, without using the separate text-only paste button.
 - **Page Archives export**: Archives tool can download the current snapshot or all selected snapshots as `.mu` files (raw page body; multi-export uses path plus a short hash in the filename to avoid collisions).
 - **Network visualizer data loading**: Fetches only `lxmf.delivery` and `nomadnetwork.node` announces instead of all; path table filtered by those destination hashes via new `POST /api/v1/path-table` endpoint. Dramatically reduces load time on large networks.
@@ -51,10 +53,12 @@ All notable changes to this project will be documented in this file.
 - **i18n**: Dynamic locale file discovery in tests; added `_languageName` presence check for all locales.
 - **ConfigManager**: Inbound stamp cost may be set to `0`.
 - **meshchat_utils**: Tests for `normalize_hex_identifier` / `hex_identifier_to_bytes`.
+- **Custom TLS CLI**: `tests/backend/test_ssl_custom_args.py` asserts **`--ssl-cert`** without **`--ssl-key`** (and the reverse) exits with code **2**.
 - **Auth access attempts**: `tests/backend/test_access_attempts_dao.py` (DAO behaviour, trusted pruning, cleanup, lockout counting, Hypothesis invariants for `user_agent_hash` and insert/list). `tests/backend/test_access_attempts_enforcement.py` (`_request_client_ip`, `_enforce_login_access` for untrusted rate limit and lockout, trusted bypass and trusted rate limit, Hypothesis monotone check, HTTP smoke for login logging, lockout and rate-limit **429** responses, debug access-attempts JSON shape). **Vitest**: `DebugLogsPage` access tab loads `/api/v1/debug/access-attempts`. **Playwright**: `smoke.spec.js` asserts **Logs** and **Access attempts** on `#/debug/logs`.
 
 ### Updates
 
+- **README**: Configuration table documents **`--ssl-cert` / `--ssl-key`** and **`MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY`**.
 - **pnpm-lock.yaml**: Updated Vue and Vue-i18n.
 - **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files. Added `archives.export_mu` and `archives.export_selected_mu` for the archives export buttons. Strings for announce and discovered-interface limits were added for this release.
 - **Python dependencies**: `websockets` >= 16.0, `aiohttp` >= 3.13.3, `psutil` >= 7.2.2, `jaraco.context` >= 6.1.1, `hypothesis` >= 6.151.9.
