@@ -557,6 +557,7 @@
 </template>
 
 <script>
+import { watch } from "vue";
 import { useTheme } from "vuetify";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
@@ -619,6 +620,7 @@ export default {
             isSidebarCollapsed: false,
 
             isSwitchingIdentity: false,
+            shellRunning: false,
 
             displayName: "Anonymous Peer",
             config: null,
@@ -700,78 +702,123 @@ export default {
         },
     },
     beforeUnmount() {
-        clearInterval(this.reloadInterval);
-        clearInterval(this.appInfoInterval);
+        if (typeof this._shellAuthWatchStop === "function") {
+            this._shellAuthWatchStop();
+            this._shellAuthWatchStop = null;
+        }
+        this.stopShell();
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
         this.stopRingtone();
         this.toneGenerator.stop();
-
-        // stop listening for websocket messages
-        WebSocketConnection.off("message", this.onWebsocketMessage);
-        GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
     },
     mounted() {
-        // listen for websocket messages
-        WebSocketConnection.on("message", this.onWebsocketMessage);
-
-        // listen for identity switching events
-        GlobalEmitter.on("identity-switching-start", () => {
-            this.isSwitchingIdentity = true;
-            // safety timeout to hide overlay if something goes wrong
-            setTimeout(() => {
-                if (this.isSwitchingIdentity) {
-                    this.isSwitchingIdentity = false;
-                }
-            }, 10000);
-        });
-
-        GlobalEmitter.on("sync-propagation-node", () => {
-            this.syncPropagationNode();
-        });
-
-        GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
-
-        GlobalEmitter.on("keyboard-shortcut", (action) => {
-            this.handleKeyboardShortcut(action);
-        });
-
-        GlobalEmitter.on("block-status-changed", () => {
-            this.getBlockedDestinations();
-        });
-
-        GlobalEmitter.on("show-changelog", () => {
-            this.$refs.changelogModal.show();
-        });
-
-        GlobalEmitter.on("show-tutorial", () => {
-            this.$refs.tutorialModal.show();
-        });
-
-        this.getAppInfo();
-        this.getConfig();
-        this.getBlockedDestinations();
-        this.getKeyboardShortcuts();
-        this.updateRingtonePlayer();
-        this.updateTelephoneStatus();
-        this.updatePropagationNodeStatus();
-
-        // listen for protocol links in electron
+        this.startShellAuthWatch();
         if (ElectronUtils.isElectron()) {
             window.electron.onProtocolLink((url) => {
                 this.handleProtocolLink(url);
             });
         }
-
-        // update info every few seconds
-        this.reloadInterval = setInterval(() => {
-            this.updateTelephoneStatus();
-            this.updatePropagationNodeStatus();
-        }, 1000);
-        this.appInfoInterval = setInterval(() => {
-            this.getAppInfo();
-        }, 15000);
     },
     methods: {
+        startShellAuthWatch() {
+            if (typeof this._shellAuthWatchStop === "function") {
+                this._shellAuthWatchStop();
+            }
+            this._shellAuthWatchStop = watch(
+                () => [
+                    GlobalState.authSessionResolved,
+                    GlobalState.authEnabled,
+                    GlobalState.authenticated,
+                    this.$route?.name,
+                ],
+                () => this.applyShellAuthState(),
+                { immediate: true }
+            );
+        },
+        applyShellAuthState() {
+            if (!GlobalState.authSessionResolved) {
+                return;
+            }
+            const needShell = !GlobalState.authEnabled || (GlobalState.authenticated && this.$route.name !== "auth");
+            if (needShell && !this.shellRunning) {
+                this.startShell();
+            } else if (!needShell && this.shellRunning) {
+                this.stopShell();
+            }
+        },
+        startShell() {
+            if (this.shellRunning) {
+                return;
+            }
+            this.shellRunning = true;
+            WebSocketConnection.connect();
+            WebSocketConnection.on("message", this.onWebsocketMessage);
+            GlobalEmitter.on("identity-switching-start", this.onIdentitySwitchingStartShell);
+            GlobalEmitter.on("sync-propagation-node", this.onSyncPropagationNodeShell);
+            GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
+            GlobalEmitter.on("keyboard-shortcut", this.onKeyboardShortcutShell);
+            GlobalEmitter.on("block-status-changed", this.onBlockStatusChangedShell);
+            GlobalEmitter.on("show-changelog", this.onShowChangelogShell);
+            GlobalEmitter.on("show-tutorial", this.onShowTutorialShell);
+
+            this.getAppInfo();
+            this.getConfig();
+            this.getBlockedDestinations();
+            this.getKeyboardShortcuts();
+            this.updateRingtonePlayer();
+            this.updateTelephoneStatus();
+            this.updatePropagationNodeStatus();
+
+            this.reloadInterval = setInterval(() => {
+                this.updateTelephoneStatus();
+                this.updatePropagationNodeStatus();
+            }, 1000);
+            this.appInfoInterval = setInterval(() => {
+                this.getAppInfo();
+            }, 15000);
+        },
+        stopShell() {
+            if (!this.shellRunning) {
+                return;
+            }
+            this.shellRunning = false;
+            clearInterval(this.reloadInterval);
+            this.reloadInterval = null;
+            clearInterval(this.appInfoInterval);
+            this.appInfoInterval = null;
+            WebSocketConnection.off("message", this.onWebsocketMessage);
+            GlobalEmitter.off("identity-switching-start", this.onIdentitySwitchingStartShell);
+            GlobalEmitter.off("sync-propagation-node", this.onSyncPropagationNodeShell);
+            GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
+            GlobalEmitter.off("keyboard-shortcut", this.onKeyboardShortcutShell);
+            GlobalEmitter.off("block-status-changed", this.onBlockStatusChangedShell);
+            GlobalEmitter.off("show-changelog", this.onShowChangelogShell);
+            GlobalEmitter.off("show-tutorial", this.onShowTutorialShell);
+            WebSocketConnection.destroy();
+        },
+        onIdentitySwitchingStartShell() {
+            this.isSwitchingIdentity = true;
+            setTimeout(() => {
+                if (this.isSwitchingIdentity) {
+                    this.isSwitchingIdentity = false;
+                }
+            }, 10000);
+        },
+        onSyncPropagationNodeShell() {
+            this.syncPropagationNode();
+        },
+        onKeyboardShortcutShell(action) {
+            this.handleKeyboardShortcut(action);
+        },
+        onBlockStatusChangedShell() {
+            this.getBlockedDestinations();
+        },
+        onShowChangelogShell() {
+            this.$refs.changelogModal?.show();
+        },
+        onShowTutorialShell() {
+            this.$refs.tutorialModal?.show();
+        },
         onConfigUpdatedExternally(newConfig) {
             if (!newConfig) return;
             this.config = newConfig;

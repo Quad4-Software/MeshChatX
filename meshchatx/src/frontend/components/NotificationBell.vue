@@ -128,6 +128,7 @@
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import Utils from "../js/Utils";
 import WebSocketConnection from "../js/WebSocketConnection";
+import GlobalState from "../js/GlobalState";
 
 export default {
     name: "NotificationBell",
@@ -184,6 +185,15 @@ export default {
         }, 5000);
     },
     methods: {
+        shouldFetchNotifications() {
+            if (!GlobalState.authSessionResolved) {
+                return false;
+            }
+            if (!GlobalState.authEnabled) {
+                return true;
+            }
+            return GlobalState.authenticated;
+        },
         async toggleDropdown(event) {
             this.isDropdownOpen = !this.isDropdownOpen;
             if (this.isDropdownOpen) {
@@ -210,6 +220,12 @@ export default {
             this.isDropdownOpen = false;
         },
         async loadNotifications() {
+            if (!this.shouldFetchNotifications()) {
+                this.notifications = [];
+                this.unreadCount = 0;
+                this.isLoading = false;
+                return;
+            }
             this.isLoading = true;
             try {
                 const response = await window.axios.get(`/api/v1/notifications`, {
@@ -230,6 +246,9 @@ export default {
             }
         },
         async markNotificationsAsViewed() {
+            if (!this.shouldFetchNotifications()) {
+                return;
+            }
             if (this.notifications.length === 0) {
                 return;
             }
@@ -248,6 +267,9 @@ export default {
             }
         },
         async clearAllNotifications() {
+            if (!this.shouldFetchNotifications()) {
+                return;
+            }
             try {
                 await window.axios.post("/api/v1/notifications/mark-as-viewed", {
                     destination_hashes: [],
@@ -269,7 +291,6 @@ export default {
                     }
                 }
 
-                const GlobalState = (await import("../js/GlobalState")).default;
                 GlobalState.unreadConversationsCount = 0;
 
                 await this.loadNotifications();
@@ -280,6 +301,10 @@ export default {
         },
         async onNotificationClick(notification) {
             this.closeDropdown();
+
+            if (!this.shouldFetchNotifications()) {
+                return;
+            }
 
             // Mark this specific notification as viewed
             try {
@@ -318,6 +343,9 @@ export default {
             return Utils.formatTimeAgo(datetimeString);
         },
         async onWebsocketMessage(message) {
+            if (!this.shouldFetchNotifications()) {
+                return;
+            }
             const json = JSON.parse(message.data);
             if (
                 json.type === "lxmf.delivery" ||

@@ -16,7 +16,7 @@
                     <p class="text-sm text-gray-600 dark:text-zinc-400">
                         {{
                             isSetup
-                                ? "Set an admin password to secure your MeshChat instance"
+                                ? "Set an admin password to secure your MeshChatX instance"
                                 : "Please enter your password to continue"
                         }}
                     </p>
