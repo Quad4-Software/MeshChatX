@@ -91,6 +91,7 @@
             "protobufjs"
         ],
         "overrides": {
+            "lodash": ">=4.17.23",
             "@isaacs/brace-expansion": ">=5.0.1",
             "@tootallnate/once": ">=3.0.1",
             "tmp": ">=0.2.4",
