@@ -14,6 +14,9 @@
         "enableEmbeddedAsarIntegrityValidation": true,
         "onlyLoadAppFromAsar": true
     },
+    "toolsets": {
+        "appimage": "1.0.2"
+    },
     "files": ["electron/**/*"],
     "directories": {
         "buildResources": "electron/build"
