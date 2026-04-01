@@ -6,13 +6,15 @@
 #   or set REGISTRY, REGISTRY_USERNAME, REGISTRY_PASSWORD env vars.
 set -eu
 
+. "$(dirname "$0")/priv.sh"
+
 REGISTRY="${1:-${REGISTRY:-}}"
 USERNAME="${2:-${REGISTRY_USERNAME:-}}"
 PASSWORD="${3:-${REGISTRY_PASSWORD:-}}"
 
 echo "Registering QEMU binfmt handlers"
-sudo apt-get update -qq
-sudo apt-get install -y -qq qemu-user-static binfmt-support
+run_priv apt-get update -qq
+run_priv apt-get install -y -qq qemu-user-static binfmt-support
 
 echo "Creating Docker Buildx builder"
 docker buildx create --name multiarch --driver docker-container --use

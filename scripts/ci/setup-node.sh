@@ -4,6 +4,8 @@
 # Usage: setup-node.sh [major_version]
 set -eu
 
+. "$(dirname "$0")/priv.sh"
+
 NODE_MAJOR="${1:-24}"
 
 ARCH="$(uname -m)"
@@ -43,7 +45,7 @@ if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
 fi
 echo "SHA256 verified: ${ACTUAL}"
 
-sudo tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1
+run_priv tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1
 rm -f /tmp/node.tar.xz /tmp/node-shasums.txt
 
 export PATH="/usr/local/bin:$PATH"

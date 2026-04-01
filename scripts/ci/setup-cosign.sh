@@ -3,6 +3,8 @@
 # Usage: setup-cosign.sh [version]
 set -eu
 
+. "$(dirname "$0")/priv.sh"
+
 COSIGN_VERSION="${1:-3.0.5}"
 
 ARCH="$(uname -m)"
@@ -27,6 +29,6 @@ if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
     exit 1
 fi
 
-sudo install -m 0755 /tmp/cosign /usr/local/bin/cosign
+run_priv install -m 0755 /tmp/cosign /usr/local/bin/cosign
 rm -f /tmp/cosign /tmp/cosign-checksums.txt
 cosign version

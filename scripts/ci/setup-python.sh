@@ -6,6 +6,8 @@
 #   version: exact (3.13.9) or minor (3.13, resolved to latest patch).
 set -eu
 
+. "$(dirname "$0")/priv.sh"
+
 PY_INPUT="${1:-3.13}"
 
 CURRENT="$(python3 --version 2>/dev/null | sed 's/Python //')" || true
@@ -37,8 +39,8 @@ fi
 
 echo "Building Python ${PY_VERSION} from source (python.org)"
 
-sudo apt-get update -qq
-sudo apt-get install -y -qq \
+run_priv apt-get update -qq
+run_priv apt-get install -y -qq \
     build-essential gnupg curl \
     libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
     libsqlite3-dev libffi-dev liblzma-dev libncurses-dev > /dev/null 2>&1
@@ -85,10 +87,10 @@ cd "Python-${PY_VERSION}"
 BUILD_LOG="/tmp/python-build.log"
 ./configure --prefix=/usr/local --with-ensurepip=install > "$BUILD_LOG" 2>&1
 make -j"$(nproc)" >> "$BUILD_LOG" 2>&1
-sudo make install >> "$BUILD_LOG" 2>&1
+run_priv make install >> "$BUILD_LOG" 2>&1
 
-sudo ln -sf /usr/local/bin/python3 /usr/local/bin/python
-sudo ln -sf /usr/local/bin/pip3 /usr/local/bin/pip
+run_priv ln -sf /usr/local/bin/python3 /usr/local/bin/python
+run_priv ln -sf /usr/local/bin/pip3 /usr/local/bin/pip
 
 cd /
 rm -rf "/tmp/${TARBALL}" "/tmp/${TARBALL}.asc" "/tmp/Python-${PY_VERSION}" "$BUILD_LOG"

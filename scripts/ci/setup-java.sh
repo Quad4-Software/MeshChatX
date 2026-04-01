@@ -6,6 +6,8 @@
 # Usage: setup-java.sh [major_version]
 set -eu
 
+. "$(dirname "$0")/priv.sh"
+
 JAVA_VERSION="${1:-17}"
 
 ARCH="$(uname -m)"
@@ -51,8 +53,8 @@ if [ -n "$CHECKSUM_URL" ]; then
     echo "Cross-verified against checksum_link"
 fi
 
-sudo mkdir -p /opt/java
-sudo tar -xzf /tmp/jdk.tar.gz -C /opt/java --strip-components=1
+run_priv mkdir -p /opt/java
+run_priv tar -xzf /tmp/jdk.tar.gz -C /opt/java --strip-components=1
 rm -f /tmp/jdk.tar.gz
 
 CI_ENV="${GITEA_ENV:-${GITHUB_ENV:-/dev/null}}"
