@@ -12,6 +12,8 @@ import { ensureCodec2ScriptsLoaded } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
 
 import App from "./components/App.vue";
+import ChangelogModal from "./components/ChangelogModal.vue";
+import TutorialModal from "./components/TutorialModal.vue";
 import GlobalState from "./js/GlobalState";
 
 const localeModules = import.meta.glob("./locales/*.json", { eager: true });
@@ -264,13 +266,13 @@ const router = createRouter({
         {
             name: "changelog",
             path: "/changelog",
-            component: defineAsyncComponent(() => import("./components/ChangelogModal.vue")),
+            component: ChangelogModal,
             meta: { isPage: true },
         },
         {
             name: "tutorial",
             path: "/tutorial",
-            component: defineAsyncComponent(() => import("./components/TutorialModal.vue")),
+            component: TutorialModal,
             meta: { isPage: true },
         },
     ],

@@ -5,20 +5,20 @@ import vue from "@vitejs/plugin-vue";
 import vuetify from "vite-plugin-vuetify";
 
 const vendorChunkGroups = [
-    { test: /[/\\]node_modules[/\\]vuetify/, name: "vendor-vuetify" },
-    { test: /[/\\]node_modules[/\\](vis-network|vis-data)/, name: "vendor-vis" },
-    { test: /[/\\]node_modules[/\\]vue-router/, name: "vendor-vue-router" },
-    { test: /[/\\]node_modules[/\\](protobufjs|@protobufjs)/, name: "vendor-protobuf" },
-    { test: /[/\\]node_modules[/\\]dayjs/, name: "vendor-dayjs" },
-    { test: /[/\\]node_modules[/\\]@mdi(?:\/|\\)js/, name: "vendor-mdi" },
-    { test: /[/\\]node_modules[/\\]compressorjs/, name: "vendor-compressor" },
-    { test: /[/\\]node_modules[/\\]click-outside-vue3/, name: "vendor-click-outside" },
-    { test: /[/\\]node_modules[/\\]mitt/, name: "vendor-mitt" },
-    { test: /[/\\]node_modules[/\\]micron-parser/, name: "vendor-micron" },
-    { test: /MicronParser\.js/, name: "vendor-micron" },
-    { test: /[/\\]node_modules[/\\]electron-prompt/, name: "vendor-electron-prompt" },
-    { test: /[/\\]node_modules[/\\].*vue/, name: "vendor-vue" },
-    { test: /[/\\]node_modules[/\\]/, name: "vendor-other" },
+    { test: /[/\\]node_modules[/\\]vuetify/, name: "vendor-vuetify", priority: 100 },
+    { test: /[/\\]node_modules[/\\](vis-network|vis-data)/, name: "vendor-vis", priority: 95 },
+    { test: /[/\\]node_modules[/\\]vue-router/, name: "vendor-vue-router", priority: 90 },
+    { test: /[/\\]node_modules[/\\](protobufjs|@protobufjs)/, name: "vendor-protobuf", priority: 85 },
+    { test: /[/\\]node_modules[/\\]dayjs/, name: "vendor-dayjs", priority: 80 },
+    { test: /[/\\]node_modules[/\\]@mdi(?:\/|\\)js/, name: "vendor-mdi", priority: 75 },
+    { test: /[/\\]node_modules[/\\]compressorjs/, name: "vendor-compressor", priority: 70 },
+    { test: /[/\\]node_modules[/\\]click-outside-vue3/, name: "vendor-click-outside", priority: 65 },
+    { test: /[/\\]node_modules[/\\]mitt/, name: "vendor-mitt", priority: 60 },
+    { test: /[/\\]node_modules[/\\]micron-parser/, name: "vendor-micron", priority: 55 },
+    { test: /MicronParser\.js/, name: "vendor-micron", priority: 55 },
+    { test: /[/\\]node_modules[/\\]electron-prompt/, name: "vendor-electron-prompt", priority: 50 },
+    { test: /[/\\]node_modules[/\\].*vue/, name: "vendor-vue", priority: 45 },
+    { test: /[/\\]node_modules[/\\]/, name: "vendor-other", priority: 10 },
 ];
 
 // Purge old assets before build to prevent accumulation
@@ -50,6 +50,7 @@ export default defineConfig({
 
     build: {
         sourcemap: false,
+        chunkSizeWarningLimit: 700,
         minify: "terser",
         terserOptions: {
             compress: {
@@ -76,7 +77,16 @@ export default defineConfig({
             },
             output: {
                 codeSplitting: {
-                    groups: vendorChunkGroups,
+                    minSize: 20_000,
+                    groups: [
+                        ...vendorChunkGroups,
+                        {
+                            name: "shared-async",
+                            minShareCount: 2,
+                            minSize: 10_000,
+                            priority: 5,
+                        },
+                    ],
                 },
             },
         },
