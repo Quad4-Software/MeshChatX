@@ -4,22 +4,21 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vuetify from "vite-plugin-vuetify";
 
-const nm = /[/\\]node_modules[/\\]/;
 const vendorChunkGroups = [
-    { test: new RegExp(`${nm.source}vuetify`), name: "vendor-vuetify" },
-    { test: new RegExp(`${nm.source}(vis-network|vis-data)`), name: "vendor-vis" },
-    { test: new RegExp(`${nm.source}vue-router`), name: "vendor-vue-router" },
-    { test: new RegExp(`${nm.source}(protobufjs|@protobufjs)`), name: "vendor-protobuf" },
-    { test: new RegExp(`${nm.source}dayjs`), name: "vendor-dayjs" },
-    { test: new RegExp(`${nm.source}@mdi(?:\\/|\\\\)js`), name: "vendor-mdi" },
-    { test: new RegExp(`${nm.source}compressorjs`), name: "vendor-compressor" },
-    { test: new RegExp(`${nm.source}click-outside-vue3`), name: "vendor-click-outside" },
-    { test: new RegExp(`${nm.source}mitt`), name: "vendor-mitt" },
-    { test: new RegExp(`${nm.source}micron-parser`), name: "vendor-micron" },
+    { test: /[/\\]node_modules[/\\]vuetify/, name: "vendor-vuetify" },
+    { test: /[/\\]node_modules[/\\](vis-network|vis-data)/, name: "vendor-vis" },
+    { test: /[/\\]node_modules[/\\]vue-router/, name: "vendor-vue-router" },
+    { test: /[/\\]node_modules[/\\](protobufjs|@protobufjs)/, name: "vendor-protobuf" },
+    { test: /[/\\]node_modules[/\\]dayjs/, name: "vendor-dayjs" },
+    { test: /[/\\]node_modules[/\\]@mdi(?:\/|\\)js/, name: "vendor-mdi" },
+    { test: /[/\\]node_modules[/\\]compressorjs/, name: "vendor-compressor" },
+    { test: /[/\\]node_modules[/\\]click-outside-vue3/, name: "vendor-click-outside" },
+    { test: /[/\\]node_modules[/\\]mitt/, name: "vendor-mitt" },
+    { test: /[/\\]node_modules[/\\]micron-parser/, name: "vendor-micron" },
     { test: /MicronParser\.js/, name: "vendor-micron" },
-    { test: new RegExp(`${nm.source}electron-prompt`), name: "vendor-electron-prompt" },
-    { test: new RegExp(`${nm.source}.*vue`), name: "vendor-vue" },
-    { test: nm, name: "vendor-other" },
+    { test: /[/\\]node_modules[/\\]electron-prompt/, name: "vendor-electron-prompt" },
+    { test: /[/\\]node_modules[/\\].*vue/, name: "vendor-vue" },
+    { test: /[/\\]node_modules[/\\]/, name: "vendor-other" },
 ];
 
 // Purge old assets before build to prevent accumulation
