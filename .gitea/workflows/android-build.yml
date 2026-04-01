@@ -63,8 +63,8 @@ jobs:
 
             - name: Install system dependencies
               run: |
-                  sudo apt-get update
-                  sudo apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng cmake ninja-build clang pkg-config
+                  sh scripts/ci/exec-priv.sh apt-get update
+                  sh scripts/ci/exec-priv.sh apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng cmake ninja-build clang pkg-config
 
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
