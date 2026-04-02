@@ -1,0 +1,156 @@
+# Windows and macOS distributables on GitHub-hosted runners; Linux stays on Gitea.
+#
+# - dev branch: lint, tests, then native builds + artifact upload (similar to .gitea/workflows/build-test.yml).
+# - Any tag push (release, -rc, -dev, etc.): same tests, then builds + artifact upload only (no GitHub Release; Gitea can fetch artifacts later).
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v4.2.2            11bd71901bbe5b1630ceea73d27597364c9af683
+#   actions/setup-python@v5.6.0        a26af69be951a213d495a4c3e4e4022e16d87065
+#   actions/setup-node@v4.4.0          49933ea5288caeca8642d1e84afbd3f7d6820020
+#   actions/upload-artifact@v4.6.2     ea165f8d65b6e75b540449e92b4886f43607fa02
+
+name: Build
+
+on:
+  push:
+    branches:
+      - dev
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_OPTIONS: --max-old-space-size=8192
+  PYTHON_VERSION: "3.13"
+  NODE_VERSION: "24"
+  POETRY_VERSION: "2.1.1"
+  PNPM_VERSION: "10.32.1"
+
+jobs:
+  test:
+    name: Lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry (PyPI pin)
+        env:
+          POETRY_VERSION: ${{ env.POETRY_VERSION }}
+        run: bash scripts/ci/github-install-poetry.sh
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+      - name: Install dependencies
+        run: bash scripts/ci/github-install-deps.sh
+
+      - name: Lint and test
+        run: bash scripts/ci/github-run-tests.sh
+
+  windows:
+    name: Windows (portable + NSIS)
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry (PyPI pin)
+        env:
+          POETRY_VERSION: ${{ env.POETRY_VERSION }}
+        run: bash scripts/ci/github-install-poetry.sh
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+      - name: Install dependencies
+        run: bash scripts/ci/github-install-deps.sh
+
+      - name: Build distributables
+        run: bash scripts/ci/github-build-windows.sh
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: meshchatx-windows-${{ github.ref_name }}-${{ github.run_id }}
+          path: dist/
+          if-no-files-found: warn
+
+  macos:
+    name: macOS (universal DMG)
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: macos-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry (PyPI pin)
+        env:
+          POETRY_VERSION: ${{ env.POETRY_VERSION }}
+        run: bash scripts/ci/github-install-poetry.sh
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+      - name: Install dependencies
+        run: bash scripts/ci/github-install-deps.sh
+
+      - name: Build distributables
+        run: bash scripts/ci/github-build-macos.sh
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: meshchatx-macos-${{ github.ref_name }}-${{ github.run_id }}
+          path: dist/
+          if-no-files-found: warn
