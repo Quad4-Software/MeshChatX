@@ -59,7 +59,7 @@
         "@electron-forge/plugin-vite": "^7.11.1",
         "@electron/fuses": "^1.8.0",
         "@eslint/js": "^9.39.4",
-        "@playwright/test": "^1.58.2",
+        "@playwright/test": "^1.59.1",
         "@rushstack/eslint-patch": "^1.16.1",
         "@tailwindcss/typography": "^0.5.19",
         "@vitest/coverage-v8": "^4.1.2",
@@ -67,7 +67,7 @@
         "@vue/eslint-config-prettier": "^10.2.0",
         "@vue/test-utils": "^2.4.6",
         "autoprefixer": "^10.4.27",
-        "electron": "^39.8.5",
+        "electron": "^39.8.6",
         "electron-builder": "^26.8.1",
         "electron-builder-squirrel-windows": "^26.8.1",
         "eslint": "^9.39.4",
@@ -255,6 +255,6 @@
         "vue": "^3.5.31",
         "vue-i18n": "^11.3.0",
         "vue-router": "^4.6.4",
-        "vuetify": "^3.12.4"
+        "vuetify": "^3.12.5"
     }
 }
