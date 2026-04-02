@@ -7,14 +7,20 @@ A extensively modified and feature-rich fork of Reticulum MeshChat by Liam Cottl
 This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
 
 - Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
+- Official Mirror: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) - Also used for Windows and MacOS builds for the moment.
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
-- TODO: [`TODO.md`](TODO.md)
+- TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
 
-## Important Notes
+## Important Changes from Reticulum MeshChat
 
 - Uses LXST
 - Replaced Peewee ORM with raw SQL.
+- Replaced Axios with native fetch.
+- Uses latest Electron.
+- .whls ships with webserver and built-in frontend assets for more deployment options.
+- i18n
+- PNPM and Poetry for dependency management.
 
 > [!WARNING]
 > MeshChatX is not guaranteed to be wire/data compatible with older Reticulum MeshChat releases. Back up data before migration/testing.
