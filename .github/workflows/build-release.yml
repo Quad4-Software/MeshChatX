@@ -98,6 +98,33 @@ jobs:
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
 
+            - name: Install Rosetta (Apple Silicon)
+              if: matrix.label == 'macos'
+              run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
+
+            - name: Set up Python x64 for cx_Freeze universal slice
+              id: python_x64
+              if: matrix.label == 'macos'
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  architecture: x64
+                  update-environment: false
+
+            - name: Export PYTHON_CMD_X64 for mac universal build
+              if: matrix.label == 'macos'
+              run: echo "PYTHON_CMD_X64=${{ steps.python_x64.outputs.python-path }}" >> "$GITHUB_ENV"
+
+            - name: Install project deps into x64 Python (mac universal cx_Freeze)
+              if: matrix.label == 'macos'
+              env:
+                  PY_X64: ${{ steps.python_x64.outputs.python-path }}
+              run: |
+                  set -euo pipefail
+                  "$PY_X64" -m pip install -U pip setuptools wheel
+                  "$PY_X64" -m pip install "cx-freeze>=7.0.0"
+                  "$PY_X64" -m pip install -e .
+
             - name: Build distributables
               run: bash "${{ matrix.build_script }}"
 

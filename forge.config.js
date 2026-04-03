@@ -2,7 +2,13 @@ const { FusesPlugin } = require("@electron-forge/plugin-fuses");
 const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 
 const platform = process.env.PLATFORM || process.platform;
-const extraResourceDir = platform === "win32" || platform === "win" ? "build/exe/win32" : "build/exe/linux";
+const arch = process.env.ARCH || process.arch;
+let extraResourceDir = `build/exe/linux-${arch}`;
+if (platform === "win32" || platform === "win") {
+    extraResourceDir = `build/exe/win32-${arch}`;
+} else if (platform === "darwin") {
+    extraResourceDir = `build/exe/darwin-${arch}`;
+}
 
 module.exports = {
     packagerConfig: {

@@ -37,7 +37,7 @@
         "dist:zip": "pnpm run electron-postinstall && pnpm run build && electron-forge make --targets @electron-forge/maker-zip",
         "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
         "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
-        "dist:mac-universal": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --universal --publish=never",
+        "dist:mac-universal": "bash scripts/build-macos-universal.sh",
         "start": "pnpm run build && electron-forge start",
         "package": "pnpm run build && electron-forge package",
         "make": "pnpm run build && electron-forge make"
@@ -138,7 +138,7 @@
             },
             "extraResources": [
                 {
-                    "from": "build/exe/linux-${arch}",
+                    "from": "build/exe/darwin-${arch}",
                     "to": "backend",
                     "filter": [
                         "**/*"

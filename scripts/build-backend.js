@@ -46,14 +46,19 @@ try {
     const platform = process.env.PLATFORM || process.platform;
     const arch = process.env.ARCH || process.arch;
     const isWin = platform === "win32" || platform === "win";
+    const isDarwin = platform === "darwin";
     const targetName = isWin ? "ReticulumMeshChatX.exe" : "ReticulumMeshChatX";
 
-    // Create architecture-specific build directory
-    const platformFolder = isWin ? "win32" : "linux";
+    let platformFolder = "linux";
+    if (isWin) {
+        platformFolder = "win32";
+    } else if (isDarwin) {
+        platformFolder = "darwin";
+    }
     const buildDirRelative = `build/exe/${platformFolder}-${arch}`;
     const buildDir = path.join(__dirname, "..", buildDirRelative);
 
-    // Allow overriding the python command (e.g., to use wine python for cross-builds)
+    // Allow overriding the python command
     const pythonCmd = process.env.PYTHON_CMD || "poetry run python";
 
     console.log(
@@ -66,12 +71,23 @@ try {
         CX_FREEZE_BUILD_EXE: buildDirRelative,
     };
 
-    // Split pythonCmd to handle arguments like "wine python"
-    const cmdParts = pythonCmd.split(" ");
+    const cmdParts = pythonCmd.trim().split(/\s+/).filter(Boolean);
     const cmd = cmdParts[0];
     const args = [...cmdParts.slice(1), "cx_setup.py", "build"];
 
-    const result = spawnSync(cmd, args, {
+    let spawnCmd = cmd;
+    let spawnArgs = args;
+    const rosettaX64 =
+        isDarwin &&
+        arch === "x64" &&
+        process.arch === "arm64" &&
+        !process.env.PYTHON_CMD;
+    if (rosettaX64) {
+        spawnCmd = "arch";
+        spawnArgs = ["-x86_64", cmd, ...args];
+    }
+
+    const result = spawnSync(spawnCmd, spawnArgs, {
         stdio: "inherit",
         shell: false,
         env: env,
