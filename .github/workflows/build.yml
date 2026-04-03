@@ -1,11 +1,9 @@
-# Native build verification (Windows + macOS), no artifacts. Lint/tests run on Gitea.
-#
-# - dev branch / PRs to dev / workflow_dispatch: build-test only.
+# Native build verification (Windows + macOS).
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
-#   actions/checkout@v4.2.2            11bd71901bbe5b1630ceea73d27597364c9af683
-#   actions/setup-python@v5.6.0        a26af69be951a213d495a4c3e4e4022e16d87065
-#   actions/setup-node@v4.4.0          49933ea5288caeca8642d1e84afbd3f7d6820020
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
 
 name: Build
 
@@ -26,6 +24,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NODE_OPTIONS: --max-old-space-size=8192
   PYTHON_VERSION: "3.13"
   NODE_VERSION: "24"
@@ -54,10 +53,10 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -67,7 +66,7 @@ jobs:
         run: bash scripts/ci/github-install-poetry.sh
 
       - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
         with:
           node-version: ${{ env.NODE_VERSION }}
 
