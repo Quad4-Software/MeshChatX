@@ -8,73 +8,73 @@
 name: Build
 
 on:
-  push:
-    branches:
-      - dev
-  pull_request:
-    branches:
-      - dev
-  workflow_dispatch:
+    push:
+        branches:
+            - dev
+    pull_request:
+        branches:
+            - dev
+    workflow_dispatch:
 
 permissions:
-  contents: read
+    contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  NODE_OPTIONS: --max-old-space-size=8192
-  PYTHON_VERSION: "3.13"
-  NODE_VERSION: "24"
-  POETRY_VERSION: "2.1.1"
-  PNPM_VERSION: "10.32.1"
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    NODE_OPTIONS: --max-old-space-size=8192
+    PYTHON_VERSION: "3.13"
+    NODE_VERSION: "24"
+    POETRY_VERSION: "2.1.1"
+    PNPM_VERSION: "10.32.1"
 
 jobs:
-  build-test:
-    name: Build test (${{ matrix.label }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            label: windows
-            timeout: 120
-            build_script: scripts/ci/github-build-windows.sh
-          - os: macos-latest
-            label: macos
-            timeout: 180
-            build_script: scripts/ci/github-build-macos.sh
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.timeout }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+    build-test:
+        name: Build test (${{ matrix.label }})
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      label: windows
+                      timeout: 120
+                      build_script: scripts/ci/github-build-windows.sh
+                    - os: macos-latest
+                      label: macos
+                      timeout: 180
+                      build_script: scripts/ci/github-build-macos.sh
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: ${{ matrix.timeout }}
+        defaults:
+            run:
+                shell: bash
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Poetry (PyPI pin)
-        env:
-          POETRY_VERSION: ${{ env.POETRY_VERSION }}
-        run: bash scripts/ci/github-install-poetry.sh
+            - name: Install Poetry (PyPI pin)
+              env:
+                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
+              run: bash scripts/ci/github-install-poetry.sh
 
-      - name: Set up Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
 
-      - name: Enable pnpm (corepack)
-        run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
 
-      - name: Install dependencies
-        run: bash scripts/ci/github-install-deps.sh
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
 
-      - name: Build distributables
-        run: bash "${{ matrix.build_script }}"
+            - name: Build distributables
+              run: bash "${{ matrix.build_script }}"

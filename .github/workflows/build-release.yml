@@ -9,101 +9,101 @@
 name: Build release
 
 on:
-  push:
-    tags:
-      - "*"
-  workflow_dispatch:
+    push:
+        tags:
+            - "*"
+    workflow_dispatch:
 
 permissions:
-  contents: read
-  actions: write
+    contents: read
+    actions: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  NODE_OPTIONS: --max-old-space-size=8192
-  PYTHON_VERSION: "3.13"
-  NODE_VERSION: "24"
-  POETRY_VERSION: "2.1.1"
-  PNPM_VERSION: "10.32.1"
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    NODE_OPTIONS: --max-old-space-size=8192
+    PYTHON_VERSION: "3.13"
+    NODE_VERSION: "24"
+    POETRY_VERSION: "2.1.1"
+    PNPM_VERSION: "10.32.1"
 
 jobs:
-  verify-master:
-    name: Verify tag on master
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
-        with:
-          fetch-depth: 0
+    verify-master:
+        name: Verify tag on master
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  fetch-depth: 0
 
-      - name: Ensure tagged commit is on master
-        run: |
-          set -euo pipefail
-          git fetch origin master
-          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/master; then
-            echo "Tagged commit is not an ancestor of origin/master; release tags must be cut from master." >&2
-            exit 1
-          fi
+            - name: Ensure tagged commit is on master
+              run: |
+                  set -euo pipefail
+                  git fetch origin master
+                  if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/master; then
+                    echo "Tagged commit is not an ancestor of origin/master; release tags must be cut from master." >&2
+                    exit 1
+                  fi
 
-  build-release:
-    name: Build release (${{ matrix.label }})
-    needs: verify-master
-    if: always() && (needs.verify-master.result == 'success' || needs.verify-master.result == 'skipped')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            label: windows
-            timeout: 120
-            build_script: scripts/ci/github-build-windows.sh
-            artifact_prefix: meshchatx-windows
-          - os: macos-latest
-            label: macos
-            timeout: 180
-            build_script: scripts/ci/github-build-macos.sh
-            artifact_prefix: meshchatx-macos
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: ${{ matrix.timeout }}
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+    build-release:
+        name: Build release (${{ matrix.label }})
+        needs: verify-master
+        if: always() && (needs.verify-master.result == 'success' || needs.verify-master.result == 'skipped')
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      label: windows
+                      timeout: 120
+                      build_script: scripts/ci/github-build-windows.sh
+                      artifact_prefix: meshchatx-windows
+                    - os: macos-latest
+                      label: macos
+                      timeout: 180
+                      build_script: scripts/ci/github-build-macos.sh
+                      artifact_prefix: meshchatx-macos
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: ${{ matrix.timeout }}
+        defaults:
+            run:
+                shell: bash
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Poetry (PyPI pin)
-        env:
-          POETRY_VERSION: ${{ env.POETRY_VERSION }}
-        run: bash scripts/ci/github-install-poetry.sh
+            - name: Install Poetry (PyPI pin)
+              env:
+                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
+              run: bash scripts/ci/github-install-poetry.sh
 
-      - name: Set up Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
 
-      - name: Enable pnpm (corepack)
-        run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
 
-      - name: Install dependencies
-        run: bash scripts/ci/github-install-deps.sh
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
 
-      - name: Build distributables
-        run: bash "${{ matrix.build_script }}"
+            - name: Build distributables
+              run: bash "${{ matrix.build_script }}"
 
-      - name: Upload dist artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
-        with:
-          name: ${{ matrix.artifact_prefix }}-${{ github.ref_name }}-${{ github.run_id }}
-          path: dist/
-          if-no-files-found: warn
+            - name: Upload dist artifacts
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: ${{ matrix.artifact_prefix }}-${{ github.ref_name }}-${{ github.run_id }}
+                  path: dist/
+                  if-no-files-found: warn
