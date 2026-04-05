@@ -19,6 +19,7 @@ describe("RNStatusPage.vue", () => {
                             {
                                 name: "Interface 1",
                                 status: "Up",
+                                discovered: true,
                                 bitrate: "100 bps",
                                 rx_bytes_str: "10 B",
                                 tx_bytes_str: "5 B",
@@ -62,6 +63,7 @@ describe("RNStatusPage.vue", () => {
 
         expect(wrapper.text()).toContain("RNStatus - Network Status");
         expect(wrapper.text()).toContain("Interface 1");
+        expect(wrapper.text()).toContain("Discovered");
         expect(wrapper.text()).toContain("Active Links: 5");
         expect(wrapper.text()).toContain("Blackhole: Publishing");
         expect(wrapper.text()).toContain("src1");

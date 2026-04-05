@@ -4,7 +4,7 @@
     >
         <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
             <div class="space-y-4 w-full max-w-6xl mx-auto">
-                <div class="glass-card space-y-5">
+                <div class="glass-card space-y-5 rounded-2xl border border-slate-200/70 p-5 dark:border-zinc-700/80">
                     <div class="space-y-2">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                             Network Diagnostics
@@ -17,27 +17,29 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
-                            class="primary-chip px-4 py-2 text-sm"
+                            class="primary-chip inline-flex items-center gap-2 px-4 py-2 text-sm"
                             :disabled="isLoading"
                             @click="refreshStatus"
                         >
                             <MaterialDesignIcon
                                 icon-name="refresh"
-                                class="w-4 h-4"
+                                class="h-4 w-4 shrink-0"
                                 :class="{ 'animate-spin-reverse': isLoading }"
                             />
                             Refresh
                         </button>
-                        <label class="flex items-center gap-2 cursor-pointer secondary-chip px-4 py-2 text-sm">
+                        <label
+                            class="secondary-chip inline-flex cursor-pointer items-center gap-2 px-4 py-2 text-sm"
+                        >
                             <input v-model="includeLinkStats" type="checkbox" class="rounded" />
                             <span>Include Link Stats</span>
                         </label>
-                        <div class="flex items-center gap-2">
-                            <label class="text-sm text-gray-700 dark:text-gray-300">Sort by:</label>
-                            <select v-model="sorting" class="input-field text-sm">
+                        <div class="flex min-w-0 flex-wrap items-center gap-2">
+                            <label class="shrink-0 text-sm text-gray-700 dark:text-gray-300">Sort by:</label>
+                            <select v-model="sorting" class="input-field min-w-[10rem] text-sm">
                                 <option value="">None</option>
                                 <option value="bitrate">Bitrate</option>
                                 <option value="rx">RX Bytes</option>
@@ -48,27 +50,34 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div
                             v-if="linkCount !== null"
-                            class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                            class="rounded-xl border border-blue-200/80 bg-blue-50/90 p-4 text-blue-800 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-200"
                         >
-                            <div class="font-semibold">Active Links: {{ linkCount }}</div>
+                            <div class="text-sm font-semibold">
+                                Active Links: {{ formatInt(linkCount) }}
+                            </div>
                         </div>
 
                         <div
                             v-if="blackholeEnabled !== null"
-                            class="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
+                            class="rounded-xl border border-purple-200/80 bg-purple-50/90 p-4 text-purple-900 dark:border-purple-800/50 dark:bg-purple-950/30 dark:text-purple-100"
                         >
-                            <div class="font-semibold flex justify-between items-center">
+                            <div class="flex flex-wrap items-center justify-between gap-2 font-semibold">
                                 <span>Blackhole: {{ blackholeEnabled ? "Publishing" : "Active" }}</span>
-                                <span class="text-sm opacity-80"> {{ blackholeCount }} Identities </span>
+                                <span class="text-sm font-normal opacity-90">
+                                    {{ formatInt(blackholeCount) }} Identities
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div v-if="blackholeSources.length > 0" class="glass-card space-y-3">
+                <div
+                    v-if="blackholeSources.length > 0"
+                    class="glass-card space-y-3 rounded-2xl border border-slate-200/70 p-5 dark:border-zinc-700/80"
+                >
                     <div class="font-semibold text-lg text-gray-900 dark:text-white">Blackhole Sources</div>
                     <div class="grid gap-2">
                         <div
@@ -88,22 +97,42 @@
                     No interfaces found. Click refresh to load status.
                 </div>
 
-                <div v-for="iface in interfaces" :key="iface.name" class="glass-card space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div class="font-semibold text-lg text-gray-900 dark:text-white">{{ iface.name }}</div>
+                <div
+                    v-for="iface in interfaces"
+                    :key="iface.name"
+                    class="glass-card overflow-hidden rounded-2xl border border-slate-200/70 dark:border-zinc-700/80"
+                >
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-4 dark:border-zinc-800/80 dark:bg-zinc-900/40 sm:px-5"
+                    >
+                        <div class="min-w-0 flex-1 space-y-2">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h3
+                                    class="break-words text-base font-semibold leading-snug text-gray-900 dark:text-white sm:text-lg"
+                                >
+                                    {{ iface.name }}
+                                </h3>
+                                <span
+                                    v-if="iface.discovered"
+                                    class="inline-flex shrink-0 items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:bg-amber-900/45 dark:text-amber-100"
+                                >
+                                    Discovered
+                                </span>
+                            </div>
+                        </div>
                         <span
                             :class="[
                                 iface.status === 'Up'
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200'
-                                    : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
-                                'rounded-full px-3 py-1 text-xs font-semibold',
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/45 dark:text-green-100'
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900/45 dark:text-red-100',
+                                'shrink-0 rounded-full px-3 py-1 text-xs font-semibold',
                             ]"
                         >
                             {{ iface.status }}
                         </span>
                     </div>
 
-                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                    <div class="grid gap-x-6 gap-y-4 p-4 text-sm sm:p-5 md:grid-cols-2 lg:grid-cols-3">
                         <div v-if="iface.mode">
                             <div class="text-gray-500 dark:text-gray-400">Mode</div>
                             <div class="font-semibold text-gray-900 dark:text-white">{{ iface.mode }}</div>
@@ -122,19 +151,25 @@
                         </div>
                         <div v-if="iface.rx_packets !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">RX Packets</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">{{ iface.rx_packets }}</div>
+                            <div class="font-semibold tabular-nums text-gray-900 dark:text-white">
+                                {{ iface.rx_packets }}
+                            </div>
                         </div>
                         <div v-if="iface.tx_packets !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">TX Packets</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">{{ iface.tx_packets }}</div>
+                            <div class="font-semibold tabular-nums text-gray-900 dark:text-white">
+                                {{ iface.tx_packets }}
+                            </div>
                         </div>
                         <div v-if="iface.clients !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">Clients</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">{{ iface.clients }}</div>
+                            <div class="font-semibold text-gray-900 dark:text-white">{{ formatInt(iface.clients) }}</div>
                         </div>
                         <div v-if="iface.peers !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">Peers</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">{{ iface.peers }} reachable</div>
+                            <div class="font-semibold text-gray-900 dark:text-white">
+                                {{ formatInt(iface.peers) }} reachable
+                            </div>
                         </div>
                         <div v-if="iface.noise_floor">
                             <div class="text-gray-500 dark:text-gray-400">Noise Floor</div>
@@ -159,7 +194,7 @@
                         <div v-if="iface.battery_percent !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">Battery</div>
                             <div class="font-semibold text-gray-900 dark:text-white">
-                                {{ iface.battery_percent }}%<span v-if="iface.battery_state">
+                                {{ formatInt(iface.battery_percent) }}%<span v-if="iface.battery_state">
                                     ({{ iface.battery_state }})</span
                                 >
                             </div>
@@ -170,13 +205,13 @@
                         </div>
                         <div v-if="iface.incoming_announce_frequency !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">Incoming Announces</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">
+                            <div class="font-semibold tabular-nums text-gray-900 dark:text-white">
                                 {{ iface.incoming_announce_frequency }}/s
                             </div>
                         </div>
                         <div v-if="iface.outgoing_announce_frequency !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">Outgoing Announces</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">
+                            <div class="font-semibold tabular-nums text-gray-900 dark:text-white">
                                 {{ iface.outgoing_announce_frequency }}/s
                             </div>
                         </div>
@@ -231,6 +266,16 @@ export default {
         this.refreshStatus();
     },
     methods: {
+        formatInt(value) {
+            if (value === null || value === undefined) {
+                return "";
+            }
+            const n = Number(value);
+            if (Number.isNaN(n)) {
+                return String(value);
+            }
+            return n.toLocaleString();
+        },
         async refreshStatus() {
             this.isLoading = true;
             try {

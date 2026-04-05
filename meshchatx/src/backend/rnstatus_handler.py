@@ -3,6 +3,7 @@ import time
 from typing import Any
 
 import RNS
+from RNS.Discovery import InterfaceDiscovery
 
 
 def size_str(num, suffix="B"):
@@ -22,6 +23,63 @@ def size_str(num, suffix="B"):
         num /= 1000.0
 
     return f"{num:.2f}{last_unit}{suffix}"
+
+
+def fmt_per_second(value: Any) -> str | None:
+    if value is None:
+        return None
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    ax = abs(x)
+    if ax == 0:
+        return "0"
+    if ax >= 100:
+        return f"{x:.1f}"
+    if ax >= 1:
+        return f"{x:.2f}"
+    return f"{x:.3g}"
+
+
+def fmt_packet_count(value: Any) -> str | None:
+    if value is None:
+        return None
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return f"{int(round(x)):,}"
+
+
+def fmt_percentage(value: Any) -> str | None:
+    if value is None:
+        return None
+    try:
+        x = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    ax = abs(x)
+    if ax >= 100:
+        return f"{x:.1f}"
+    if ax >= 10:
+        return f"{x:.2f}"
+    return f"{x:.3g}"
+
+
+def stat_name_matches_discovered(stat_name: str, discovered_list: list) -> bool:
+    if not stat_name or not discovered_list:
+        return False
+    for d in discovered_list:
+        if not isinstance(d, dict):
+            continue
+        ro = d.get("reachable_on")
+        if ro and str(ro) in stat_name:
+            return True
+        dn = d.get("name")
+        if dn and str(dn) and str(dn) in stat_name:
+            return True
+    return False
 
 
 class RNStatusHandler:
@@ -55,6 +113,12 @@ class RNStatusHandler:
                 "interfaces": [],
                 "link_count": link_count,
             }
+
+        discovered_list: list = []
+        with contextlib.suppress(Exception):
+            discovered_list = InterfaceDiscovery(
+                discover_interfaces=False,
+            ).list_discovered_interfaces()
 
         blackhole_enabled = False
         blackhole_sources = []
@@ -139,6 +203,7 @@ class RNStatusHandler:
             formatted_if: dict[str, Any] = {
                 "name": name,
                 "status": "Up" if ifstat.get("status") else "Down",
+                "discovered": stat_name_matches_discovered(name, discovered_list),
             }
 
             mode = ifstat.get("mode")
@@ -165,9 +230,9 @@ class RNStatusHandler:
                 formatted_if["tx_bytes"] = ifstat["txb"]
                 formatted_if["tx_bytes_str"] = size_str(ifstat["txb"])
             if "rxs" in ifstat:
-                formatted_if["rx_packets"] = ifstat["rxs"]
+                formatted_if["rx_packets"] = fmt_packet_count(ifstat["rxs"])
             if "txs" in ifstat:
-                formatted_if["tx_packets"] = ifstat["txs"]
+                formatted_if["tx_packets"] = fmt_packet_count(ifstat["txs"])
 
             if "clients" in ifstat and ifstat["clients"] is not None:
                 formatted_if["clients"] = ifstat["clients"]
@@ -194,29 +259,29 @@ class RNStatusHandler:
 
             if "airtime_short" in ifstat and "airtime_long" in ifstat:
                 formatted_if["airtime"] = {
-                    "short": ifstat["airtime_short"],
-                    "long": ifstat["airtime_long"],
+                    "short": fmt_percentage(ifstat["airtime_short"]),
+                    "long": fmt_percentage(ifstat["airtime_long"]),
                 }
 
             if "channel_load_short" in ifstat and "channel_load_long" in ifstat:
                 formatted_if["channel_load"] = {
-                    "short": ifstat["channel_load_short"],
-                    "long": ifstat["channel_load_long"],
+                    "short": fmt_percentage(ifstat["channel_load_short"]),
+                    "long": fmt_percentage(ifstat["channel_load_long"]),
                 }
 
             if "peers" in ifstat and ifstat["peers"] is not None:
                 formatted_if["peers"] = ifstat["peers"]
 
             if "incoming_announce_frequency" in ifstat:
-                formatted_if["incoming_announce_frequency"] = ifstat[
-                    "incoming_announce_frequency"
-                ]
+                formatted_if["incoming_announce_frequency"] = fmt_per_second(
+                    ifstat["incoming_announce_frequency"]
+                )
             if "outgoing_announce_frequency" in ifstat:
-                formatted_if["outgoing_announce_frequency"] = ifstat[
-                    "outgoing_announce_frequency"
-                ]
+                formatted_if["outgoing_announce_frequency"] = fmt_per_second(
+                    ifstat["outgoing_announce_frequency"]
+                )
             if "held_announces" in ifstat:
-                formatted_if["held_announces"] = ifstat["held_announces"]
+                formatted_if["held_announces"] = fmt_packet_count(ifstat["held_announces"])
 
             if "ifac_netname" in ifstat and ifstat["ifac_netname"] is not None:
                 formatted_if["network_name"] = ifstat["ifac_netname"]
