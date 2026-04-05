@@ -13,7 +13,7 @@ describe("RNPathPage.vue", () => {
         window.api = axiosMock;
 
         axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/rnpath/table") {
+            if (url.startsWith("/api/v1/rnpath/table")) {
                 return Promise.resolve({
                     data: {
                         table: [
@@ -25,6 +25,9 @@ describe("RNPathPage.vue", () => {
                                 expires: 1234567890,
                             },
                         ],
+                        total: 1,
+                        responsive: 1,
+                        unresponsive: 0,
                     },
                 });
             }
@@ -40,6 +43,21 @@ describe("RNPathPage.vue", () => {
                                 blocked_until: 0,
                             },
                         ],
+                    },
+                });
+            }
+            if (url === "/api/v1/reticulum/interfaces") {
+                return Promise.resolve({
+                    data: {
+                        interfaces: { UDP: {} },
+                    },
+                });
+            }
+            if (url === "/api/v1/reticulum/discovered-interfaces") {
+                return Promise.resolve({
+                    data: {
+                        interfaces: [{ name: "Discovered-IF" }],
+                        active: [{ name: "Active-IF" }],
                     },
                 });
             }
@@ -74,6 +92,7 @@ describe("RNPathPage.vue", () => {
         expect(wrapper.text()).toContain("RNPath");
         expect(wrapper.vm.pathTable.length).toBe(1);
         expect(wrapper.vm.rateTable.length).toBe(1);
+        expect(wrapper.vm.interfaces).toEqual(["Active-IF", "Discovered-IF", "UDP"]);
     });
 
     it("switches tabs", async () => {

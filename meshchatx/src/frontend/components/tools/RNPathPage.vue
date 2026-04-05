@@ -56,11 +56,13 @@
                             v-model="searchQuery"
                             type="text"
                             placeholder="Search Hash or Via..."
-                            class="input-field pl-10"
+                            class="input-field pr-10"
+                            autocomplete="off"
                         />
                         <MaterialDesignIcon
                             icon-name="magnify"
-                            class="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400"
+                            class="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-gray-400"
+                            aria-hidden="true"
                         />
                     </div>
                     <select v-model="filterInterface" class="input-field">
@@ -361,17 +363,29 @@ export default {
         async refreshAll() {
             this.isLoading = true;
             try {
-                const [pathRes, rateRes, ifaceRes] = await Promise.all([
+                const [pathRes, rateRes, ifaceRes, discRes] = await Promise.all([
                     this.fetchPathTable(),
                     window.api.get("/api/v1/rnpath/rates"),
                     window.api.get("/api/v1/reticulum/interfaces"),
+                    window.api.get("/api/v1/reticulum/discovered-interfaces").catch(() => ({ data: {} })),
                 ]);
                 this.pathTable = pathRes.table;
                 this.totalItems = pathRes.total;
                 this.responsiveItems = pathRes.responsive;
                 this.unresponsiveItems = pathRes.unresponsive;
                 this.rateTable = rateRes.data.rates;
-                this.interfaces = Object.keys(ifaceRes.data.interfaces);
+                const nameSet = new Set(Object.keys(ifaceRes.data?.interfaces || {}));
+                for (const row of discRes.data?.active || []) {
+                    if (row?.name) {
+                        nameSet.add(String(row.name));
+                    }
+                }
+                for (const d of discRes.data?.interfaces || []) {
+                    if (d && typeof d === "object" && d.name) {
+                        nameSet.add(String(d.name));
+                    }
+                }
+                this.interfaces = Array.from(nameSet).sort();
             } catch (e) {
                 console.error(e);
                 ToastUtils.error(this.$t("tools.rnpath.failed_fetch"));
