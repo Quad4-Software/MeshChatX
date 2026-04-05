@@ -22,15 +22,20 @@ case "$BRANCH" in
     master|main)
         echo "-t ${IMAGE}:latest" >> "$OUTPUT"
         ;;
+    dev)
+        echo "-t ${IMAGE}:dev" >> "$OUTPUT"
+        ;;
 esac
 
 case "$REF" in
     refs/tags/v*)
         VERSION="${REF#refs/tags/v}"
         echo "-t ${IMAGE}:${VERSION}" >> "$OUTPUT"
+        echo "-t ${IMAGE}:v${VERSION}" >> "$OUTPUT"
         MAJOR_MINOR="$(echo "$VERSION" | cut -d. -f1-2)"
         if [ "$MAJOR_MINOR" != "$VERSION" ]; then
             echo "-t ${IMAGE}:${MAJOR_MINOR}" >> "$OUTPUT"
+            echo "-t ${IMAGE}:v${MAJOR_MINOR}" >> "$OUTPUT"
         fi
         ;;
     refs/tags/*)
