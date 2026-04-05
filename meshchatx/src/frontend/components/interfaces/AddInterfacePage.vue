@@ -623,6 +623,71 @@
                                                         />
                                                     </div>
                                                 </div>
+                                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <div>
+                                                        <FormLabel class="glass-label">Latitude (optional)</FormLabel>
+                                                        <input
+                                                            v-model="discovery.latitude"
+                                                            type="text"
+                                                            inputmode="decimal"
+                                                            autocomplete="off"
+                                                            aria-required="false"
+                                                            placeholder="Leave blank if unknown"
+                                                            class="input-field"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <FormLabel class="glass-label">Longitude (optional)</FormLabel>
+                                                        <input
+                                                            v-model="discovery.longitude"
+                                                            type="text"
+                                                            inputmode="decimal"
+                                                            autocomplete="off"
+                                                            aria-required="false"
+                                                            placeholder="Leave blank if unknown"
+                                                            class="input-field"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <FormLabel class="glass-label"
+                                                            >Height in metres (optional)</FormLabel
+                                                        >
+                                                        <input
+                                                            v-model="discovery.height"
+                                                            type="text"
+                                                            inputmode="decimal"
+                                                            autocomplete="off"
+                                                            aria-required="false"
+                                                            placeholder="Leave blank if unknown"
+                                                            class="input-field"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <FormLabel class="glass-label">Discovery stamp value</FormLabel>
+                                                        <input
+                                                            v-model.number="discovery.discovery_stamp_value"
+                                                            type="number"
+                                                            min="1"
+                                                            class="input-field"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                                    <div class="flex items-center justify-between gap-4 max-w-md">
+                                                        <FormLabel class="glass-label !mb-0"
+                                                            >Encrypt discovery</FormLabel
+                                                        >
+                                                        <Toggle v-model="discovery.discovery_encrypt" />
+                                                    </div>
+                                                    <div class="flex items-center justify-between gap-4 max-w-md">
+                                                        <FormLabel class="glass-label !mb-0"
+                                                            >Publish IFAC in announce</FormLabel
+                                                        >
+                                                        <Toggle v-model="discovery.publish_ifac" />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </template>
@@ -962,6 +1027,7 @@
 <script>
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { numOrNull } from "../../js/interfaceDiscoveryUtils";
 import ExpandingSection from "./ExpandingSection.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import Toggle from "../forms/Toggle.vue";
@@ -1210,6 +1276,7 @@ export default {
             }
             return Boolean(value);
         },
+        numOrNull,
         async loadReticulumDiscoveryConfig() {
             try {
                 const response = await window.api.get(`/api/v1/reticulum/discovery`);
@@ -1280,6 +1347,14 @@ export default {
                 this.newInterfaceListenIp = iface.listen_ip;
                 this.newInterfaceListenPort = iface.listen_port;
                 this.newInterfacePort = iface.port;
+                this.newInterfaceRNodeUseIP = false;
+                if (iface.port && String(iface.port).startsWith("tcp://")) {
+                    const addr = String(iface.port).replace("tcp://", "");
+                    const parts = addr.split(":");
+                    this.newInterfaceRNodeIPHost = parts[0] || "localhost";
+                    this.newInterfaceRNodeIPPort = parts[1] || "7633";
+                    this.newInterfaceRNodeUseIP = true;
+                }
                 this.newInterfaceFrequency = iface.frequency;
                 this.newInterfaceBandwidth = iface.bandwidth;
                 this.newInterfaceTxpower = iface.txpower;
@@ -1297,6 +1372,37 @@ export default {
                     this.RNodeMHzValue = Math.floor((iface.frequency % 1e9) / 1e6);
                     this.RNodekHzValue = Math.floor((iface.frequency % 1e6) / 1e3);
                 }
+
+                this.discovery.discoverable = this.parseBool(iface.discoverable);
+                this.discovery.discovery_name = iface.discovery_name ?? "";
+                this.discovery.announce_interval =
+                    iface.announce_interval != null && iface.announce_interval !== ""
+                        ? Number(iface.announce_interval)
+                        : 360;
+                this.discovery.reachable_on = iface.reachable_on ?? "";
+                this.discovery.discovery_stamp_value =
+                    iface.discovery_stamp_value != null && iface.discovery_stamp_value !== ""
+                        ? Number(iface.discovery_stamp_value)
+                        : 14;
+                this.discovery.discovery_encrypt = this.parseBool(iface.discovery_encrypt);
+                this.discovery.publish_ifac = this.parseBool(iface.publish_ifac);
+                this.discovery.latitude =
+                    iface.latitude != null && iface.latitude !== "" ? Number(iface.latitude) : null;
+                this.discovery.longitude =
+                    iface.longitude != null && iface.longitude !== "" ? Number(iface.longitude) : null;
+                this.discovery.height = iface.height != null && iface.height !== "" ? Number(iface.height) : null;
+                this.discovery.discovery_frequency =
+                    iface.discovery_frequency != null && iface.discovery_frequency !== ""
+                        ? Number(iface.discovery_frequency)
+                        : null;
+                this.discovery.discovery_bandwidth =
+                    iface.discovery_bandwidth != null && iface.discovery_bandwidth !== ""
+                        ? Number(iface.discovery_bandwidth)
+                        : null;
+                this.discovery.discovery_modulation =
+                    iface.discovery_modulation != null && iface.discovery_modulation !== ""
+                        ? Number(iface.discovery_modulation)
+                        : null;
             } catch (e) {
                 console.log(e);
             }
@@ -1394,6 +1500,21 @@ export default {
             if (config.network_name) this.sharedInterfaceSettings.network_name = config.network_name;
             if (config.passphrase) this.sharedInterfaceSettings.passphrase = config.passphrase;
 
+            if (config.discoverable !== undefined && config.discoverable !== null && config.discoverable !== "") {
+                this.discovery.discoverable = this.parseBool(config.discoverable);
+            }
+            if (config.discovery_name) this.discovery.discovery_name = config.discovery_name;
+            if (config.announce_interval) this.discovery.announce_interval = Number(config.announce_interval);
+            if (config.reachable_on) this.discovery.reachable_on = config.reachable_on;
+            if (config.discovery_stamp_value)
+                this.discovery.discovery_stamp_value = Number(config.discovery_stamp_value);
+            if (config.discovery_encrypt !== undefined)
+                this.discovery.discovery_encrypt = this.parseBool(config.discovery_encrypt);
+            if (config.publish_ifac !== undefined) this.discovery.publish_ifac = this.parseBool(config.publish_ifac);
+            if (config.latitude) this.discovery.latitude = Number(config.latitude);
+            if (config.longitude) this.discovery.longitude = Number(config.longitude);
+            if (config.height) this.discovery.height = Number(config.height);
+
             ToastUtils.success(`Imported configuration for "${config.name}"`);
 
             // clear input if applied
@@ -1434,8 +1555,21 @@ export default {
                     respawn_delay: this.newInterfaceRespawnDelay,
                     discoverable: discoveryEnabled ? "yes" : null,
                     discovery_name: discoveryEnabled ? this.discovery.discovery_name : null,
-                    announce_interval: discoveryEnabled ? Number(this.discovery.announce_interval) : null,
+                    announce_interval: discoveryEnabled
+                        ? (this.numOrNull(this.discovery.announce_interval) ?? 360)
+                        : null,
                     reachable_on: discoveryEnabled ? this.discovery.reachable_on : null,
+                    discovery_stamp_value: discoveryEnabled
+                        ? (this.numOrNull(this.discovery.discovery_stamp_value) ?? 14)
+                        : null,
+                    discovery_encrypt: discoveryEnabled ? this.discovery.discovery_encrypt === true : null,
+                    publish_ifac: discoveryEnabled ? this.discovery.publish_ifac === true : null,
+                    latitude: discoveryEnabled ? this.numOrNull(this.discovery.latitude) : null,
+                    longitude: discoveryEnabled ? this.numOrNull(this.discovery.longitude) : null,
+                    height: discoveryEnabled ? this.numOrNull(this.discovery.height) : null,
+                    discovery_frequency: discoveryEnabled ? this.numOrNull(this.discovery.discovery_frequency) : null,
+                    discovery_bandwidth: discoveryEnabled ? this.numOrNull(this.discovery.discovery_bandwidth) : null,
+                    discovery_modulation: discoveryEnabled ? this.numOrNull(this.discovery.discovery_modulation) : null,
                     mode: this.sharedInterfaceSettings.mode || "full",
                     bitrate: this.sharedInterfaceSettings.bitrate,
                     network_name: this.sharedInterfaceSettings.network_name,
