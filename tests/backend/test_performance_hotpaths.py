@@ -1,5 +1,8 @@
 """Performance regression tests for the critical hot paths.
 
+Excluded from default `task test:be` / CI; run locally with `task test:be:perf`
+or `task test:be:full` (see Taskfile.yml).
+
 Focus areas (user priority):
   - NomadNet browser: load announces, search announces, favourites
   - Messages: load conversations, search messages, load conversation messages,

@@ -1,4 +1,4 @@
-.PHONY: install run build lint test clean
+.PHONY: install run build lint test test-be-perf clean
 
 install:
 	pnpm install
@@ -17,7 +17,10 @@ lint:
 
 test:
 	pnpm run test
-	poetry run python -m pytest tests/backend --cov=meshchatx/src/backend
+	poetry run python -m pytest tests/backend --ignore=tests/backend/test_performance_hotpaths.py --cov=meshchatx/src/backend
+
+test-be-perf:
+	poetry run python -m pytest tests/backend/test_performance_hotpaths.py
 
 clean:
 	rm -rf node_modules build dist python-dist meshchatx/public build-dir out

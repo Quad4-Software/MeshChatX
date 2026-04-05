@@ -1,5 +1,7 @@
 import json
+import random
 import shutil
+import string
 import tempfile
 from unittest.mock import MagicMock, patch
 
@@ -353,3 +355,135 @@ async def test_interface_add_includes_discovery_fields(temp_dir):
         assert saved["discovery_bandwidth"] == 125000
         assert saved["discovery_modulation"] == "LoRa"
         assert config.write_called
+
+
+@pytest.mark.asyncio
+async def test_interface_add_discoverable_without_optional_coordinates(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        add_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/interfaces/add",
+            "POST",
+        )
+        assert add_handler
+
+        payload = {
+            "allow_overwriting_interface": False,
+            "name": "NoLatLon",
+            "type": "TCPClientInterface",
+            "target_host": "example.com",
+            "target_port": "4242",
+            "discoverable": "yes",
+            "discovery_name": "Optional coords off",
+            "announce_interval": 360,
+            "reachable_on": "192.0.2.1",
+        }
+
+        class AddRequest:
+            @staticmethod
+            async def json():
+                return payload
+
+        response = await add_handler(AddRequest())
+        data = json.loads(response.body)
+        assert "Interface has been added" in data["message"]
+        saved = config["interfaces"]["NoLatLon"]
+        assert saved["discoverable"] == "yes"
+        assert "latitude" not in saved
+        assert "longitude" not in saved
+        assert "height" not in saved
+        assert config.write_called
+
+
+@pytest.mark.asyncio
+async def test_interface_add_discovery_payload_fuzz_tcp_client(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        add_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/interfaces/add",
+            "POST",
+        )
+        assert add_handler
+
+        for i in range(50):
+            config["interfaces"].clear()
+            config.write_called = False
+
+            name = f"fuzz-{i}-" + "".join(
+                random.choices(string.ascii_letters + string.digits, k=8)
+            )
+            announce = random.randint(5, 1440)
+            lat = random.uniform(-90, 90)
+            lon = random.uniform(-180, 180)
+            height = random.uniform(0, 9000)
+
+            payload = {
+                "allow_overwriting_interface": False,
+                "name": name,
+                "type": "TCPClientInterface",
+                "target_host": "example.com",
+                "target_port": "4242",
+                "discoverable": "yes",
+                "discovery_name": name,
+                "announce_interval": announce,
+                "reachable_on": "192.0.2.1",
+                "latitude": lat,
+                "longitude": lon,
+                "height": height,
+                "discovery_stamp_value": random.randint(1, 32),
+                "discovery_encrypt": bool(random.getrandbits(1)),
+                "publish_ifac": bool(random.getrandbits(1)),
+            }
+
+            class AddRequest:
+                @staticmethod
+                async def json():
+                    return payload
+
+            response = await add_handler(AddRequest())
+            data = json.loads(response.body)
+            assert response.status == 200, data
+            assert "Interface has been added" in data["message"]
+            saved = config["interfaces"][name]
+            assert saved["latitude"] == lat
+            assert saved["longitude"] == lon
+            assert saved["height"] == height
+            assert config.write_called
