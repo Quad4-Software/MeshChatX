@@ -38,6 +38,10 @@ All notable changes to this project will be documented in this file.
 - **Dynamic locale discovery**: Locales are now discovered automatically from `meshchatx/src/frontend/locales/*.json` via `import.meta.glob`. Adding a new language only requires a single JSON file with a `_languageName` key; no code changes to `main.js`, `LanguageSelector.vue`, or tests needed.
 - **CI supply chain hardening**: Replaced all third-party Gitea Actions with POSIX-compliant shell scripts in `scripts/ci/`. Checkout is inlined as plain git commands; Node.js, go-task, and Java binaries are SHA256-verified against upstream checksums; Python is built from official python.org source with GPG signature verification. Only `gitea-release-action` and `upload-artifact` remain as external actions.
 - **SLSA v1 release provenance**: Release workflow (`build.yml`) can attach cosign **SLSA v1** blob attestations (`*.cosign.bundle`) beside each release artifact when `COSIGN_PRIVATE_KEY` is configured; `scripts/ci/slsa-predicate.py`, `attest-release-assets.sh`, and `verify-release-attestation.sh` support signing and verification with Rekor transparency-log upload. Documented in `SECURITY.md` with `cosign.pub` at the repo root for downstream verification.
+- **Nomad Network downloader** (`nomadnet_downloader.py`): Thread-safe link cache (lock-protected); **`get_cached_active_link()`** returns only **ACTIVE** links and drops stale entries; faster path/link polling (~**20 ms**); cache re-checked after path resolution and before opening a new link to reduce redundant link setup; **cancel** removes the matching cache entry before link teardown; UTF-8 decode with replacement and safer handling for empty page bodies, file metadata, and list-shaped file payloads. **`GET /api/v1/nomadnetwork/{hash}/identify`** uses **`get_cached_active_link`** instead of reading the raw cache dict.
+- **NomadNet browser UI** (`NomadNetworkPage.vue`): Loading state shows **phase-based** copy (finding path, establishing link, requesting page, transferring) instead of a generic **“Loading 0%”**, with optional **(N%)** when transfer progress applies; header next to hop distance shows **last load duration** and **page body size** (human-readable bytes). New i18n keys **`nomadnet.load_phase_*`**, **`load_phase_default`**, and **`path_away_suffix`** (en, de, it, ru).
+- **WebSocket (NomadNet page/file downloads)**: Backend emits **`nomadnet.page.download`** / **`nomadnet.file.download`** messages with **`status: "phase"`** and **`load_phase`** so the UI can track **`finding_path`**, **`establishing_link`**, **`requesting_page`**, and **`transferring`** (phases emitted from **`NomadnetDownloader._emit_phase`**).
+- **MicronParser** (NomadNet `.mu` rendering): Parsing is **fault-tolerant**—a bad line yields an escaped fallback segment instead of failing the whole page; full-document fallback if conversion throws; **`Intl.Segmenter`** fallback in **`forceMonospace`**; DOMPurify sanitization and overlay stripping wrapped for robustness.
 
 ### Removed
 
@@ -56,6 +60,9 @@ All notable changes to this project will be documented in this file.
 - **i18n**: Dynamic locale file discovery in tests; added `_languageName` presence check for all locales.
 - **ConfigManager**: Inbound stamp cost may be set to `0`.
 - **meshchat_utils**: Tests for `normalize_hex_identifier` / `hex_identifier_to_bytes`.
+- **Nomad Network downloader**: `tests/backend/test_nomadnet_downloader_boost.py` covers cache eviction, cancel/cache removal, UTF-8 replacement for page bodies, path-wait cache hit, short list-shaped file payloads, and lock-safe cache access; `test_nomadnet_downloader.py` for cancel behaviour.
+- **MicronParser**: Resilience tests (forced **`parseLine`** failure, fragment fallback); existing Micron coverage retained.
+- **NomadNetworkPage**: **`formatShortDuration`** unit tests.
 - **Custom TLS CLI**: `tests/backend/test_ssl_custom_args.py` asserts **`--ssl-cert`** without **`--ssl-key`** (and the reverse) exits with code **2**.
 - **Auth access attempts**: `tests/backend/test_access_attempts_dao.py` (DAO behaviour, trusted pruning, cleanup, lockout counting, Hypothesis invariants for `user_agent_hash` and insert/list). `tests/backend/test_access_attempts_enforcement.py` (`_request_client_ip`, `_enforce_login_access` for untrusted rate limit and lockout, trusted bypass and trusted rate limit, Hypothesis monotone check, HTTP smoke for login logging, lockout and rate-limit **429** responses, debug access-attempts JSON shape). **Vitest**: `DebugLogsPage` access tab loads `/api/v1/debug/access-attempts`. **Playwright**: `smoke.spec.js` asserts **Logs** and **Access attempts** on `#/debug/logs`.
 
@@ -63,7 +70,7 @@ All notable changes to this project will be documented in this file.
 
 - **README**: Configuration table documents **`--ssl-cert` / `--ssl-key`** and **`MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY`**.
 - **pnpm-lock.yaml**: Updated Vue, Vue-i18n, **Vite 8**, and **`@vitejs/plugin-vue`**.
-- **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files. Added `archives.export_mu` and `archives.export_selected_mu` for the archives export buttons. Strings for announce and discovered-interface limits were added for this release.
+- **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files. Added `archives.export_mu` and `archives.export_selected_mu` for the archives export buttons. Strings for announce and discovered-interface limits were added for this release. NomadNet browser: **`nomadnet.load_phase_*`**, **`load_phase_default`**, **`path_away_suffix`**; corrected **`nomadnet.no_search_results_peers`** placement for de/ru where duplicated.
 - **Python dependencies**: `websockets` >= 16.0, `aiohttp` >= 3.13.3, `psutil` >= 7.2.2, `jaraco.context` >= 6.1.1, `hypothesis` >= 6.151.9.
 
 ## [4.3.1] - 2026-03-10
