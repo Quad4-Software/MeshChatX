@@ -30,11 +30,7 @@ function stripPythonBytecodeArtifacts(dir) {
                 stripPythonBytecodeArtifacts(full);
             }
         } else if (ent.name.endsWith(".pyc") || ent.name.endsWith(".pyo")) {
-            const stem = ent.name.replace(/\.pyc$/i, "").replace(/\.pyo$/i, "");
-            const siblingPy = path.join(dir, `${stem}.py`);
-            if (fs.existsSync(siblingPy)) {
-                fs.unlinkSync(full);
-            }
+            fs.unlinkSync(full);
         }
     }
 }
