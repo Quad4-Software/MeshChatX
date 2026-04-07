@@ -873,7 +873,13 @@
         "new_section": "New Section",
         "rename_section": "Rename section",
         "delete_section_confirm": "Delete this section? Favourites will move to the main section.",
-        "unsupported_url": "unsupported url: "
+        "unsupported_url": "unsupported url: ",
+        "path_away_suffix": "away",
+        "load_phase_default": "Loading page",
+        "load_phase_finding_path": "Looking for a network path to the node",
+        "load_phase_establishing_link": "Establishing link to the node",
+        "load_phase_requesting_page": "Sending page request",
+        "load_phase_transferring": "Receiving page"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

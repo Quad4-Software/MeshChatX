@@ -797,6 +797,7 @@
         "announced_time_ago": "Анонсировано {time} назад",
         "block_node": "Заблокировать узел",
         "no_announces_yet": "Анонсов пока нет",
+        "no_search_results_peers": "Нет узлов по вашему запросу.",
         "listening_for_peers": "Ожидание узлов в сети.",
         "block_node_confirm": "Вы уверены, что хотите заблокировать {name}? Его анонсы будут игнорироваться, и он не будет отображаться в списке.",
         "node_blocked_successfully": "Узел успешно заблокирован",
@@ -816,7 +817,12 @@
         "rename_section": "Rename section",
         "delete_section_confirm": "Delete this section? Favourites will move to the main section.",
         "unsupported_url": "unsupported url: ",
-        "no_search_results_peers": "No peers found matching your search."
+        "path_away_suffix": "от вас",
+        "load_phase_default": "Загрузка страницы",
+        "load_phase_finding_path": "Поиск сетевого пути к узлу",
+        "load_phase_establishing_link": "Установка соединения с узлом",
+        "load_phase_requesting_page": "Отправка запроса страницы",
+        "load_phase_transferring": "Приём страницы"
     },
     "forwarder": {
         "title": "LXMF Форвардер",

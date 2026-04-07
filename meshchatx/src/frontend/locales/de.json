@@ -797,6 +797,7 @@
         "announced_time_ago": "Vor {time} angekündigt",
         "block_node": "Knoten blockieren",
         "no_announces_yet": "Noch keine Ankündigungen",
+        "no_search_results_peers": "Keine Peers gefunden, die zu Ihrer Suche passen.",
         "listening_for_peers": "Höre auf Peers im Mesh.",
         "block_node_confirm": "Sind Sie sicher, dass Sie {name} blockieren möchten? Seine Ankündigungen werden ignoriert und er erscheint nicht mehr im Ankündigungs-Stream.",
         "node_blocked_successfully": "Knoten erfolgreich blockiert",
@@ -816,7 +817,12 @@
         "rename_section": "Rename section",
         "delete_section_confirm": "Delete this section? Favourites will move to the main section.",
         "unsupported_url": "unsupported url: ",
-        "no_search_results_peers": "No peers found matching your search."
+        "path_away_suffix": "entfernt",
+        "load_phase_default": "Seite wird geladen",
+        "load_phase_finding_path": "Netzwerkpfad zum Knoten wird gesucht",
+        "load_phase_establishing_link": "Verbindung zum Knoten wird aufgebaut",
+        "load_phase_requesting_page": "Seitenanfrage wird gesendet",
+        "load_phase_transferring": "Seite wird empfangen"
     },
     "forwarder": {
         "title": "LXMF-Weiterleiter",

@@ -138,4 +138,14 @@ describe("NomadNetworkPage.vue", () => {
             expect(html).toContain('data-dest="' + dest + '"');
         });
     });
+
+    describe("page load stats", () => {
+        it("formatShortDuration formats ms and seconds", () => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.formatShortDuration(0)).toBe("0 ms");
+            expect(wrapper.vm.formatShortDuration(500)).toBe("500 ms");
+            expect(wrapper.vm.formatShortDuration(1500)).toMatch(/1\.5 s/);
+            expect(wrapper.vm.formatShortDuration(120000)).toMatch(/2m/);
+        });
+    });
 });

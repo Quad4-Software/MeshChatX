@@ -79,8 +79,14 @@
                             @click="onDestinationPathClick(selectedNodePath)"
                         >
                             - {{ selectedNodePath.hops }}
-                            {{ selectedNodePath.hops === 1 ? $t("app.hop") : $t("app.hops_plural") }} away</span
-                        >
+                            {{ selectedNodePath.hops === 1 ? $t("app.hop") : $t("app.hops_plural") }}
+                            {{ $t("nomadnet.path_away_suffix") }}
+                            <template v-if="navbarPageStats">
+                                <span class="text-gray-500 dark:text-gray-400 font-normal">
+                                    - {{ navbarPageStats.duration }} - {{ navbarPageStats.sizeLabel }}
+                                </span>
+                            </template>
+                        </span>
                     </div>
 
                     <!-- identify button -->
@@ -249,7 +255,7 @@
                                 ></path>
                             </svg>
                         </div>
-                        <div class="my-auto flex-1">Loading {{ nodePageProgress }}%</div>
+                        <div class="my-auto flex-1">{{ nomadnetPageLoadingLine }}</div>
                         <button
                             type="button"
                             class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
@@ -397,6 +403,10 @@ export default {
             nodePagePathUrlInput: null,
             nodePageContent: null,
             nodePageProgress: 0,
+            nodePageLoadPhase: null,
+            pageLoadStartedAt: null,
+            lastPageLoadDurationMs: null,
+            lastPageContentBytes: null,
             nodePagePathHistory: [],
             nodePageCache: {},
             currentPageDownloadId: null,
@@ -439,6 +449,32 @@ export default {
         },
         isPopoutMode() {
             return this.popoutRouteType === "nomad";
+        },
+        navbarPageStats() {
+            if (
+                this.lastPageLoadDurationMs == null ||
+                this.lastPageContentBytes == null ||
+                !this.selectedNodePath
+            ) {
+                return null;
+            }
+            return {
+                duration: this.formatShortDuration(this.lastPageLoadDurationMs),
+                sizeLabel: Utils.formatBytes(this.lastPageContentBytes),
+            };
+        },
+        nomadnetPageLoadingLine() {
+            const phase = this.nodePageLoadPhase || "finding_path";
+            const key = `nomadnet.load_phase_${phase}`;
+            const translated = this.$t(key);
+            const base =
+                typeof translated === "string" && translated !== key
+                    ? translated
+                    : this.$t("nomadnet.load_phase_default");
+            if (this.nodePageProgress > 0 && (phase === "transferring" || phase === "requesting_page")) {
+                return `${base} (${this.nodePageProgress}%)`;
+            }
+            return base;
         },
     },
     watch: {
@@ -578,7 +614,14 @@ export default {
                         this.nodePageContent = nomadnetPageDownload.page_content;
                         this.nodePageProgress = 100;
                         this.isLoadingNodePage = false;
+                        this.nodePageLoadPhase = null;
                         this.currentPageDownloadId = null;
+                        {
+                            const pc = nomadnetPageDownload.page_content || "";
+                            this.lastPageLoadDurationMs =
+                                this.pageLoadStartedAt != null ? Date.now() - this.pageLoadStartedAt : 0;
+                            this.lastPageContentBytes = new TextEncoder().encode(pc).length;
+                        }
                         this.fetchArchives();
                         return;
                     }
@@ -598,6 +641,18 @@ export default {
                     // handle started status
                     if (nomadnetPageDownload.status === "started") {
                         this.currentPageDownloadId = downloadId;
+                        this.nodePageLoadPhase = "finding_path";
+                        return;
+                    }
+
+                    if (nomadnetPageDownload.status === "phase") {
+                        if (this.currentPageDownloadId !== downloadId) {
+                            return;
+                        }
+                        if (this.nodePagePath && responsePagePath !== this.nodePagePath) {
+                            return;
+                        }
+                        this.nodePageLoadPhase = nomadnetPageDownload.load_phase || "finding_path";
                         return;
                     }
 
@@ -903,6 +958,10 @@ export default {
             this.nodePageContent = null;
             this.pageArchives = [];
             this.nodePageProgress = 0;
+            this.nodePageLoadPhase = "finding_path";
+            this.pageLoadStartedAt = Date.now();
+            this.lastPageLoadDurationMs = null;
+            this.lastPageContentBytes = null;
             this.clearPartials();
 
             // update url bar
@@ -926,6 +985,9 @@ export default {
                 if (cachedNodePageContent != null) {
                     this.nodePageContent = cachedNodePageContent;
                     this.isLoadingNodePage = false;
+                    this.nodePageLoadPhase = null;
+                    this.lastPageLoadDurationMs = 0;
+                    this.lastPageContentBytes = new TextEncoder().encode(cachedNodePageContent).length;
                     this.fetchArchives();
                     return;
                 }
@@ -950,6 +1012,11 @@ export default {
 
                     // update status
                     this.isLoadingNodePage = false;
+                    this.nodePageLoadPhase = null;
+                    if (this.pageLoadStartedAt != null) {
+                        this.lastPageLoadDurationMs = Date.now() - this.pageLoadStartedAt;
+                    }
+                    this.lastPageContentBytes = new TextEncoder().encode(pageContent).length;
 
                     // update node path
                     this.getNodePath(destinationHash);
@@ -966,6 +1033,9 @@ export default {
                     // update page content
                     this.nodePageContent = `Failed loading page: ${failureReason}`;
                     this.isLoadingNodePage = false;
+                    this.nodePageLoadPhase = null;
+                    this.lastPageLoadDurationMs = null;
+                    this.lastPageContentBytes = null;
 
                     // update node path
                     this.getNodePath(destinationHash);
@@ -1468,6 +1538,8 @@ export default {
             this.isShowingArchivedVersion = false;
             this.archivedAt = null;
             this.nodePageProgress = 0;
+            this.pageLoadStartedAt = Date.now();
+            this.nodePageLoadPhase = "finding_path";
 
             const archive = this.pageArchives.find((a) => a.id === archiveId);
             if (archive) {
@@ -1504,6 +1576,21 @@ export default {
             const date = new Date(dateStr);
             if (isNaN(date.getTime())) return "Invalid Date";
             return date.toLocaleString();
+        },
+        formatShortDuration(ms) {
+            if (ms == null || ms < 0) {
+                return "";
+            }
+            if (ms < 1000) {
+                return `${Math.round(ms)} ms`;
+            }
+            const s = ms / 1000;
+            if (s < 60) {
+                return s < 10 ? `${s.toFixed(1)} s` : `${Math.round(s)} s`;
+            }
+            const m = Math.floor(s / 60);
+            const rs = Math.round(s - m * 60);
+            return `${m}m ${rs}s`;
         },
         async getNodePath(destinationHash) {
             // clear previous known path

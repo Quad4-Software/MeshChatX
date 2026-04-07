@@ -919,7 +919,13 @@
         "new_section": "Nuova Sezione",
         "rename_section": "Rinomina sezione",
         "delete_section_confirm": "Eliminare questa sezione? I preferiti verranno spostati nella sezione principale.",
-        "unsupported_url": "url non supportato: "
+        "unsupported_url": "url non supportato: ",
+        "path_away_suffix": "di distanza",
+        "load_phase_default": "Caricamento pagina",
+        "load_phase_finding_path": "Ricerca del percorso di rete verso il nodo",
+        "load_phase_establishing_link": "Connessione al nodo in corso",
+        "load_phase_requesting_page": "Invio richiesta pagina",
+        "load_phase_transferring": "Ricezione pagina"
     },
     "forwarder": {
         "title": "Inoltro LXMF",

@@ -96,7 +96,7 @@ from meshchatx.src.backend.meshchat_utils import (
 from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetFileDownloader,
     NomadnetPageDownloader,
-    nomadnet_cached_links,
+    get_cached_active_link,
 )
 from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
@@ -8140,15 +8140,14 @@ class ReticulumMeshChat:
             destination_hash = bytes.fromhex(destination_hash)
 
             # identify to existing active link
-            if destination_hash in nomadnet_cached_links:
-                link = nomadnet_cached_links[destination_hash]
-                if link.status is RNS.Link.ACTIVE:
-                    link.identify(self.identity)
-                    return web.json_response(
-                        {
-                            "message": "Identity has been sent!",
-                        },
-                    )
+            link = get_cached_active_link(destination_hash)
+            if link is not None:
+                link.identify(self.identity)
+                return web.json_response(
+                    {
+                        "message": "Identity has been sent!",
+                    },
+                )
 
             # failed to identify
             return web.json_response(
@@ -10623,6 +10622,24 @@ class ReticulumMeshChat:
                     ),
                 )
 
+            def on_file_download_phase(phase: str):
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "nomadnet.file.download",
+                                "download_id": download_id,
+                                "nomadnet_file_download": {
+                                    "status": "phase",
+                                    "load_phase": phase,
+                                    "destination_hash": destination_hash.hex(),
+                                    "file_path": file_path,
+                                },
+                            },
+                        ),
+                    ),
+                )
+
             # download the file
             downloader = NomadnetFileDownloader(
                 destination_hash,
@@ -10630,6 +10647,7 @@ class ReticulumMeshChat:
                 on_file_download_success,
                 on_file_download_failure,
                 on_file_download_progress,
+                on_phase=on_file_download_phase,
             )
             downloader.start_time = time.time()
             self.active_downloads[download_id] = downloader
@@ -10797,6 +10815,24 @@ class ReticulumMeshChat:
                     ),
                 )
 
+            def on_page_download_phase(phase: str):
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "nomadnet.page.download",
+                                "download_id": download_id,
+                                "nomadnet_page_download": {
+                                    "status": "phase",
+                                    "load_phase": phase,
+                                    "destination_hash": destination_hash.hex(),
+                                    "page_path": page_path,
+                                },
+                            },
+                        ),
+                    ),
+                )
+
             # download the page
             downloader = NomadnetPageDownloader(
                 destination_hash,
@@ -10805,6 +10841,7 @@ class ReticulumMeshChat:
                 on_page_download_success,
                 on_page_download_failure,
                 on_page_download_progress,
+                on_phase=on_page_download_phase,
             )
             self.active_downloads[download_id] = downloader
 
