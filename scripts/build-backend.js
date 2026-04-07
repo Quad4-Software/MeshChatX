@@ -122,7 +122,19 @@ try {
             stripPythonBytecodeArtifacts(buildDir);
         }
         const manifestPath = path.join(buildDir, "backend-manifest.json");
-        generateManifest(buildDir, manifestPath);
+        const skipManifest =
+            process.env.MESHCHATX_SKIP_BACKEND_MANIFEST === "1" ||
+            process.env.MESHCHATX_SKIP_BACKEND_MANIFEST === "true";
+        if (skipManifest) {
+            if (fs.existsSync(manifestPath)) {
+                fs.unlinkSync(manifestPath);
+            }
+            console.log(
+                "Skipping backend-manifest.json (MESHCHATX_SKIP_BACKEND_MANIFEST); universal merge requires identical non-binary files."
+            );
+        } else {
+            generateManifest(buildDir, manifestPath);
+        }
     } else {
         console.error(`Build directory not found (${buildDir}), manifest generation skipped.`);
     }

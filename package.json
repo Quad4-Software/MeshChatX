@@ -141,7 +141,8 @@
                     "from": "build/exe/darwin-${arch}",
                     "to": "backend",
                     "filter": [
-                        "**/*"
+                        "**/*",
+                        "!backend-manifest.json"
                     ]
                 }
             ]

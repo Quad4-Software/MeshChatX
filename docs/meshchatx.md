@@ -105,7 +105,7 @@ The project favors predictable SQL behavior and explicit migration control, whic
 - Auth and access-attempt tracking integrated with IP/User-Agent aware controls
 - Debug endpoints provide visibility into logs and access-attempt records
 
-This is also very well tested, but I still would not recommend exposing MeshChatX to the internet. 
+This is also very well tested, but I still would not recommend exposing MeshChatX to the internet.
 
 ## Security Model
 
