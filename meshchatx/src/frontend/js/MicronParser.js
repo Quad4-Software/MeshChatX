@@ -4,6 +4,16 @@ import BaseMicronParser from "micron-parser";
 const ALLOWED_URI_REGEXP =
     /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|nomadnetwork|lxmf):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
 
+function escapeHtmlForFallback(text) {
+    if (text == null) return "";
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 /**
  * Extends the published micron-parser with MeshChat / Nomad Network needs:
  * partial includes, overlay style stripping, wide CJK monospace cells, and lxmf/nomadnetwork in DOMPurify.
@@ -118,120 +128,213 @@ export default class MicronParser extends BaseMicronParser {
     convertMicronToHtml(markup, partialContents = {}) {
         if (markup == null) return "";
         if (typeof markup !== "string") markup = String(markup);
-        let html = "";
 
-        const headerColors = this.parseHeaderTags(markup);
+        const build = () => {
+            let html = "";
 
-        const plainStyle = this.SELECTED_STYLES?.plain || { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG };
-        const defaultFg = headerColors.fg || plainStyle.fg;
-        const defaultBg = headerColors.bg || plainStyle.bg;
+            let headerColors = { fg: null, bg: null };
+            try {
+                headerColors = this.parseHeaderTags(markup);
+            } catch (e) {
+                console.warn("MicronParser: parseHeaderTags failed", e);
+            }
 
-        let state = {
-            literal: false,
-            depth: 0,
-            fg_color: defaultFg,
-            bg_color: defaultBg,
-            formatting: {
-                bold: false,
-                underline: false,
-                italic: false,
-                strikethrough: false,
-            },
-            default_align: "left",
-            align: "left",
-            default_fg: defaultFg,
-            default_bg: defaultBg,
-            radio_groups: {},
-            partialIndex: 0,
+            const plainStyle = this.SELECTED_STYLES?.plain || { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG };
+            const defaultFg = headerColors.fg || plainStyle.fg;
+            const defaultBg = headerColors.bg || plainStyle.bg;
+
+            let state = {
+                literal: false,
+                depth: 0,
+                fg_color: defaultFg,
+                bg_color: defaultBg,
+                formatting: {
+                    bold: false,
+                    underline: false,
+                    italic: false,
+                    strikethrough: false,
+                },
+                default_align: "left",
+                align: "left",
+                default_fg: defaultFg,
+                default_bg: defaultBg,
+                radio_groups: {},
+                partialIndex: 0,
+            };
+
+            const lines = markup.split("\n");
+
+            for (let line of lines) {
+                let lineOutput;
+                try {
+                    lineOutput = this.parseLine(line, state);
+                } catch (e) {
+                    console.warn("MicronParser: parseLine failed", e);
+                    html += `<span class="mu-line-parse-fallback" style="white-space:pre-wrap">${escapeHtmlForFallback(line)}</span><br>`;
+                    continue;
+                }
+                if (lineOutput && lineOutput.length > 0) {
+                    for (let el of lineOutput) {
+                        try {
+                            if (el.classList && el.classList.contains("mu-partial")) {
+                                const id = el.getAttribute("data-partial-id");
+                                if (id && partialContents[id]) {
+                                    html += partialContents[id];
+                                } else {
+                                    html += el.outerHTML;
+                                }
+                            } else {
+                                html += el.outerHTML;
+                            }
+                        } catch (e) {
+                            console.warn("MicronParser: line output serialization failed", e);
+                            html += `<span class="mu-line-parse-fallback" style="white-space:pre-wrap">${escapeHtmlForFallback(line)}</span><br>`;
+                            break;
+                        }
+                    }
+                } else if (lineOutput && lineOutput.length === 0) {
+                    // skip
+                } else {
+                    html += "<br>";
+                }
+            }
+
+            try {
+                const sanitized = DOMPurify.sanitize(html, {
+                    USE_PROFILES: { html: true },
+                    ALLOWED_URI_REGEXP,
+                });
+                try {
+                    return MicronParser.stripOverlayStyles(sanitized);
+                } catch (e) {
+                    console.warn("MicronParser: stripOverlayStyles failed", e);
+                    return sanitized;
+                }
+            } catch (error) {
+                console.warn(
+                    "DOMPurify is not installed or sanitization failed. Include dompurify or check the build.",
+                    error
+                );
+                return `<p style="color: red;">DOMPurify is not installed or sanitization failed.</p>`;
+            }
         };
 
-        const lines = markup.split("\n");
-
-        for (let line of lines) {
-            const lineOutput = this.parseLine(line, state);
-            if (lineOutput && lineOutput.length > 0) {
-                for (let el of lineOutput) {
-                    if (el.classList && el.classList.contains("mu-partial")) {
-                        const id = el.getAttribute("data-partial-id");
-                        if (id && partialContents[id]) {
-                            html += partialContents[id];
-                        } else {
-                            html += el.outerHTML;
-                        }
-                    } else {
-                        html += el.outerHTML;
-                    }
-                }
-            } else if (lineOutput && lineOutput.length === 0) {
-                // skip
-            } else {
-                html += "<br>";
-            }
-        }
-
         try {
-            const sanitized = DOMPurify.sanitize(html, {
-                USE_PROFILES: { html: true },
-                ALLOWED_URI_REGEXP,
-            });
-            return MicronParser.stripOverlayStyles(sanitized);
-        } catch (error) {
-            console.warn(
-                "DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify ",
-                error
-            );
-            return `<p style="color: red;"> ⚠ DOMPurify is not installed. Include it above micron-parser.js or run npm install dompurify </p>`;
+            return build();
+        } catch (e) {
+            console.warn("MicronParser: convertMicronToHtml failed", e);
+            const escaped = escapeHtmlForFallback(markup);
+            try {
+                return DOMPurify.sanitize(
+                    `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`,
+                    {
+                        USE_PROFILES: { html: true },
+                        ALLOWED_URI_REGEXP,
+                    }
+                );
+            } catch {
+                return `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`;
+            }
         }
     }
 
     convertMicronToFragment(markup) {
-        const fragment = document.createDocumentFragment();
-
-        const headerColors = this.parseHeaderTags(markup);
-
-        const plainStyle = this.SELECTED_STYLES?.plain || { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG };
-        const defaultFg = headerColors.fg || plainStyle.fg;
-        const defaultBg = headerColors.bg || plainStyle.bg;
-
-        let state = {
-            literal: false,
-            depth: 0,
-            fg_color: defaultFg,
-            bg_color: defaultBg,
-            formatting: {
-                bold: false,
-                underline: false,
-                italic: false,
-                strikethrough: false,
-            },
-            default_align: "left",
-            align: "left",
-            default_fg: defaultFg,
-            default_bg: defaultBg,
-            radio_groups: {},
-            partialIndex: 0,
-        };
-
-        const lines = markup.split("\n");
-
-        for (let line of lines) {
-            line = DOMPurify.sanitize(line, {
-                USE_PROFILES: { html: true },
-                ALLOWED_URI_REGEXP,
-            });
-            const lineOutput = this.parseLine(line, state);
-            if (lineOutput && lineOutput.length > 0) {
-                for (let el of lineOutput) {
-                    fragment.appendChild(el);
-                }
-            } else if (lineOutput && lineOutput.length === 0) {
-                // skip
-            } else {
-                fragment.appendChild(document.createElement("br"));
-            }
+        if (markup == null) {
+            return document.createDocumentFragment();
         }
+        if (typeof markup !== "string") markup = String(markup);
 
-        return fragment;
+        try {
+            const fragment = document.createDocumentFragment();
+
+            let headerColors = { fg: null, bg: null };
+            try {
+                headerColors = this.parseHeaderTags(markup);
+            } catch (e) {
+                console.warn("MicronParser: parseHeaderTags failed", e);
+            }
+
+            const plainStyle = this.SELECTED_STYLES?.plain || { fg: this.DEFAULT_FG_DARK, bg: this.DEFAULT_BG };
+            const defaultFg = headerColors.fg || plainStyle.fg;
+            const defaultBg = headerColors.bg || plainStyle.bg;
+
+            let state = {
+                literal: false,
+                depth: 0,
+                fg_color: defaultFg,
+                bg_color: defaultBg,
+                formatting: {
+                    bold: false,
+                    underline: false,
+                    italic: false,
+                    strikethrough: false,
+                },
+                default_align: "left",
+                align: "left",
+                default_fg: defaultFg,
+                default_bg: defaultBg,
+                radio_groups: {},
+                partialIndex: 0,
+            };
+
+            const lines = markup.split("\n");
+
+            for (let line of lines) {
+                let sanitizedLine = line;
+                try {
+                    sanitizedLine = DOMPurify.sanitize(line, {
+                        USE_PROFILES: { html: true },
+                        ALLOWED_URI_REGEXP,
+                    });
+                } catch (e) {
+                    console.warn("MicronParser: line sanitize failed", e);
+                }
+                let lineOutput;
+                try {
+                    lineOutput = this.parseLine(sanitizedLine, state);
+                } catch (e) {
+                    console.warn("MicronParser: parseLine failed", e);
+                    const fallback = document.createElement("span");
+                    fallback.className = "mu-line-parse-fallback";
+                    fallback.style.whiteSpace = "pre-wrap";
+                    fallback.textContent = line;
+                    fragment.appendChild(fallback);
+                    fragment.appendChild(document.createElement("br"));
+                    continue;
+                }
+                if (lineOutput && lineOutput.length > 0) {
+                    for (let el of lineOutput) {
+                        try {
+                            fragment.appendChild(el);
+                        } catch (e) {
+                            console.warn("MicronParser: appendChild failed", e);
+                            const fallback = document.createElement("span");
+                            fallback.className = "mu-line-parse-fallback";
+                            fallback.style.whiteSpace = "pre-wrap";
+                            fallback.textContent = line;
+                            fragment.appendChild(fallback);
+                            fragment.appendChild(document.createElement("br"));
+                            break;
+                        }
+                    }
+                } else if (lineOutput && lineOutput.length === 0) {
+                    // skip
+                } else {
+                    fragment.appendChild(document.createElement("br"));
+                }
+            }
+
+            return fragment;
+        } catch (e) {
+            console.warn("MicronParser: convertMicronToFragment failed", e);
+            const fragment = document.createDocumentFragment();
+            const pre = document.createElement("pre");
+            pre.className = "mu-parse-fallback";
+            pre.style.whiteSpace = "pre-wrap";
+            pre.textContent = markup;
+            fragment.appendChild(pre);
+            return fragment;
+        }
     }
 
     parseLine(line, state) {
@@ -263,7 +366,16 @@ export default class MicronParser extends BaseMicronParser {
 
     forceMonospace(line) {
         let out = "";
-        const charArr = [...new Intl.Segmenter().segment(line)].map((x) => x.segment);
+        let charArr;
+        try {
+            charArr = [...new Intl.Segmenter().segment(line)].map((x) => x.segment);
+        } catch {
+            try {
+                charArr = Array.from(line);
+            } catch {
+                charArr = line.split("");
+            }
+        }
         for (let char of charArr) {
             const cellClass = MicronParser.isWideMonospaceCell(char) ? "Mu-mnt-full" : "Mu-mnt";
             out += "<span class='" + cellClass + "'>" + char + "</span>";

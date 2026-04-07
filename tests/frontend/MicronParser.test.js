@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import MicronParser from "@/js/MicronParser";
 
 describe("MicronParser.js", () => {
@@ -654,6 +654,35 @@ describe("MicronParser.js", () => {
         it("handles mixed valid/invalid UTF-8 with micron", () => {
             const markup = "`!\uFFFD\uFFFE\uFFFF bold\uD83D\uDE00`!";
             expect(() => parser.convertMicronToHtml(markup)).not.toThrow();
+        });
+    });
+
+    describe("resilience: parse failures", () => {
+        it("renders other lines when parseLine throws for one line", () => {
+            const spy = vi.spyOn(parser, "parseLine").mockImplementation(function (line, state) {
+                if (line === "BAD") {
+                    throw new Error("forced parse failure");
+                }
+                return MicronParser.prototype.parseLine.call(this, line, state);
+            });
+            const html = parser.convertMicronToHtml("good line\nBAD\nanother");
+            spy.mockRestore();
+            expect(html).toContain("good line");
+            expect(html).toContain("mu-line-parse-fallback");
+            expect(html).toContain("BAD");
+            expect(html).toContain("another");
+        });
+
+        it("convertMicronToFragment returns a fragment when parseLine throws", () => {
+            const spy = vi.spyOn(parser, "parseLine").mockImplementation(function (line, state) {
+                if (line === "BAD") {
+                    throw new Error("forced");
+                }
+                return MicronParser.prototype.parseLine.call(this, line, state);
+            });
+            const frag = parser.convertMicronToFragment("ok\nBAD\nok2");
+            spy.mockRestore();
+            expect(frag.childNodes.length).toBeGreaterThan(0);
         });
     });
 });
