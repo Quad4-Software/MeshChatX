@@ -18,6 +18,27 @@ function getFiles(dir, fileList = []) {
     return fileList;
 }
 
+function stripPythonBytecodeArtifacts(dir) {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const ent of entries) {
+        const full = path.join(dir, ent.name);
+        if (ent.isDirectory()) {
+            if (ent.name === "__pycache__") {
+                fs.rmSync(full, { recursive: true, force: true });
+            } else {
+                stripPythonBytecodeArtifacts(full);
+            }
+        } else if (ent.name.endsWith(".pyc") || ent.name.endsWith(".pyo")) {
+            const stem = ent.name.replace(/\.pyc$/i, "").replace(/\.pyo$/i, "");
+            const siblingPy = path.join(dir, `${stem}.py`);
+            if (fs.existsSync(siblingPy)) {
+                fs.unlinkSync(full);
+            }
+        }
+    }
+}
+
 function generateManifest(buildDir, manifestPath) {
     console.log("Generating backend integrity manifest...");
     const files = getFiles(buildDir);
@@ -69,6 +90,7 @@ try {
         ...process.env,
         CX_FREEZE_TARGET_NAME: targetName,
         CX_FREEZE_BUILD_EXE: buildDirRelative,
+        PYTHONDONTWRITEBYTECODE: "1",
     };
 
     const cmdParts = pythonCmd.trim().split(/\s+/).filter(Boolean);
@@ -100,6 +122,9 @@ try {
     }
 
     if (fs.existsSync(buildDir)) {
+        if (isDarwin) {
+            stripPythonBytecodeArtifacts(buildDir);
+        }
         const manifestPath = path.join(buildDir, "backend-manifest.json");
         generateManifest(buildDir, manifestPath);
     } else {
