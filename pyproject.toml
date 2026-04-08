@@ -38,6 +38,7 @@ dependencies = [
 ]
 
 [project.scripts]
+meshchatx = "meshchatx.meshchat:main"
 meshchat = "meshchatx.meshchat:main"
 
 [project.urls]
