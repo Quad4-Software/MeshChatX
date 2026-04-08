@@ -10,7 +10,6 @@ import copy
 import gc
 import hashlib
 import importlib.metadata
-import ipaddress
 import json
 import logging
 import os
@@ -42,11 +41,6 @@ from aiohttp import WSCloseCode, WSMessage, WSMsgType, web
 from aiohttp_session import get_session
 from aiohttp_session import setup as setup_session
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
 from RNS.Discovery import InterfaceDiscovery
 from serial.tools import list_ports
 
@@ -109,47 +103,13 @@ from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.telemetry_utils import Telemeter
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.version import __version__ as app_version
-
-
-def resolve_log_dir():
-    """Choose a writable log directory across container, desktop, and Windows."""
-    env_dir = os.environ.get("MESHCHAT_LOG_DIR")
-    candidates = []
-    if env_dir:
-        candidates.append(env_dir)
-
-    candidates.append("/config/logs")
-
-    if os.name == "nt":
-        appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
-        if appdata:
-            candidates.append(os.path.join(appdata, "MeshChatX", "logs"))
-
-    home_dir = os.path.expanduser("~")
-    candidates.append(os.path.join(home_dir, ".reticulum-meshchatx", "logs"))
-    candidates.append(os.path.join(tempfile.gettempdir(), "meshchatx", "logs"))
-
-    for path in candidates:
-        if not path:
-            continue
-        try:
-            os.makedirs(path, exist_ok=True)
-            return path
-        except PermissionError:
-            continue
-        except OSError:
-            continue
-
-    return None
-
-
-def _request_client_ip(request: web.Request) -> str:
-    xff = request.headers.get("X-Forwarded-For")
-    if xff:
-        return xff.split(",")[0].strip()
-    if request.remote:
-        return request.remote
-    return ""
+from meshchatx.src.env_utils import env_bool
+from meshchatx.src.path_utils import (
+    get_file_path,
+    request_client_ip as _request_client_ip,
+    resolve_log_dir,
+)
+from meshchatx.src.ssl_self_signed import generate_ssl_certificate
 
 
 # Global log handler
@@ -171,98 +131,6 @@ else:
 logging.basicConfig(level=logging.INFO, handlers=handlers)
 logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
 logger = logging.getLogger("meshchatx")
-
-
-# NOTE: this is required to be able to pack our app with cxfreeze as an exe, otherwise it can't access bundled assets
-# this returns a file path based on if we are running meshchat.py directly, or if we have packed it as an exe with cxfreeze
-# https://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
-# bearer:disable python_lang_path_traversal
-def get_file_path(filename):
-    # Remove trailing slashes for path joining consistency
-    filename = filename.rstrip("/\\")
-
-    if getattr(sys, "frozen", False):
-        datadir = os.path.dirname(sys.executable)
-        return os.path.join(datadir, filename)
-
-    # Assets live inside the meshchatx package when installed from a wheel
-    package_dir = os.path.dirname(__file__)
-    package_path = os.path.join(package_dir, filename)
-    if os.path.exists(package_path):
-        return package_path
-
-    # When running from the repository, fall back to the project root
-    repo_root = os.path.dirname(package_dir)
-    repo_path = os.path.join(repo_root, filename)
-    if os.path.exists(repo_path):
-        return repo_path
-
-    return package_path
-
-
-def generate_ssl_certificate(cert_path: str, key_path: str):
-    """Generate a self-signed SSL certificate for local HTTPS.
-
-    Args:
-        cert_path: Path where the certificate will be saved
-        key_path: Path where the private key will be saved
-
-    """
-    if os.path.exists(cert_path) and os.path.exists(key_path):
-        return
-
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend(),
-    )
-
-    subject = issuer = x509.Name(
-        [
-            x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Local"),
-            x509.NameAttribute(NameOID.LOCALITY_NAME, "Local"),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Reticulum MeshChatX"),
-            x509.NameAttribute(NameOID.COMMON_NAME, "localhost"),
-        ],
-    )
-
-    cert = (
-        x509.CertificateBuilder()
-        .subject_name(subject)
-        .issuer_name(issuer)
-        .public_key(private_key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.now(UTC))
-        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
-        .add_extension(
-            x509.SubjectAlternativeName(
-                [
-                    x509.DNSName("localhost"),
-                    x509.IPAddress(ipaddress.IPv4Address("127.0.0.1")),
-                    x509.IPAddress(ipaddress.IPv6Address("::1")),
-                ],
-            ),
-            critical=False,
-        )
-        .sign(private_key, hashes.SHA256(), default_backend())
-    )
-
-    cert_dir = os.path.dirname(cert_path)
-    if cert_dir:
-        os.makedirs(cert_dir, exist_ok=True)
-
-    with open(cert_path, "wb") as f:
-        f.write(cert.public_bytes(serialization.Encoding.PEM))
-
-    with open(key_path, "wb") as f:
-        f.write(
-            private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
-            ),
-        )
 
 
 class ReticulumMeshChat:
@@ -9664,6 +9532,14 @@ class ReticulumMeshChat:
 
         app.add_routes(routes)
 
+        async def robots_txt_handler(_request):
+            return web.Response(
+                text="User-agent: *\nDisallow: /\n",
+                content_type="text/plain; charset=utf-8",
+            )
+
+        app.router.add_get("/robots.txt", robots_txt_handler)
+
         # serve anything else from public folder
         # we use add_static here as it's more robust for serving directories
         public_dir = self.get_public_path()
@@ -13056,13 +12932,6 @@ class ReticulumMeshChat:
                 return interface
 
         return None
-
-
-def env_bool(env_name, default=False):
-    val = os.environ.get(env_name)
-    if val is None:
-        return default
-    return val.lower() in ("true", "1", "yes", "on")
 
 
 # class to manage config stored in database
