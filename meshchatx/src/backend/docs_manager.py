@@ -1,3 +1,4 @@
+import asyncio
 import html
 import io
 import logging
@@ -7,7 +8,7 @@ import shutil
 import threading
 import zipfile
 
-import requests
+import aiohttp
 
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 
@@ -500,42 +501,47 @@ class DocsManager:
         return True
 
     def _download_task(self, version="latest"):
+        try:
+            asyncio.run(self._download_docs_async(version))
+        except Exception as e:
+            logging.exception(f"Docs download task failed: {e}")
+            self.last_error = str(e)
+            self.download_status = "error"
+
+    async def _download_docs_async(self, version="latest"):
         self.download_status = "downloading"
         self.download_progress = 0
         self.last_error = None
 
-        # Get URLs from config
         urls_str = self.config.docs_download_urls.get()
         urls = [u.strip() for u in urls_str.replace("\n", ",").split(",") if u.strip()]
         if not urls:
             urls = ["https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip"]
 
+        timeout = aiohttp.ClientTimeout(total=60)
         last_exception = None
         for url in urls:
             try:
                 logging.info(f"Attempting to download docs from {url}")
                 zip_path = os.path.join(self.docs_base_dir, "website.zip")
 
-                # Download ZIP
-                response = requests.get(url, stream=True, timeout=60)
-                response.raise_for_status()
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(url) as response:
+                        response.raise_for_status()
+                        total_size = int(response.headers.get("Content-Length", 0) or 0)
+                        downloaded_size = 0
 
-                total_size = int(response.headers.get("content-length", 0))
-                downloaded_size = 0
+                        with open(zip_path, "wb") as f:
+                            async for chunk in response.content.iter_chunked(8192):
+                                if chunk:
+                                    f.write(chunk)
+                                    downloaded_size += len(chunk)
+                                    if total_size > 0:
+                                        self.download_progress = int(
+                                            (downloaded_size / total_size) * 90,
+                                        )
 
-                with open(zip_path, "wb") as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-                            downloaded_size += len(chunk)
-                            if total_size > 0:
-                                self.download_progress = int(
-                                    (downloaded_size / total_size) * 90,
-                                )
-
-                # Extract
                 self.download_status = "extracting"
-                # For automatic downloads from git, we'll use a timestamp as version if none provided
                 if version == "latest":
                     import time
 
@@ -543,7 +549,6 @@ class DocsManager:
 
                 self._extract_docs(zip_path, version)
 
-                # Cleanup
                 if os.path.exists(zip_path):
                     os.remove(zip_path)
 
@@ -551,18 +556,17 @@ class DocsManager:
                 self.download_progress = 100
                 self.download_status = "completed"
 
-                # Switch to the new version
                 self.switch_version(version)
-                return  # Success, exit task
+                return
 
             except Exception as e:
                 logging.warning(f"Failed to download docs from {url}: {e}")
                 last_exception = e
-                if os.path.exists(os.path.join(self.docs_base_dir, "website.zip")):
-                    os.remove(os.path.join(self.docs_base_dir, "website.zip"))
-                continue  # Try next URL
+                zip_gone = os.path.join(self.docs_base_dir, "website.zip")
+                if os.path.exists(zip_gone):
+                    os.remove(zip_gone)
+                continue
 
-        # If we got here, all URLs failed
         self.last_error = str(last_exception)
         self.download_status = "error"
         logging.error(f"All docs download sources failed. Last error: {last_exception}")

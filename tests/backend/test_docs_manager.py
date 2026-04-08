@@ -1,7 +1,7 @@
 import os
 import shutil
 import zipfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from hypothesis import HealthCheck, given, settings
@@ -93,17 +93,29 @@ def test_get_status(docs_manager):
     assert status["has_docs"] is False
 
 
-@patch("requests.get")
-def test_download_task_success(mock_get, docs_manager, temp_dirs):
+@patch("meshchatx.src.backend.docs_manager.aiohttp.ClientSession")
+def test_download_task_success(mock_session_cls, docs_manager, temp_dirs):
     public_dir, docs_dir = temp_dirs
 
-    # Mock response
     mock_response = MagicMock()
-    mock_response.headers = {"content-length": "100"}
-    mock_response.iter_content.return_value = [b"data" * 25]
-    mock_get.return_value = mock_response
+    mock_response.headers = {"Content-Length": "100"}
+    mock_response.raise_for_status = MagicMock()
 
-    # Mock extract_docs to avoid real zip issues
+    async def iter_chunked(_n):
+        yield b"data" * 25
+
+    mock_response.content.iter_chunked = MagicMock(side_effect=lambda n: iter_chunked(n))
+
+    mock_get = MagicMock()
+    mock_get.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_get.__aexit__ = AsyncMock(return_value=None)
+
+    mock_session = MagicMock()
+    mock_session.get = MagicMock(return_value=mock_get)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=None)
+    mock_session_cls.return_value = mock_session
+
     with patch.object(docs_manager, "_extract_docs") as mock_extract:
         docs_manager._download_task()
 
@@ -115,9 +127,13 @@ def test_download_task_success(mock_get, docs_manager, temp_dirs):
         assert call_args[0][1].startswith("git-")
 
 
-@patch("requests.get")
-def test_download_task_failure(mock_get, docs_manager):
-    mock_get.side_effect = Exception("Download failed")
+@patch("meshchatx.src.backend.docs_manager.aiohttp.ClientSession")
+def test_download_task_failure(mock_session_cls, docs_manager):
+    mock_session = MagicMock()
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=None)
+    mock_session.get = MagicMock(side_effect=Exception("Download failed"))
+    mock_session_cls.return_value = mock_session
 
     docs_manager._download_task()
 

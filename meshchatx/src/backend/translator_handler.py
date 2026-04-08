@@ -1,3 +1,5 @@
+import asyncio
+import concurrent.futures
 import os
 import re
 import shutil
@@ -5,11 +7,11 @@ import subprocess
 from typing import Any
 
 try:
-    import requests
+    import aiohttp
 
-    HAS_REQUESTS = True
+    HAS_AIOHTTP = True
 except ImportError:
-    HAS_REQUESTS = False
+    HAS_AIOHTTP = False
 
 try:
     from argostranslate import package, translate
@@ -63,6 +65,15 @@ LANGUAGE_CODE_TO_NAME = {
 }
 
 
+def _sync_run_coro(coro):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        return executor.submit(asyncio.run, coro).result()
+
+
 class TranslatorHandler:
     def __init__(self, libretranslate_url: str | None = None, enabled: bool = False):
         self.enabled = enabled
@@ -73,7 +84,15 @@ class TranslatorHandler:
         self.has_argos = HAS_ARGOS
         self.has_argos_lib = HAS_ARGOS_LIB
         self.has_argos_cli = HAS_ARGOS_CLI
-        self.has_requests = HAS_REQUESTS
+        self.has_requests = HAS_AIOHTTP
+
+    async def _fetch_languages_async(self, url: str):
+        timeout = aiohttp.ClientTimeout(total=5)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(f"{url}/languages") as response:
+                if response.status == 200:
+                    return await response.json()
+        return None
 
     def get_supported_languages(self, libretranslate_url: str | None = None):
         languages = []
@@ -84,9 +103,8 @@ class TranslatorHandler:
 
         if self.has_requests:
             try:
-                response = requests.get(f"{url}/languages", timeout=5)
-                if response.status_code == 200:
-                    libretranslate_langs = response.json()
+                libretranslate_langs = _sync_run_coro(self._fetch_languages_async(url))
+                if libretranslate_langs is not None:
                     languages.extend(
                         {
                             "code": lang.get("code"),
@@ -97,7 +115,6 @@ class TranslatorHandler:
                     )
                     return languages
             except Exception as e:
-                # Log or handle the exception appropriately
                 print(f"Failed to fetch LibreTranslate languages: {e}")
 
         if self.has_argos_lib:
@@ -163,37 +180,32 @@ class TranslatorHandler:
         if self.has_argos:
             return self._translate_argos(text, source_lang, target_lang)
 
-        msg = "No translation backend available. Install requests for LibreTranslate or argostranslate for local translation."
+        msg = "No translation backend available. Install aiohttp for LibreTranslate or argostranslate for local translation."
         raise RuntimeError(msg)
 
-    def _translate_libretranslate(
+    async def _translate_libretranslate_async(
         self,
         text: str,
         source_lang: str,
         target_lang: str,
-        libretranslate_url: str | None = None,
+        libretranslate_url: str,
     ) -> dict[str, Any]:
-        if not self.has_requests:
-            msg = "requests library not available"
-            raise RuntimeError(msg)
-
-        url = libretranslate_url or self.libretranslate_url
-        response = requests.post(
-            f"{url}/translate",
-            json={
-                "q": text,
-                "source": source_lang,
-                "target": target_lang,
-                "format": "text",
-            },
-            timeout=30,
-        )
-
-        if response.status_code != 200:
-            msg = f"LibreTranslate API error: {response.status_code} - {response.text}"
-            raise RuntimeError(msg)
-
-        result = response.json()
+        timeout = aiohttp.ClientTimeout(total=30)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                f"{libretranslate_url}/translate",
+                json={
+                    "q": text,
+                    "source": source_lang,
+                    "target": target_lang,
+                    "format": "text",
+                },
+            ) as response:
+                if response.status != 200:
+                    body = await response.text()
+                    msg = f"LibreTranslate API error: {response.status} - {body}"
+                    raise RuntimeError(msg)
+                result = await response.json()
         return {
             "translated_text": result.get("translatedText", ""),
             "source_lang": result.get("detectedLanguage", {}).get(
@@ -203,6 +215,27 @@ class TranslatorHandler:
             "target_lang": target_lang,
             "source": "libretranslate",
         }
+
+    def _translate_libretranslate(
+        self,
+        text: str,
+        source_lang: str,
+        target_lang: str,
+        libretranslate_url: str | None = None,
+    ) -> dict[str, Any]:
+        if not self.has_requests:
+            msg = "aiohttp library not available"
+            raise RuntimeError(msg)
+
+        url = libretranslate_url or self.libretranslate_url
+        return _sync_run_coro(
+            self._translate_libretranslate_async(
+                text,
+                source_lang,
+                target_lang,
+                url,
+            ),
+        )
 
     def _translate_argos(
         self,

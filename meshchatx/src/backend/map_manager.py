@@ -1,12 +1,12 @@
+import asyncio
 import base64
-import concurrent.futures
 import math
 import os
 import sqlite3
 import threading
 import time
 
-import requests
+import aiohttp
 import RNS
 
 # 1x1 transparent PNG to return when a tile is not found in offline mode
@@ -227,85 +227,16 @@ class MapManager:
             conn.commit()
 
             tile_server_url = self.config.map_tile_server_url.get()
-            current_count = 0
-
-            # download tiles in parallel
-            # using 10 workers for a good balance between speed and being polite
-            max_workers = 10
-
-            def download_tile(tile_coords):
-                if export_id in self._export_cancelled:
-                    return None
-
-                z, x, y = tile_coords
-                tile_url = (
-                    tile_server_url.replace("{z}", str(z))
-                    .replace("{x}", str(x))
-                    .replace("{y}", str(y))
-                )
-
-                try:
-                    # small per-thread delay to avoid overwhelming servers
-                    time.sleep(0.02)
-
-                    response = requests.get(
-                        tile_url,
-                        headers={"User-Agent": "MeshChatX/1.0 MapExporter"},
-                        timeout=15,
-                    )
-                    if response.status_code == 200:
-                        # MBTiles uses TMS (y flipped)
-                        tms_y = (1 << z) - 1 - y
-                        return (z, x, tms_y, response.content)
-                except Exception as e:
-                    RNS.log(
-                        f"Export failed to download tile {z}/{x}/{y}: {e}",
-                        RNS.LOG_ERROR,
-                    )
-                return None
-
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=max_workers,
-            ) as executor:
-                future_to_tile = {
-                    executor.submit(download_tile, tile): tile
-                    for tile in tiles_to_download
-                }
-
-                batch_size = 50
-                batch_data = []
-
-                for future in concurrent.futures.as_completed(future_to_tile):
-                    if export_id in self._export_cancelled:
-                        executor.shutdown(wait=False, cancel_futures=True)
-                        break
-
-                    result = future.result()
-                    if result:
-                        batch_data.append(result)
-
-                    current_count += 1
-
-                    # Update progress every few tiles or when batch is ready
-                    if current_count % 5 == 0 or current_count == total_tiles:
-                        self._export_progress[export_id]["current"] = current_count
-                        self._export_progress[export_id]["progress"] = int(
-                            (current_count / total_tiles) * 100,
-                        )
-
-                    # Write batches to database
-                    if len(batch_data) >= batch_size or (
-                        current_count == total_tiles and batch_data
-                    ):
-                        try:
-                            cursor.executemany(
-                                "INSERT INTO tiles VALUES (?, ?, ?, ?)",
-                                batch_data,
-                            )
-                            conn.commit()
-                            batch_data = []
-                        except Exception as e:
-                            RNS.log(f"Failed to insert map tiles: {e}", RNS.LOG_ERROR)
+            asyncio.run(
+                self._export_download_tiles(
+                    export_id,
+                    tiles_to_download,
+                    tile_server_url,
+                    conn,
+                    cursor,
+                    total_tiles,
+                ),
+            )
 
             if export_id in self._export_cancelled:
                 conn.close()
@@ -326,6 +257,93 @@ class MapManager:
             self._export_progress[export_id]["error"] = str(e)
             if os.path.exists(dest_path):
                 os.remove(dest_path)
+
+    async def _export_download_tiles(
+        self,
+        export_id,
+        tiles_to_download,
+        tile_server_url,
+        conn,
+        cursor,
+        total_tiles,
+    ):
+        sem = asyncio.Semaphore(10)
+        timeout = aiohttp.ClientTimeout(total=15)
+        headers = {"User-Agent": "MeshChatX/1.0 MapExporter"}
+        connector = aiohttp.TCPConnector(limit=10)
+
+        batch_size = 50
+        batch_data = []
+        current_count = 0
+
+        async with aiohttp.ClientSession(
+            connector=connector,
+            timeout=timeout,
+        ) as session:
+
+            async def download_tile(tile_coords):
+                if export_id in self._export_cancelled:
+                    return None
+
+                z, x, y = tile_coords
+                tile_url = (
+                    tile_server_url.replace("{z}", str(z))
+                    .replace("{x}", str(x))
+                    .replace("{y}", str(y))
+                )
+
+                await asyncio.sleep(0.02)
+
+                try:
+                    async with sem:
+                        async with session.get(tile_url, headers=headers) as response:
+                            if response.status == 200:
+                                data = await response.read()
+                                tms_y = (1 << z) - 1 - y
+                                return (z, x, tms_y, data)
+                except Exception as e:
+                    RNS.log(
+                        f"Export failed to download tile {z}/{x}/{y}: {e}",
+                        RNS.LOG_ERROR,
+                    )
+                return None
+
+            tasks = [
+                asyncio.create_task(download_tile(tile)) for tile in tiles_to_download
+            ]
+
+            for coro in asyncio.as_completed(tasks):
+                if export_id in self._export_cancelled:
+                    for t in tasks:
+                        if not t.done():
+                            t.cancel()
+                    await asyncio.gather(*tasks, return_exceptions=True)
+                    break
+
+                result = await coro
+                if result:
+                    batch_data.append(result)
+
+                current_count += 1
+
+                if current_count % 5 == 0 or current_count == total_tiles:
+                    self._export_progress[export_id]["current"] = current_count
+                    self._export_progress[export_id]["progress"] = int(
+                        (current_count / total_tiles) * 100,
+                    )
+
+                if len(batch_data) >= batch_size or (
+                    current_count == total_tiles and batch_data
+                ):
+                    try:
+                        cursor.executemany(
+                            "INSERT INTO tiles VALUES (?, ?, ?, ?)",
+                            batch_data,
+                        )
+                        conn.commit()
+                        batch_data = []
+                    except Exception as e:
+                        RNS.log(f"Failed to insert map tiles: {e}", RNS.LOG_ERROR)
 
     def _lonlat_to_tile(self, lon, lat, zoom):
         lat = max(-85.051129, min(85.051129, lat))

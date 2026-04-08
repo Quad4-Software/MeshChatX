@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
 from meshchatx.src.backend.translator_handler import TranslatorHandler
 
 
@@ -14,15 +15,24 @@ def test_get_supported_languages_disabled():
     assert handler.get_supported_languages() == []
 
 
-@patch("requests.get")
-def test_get_supported_languages_libretranslate(mock_get):
+@patch("meshchatx.src.backend.translator_handler.aiohttp.ClientSession")
+def test_get_supported_languages_libretranslate(mock_session_cls):
     mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = [
-        {"code": "en", "name": "English"},
-        {"code": "fr", "name": "French"},
-    ]
-    mock_get.return_value = mock_response
+    mock_response.status = 200
+    mock_response.json = AsyncMock(
+        return_value=[
+            {"code": "en", "name": "English"},
+            {"code": "fr", "name": "French"},
+        ],
+    )
+    mock_get = MagicMock()
+    mock_get.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_get.__aexit__ = AsyncMock(return_value=None)
+    mock_session = MagicMock()
+    mock_session.get = MagicMock(return_value=mock_get)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=None)
+    mock_session_cls.return_value = mock_session
 
     handler = TranslatorHandler(enabled=True)
     langs = handler.get_supported_languages()
@@ -31,12 +41,19 @@ def test_get_supported_languages_libretranslate(mock_get):
     assert langs[0]["source"] == "libretranslate"
 
 
-@patch("requests.post")
-def test_translate_libretranslate(mock_post):
+@patch("meshchatx.src.backend.translator_handler.aiohttp.ClientSession")
+def test_translate_libretranslate(mock_session_cls):
     mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {"translatedText": "Bonjour"}
-    mock_post.return_value = mock_response
+    mock_response.status = 200
+    mock_response.json = AsyncMock(return_value={"translatedText": "Bonjour"})
+    mock_post = MagicMock()
+    mock_post.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_post.__aexit__ = AsyncMock(return_value=None)
+    mock_session = MagicMock()
+    mock_session.post = MagicMock(return_value=mock_post)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=None)
+    mock_session_cls.return_value = mock_session
 
     handler = TranslatorHandler(enabled=True)
     result = handler.translate_text("Hello", source_lang="en", target_lang="fr")
@@ -67,18 +84,26 @@ def test_detect_language_simple():
     pass
 
 
-@patch("requests.post")
-def test_detect_language_libretranslate(mock_post):
+@patch("meshchatx.src.backend.translator_handler.aiohttp.ClientSession")
+def test_detect_language_libretranslate(mock_session_cls):
     mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "translatedText": "Bonjour",
-        "detectedLanguage": {"language": "en", "confidence": 0.99},
-    }
-    mock_post.return_value = mock_response
+    mock_response.status = 200
+    mock_response.json = AsyncMock(
+        return_value={
+            "translatedText": "Bonjour",
+            "detectedLanguage": {"language": "en", "confidence": 0.99},
+        },
+    )
+    mock_post = MagicMock()
+    mock_post.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_post.__aexit__ = AsyncMock(return_value=None)
+    mock_session = MagicMock()
+    mock_session.post = MagicMock(return_value=mock_post)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=None)
+    mock_session_cls.return_value = mock_session
 
     handler = TranslatorHandler(enabled=True)
-    # detect_language is actually done during translate_text in libretranslate
     result = handler.translate_text("Hello world", source_lang="auto", target_lang="fr")
     assert result["source_lang"] == "en"
 
