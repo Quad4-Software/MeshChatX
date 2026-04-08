@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **Backend layout**: Startup helpers were moved out of **`meshchatx/meshchat.py`** into **`meshchatx/src/path_utils.py`** (`resolve_log_dir`, `get_file_path`, `request_client_ip`), **`meshchatx/src/ssl_self_signed.py`** (`generate_ssl_certificate`), and **`meshchatx/src/env_utils.py`** (`env_bool`). **`meshchat.py`** re-exports these names so existing imports and test patches keep working.
+- **HTTP client stack**: **`docs_manager`**, **`map_manager`**, and **`translator_handler`** use **`aiohttp`** instead of **`requests`**; the **`requests`** dependency was removed from **`pyproject.toml`**.
 - **CLI entry points**: The preferred headless command is **`meshchatx`**, matching the MeshChatX product name. The wheel and installs still expose **`meshchat`** as a **compatibility alias** to the same `meshchatx.meshchat:main` entry point, so existing scripts and automation using `meshchat` keep working. New documentation and examples use **`meshchatx`** first (Docker default command, `task run`, Make, README install examples). This is **not** a removal of `meshchat`; both names are installed side by side in 4.4.0.
 - **Frontend HTTP**: Removed the **axios** dependency; API traffic uses native **`fetch`** through the shared client in **`meshchatx/src/frontend/js/apiClient.js`** (same call sites, no axios runtime).
 - **Frontend build**: Upgraded to **Vite 8** with **`@vitejs/plugin-vue` 6**; production bundles use Rolldown (`build.rolldownOptions` and **`output.codeSplitting`** for vendor chunks). Dev and build scripts are unchanged (`vite dev`, `vite build`).
@@ -17,6 +19,7 @@ All notable changes to this project will be documented in this file.
 
 ### New Features
 
+- **RNS log level**: **`--rns-log-level`** and **`MESHCHAT_RNS_LOG_LEVEL`** set the Reticulum (RNS) stack log level using named levels (**`none`**, **`critical`**, **`error`**, **`warning`**, **`notice`**, **`verbose`**, **`debug`**, **`extreme`**) or a numeric level. When the flag is passed, it **overrides** the environment variable.
 - **Custom TLS certificate paths**: Optional **`--ssl-cert`** and **`--ssl-key`** (and **`MESHCHAT_SSL_CERT`** / **`MESHCHAT_SSL_KEY`**) load PEM files for the web server; both must be set together. When unset, behaviour is unchanged (auto-generated or existing **`.../identities/<id>/ssl/cert.pem`** and **`key.pem`**).
 - **Auth access control (login and setup)**: Failed attempts and outcomes are stored in **`access_attempts`** (IP, User-Agent, path, method, time, outcome). **Untrusted** clients are **rate limited** per IP and path and **locked out** after repeated wrong passwords from the same IP (fingerprints that have successfully logged in for the current identity are **trusted** and use higher per-window limits and are excluded from lockout counting for their own UA). **`trusted_login_clients`** stores IP plus User-Agent hash per identity after a successful login or setup, with pruning of the oldest entries when the cap is exceeded. **`GET /api/v1/debug/access-attempts`** lists attempts for the debug tools (search, outcome filter, pagination). Database schema version **42** adds these tables.
 - **Debug Logs UI**: The debug logs page has tabs for **Logs** and **Access attempts**, with refresh, copy, search, outcome filter, and pagination for access attempts.
@@ -31,6 +34,8 @@ All notable changes to this project will be documented in this file.
 
 ### Improvements
 
+- **`/robots.txt`**: Served with **`User-agent: *`** / **`Disallow: /`** for deployments exposed to HTTP crawlers; a matching file ships under **`meshchatx/src/frontend/public/robots.txt`** in frontend builds.
+- **`Makefile`** / **`Taskfile.yml`**: **`make run`** and **`task run`** invoke **`poetry run python -m meshchatx.meshchat`** so development runs work without relying on the **`meshchatx`** entry-point script being available to Poetry’s runner. README “from source” examples and **`docs/meshchatx_linux_sandbox.md`** (and the in-app copy) use the same form; wheels and installs still provide the **`meshchatx`** / **`meshchat`** CLI names.
 - **Container image (Docker/Podman)**: Final stage runs as non-root **`meshchat`** (`USER meshchat`). **`HEALTHCHECK`** probes **`https://127.0.0.1:8000/api/v1/status`** with TLS verification disabled for the self-signed default cert. **`podman build`** defaults to OCI layout, which omits **`HEALTHCHECK`**; use **`podman build --format docker`** when you rely on the embedded health check. Bind mounts for **`/config`** under rootless Podman may need **`:U`**, **`podman unshare chown`**, or host permissions so uid **1000** can write (same class of issue as Docker **`chown 1000:1000`** on a volume).
 - **Conversation image paste**: Pasting image data into the message field (e.g. screenshot or copied image) now attaches it like the image picker, without using the separate text-only paste button.
 - **Page Archives export**: Archives tool can download the current snapshot or all selected snapshots as `.mu` files (raw page body; multi-export uses path plus a short hash in the filename to avoid collisions).
@@ -70,7 +75,10 @@ All notable changes to this project will be documented in this file.
 ### Updates
 
 - **README** (en + `lang/`): Headless CLI examples use **`meshchatx`**. **`docs/meshchatx_linux_sandbox.md`** and in-app **`meshchatx-docs`** copy updated the same way; **Android (Termux)** run instructions use **`meshchatx`** with an alias note.
+- **README** (en + `lang/`): Configuration table documents **`--rns-log-level`** / **`MESHCHAT_RNS_LOG_LEVEL`**.
 - **README**: Configuration table documents **`--ssl-cert` / `--ssl-key`** and **`MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY`**.
+- **`docs/meshchatx.md`**: Notes **`path_utils`**, **`ssl_self_signed`**, and **`env_utils`** as split-out modules; **`meshchat.py`** remains the orchestration entry.
+- **CI**: Gitea workflow **`.gitea/workflows/sync-github-release-assets.yml`** can mirror selected release assets to the GitHub mirror for Windows and macOS when configured.
 - **pnpm-lock.yaml**: Updated Vue, Vue-i18n, **Vite 8**, and **`@vitejs/plugin-vue`**.
 - **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files. Added `archives.export_mu` and `archives.export_selected_mu` for the archives export buttons. Strings for announce and discovered-interface limits were added for this release. NomadNet browser: **`nomadnet.load_phase_*`**, **`load_phase_default`**, **`path_away_suffix`**; corrected **`nomadnet.no_search_results_peers`** placement for de/ru where duplicated.
 - **Python dependencies**: `websockets` >= 16.0, `aiohttp` >= 3.13.3, `psutil` >= 7.2.2, `jaraco.context` >= 6.1.1, `hypothesis` >= 6.151.9.
