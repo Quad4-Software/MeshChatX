@@ -4174,7 +4174,6 @@ class ReticulumMeshChat:
                             ),
                             "cryptography": self.get_package_version("cryptography"),
                             "psutil": self.get_package_version("psutil"),
-                            "requests": self.get_package_version("requests"),
                             "websockets": self.get_package_version("websockets"),
                             "audioop_lts": (
                                 self.get_package_version("audioop-lts")
