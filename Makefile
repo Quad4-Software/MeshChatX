@@ -5,7 +5,7 @@ install:
 	poetry install
 
 run:
-	poetry run meshchat
+	poetry run meshchatx
 
 build:
 	pnpm run build

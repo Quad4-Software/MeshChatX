@@ -89,7 +89,7 @@ tasks:
         desc: Run the application
         deps: [install]
         cmds:
-            - poetry run meshchat
+            - poetry run meshchatx
 
     dev:
         desc: Run in development mode (builds frontend first)
