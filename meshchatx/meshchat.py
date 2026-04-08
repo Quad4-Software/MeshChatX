@@ -133,6 +133,34 @@ logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
 logger = logging.getLogger("meshchatx")
 
 
+def _parse_rns_loglevel_value(raw: str | None) -> int | None:
+    if not raw or not str(raw).strip():
+        return None
+    raw = str(raw).strip().lower()
+    named = {
+        "none": RNS.LOG_NONE,
+        "critical": RNS.LOG_CRITICAL,
+        "error": RNS.LOG_ERROR,
+        "warning": RNS.LOG_WARNING,
+        "notice": RNS.LOG_NOTICE,
+        "verbose": RNS.LOG_VERBOSE,
+        "debug": RNS.LOG_DEBUG,
+        "extreme": RNS.LOG_EXTREME,
+    }
+    if raw in named:
+        return named[raw]
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
+    if cli_override is not None and str(cli_override).strip():
+        return _parse_rns_loglevel_value(cli_override)
+    return _parse_rns_loglevel_value(os.environ.get("MESHCHAT_RNS_LOG_LEVEL"))
+
+
 class ReticulumMeshChat:
     def __init__(
         self,
@@ -148,6 +176,7 @@ class ReticulumMeshChat:
         docs_download_urls: str | None = None,
         ssl_cert_path: str | None = None,
         ssl_key_path: str | None = None,
+        rns_loglevel: str | None = None,
     ):
         self.running = True
         self.reticulum_config_dir = reticulum_config_dir
@@ -161,6 +190,7 @@ class ReticulumMeshChat:
         self.public_dir_override = public_dir
         self.gitea_base_url_override = gitea_base_url
         self.docs_download_urls_override = docs_download_urls
+        self._rns_loglevel_cli = rns_loglevel
         self.websocket_clients: list[web.WebSocketResponse] = []
 
         # track announce timestamps for rate calculation
@@ -626,7 +656,14 @@ class ReticulumMeshChat:
         # Initialize Reticulum if not already done
         if not hasattr(self, "reticulum"):
             self._ensure_reticulum_config()
-            self.reticulum = RNS.Reticulum(self.reticulum_config_dir)
+            rns_loglevel = _resolve_rns_loglevel(self._rns_loglevel_cli)
+            if rns_loglevel is not None:
+                self.reticulum = RNS.Reticulum(
+                    self.reticulum_config_dir,
+                    loglevel=rns_loglevel,
+                )
+            else:
+                self.reticulum = RNS.Reticulum(self.reticulum_config_dir)
             self.page_node_manager.load_nodes()
             self.page_node_manager.start_all()
 
@@ -13092,6 +13129,18 @@ def main():
     )
 
     parser.add_argument(
+        "--rns-log-level",
+        type=str,
+        default=None,
+        metavar="LEVEL",
+        help=(
+            "Reticulum (RNS) stack log level: none, critical, error, warning, notice, "
+            "verbose, debug, extreme, or a numeric level. "
+            "When set, overrides MESHCHAT_RNS_LOG_LEVEL."
+        ),
+    )
+
+    parser.add_argument(
         "--restore-from-snapshot",
         type=str,
         help="Restore the database from a specific snapshot name or path on startup.",
@@ -13198,6 +13247,8 @@ def main():
         )
 
     # init app (allow optional one-shot backup/restore before running)
+    rns_log_cli = (args.rns_log_level or "").strip() or None
+
     reticulum_meshchat = ReticulumMeshChat(
         identity,
         args.storage_dir,
@@ -13211,6 +13262,7 @@ def main():
         docs_download_urls=args.docs_download_urls,
         ssl_cert_path=ssl_cert,
         ssl_key_path=ssl_key,
+        rns_loglevel=rns_log_cli,
     )
 
     # store recovery on app for wiring with identity context
