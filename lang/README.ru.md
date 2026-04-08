@@ -135,7 +135,7 @@ pnpm install
 pip install poetry
 poetry install
 pnpm run build-frontend
-poetry run meshchatx --headless --host 127.0.0.1
+poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 ## Запуск в песочнице (Linux)
@@ -196,6 +196,7 @@ task dist:fe:rpm
 | `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Порт веб-сервера                                                                                                                              |
 | `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | Отключить HTTPS                                                                                                                               |
 | `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (нет)        | Пути к PEM-сертификату и ключу; задаются вместе. Переопределяют автосгенерированные сертификаты в каталоге `ssl/` у идентичности.               |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (нет)        | Уровень лога стека Reticulum (RNS): `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme` или число. CLI перекрывает переменную окружения, если заданы оба. |
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Не открывать браузер автоматически                                                                                                            |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Базовая аутентификация                                                                                                                        |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Каталог данных                                                                                                                                |

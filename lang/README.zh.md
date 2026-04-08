@@ -135,7 +135,7 @@ pnpm install
 pip install poetry
 poetry install
 pnpm run build-frontend
-poetry run meshchatx --headless --host 127.0.0.1
+poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 ## 在沙盒中运行（Linux）
@@ -196,6 +196,7 @@ task dist:fe:rpm
 | `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Web 服务器端口                                                                               |
 | `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | 禁用 HTTPS                                                                                   |
 | `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （无）       | PEM 证书与私钥路径；需同时设置。覆盖身份下 `ssl/` 目录中自动生成的证书。                     |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （无）       | Reticulum（RNS）日志级别：`none`、`critical`、`error` 等或数值。同时设置时 CLI 优先于环境变量。 |
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | 不自动打开浏览器                                                                             |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | 启用基本认证                                                                                 |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | 数据目录                                                                                     |

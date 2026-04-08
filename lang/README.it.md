@@ -135,7 +135,7 @@ pnpm install
 pip install poetry
 poetry install
 pnpm run build-frontend
-poetry run meshchatx --headless --host 127.0.0.1
+poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 ## Esecuzione in sandbox (Linux)
@@ -196,6 +196,7 @@ task dist:fe:rpm
 | `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Porta del web server                                                                                                                             |
 | `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | Disattiva HTTPS                                                                                                                                  |
 | `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (nessuno)   | Percorsi PEM certificato e chiave; impostare entrambi. Sostituisce i certificati auto-generati sotto l'identita nella directory `ssl/`.        |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (nessuno)   | Livello di log Reticulum (RNS): `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme` o numerico. La CLI ha priorita sulla variabile d'ambiente se entrambe sono impostate. |
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | Non aprire il browser automaticamente                                                                                                            |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | Attiva autenticazione base                                                                                                                       |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | Directory dei dati                                                                                                                               |

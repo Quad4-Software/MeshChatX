@@ -135,7 +135,7 @@ pnpm install
 pip install poetry
 poetry install
 pnpm run build-frontend
-poetry run meshchatx --headless --host 127.0.0.1
+poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 ## サンドボックスで実行（Linux）
@@ -196,6 +196,7 @@ task dist:fe:rpm
 | `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Web サーバーポート                                                                                     |
 | `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | HTTPS を無効化                                                                                         |
 | `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （なし）     | PEM 証明書と鍵のパス。両方指定。アイデンティティの `ssl/` 下の自動生成証明書を上書き。                   |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （なし）     | Reticulum（RNS）のログレベル（上記の名前または数値）。CLI は環境変数より優先。                           |
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | ブラウザを自動で開かない                                                                               |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | 基本認証を有効化                                                                                       |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | データディレクトリ                                                                                     |

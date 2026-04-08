@@ -135,7 +135,7 @@ pnpm install
 pip install poetry
 poetry install
 pnpm run build-frontend
-poetry run meshchatx --headless --host 127.0.0.1
+poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 ## Run sandboxed (Linux)
@@ -200,6 +200,7 @@ MeshChatX supports both CLI args and env vars.
 | `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Web server port                                                                                                                       |
 | `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | Disable HTTPS                                                                                                                         |
 | `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (none)       | PEM certificate and private key paths; both must be set together. Overrides auto-generated certs under the identity `ssl/` directory. |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (none)       | Reticulum (RNS) stack log level: `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme`, or a numeric level. CLI overrides env when both are set. |
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Do not auto-launch browser                                                                                                            |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Enable basic auth                                                                                                                     |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Data directory                                                                                                                        |

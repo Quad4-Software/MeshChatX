@@ -25,7 +25,7 @@ The frontend is a SPA built with Vite and mounted in the same runtime context as
 
 ### Backend Runtime
 
-- Main entrypoint: `meshchatx/meshchat.py`
+- Main entrypoint: `meshchatx/meshchat.py` (orchestration). Shared helpers live in `meshchatx/src/path_utils.py`, `meshchatx/src/ssl_self_signed.py`, and `meshchatx/src/env_utils.py`; `meshchat.py` re-exports them for compatibility.
 - Web stack: `aiohttp` + `aiohttp_session`
 - Realtime channel: WebSocket endpoints for UI updates and control flows
 - Transport/security: HTTPS by default, optional HTTP, optional custom cert paths
@@ -76,7 +76,7 @@ Feature logic is delegated to dedicated backend modules under `meshchatx/src/bac
 - forwarding aliases and propagation synchronization,
 - utility handlers for RN-specific tooling.
 
-The design intent is to keep transport/runtime orchestration in `meshchat.py` and business/domain behavior in dedicated managers.
+The design intent is to keep transport/runtime orchestration in `meshchat.py` and business/domain behavior in dedicated managers. Optional **RNS log level** is configured with **`--rns-log-level`** or **`MESHCHAT_RNS_LOG_LEVEL`** (CLI overrides env when both are set).
 
 ### 4) Persistence Layer
 

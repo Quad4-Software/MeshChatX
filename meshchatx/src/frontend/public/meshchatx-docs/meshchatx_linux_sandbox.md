@@ -69,7 +69,7 @@ firejail --quiet \
   --whitelist="$(pwd)" \
   --whitelist="$VENV" \
   --whitelist="$DATA" \
-  poetry run meshchatx --headless --host 127.0.0.1 \
+  poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
@@ -140,7 +140,7 @@ exec bwrap \
   --uid "$(id -u)" --gid "$(id -g)" \
   --setenv PATH "$VENV/bin:$PATH" \
   --chdir "$PROJ" \
-  poetry run meshchatx --headless --host 127.0.0.1 \
+  poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
