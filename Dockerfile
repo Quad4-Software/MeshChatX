@@ -66,4 +66,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
     CMD ["python", "-c", "import ssl, urllib.request; urllib.request.urlopen('https://127.0.0.1:8000/api/v1/status', context=ssl._create_unverified_context())"]
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["meshchat", "--host=0.0.0.0", "--reticulum-config-dir=/config/.reticulum", "--storage-dir=/config/.meshchat", "--headless"]
+CMD ["meshchatx", "--host=0.0.0.0", "--reticulum-config-dir=/config/.reticulum", "--storage-dir=/config/.meshchat", "--headless"]
