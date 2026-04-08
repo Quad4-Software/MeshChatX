@@ -31,8 +31,10 @@ The wheel will automatically install all Python dependencies. Building `cryptogr
 ### Run MeshChatX
 
 ```
-meshchat
+meshchatx
 ```
+
+(`meshchat` is a compatibility alias for the same entry point.)
 
 Then open your Android web browser and navigate to `http://localhost:8000`
 
@@ -75,8 +77,10 @@ pip install dist/*.whl
 ### Run MeshChatX
 
 ```
-meshchat
+meshchatx
 ```
+
+(`meshchat` is a compatibility alias for the same entry point.)
 
 ## Configuration Notes
 

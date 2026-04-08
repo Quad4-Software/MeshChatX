@@ -6,6 +6,7 @@ A extensively modified and feature-rich fork of Reticulum MeshChat by Liam Cottl
 
 This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
 
+- Website: [meshchatx.com](https://meshchatx.com)
 - Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
 - Official Mirror: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) - Also used for Windows and MacOS builds for the moment.
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
@@ -27,17 +28,6 @@ This project is independent from the original Reticulum MeshChat project and is 
 
 > [!WARNING]
 > Legacy systems are not fully supported yet. Current baseline is Python `>=3.11` and Node `>=24`.
-
-## Demo And Screenshots
-
-<video src="https://strg.0rbitzer0.net/raw/62926a2a-0a9a-4f44-a5f6-000dd60deac1.mp4" controls="controls" style="max-width: 100%;"></video>
-
-### UI Previews
-
-![Phone](screenshots/phone.png)
-![Network Visualiser](screenshots/network-visualiser.png)
-![Archives](screenshots/archives.png)
-![Identities](screenshots/identities.png)
 
 ## Requirements
 
@@ -124,7 +114,7 @@ Release wheels include the built web assets.
 
 ```bash
 pip install ./reticulum_meshchatx-*-py3-none-any.whl
-meshchat --headless
+meshchatx --headless
 ```
 
 `pipx` is also supported:
@@ -145,12 +135,12 @@ pnpm install
 pip install poetry
 poetry install
 pnpm run build-frontend
-poetry run meshchat --headless --host 127.0.0.1
+poetry run meshchatx --headless --host 127.0.0.1
 ```
 
 ## Run sandboxed (Linux)
 
-To run the native `meshchat` binary with extra filesystem isolation, you can use **Firejail** or **Bubblewrap** (`bwrap`) while keeping normal network access for Reticulum and the web UI. Full examples (pip/pipx, Poetry, USB serial notes) are in:
+To run the native `meshchatx` binary (alias: `meshchat`) with extra filesystem isolation, you can use **Firejail** or **Bubblewrap** (`bwrap`) while keeping normal network access for Reticulum and the web UI. Full examples (pip/pipx, Poetry, USB serial notes) are in:
 
 - [`docs/meshchatx_linux_sandbox.md`](docs/meshchatx_linux_sandbox.md)
 

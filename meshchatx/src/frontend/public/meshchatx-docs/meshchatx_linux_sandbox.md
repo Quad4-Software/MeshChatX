@@ -1,10 +1,10 @@
 # MeshChatX on Linux: Firejail and Bubblewrap
 
-This page shows how to run `meshchat` under **Firejail** or **Bubblewrap** (`bwrap`) on Linux. Use this when you install MeshChatX natively (wheel, package, or Poetry) and want an extra layer of filesystem and process isolation compared to running the binary directly.
+This page shows how to run **`meshchatx`** under **Firejail** or **Bubblewrap** (`bwrap`) on Linux. The legacy CLI name **`meshchat`** installs the same entry point and can be substituted in these examples. Use this when you install MeshChatX natively (wheel, package, or Poetry) and want an extra layer of filesystem and process isolation compared to running the binary directly.
 
 These tools do **not** replace a full virtual machine or hardware-enforced boundary. They reduce exposure of your home directory and other paths the process can write to, when you configure them with tight whitelists or bind mounts.
 
-**Containers:** If you already run MeshChatX with Docker or Podman, that is a different isolation model; this document is aimed at **host-installed** `meshchat`.
+**Containers:** If you already run MeshChatX with Docker or Podman, that is a different isolation model; this document is aimed at **host-installed** `meshchatx` (or `meshchat`).
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ Install one or both from your distribution:
 - **Firejail:** package name is usually `firejail`.
 - **Bubblewrap:** package name is usually `bubblewrap`; the binary is `bwrap`.
 
-You need a working `meshchat` on your `PATH` (for example after `pipx install`, `pip install --user`, or a distro package).
+You need a working **`meshchatx`** on your `PATH` (for example after `pipx install`, `pip install --user`, or a distro package). The **`meshchat`** command is the same binary if both entry points are installed.
 
 Pick a **dedicated data directory** for sandboxed runs so you do not mix permissions or policies with a non-sandboxed install. The examples below use:
 
@@ -31,7 +31,7 @@ Firejail applies a profile (or defaults) on top of your command. For MeshChatX y
 - **Network** left available so Reticulum and the web UI can work (do not use `--net=none` unless you know you need it).
 - **Writable** only your chosen data directory (and anything else the app truly needs).
 
-### Installed `meshchat` (pip, pipx, or system package)
+### Installed `meshchatx` (pip, pipx, or system package)
 
 ```bash
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}/meshchatx-sandbox"
@@ -39,7 +39,7 @@ mkdir -p "$DATA/storage" "$DATA/.reticulum"
 
 firejail --quiet \
   --whitelist="$DATA" \
-  meshchat --headless --host 127.0.0.1 \
+  meshchatx --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
@@ -48,7 +48,7 @@ If the default profile blocks something MeshChatX needs, you can start from a lo
 
 ```bash
 firejail --noprofile --whitelist="$DATA" \
-  meshchat --headless --host 127.0.0.1 \
+  meshchatx --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
@@ -69,7 +69,7 @@ firejail --quiet \
   --whitelist="$(pwd)" \
   --whitelist="$VENV" \
   --whitelist="$DATA" \
-  poetry run meshchat --headless --host 127.0.0.1 \
+  poetry run meshchatx --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
@@ -91,7 +91,7 @@ Use the device nodes your system actually exposes (`dmesg`, `ls /dev/tty*`).
 
 Bubblewrap does not ship profiles; you list every mount and option. The pattern below keeps the **whole root filesystem read-only**, mounts a **writable tmpfs** on `/tmp`, and makes **only** your data directory writable at its normal path. **Network namespaces are not changed**, so Reticulum and TCP/UDP behave like an unsandboxed process unless you add `--unshare-net` (which usually breaks mesh networking).
 
-### Installed `meshchat`
+### Installed `meshchatx`
 
 ```bash
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}/meshchatx-sandbox"
@@ -106,14 +106,14 @@ exec bwrap \
   --tmpfs /tmp \
   --bind "$DATA" "$DATA" \
   --uid "$(id -u)" --gid "$(id -g)" \
-  meshchat --headless --host 127.0.0.1 \
+  meshchatx --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
 
 Notes:
 
-- If `meshchat` lives only inside a venv that is **not** under `$DATA`, the read-only root still allows **reading** that path; you do not have to bind-mount the venv separately unless you also need writes there.
+- If `meshchatx` lives only inside a venv that is **not** under `$DATA`, the read-only root still allows **reading** that path; you do not have to bind-mount the venv separately unless you also need writes there.
 - Distributions that merge `/` and `/usr` (merged-usr) still work with `--ro-bind / /` on typical glibc setups. If `bwrap` fails with missing library paths, add the extra `--ro-bind` lines your distro documents (for example `/lib64`).
 
 ### From source with Poetry
@@ -140,7 +140,7 @@ exec bwrap \
   --uid "$(id -u)" --gid "$(id -g)" \
   --setenv PATH "$VENV/bin:$PATH" \
   --chdir "$PROJ" \
-  poetry run meshchat --headless --host 127.0.0.1 \
+  poetry run meshchatx --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
@@ -152,19 +152,13 @@ exec bwrap \
   ... same mounts as above ... \
   --setenv PATH "$VENV/bin:$PATH" \
   --chdir "$PROJ" \
-  meshchat --headless --host 127.0.0.1 \
+  meshchatx --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
 
-(Use the `meshchat` script or `python -m` entry point from `$VENV/bin` if your install exposes it there.)
+(Use the `meshchatx` script, the legacy `meshchat` alias, or `python -m` entry point from `$VENV/bin` if your install exposes it there.)
 
 ### USB serial under Bubblewrap
 
 You may need a clearer view of devices than the minimal `--dev /dev` provides. Options include `--dev-bind /dev /dev` (broader device exposure) or binding only the specific character device. Balance convenience against attack surface.
-
-## See also
-
-- Other MeshChatX topics in this documentation set (in-app **Documentation** browser).
-- Repository root `README.md` (configuration table for CLI and environment variables).
-- Repository root `SECURITY.md` (vulnerability reporting and security notes).

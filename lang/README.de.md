@@ -1,36 +1,33 @@
 # Reticulum MeshChatX
 
+[English README](../README.md) | [Русский](README.ru.md) | [Italiano](README.it.md) | [中文](README.zh.md) | [日本語](README.ja.md)
+
 Ein umfassend modifizierter und funktionsreicher Fork von Reticulum MeshChat von Liam Cottle.
 
 Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in keiner Verbindung dazu.
 
+- Website: [meshchatx.com](https://meshchatx.com)
 - Quellcode: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
+- Offizieller Spiegel: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) – derzeit auch fuer Windows- und macOS-Builds genutzt.
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Aenderungsprotokoll: [`CHANGELOG.md`](../CHANGELOG.md)
-- TODO: [`TODO.md`](../TODO.md)
-- [English README](../README.md) | [Русский](README.ru.md) | [Italiano](README.it.md) | [中文](README.zh.md) | [日本語](README.ja.md)
+- TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
 
-## Wichtige Hinweise
+## Wichtige Aenderungen gegenueber Reticulum MeshChat
 
-- Volle LXMF-Unterstuetzung ist ein zentrales Projektziel.
-- Datenspeicherung und Migrationen werden schrittweise auf reines SQL umgestellt (Ersatz alter Peewee-ORM-Pfade).
+- Verwendet LXST
+- Peewee-ORM durch direktes SQL ersetzt
+- Axios durch natives `fetch` ersetzt
+- Aktuelles Electron
+- `.whl`-Pakete mit Webserver und eingebauten Frontend-Assets fuer mehr Deploy-Optionen
+- i18n
+- PNPM und Poetry fuer Abhaengigkeiten
 
 > [!WARNING]
 > MeshChatX garantiert keine Datenkompatibilitaet mit aelteren Reticulum-MeshChat-Versionen. Erstellen Sie vor Migration oder Tests eine Datensicherung.
 
 > [!WARNING]
 > Aeltere Systeme werden noch nicht vollstaendig unterstuetzt. Aktuelle Mindestanforderungen: Python `>=3.11` und Node `>=24`.
-
-## Demo und Screenshots
-
-<video src="https://strg.0rbitzer0.net/raw/62926a2a-0a9a-4f44-a5f6-000dd60deac1.mp4" controls="controls" style="max-width: 100%;"></video>
-
-### Oberflaeche
-
-![Telefon](../screenshots/phone.png)
-![Netzwerkvisualisierung](../screenshots/network-visualiser.png)
-![Archive](../screenshots/archives.png)
-![Identitaeten](../screenshots/identities.png)
 
 ## Voraussetzungen
 
@@ -39,7 +36,16 @@ Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in ke
 - pnpm `10.32.1` (aus `package.json`)
 - Poetry (verwendet in `Taskfile.yml` und CI-Workflows)
 
+```bash
+task install
+task lint:all
+task test:all
+task build:all
+```
+
 ## Installationsmethoden
+
+Waehlen Sie die Methode passend zu Umgebung und Paketierung.
 
 | Methode               | Frontend enthalten | Architekturen                         | Geeignet fuer                       |
 | --------------------- | ------------------ | ------------------------------------- | ----------------------------------- |
@@ -108,7 +114,7 @@ Release-Wheels enthalten die gebauten Web-Assets.
 
 ```bash
 pip install ./reticulum_meshchatx-*-py3-none-any.whl
-meshchat --headless
+meshchatx --headless
 ```
 
 `pipx` wird ebenfalls unterstuetzt:
@@ -119,6 +125,8 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 
 ## Aus Quellcode ausfuehren (Webserver-Modus)
 
+Fuer Entwicklung oder lokale Custom-Builds.
+
 ```bash
 git clone https://git.quad4.io/RNS-Things/MeshChatX.git
 cd MeshChatX
@@ -127,18 +135,20 @@ pnpm install
 pip install poetry
 poetry install
 pnpm run build-frontend
-poetry run meshchat --headless --host 127.0.0.1
+poetry run meshchatx --headless --host 127.0.0.1
 ```
 
 ## Sandboxing (Linux)
 
-Um das native `meshchat`-Programm mit zusaetzlicher Dateisystem-Isolation auszufuehren, koennen Sie **Firejail** oder **Bubblewrap** (`bwrap`) nutzen, bei weiterhin normalem Netzwerkzugriff fuer Reticulum und die Web-Oberflaeche. Vollstaendige Beispiele (pip/pipx, Poetry, Hinweise zu USB-Seriell) finden Sie in:
+Um das native `meshchatx`-Programm (Alias: `meshchat`) mit zusaetzlicher Dateisystem-Isolation auszufuehren, koennen Sie **Firejail** oder **Bubblewrap** (`bwrap`) nutzen, bei weiterhin normalem Netzwerkzugriff fuer Reticulum und die Web-Oberflaeche. Vollstaendige Beispiele (pip/pipx, Poetry, Hinweise zu USB-Seriell) finden Sie in:
 
 - [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
 
 Dieselbe Seite erscheint in der in-app-**Dokumentation** (MeshChatX-Docs), wenn sie aus den gebuendelten oder synchronisierten `meshchatx-docs`-Dateien ausgeliefert wird.
 
 ## Desktop-Pakete aus Quellcode bauen
+
+Diese Skripte sind in `package.json` und `Taskfile.yml` definiert.
 
 ### Linux x64 AppImage + DEB
 
@@ -158,13 +168,19 @@ pnpm run dist:linux-arm64
 pnpm run dist:rpm
 ```
 
+Oder ueber Task:
+
+```bash
+task dist:fe:rpm
+```
+
 ## Architekturunterstuetzung
 
 - Docker: `amd64`, `arm64`
 - Linux AppImage: `x64`, `arm64`
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (Build-Skripte vorhanden)
-- macOS: Build-Skripte vorhanden (`arm64`, `universal`)
+- macOS: Build-Skripte vorhanden (`arm64`, `universal`) fuer lokale Build-Umgebungen
 - Android: Projekt und CI-Workflow im Repository enthalten
 
 ## Android
@@ -174,15 +190,16 @@ pnpm run dist:rpm
 
 ## Konfiguration
 
-| Argument        | Umgebungsvariable      | Standard    | Beschreibung                       |
-| --------------- | ---------------------- | ----------- | ---------------------------------- |
-| `--host`        | `MESHCHAT_HOST`        | `127.0.0.1` | Webserver-Adresse                  |
-| `--port`        | `MESHCHAT_PORT`        | `8000`      | Webserver-Port                     |
-| `--no-https`    | `MESHCHAT_NO_HTTPS`    | `false`     | HTTPS deaktivieren                 |
-| `--headless`    | `MESHCHAT_HEADLESS`    | `false`     | Browser nicht automatisch oeffnen  |
-| `--auth`        | `MESHCHAT_AUTH`        | `false`     | Basis-Authentifizierung aktivieren |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Datenverzeichnis                   |
-| `--public-dir`  | `MESHCHAT_PUBLIC_DIR`  | auto        | Frontend-Verzeichnis               |
+| Argument                   | Umgebungsvariable                        | Standard     | Beschreibung                                                                                                                          |
+| -------------------------- | ---------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1`  | Webserver-Bind-Adresse                                                                                                                |
+| `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Webserver-Port                                                                                                                        |
+| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | HTTPS deaktivieren                                                                                                                    |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (keine)      | PEM-Zertifikat und Schluessel; beide setzen. Ueberschreibt automatisch erzeugte Zertifikate unter der Identitaet im Verzeichnis `ssl/`. |
+| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Browser nicht automatisch oeffnen                                                                                                     |
+| `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Basis-Authentifizierung aktivieren                                                                                                    |
+| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Datenverzeichnis                                                                                                                      |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Frontend-Verzeichnis (fuer Installationen ohne gebundelte Assets)                                                                   |
 
 ## Branches
 
@@ -193,6 +210,8 @@ pnpm run dist:rpm
 
 ## Entwicklung
 
+Gaengige Aufgaben aus `Taskfile.yml`:
+
 ```bash
 task install
 task lint:all
@@ -200,38 +219,64 @@ task test:all
 task build:all
 ```
 
+`Makefile`-Kurzformen:
+
+| Befehl         | Beschreibung                                      |
+| -------------- | ------------------------------------------------- |
+| `make install` | pnpm- und Poetry-Abhaengigkeiten installieren     |
+| `make run`     | MeshChatX ueber Poetry starten                    |
+| `make build`   | Frontend bauen                                    |
+| `make lint`    | eslint und ruff ausfuehren                        |
+| `make test`    | Frontend- und Backend-Tests                       |
+| `make clean`   | Build-Artefakte und node_modules entfernen        |
+
+## Versionierung
+
+Aktuelle Version in diesem Repository: `4.4.0`.
+
+- `package.json` ist die Quelle fuer die JavaScript/Electron-Version.
+- `meshchatx/src/version.py` wird aus `package.json` synchronisiert mit:
+
+```bash
+pnpm run version:sync
+```
+
+Fuer konsistente Releases die Versionsfelder dort abgleichen, wo noetig (`package.json`, `pyproject.toml`, `meshchatx/__init__.py`).
+
 ## Sicherheit
 
 - [`SECURITY.md`](../SECURITY.md)
-- Integrierte Integritaetspruefungen und HTTPS/WSS-Standardeinstellungen
+- Integrierte Integritaetspruefungen und HTTPS/WSS-Standardeinstellungen in der App
 - CI-Scanning-Workflows in `.gitea/workflows/`
 
 ## Sprache hinzufuegen
 
 Die Spracherkennung erfolgt automatisch. Um eine neue Sprache hinzuzufuegen, genuegt eine einzige JSON-Datei:
 
-1. Vorlage aus `en.json` generieren:
+1. Leere Vorlage aus `en.json` erzeugen:
 
 ```bash
 python scripts/generate_locale_template.py
 ```
 
-2. Datei umbenennen und in das Locale-Verzeichnis verschieben:
+Damit wird `locales.json` mit leeren Strings fuer alle Schluessel geschrieben.
+
+2. Umbenennen und in das Locale-Verzeichnis verschieben:
 
 ```bash
 mv locales.json meshchatx/src/frontend/locales/xx.json
 ```
 
-3. `_languageName` am Anfang der Datei auf den nativen Sprachnamen setzen (z.B. `"Espanol"`, `"Francais"`).
+3. `_languageName` am Anfang der Datei auf den nativen Sprachnamen setzen (z.B. `"Espanol"`, `"Francais"`). Wird im Sprachwahlmenue angezeigt.
 
 4. Alle uebrigen Werte uebersetzen.
 
 5. Schluesselparitaet pruefen: `pnpm test -- tests/frontend/i18n.test.js --run`
 
-Keine weiteren Code-Aenderungen noetig.
+Keine weiteren Code-Aenderungen noetig. App, Sprachwahl und Tests lesen Locales zur Build-Zeit aus `meshchatx/src/frontend/locales/`.
 
 ## Mitwirkende
 
 - [Liam Cottle](https://github.com/liamcottle) - Originales Reticulum MeshChat
-- [RFnexus](https://github.com/RFnexus) - JavaScript-Micron-Parser
+- [RFnexus](https://github.com/RFnexus) - Micron-Parser (JavaScript)
 - [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
