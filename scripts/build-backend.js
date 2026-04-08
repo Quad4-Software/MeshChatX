@@ -95,11 +95,7 @@ try {
 
     let spawnCmd = cmd;
     let spawnArgs = args;
-    const rosettaX64 =
-        isDarwin &&
-        arch === "x64" &&
-        process.arch === "arm64" &&
-        !process.env.PYTHON_CMD;
+    const rosettaX64 = isDarwin && arch === "x64" && process.arch === "arm64" && !process.env.PYTHON_CMD;
     if (rosettaX64) {
         spawnCmd = "arch";
         spawnArgs = ["-x86_64", cmd, ...args];

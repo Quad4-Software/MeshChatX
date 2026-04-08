@@ -281,7 +281,9 @@ class RNStatusHandler:
                     ifstat["outgoing_announce_frequency"]
                 )
             if "held_announces" in ifstat:
-                formatted_if["held_announces"] = fmt_packet_count(ifstat["held_announces"])
+                formatted_if["held_announces"] = fmt_packet_count(
+                    ifstat["held_announces"]
+                )
 
             if "ifac_netname" in ifstat and ifstat["ifac_netname"] is not None:
                 formatted_if["network_name"] = ifstat["ifac_netname"]

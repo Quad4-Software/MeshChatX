@@ -119,7 +119,9 @@ async def test_download_uses_path_wait_cache_hit(downloader):
         patch.object(RNS.Transport, "request_path"),
     ):
         with patch.object(downloader, "link_established") as mock_established:
-            await downloader.download(path_lookup_timeout=5, link_establishment_timeout=5)
+            await downloader.download(
+                path_lookup_timeout=5, link_establishment_timeout=5
+            )
 
     mock_established.assert_called_once_with(mock_link)
 

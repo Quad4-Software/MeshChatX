@@ -31,9 +31,7 @@
                             />
                             Refresh
                         </button>
-                        <label
-                            class="secondary-chip inline-flex cursor-pointer items-center gap-2 px-4 py-2 text-sm"
-                        >
+                        <label class="secondary-chip inline-flex cursor-pointer items-center gap-2 px-4 py-2 text-sm">
                             <input v-model="includeLinkStats" type="checkbox" class="rounded" />
                             <span>Include Link Stats</span>
                         </label>
@@ -55,9 +53,7 @@
                             v-if="linkCount !== null"
                             class="rounded-xl border border-blue-200/80 bg-blue-50/90 p-4 text-blue-800 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-200"
                         >
-                            <div class="text-sm font-semibold">
-                                Active Links: {{ formatInt(linkCount) }}
-                            </div>
+                            <div class="text-sm font-semibold">Active Links: {{ formatInt(linkCount) }}</div>
                         </div>
 
                         <div
@@ -163,7 +159,9 @@
                         </div>
                         <div v-if="iface.clients !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">Clients</div>
-                            <div class="font-semibold text-gray-900 dark:text-white">{{ formatInt(iface.clients) }}</div>
+                            <div class="font-semibold text-gray-900 dark:text-white">
+                                {{ formatInt(iface.clients) }}
+                            </div>
                         </div>
                         <div v-if="iface.peers !== undefined">
                             <div class="text-gray-500 dark:text-gray-400">Peers</div>

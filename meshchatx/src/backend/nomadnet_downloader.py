@@ -171,7 +171,9 @@ class NomadnetDownloader:
 
         timeout_after_seconds = time.time() + link_establishment_timeout
 
-        while link.status is not RNS.Link.ACTIVE and time.time() < timeout_after_seconds:
+        while (
+            link.status is not RNS.Link.ACTIVE and time.time() < timeout_after_seconds
+        ):
             if self.is_cancelled:
                 return
             await asyncio.sleep(_POLL_INTERVAL_S)
@@ -291,7 +293,11 @@ class NomadnetFileDownloader(NomadnetDownloader):
             self.on_file_download_success(file_name, file_data)
             return
 
-        if isinstance(response, list) and len(response) > 1 and isinstance(response[1], dict):
+        if (
+            isinstance(response, list)
+            and len(response) > 1
+            and isinstance(response[1], dict)
+        ):
             file_data: bytes = response[0]
             metadata: dict = response[1]
 

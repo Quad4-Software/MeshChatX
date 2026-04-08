@@ -451,11 +451,7 @@ export default {
             return this.popoutRouteType === "nomad";
         },
         navbarPageStats() {
-            if (
-                this.lastPageLoadDurationMs == null ||
-                this.lastPageContentBytes == null ||
-                !this.selectedNodePath
-            ) {
+            if (this.lastPageLoadDurationMs == null || this.lastPageContentBytes == null || !this.selectedNodePath) {
                 return null;
             }
             return {
