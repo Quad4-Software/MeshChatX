@@ -6,7 +6,7 @@
             <div class="p-3 md:p-6 space-y-4 w-full flex-1">
                 <div
                     v-if="showRestartReminder"
-                    class="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-3xl shadow-xl p-4 flex flex-wrap gap-3 items-center"
+                    class="bg-amber-600 text-white rounded-3xl shadow-xl p-4 flex flex-wrap gap-3 items-center"
                 >
                     <div class="flex items-center gap-3">
                         <MaterialDesignIcon icon-name="alert" class="w-6 h-6" />

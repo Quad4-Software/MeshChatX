@@ -9,12 +9,12 @@
             <!-- Offline Overlay -->
             <div
                 v-if="!isReticulumRunning"
-                class="absolute inset-0 z-10 flex items-center justify-center bg-white/40 dark:bg-zinc-900/40 backdrop-blur-[1px] rounded-3xl"
+                class="absolute inset-0 z-10 flex items-center justify-center bg-white/20 dark:bg-zinc-900/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
             >
                 <div
-                    class="bg-red-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-bold"
+                    class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                 >
-                    <MaterialDesignIcon icon-name="lan-disconnect" class="w-4 h-4" />
+                    <MaterialDesignIcon icon-name="lan-disconnect" class="w-3.5 h-3.5" />
                     <span>Reticulum Offline</span>
                 </div>
             </div>
@@ -22,12 +22,12 @@
             <!-- Restart Required Overlay -->
             <div
                 v-if="isReticulumRunning && iface._restart_required"
-                class="absolute inset-0 z-10 flex items-center justify-center bg-white/40 dark:bg-zinc-900/40 backdrop-blur-[1px] rounded-3xl"
+                class="absolute inset-0 z-10 flex items-center justify-center bg-white/20 dark:bg-zinc-900/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
             >
                 <div
-                    class="bg-amber-500 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-bold animate-pulse"
+                    class="bg-amber-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                 >
-                    <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
+                    <MaterialDesignIcon icon-name="restart" class="w-3.5 h-3.5" />
                     <span>{{ $t("interfaces.restart_required") }}</span>
                 </div>
             </div>
