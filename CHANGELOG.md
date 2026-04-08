@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **CLI entry points**: The preferred headless command is **`meshchatx`**, matching the MeshChatX product name. The wheel and installs still expose **`meshchat`** as a **compatibility alias** to the same `meshchatx.meshchat:main` entry point, so existing scripts and automation using `meshchat` keep working. New documentation and examples use **`meshchatx`** first (Docker default command, `task run`, Make, README install examples). This is **not** a removal of `meshchat`; both names are installed side by side in 4.4.0.
 - **Frontend HTTP**: Removed the **axios** dependency; API traffic uses native **`fetch`** through the shared client in **`meshchatx/src/frontend/js/apiClient.js`** (same call sites, no axios runtime).
 - **Frontend build**: Upgraded to **Vite 8** with **`@vitejs/plugin-vue` 6**; production bundles use Rolldown (`build.rolldownOptions` and **`output.codeSplitting`** for vendor chunks). Dev and build scripts are unchanged (`vite dev`, `vite build`).
 - **Announce storage and fetch limits**: Per-aspect stored announces are capped (default **1000**); after each upsert, excess rows are trimmed **oldest first** (`trim_announces_for_aspect`). Default client fetch size (**500**), search fetch cap (`announce_search_max_fetch`), and discovered-interface list cap (`discovered_interfaces_max_return`) are configurable. Legacy `announce_limit_*` migrates to **`announce_max_stored_*`**; new keys include `announce_fetch_limit_*` per aspect. Clearing a numeric setting restores the default (`IntConfig.set(None)` removes the key). Settings UI and locales (en, de, it, ru) expose the new options; telephony-related aspects share LXMF announce keys where applicable.
@@ -68,6 +69,7 @@ All notable changes to this project will be documented in this file.
 
 ### Updates
 
+- **README** (en + `lang/`): Headless CLI examples use **`meshchatx`**. **`docs/meshchatx_linux_sandbox.md`** and in-app **`meshchatx-docs`** copy updated the same way; **Android (Termux)** run instructions use **`meshchatx`** with an alias note.
 - **README**: Configuration table documents **`--ssl-cert` / `--ssl-key`** and **`MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY`**.
 - **pnpm-lock.yaml**: Updated Vue, Vue-i18n, **Vite 8**, and **`@vitejs/plugin-vue`**.
 - **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files. Added `archives.export_mu` and `archives.export_selected_mu` for the archives export buttons. Strings for announce and discovered-interface limits were added for this release. NomadNet browser: **`nomadnet.load_phase_*`**, **`load_phase_default`**, **`path_away_suffix`**; corrected **`nomadnet.no_search_results_peers`** placement for de/ru where duplicated.
