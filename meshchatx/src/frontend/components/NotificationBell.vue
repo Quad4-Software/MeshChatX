@@ -325,7 +325,7 @@ export default {
                 for (const conversation of conversations) {
                     if (conversation.is_unread) {
                         try {
-                            await window.api.get(
+                            await window.api.post(
                                 `/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`
                             );
                         } catch (e) {

@@ -76,7 +76,12 @@ class MapManager:
 
     def delete_mbtiles(self, filename):
         mbtiles_dir = self.get_mbtiles_dir()
-        file_path = os.path.join(mbtiles_dir, filename)
+        safe_name = os.path.basename(filename)
+        file_path = os.path.join(mbtiles_dir, safe_name)
+        resolved = os.path.realpath(file_path)
+        base = os.path.realpath(mbtiles_dir)
+        if not resolved.startswith(base + os.sep):
+            return False
         if os.path.exists(file_path) and file_path.endswith(".mbtiles"):
             if file_path == self.get_offline_path():
                 self.config.map_offline_path.set(None)

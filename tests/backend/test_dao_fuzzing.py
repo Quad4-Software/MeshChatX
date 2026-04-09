@@ -37,7 +37,9 @@ from meshchatx.src.backend.message_handler import MessageHandler
 
 # Strings that are valid for most text columns but include adversarial chars
 st_nasty_text = st.text(
-    alphabet=st.characters(whitelist_categories=("L", "N", "P", "S", "Z", "C")),
+    alphabet=st.characters(
+        whitelist_categories=("L", "N", "P", "S", "Z", "Cc", "Cf", "Cn", "Co"),
+    ),
     min_size=0,
     max_size=300,
 )

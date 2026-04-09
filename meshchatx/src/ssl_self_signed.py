@@ -66,11 +66,15 @@ def generate_ssl_certificate(cert_path: str, key_path: str):
     with open(cert_path, "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
 
-    with open(key_path, "wb") as f:
-        f.write(
+    key_fd = os.open(key_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(
+            key_fd,
             private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption(),
             ),
         )
+    finally:
+        os.close(key_fd)

@@ -321,7 +321,7 @@
             "path": "/api/v1/lxmf/conversations/move-to-folder"
         },
         {
-            "method": "GET",
+            "method": "POST",
             "path": "/api/v1/lxmf/conversations/{destination_hash}/mark-as-read"
         },
         {

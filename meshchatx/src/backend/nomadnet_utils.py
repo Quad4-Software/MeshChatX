@@ -13,17 +13,17 @@ def convert_nomadnet_string_data_to_map(path_data: str | None):
 
 
 def convert_nomadnet_field_data_to_map(field_data):
+    if field_data is None:
+        return None
     data = {}
-    if field_data is not None or "{}":
-        try:
-            json_data = field_data
-            if isinstance(json_data, dict):
-                data = {f"field_{key}": value for key, value in json_data.items()}
-            else:
-                return None
-        except Exception as e:
-            print(f"skipping invalid field data: {e}")
-
+    try:
+        if isinstance(field_data, dict):
+            data = {f"field_{key}": value for key, value in field_data.items()}
+        else:
+            return None
+    except Exception as e:
+        print(f"skipping invalid field data: {e}")
+        return None
     return data
 
 

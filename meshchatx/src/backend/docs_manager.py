@@ -303,7 +303,13 @@ class DocsManager:
         return sorted(docs, key=lambda x: x["name"])
 
     def get_doc_content(self, path):
-        full_path = os.path.join(self.meshchatx_docs_dir, path)
+        try:
+            full_path = os.path.realpath(os.path.join(self.meshchatx_docs_dir, path))
+            base = os.path.realpath(self.meshchatx_docs_dir)
+        except (ValueError, OSError):
+            return None
+        if not full_path.startswith(base + os.sep) and full_path != base:
+            return None
         if not os.path.exists(full_path):
             return None
 
@@ -597,8 +603,16 @@ class DocsManager:
             return False
 
     def _extract_docs(self, zip_path, version):
-        # Target dir for this version
-        version_dir = os.path.join(self.versions_dir, version)
+        safe_version = os.path.basename(version)
+        if not safe_version or safe_version in (".", ".."):
+            raise ValueError(f"Invalid version name: {version}")
+
+        version_dir = os.path.join(self.versions_dir, safe_version)
+        resolved = os.path.realpath(version_dir)
+        base = os.path.realpath(self.versions_dir)
+        if not resolved.startswith(base + os.sep):
+            raise ValueError(f"Invalid version name: {version}")
+
         if os.path.exists(version_dir):
             shutil.rmtree(version_dir)
         os.makedirs(version_dir)
@@ -623,6 +637,8 @@ class DocsManager:
             if has_docs_subfolder:
                 members_to_extract = [m for m in namelist if m.startswith(docs_prefix)]
                 for member in members_to_extract:
+                    if ".." in member.split("/"):
+                        continue
                     zip_ref.extract(member, temp_extract)
 
                 src_path = os.path.join(temp_extract, root_folder, "docs")
@@ -635,7 +651,10 @@ class DocsManager:
                     else:
                         shutil.copy2(s, d)
             else:
-                zip_ref.extractall(temp_extract)
+                safe_members = [
+                    m for m in namelist if ".." not in m.split("/")
+                ]
+                zip_ref.extractall(temp_extract, members=safe_members)
                 src_path = os.path.join(temp_extract, root_folder)
                 if os.path.exists(src_path) and os.path.isdir(src_path):
                     for item in os.listdir(src_path):

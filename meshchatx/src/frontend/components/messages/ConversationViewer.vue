@@ -3986,7 +3986,7 @@ export default {
 
             // mark conversation as read on server
             try {
-                await window.api.get(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
+                await window.api.post(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
             } catch (e) {
                 // do nothing if failed to mark as read
                 console.log(e);

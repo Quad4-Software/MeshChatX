@@ -539,7 +539,7 @@ describe("NotificationBell clear all", () => {
         await wrapper.vm.clearAllNotifications();
         await new Promise((r) => setTimeout(r, 100));
 
-        const readCalls = global.api.get.mock.calls.filter((c) => c[0]?.includes("/mark-as-read"));
+        const readCalls = global.api.post.mock.calls.filter((c) => c[0]?.includes("/mark-as-read"));
         expect(readCalls.length).toBe(1);
         expect(readCalls[0][0]).toContain("conv1");
 

@@ -2813,6 +2813,11 @@ class ReticulumMeshChat:
                     {"error": "Invalid JSON body"},
                     status=400,
                 )
+            if not isinstance(data, dict):
+                return web.json_response(
+                    {"error": "Invalid request body"},
+                    status=400,
+                )
             password = data.get("password")
 
             if not password or len(password) < 8:
@@ -2838,6 +2843,8 @@ class ReticulumMeshChat:
 
             self.config.auth_password_hash.set(password_hash)
 
+            session = await get_session(request)
+            session.invalidate()
             session = await get_session(request)
             session["authenticated"] = True
             session["identity_hash"] = self.identity.hash.hex()
@@ -2885,6 +2892,11 @@ class ReticulumMeshChat:
                     {"error": "Invalid JSON body"},
                     status=400,
                 )
+            if not isinstance(data, dict):
+                return web.json_response(
+                    {"error": "Invalid request body"},
+                    status=400,
+                )
             password = data.get("password")
 
             password_hash = self.config.auth_password_hash.get()
@@ -2924,6 +2936,8 @@ class ReticulumMeshChat:
                 password.encode("utf-8"),
                 password_hash.encode("utf-8"),
             ):
+                session = await get_session(request)
+                session.invalidate()
                 session = await get_session(request)
                 session["authenticated"] = True
                 session["identity_hash"] = self.identity.hash.hex()
@@ -3983,7 +3997,7 @@ class ReticulumMeshChat:
                 if is_connected_to_shared_instance:
                     # Try to find the shared instance address from active connections
                     try:
-                        for conn in process.connections(kind="all"):
+                        for conn in process.net_connections(kind="all"):
                             if conn.status == psutil.CONN_ESTABLISHED and conn.raddr:
                                 # Check for common Reticulum shared instance ports or UNIX sockets
                                 if (
@@ -6524,8 +6538,14 @@ class ReticulumMeshChat:
         async def get_all_archived_pages(request):
             # get search query and pagination from request
             query = request.query.get("q", "").strip()
-            page = int(request.query.get("page", 1))
-            limit = int(request.query.get("limit", 15))
+            try:
+                page = max(1, int(request.query.get("page", 1)))
+            except (ValueError, TypeError):
+                page = 1
+            try:
+                limit = max(1, min(100, int(request.query.get("limit", 15))))
+            except (ValueError, TypeError):
+                limit = 15
             offset = (page - 1) * limit
 
             # fetch archived pages from database
@@ -8000,10 +8020,10 @@ class ReticulumMeshChat:
                     },
                 )
 
-            except Exception as e:
+            except Exception:
                 return web.json_response(
                     {
-                        "message": f"Sending Failed: {e!s}",
+                        "message": "Sending failed",
                     },
                     status=503,
                 )
@@ -8101,7 +8121,7 @@ class ReticulumMeshChat:
                 self.message_handler.get_conversation_messages,
                 local_hash,
                 destination_hash,
-                limit=int(count) if count else 100,
+                limit=min(int(count), 1000) if count else 100,
                 after_id=after_id if order == "asc" else None,
                 before_id=after_id if order == "desc" else None,
             )
@@ -8138,7 +8158,10 @@ class ReticulumMeshChat:
             # handle image
             if attachment_type == "image" and "image" in fields:
                 image_data = base64.b64decode(fields["image"]["image_bytes"])
+                allowed_image_types = {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
                 image_type = fields["image"]["image_type"]
+                if image_type.lower() not in allowed_image_types:
+                    image_type = "png"
                 return web.Response(body=image_data, content_type=f"image/{image_type}")
 
             # handle audio
@@ -8154,13 +8177,24 @@ class ReticulumMeshChat:
                 if file_index is not None:
                     try:
                         index = int(file_index)
+                        if index < 0:
+                            return web.json_response(
+                                {"message": "Invalid file index"}, status=400,
+                            )
                         file_attachment = fields["file_attachments"][index]
                         file_data = base64.b64decode(file_attachment["file_bytes"])
+                        safe_name = (
+                            os.path.basename(file_attachment["file_name"])
+                            .replace('"', "_")
+                            .replace("\r", "")
+                            .replace("\n", "")
+                            .replace("\x00", "")
+                        ) or "download"
                         return web.Response(
                             body=file_data,
                             content_type="application/octet-stream",
                             headers={
-                                "Content-Disposition": f'attachment; filename="{file_attachment["file_name"]}"',
+                                "Content-Disposition": f'attachment; filename="{safe_name}"',
                             },
                         )
                     except (ValueError, IndexError):
@@ -8460,7 +8494,7 @@ class ReticulumMeshChat:
             return web.json_response({"message": "Folders and mappings imported"})
 
         # mark lxmf conversation as read
-        @routes.get("/api/v1/lxmf/conversations/{destination_hash}/mark-as-read")
+        @routes.post("/api/v1/lxmf/conversations/{destination_hash}/mark-as-read")
         async def lxmf_conversations_mark_read(request):
             # get path params
             destination_hash = request.match_info.get("destination_hash", "")
@@ -8665,10 +8699,9 @@ class ReticulumMeshChat:
                 )
             except Exception as e:
                 RNS.log(f"Error in notifications_get: {e}", RNS.LOG_ERROR)
-                import traceback
-
-                traceback.print_exc()
-                return web.json_response({"error": str(e)}, status=500)
+                return web.json_response(
+                    {"error": "Internal error"}, status=500,
+                )
 
         # get blocked destinations
         @routes.get("/api/v1/blocked-destinations")
@@ -8933,7 +8966,12 @@ class ReticulumMeshChat:
                 return web.json_response({"message": "Offline map disabled"})
 
             mbtiles_dir = self.map_manager.get_mbtiles_dir()
-            file_path = os.path.join(mbtiles_dir, filename)
+            safe_name = os.path.basename(filename)
+            file_path = os.path.join(mbtiles_dir, safe_name)
+            resolved = os.path.realpath(file_path)
+            base = os.path.realpath(mbtiles_dir)
+            if not resolved.startswith(base + os.sep):
+                return web.json_response({"error": "Invalid filename"}, status=400)
             if os.path.exists(file_path):
                 self.map_manager.close()
                 self.config.map_offline_path.set(file_path)
@@ -9086,19 +9124,24 @@ class ReticulumMeshChat:
                 if field.name != "file":
                     return web.json_response({"error": "No file field"}, status=400)
 
-                filename = field.filename
+                filename = os.path.basename(field.filename or "")
                 if not filename.endswith(".mbtiles"):
                     return web.json_response(
                         {"error": "Invalid file format, must be .mbtiles"},
                         status=400,
                     )
 
-                # save to mbtiles dir
                 mbtiles_dir = self.map_manager.get_mbtiles_dir()
                 if not os.path.exists(mbtiles_dir):
                     os.makedirs(mbtiles_dir)
 
                 dest_path = os.path.join(mbtiles_dir, filename)
+                resolved = os.path.realpath(dest_path)
+                base = os.path.realpath(mbtiles_dir)
+                if not resolved.startswith(base + os.sep):
+                    return web.json_response(
+                        {"error": "Invalid filename"}, status=400,
+                    )
 
                 size = 0
                 with open(dest_path, "wb") as f:
@@ -9587,7 +9630,13 @@ class ReticulumMeshChat:
                 if path.endswith("/"):
                     path += "index.html"
 
-                local_path = os.path.join(dm.docs_dir, path)
+                try:
+                    local_path = os.path.realpath(os.path.join(dm.docs_dir, path))
+                    base = os.path.realpath(dm.docs_dir)
+                except (ValueError, OSError):
+                    return web.json_response({"error": "Invalid path"}, status=400)
+                if not local_path.startswith(base + os.sep) and local_path != base:
+                    return web.json_response({"error": "Invalid path"}, status=400)
                 if os.path.exists(local_path) and os.path.isfile(local_path):
                     return web.FileResponse(local_path)
 
