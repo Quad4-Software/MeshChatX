@@ -190,17 +190,17 @@ task dist:fe:rpm
 
 ## Configurazione
 
-| Argomento                  | Variabile d'ambiente                     | Predefinito | Descrizione                                                                                                                                      |
-| -------------------------- | ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Indirizzo di bind del web server                                                                                                                 |
-| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Porta del web server                                                                                                                             |
-| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | Disattiva HTTPS                                                                                                                                  |
-| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (nessuno)   | Percorsi PEM certificato e chiave; impostare entrambi. Sostituisce i certificati auto-generati sotto l'identita nella directory `ssl/`.        |
+| Argomento                  | Variabile d'ambiente                     | Predefinito | Descrizione                                                                                                                                                                                           |
+| -------------------------- | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Indirizzo di bind del web server                                                                                                                                                                      |
+| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Porta del web server                                                                                                                                                                                  |
+| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | Disattiva HTTPS                                                                                                                                                                                       |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (nessuno)   | Percorsi PEM certificato e chiave; impostare entrambi. Sostituisce i certificati auto-generati sotto l'identita nella directory `ssl/`.                                                               |
 | `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (nessuno)   | Livello di log Reticulum (RNS): `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme` o numerico. La CLI ha priorita sulla variabile d'ambiente se entrambe sono impostate. |
-| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | Non aprire il browser automaticamente                                                                                                            |
-| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | Attiva autenticazione base                                                                                                                       |
-| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | Directory dei dati                                                                                                                               |
-| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundle | Directory dei file frontend (per installazioni senza asset inclusi)                                                                              |
+| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | Non aprire il browser automaticamente                                                                                                                                                                 |
+| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | Attiva autenticazione base                                                                                                                                                                            |
+| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | Directory dei dati                                                                                                                                                                                    |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundle | Directory dei file frontend (per installazioni senza asset inclusi)                                                                                                                                   |
 
 ## Branch
 
@@ -222,14 +222,14 @@ task build:all
 
 Scorciatoie `Makefile`:
 
-| Comando        | Descrizione                                      |
-| -------------- | ------------------------------------------------ |
-| `make install` | Installa dipendenze pnpm e poetry                |
-| `make run`     | Esegue MeshChatX tramite poetry                  |
-| `make build`   | Compila il frontend                              |
-| `make lint`    | Esegue eslint e ruff                             |
-| `make test`    | Test frontend e backend                          |
-| `make clean`   | Rimuove artefatti di build e node_modules       |
+| Comando        | Descrizione                               |
+| -------------- | ----------------------------------------- |
+| `make install` | Installa dipendenze pnpm e poetry         |
+| `make run`     | Esegue MeshChatX tramite poetry           |
+| `make build`   | Compila il frontend                       |
+| `make lint`    | Esegue eslint e ruff                      |
+| `make test`    | Test frontend e backend                   |
+| `make clean`   | Rimuove artefatti di build e node_modules |
 
 ## Versioning
 

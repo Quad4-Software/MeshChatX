@@ -8179,7 +8179,8 @@ class ReticulumMeshChat:
                         index = int(file_index)
                         if index < 0:
                             return web.json_response(
-                                {"message": "Invalid file index"}, status=400,
+                                {"message": "Invalid file index"},
+                                status=400,
                             )
                         file_attachment = fields["file_attachments"][index]
                         file_data = base64.b64decode(file_attachment["file_bytes"])
@@ -8700,7 +8701,8 @@ class ReticulumMeshChat:
             except Exception as e:
                 RNS.log(f"Error in notifications_get: {e}", RNS.LOG_ERROR)
                 return web.json_response(
-                    {"error": "Internal error"}, status=500,
+                    {"error": "Internal error"},
+                    status=500,
                 )
 
         # get blocked destinations
@@ -9140,7 +9142,8 @@ class ReticulumMeshChat:
                 base = os.path.realpath(mbtiles_dir)
                 if not resolved.startswith(base + os.sep):
                     return web.json_response(
-                        {"error": "Invalid filename"}, status=400,
+                        {"error": "Invalid filename"},
+                        status=400,
                     )
 
                 size = 0

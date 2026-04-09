@@ -72,11 +72,7 @@
                             class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500"
                         />
                         <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            {{
-                                showHistory
-                                    ? $t("app.notifications_empty_history")
-                                    : $t("app.notifications_no_new")
-                            }}
+                            {{ showHistory ? $t("app.notifications_empty_history") : $t("app.notifications_no_new") }}
                         </div>
                     </div>
 

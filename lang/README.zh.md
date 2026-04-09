@@ -190,17 +190,17 @@ task dist:fe:rpm
 
 ## 配置
 
-| 参数                       | 环境变量                                 | 默认值       | 说明                                                                                         |
-| -------------------------- | ---------------------------------------- | ------------ | -------------------------------------------------------------------------------------------- |
-| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1`  | Web 服务器绑定地址                                                                           |
-| `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Web 服务器端口                                                                               |
-| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | 禁用 HTTPS                                                                                   |
-| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （无）       | PEM 证书与私钥路径；需同时设置。覆盖身份下 `ssl/` 目录中自动生成的证书。                     |
-| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （无）       | Reticulum（RNS）日志级别：`none`、`critical`、`error` 等或数值。同时设置时 CLI 优先于环境变量。 |
-| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | 不自动打开浏览器                                                                             |
-| `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | 启用基本认证                                                                                 |
-| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | 数据目录                                                                                     |
-| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自动/捆绑    | 前端文件目录（无捆绑资源安装时需要）                                                         |
+| 参数                       | 环境变量                                 | 默认值      | 说明                                                                                            |
+| -------------------------- | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------- |
+| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Web 服务器绑定地址                                                                              |
+| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Web 服务器端口                                                                                  |
+| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | 禁用 HTTPS                                                                                      |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （无）      | PEM 证书与私钥路径；需同时设置。覆盖身份下 `ssl/` 目录中自动生成的证书。                        |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （无）      | Reticulum（RNS）日志级别：`none`、`critical`、`error` 等或数值。同时设置时 CLI 优先于环境变量。 |
+| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | 不自动打开浏览器                                                                                |
+| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | 启用基本认证                                                                                    |
+| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | 数据目录                                                                                        |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自动/捆绑   | 前端文件目录（无捆绑资源安装时需要）                                                            |
 
 ## 分支
 
@@ -222,13 +222,13 @@ task build:all
 
 `Makefile` 快捷方式:
 
-| 命令           | 说明                         |
-| -------------- | ---------------------------- |
-| `make install` | 安装 pnpm 与 poetry 依赖   |
-| `make run`     | 通过 poetry 运行 MeshChatX |
-| `make build`   | 构建前端                     |
-| `make lint`    | 运行 eslint 与 ruff        |
-| `make test`    | 运行前端与后端测试           |
+| 命令           | 说明                        |
+| -------------- | --------------------------- |
+| `make install` | 安装 pnpm 与 poetry 依赖    |
+| `make run`     | 通过 poetry 运行 MeshChatX  |
+| `make build`   | 构建前端                    |
+| `make lint`    | 运行 eslint 与 ruff         |
+| `make test`    | 运行前端与后端测试          |
 | `make clean`   | 移除构建产物与 node_modules |
 
 ## 版本

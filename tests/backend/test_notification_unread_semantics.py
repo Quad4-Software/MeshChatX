@@ -9,7 +9,9 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from meshchatx.src.backend.lxmf_utils import compute_lxmf_conversation_unread_from_latest_row
+from meshchatx.src.backend.lxmf_utils import (
+    compute_lxmf_conversation_unread_from_latest_row,
+)
 
 
 def _row(incoming, last_read_iso, ts):

@@ -127,12 +127,10 @@ describe("NotificationBell UI", () => {
         });
         const wrapper = mountBell({ attachTo: document.body });
         await wrapper.vm.$nextTick();
-        const notifGetsAfterMount = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications")
-            .length;
+        const notifGetsAfterMount = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
         await wrapper.find("button").trigger("click");
         await new Promise((r) => setTimeout(r, 150));
-        const notifGetsAfterOpen = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications")
-            .length;
+        const notifGetsAfterOpen = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
         expect(notifGetsAfterOpen - notifGetsAfterMount).toBe(1);
         wrapper.unmount();
     });

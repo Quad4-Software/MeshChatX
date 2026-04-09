@@ -104,7 +104,9 @@ def test_download_task_success(mock_session_cls, docs_manager, temp_dirs):
     async def iter_chunked(_n):
         yield b"data" * 25
 
-    mock_response.content.iter_chunked = MagicMock(side_effect=lambda n: iter_chunked(n))
+    mock_response.content.iter_chunked = MagicMock(
+        side_effect=lambda n: iter_chunked(n)
+    )
 
     mock_get = MagicMock()
     mock_get.__aenter__ = AsyncMock(return_value=mock_response)

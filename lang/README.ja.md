@@ -190,24 +190,24 @@ task dist:fe:rpm
 
 ## 設定
 
-| 引数                       | 環境変数                                 | デフォルト   | 説明                                                                                                   |
-| -------------------------- | ---------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------ |
-| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1`  | Web サーバーのバインドアドレス                                                                         |
-| `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Web サーバーポート                                                                                     |
-| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | HTTPS を無効化                                                                                         |
-| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （なし）     | PEM 証明書と鍵のパス。両方指定。アイデンティティの `ssl/` 下の自動生成証明書を上書き。                   |
-| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （なし）     | Reticulum（RNS）のログレベル（上記の名前または数値）。CLI は環境変数より優先。                           |
-| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | ブラウザを自動で開かない                                                                               |
-| `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | 基本認証を有効化                                                                                       |
-| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | データディレクトリ                                                                                     |
-| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自動/同梱    | フロントエンドファイルディレクトリ（同梱資産のないインストール向け）                                   |
+| 引数                       | 環境変数                                 | デフォルト  | 説明                                                                                   |
+| -------------------------- | ---------------------------------------- | ----------- | -------------------------------------------------------------------------------------- |
+| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Web サーバーのバインドアドレス                                                         |
+| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Web サーバーポート                                                                     |
+| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | HTTPS を無効化                                                                         |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （なし）    | PEM 証明書と鍵のパス。両方指定。アイデンティティの `ssl/` 下の自動生成証明書を上書き。 |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （なし）    | Reticulum（RNS）のログレベル（上記の名前または数値）。CLI は環境変数より優先。         |
+| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | ブラウザを自動で開かない                                                               |
+| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | 基本認証を有効化                                                                       |
+| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | データディレクトリ                                                                     |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自動/同梱   | フロントエンドファイルディレクトリ（同梱資産のないインストール向け）                   |
 
 ## ブランチ
 
-| ブランチ | 目的                                                         |
-| -------- | ------------------------------------------------------------ |
-| `master` | 安定版リリース。本番向けのコードのみ。                       |
-| `dev`    | 活発な開発。不安定または不完全な変更を含む場合があります。   |
+| ブランチ | 目的                                                       |
+| -------- | ---------------------------------------------------------- |
+| `master` | 安定版リリース。本番向けのコードのみ。                     |
+| `dev`    | 活発な開発。不安定または不完全な変更を含む場合があります。 |
 
 ## 開発
 
@@ -222,14 +222,14 @@ task build:all
 
 `Makefile` のショートカット:
 
-| コマンド       | 説明                                       |
-| -------------- | ------------------------------------------ |
-| `make install` | pnpm と poetry の依存関係をインストール    |
-| `make run`     | poetry 経由で MeshChatX を実行             |
-| `make build`   | フロントエンドをビルド                     |
-| `make lint`    | eslint と ruff を実行                      |
-| `make test`    | フロントエンドとバックエンドのテスト       |
-| `make clean`   | ビルド成果物と node_modules を削除         |
+| コマンド       | 説明                                    |
+| -------------- | --------------------------------------- |
+| `make install` | pnpm と poetry の依存関係をインストール |
+| `make run`     | poetry 経由で MeshChatX を実行          |
+| `make build`   | フロントエンドをビルド                  |
+| `make lint`    | eslint と ruff を実行                   |
+| `make test`    | フロントエンドとバックエンドのテスト    |
+| `make clean`   | ビルド成果物と node_modules を削除      |
 
 ## バージョン管理
 

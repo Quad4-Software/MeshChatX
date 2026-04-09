@@ -149,7 +149,9 @@ class RNCPHandler:
         if self.fetch_jail:
             if data.startswith(self.fetch_jail + "/"):
                 data = data.replace(self.fetch_jail + "/", "")
-            file_path = os.path.realpath(os.path.expanduser(f"{self.fetch_jail}/{data}"))
+            file_path = os.path.realpath(
+                os.path.expanduser(f"{self.fetch_jail}/{data}")
+            )
             jail_real = os.path.realpath(self.fetch_jail)
             if not file_path.startswith(jail_real + "/"):
                 return self.REQ_FETCH_NOT_ALLOWED

@@ -651,9 +651,7 @@ class DocsManager:
                     else:
                         shutil.copy2(s, d)
             else:
-                safe_members = [
-                    m for m in namelist if ".." not in m.split("/")
-                ]
+                safe_members = [m for m in namelist if ".." not in m.split("/")]
                 zip_ref.extractall(temp_extract, members=safe_members)
                 src_path = os.path.join(temp_extract, root_folder)
                 if os.path.exists(src_path) and os.path.isdir(src_path):
