@@ -26,12 +26,26 @@
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
                         <div class="flex items-center gap-2">
                             <button
-                                v-if="notifications.length > 0"
+                                v-if="notifications.length > 0 && !showHistory"
                                 type="button"
                                 class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                                 @click.stop="clearAllNotifications"
                             >
                                 Clear
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-md p-1 transition-colors"
+                                :class="
+                                    showHistory
+                                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40'
+                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                "
+                                :title="$t('app.notifications_history_title')"
+                                :aria-label="$t('app.notifications_history_title')"
+                                @click.stop="toggleHistory"
+                            >
+                                <MaterialDesignIcon icon-name="history" class="w-5 h-5" />
                             </button>
                             <button
                                 type="button"
@@ -57,7 +71,13 @@
                             icon-name="bell-off"
                             class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500"
                         />
-                        <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">No new notifications</div>
+                        <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            {{
+                                showHistory
+                                    ? $t("app.notifications_empty_history")
+                                    : $t("app.notifications_no_new")
+                            }}
+                        </div>
                     </div>
 
                     <div v-else class="divide-y divide-gray-200 dark:divide-zinc-800">
@@ -159,6 +179,7 @@ export default {
             unreadCount: 0,
             reloadInterval: null,
             dropdownPosition: { top: 0, left: 0 },
+            showHistory: false,
         };
     },
     computed: {
@@ -180,7 +201,7 @@ export default {
         WebSocketConnection.on("message", this.onWebsocketMessage);
         this.reloadInterval = setInterval(() => {
             if (this.isDropdownOpen) {
-                this.loadNotifications();
+                this.loadNotifications({ updateList: false });
             }
         }, 5000);
     },
@@ -197,12 +218,14 @@ export default {
         async toggleDropdown(event) {
             this.isDropdownOpen = !this.isDropdownOpen;
             if (this.isDropdownOpen) {
+                this.showHistory = false;
                 this.updateDropdownPosition(event);
                 await this.loadNotifications();
+                const hadNotifications = this.notifications.length > 0;
                 await this.markNotificationsAsViewed();
-
-                // reset unread count locally once viewed
-                this.unreadCount = 0;
+                if (hadNotifications) {
+                    await this.loadNotifications({ updateList: false });
+                }
             }
         },
         updateDropdownPosition(event) {
@@ -218,31 +241,51 @@ export default {
         },
         closeDropdown() {
             this.isDropdownOpen = false;
+            this.showHistory = false;
         },
-        async loadNotifications() {
+        async toggleHistory() {
+            this.showHistory = !this.showHistory;
+            await this.loadNotifications();
+            if (!this.showHistory) {
+                const hadNotifications = this.notifications.length > 0;
+                await this.markNotificationsAsViewed();
+                if (hadNotifications) {
+                    await this.loadNotifications({ updateList: false });
+                }
+            }
+        },
+        async loadNotifications(options = {}) {
+            const updateList = options.updateList !== false;
             if (!this.shouldFetchNotifications()) {
                 this.notifications = [];
                 this.unreadCount = 0;
                 this.isLoading = false;
                 return;
             }
-            this.isLoading = true;
+            if (updateList) {
+                this.isLoading = true;
+            }
             try {
                 const response = await window.api.get(`/api/v1/notifications`, {
                     params: {
-                        unread: true,
+                        unread: !this.showHistory,
                         limit: 10,
                     },
                 });
                 const newNotifications = response.data.notifications || [];
-
-                this.notifications = newNotifications;
+                if (updateList) {
+                    this.notifications = newNotifications;
+                }
                 this.unreadCount = response.data.unread_count || 0;
             } catch (e) {
                 console.error("Failed to load notifications", e);
-                this.notifications = [];
+                if (updateList) {
+                    this.notifications = [];
+                }
             } finally {
-                this.isLoading = false;
+                if (updateList) {
+                    this.isLoading = false;
+                }
             }
         },
         async markNotificationsAsViewed() {
@@ -293,6 +336,7 @@ export default {
 
                 GlobalState.unreadConversationsCount = 0;
 
+                this.showHistory = false;
                 await this.loadNotifications();
                 this.$emit("notifications-cleared");
             } catch (e) {
@@ -347,14 +391,28 @@ export default {
                 return;
             }
             const json = JSON.parse(message.data);
-            if (
-                json.type === "lxmf.delivery" ||
-                json.type === "telephone_missed_call" ||
-                json.type === "new_voicemail"
-            ) {
+            if (json.type === "lxmf.delivery") {
+                if (json.lxmf_message?.is_incoming !== true) {
+                    return;
+                }
                 await this.loadNotifications();
                 if (this.isDropdownOpen) {
+                    const hadNotifications = this.notifications.length > 0;
                     await this.markNotificationsAsViewed();
+                    if (hadNotifications) {
+                        await this.loadNotifications({ updateList: false });
+                    }
+                }
+                return;
+            }
+            if (json.type === "telephone_missed_call" || json.type === "new_voicemail") {
+                await this.loadNotifications();
+                if (this.isDropdownOpen) {
+                    const hadNotifications = this.notifications.length > 0;
+                    await this.markNotificationsAsViewed();
+                    if (hadNotifications) {
+                        await this.loadNotifications({ updateList: false });
+                    }
                 }
             }
         },

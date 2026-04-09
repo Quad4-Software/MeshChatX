@@ -1046,12 +1046,12 @@ export default {
         async sendAnnounce() {
             try {
                 await window.api.get(`/api/v1/announce`);
+                ToastUtils.success(this.$t("app.announce_sent"));
             } catch (e) {
                 ToastUtils.error(this.$t("app.failed_announce"));
                 console.log(e);
             }
 
-            // fetch config so it updates last announced timestamp
             await this.getConfig();
         },
         async copyValue(value, label) {

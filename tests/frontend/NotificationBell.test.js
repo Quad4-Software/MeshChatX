@@ -30,6 +30,14 @@ function mountBell(options = {}) {
             directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
             mocks: {
                 $router: { push: vi.fn() },
+                $t: (key) => {
+                    const map = {
+                        "app.notifications_no_new": "No new notifications",
+                        "app.notifications_empty_history": "No notification history",
+                        "app.notifications_history_title": "Recent notification history",
+                    };
+                    return map[key] || key;
+                },
             },
         },
         ...options,
@@ -37,7 +45,11 @@ function mountBell(options = {}) {
 }
 
 function simulateWsMessage(type, extra = {}) {
-    const data = JSON.stringify({ type, ...extra });
+    const payload = { type, ...extra };
+    if (type === "lxmf.delivery" && payload.lxmf_message === undefined) {
+        payload.lxmf_message = { is_incoming: true };
+    }
+    const data = JSON.stringify(payload);
     (wsHandlers["message"] || []).forEach((h) => h({ data }));
 }
 
@@ -104,7 +116,24 @@ describe("NotificationBell UI", () => {
         const wrapper = mountBell({ attachTo: document.body });
         await wrapper.find("button").trigger("click");
         await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 150));
         expect(document.body.textContent).toContain("No new notifications");
+        wrapper.unmount();
+    });
+
+    it("opening empty dropdown adds one notifications fetch after mount", async () => {
+        global.api.get = vi.fn().mockResolvedValue({
+            data: { notifications: [], unread_count: 0 },
+        });
+        const wrapper = mountBell({ attachTo: document.body });
+        await wrapper.vm.$nextTick();
+        const notifGetsAfterMount = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications")
+            .length;
+        await wrapper.find("button").trigger("click");
+        await new Promise((r) => setTimeout(r, 150));
+        const notifGetsAfterOpen = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications")
+            .length;
+        expect(notifGetsAfterOpen - notifGetsAfterMount).toBe(1);
         wrapper.unmount();
     });
 
@@ -202,9 +231,35 @@ describe("NotificationBell websocket reliability", () => {
         simulateWsMessage("telephone_ringing");
         simulateWsMessage("telephone_call_ended");
         simulateWsMessage("lxmf_message_state_updated");
+        simulateWsMessage("lxmf.delivery", { lxmf_message: { is_incoming: false } });
         await new Promise((r) => setTimeout(r, 50));
 
         expect(global.api.get.mock.calls.length).toBe(callsBefore);
+    });
+
+    it("does NOT reload on outbound lxmf.delivery (delivery confirmation path)", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const callsBefore = global.api.get.mock.calls.length;
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: { is_incoming: false, state: "delivered" },
+        });
+        await new Promise((r) => setTimeout(r, 50));
+        expect(global.api.get.mock.calls.length).toBe(callsBefore);
+    });
+
+    it("reloads on inbound lxmf.delivery", async () => {
+        global.api.get = vi.fn().mockResolvedValue({
+            data: { notifications: [], unread_count: 0 },
+        });
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const callsAfterMount = global.api.get.mock.calls.length;
+        simulateWsMessage("lxmf.delivery", { lxmf_message: { is_incoming: true } });
+        await new Promise((r) => setTimeout(r, 50));
+        expect(global.api.get.mock.calls.length).toBeGreaterThan(callsAfterMount);
+        const notifCalls = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications");
+        expect(notifCalls.length).toBeGreaterThan(0);
     });
 
     it("rapid sequential websocket events all trigger reloads", async () => {
@@ -274,16 +329,29 @@ describe("NotificationBell badge accuracy", () => {
         expect(wrapper.text()).toContain("9+");
     });
 
-    it("opening dropdown resets unread count to 0", async () => {
-        global.api.get = vi.fn().mockResolvedValue({
-            data: { notifications: [{ destination_hash: "d1", display_name: "A", content: "m" }], unread_count: 3 },
-        });
+    it("opening dropdown syncs unread count from server after mark-as-viewed", async () => {
+        global.api.get = vi
+            .fn()
+            .mockResolvedValueOnce({
+                data: {
+                    notifications: [{ destination_hash: "d1", display_name: "A", content: "m" }],
+                    unread_count: 3,
+                },
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    notifications: [{ destination_hash: "d1", display_name: "A", content: "m" }],
+                    unread_count: 3,
+                },
+            })
+            .mockResolvedValue({
+                data: { notifications: [], unread_count: 0 },
+            });
         const wrapper = mountBell({ attachTo: document.body });
-        wrapper.vm.unreadCount = 3;
         await wrapper.vm.$nextTick();
 
         await wrapper.find("button").trigger("click");
-        await new Promise((r) => setTimeout(r, 50));
+        await new Promise((r) => setTimeout(r, 80));
 
         expect(wrapper.vm.unreadCount).toBe(0);
         wrapper.unmount();
@@ -350,6 +418,77 @@ describe("NotificationBell mark-as-viewed", () => {
 
         const markCalls = global.api.post.mock.calls.filter((c) => c[0] === "/api/v1/notifications/mark-as-viewed");
         expect(markCalls.length).toBe(0);
+        wrapper.unmount();
+    });
+});
+
+describe("NotificationBell history", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        wsHandlers = {};
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        global.api.post = vi.fn().mockResolvedValue({ data: {} });
+    });
+
+    afterEach(() => {
+        wsHandlers = {};
+    });
+
+    it("shows history control when dropdown is open", async () => {
+        const wrapper = mountBell({ attachTo: document.body });
+        await wrapper.find("button.relative.rounded-full").trigger("click");
+        await wrapper.vm.$nextTick();
+        const historyBtn = document.body.querySelector('[aria-label="Recent notification history"]');
+        expect(historyBtn).toBeTruthy();
+        wrapper.unmount();
+    });
+
+    it("requests unread=false when toggling history on", async () => {
+        global.api.get = vi.fn().mockResolvedValue({
+            data: {
+                notifications: [
+                    {
+                        id: 9,
+                        type: "telephone_missed_call",
+                        destination_hash: "ab",
+                        display_name: "X",
+                        content: "missed",
+                    },
+                ],
+                unread_count: 0,
+            },
+        });
+        const wrapper = mountBell({ attachTo: document.body });
+        await wrapper.vm.$nextTick();
+        await wrapper.find("button.relative.rounded-full").trigger("click");
+        await new Promise((r) => setTimeout(r, 120));
+        global.api.get.mockClear();
+        await wrapper.vm.toggleHistory();
+        await wrapper.vm.$nextTick();
+        const notifCalls = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications");
+        expect(notifCalls.length).toBeGreaterThan(0);
+        const lastParams = notifCalls[notifCalls.length - 1][1].params;
+        expect(lastParams.unread).toBe(false);
+        expect(wrapper.vm.showHistory).toBe(true);
+        wrapper.unmount();
+    });
+
+    it("resets history mode when dropdown closes", async () => {
+        const wrapper = mountBell({ attachTo: document.body });
+        wrapper.vm.showHistory = true;
+        wrapper.vm.closeDropdown();
+        expect(wrapper.vm.showHistory).toBe(false);
+    });
+
+    it("shows empty history copy in history mode", async () => {
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        const wrapper = mountBell({ attachTo: document.body });
+        await wrapper.find("button.relative.rounded-full").trigger("click");
+        await new Promise((r) => setTimeout(r, 120));
+        await wrapper.vm.toggleHistory();
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 50));
+        expect(document.body.textContent).toContain("No notification history");
         wrapper.unmount();
     });
 });

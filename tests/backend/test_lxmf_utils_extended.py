@@ -1,10 +1,12 @@
 import base64
 import json
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import LXMF
 
 from meshchatx.src.backend.lxmf_utils import (
+    compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_state_to_string,
@@ -207,3 +209,43 @@ def test_convert_db_lxmf_message_to_dict_with_reply():
     }
     result = convert_db_lxmf_message_to_dict(db_msg)
     assert result["reply_to_hash"] == "original_hash_hex"
+
+
+def test_compute_unread_outgoing_latest_never_unread_even_without_read_cursor():
+    row = {
+        "is_incoming": 0,
+        "last_read_at": None,
+        "timestamp": 1_700_000_000.0,
+    }
+    assert compute_lxmf_conversation_unread_from_latest_row(row) is False
+
+
+def test_compute_unread_incoming_no_read_cursor_is_unread():
+    row = {
+        "is_incoming": 1,
+        "last_read_at": None,
+        "timestamp": 1_700_000_000.0,
+    }
+    assert compute_lxmf_conversation_unread_from_latest_row(row) is True
+
+
+def test_compute_unread_incoming_not_unread_when_read_cursor_covers_message():
+    ts = 1_700_000_000.0
+    read_after_msg = datetime.fromtimestamp(ts + 60, UTC).isoformat()
+    row = {
+        "is_incoming": 1,
+        "last_read_at": read_after_msg,
+        "timestamp": ts,
+    }
+    assert compute_lxmf_conversation_unread_from_latest_row(row) is False
+
+
+def test_compute_unread_incoming_newer_than_read_cursor_unread():
+    ts = 1_700_000_000.0
+    read = datetime.fromtimestamp(ts - 120, UTC).isoformat()
+    row = {
+        "is_incoming": 1,
+        "last_read_at": read,
+        "timestamp": ts,
+    }
+    assert compute_lxmf_conversation_unread_from_latest_row(row) is True

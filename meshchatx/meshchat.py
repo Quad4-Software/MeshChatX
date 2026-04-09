@@ -68,6 +68,7 @@ from meshchatx.src.backend.lxmf_message_fields import (
     LxmfImageField,
 )
 from meshchatx.src.backend.lxmf_utils import (
+    compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
 )
@@ -8296,15 +8297,7 @@ class ReticulumMeshChat:
                     row["contact_image"] if "contact_image" in row.keys() else None
                 )
 
-                # check if is_unread (using last_read_at from join)
-                is_unread = False
-                if not row["last_read_at"]:
-                    is_unread = True
-                else:
-                    last_read_at = datetime.fromisoformat(row["last_read_at"])
-                    if last_read_at.tzinfo is None:
-                        last_read_at = last_read_at.replace(tzinfo=UTC)
-                    is_unread = row["timestamp"] > last_read_at.timestamp()
+                is_unread = compute_lxmf_conversation_unread_from_latest_row(row)
 
                 # Add extra check for notification viewed state if unread
                 if is_unread and filter_unread:
