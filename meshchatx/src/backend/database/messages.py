@@ -65,6 +65,49 @@ class MessageDAO:
             (message_hash,),
         )
 
+    def list_message_hashes_for_peer(self, peer_hash):
+        rows = self.provider.fetchall(
+            "SELECT hash FROM lxmf_messages WHERE peer_hash = ?",
+            (peer_hash,),
+        )
+        return [r["hash"] for r in rows]
+
+    def get_pinned_peer_hashes(self):
+        rows = self.provider.fetchall(
+            "SELECT peer_hash FROM lxmf_conversation_pins ORDER BY pinned_at DESC",
+        )
+        return [r["peer_hash"] for r in rows]
+
+    def is_peer_pinned(self, peer_hash):
+        row = self.provider.fetchone(
+            "SELECT 1 AS ok FROM lxmf_conversation_pins WHERE peer_hash = ?",
+            (peer_hash,),
+        )
+        return row is not None
+
+    def set_peer_pinned(self, peer_hash, pinned):
+        if pinned:
+            self.provider.execute(
+                """
+                INSERT INTO lxmf_conversation_pins (peer_hash, pinned_at)
+                VALUES (?, strftime('%s', 'now'))
+                ON CONFLICT(peer_hash) DO UPDATE SET pinned_at = EXCLUDED.pinned_at
+                """,
+                (peer_hash,),
+            )
+        else:
+            self.provider.execute(
+                "DELETE FROM lxmf_conversation_pins WHERE peer_hash = ?",
+                (peer_hash,),
+            )
+
+    def toggle_peer_pin(self, peer_hash):
+        if self.is_peer_pinned(peer_hash):
+            self.set_peer_pinned(peer_hash, False)
+            return False
+        self.set_peer_pinned(peer_hash, True)
+        return True
+
     def delete_lxmf_messages_by_hashes(self, message_hashes):
         if not message_hashes:
             return

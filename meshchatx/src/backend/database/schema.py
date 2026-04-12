@@ -13,7 +13,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 42
+    LATEST_VERSION = 43
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1106,6 +1106,17 @@ class DatabaseSchema:
             """)
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_trusted_login_identity ON trusted_login_clients(identity_hash)",
+            )
+
+        if current_version < 43:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_pins (
+                    peer_hash TEXT PRIMARY KEY NOT NULL,
+                    pinned_at INTEGER NOT NULL
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_pins_pinned_at ON lxmf_conversation_pins(pinned_at)",
             )
 
         # Update version in config

@@ -50,6 +50,10 @@ class MessageHandler:
             "DELETE FROM lxmf_conversation_folders WHERE peer_hash = ?",
             [destination_hash],
         )
+        self.db.provider.execute(
+            "DELETE FROM lxmf_conversation_pins WHERE peer_hash = ?",
+            [destination_hash],
+        )
 
     def search_messages(self, local_hash, search_term, limit=500):
         search_term = _strip_utf16_surrogates(search_term) or ""
