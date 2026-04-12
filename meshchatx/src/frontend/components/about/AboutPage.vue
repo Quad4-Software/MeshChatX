@@ -2,10 +2,9 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6 text-gray-900 dark:text-zinc-100">
-            <div class="space-y-6 w-full max-w-4xl mx-auto pb-20">
-                <!-- Basic Info Card -->
-                <div v-if="appInfo" class="glass-card !p-8">
+        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-8 py-4 sm:py-6 text-gray-900 dark:text-zinc-100">
+            <div class="space-y-0 w-full max-w-4xl mx-auto pb-16 sm:pb-24">
+                <div v-if="appInfo" class="about-section">
                     <div class="flex flex-col gap-8 md:flex-row md:items-center">
                         <!-- Logo & Title -->
                         <div class="flex items-center gap-6">
@@ -26,20 +25,39 @@
                             </div>
                         </div>
 
-                        <div class="flex-1 md:text-right flex flex-wrap justify-start md:justify-end gap-3">
-                            <button type="button" class="secondary-chip" @click="showTutorial">
+                        <div
+                            class="flex-1 flex flex-wrap justify-stretch sm:justify-end gap-2 sm:gap-3 w-full md:w-auto"
+                        >
+                            <button
+                                type="button"
+                                class="secondary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
+                                @click="showTutorial"
+                            >
                                 <v-icon icon="mdi-help-circle" size="20" class="mr-2"></v-icon>
                                 {{ $t("app.tutorial_title") }}
                             </button>
-                            <button type="button" class="secondary-chip" @click="showChangelog">
+                            <button
+                                type="button"
+                                class="secondary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
+                                @click="showChangelog"
+                            >
                                 <v-icon icon="mdi-history" size="20" class="mr-2"></v-icon>
                                 {{ $t("app.changelog_title") }}
                             </button>
-                            <button v-if="isElectron" type="button" class="primary-chip" @click="relaunch">
+                            <button
+                                v-if="isElectron"
+                                type="button"
+                                class="primary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
+                                @click="relaunch"
+                            >
                                 <v-icon icon="mdi-restart" size="20" class="mr-2"></v-icon>
                                 {{ $t("common.restart_app") }}
                             </button>
-                            <button type="button" class="danger-chip" @click="shutdown">
+                            <button
+                                type="button"
+                                class="danger-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
+                                @click="shutdown"
+                            >
                                 <v-icon icon="mdi-power" size="20" class="mr-2"></v-icon>
                                 {{ $t("common.shutdown", "Shutdown") }}
                             </button>
@@ -57,8 +75,7 @@
                             >.
                         </div>
 
-                        <!-- Contact Developer Card -->
-                        <div class="glass-card !p-5 space-y-3">
+                        <div class="mt-6 pt-6 border-t border-gray-200/70 dark:border-zinc-800/80 space-y-3">
                             <div class="flex items-center justify-between">
                                 <div
                                     class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-zinc-500"
@@ -154,7 +171,7 @@
 
                 <div class="space-y-6">
                     <!-- Security & Integrity -->
-                    <div v-if="appInfo" class="glass-card !p-6">
+                    <div v-if="appInfo" class="about-section">
                         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
@@ -230,7 +247,7 @@
                     </div>
 
                     <!-- Advanced Tech Info -->
-                    <div v-if="appInfo" class="glass-card !p-6">
+                    <div v-if="appInfo" class="about-section">
                         <div
                             class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
                         >
@@ -271,7 +288,7 @@
                                 </button>
                             </div>
                             <div
-                                class="flex flex-col justify-center space-y-3 bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800"
+                                class="flex flex-col justify-center space-y-3 py-2 sm:py-3 border-t sm:border border-gray-200/60 dark:border-zinc-800/80 sm:rounded-xl sm:p-4 sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
                             >
                                 <div
                                     v-if="config"
@@ -317,7 +334,7 @@
                     </div>
 
                     <!-- Dependency Chain -->
-                    <div v-if="appInfo" class="glass-card !p-6">
+                    <div v-if="appInfo" class="about-section">
                         <div
                             class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-8 flex items-center gap-2"
                         >
@@ -422,7 +439,7 @@
 
                             <div class="space-y-8">
                                 <div
-                                    class="bg-zinc-50 dark:bg-zinc-950 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800"
+                                    class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
                                 >
                                     <div
                                         class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
@@ -497,7 +514,7 @@
                     </div>
 
                     <!-- Database Health -->
-                    <div class="glass-card !p-6">
+                    <div class="about-section">
                         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
@@ -505,10 +522,10 @@
                                 <v-icon icon="mdi-database-cog" size="14"></v-icon>
                                 Database Health & Maintenance
                             </div>
-                            <div class="flex flex-wrap gap-2">
+                            <div class="flex flex-wrap gap-2 w-full md:w-auto">
                                 <button
                                     type="button"
-                                    class="secondary-chip !px-4 !py-1.5 !text-xs"
+                                    class="secondary-chip !px-4 !py-1.5 !text-xs min-h-[44px] sm:min-h-0"
                                     :disabled="databaseActionInProgress || healthLoading"
                                     @click="getDatabaseHealth(true)"
                                 >
@@ -535,9 +552,9 @@
                             </div>
                         </div>
 
-                        <div v-if="databaseHealth" class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+                        <div v-if="databaseHealth" class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 md:gap-8 mb-8">
                             <div
-                                class="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-inner"
+                                class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
                             >
                                 <div
                                     class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
@@ -552,7 +569,7 @@
                                 </div>
                             </div>
                             <div
-                                class="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-inner"
+                                class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
                             >
                                 <div
                                     class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
@@ -564,7 +581,7 @@
                                 </div>
                             </div>
                             <div
-                                class="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-inner"
+                                class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
                             >
                                 <div
                                     class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
@@ -576,7 +593,7 @@
                                 </div>
                             </div>
                             <div
-                                class="bg-zinc-50 dark:bg-zinc-950 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-inner"
+                                class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
                             >
                                 <div
                                     class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
@@ -653,7 +670,7 @@
                                         <div
                                             v-for="snapshot in snapshots"
                                             :key="snapshot.path"
-                                            class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-purple-500/20 transition-all group"
+                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/[0.02] dark:sm:bg-white/[0.02] transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
                                                 <span
@@ -744,7 +761,7 @@
                                         <div
                                             v-for="backup in autoBackups"
                                             :key="backup.path"
-                                            class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-blue-500/20 transition-all group"
+                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/[0.02] dark:sm:bg-white/[0.02] transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
                                                 <span
@@ -1282,6 +1299,9 @@ export default {
 </script>
 
 <style scoped>
+.about-section {
+    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 last:border-0;
+}
 :deep(.about-btn:focus-visible) {
     outline: 2px solid rgba(59, 130, 246, 0.35);
     outline-offset: 2px;
