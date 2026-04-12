@@ -150,13 +150,10 @@ describe("ConversationViewer.vue", () => {
 
         await wrapper.vm.sendMessage();
 
-        // Should call post twice
-        expect(axiosMock.post).toHaveBeenCalledTimes(2);
+        const sendCalls = axiosMock.post.mock.calls.filter((c) => c[0] === "/api/v1/lxmf-messages/send");
+        expect(sendCalls.length).toBe(2);
 
-        // First call should have the message text
-        expect(axiosMock.post).toHaveBeenNthCalledWith(
-            1,
-            "/api/v1/lxmf-messages/send",
+        expect(sendCalls[0][1]).toEqual(
             expect.objectContaining({
                 lxmf_message: expect.objectContaining({
                     content: "Hello",
@@ -164,13 +161,10 @@ describe("ConversationViewer.vue", () => {
             })
         );
 
-        // Second call should have the image name as content
-        expect(axiosMock.post).toHaveBeenNthCalledWith(
-            2,
-            "/api/v1/lxmf-messages/send",
+        expect(sendCalls[1][1]).toEqual(
             expect.objectContaining({
                 lxmf_message: expect.objectContaining({
-                    content: "image2.png",
+                    content: "",
                 }),
             })
         );

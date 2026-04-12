@@ -129,7 +129,8 @@ describe("SendMessageButton Component", () => {
                 deliveryMethod: null,
             },
         });
-        expect(wrapper.text()).toContain("Sending...");
+        expect(wrapper.text()).toContain("Send");
+        expect(wrapper.html()).toContain("opacity-60");
     });
 
     it("disables button when canSendMessage is false", () => {

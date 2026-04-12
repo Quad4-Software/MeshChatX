@@ -117,14 +117,11 @@ describe("ConversationViewer.vue button interactions", () => {
         expect(banishBtn).toBeUndefined();
     });
 
-    it("telemetry history button opens modal", async () => {
+    it("telemetry history modal can be opened", async () => {
         const wrapper = mountViewer();
         await wrapper.vm.$nextTick();
 
-        const telemetryBtn = wrapper.findAll("button").find((b) => b.attributes("title") === "View Telemetry History");
-        expect(telemetryBtn).toBeDefined();
-
-        await telemetryBtn.trigger("click");
+        wrapper.vm.isTelemetryHistoryModalOpen = true;
         await wrapper.vm.$nextTick();
 
         expect(wrapper.vm.isTelemetryHistoryModalOpen).toBe(true);

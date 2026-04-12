@@ -1,5 +1,6 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import App from "../../meshchatx/src/frontend/components/App.vue";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
@@ -34,16 +35,24 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     },
 }));
 
-vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
-    default: {
+vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => {
+    const state = {
         authSessionResolved: true,
         authEnabled: false,
         authenticated: false,
         unreadConversationsCount: 0,
         activeCallTab: null,
         config: {},
-    },
-}));
+    };
+    return {
+        mergeGlobalConfig: vi.fn((next) => {
+            if (next && typeof next === "object") {
+                state.config = { ...state.config, ...next };
+            }
+        }),
+        default: state,
+    };
+});
 
 vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
     default: {
@@ -229,13 +238,25 @@ describe("Theme Switching", () => {
             },
         });
 
-        wrapper.vm.config = { theme: "dark" };
+        await flushPromises();
         await wrapper.vm.$nextTick();
+        wrapper.vm.config = { ...(wrapper.vm.config || {}), theme: "dark" };
+        await wrapper.vm.$nextTick();
+
+        WebSocketConnection.send.mockClear();
 
         await wrapper.vm.toggleTheme();
-        await wrapper.vm.$nextTick();
+        await flushPromises();
 
-        expect(wrapper.vm.config.theme).toBe("light");
+        const configSetCall = WebSocketConnection.send.mock.calls.find((call) => {
+            try {
+                const parsed = JSON.parse(call[0]);
+                return parsed.type === "config.set" && parsed.config?.theme === "light";
+            } catch {
+                return false;
+            }
+        });
+        expect(configSetCall).toBeDefined();
     });
 
     it("shows correct icon for theme toggle button", async () => {
