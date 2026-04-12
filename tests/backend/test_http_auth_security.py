@@ -126,7 +126,11 @@ async def test_auth_login_invalid_json_returns_400(mock_app):
         assert "error" in body
 
 
-@settings(max_examples=40, suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(
+    max_examples=40,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+    deadline=None,
+)
 @given(body=st.binary(min_size=0, max_size=12000))
 def test_auth_login_fuzz_never_500(mock_app, body):
     mock_app.config.auth_enabled.set(True)

@@ -22,14 +22,20 @@ class TestMessageHandler(unittest.TestCase):
 
     def test_delete_conversation(self):
         self.handler.delete_conversation("local", "dest")
-        self.assertEqual(self.db.provider.execute.call_count, 2)
+        self.assertEqual(self.db.provider.execute.call_count, 4)
         call_args_list = self.db.provider.execute.call_args_list
-        first_call_args, _ = call_args_list[0]
-        second_call_args, _ = call_args_list[1]
-        self.assertIn("DELETE FROM lxmf_messages", first_call_args[0])
-        self.assertIn("dest", first_call_args[1])
-        self.assertIn("DELETE FROM lxmf_conversation_folders", second_call_args[0])
-        self.assertIn("dest", second_call_args[1])
+        sql0, p0 = call_args_list[0][0]
+        sql1, p1 = call_args_list[1][0]
+        sql2, p2 = call_args_list[2][0]
+        sql3, p3 = call_args_list[3][0]
+        self.assertIn("DELETE FROM lxmf_messages", sql0)
+        self.assertEqual(p0, ["dest"])
+        self.assertIn("DELETE FROM lxmf_conversation_read_state", sql1)
+        self.assertEqual(p1, ["dest"])
+        self.assertIn("DELETE FROM lxmf_conversation_folders", sql2)
+        self.assertEqual(p2, ["dest"])
+        self.assertIn("DELETE FROM lxmf_conversation_pins", sql3)
+        self.assertEqual(p3, ["dest"])
 
     def test_get_conversations_includes_failed_count(self):
         self.db.provider.fetchall.return_value = [

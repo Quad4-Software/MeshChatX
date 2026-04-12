@@ -37,10 +37,16 @@ def test_delete_conversation(mock_db):
     handler = MessageHandler(mock_db)
     handler.delete_conversation("local", "peer")
 
-    assert mock_db.provider.execute.call_count == 2
-    args1, _ = mock_db.provider.execute.call_args_list[0]
-    assert "DELETE FROM lxmf_messages" in args1[0]
-    assert args1[1] == ["peer"]
+    assert mock_db.provider.execute.call_count == 4
+    calls = [mock_db.provider.execute.call_args_list[i][0] for i in range(4)]
+    assert "DELETE FROM lxmf_messages" in calls[0][0]
+    assert calls[0][1] == ["peer"]
+    assert "DELETE FROM lxmf_conversation_read_state" in calls[1][0]
+    assert calls[1][1] == ["peer"]
+    assert "DELETE FROM lxmf_conversation_folders" in calls[2][0]
+    assert calls[2][1] == ["peer"]
+    assert "DELETE FROM lxmf_conversation_pins" in calls[3][0]
+    assert calls[3][1] == ["peer"]
 
 
 def test_search_messages(mock_db):
