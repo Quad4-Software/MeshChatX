@@ -118,6 +118,12 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/map/MapPage.vue")),
         },
         {
+            name: "map-popout",
+            path: "/popout/map",
+            meta: { popoutType: "map", isPopout: true },
+            component: defineAsyncComponent(() => import("./components/map/MapPage.vue")),
+        },
+        {
             name: "messages-popout",
             path: "/popout/messages/:destinationHash?",
             props: true,

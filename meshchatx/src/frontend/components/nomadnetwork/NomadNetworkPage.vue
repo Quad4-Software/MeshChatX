@@ -142,6 +142,14 @@
                         </div>
                     </div>
 
+                    <IconButton
+                        class="md:hidden shrink-0 text-gray-700 dark:text-gray-300"
+                        :title="$t('nomadnet.identify')"
+                        @click="identify(selectedNode.destination_hash)"
+                    >
+                        <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
+                    </IconButton>
+
                     <div class="hidden md:flex items-center gap-1 shrink-0">
                         <IconButton
                             class="text-gray-700 dark:text-gray-300"
@@ -173,10 +181,6 @@
                             </IconButton>
                         </template>
                         <template #items>
-                            <DropDownMenuItem @click="identify(selectedNode.destination_hash)">
-                                <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
-                                <span>{{ $t("nomadnet.identify") }}</span>
-                            </DropDownMenuItem>
                             <DropDownMenuItem @click="openNomadnetPopout">
                                 <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                                 <span>{{ $t("nomadnet.pop_out_browser") }}</span>

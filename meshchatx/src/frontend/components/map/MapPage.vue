@@ -10,6 +10,16 @@
             </div>
 
             <div class="ml-auto flex items-center space-x-2">
+                <button
+                    v-if="!isPopoutMode"
+                    type="button"
+                    class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    :title="$t('map.pop_out')"
+                    @click="openMapPopout"
+                >
+                    <MaterialDesignIcon icon-name="open-in-new" class="size-4" />
+                    <span>{{ $t("map.pop_out") }}</span>
+                </button>
                 <!-- offline/online toggle -->
                 <div class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
                     <button
@@ -1441,6 +1451,15 @@ export default {
         };
     },
     computed: {
+        popoutRouteType() {
+            if (this.$route?.meta?.popoutType) {
+                return this.$route.meta.popoutType;
+            }
+            return this.$route?.query?.popout ?? this.getHashPopoutValue();
+        },
+        isPopoutMode() {
+            return this.popoutRouteType === "map";
+        },
         trackedPeers() {
             return this.telemetryList.filter((t) => t.is_tracking);
         },
@@ -3691,6 +3710,15 @@ export default {
                 console.error("Failed to map discovered nodes", e);
                 ToastUtils.error(this.$t("map.failed_fetch_nodes"));
             }
+        },
+        openMapPopout() {
+            const url = `${window.location.origin}${window.location.pathname}#/popout/map`;
+            window.open(url, "_blank", "width=960,height=720,noopener");
+        },
+        getHashPopoutValue() {
+            const hash = window.location.hash || "";
+            const match = hash.match(/popout=([^&]+)/);
+            return match ? decodeURIComponent(match[1]) : null;
         },
     },
 };

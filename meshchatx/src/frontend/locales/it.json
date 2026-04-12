@@ -536,6 +536,7 @@
     },
     "map": {
         "title": "Mappa",
+        "pop_out": "Apri mappa in finestra",
         "description": "Mappa compatibile con l'uso offline e supporto MBTiles.",
         "upload_mbtiles": "Carica MBTiles",
         "select_file": "Seleziona file MBTiles",

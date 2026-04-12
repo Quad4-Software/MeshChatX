@@ -2,11 +2,11 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full">
-            <div class="p-3 md:p-6 space-y-4 w-full flex-1">
+        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-8 py-4 sm:py-6">
+            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto flex-1">
                 <div
                     v-if="showRestartReminder"
-                    class="bg-amber-600 text-white rounded-3xl shadow-xl p-4 flex flex-wrap gap-3 items-center"
+                    class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center mb-4 sm:mb-6"
                 >
                     <div class="flex items-center gap-3">
                         <MaterialDesignIcon icon-name="alert" class="w-6 h-6" />
@@ -26,7 +26,9 @@
                     </button>
                 </div>
 
-                <div class="glass-card flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8">
+                <div
+                    class="interfaces-section interfaces-section--hero flex flex-col md:flex-row md:items-center justify-between gap-6"
+                >
                     <div class="space-y-3 flex-1 min-w-0">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                             {{ $t("interfaces.manage") }}
@@ -38,7 +40,10 @@
                             {{ $t("interfaces.description") }}
                         </div>
                         <div class="flex flex-wrap gap-2 pt-2">
-                            <RouterLink :to="{ name: 'interfaces.add' }" class="primary-chip px-4 py-2 text-sm">
+                            <RouterLink
+                                :to="{ name: 'interfaces.add' }"
+                                class="primary-chip px-4 py-2 text-sm min-h-[44px] sm:min-h-0 items-center justify-center inline-flex"
+                            >
                                 <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
                                 {{ $t("interfaces.add_interface") }}
                             </RouterLink>
@@ -87,7 +92,7 @@
                     </div>
                 </div>
 
-                <div class="glass-card space-y-4">
+                <div class="interfaces-section space-y-4">
                     <div class="flex flex-wrap gap-2">
                         <button
                             v-for="tab in ['overview', 'discovery']"
@@ -102,7 +107,7 @@
                     </div>
 
                     <div v-if="activeTab === 'overview'" class="space-y-4">
-                        <div class="glass-card space-y-3">
+                        <div class="interfaces-subpanel space-y-3">
                             <div class="flex flex-wrap items-center justify-between gap-4">
                                 <div class="space-y-1">
                                     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -160,14 +165,17 @@
                                     @delete="deleteInterface(iface._name)"
                                 />
                             </div>
-                            <div v-else class="glass-card text-center py-10 text-gray-500 dark:text-gray-300">
+                            <div
+                                v-else
+                                class="text-center py-10 px-4 text-gray-500 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-xl"
+                            >
                                 <MaterialDesignIcon icon-name="lan-disconnect" class="w-10 h-10 mx-auto mb-3" />
                                 <div class="text-lg font-semibold">{{ $t("interfaces.no_interfaces_found") }}</div>
                                 <div class="text-sm">{{ $t("interfaces.no_interfaces_description") }}</div>
                             </div>
                         </div>
 
-                        <div class="glass-card space-y-3">
+                        <div class="interfaces-subpanel space-y-3">
                             <div class="flex items-center gap-3">
                                 <div class="flex-1">
                                     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -436,7 +444,7 @@
                     </div>
 
                     <div v-else class="space-y-4">
-                        <div class="glass-card space-y-4">
+                        <div class="interfaces-subpanel space-y-4">
                             <div class="flex flex-wrap gap-3 items-center">
                                 <div class="flex-1">
                                     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -1266,3 +1274,15 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+.interfaces-section {
+    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8;
+}
+.interfaces-section--hero {
+    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8;
+}
+.interfaces-subpanel {
+    @apply mt-6 pt-6 border-t border-gray-200/50 dark:border-zinc-800/50 first:mt-0 first:pt-0 first:border-0;
+}
+</style>

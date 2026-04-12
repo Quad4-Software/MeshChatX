@@ -3,12 +3,9 @@
         v-if="config"
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
-            <div class="space-y-4 w-full max-w-6xl mx-auto">
-                <!-- hero card -->
-                <div
-                    class="bg-white/90 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-xl p-5 md:p-6"
-                >
+        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-8 py-4 sm:py-6">
+            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
+                <div class="settings-section settings-section--hero">
                     <div class="flex flex-col md:flex-row md:items-center gap-4">
                         <div class="flex-1 space-y-1">
                             <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -39,9 +36,11 @@
                             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                         </div>
                     </transition>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-sm text-gray-600 dark:text-gray-300">
+                    <div
+                        class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-4 text-sm text-gray-600 dark:text-gray-300"
+                    >
                         <div
-                            class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-3 bg-white/70 dark:bg-zinc-900/70"
+                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.theme") }}</div>
                             <div class="font-semibold text-gray-900 dark:text-white capitalize">
@@ -49,7 +48,7 @@
                             </div>
                         </div>
                         <div
-                            class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-3 bg-white/70 dark:bg-zinc-900/70"
+                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.transport") }}</div>
                             <div class="font-semibold text-gray-900 dark:text-white">
@@ -57,7 +56,7 @@
                             </div>
                         </div>
                         <div
-                            class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-3 bg-white/70 dark:bg-zinc-900/70"
+                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.propagation") }}</div>
                             <div class="font-semibold text-gray-900 dark:text-white">
@@ -98,8 +97,10 @@
                 </div>
 
                 <!-- search bar -->
-                <div class="sticky top-0 z-10 py-4">
-                    <div class="relative max-w-6xl mx-auto">
+                <div
+                    class="sticky top-0 z-10 py-3 sm:py-4 -mx-3 sm:mx-0 px-3 sm:px-0 mb-2 bg-gradient-to-br from-slate-50/95 via-slate-100/95 to-white/95 dark:from-zinc-950/95 dark:via-zinc-900/95 dark:to-zinc-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-zinc-800/50"
+                >
+                    <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
                         </div>
@@ -140,22 +141,25 @@
                 </div>
 
                 <!-- settings grid -->
-                <div v-show="hasSearchResults" class="columns-1 lg:columns-2 gap-4 space-y-4">
+                <div
+                    v-show="hasSearchResults"
+                    class="columns-1 md:columns-2 xl:columns-2 2xl:columns-3 gap-x-8 gap-y-0"
+                >
                     <!-- Banishment -->
                     <section
                         v-show="
                             matchesSearch('stranger', 'attachments', 'trust', 'block', 'banner', 'unknown', 'contact')
                         "
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Security</div>
+                                <div class="settings-section__eyebrow">Security</div>
                                 <h2>{{ $t("app.stranger_protection") }}</h2>
                                 <p>{{ $t("app.stranger_protection_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="block-attachments-from-strangers"
@@ -204,16 +208,16 @@
 
                     <section
                         v-show="matchesSearch(...sectionKeywords.banishment)"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Visuals</div>
+                                <div class="settings-section__eyebrow">Visuals</div>
                                 <h2>{{ $t("app.banishment") }}</h2>
                                 <p>{{ $t("app.banishment_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="banished-effect-enabled"
@@ -273,16 +277,16 @@
                     <!-- Maintenance & Data -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.maintenance)"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Maintenance</div>
+                                <div class="settings-section__eyebrow">Maintenance</div>
                                 <h2>{{ $t("maintenance.title") }}</h2>
                                 <p>{{ $t("maintenance.description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <div class="grid grid-cols-1 gap-3">
                                 <button
                                     type="button"
@@ -291,7 +295,7 @@
                                 >
                                     <div class="flex flex-col items-start text-left">
                                         <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="message-remove" class="size-4" />
+                                            <MaterialDesignIcon icon-name="forum-remove-outline" class="size-4" />
                                             {{ $t("maintenance.clear_messages") }}
                                         </div>
                                         <div class="text-xs opacity-80">
@@ -438,7 +442,7 @@
                                     @click="exportFolders"
                                 >
                                     <MaterialDesignIcon
-                                        icon-name="folder-export-outline"
+                                        icon-name="folder-download-outline"
                                         class="size-6 text-purple-500 group-hover:scale-110 transition"
                                     />
                                     <div class="text-sm font-bold">Export Folders</div>
@@ -450,7 +454,7 @@
                                     @click="triggerFolderImport"
                                 >
                                     <MaterialDesignIcon
-                                        icon-name="folder-import-outline"
+                                        icon-name="folder-upload-outline"
                                         class="size-6 text-indigo-500 group-hover:scale-110 transition"
                                     />
                                     <div class="text-sm font-bold">Import Folders</div>
@@ -470,16 +474,16 @@
                     <section
                         v-if="ElectronUtils.isElectron()"
                         v-show="matchesSearch(...sectionKeywords.desktop)"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Desktop</div>
+                                <div class="settings-section__eyebrow">Desktop</div>
                                 <h2>App Behaviour</h2>
                                 <p>Control how MeshChat behaves on your desktop.</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <label class="setting-toggle opacity-50 cursor-not-allowed">
                                 <Toggle
                                     id="desktop-open-calls-in-separate-window"
@@ -517,15 +521,18 @@
                     </section>
 
                     <!-- Page Archiver -->
-                    <section v-show="matchesSearch(...sectionKeywords.archiver)" class="glass-card break-inside-avoid">
-                        <header class="glass-card__header">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.archiver)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Browsing</div>
+                                <div class="settings-section__eyebrow">Browsing</div>
                                 <h2>Page Archiver</h2>
                                 <p>Automatically save copies of visited NomadNetwork pages.</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-3">
+                        <div class="settings-section__body space-y-3">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="page-archiver-enabled"
@@ -584,15 +591,18 @@
                     </section>
 
                     <!-- Smart Crawler -->
-                    <section v-show="matchesSearch(...sectionKeywords.crawler)" class="glass-card break-inside-avoid">
-                        <header class="glass-card__header">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.crawler)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Discovery</div>
+                                <div class="settings-section__eyebrow">Discovery</div>
                                 <h2>Smart Crawler</h2>
                                 <p>Automatically archive node homepages when announced.</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="crawler-enabled"
@@ -661,16 +671,16 @@
                     <!-- Appearance -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.appearance)"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Personalise</div>
+                                <div class="settings-section__eyebrow">Personalise</div>
                                 <h2>{{ $t("app.appearance") }}</h2>
                                 <p>{{ $t("app.appearance_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {{ $t("app.theme") }}
@@ -849,10 +859,10 @@
                                     </div>
                                     <div class="flex gap-2">
                                         <input
+                                            v-if="config.message_inbound_bubble_color"
                                             v-model="config.message_inbound_bubble_color"
                                             type="color"
                                             class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                            :disabled="!config.message_inbound_bubble_color"
                                             @input="onMessageBubbleColorChange('inbound')"
                                         />
                                         <div
@@ -884,15 +894,18 @@
                     </section>
 
                     <!-- Location -->
-                    <section v-show="matchesSearch(...sectionKeywords.location)" class="glass-card break-inside-avoid">
-                        <header class="glass-card__header">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.location)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Privacy</div>
+                                <div class="settings-section__eyebrow">Privacy</div>
                                 <h2>Location</h2>
                                 <p>Manage how your location is shared.</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Location Source</div>
                                 <select
@@ -1054,16 +1067,16 @@
                                 'Русский'
                             )
                         "
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">i18n</div>
+                                <div class="settings-section__eyebrow">i18n</div>
                                 <h2>{{ $t("app.language") }}</h2>
                                 <p>{{ $t("app.select_language") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-3">
+                        <div class="settings-section__body space-y-3">
                             <select v-model="config.language" class="input-field" @change="onLanguageChange">
                                 <option value="en">English</option>
                                 <option value="de">Deutsch</option>
@@ -1084,16 +1097,16 @@
                                 'app.announce_limits'
                             )
                         "
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">RNS Security</div>
+                                <div class="settings-section__eyebrow">RNS Security</div>
                                 <h2>Network Security</h2>
                                 <p>Manage mesh-level security features.</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <div class="setting-toggle">
                                 <div class="setting-toggle__label">
                                     <div class="setting-toggle__title">
@@ -1237,15 +1250,18 @@
                     </section>
 
                     <!-- Transport -->
-                    <section v-show="matchesSearch(...sectionKeywords.transport)" class="glass-card break-inside-avoid">
-                        <header class="glass-card__header">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.transport)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Reticulum</div>
+                                <div class="settings-section__eyebrow">Reticulum</div>
                                 <h2>{{ $t("app.transport_mode") }}</h2>
                                 <p>{{ $t("app.transport_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-3">
+                        <div class="settings-section__body space-y-3">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="transport-enabled"
@@ -1266,16 +1282,16 @@
                     <!-- Interfaces -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.interfaces)"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Adapters</div>
+                                <div class="settings-section__eyebrow">Adapters</div>
                                 <h2>{{ $t("app.interfaces") }}</h2>
                                 <p>Show curated community configs inside the interface wizard.</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-3">
+                        <div class="settings-section__body space-y-3">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="show-community-interfaces"
@@ -1295,17 +1311,17 @@
                     <!-- Blocked -->
                     <section
                         v-show="matchesSearch('Privacy', 'Banished', 'Manage Banished users and nodes')"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Privacy</div>
+                                <div class="settings-section__eyebrow">Privacy</div>
                                 <h2>Banished</h2>
                                 <p>Manage Banished users and nodes</p>
                             </div>
                             <RouterLink :to="{ name: 'blocked' }" class="primary-chip"> Manage Banished </RouterLink>
                         </header>
-                        <div class="glass-card__body">
+                        <div class="settings-section__body">
                             <p class="text-sm text-gray-600 dark:text-gray-400">
                                 Banished users and nodes will not be able to send you messages, and their announces will
                                 be ignored.
@@ -1314,15 +1330,18 @@
                     </section>
 
                     <!-- Authentication -->
-                    <section v-show="matchesSearch(...sectionKeywords.auth)" class="glass-card break-inside-avoid">
-                        <header class="glass-card__header">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.auth)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Security</div>
+                                <div class="settings-section__eyebrow">Security</div>
                                 <h2>Authentication</h2>
                                 <p>Require a password to access the web interface.</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-3">
+                        <div class="settings-section__body space-y-3">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="auth-enabled"
@@ -1348,16 +1367,16 @@
                     <!-- Translator -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.translator)"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">i18n</div>
+                                <div class="settings-section__eyebrow">i18n</div>
                                 <h2>{{ $t("app.translator") }}</h2>
                                 <p>{{ $t("translator.description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="translator-enabled"
@@ -1393,16 +1412,16 @@
                     <!-- Sources & Infrastructure -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.infrastructure)"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Infrastructure</div>
+                                <div class="settings-section__eyebrow">Infrastructure</div>
                                 <h2>Sources & Mirroring</h2>
                                 <p>Customize URLs for documentation and external resources.</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Gitea Base URL</div>
                                 <input
@@ -1435,15 +1454,15 @@
                     </section>
 
                     <!-- Content Security Policy (CSP) -->
-                    <section v-show="matchesSearch(...sectionKeywords.csp)" class="glass-card break-inside-avoid">
-                        <header class="glass-card__header">
+                    <section v-show="matchesSearch(...sectionKeywords.csp)" class="settings-section break-inside-avoid">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">Security</div>
+                                <div class="settings-section__eyebrow">Security</div>
                                 <h2>{{ $t("app.csp_settings") }}</h2>
                                 <p>{{ $t("app.csp_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {{ $t("app.csp_extra_connect_src") }}
@@ -1527,15 +1546,18 @@
                     </section>
 
                     <!-- Messages -->
-                    <section v-show="matchesSearch(...sectionKeywords.messages)" class="glass-card break-inside-avoid">
-                        <header class="glass-card__header">
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.messages)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">{{ $t("app.reliability") }}</div>
+                                <div class="settings-section__eyebrow">{{ $t("app.reliability") }}</div>
                                 <h2>{{ $t("app.messages") }}</h2>
                                 <p>{{ $t("app.messages_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-3">
+                        <div class="settings-section__body space-y-3">
                             <label class="setting-toggle">
                                 <Toggle
                                     id="auto-resend-failed"
@@ -1613,11 +1635,11 @@
                     <!-- Propagation nodes -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.propagation)"
-                        class="glass-card break-inside-avoid"
+                        class="settings-section break-inside-avoid"
                     >
-                        <header class="glass-card__header">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">LXMF</div>
+                                <div class="settings-section__eyebrow">LXMF</div>
                                 <h2>{{ $t("app.propagation_nodes") }}</h2>
                                 <p>{{ $t("app.propagation_nodes_description") }}</p>
                             </div>
@@ -1625,7 +1647,7 @@
                                 {{ $t("app.browse_nodes") }}
                             </RouterLink>
                         </header>
-                        <div class="glass-card__body space-y-5">
+                        <div class="settings-section__body space-y-5">
                             <div class="info-callout">
                                 <ul class="list-disc list-inside space-y-1 text-sm">
                                     <li>{{ $t("app.nodes_info_1") }}</li>
@@ -1728,15 +1750,15 @@
 
                     <!-- System / RNS Reload -->
                     <!--
-                    <section class="glass-card break-inside-avoid">
-                        <header class="glass-card__header">
+                    <section class="settings-section break-inside-avoid">
+                        <header class="settings-section__header">
                             <div>
-                                <div class="glass-card__eyebrow">{{ $t("app.system") }}</div>
+                                <div class="settings-section__eyebrow">{{ $t("app.system") }}</div>
                                 <h2>{{ $t("app.reticulum_stack") }}</h2>
                                 <p>{{ $t("app.reticulum_stack_description") }}</p>
                             </div>
                         </header>
-                        <div class="glass-card__body space-y-4">
+                        <div class="settings-section__body space-y-4">
                             <div class="flex flex-col gap-3">
                                 <button
                                     class="btn btn--secondary w-full justify-center gap-2 py-3"
@@ -1761,8 +1783,8 @@
 
                 <!-- Keyboard Shortcuts (Full width at bottom) -->
                 <div v-show="matchesSearch(...sectionKeywords.shortcuts)" class="mt-4">
-                    <section class="glass-card">
-                        <div class="glass-card__header">
+                    <section class="settings-section">
+                        <div class="settings-section__header">
                             <div class="flex items-center gap-3">
                                 <div
                                     class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl"
@@ -1775,7 +1797,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="glass-card__body">
+                        <div class="settings-section__body">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div
                                     v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
@@ -2123,6 +2145,7 @@ export default {
                 case "config": {
                     if (json.config) {
                         this.config = { ...this.config, ...json.config };
+                        this.sanitizeColorConfigFields();
                     }
                     break;
                 }
@@ -2137,6 +2160,7 @@ export default {
                 const response = await window.api.get("/api/v1/config");
                 if (response?.data?.config) {
                     this.config = { ...this.config, ...response.data.config };
+                    this.sanitizeColorConfigFields();
                     const inbound = Number(this.config.lxmf_inbound_stamp_cost);
                     if (inbound > 0) {
                         this.lastRememberedInboundStampCost = Math.min(254, inbound);
@@ -2175,6 +2199,7 @@ export default {
             try {
                 const response = await window.api.patch("/api/v1/config", config);
                 this.config = response.data.config;
+                this.sanitizeColorConfigFields();
                 if (label) {
                     ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
                 }
@@ -2189,6 +2214,29 @@ export default {
             }
             const n = Number(v);
             return Number.isFinite(n) ? n : null;
+        },
+        sanitizeColorConfigFields() {
+            if (!this.config) return;
+            const hex6 = (value, fallback) => {
+                if (value == null || value === "") {
+                    return fallback;
+                }
+                if (typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value.trim())) {
+                    return value.trim();
+                }
+                return fallback;
+            };
+            this.config.banished_color = hex6(this.config.banished_color, "#dc2626");
+            this.config.message_outbound_bubble_color = hex6(this.config.message_outbound_bubble_color, "#4f46e5");
+            this.config.message_failed_bubble_color = hex6(this.config.message_failed_bubble_color, "#ef4444");
+            const inbound = this.config.message_inbound_bubble_color;
+            if (inbound == null || inbound === "") {
+                this.config.message_inbound_bubble_color = null;
+            } else if (typeof inbound === "string" && /^#[0-9A-Fa-f]{6}$/.test(inbound.trim())) {
+                this.config.message_inbound_bubble_color = inbound.trim();
+            } else {
+                this.config.message_inbound_bubble_color = null;
+            }
         },
         async onAnnounceLimitsChange() {
             const c = this.config;
@@ -2793,23 +2841,26 @@ export default {
 </script>
 
 <style scoped>
-.glass-card {
-    @apply bg-white/90 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg flex flex-col;
+.settings-section {
+    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 flex flex-col break-inside-avoid;
 }
-.glass-card__header {
-    @apply flex items-center justify-between gap-3 px-4 py-4 border-b border-gray-100/70 dark:border-zinc-800/80;
+.settings-section--hero {
+    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8;
 }
-.glass-card__header h2 {
+.settings-section__header {
+    @apply flex items-center justify-between gap-3 pb-4 border-b border-gray-100/60 dark:border-zinc-800/60;
+}
+.settings-section__header h2 {
     @apply text-lg font-semibold text-gray-900 dark:text-white;
 }
-.glass-card__header p {
+.settings-section__header p {
     @apply text-sm text-gray-600 dark:text-gray-400;
 }
-.glass-card__eyebrow {
+.settings-section__eyebrow {
     @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
 }
-.glass-card__body {
-    @apply px-4 py-4 text-gray-900 dark:text-gray-100;
+.settings-section__body {
+    @apply pt-4 text-gray-900 dark:text-gray-100;
 }
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
@@ -2842,7 +2893,7 @@ export default {
     font-family: "Roboto Mono", monospace;
 }
 .address-card {
-    @apply relative border border-gray-200 dark:border-zinc-800 rounded-2xl bg-white/80 dark:bg-zinc-900/70 p-4 space-y-2;
+    @apply relative border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02] space-y-2;
 }
 .address-card__label {
     @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;

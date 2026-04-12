@@ -536,6 +536,7 @@
     },
     "map": {
         "title": "Karte",
+        "pop_out": "Karte ausdocken",
         "description": "Offline-fähige Karte mit MBTiles-Unterstützung.",
         "upload_mbtiles": "MBTiles hochladen",
         "select_file": "MBTiles-Datei auswählen",
