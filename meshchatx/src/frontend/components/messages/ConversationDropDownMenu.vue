@@ -1,5 +1,5 @@
 <template>
-    <DropDownMenu>
+    <DropDownMenu v-if="compact">
         <template #button>
             <IconButton>
                 <MaterialDesignIcon icon-name="dots-vertical" class="size-7" />
@@ -64,7 +64,7 @@
             </div>
 
             <!-- telemetry trust toggle -->
-            <div v-if="GlobalState.config?.telemetry_enabled" class="border-t">
+            <div v-if="GlobalState?.config?.telemetry_enabled" class="border-t">
                 <DropDownMenuItem @click="onToggleTelemetryTrust">
                     <MaterialDesignIcon
                         :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
@@ -80,6 +80,55 @@
             </div>
         </template>
     </DropDownMenu>
+    <div v-else class="flex items-center gap-0.5 sm:gap-1 flex-wrap justify-end max-w-[min(100%,52vw)] sm:max-w-none">
+        <IconButton
+            v-if="hasFailedMessages"
+            :title="$t('messages.retry_failed')"
+            class="shrink-0"
+            @click="$emit('retry-failed')"
+        >
+            <MaterialDesignIcon icon-name="refresh" class="size-5 text-red-500" />
+        </IconButton>
+        <IconButton :title="$t('messages.telemetry_history')" class="shrink-0" @click="$emit('open-telemetry-history')">
+            <MaterialDesignIcon icon-name="satellite-variant" class="size-5" />
+        </IconButton>
+        <IconButton :title="$t('messages.start_call')" class="shrink-0" @click="$emit('start-call')">
+            <MaterialDesignIcon icon-name="phone" class="size-5" />
+        </IconButton>
+        <IconButton :title="$t('messages.share_contact')" class="shrink-0" @click="$emit('share-contact')">
+            <MaterialDesignIcon icon-name="notebook-outline" class="size-5" />
+        </IconButton>
+        <IconButton :title="$t('messages.pop_out_chat')" class="shrink-0" @click="$emit('popout')">
+            <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
+        </IconButton>
+        <IconButton title="Ping Destination" class="shrink-0" @click="onPingDestination">
+            <MaterialDesignIcon icon-name="flash" class="size-5" />
+        </IconButton>
+        <IconButton :title="$t('messages.custom_display_name')" class="shrink-0" @click="onSetCustomDisplayName">
+            <MaterialDesignIcon icon-name="account-edit" class="size-5" />
+        </IconButton>
+        <IconButton v-if="!isBlocked" title="Banish User" class="shrink-0" @click="onBlockDestination">
+            <MaterialDesignIcon icon-name="gavel" class="size-5 text-red-500" />
+        </IconButton>
+        <IconButton v-else title="Lift Banishment" class="shrink-0" @click="onUnblockDestination">
+            <MaterialDesignIcon icon-name="check-circle" class="size-5 text-green-500" />
+        </IconButton>
+        <IconButton title="Delete Message History" class="shrink-0" @click="onDeleteMessageHistory">
+            <MaterialDesignIcon icon-name="delete" class="size-5 text-red-500" />
+        </IconButton>
+        <IconButton
+            v-if="GlobalState?.config?.telemetry_enabled"
+            :title="contact?.is_telemetry_trusted ? $t('app.telemetry_trust_revoke') : $t('app.telemetry_trust_grant')"
+            class="shrink-0"
+            @click="onToggleTelemetryTrust"
+        >
+            <MaterialDesignIcon
+                :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
+                :class="contact?.is_telemetry_trusted ? 'text-blue-500' : 'text-gray-500'"
+                class="size-5"
+            />
+        </IconButton>
+    </div>
 </template>
 
 <script>
@@ -108,6 +157,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        compact: {
+            type: Boolean,
+            default: true,
+        },
     },
     emits: [
         "conversation-deleted",
@@ -123,6 +176,7 @@ export default {
     data() {
         return {
             contact: null,
+            GlobalState,
         };
     },
     computed: {

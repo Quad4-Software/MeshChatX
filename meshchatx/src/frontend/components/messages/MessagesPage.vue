@@ -48,7 +48,7 @@
             <ConversationViewer
                 ref="conversation-viewer"
                 :config="config"
-                :my-lxmf-address-hash="config?.lxmf_address_hash"
+                :my-lxmf-address-hash="config?.lxmf_address_hash || ''"
                 :selected-peer="selectedPeer"
                 :conversations="conversations"
                 @update:selected-peer="onPeerClick"
@@ -126,6 +126,10 @@ import WebSocketConnection from "../../js/WebSocketConnection";
 import MessagesSidebar from "./MessagesSidebar.vue";
 import ConversationViewer from "./ConversationViewer.vue";
 import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
+
+function snapshotGlobalConfig() {
+    return GlobalState.config && typeof GlobalState.config === "object" ? { ...GlobalState.config } : {};
+}
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
@@ -150,7 +154,7 @@ export default {
             reloadInterval: null,
             conversationRefreshTimeout: null,
 
-            config: null,
+            config: snapshotGlobalConfig(),
             hasLoadedConversations: false,
             peers: {},
             selectedPeer: null,
@@ -283,8 +287,8 @@ export default {
                     this.config = next;
                 }
             } catch (e) {
-                // do nothing if failed to load config
                 console.log(e);
+                this.config = snapshotGlobalConfig();
             }
         },
         async onWebsocketMessage(message) {

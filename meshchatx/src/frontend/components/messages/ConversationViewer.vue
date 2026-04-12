@@ -6,23 +6,23 @@
     >
         <!-- banished overlay -->
         <div
-            v-if="GlobalState.config.banished_effect_enabled && isSelectedPeerBlocked"
+            v-if="GlobalState?.config?.banished_effect_enabled && isSelectedPeerBlocked"
             class="banished-overlay"
-            :style="{ background: GlobalState.config.banished_color + '33' }"
+            :style="{ background: (GlobalState?.config?.banished_color || '#dc2626') + '33' }"
         >
             <span
                 class="banished-text !opacity-100 !text-white !shadow-lg !bg-red-600 !px-4 !py-2 !rounded-xl !border-2 !tracking-widest"
                 :style="{
-                    'background-color': GlobalState.config.banished_color,
-                    'border-color': GlobalState.config.banished_color,
+                    'background-color': GlobalState?.config?.banished_color || '#dc2626',
+                    'border-color': GlobalState?.config?.banished_color || '#dc2626',
                 }"
-                >{{ GlobalState.config.banished_text }}</span
+                >{{ GlobalState?.config?.banished_text || "BANISHED" }}</span
             >
         </div>
 
         <!-- header -->
         <div
-            class="relative z-20 flex items-center px-4 py-3 border-b border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm"
+            class="relative z-20 flex flex-wrap items-center gap-y-2 px-3 sm:px-4 py-3 border-b border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm"
         >
             <!-- peer icon -->
             <div class="flex-shrink-0 mr-3">
@@ -127,6 +127,7 @@
                 <ConversationDropDownMenu
                     v-if="selectedPeer"
                     :peer="selectedPeer"
+                    :compact="compactPeerActions"
                     :has-failed-messages="hasFailedOrCancelledMessages"
                     @conversation-deleted="onConversationDeleted"
                     @set-custom-display-name="updateCustomDisplayName"
@@ -1563,7 +1564,7 @@
                                 :is-sending-message="false"
                                 :can-send-message="canSendMessage"
                                 :delivery-method="newMessageDeliveryMethod"
-                                :compact="isMobile"
+                                :compact="compactSendLayout"
                                 :sending-tooltip="sendMessagePathfindingTooltip"
                                 @send="sendMessage"
                                 @delivery-method-changed="newMessageDeliveryMethod = $event"
@@ -2268,7 +2269,8 @@ export default {
         },
         myLxmfAddressHash: {
             type: String,
-            required: true,
+            required: false,
+            default: "",
         },
         selectedPeer: {
             type: Object,
@@ -2363,14 +2365,22 @@ export default {
             updateTimer: null,
             sendStatusUiMs: Date.now(),
             sendStatusTickInterval: null,
+            windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
         };
     },
     computed: {
+        compactPeerActions() {
+            return this.windowWidth < 640;
+        },
+        compactSendLayout() {
+            return this.windowWidth < 640;
+        },
         bubbleStyles() {
             void GlobalState.detailedOutboundSendStatus;
             void this.sendStatusUiMs;
             return (chatItem) => {
                 const styles = {};
+                const cfg = GlobalState?.config;
                 const m = chatItem.lxmf_message;
                 const isFailed = ["cancelled", "failed"].includes(m.state);
 
@@ -2380,24 +2390,24 @@ export default {
                         styles["color"] = "#ffffff";
                         return styles;
                     }
-                    const color = GlobalState.config.message_failed_bubble_color || "#ef4444";
+                    const color = cfg?.message_failed_bubble_color || "#ef4444";
                     styles["background-color"] = color;
                     styles["color"] = "#ffffff";
                 } else if (chatItem.is_outbound) {
                     if (chatItem.lxmf_message?._pendingPathfinding) {
                         if (!this.showRichOutboundPendingUi(chatItem)) {
-                            const color = GlobalState.config.message_outbound_bubble_color || "#4f46e5";
+                            const color = cfg?.message_outbound_bubble_color || "#4f46e5";
                             styles["background-color"] = color;
                             styles["color"] = "#ffffff";
                             return styles;
                         }
                         return {};
                     }
-                    const color = GlobalState.config.message_outbound_bubble_color || "#4f46e5";
+                    const color = cfg?.message_outbound_bubble_color || "#4f46e5";
                     styles["background-color"] = color;
                     styles["color"] = "#ffffff";
-                } else if (GlobalState.config.message_inbound_bubble_color) {
-                    styles["background-color"] = GlobalState.config.message_inbound_bubble_color;
+                } else if (cfg?.message_inbound_bubble_color) {
+                    styles["background-color"] = cfg.message_inbound_bubble_color;
                 }
 
                 return styles;
@@ -2701,8 +2711,16 @@ export default {
         }, 2000);
 
         this._scheduleOutboundSendStatusTick();
+
+        this._onWindowResize = () => {
+            this.windowWidth = window.innerWidth;
+        };
+        window.addEventListener("resize", this._onWindowResize);
     },
     beforeUnmount() {
+        if (this._onWindowResize) {
+            window.removeEventListener("resize", this._onWindowResize);
+        }
         if (this.updateTimer) {
             clearInterval(this.updateTimer);
         }
