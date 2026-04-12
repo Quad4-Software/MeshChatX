@@ -5,6 +5,11 @@ import path from "path";
 export default defineConfig({
     plugins: [vue()],
     test: {
+        execArgv: [
+            "--no-experimental-webstorage",
+            "--require",
+            path.resolve(__dirname, "tests/frontend/patch-console.cjs"),
+        ],
         globals: true,
         environment: "jsdom",
         include: ["tests/frontend/**/*.{test,spec}.{js,ts,jsx,tsx}"],
