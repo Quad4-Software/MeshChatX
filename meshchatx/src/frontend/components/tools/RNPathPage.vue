@@ -1,20 +1,22 @@
 <template>
-    <div class="flex flex-col flex-1 h-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 h-full overflow-hidden bg-white dark:bg-zinc-950">
         <!-- header -->
         <div
-            class="flex items-center px-4 py-4 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 shadow-sm"
+            class="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-3 sm:py-4 bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800"
         >
-            <div class="flex items-center gap-3">
-                <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                    <MaterialDesignIcon icon-name="route" class="size-6 text-indigo-600 dark:text-indigo-400" />
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg shrink-0">
+                    <MaterialDesignIcon icon-name="route" class="size-5 sm:size-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <div>
-                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">RNPath</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Reticulum Path Management Utility</p>
+                <div class="min-w-0">
+                    <h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">RNPath</h1>
+                    <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 sm:line-clamp-none">
+                        Reticulum Path Management Utility
+                    </p>
                 </div>
             </div>
 
-            <div class="ml-auto flex items-center gap-2">
+            <div class="ml-auto flex items-center gap-2 shrink-0">
                 <button
                     class="p-2 text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
                     title="Refresh"
@@ -29,28 +31,33 @@
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
             <!-- tabs -->
-            <div class="flex border-b border-gray-200 dark:border-zinc-800">
-                <button
-                    v-for="t in ['table', 'rates', 'actions']"
-                    :key="t"
-                    class="px-6 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px"
-                    :class="[
-                        tab === t
-                            ? 'text-indigo-600 border-indigo-500 dark:text-indigo-400 dark:border-indigo-400'
-                            : 'text-gray-500 border-transparent hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
-                    ]"
-                    @click="tab = t"
-                >
-                    {{ t.charAt(0).toUpperCase() + t.slice(1) }}
-                </button>
+            <div class="-mx-3 sm:mx-0 overflow-x-auto border-b border-gray-200 dark:border-zinc-800">
+                <div class="flex min-w-0 px-3 sm:px-0">
+                    <button
+                        v-for="t in ['table', 'rates', 'actions']"
+                        :key="t"
+                        type="button"
+                        class="shrink-0 px-4 sm:px-6 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px"
+                        :class="[
+                            tab === t
+                                ? 'text-indigo-600 border-indigo-500 dark:text-indigo-400 dark:border-indigo-400'
+                                : 'text-gray-500 border-transparent hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+                        ]"
+                        @click="tab = t"
+                    >
+                        {{ t.charAt(0).toUpperCase() + t.slice(1) }}
+                    </button>
+                </div>
             </div>
 
             <!-- path table -->
             <div v-if="tab === 'table'" class="space-y-4">
                 <!-- filters -->
-                <div class="glass-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+                >
                     <div class="relative">
                         <input
                             v-model="searchQuery"
@@ -82,18 +89,20 @@
                             class="input-field"
                         />
                     </div>
-                    <div class="flex items-center justify-end gap-4">
-                        <div class="flex flex-col items-end">
+                    <div
+                        class="flex flex-wrap items-center justify-start sm:justify-end gap-x-4 gap-y-2 sm:flex-nowrap lg:col-span-1"
+                    >
+                        <div class="flex flex-col items-start sm:items-end">
                             <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
                             <span class="text-sm font-bold">{{ totalItems }}</span>
                         </div>
-                        <div class="flex flex-col items-end">
+                        <div class="flex flex-col items-start sm:items-end">
                             <span class="text-[10px] font-bold text-green-500 uppercase">Responsive</span>
                             <span class="text-sm font-bold text-green-600 dark:text-green-400">{{
                                 responsiveItems
                             }}</span>
                         </div>
-                        <div class="flex flex-col items-end">
+                        <div class="flex flex-col items-start sm:items-end">
                             <span class="text-[10px] font-bold text-red-500 uppercase">Unresponsive</span>
                             <span class="text-sm font-bold text-red-600 dark:text-red-400">{{
                                 unresponsiveItems
@@ -102,14 +111,17 @@
                     </div>
                 </div>
 
-                <div v-if="pathTable.length === 0" class="glass-card p-12 text-center text-gray-500">
+                <div
+                    v-if="pathTable.length === 0"
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-8 sm:p-12 text-center text-gray-500"
+                >
                     No paths found matching your criteria.
                 </div>
                 <div v-else class="grid gap-4">
                     <div
                         v-for="path in pathTable"
                         :key="path.hash"
-                        class="glass-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
+                        class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-4"
                         :class="[
                             path.state === 2
                                 ? 'border-l-green-500'
@@ -161,7 +173,10 @@
                 </div>
 
                 <!-- pagination -->
-                <div v-if="totalPages > 1" class="flex items-center justify-between glass-card p-4">
+                <div
+                    v-if="totalPages > 1"
+                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4"
+                >
                     <div class="flex items-center gap-2">
                         <button
                             class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
@@ -179,7 +194,7 @@
                             <MaterialDesignIcon icon-name="chevron-right" class="size-5" />
                         </button>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 justify-between sm:justify-end w-full sm:w-auto">
                         <span class="text-xs text-gray-500 uppercase font-semibold">Show:</span>
                         <select
                             v-model="itemsPerPage"
@@ -196,11 +211,18 @@
 
             <!-- announce rates -->
             <div v-if="tab === 'rates'" class="space-y-4">
-                <div v-if="rateTable.length === 0" class="glass-card p-12 text-center text-gray-500">
+                <div
+                    v-if="rateTable.length === 0"
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-8 sm:p-12 text-center text-gray-500"
+                >
                     No announce rate data available.
                 </div>
                 <div v-else class="grid gap-4">
-                    <div v-for="rate in rateTable" :key="rate.hash" class="glass-card p-4">
+                    <div
+                        v-for="rate in rateTable"
+                        :key="rate.hash"
+                        class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4"
+                    >
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                             <span class="font-mono text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate">
                                 {{ rate.hash }}
@@ -242,18 +264,19 @@
             <!-- manual actions -->
             <div v-if="tab === 'actions'" class="max-w-2xl mx-auto space-y-6">
                 <!-- request path -->
-                <section class="glass-card p-6 space-y-4">
+                <section class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Request Path</h2>
                     <p class="text-sm text-gray-500">Broadcast a path request for a destination hash.</p>
-                    <div class="flex gap-2">
+                    <div class="flex flex-col sm:flex-row gap-2">
                         <input
                             v-model="requestHash"
                             type="text"
                             placeholder="Destination Hash (32 hex chars)"
-                            class="input-field flex-1 font-mono"
+                            class="input-field flex-1 min-w-0 font-mono"
                         />
                         <button
-                            class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-50"
+                            type="button"
+                            class="px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-500 transition active:scale-95 disabled:opacity-50 shrink-0"
                             :disabled="requestHash.length !== 32"
                             @click="requestPath"
                         >
@@ -263,20 +286,21 @@
                 </section>
 
                 <!-- drop all via -->
-                <section class="glass-card p-6 space-y-4">
+                <section class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Drop All Via</h2>
                     <p class="text-sm text-gray-500">
                         Remove all known paths routed through a specific transport instance.
                     </p>
-                    <div class="flex gap-2">
+                    <div class="flex flex-col sm:flex-row gap-2">
                         <input
                             v-model="dropViaHash"
                             type="text"
                             placeholder="Transport Instance Hash"
-                            class="input-field flex-1 font-mono"
+                            class="input-field flex-1 min-w-0 font-mono"
                         />
                         <button
-                            class="px-4 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-500 transition shadow-lg shadow-red-500/20 active:scale-95 disabled:opacity-50"
+                            type="button"
+                            class="px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500 transition active:scale-95 disabled:opacity-50 shrink-0"
                             :disabled="dropViaHash.length !== 32"
                             @click="dropAllVia"
                         >
@@ -286,13 +310,14 @@
                 </section>
 
                 <!-- drop queues -->
-                <section class="glass-card p-6 space-y-4">
+                <section class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4">
                     <h2 class="text-lg font-bold">Drop Announce Queues</h2>
                     <p class="text-sm text-gray-500">
                         Clear all outbound announce packets currently queued on all interfaces.
                     </p>
                     <button
-                        class="w-full px-4 py-3 bg-zinc-800 text-white rounded-xl font-semibold hover:bg-zinc-700 transition active:scale-95"
+                        type="button"
+                        class="w-full px-4 py-3 bg-zinc-800 text-white rounded-lg font-semibold hover:bg-zinc-700 transition active:scale-95"
                         @click="dropAnnounceQueues"
                     >
                         Purge All Queues
@@ -500,9 +525,6 @@ export default {
 </script>
 
 <style scoped>
-.glass-card {
-    @apply bg-white/90 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-lg;
-}
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 dark:focus:ring-indigo-500 dark:focus:border-indigo-500 block w-full p-3 text-gray-900 dark:text-gray-100 transition;
 }

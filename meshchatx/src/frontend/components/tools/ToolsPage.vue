@@ -1,15 +1,13 @@
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-zinc-950">
         <div class="flex-1 overflow-y-auto w-full">
-            <div class="space-y-4 p-4 md:p-6 lg:p-8 w-full">
-                <div class="glass-card flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 md:p-8">
-                    <div class="space-y-3 flex-1 min-w-0">
+            <div class="border-b border-gray-200 dark:border-zinc-800 px-4 py-4 md:px-6 md:py-5">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+                    <div class="space-y-2 min-w-0 flex-1">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                             {{ $t("tools.utilities") }}
                         </div>
-                        <div class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                        <div class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
                             {{ $t("tools.power_tools") }}
                         </div>
                         <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
@@ -17,9 +15,9 @@
                         </div>
                     </div>
 
-                    <div class="w-full md:w-80 shrink-0">
+                    <div class="w-full lg:max-w-sm shrink-0">
                         <div class="relative group">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <MaterialDesignIcon
                                     icon-name="magnify"
                                     class="size-5 text-gray-400 group-focus-within:text-blue-500 transition-colors"
@@ -29,11 +27,12 @@
                                 v-model="searchQuery"
                                 type="text"
                                 :placeholder="$t('common.search')"
-                                class="w-full pl-12 pr-10 py-3.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 shadow-sm transition-all text-sm"
+                                class="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm"
                             />
                             <button
                                 v-if="searchQuery"
-                                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                type="button"
                                 @click="searchQuery = ''"
                             >
                                 <MaterialDesignIcon icon-name="close-circle" class="size-5" />
@@ -41,16 +40,19 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div class="p-4 md:p-6 w-full max-w-6xl mx-auto">
+                <div
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 divide-y divide-gray-200 dark:divide-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
+                >
                     <RouterLink
                         v-for="tool in filteredTools"
                         :key="tool.name"
                         :to="tool.comingSoon ? '' : tool.route"
                         :class="
                             [
-                                'tool-card',
-                                'glass-card',
+                                'tool-row',
                                 tool.customClass,
                                 tool.comingSoon ? 'opacity-60 grayscale-[0.5] cursor-default' : '',
                             ].filter(Boolean)
@@ -66,12 +68,12 @@
                                 :alt="tool.imageAlt"
                             />
                         </div>
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <div class="tool-card__title">{{ tool.title }}</div>
                                 <span
                                     v-if="tool.comingSoon"
-                                    class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-md border border-gray-200 dark:border-zinc-700"
+                                    class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded border border-gray-200 dark:border-zinc-700"
                                 >
                                     Soon
                                 </span>
@@ -80,7 +82,7 @@
                                 {{ tool.description }}
                             </div>
                         </div>
-                        <div v-if="!tool.comingSoon">
+                        <div v-if="!tool.comingSoon" class="shrink-0 flex items-center gap-1">
                             <div v-if="tool.extraAction" class="flex items-center gap-2">
                                 <a
                                     :href="tool.extraAction.href"
@@ -97,7 +99,10 @@
                     </RouterLink>
                 </div>
 
-                <div v-if="filteredTools.length === 0" class="glass-card text-center py-12">
+                <div
+                    v-if="filteredTools.length === 0"
+                    class="mt-6 rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 px-4 py-12 text-center"
+                >
                     <MaterialDesignIcon icon-name="magnify" class="w-12 h-12 mx-auto mb-4 text-gray-400" />
                     <div class="text-gray-600 dark:text-gray-400">{{ $t("common.no_results") }}</div>
                 </div>
@@ -263,7 +268,7 @@ export default {
                     title: "Debug Logs",
                     descriptionKey: null,
                     description: "View and export internal system logs for troubleshooting.",
-                    customClass: "border-dashed border-2",
+                    customClass: "bg-amber-50/40 dark:bg-amber-950/20",
                 },
             ],
         };
@@ -294,19 +299,20 @@ export default {
 </script>
 
 <style scoped>
-.tool-card {
-    @apply flex items-center gap-4 hover:border-blue-400 dark:hover:border-blue-500 transition cursor-pointer;
+.tool-row {
+    @apply flex items-start sm:items-center gap-3 sm:gap-4 px-4 py-3.5 min-h-[4.25rem] transition-colors;
+    @apply hover:bg-gray-50 dark:hover:bg-zinc-900/80 active:bg-gray-100 dark:active:bg-zinc-800/80;
 }
 .tool-card__icon {
-    @apply w-12 h-12 rounded-2xl flex items-center justify-center;
+    @apply w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0;
 }
 .tool-card__title {
-    @apply text-lg font-semibold text-gray-900 dark:text-white;
+    @apply text-base sm:text-lg font-semibold text-gray-900 dark:text-white;
 }
 .tool-card__description {
-    @apply text-sm text-gray-600 dark:text-gray-300;
+    @apply text-sm text-gray-600 dark:text-gray-300 mt-0.5 line-clamp-2 sm:line-clamp-none;
 }
 .tool-card__chevron {
-    @apply w-5 h-5 text-gray-400;
+    @apply w-5 h-5 text-gray-400 shrink-0;
 }
 </style>

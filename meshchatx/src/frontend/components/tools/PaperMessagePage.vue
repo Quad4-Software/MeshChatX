@@ -1,20 +1,18 @@
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-zinc-950">
         <div class="flex-1 overflow-y-auto w-full">
-            <div class="p-3 md:p-4 max-w-5xl mx-auto w-full">
+            <div class="p-3 sm:p-4 max-w-5xl mx-auto w-full space-y-4">
                 <!-- header -->
-                <div class="glass-card mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+                <div class="border-b border-gray-200 dark:border-zinc-800 pb-4">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0">
                             <MaterialDesignIcon icon-name="qrcode" class="size-6" />
                         </div>
-                        <div>
-                            <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+                        <div class="min-w-0">
+                            <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                                 Paper Message Generator
                             </h2>
-                            <p class="text-xs text-gray-600 dark:text-gray-400">
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
                                 Generate signed LXMF messages for physical delivery or offline transfer.
                             </p>
                         </div>
@@ -23,15 +21,15 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <!-- composer -->
-                    <div class="space-y-4">
-                        <section class="glass-card">
-                            <div class="glass-card__header">
-                                <h2 class="flex items-center gap-2">
-                                    <MaterialDesignIcon icon-name="pencil-outline" class="size-5 text-gray-400" />
+                    <div class="space-y-4 min-w-0">
+                        <section class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50">
+                                <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
+                                    <MaterialDesignIcon icon-name="pencil-outline" class="size-5 text-gray-400 shrink-0" />
                                     Compose Message
                                 </h2>
                             </div>
-                            <div class="glass-card__body space-y-3">
+                            <div class="px-4 py-4 space-y-3 text-gray-900 dark:text-gray-100">
                                 <div>
                                     <label
                                         class="block text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
@@ -93,31 +91,32 @@
                         </section>
 
                         <!-- read / ingest section -->
-                        <section class="glass-card">
-                            <div class="glass-card__header">
-                                <h2 class="flex items-center gap-2">
-                                    <MaterialDesignIcon icon-name="qrcode-scan" class="size-5 text-gray-400" />
+                        <section class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50">
+                                <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
+                                    <MaterialDesignIcon icon-name="qrcode-scan" class="size-5 text-gray-400 shrink-0" />
                                     Ingest Paper Message
                                 </h2>
                             </div>
-                            <div class="glass-card__body space-y-3">
+                            <div class="px-4 py-4 space-y-3 text-gray-900 dark:text-gray-100">
                                 <p class="text-xs text-gray-600 dark:text-gray-400">
                                     Paste an LXMF URI to decode and add it to your conversations.
                                 </p>
-                                <div class="flex gap-2">
+                                <div class="flex flex-col sm:flex-row gap-2">
                                     <input
                                         v-model="ingestUri"
                                         type="text"
                                         placeholder="lxmf://..."
-                                        class="input-field flex-1 font-mono text-sm"
+                                        class="input-field flex-1 min-w-0 font-mono text-sm"
                                         @keydown.enter="ingestPaperMessage"
                                     />
                                     <button
                                         type="button"
-                                        class="px-3 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-xl hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
                                         @click="pasteFromClipboard"
                                     >
                                         <MaterialDesignIcon icon-name="content-paste" class="size-5" />
+                                        <span class="sm:hidden text-sm font-medium">Paste</span>
                                     </button>
                                 </div>
                                 <button
@@ -133,12 +132,15 @@
                     </div>
 
                     <!-- preview / result -->
-                    <div class="space-y-4">
-                        <section v-if="generatedUri" class="glass-card overflow-hidden">
-                            <div class="glass-card__header bg-blue-50/50 dark:bg-blue-900/10">
-                                <h2 class="text-blue-600 dark:text-blue-400">Generated QR Code</h2>
+                    <div class="space-y-4 min-w-0">
+                        <section
+                            v-if="generatedUri"
+                            class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
+                        >
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-blue-50/80 dark:bg-blue-900/20">
+                                <h2 class="text-base font-semibold text-blue-600 dark:text-blue-400">Generated QR Code</h2>
                             </div>
-                            <div class="glass-card__body flex flex-col items-center p-4 sm:p-6">
+                            <div class="px-4 py-4 sm:p-6 flex flex-col items-center text-gray-900 dark:text-gray-100">
                                 <div class="p-3 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6">
                                     <div class="size-40 sm:size-48 flex items-center justify-center overflow-hidden">
                                         <canvas ref="qrcode"></canvas>
@@ -171,10 +173,10 @@
                                         </div>
                                     </div>
 
-                                    <div class="flex gap-2 pt-1">
+                                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
                                         <button
                                             type="button"
-                                            class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] text-sm"
+                                            class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
                                             @click="printQRCode"
                                         >
                                             <MaterialDesignIcon icon-name="printer" class="size-4" />
@@ -182,7 +184,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] text-sm"
+                                            class="flex-1 flex items-center justify-center gap-2 py-3 sm:py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-all active:scale-[0.98] text-sm min-h-[44px]"
                                             :disabled="isSending"
                                             @click="sendPaperMessage"
                                         >
@@ -204,7 +206,7 @@
 
                         <div
                             v-else
-                            class="glass-card flex flex-col items-center justify-center p-8 text-center h-[320px] border-dashed"
+                            class="rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/30 flex flex-col items-center justify-center p-6 sm:p-8 text-center min-h-[240px] sm:min-h-[280px] sm:h-[320px]"
                         >
                             <div class="p-3 bg-gray-100 dark:bg-zinc-800 text-gray-400 rounded-full mb-3">
                                 <MaterialDesignIcon icon-name="qrcode" class="size-10" />
@@ -435,18 +437,6 @@ export default {
 </script>
 
 <style scoped>
-.glass-card {
-    @apply bg-white/90 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg flex flex-col;
-}
-.glass-card__header {
-    @apply flex items-center justify-between gap-3 px-6 py-4 border-b border-gray-100/70 dark:border-zinc-800/80;
-}
-.glass-card__header h2 {
-    @apply text-lg font-semibold text-gray-900 dark:text-white;
-}
-.glass-card__body {
-    @apply px-6 py-6 text-gray-900 dark:text-gray-100;
-}
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-50 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
 }

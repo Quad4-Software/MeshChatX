@@ -1,15 +1,17 @@
 <template>
-    <div class="flex flex-col h-full w-full bg-white dark:bg-zinc-950 overflow-hidden">
+    <div class="flex flex-col h-full w-full bg-white dark:bg-zinc-950 overflow-hidden min-w-0">
         <!-- header -->
         <div
-            class="flex items-center px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/50 backdrop-blur-lg z-10 relative"
+            class="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-10 relative"
         >
-            <div class="flex items-center space-x-2">
-                <v-icon icon="mdi-chip" color="purple" size="24"></v-icon>
-                <h1 class="text-xl font-black text-gray-900 dark:text-white">{{ $t("tools.rnode_flasher.title") }}</h1>
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+                <v-icon icon="mdi-chip" color="purple" size="24" class="shrink-0"></v-icon>
+                <h1 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">
+                    {{ $t("tools.rnode_flasher.title") }}
+                </h1>
             </div>
 
-            <div class="ml-auto flex items-center space-x-2">
+            <div class="ml-auto flex flex-wrap items-center justify-end gap-1 sm:gap-2 shrink-0">
                 <button
                     class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                     @click="showAdvanced = !showAdvanced"
@@ -36,11 +38,9 @@
         </div>
 
         <!-- content -->
-        <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
             <!-- setup card: Select device & Firmware -->
-            <div
-                class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl overflow-hidden"
-            >
+            <div class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg overflow-hidden">
                 <div class="grid grid-cols-1 md:grid-cols-2">
                     <!-- Left: Device Selection -->
                     <div class="p-6 border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800 space-y-4">
@@ -245,7 +245,7 @@
             <!-- actions & tools card -->
             <div
                 v-if="showAdvanced || isProvisioning || isSettingFirmwareHash"
-                class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl p-6 space-y-6"
+                class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg p-4 sm:p-6 space-y-6"
             >
                 <!-- Provision & Finalize -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

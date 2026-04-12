@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col flex-1 h-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 h-full overflow-hidden bg-white dark:bg-zinc-950">
         <!-- header -->
         <div class="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 shadow-sm z-10">
             <div class="px-4 py-3 md:px-6 md:py-4 flex items-center justify-between gap-4">
@@ -34,26 +34,27 @@
         </div>
 
         <div class="flex-1 overflow-y-auto">
-            <div class="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+            <div class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
                 <!-- main input card -->
-                <div class="glass-card p-4 md:p-6">
-                    <div class="flex items-center gap-3">
-                        <div class="relative flex-1">
+                <div class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 md:p-6">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div class="relative flex-1 min-w-0">
                             <input
                                 v-model="destinationHash"
                                 type="text"
                                 placeholder="input destination hash"
-                                class="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-2xl text-sm md:text-base font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white shadow-inner"
+                                class="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm md:text-base font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white"
                                 @keyup.enter="runTrace"
                             />
                             <div
-                                class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400 dark:text-zinc-500"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-zinc-500"
                             >
                                 <MaterialDesignIcon icon-name="identifier" class="size-5" />
                             </div>
                         </div>
                         <button
-                            class="size-12 md:size-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl flex items-center justify-center transition shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-50 shrink-0"
+                            type="button"
+                            class="w-full sm:w-auto sm:min-w-[3rem] h-12 sm:h-14 px-4 sm:px-0 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 shrink-0"
                             :disabled="!isValidHash || isLoading"
                             title="Trace Path"
                             @click="runTrace"
@@ -61,9 +62,10 @@
                             <MaterialDesignIcon
                                 v-if="!isLoading"
                                 icon-name="keyboard-return"
-                                class="size-6 md:size-7"
+                                class="size-6 sm:size-7"
                             />
                             <MaterialDesignIcon v-else icon-name="loading" class="size-6 animate-spin" />
+                            <span class="sm:hidden font-semibold">{{ $t("tools.rnpath_trace.trace") }}</span>
                         </button>
                     </div>
                 </div>
@@ -71,7 +73,10 @@
                 <!-- results area -->
                 <div v-if="traceResult || isLoading || error" class="space-y-6">
                     <!-- loading state -->
-                    <div v-if="isLoading" class="glass-card p-12 flex flex-col items-center justify-center gap-4">
+                    <div
+                        v-if="isLoading"
+                        class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-8 sm:p-12 flex flex-col items-center justify-center gap-4"
+                    >
                         <div class="relative">
                             <div
                                 class="w-12 h-12 border-4 border-indigo-200 dark:border-indigo-900/30 border-t-indigo-600 rounded-full animate-spin"
@@ -85,7 +90,7 @@
                     <!-- error state -->
                     <div
                         v-else-if="error"
-                        class="glass-card p-6 border-l-4 border-l-red-500 bg-red-50/50 dark:bg-red-900/10"
+                        class="rounded-lg border border-gray-200 dark:border-zinc-800 border-l-4 border-l-red-500 p-4 sm:p-6 bg-red-50/50 dark:bg-red-900/10"
                     >
                         <div class="flex items-start gap-3 text-red-600 dark:text-red-400">
                             <MaterialDesignIcon icon-name="alert-circle" class="size-5 md:size-6 shrink-0 mt-0.5" />
@@ -104,7 +109,7 @@
                         class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
                     >
                         <!-- compact summary bar -->
-                        <div class="glass-card p-1 overflow-hidden">
+                        <div class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-1 overflow-hidden">
                             <div class="flex flex-wrap items-center divide-x divide-gray-100 dark:divide-zinc-800">
                                 <div class="flex-1 min-w-[120px] p-3 md:p-4 flex flex-col items-center text-center">
                                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
@@ -140,7 +145,7 @@
                         </div>
 
                         <!-- path visualization -->
-                        <div class="glass-card p-6 md:p-10 lg:p-16">
+                        <div class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 md:p-10 lg:p-16">
                             <!-- Desktop View (Horizontal) -->
                             <div class="hidden md:flex items-start justify-center min-w-fit py-4">
                                 <template v-for="(node, idx) in traceResult.path" :key="'d-' + idx">
@@ -370,8 +375,3 @@ export default {
 };
 </script>
 
-<style scoped>
-.glass-card {
-    @apply bg-white/90 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-xl shadow-slate-200/20 dark:shadow-none;
-}
-</style>

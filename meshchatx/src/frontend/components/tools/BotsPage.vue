@@ -1,99 +1,93 @@
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
-            <div class="space-y-4 w-full max-w-4xl mx-auto">
-                <div class="glass-card space-y-5">
-                    <div class="space-y-2">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            {{ $t("bots.bot_framework") }}
-                        </div>
-                        <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $t("bots.title") }}</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
-                            {{ $t("bots.description") }}
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-zinc-950">
+        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-4 md:px-8 py-4 sm:py-6">
+            <div class="space-y-8 w-full max-w-4xl mx-auto">
+                <div class="space-y-2 border-b border-gray-200 dark:border-zinc-800 pb-6">
+                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        {{ $t("bots.bot_framework") }}
+                    </div>
+                    <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $t("bots.title") }}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                        {{ $t("bots.description") }}
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Create New Bot -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ $t("bots.create_new_bot") }}
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                            <div
+                                v-for="template in templates"
+                                :key="template.id"
+                                class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 hover:border-blue-400 dark:hover:border-blue-600 transition cursor-pointer flex flex-col justify-between min-h-[140px]"
+                                @click="selectTemplate(template)"
+                            >
+                                <div class="min-w-0">
+                                    <div class="font-bold text-gray-900 dark:text-white">{{ template.name }}</div>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                        {{ template.description }}
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="primary-chip w-full mt-4 py-2"
+                                    @click.stop="selectTemplate(template)"
+                                >
+                                    {{ $t("bots.select") }}
+                                </button>
+                            </div>
+
+                            <div
+                                class="rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/50 p-4 flex flex-col items-center justify-center min-h-[140px] opacity-70"
+                            >
+                                <div class="p-2 bg-gray-100 dark:bg-zinc-800 rounded-lg mb-2">
+                                    <MaterialDesignIcon icon-name="plus" class="size-6 text-gray-400 dark:text-gray-500" />
+                                </div>
+                                <div class="text-sm font-medium text-gray-500 dark:text-gray-400 text-center">
+                                    {{ $t("bots.more_bots_coming") }}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="space-y-6">
-                        <!-- Create New Bot -->
-                        <div class="space-y-4">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {{ $t("bots.create_new_bot") }}
-                            </h3>
-                            <div class="grid sm:grid-cols-2 gap-4">
-                                <div
-                                    v-for="template in templates"
-                                    :key="template.id"
-                                    class="glass-card !p-4 hover:border-blue-400 transition cursor-pointer flex flex-col justify-between"
-                                    @click="selectTemplate(template)"
-                                >
-                                    <div>
-                                        <div class="font-bold text-gray-900 dark:text-white">{{ template.name }}</div>
-                                        <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                            {{ template.description }}
-                                        </div>
-                                    </div>
-                                    <button
-                                        class="primary-chip w-full mt-4 py-2"
-                                        @click.stop="selectTemplate(template)"
-                                    >
-                                        {{ $t("bots.select") }}
-                                    </button>
-                                </div>
-
-                                <!-- More bots coming soon -->
-                                <div
-                                    class="glass-card !p-4 border-dashed border-2 border-gray-200 dark:border-zinc-800 flex flex-col items-center justify-center opacity-60"
-                                >
-                                    <div class="p-2 bg-gray-100 dark:bg-zinc-800 rounded-lg mb-2">
+                    <!-- Saved Bots -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ $t("bots.saved_bots") }}
+                        </h3>
+                        <div v-if="bots.length === 0" class="text-sm text-gray-500 italic">
+                            {{ $t("bots.no_bots_running") }}
+                        </div>
+                        <div v-else class="space-y-2 sm:space-y-3">
+                            <div
+                                v-for="bot in bots"
+                                :key="bot.id"
+                                class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between"
+                            >
+                                <div class="flex items-start gap-3 min-w-0">
+                                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg shrink-0">
                                         <MaterialDesignIcon
-                                            icon-name="plus"
-                                            class="size-6 text-gray-400 dark:text-gray-500"
+                                            icon-name="robot"
+                                            class="size-6 text-blue-600 dark:text-blue-400"
                                         />
                                     </div>
-                                    <div class="text-sm font-medium text-gray-500 dark:text-gray-400 text-center">
-                                        {{ $t("bots.more_bots_coming") }}
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-900 dark:text-white truncate">{{ bot.name }}</div>
+                                        <div class="text-xs font-mono text-gray-500 break-all">
+                                            {{ bot.address || runningMap[bot.id]?.address || "Not running" }}
+                                        </div>
+                                        <div class="text-[10px] text-gray-400">
+                                            {{ bot.template_id || bot.template }}
+                                        </div>
+                                        <div v-if="bot.storage_dir" class="text-[10px] text-gray-400 break-all">
+                                            {{ bot.storage_dir }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Saved Bots -->
-                        <div class="space-y-4">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                                {{ $t("bots.saved_bots") }}
-                            </h3>
-                            <div v-if="bots.length === 0" class="text-sm text-gray-500 italic">
-                                {{ $t("bots.no_bots_running") }}
-                            </div>
-                            <div v-else class="space-y-3">
-                                <div
-                                    v-for="bot in bots"
-                                    :key="bot.id"
-                                    class="glass-card !p-4 flex items-center justify-between"
-                                >
-                                    <div class="flex items-center gap-3">
-                                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                            <MaterialDesignIcon
-                                                icon-name="robot"
-                                                class="size-6 text-blue-600 dark:text-blue-400"
-                                            />
-                                        </div>
-                                        <div>
-                                            <div class="font-bold text-gray-900 dark:text-white">{{ bot.name }}</div>
-                                            <div class="text-xs font-mono text-gray-500">
-                                                {{ bot.address || runningMap[bot.id]?.address || "Not running" }}
-                                            </div>
-                                            <div class="text-[10px] text-gray-400">
-                                                {{ bot.template_id || bot.template }}
-                                            </div>
-                                            <div v-if="bot.storage_dir" class="text-[10px] text-gray-400">
-                                                {{ bot.storage_dir }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2">
+                                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-end sm:shrink-0 pt-1 sm:pt-0 border-t border-gray-100 dark:border-zinc-800 sm:border-0">
                                         <template v-if="runningMap[bot.id]">
                                             <button
                                                 class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
@@ -129,7 +123,6 @@
                                         >
                                             <MaterialDesignIcon icon-name="delete" class="size-5" />
                                         </button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -141,12 +134,14 @@
         <!-- Start Bot Modal -->
         <div
             v-if="selectedTemplate"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
             @click.self="selectedTemplate = null"
         >
-            <div class="glass-card max-w-md w-full space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+            <div
+                class="w-full sm:max-w-md rounded-t-2xl sm:rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+                <div class="flex justify-between items-start gap-2">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pr-2">
                         {{ $t("bots.start_bot") }}: {{ selectedTemplate.name }}
                     </h3>
                     <button
@@ -172,11 +167,11 @@
                         {{ selectedTemplate.description }}
                     </div>
 
-                    <div class="flex gap-3 justify-end pt-2">
-                        <button class="secondary-chip px-6 py-2" @click="selectedTemplate = null">
+                    <div class="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end pt-2">
+                        <button type="button" class="secondary-chip px-6 py-2 w-full sm:w-auto" @click="selectedTemplate = null">
                             {{ $t("bots.cancel") }}
                         </button>
-                        <button class="primary-chip px-6 py-2" :disabled="isStarting" @click="startBot">
+                        <button type="button" class="primary-chip px-6 py-2 w-full sm:w-auto" :disabled="isStarting" @click="startBot">
                             <span
                                 v-if="isStarting"
                                 class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"
