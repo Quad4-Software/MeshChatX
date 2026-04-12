@@ -2,8 +2,8 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-8 py-4 sm:py-6">
-            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto flex-1">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-8 py-4 sm:py-6">
+            <div class="space-y-0 w-full min-w-0 max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto flex-1">
                 <div
                     v-if="showRestartReminder"
                     class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center mb-4 sm:mb-6"
@@ -176,8 +176,8 @@
                         </div>
 
                         <div class="interfaces-subpanel space-y-3">
-                            <div class="flex items-center gap-3">
-                                <div class="flex-1">
+                            <div class="flex flex-col gap-3 min-w-0 lg:flex-row lg:items-start lg:justify-between">
+                                <div class="min-w-0 flex-1">
                                     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                         Discovered Interfaces
                                     </div>
@@ -194,7 +194,7 @@
                                         a green pill; disconnected entries are dimmed with a red label.
                                     </div>
                                 </div>
-                                <div class="flex gap-2 flex-wrap items-center">
+                                <div class="flex flex-wrap gap-2 items-center shrink-0 min-w-0">
                                     <div class="flex gap-1.5 mr-2">
                                         <button
                                             type="button"
@@ -242,15 +242,17 @@
 
                             <div
                                 v-else
-                                class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6"
+                                class="grid gap-4 min-w-0 grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6"
                             >
                                 <div
                                     v-for="iface in sortedDiscoveredInterfaces"
                                     :key="iface.discovery_hash || iface.name"
-                                    class="interface-card group transition-all duration-300"
+                                    class="interface-card group transition-all duration-300 min-w-0"
                                     :class="{ 'opacity-70 grayscale-[0.3]': !isDiscoveredConnected(iface) }"
                                 >
-                                    <div class="flex gap-4 items-start relative">
+                                    <div
+                                        class="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-start relative min-w-0"
+                                    >
                                         <!-- Disconnected Overlay -->
                                         <div
                                             v-if="!isDiscoveredConnected(iface)"
@@ -395,7 +397,9 @@
                                             </div>
                                         </div>
 
-                                        <div class="flex flex-col gap-2 shrink-0">
+                                        <div
+                                            class="flex flex-row sm:flex-col gap-2 shrink-0 self-end sm:self-auto justify-end"
+                                        >
                                             <div class="relative">
                                                 <button
                                                     type="button"
@@ -463,8 +467,8 @@
                                     Configure Per-Interface
                                 </RouterLink>
                             </div>
-                            <div class="grid gap-4 md:grid-cols-2">
-                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                            <div class="grid gap-4 min-w-0 md:grid-cols-2">
+                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300 min-w-0">
                                     <div class="font-semibold text-gray-900 dark:text-white">Publish (Server)</div>
                                     <div>
                                         Enable discovery while adding or editing an interface to broadcast reachable
@@ -475,9 +479,9 @@
                                         but usually recommended so peers can connect back.
                                     </div>
                                 </div>
-                                <div class="space-y-3">
-                                    <div class="flex items-center">
-                                        <div class="flex flex-col mr-auto">
+                                <div class="space-y-3 min-w-0">
+                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div class="flex flex-col min-w-0 pr-0 sm:pr-4">
                                             <div class="text-sm font-semibold text-gray-900 dark:text-white">
                                                 Discover Interfaces (Peer)
                                             </div>
@@ -486,9 +490,12 @@
                                                 interfaces.
                                             </div>
                                         </div>
-                                        <Toggle v-model="discoveryConfig.discover_interfaces" class="my-auto mx-2" />
+                                        <Toggle
+                                            v-model="discoveryConfig.discover_interfaces"
+                                            class="shrink-0 sm:my-auto"
+                                        />
                                     </div>
-                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 min-w-0">
                                         <div>
                                             <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
                                                 Allowed Sources

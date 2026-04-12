@@ -5,7 +5,7 @@
             'opacity-60 grayscale-[0.5]': !isInterfaceEnabled(iface) || iface._restart_required || !isReticulumRunning,
         }"
     >
-        <div class="flex flex-col sm:flex-row gap-4 sm:items-start relative">
+        <div class="flex flex-col sm:flex-row gap-4 sm:items-start relative pt-11 sm:pt-0">
             <!-- Offline Overlay -->
             <div
                 v-if="!isReticulumRunning"
@@ -82,20 +82,27 @@
                 </div>
             </div>
             <div
-                class="flex flex-col sm:flex-row gap-2 sm:items-center items-end sm:shrink-0 justify-end sm:justify-end relative"
+                class="absolute top-2 right-2 z-20 flex flex-row items-center gap-1 sm:static sm:z-auto sm:flex sm:flex-row sm:gap-2 sm:items-center sm:shrink-0 sm:justify-end"
             >
                 <button
                     v-if="isInterfaceEnabled(iface)"
                     type="button"
-                    class="secondary-chip text-xs shrink-0"
+                    class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    :title="$t('interface.disable')"
                     @click="disableInterface"
                 >
-                    <MaterialDesignIcon icon-name="power" class="w-4 h-4" />
-                    {{ $t("interface.disable") }}
+                    <MaterialDesignIcon icon-name="power" class="w-5 h-5 sm:w-4 sm:h-4" />
+                    <span class="hidden sm:inline sm:ml-1.5 text-xs font-semibold">{{ $t("interface.disable") }}</span>
                 </button>
-                <button v-else type="button" class="primary-chip text-xs shrink-0" @click="enableInterface">
-                    <MaterialDesignIcon icon-name="power" class="w-4 h-4" />
-                    {{ $t("interface.enable") }}
+                <button
+                    v-else
+                    type="button"
+                    class="inline-flex items-center justify-center rounded-full p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 shrink-0 border-0 bg-transparent text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    :title="$t('interface.enable')"
+                    @click="enableInterface"
+                >
+                    <MaterialDesignIcon icon-name="power" class="w-5 h-5 sm:w-4 sm:h-4" />
+                    <span class="hidden sm:inline sm:ml-1.5 text-xs font-semibold">{{ $t("interface.enable") }}</span>
                 </button>
                 <div class="relative z-50 shrink-0">
                     <DropDownMenu>

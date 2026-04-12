@@ -2,14 +2,17 @@
     <v-dialog
         v-if="!isPage"
         v-model="visible"
-        :fullscreen="isMobile"
+        :fullscreen="dialogFullscreen"
         max-width="800"
+        scrollable
         transition="dialog-bottom-transition"
         class="tutorial-dialog"
         persistent
         @update:model-value="onVisibleUpdate"
     >
-        <v-card class="flex flex-col h-full bg-white dark:bg-zinc-950 border-0 overflow-hidden relative">
+        <v-card
+            class="flex min-h-0 flex-1 flex-col bg-white dark:bg-zinc-950 border-0 overflow-hidden relative h-full max-h-[100dvh]"
+        >
             <!-- Settings Controls -->
             <div class="absolute top-4 left-4 z-50 flex items-center gap-1">
                 <LanguageSelector @language-change="onLanguageChange" />
@@ -41,7 +44,9 @@
             </div>
 
             <!-- Content Area -->
-            <v-card-text class="flex-1 overflow-y-auto px-6 md:px-12 py-10 relative">
+            <v-card-text
+                class="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 md:px-12 md:py-10"
+            >
                 <transition name="fade-slide" mode="out-in">
                     <!-- Step 1: Welcome -->
                     <div v-if="currentStep === 1" key="step1" class="flex flex-col items-center text-center space-y-6">
@@ -619,7 +624,9 @@
 
             <!-- Footer -->
             <v-divider class="dark:border-zinc-900"></v-divider>
-            <v-card-actions class="px-6 py-6 bg-gray-50 dark:bg-zinc-950/50 flex justify-between">
+            <v-card-actions
+                class="shrink-0 flex justify-between bg-gray-50 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:bg-zinc-950/50 sm:px-6 sm:py-6"
+            >
                 <button
                     v-if="currentStep > 1 && currentStep < totalSteps"
                     type="button"
@@ -1421,14 +1428,15 @@ export default {
             savingPropagation: false,
             discoveryInterval: null,
             markingSeen: false,
+            windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
         };
     },
     computed: {
         isPage() {
             return this.$route?.meta?.isPage === true;
         },
-        isMobile() {
-            return window.innerWidth < 640;
+        dialogFullscreen() {
+            return this.windowWidth < 768;
         },
         config() {
             return GlobalState.config;
@@ -1441,11 +1449,18 @@ export default {
         },
     },
     beforeUnmount() {
+        if (this.onWindowResize) {
+            window.removeEventListener("resize", this.onWindowResize);
+        }
         if (this.discoveryInterval) {
             clearInterval(this.discoveryInterval);
         }
     },
     mounted() {
+        this.onWindowResize = () => {
+            this.windowWidth = window.innerWidth;
+        };
+        window.addEventListener("resize", this.onWindowResize, { passive: true });
         if (this.isPage) {
             this.loadCommunityInterfaces();
             this.loadDiscoveredInterfaces();
@@ -1733,6 +1748,15 @@ export default {
 .tutorial-dialog .v-overlay__content {
     border-radius: 2rem !important;
     overflow: hidden;
+}
+
+@media (max-width: 767px) {
+    .tutorial-dialog .v-overlay__content {
+        border-radius: 0 !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
 }
 
 .fade-slide-enter-active,

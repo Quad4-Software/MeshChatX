@@ -2,15 +2,18 @@
     <v-dialog
         v-if="!isPage"
         v-model="visible"
-        :fullscreen="isMobile"
+        :fullscreen="dialogFullscreen"
         max-width="800"
+        scrollable
         transition="dialog-bottom-transition"
         class="changelog-dialog"
         @update:model-value="onVisibleUpdate"
     >
-        <v-card class="flex flex-col h-full bg-white dark:bg-zinc-900 border-0 overflow-hidden">
+        <v-card
+            class="flex min-h-0 flex-1 flex-col bg-white dark:bg-zinc-900 border-0 overflow-hidden h-full max-h-[100dvh]"
+        >
             <!-- Header -->
-            <v-toolbar flat color="transparent" class="px-4 border-b dark:border-zinc-800">
+            <v-toolbar flat color="transparent" class="px-3 sm:px-4 border-b dark:border-zinc-800 shrink-0">
                 <div class="flex items-center">
                     <div class="p-1 mr-3">
                         <img src="../public/favicons/favicon-512x512.png" class="w-8 h-8 object-contain" alt="Logo" />
@@ -36,7 +39,7 @@
             </v-toolbar>
 
             <!-- Content -->
-            <v-card-text class="flex-1 overflow-y-auto px-6 py-8">
+            <v-card-text class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 sm:py-8">
                 <div v-if="loading" class="flex flex-col items-center justify-center h-full space-y-4">
                     <v-progress-circular indeterminate color="blue" size="64"></v-progress-circular>
                     <div class="text-gray-500 dark:text-zinc-400 font-medium">Loading changelog...</div>
@@ -59,7 +62,9 @@
 
             <!-- Footer -->
             <v-divider class="dark:border-zinc-800"></v-divider>
-            <v-card-actions class="px-6 py-4 bg-gray-50 dark:bg-zinc-950/50 flex-wrap gap-y-2">
+            <v-card-actions
+                class="px-4 py-3 sm:px-6 sm:py-4 bg-gray-50 dark:bg-zinc-950/50 flex-wrap gap-y-2 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+            >
                 <div class="flex flex-col">
                     <v-checkbox
                         v-model="dontShowAgain"
@@ -145,6 +150,7 @@ export default {
             version: "",
             dontShowAgain: false,
             dontShowEver: false,
+            windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
         };
     },
     computed: {
@@ -154,13 +160,22 @@ export default {
         isPage() {
             return this.$route?.meta?.isPage === true;
         },
-        isMobile() {
-            return window.innerWidth < 640;
+        dialogFullscreen() {
+            return this.windowWidth < 768;
         },
     },
     mounted() {
+        this.onWindowResize = () => {
+            this.windowWidth = window.innerWidth;
+        };
+        window.addEventListener("resize", this.onWindowResize, { passive: true });
         if (this.isPage) {
             this.fetchChangelog();
+        }
+    },
+    beforeUnmount() {
+        if (this.onWindowResize) {
+            window.removeEventListener("resize", this.onWindowResize);
         }
     },
     methods: {
@@ -236,6 +251,15 @@ export default {
 .changelog-dialog .v-overlay__content {
     border-radius: 0.5rem !important;
     overflow: hidden;
+}
+
+@media (max-width: 767px) {
+    .changelog-dialog .v-overlay__content {
+        border-radius: 0 !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
 }
 
 .changelog-content {

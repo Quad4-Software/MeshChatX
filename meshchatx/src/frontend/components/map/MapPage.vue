@@ -2,32 +2,28 @@
     <div class="flex flex-col h-full w-full bg-white dark:bg-zinc-950 overflow-hidden">
         <!-- header -->
         <div
-            class="flex items-center px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur z-10 relative"
+            class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0 px-3 py-2 sm:px-4 border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur z-10 relative"
         >
-            <div class="flex items-center space-x-2">
-                <v-icon icon="mdi-map" class="text-blue-500 dark:text-blue-400" size="24"></v-icon>
-                <h1 class="text-xl font-black text-gray-900 dark:text-white">{{ $t("map.title") }}</h1>
+            <div class="flex items-center min-w-0 gap-2">
+                <v-icon icon="mdi-map" class="text-blue-500 dark:text-blue-400 shrink-0" size="24"></v-icon>
+                <h1 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">
+                    {{ $t("map.title") }}
+                </h1>
             </div>
 
-            <div class="ml-auto flex items-center space-x-2">
-                <button
-                    v-if="!isPopoutMode"
-                    type="button"
-                    class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                    :title="$t('map.pop_out')"
-                    @click="openMapPopout"
-                >
-                    <MaterialDesignIcon icon-name="open-in-new" class="size-4" />
-                    <span>{{ $t("map.pop_out") }}</span>
-                </button>
+            <div
+                class="flex flex-wrap items-center gap-x-1.5 gap-y-2 sm:ml-auto sm:flex-nowrap sm:gap-2 sm:justify-end min-w-0"
+            >
                 <!-- offline/online toggle -->
-                <div class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
+                <div
+                    class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5 sm:p-1 min-w-0 max-w-full"
+                >
                     <button
-                        class="p-2 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors mr-1"
+                        class="p-1.5 sm:p-2 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
                         title="Map Discovered Interfaces"
                         @click="mapDiscoveredNodes"
                     >
-                        <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                        <MaterialDesignIcon icon-name="map-marker-radius" class="size-[18px] sm:size-5" />
                     </button>
                     <button
                         :class="
@@ -35,7 +31,7 @@
                                 ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400'
                                 : 'text-gray-500 dark:text-gray-300'
                         "
-                        class="px-3 py-1 text-sm font-medium rounded-md transition-all"
+                        class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
                         @click="toggleOffline(false)"
                     >
                         {{ $t("map.online_mode") }}
@@ -46,7 +42,7 @@
                                 ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400'
                                 : 'text-gray-500 dark:text-gray-300'
                         "
-                        class="px-3 py-1 text-sm font-medium rounded-md transition-all"
+                        class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
                         :disabled="!hasOfflineMap"
                         @click="toggleOffline(true)"
                     >
@@ -54,22 +50,34 @@
                     </button>
                 </div>
 
-                <!-- upload button (desktop only) -->
+                <!-- upload: icon on mobile, full label from sm -->
                 <button
-                    class="hidden sm:flex items-center space-x-1 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-sm transition-colors text-sm font-medium"
+                    type="button"
+                    class="inline-flex items-center justify-center sm:gap-1 p-2 sm:px-3 sm:py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-sm transition-colors text-sm font-medium shrink-0"
+                    :title="$t('map.upload_mbtiles')"
                     @click="$refs.fileInput.click()"
                 >
-                    <MaterialDesignIcon icon-name="upload" class="size-4" />
-                    <span>{{ $t("map.upload_mbtiles") }}</span>
+                    <MaterialDesignIcon icon-name="upload" class="size-[18px] sm:size-4" />
+                    <span class="hidden sm:inline">{{ $t("map.upload_mbtiles") }}</span>
                 </button>
                 <input ref="fileInput" type="file" accept=".mbtiles" class="hidden" @change="onFileSelected" />
 
+                <button
+                    v-if="!isPopoutMode"
+                    type="button"
+                    class="flex p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    :title="$t('map.pop_out')"
+                    @click="openMapPopout"
+                >
+                    <MaterialDesignIcon icon-name="open-in-new" class="size-[18px] sm:size-5" />
+                </button>
                 <!-- settings button -->
                 <button
-                    class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+                    type="button"
+                    class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
                     @click="isSettingsOpen = !isSettingsOpen"
                 >
-                    <MaterialDesignIcon icon-name="cog" class="size-5" />
+                    <MaterialDesignIcon icon-name="cog" class="size-[18px] sm:size-5" />
                 </button>
             </div>
         </div>

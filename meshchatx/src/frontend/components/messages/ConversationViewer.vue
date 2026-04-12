@@ -1545,13 +1545,13 @@
                     </div>
 
                     <!-- text input + send -->
-                    <div class="flex items-end gap-2">
+                    <div class="flex items-center gap-2">
                         <textarea
                             id="message-input"
                             ref="message-input"
                             v-model="newMessageText"
                             :readonly="isTranslatingMessage"
-                            class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 flex-1 px-3 sm:px-4 py-2 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto"
+                            class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 flex-1 px-3 sm:px-4 py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                             rows="1"
                             spellcheck="true"
                             :placeholder="$t('messages.send_placeholder')"
@@ -1559,7 +1559,7 @@
                             @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
                             @paste="onMessagePaste"
                         ></textarea>
-                        <div class="shrink-0 pb-0.5">
+                        <div class="shrink-0 flex items-center">
                             <SendMessageButton
                                 :is-sending-message="false"
                                 :can-send-message="canSendMessage"

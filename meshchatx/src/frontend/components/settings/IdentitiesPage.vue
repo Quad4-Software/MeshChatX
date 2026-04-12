@@ -5,8 +5,8 @@
         <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
             <div class="space-y-6 w-full max-w-4xl mx-auto">
                 <!-- header -->
-                <div class="flex items-center justify-between flex-wrap gap-4">
-                    <div>
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
                         <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                             {{ $t("identities.title") }}
                         </h1>
@@ -14,31 +14,33 @@
                             {{ $t("identities.manage") }}
                         </p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div
+                        class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end"
+                    >
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-2 rounded-2xl bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-indigo-500/25 transition-all active:scale-95"
+                            class="inline-flex w-full items-center justify-center gap-x-2 min-h-[44px] rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-all active:scale-[0.98] sm:w-auto sm:min-h-0 sm:rounded-2xl"
                             @click="showCreateModal = true"
                         >
-                            <MaterialDesignIcon icon-name="plus" class="w-5 h-5" />
-                            {{ $t("identities.new_identity") }}
+                            <MaterialDesignIcon icon-name="plus" class="w-5 h-5 shrink-0" />
+                            <span class="truncate">{{ $t("identities.new_identity") }}</span>
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-2 rounded-2xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            class="inline-flex w-full items-center justify-center gap-x-2 min-h-[44px] rounded-xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] sm:w-auto sm:min-h-0 sm:rounded-2xl"
                             @click="showImportModal = true"
                         >
-                            <MaterialDesignIcon icon-name="upload" class="w-5 h-5" />
-                            {{ $t("identities.import") }}
+                            <MaterialDesignIcon icon-name="upload" class="w-5 h-5 shrink-0" />
+                            <span class="truncate">{{ $t("identities.import") }}</span>
                         </button>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-2 rounded-2xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            class="inline-flex w-full items-center justify-center gap-x-2 min-h-[44px] rounded-xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] disabled:opacity-50 sm:w-auto sm:min-h-0 sm:rounded-2xl"
                             :disabled="identities.length === 0"
                             @click="downloadAllIdentities"
                         >
-                            <MaterialDesignIcon icon-name="file-export" class="w-5 h-5" />
-                            {{ $t("identities.export_all") }}
+                            <MaterialDesignIcon icon-name="file-export" class="w-5 h-5 shrink-0" />
+                            <span class="truncate">{{ $t("identities.export_all") }}</span>
                         </button>
                     </div>
                 </div>
@@ -141,21 +143,21 @@
                                     </span>
                                 </div>
                                 <div
-                                    class="text-xs font-mono text-gray-500 dark:text-zinc-500 truncate mt-0.5 tracking-tight"
+                                    class="text-xs font-mono text-gray-500 dark:text-zinc-500 mt-0.5 tracking-tight break-all sm:truncate"
                                     :title="'RNS: ' + identity.hash"
                                 >
                                     ID: {{ identity.hash }}
                                 </div>
                                 <div
                                     v-if="identity.lxmf_address"
-                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 tracking-tighter"
+                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mt-0.5 tracking-tighter break-all sm:truncate"
                                     :title="'LXMF: ' + identity.lxmf_address"
                                 >
                                     LXMF: {{ identity.lxmf_address }}
                                 </div>
                                 <div
                                     v-if="identity.lxst_address"
-                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 tracking-tighter"
+                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mt-0.5 tracking-tighter break-all sm:truncate"
                                     :title="'LXST: ' + identity.lxst_address"
                                 >
                                     LXST: {{ identity.lxst_address }}
