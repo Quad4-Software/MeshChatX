@@ -5,6 +5,7 @@ const globalState = reactive({
     authSessionResolved: true,
     authEnabled: false,
     authenticated: false,
+    detailedOutboundSendStatus: false,
     unreadConversationsCount: 0,
     activeCallTab: "phone",
     blockedDestinations: [],
@@ -20,5 +21,13 @@ const globalState = reactive({
         message_failed_bubble_color: "#ef4444",
     },
 });
+
+export function mergeGlobalConfig(next) {
+    if (!next || typeof next !== "object") {
+        return;
+    }
+    const prev = globalState.config && typeof globalState.config === "object" ? globalState.config : {};
+    globalState.config = { ...prev, ...next };
+}
 
 export default globalState;
