@@ -19,6 +19,7 @@
             :has-more-announces="hasMoreAnnounces"
             :peers-search-term="peersSearchTerm"
             :total-peers-count="totalPeersCount"
+            :pinned-peer-hashes="pinnedPeerHashes"
             @conversation-click="onConversationClick"
             @peer-click="onPeerClick"
             @conversation-search-changed="onConversationSearchChanged"
@@ -36,6 +37,7 @@
             @bulk-delete="onBulkDelete"
             @export-folders="onExportFolders"
             @import-folders="onImportFolders"
+            @toggle-conversation-pin="onToggleConversationPin"
         />
 
         <div
@@ -123,7 +125,7 @@
 import WebSocketConnection from "../../js/WebSocketConnection";
 import MessagesSidebar from "./MessagesSidebar.vue";
 import ConversationViewer from "./ConversationViewer.vue";
-import GlobalState from "../../js/GlobalState";
+import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
@@ -172,6 +174,8 @@ export default {
             filterHasAttachmentsOnly: false,
             isLoadingConversations: false,
 
+            pinnedPeerHashes: [],
+
             isIngestModalOpen: false,
             ingestUri: "",
         };
@@ -216,6 +220,7 @@ export default {
 
         this.getConfig();
         this.getConversations();
+        this.loadConversationPins();
         this.getFolders();
         this.getLxmfDeliveryAnnounces();
 
@@ -272,7 +277,11 @@ export default {
         async getConfig() {
             try {
                 const response = await window.api.get(`/api/v1/config`);
-                this.config = response.data.config;
+                const next = response.data?.config;
+                if (next && typeof next === "object") {
+                    mergeGlobalConfig(next);
+                    this.config = next;
+                }
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);
@@ -282,7 +291,11 @@ export default {
             const json = JSON.parse(message.data);
             switch (json.type) {
                 case "config": {
-                    this.config = json.config;
+                    const next = json?.config;
+                    if (next && typeof next === "object") {
+                        mergeGlobalConfig(next);
+                        this.config = next;
+                    }
                     break;
                 }
                 case "announce": {
@@ -429,6 +442,25 @@ export default {
             } finally {
                 this.isLoadingConversations = false;
                 this.isLoadingMore = false;
+            }
+        },
+        async loadConversationPins() {
+            try {
+                const response = await window.api.get("/api/v1/lxmf/conversation-pins");
+                this.pinnedPeerHashes = response.data.peer_hashes || [];
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async onToggleConversationPin(destinationHash) {
+            try {
+                const response = await window.api.post("/api/v1/lxmf/conversation-pins/toggle", {
+                    destination_hash: destinationHash,
+                });
+                this.pinnedPeerHashes = response.data.peer_hashes || [];
+            } catch (e) {
+                ToastUtils.error(this.$t("messages.failed_toggle_pin"));
+                console.log(e);
             }
         },
         peerHashFromMessage(msg) {

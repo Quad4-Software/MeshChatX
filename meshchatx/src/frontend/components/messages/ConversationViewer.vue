@@ -123,53 +123,22 @@
             </div>
 
             <!-- dropdown menu -->
-            <div class="ml-auto flex items-center gap-1.5">
-                <!-- retry all failed messages -->
-                <IconButton
-                    v-if="hasFailedOrCancelledMessages"
-                    title="Retry all failed/cancelled messages"
-                    class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    @click="retryAllFailedOrCancelledMessages"
-                >
-                    <MaterialDesignIcon icon-name="refresh" class="size-7" />
-                </IconButton>
-
-                <!-- telemetry history button -->
-                <IconButton title="View Telemetry History" @click="isTelemetryHistoryModalOpen = true">
-                    <MaterialDesignIcon icon-name="satellite-variant" class="size-7" />
-                </IconButton>
-
-                <!-- call button -->
-                <IconButton title="Start a Call" @click="onStartCall">
-                    <MaterialDesignIcon icon-name="phone" class="size-7" />
-                </IconButton>
-
-                <!-- share contact button -->
-                <IconButton title="Share Contact" @click="openShareContactModal">
-                    <MaterialDesignIcon icon-name="notebook-outline" class="size-7" />
-                </IconButton>
-
-                <!-- banish button (visible when peer not blocked) -->
-                <IconButton
-                    v-if="!isSelectedPeerBlocked"
-                    :title="$t('messages.banish_user')"
-                    class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    @click="onBanishHeaderClick"
-                >
-                    <MaterialDesignIcon icon-name="gavel" class="size-7" />
-                </IconButton>
-
+            <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5 min-w-0 shrink-0">
                 <ConversationDropDownMenu
                     v-if="selectedPeer"
                     :peer="selectedPeer"
+                    :has-failed-messages="hasFailedOrCancelledMessages"
                     @conversation-deleted="onConversationDeleted"
                     @set-custom-display-name="updateCustomDisplayName"
                     @popout="openConversationPopout"
+                    @retry-failed="retryAllFailedOrCancelledMessages"
+                    @open-telemetry-history="isTelemetryHistoryModalOpen = true"
+                    @start-call="onStartCall"
+                    @share-contact="openShareContactModal"
                 />
 
-                <!-- close button -->
-                <IconButton title="Close" @click="close">
-                    <MaterialDesignIcon icon-name="close" class="size-7" />
+                <IconButton title="Close" class="shrink-0" @click="close">
+                    <MaterialDesignIcon icon-name="close" class="size-6 sm:size-7" />
                 </IconButton>
             </div>
         </div>
@@ -425,502 +394,265 @@
             @scroll="onMessagesScroll"
         >
             <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6 min-w-0">
-                <div
-                    v-for="chatItem of selectedPeerChatItemsReversed"
-                    :id="`message-${chatItem.lxmf_message.hash}`"
-                    :key="chatItem.lxmf_message.hash"
-                    class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
-                    :class="{ 'ml-auto items-end': chatItem.is_outbound, 'mr-auto items-start': !chatItem.is_outbound }"
-                    @contextmenu.prevent="onMessageContextMenu($event, chatItem)"
-                >
-                    <!-- message content -->
+                <template v-for="entry in selectedPeerChatDisplayGroups" :key="entry.key">
                     <div
-                        class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
-                        :class="[
-                            ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
-                                ? 'shadow-sm'
-                                : chatItem.lxmf_message.is_spam
-                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
-                                  : chatItem.is_outbound
-                                    ? 'shadow-sm'
-                                    : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
-                        ]"
-                        :style="bubbleStyles(chatItem)"
-                        @click="onChatItemClick(chatItem)"
+                        v-if="entry.type === 'imageGroup'"
+                        class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
+                        :class="{
+                            'ml-auto items-end': entry.items[0].is_outbound,
+                            'mr-auto items-start': !entry.items[0].is_outbound,
+                        }"
+                        @contextmenu.prevent="onMessageContextMenu($event, entry.items[0])"
                     >
-                        <button
-                            type="button"
-                            class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
-                            :class="
-                                chatItem.is_outbound ? 'hover:bg-white/20' : 'hover:bg-gray-200 dark:hover:bg-zinc-700'
-                            "
-                            :title="$t('messages.message_actions')"
-                            @click.stop="onMessageContextMenu($event, chatItem)"
+                        <div
+                            class="relative w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
+                            :class="entry.items[0].is_outbound ? 'ml-auto' : 'mr-auto'"
+                            @click.stop="onChatItemClick(entry.items[0])"
                         >
-                            <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
-                        </button>
-                        <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
-                            <!-- reply snippet -->
-                            <div
-                                v-if="chatItem.lxmf_message.reply_to_hash"
-                                class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-blue-500/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                                @click.stop="scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
+                            <button
+                                type="button"
+                                class="absolute top-1 right-1 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                                :title="$t('messages.message_actions')"
+                                @click.stop="onMessageContextMenu($event, entry.items[0])"
                             >
-                                <div
-                                    class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight mb-0.5"
-                                    :class="chatItem.is_outbound ? 'text-white/80' : 'text-indigo-500/80'"
-                                >
-                                    <MaterialDesignIcon icon-name="reply" class="size-3" />
-                                    {{ $t("messages.replying_to") }}
-                                </div>
-                                <div class="text-xs opacity-70 truncate line-clamp-1 italic">
-                                    {{
-                                        chatItem.lxmf_message.fields?.reply_quoted_content ||
-                                        getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
-                                        (chatItem.lxmf_message.reply_to_hash
-                                            ? `Message <${chatItem.lxmf_message.reply_to_hash.substring(0, 8)}...>`
-                                            : "(Message not found)")
-                                    }}
-                                </div>
-                            </div>
-
-                            <!-- spam badge -->
+                                <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
+                            </button>
                             <div
-                                v-if="chatItem.lxmf_message.is_spam"
-                                class="flex items-center gap-1.5 text-xs font-medium mb-1"
-                                :class="
-                                    chatItem.is_outbound ? 'text-orange-200' : 'text-orange-700 dark:text-orange-300'
-                                "
+                                v-if="imageGroupSortedChron(entry.items).length === 2"
+                                class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
                             >
-                                <MaterialDesignIcon icon-name="alert-decagram" class="size-4" />
-                                <span>Marked as Spam</span>
-                            </div>
-
-                            <!-- content -->
-                            <!-- eslint-disable vue/no-v-html -->
-                            <div
-                                v-if="chatItem.lxmf_message.content && !getParsedItems(chatItem)?.isOnlyPaperMessage"
-                                class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
-                                :style="{
-                                    'font-family': 'inherit',
-                                    'font-size': (config?.message_font_size || 14) + 'px',
-                                }"
-                                @click="handleMessageClick"
-                                v-html="renderMarkdown(chatItem.lxmf_message.content)"
-                            ></div>
-                            <!-- eslint-enable vue/no-v-html -->
-
-                            <!-- telemetry placeholder for empty content messages -->
-                            <div
-                                v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry"
-                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
-                            >
-                                <MaterialDesignIcon icon-name="satellite-variant" class="size-4 opacity-60" />
-                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                                    {{ chatItem.is_outbound ? "Telemetry update sent" : "Telemetry update received" }}
-                                </span>
-                            </div>
-
-                            <div
-                                v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry_stream"
-                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
-                            >
-                                <MaterialDesignIcon icon-name="database-sync" class="size-4 opacity-60" />
-                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
-                                    >Telemetry stream received ({{
-                                        chatItem.lxmf_message.fields.telemetry_stream.length
-                                    }}
-                                    entries)</span
-                                >
-                            </div>
-
-                            <div
-                                v-if="
-                                    !chatItem.lxmf_message.content &&
-                                    chatItem.lxmf_message.fields?.commands?.some((c) => c['0x01'] || c['1'] || c['0x1'])
-                                "
-                                class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
-                            >
-                                <MaterialDesignIcon icon-name="crosshairs-question" class="size-4 opacity-60" />
-                                <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                                    {{ chatItem.is_outbound ? "Location Request Sent" : "Location Request Received" }}
-                                </span>
-                            </div>
-
-                            <!-- parsed items (contacts / paper messages) -->
-                            <div v-if="getParsedItems(chatItem)" class="mt-2 space-y-2">
-                                <!-- contact -->
-                                <div
-                                    v-if="getParsedItems(chatItem).contact && !chatItem.is_outbound"
-                                    class="flex flex-col gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
-                                >
-                                    <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                                        <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
-                                        <span class="text-sm font-bold">Contact Shared</span>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <LxmfUserIcon
-                                            :custom-image="getParsedItems(chatItem).contact.custom_image"
-                                            :icon-name="getParsedItems(chatItem).contact.lxmf_user_icon?.icon_name"
-                                            :icon-foreground-colour="
-                                                getParsedItems(chatItem).contact.lxmf_user_icon?.foreground_colour
-                                            "
-                                            :icon-background-colour="
-                                                getParsedItems(chatItem).contact.lxmf_user_icon?.background_colour
-                                            "
-                                            icon-class="size-10"
-                                        />
-                                        <div class="flex-1 min-w-0">
-                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                {{ getParsedItems(chatItem).contact.name }}
-                                            </div>
-                                            <div
-                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
-                                            >
-                                                {{ getParsedItems(chatItem).contact.hash }}
-                                            </div>
-                                            <div
-                                                v-if="getParsedItems(chatItem).contact.lxmf_address"
-                                                class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
-                                            >
-                                                LXMF: {{ getParsedItems(chatItem).contact.lxmf_address }}
-                                            </div>
-                                            <div
-                                                v-if="getParsedItems(chatItem).contact.lxst_address"
-                                                class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
-                                            >
-                                                LXST: {{ getParsedItems(chatItem).contact.lxst_address }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
-                                        @click="
-                                            addContact(
-                                                getParsedItems(chatItem).contact.name,
-                                                getParsedItems(chatItem).contact.hash,
-                                                getParsedItems(chatItem).contact.lxmf_address,
-                                                getParsedItems(chatItem).contact.lxst_address
-                                            )
-                                        "
-                                    >
-                                        Add to Contacts
-                                    </button>
-                                </div>
-
-                                <!-- paper message auto-conversion -->
-                                <div
-                                    v-if="getParsedItems(chatItem).paperMessage && !chatItem.is_outbound"
-                                    class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-black/60 border border-emerald-100 dark:border-zinc-700/50"
-                                >
-                                    <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                                        <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
-                                        <span class="text-sm font-bold">Paper Message detected</span>
-                                    </div>
-                                    <p class="text-xs text-emerald-600/80 dark:text-zinc-400 leading-relaxed">
-                                        This message contains a signed LXMF URI that can be ingested into your
-                                        conversations.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
-                                        @click="ingestPaperMessage(getParsedItems(chatItem).paperMessage)"
-                                    >
-                                        Ingest Message
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- image field -->
-                            <div v-if="chatItem.lxmf_message.fields?.image" class="relative group mt-1 -mx-1">
-                                <img
-                                    :src="`/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/image`"
-                                    class="max-w-[240px] sm:max-w-xs w-full rounded-lg cursor-pointer transition-transform group-hover:scale-[1.01]"
+                                <button
+                                    v-for="imgItem in imageGroupSortedChron(entry.items)"
+                                    :id="`message-${imgItem.lxmf_message.hash}`"
+                                    :key="imgItem.lxmf_message.hash"
+                                    type="button"
+                                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                                     @click.stop="
                                         openImage(
-                                            `/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/image`
+                                            lxmfImageUrl(imgItem.lxmf_message.hash),
+                                            imageGroupGalleryUrls(entry.items)
                                         )
                                     "
-                                />
-                                <div
-                                    class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5"
                                 >
-                                    <span>{{
-                                        (chatItem.lxmf_message.fields.image.image_type ?? "image").toUpperCase()
-                                    }}</span>
-                                    <span>•</span>
-                                    <span>{{ formatAttachmentSize(chatItem.lxmf_message.fields.image, "image") }}</span>
-                                </div>
+                                    <img
+                                        :src="lxmfImageUrl(imgItem.lxmf_message.hash)"
+                                        loading="lazy"
+                                        decoding="async"
+                                        class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                                        alt=""
+                                    />
+                                </button>
                             </div>
-
-                            <!-- audio field -->
-                            <div v-if="chatItem.lxmf_message.fields?.audio" class="pb-1">
-                                <!-- audio is loaded -->
-                                <AudioWaveformPlayer
-                                    v-if="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
-                                    :src="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
-                                    :is-outbound="chatItem.is_outbound"
-                                />
-
-                                <!-- audio is not yet loaded -->
-                                <div
-                                    v-else
-                                    class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800 min-h-[54px]"
-                                >
-                                    <div class="flex items-center gap-2">
-                                        <div
-                                            class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
-                                        ></div>
-                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{
-                                            $t("messages.downloading")
-                                        }}</span>
-                                    </div>
-                                </div>
-
-                                <div
-                                    class="text-[10px] mt-1 text-right opacity-60"
-                                    :class="chatItem.is_outbound ? 'text-white' : 'text-gray-500 dark:text-zinc-400'"
-                                >
-                                    Voice Note • {{ formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
-                                </div>
-                            </div>
-
-                            <!-- file attachment fields -->
-                            <div v-if="chatItem.lxmf_message.fields?.file_attachments" class="space-y-2 mt-1">
-                                <a
-                                    v-for="(file_attachment, index) of chatItem.lxmf_message.fields?.file_attachments ??
-                                    []"
-                                    :key="file_attachment.file_name"
-                                    target="_blank"
-                                    :download="file_attachment.file_name"
-                                    :href="`/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/file?file_index=${index}`"
-                                    class="flex items-center gap-3 border rounded-lg px-3 py-2 text-sm font-medium cursor-pointer transition-colors"
-                                    :class="
-                                        chatItem.is_outbound
-                                            ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
-                                            : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300 border-gray-200/60 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                            <div
+                                v-else-if="imageGroupSortedChron(entry.items).length === 3"
+                                class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
+                            >
+                                <button
+                                    v-for="imgItem in imageGroupSortedChron(entry.items).slice(0, 2)"
+                                    :id="`message-${imgItem.lxmf_message.hash}`"
+                                    :key="imgItem.lxmf_message.hash"
+                                    type="button"
+                                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                                    @click.stop="
+                                        openImage(
+                                            lxmfImageUrl(imgItem.lxmf_message.hash),
+                                            imageGroupGalleryUrls(entry.items)
+                                        )
                                     "
-                                    @click.stop
                                 >
-                                    <div class="my-auto">
-                                        <MaterialDesignIcon icon-name="paperclip" class="size-5" />
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="truncate text-xs font-bold">{{ file_attachment.file_name }}</div>
-                                        <div
-                                            class="text-[10px] font-normal"
-                                            :class="
-                                                chatItem.is_outbound
-                                                    ? 'text-white/60'
-                                                    : 'text-gray-500 dark:text-zinc-400'
-                                            "
-                                        >
-                                            {{ formatAttachmentSize(file_attachment, "file") }}
-                                        </div>
-                                    </div>
-                                    <div class="my-auto">
-                                        <MaterialDesignIcon icon-name="download" class="size-5" />
-                                    </div>
-                                </a>
-                            </div>
-
-                            <!-- commands -->
-                            <div v-if="chatItem.lxmf_message.fields?.commands" class="space-y-2 mt-1">
-                                <div v-for="(command, index) in chatItem.lxmf_message.fields.commands" :key="index">
-                                    <div
-                                        v-if="command['0x01'] || command['1'] || command['0x1']"
-                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                        :class="
-                                            chatItem.is_outbound
-                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
-                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                                        "
-                                    >
-                                        <MaterialDesignIcon icon-name="crosshairs-question" class="size-5" />
-                                        <div class="text-left">
-                                            <div class="font-bold text-xs uppercase tracking-wider opacity-80">
-                                                {{ $t("messages.location_requested") }}
-                                            </div>
-                                            <div v-if="!chatItem.is_outbound" class="text-[10px] opacity-70">
-                                                Peer is requesting your location
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- telemetry / location field -->
-                            <div v-if="chatItem.lxmf_message.fields?.telemetry" class="pb-1 mt-1 space-y-2">
-                                <div class="flex flex-wrap gap-2">
-                                    <button
-                                        v-if="chatItem.lxmf_message.fields.telemetry.location"
-                                        type="button"
-                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                        :class="
-                                            chatItem.is_outbound
-                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
-                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                                        "
-                                        @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
-                                    >
-                                        <MaterialDesignIcon icon-name="map-marker" class="size-5" />
-                                        <div class="text-left">
-                                            <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
-                                                Location
-                                            </div>
-                                            <div class="text-[9px] font-mono opacity-70">
-                                                {{
-                                                    chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(6)
-                                                }},
-                                                {{
-                                                    chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(6)
-                                                }}
-                                            </div>
-                                        </div>
-                                    </button>
-
-                                    <!-- Live Track Toggle Button (only for incoming) -->
-                                    <button
-                                        v-if="!chatItem.is_outbound"
-                                        type="button"
-                                        class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                        :class="[
-                                            selectedPeer?.is_tracking
-                                                ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-inner'
-                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
-                                        ]"
-                                        @click="toggleTracking()"
-                                    >
-                                        <MaterialDesignIcon
-                                            :icon-name="selectedPeer?.is_tracking ? 'radar' : 'crosshairs'"
-                                            class="size-5"
-                                            :class="{ 'animate-pulse text-blue-500': selectedPeer?.is_tracking }"
-                                        />
-                                        <div class="text-left">
-                                            <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
-                                                {{ selectedPeer?.is_tracking ? "Tracking Active" : "Live Track" }}
-                                            </div>
-                                            <div class="text-[9px] opacity-70">
-                                                {{
-                                                    selectedPeer?.is_tracking
-                                                        ? "Auto-requesting location"
-                                                        : "Enable live tracking"
-                                                }}
-                                            </div>
-                                        </div>
-                                    </button>
-                                </div>
-
-                                <!-- other sensor data if available -->
-                                <div
-                                    v-if="
-                                        chatItem.lxmf_message.fields.telemetry.battery ||
-                                        chatItem.lxmf_message.fields.telemetry.physical_link
+                                    <img
+                                        :src="lxmfImageUrl(imgItem.lxmf_message.hash)"
+                                        loading="lazy"
+                                        decoding="async"
+                                        class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                                        alt=""
+                                    />
+                                </button>
+                                <button
+                                    :id="`message-${imageGroupSortedChron(entry.items)[2].lxmf_message.hash}`"
+                                    type="button"
+                                    class="relative col-span-2 aspect-[2/1] max-h-52 min-h-[80px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                                    @click.stop="
+                                        openImage(
+                                            lxmfImageUrl(imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
+                                            imageGroupGalleryUrls(entry.items)
+                                        )
                                     "
-                                    class="flex gap-3 px-1"
                                 >
-                                    <div
-                                        v-if="chatItem.lxmf_message.fields.telemetry.battery"
-                                        class="flex items-center gap-1 opacity-60 text-[10px]"
-                                    >
-                                        <MaterialDesignIcon icon-name="battery" class="size-3" />
-                                        <span
-                                            >{{ chatItem.lxmf_message.fields.telemetry.battery.charge_percent }}%</span
-                                        >
-                                    </div>
-                                    <div
-                                        v-if="chatItem.lxmf_message.fields.telemetry.physical_link"
-                                        class="flex items-center gap-1 opacity-60 text-[10px]"
-                                    >
-                                        <MaterialDesignIcon icon-name="antenna" class="size-3" />
-                                        <span
-                                            >SNR: {{ chatItem.lxmf_message.fields.telemetry.physical_link.snr }}dB</span
-                                        >
-                                    </div>
-                                </div>
+                                    <img
+                                        :src="lxmfImageUrl(imageGroupSortedChron(entry.items)[2].lxmf_message.hash)"
+                                        loading="lazy"
+                                        decoding="async"
+                                        class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                                        alt=""
+                                    />
+                                </button>
                             </div>
-
-                            <!-- message footer: timestamp and status icons -->
-                            <div class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3">
+                            <div v-else class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5">
+                                <button
+                                    v-for="(cell, idx) in imageGroupSortedChron(entry.items).slice(0, 4)"
+                                    :id="`message-${cell.lxmf_message.hash}`"
+                                    :key="cell.lxmf_message.hash"
+                                    type="button"
+                                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                                    @click.stop="
+                                        openImage(
+                                            lxmfImageUrl(cell.lxmf_message.hash),
+                                            imageGroupGalleryUrls(entry.items)
+                                        )
+                                    "
+                                >
+                                    <img
+                                        :src="lxmfImageUrl(cell.lxmf_message.hash)"
+                                        loading="lazy"
+                                        decoding="async"
+                                        class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                                        alt=""
+                                    />
+                                    <div
+                                        v-if="idx === 3 && imageGroupSortedChron(entry.items).length > 4"
+                                        class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-white text-3xl font-bold"
+                                    >
+                                        +{{ imageGroupSortedChron(entry.items).length - 4 }}
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        <div
+                            class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0 px-3 py-2"
+                            :class="[
+                                ['cancelled', 'failed'].includes(entry.items[0].lxmf_message.state)
+                                    ? 'shadow-sm'
+                                    : entry.items[0].lxmf_message.is_spam
+                                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
+                                      : isOutboundPathfindingBubble(entry.items[0])
+                                        ? 'bg-gray-200 dark:bg-zinc-700 text-gray-900 dark:text-zinc-100 border border-gray-300 dark:border-zinc-600 shadow-sm'
+                                        : entry.items[0].is_outbound
+                                          ? 'shadow-sm'
+                                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
+                            ]"
+                            :style="bubbleStyles(entry.items[0])"
+                        >
+                            <div class="flex items-center justify-end gap-1.5 select-none h-3">
                                 <span
                                     class="text-[9px] opacity-80 font-medium"
-                                    :class="chatItem.is_outbound ? 'text-white/90' : 'text-gray-500 dark:text-zinc-400'"
-                                    :title="getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound).join('\n')"
+                                    :class="outboundBubbleFooterTimeClass(entry.items[0])"
+                                    :title="
+                                        getMessageInfoLines(
+                                            entry.items[0].lxmf_message,
+                                            entry.items[0].is_outbound
+                                        ).join('\n')
+                                    "
                                 >
-                                    {{ formatTimeAgo(chatItem.lxmf_message.created_at) }}
+                                    {{ formatTimeAgo(entry.items[0].lxmf_message.created_at) }}
                                 </span>
-
-                                <!-- outbound status icons -->
-                                <div v-if="chatItem.is_outbound" class="flex items-center gap-1">
+                                <div v-if="entry.items[0].is_outbound" class="flex items-center gap-1">
                                     <span
-                                        v-if="['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)"
+                                        v-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
+                                        class="text-[9px] font-bold uppercase tracking-wider text-amber-200"
+                                    >
+                                        {{ $t("messages.opportunistic_deferred_label") }}
+                                    </span>
+                                    <span
+                                        v-else-if="
+                                            ['failed', 'cancelled', 'rejected'].includes(
+                                                entry.items[0].lxmf_message.state
+                                            )
+                                        "
                                         class="text-[9px] font-bold uppercase tracking-wider text-white"
                                     >
-                                        {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                                        {{ entry.items[0].lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
                                     </span>
                                     <button
-                                        v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
+                                        v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
                                         type="button"
                                         class="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
                                         title="Retry sending"
-                                        @click.stop="retrySendingMessage(chatItem)"
+                                        @click.stop="retrySendingMessage(entry.items[0])"
                                     >
                                         <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
                                     </button>
-
-                                    <!-- delivered: double check -->
                                     <MaterialDesignIcon
-                                        v-if="chatItem.lxmf_message.state === 'delivered'"
+                                        v-if="entry.items[0].lxmf_message.state === 'delivered'"
                                         icon-name="check-all"
                                         class="size-3 text-blue-300"
                                         title="Delivered"
                                     />
-                                    <!-- sent: single check (include unknown for initial outbound when server confirmed creation) -->
                                     <MaterialDesignIcon
                                         v-else-if="
-                                            ['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)
+                                            ['sent', 'propagated', 'unknown'].includes(
+                                                entry.items[0].lxmf_message.state
+                                            )
                                         "
                                         icon-name="check"
                                         class="size-3 text-white/90"
                                         :title="
-                                            chatItem.lxmf_message.state === 'propagated'
+                                            entry.items[0].lxmf_message.state === 'propagated'
                                                 ? 'Sent to propagation node'
                                                 : 'Sent'
                                         "
                                     />
-                                    <!-- pending/sending/generating: clock or loading -->
-                                    <MaterialDesignIcon
+                                    <svg
                                         v-else-if="
-                                            ['outbound', 'sending', 'generating'].includes(chatItem.lxmf_message.state)
+                                            showRichOutboundPendingUi(entry.items[0]) &&
+                                            isOutboundPendingForUi(entry.items[0])
                                         "
-                                        icon-name="clock-outline"
-                                        class="size-3 text-white/60"
-                                        :title="
-                                            chatItem.lxmf_message.state === 'sending'
-                                                ? `Sending... ${chatItem.lxmf_message.progress.toFixed(0)}%`
-                                                : 'Pending'
-                                        "
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        class="animate-spin size-3.5 shrink-0"
+                                        :class="outboundSendingStatusIconClass(entry.items[0])"
+                                        :title="outboundBubbleStatusHoverTitle(entry.items[0].lxmf_message)"
+                                    >
+                                        <title>{{ outboundBubbleStatusHoverTitle(entry.items[0].lxmf_message) }}</title>
+                                        <circle
+                                            class="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            stroke-width="4"
+                                        ></circle>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                    <MaterialDesignIcon
+                                        v-else-if="isOutboundPendingForUi(entry.items[0])"
+                                        icon-name="check"
+                                        class="size-3 text-white/90 opacity-50"
+                                        :title="$t('messages.sending_ellipsis')"
                                     />
-                                    <!-- failed/cancelled/rejected: alert -->
+                                    <div
+                                        v-else-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
+                                        class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-amber-200/85"
+                                        :title="$t('messages.opportunistic_deferred_tooltip')"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="clock-outline"
+                                            class="size-2.5 text-amber-200/95"
+                                        />
+                                    </div>
                                     <MaterialDesignIcon
                                         v-else-if="
-                                            ['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)
+                                            ['failed', 'cancelled', 'rejected'].includes(
+                                                entry.items[0].lxmf_message.state
+                                            )
                                         "
                                         icon-name="alert-circle-outline"
                                         class="size-3 text-white"
-                                        :title="chatItem.lxmf_message.state"
+                                        :title="outboundBubbleFailedTitle(entry.items[0].lxmf_message)"
                                     />
                                 </div>
                             </div>
                         </div>
-
-                        <!-- actions (expanded) -->
                         <div
-                            v-if="chatItem.is_actions_expanded"
-                            class="border-t px-4 py-2.5"
+                            v-if="entry.items[0].is_actions_expanded"
+                            class="border-t px-4 py-2.5 rounded-b-2xl rounded-t-md w-full max-w-[min(280px,85vw)]"
                             :class="
-                                chatItem.is_outbound
+                                entry.items[0].is_outbound
                                     ? 'border-white/20 bg-white/10'
                                     : 'border-gray-200/60 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/50'
                             "
@@ -929,42 +661,665 @@
                                 <button
                                     type="button"
                                     class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors"
-                                    @click.stop="replyToMessage(chatItem)"
+                                    @click.stop="replyToMessage(entry.items[0])"
                                 >
                                     {{ $t("messages.reply") }}
                                 </button>
                                 <button
                                     type="button"
                                     class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors"
-                                    @click.stop="deleteChatItem(chatItem)"
+                                    @click.stop="deleteChatItem(entry.items[0])"
                                 >
                                     Delete
                                 </button>
                                 <button
                                     type="button"
                                     class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors"
-                                    @click.stop="showRawMessage(chatItem)"
+                                    @click.stop="showRawMessage(entry.items[0])"
                                 >
                                     Raw LXM
                                 </button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- expanded message details -->
-                    <div
-                        v-if="expandedMessageInfo === chatItem.lxmf_message.hash"
-                        class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
-                    >
                         <div
-                            v-for="(line, index) in getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound)"
-                            :key="index"
-                            class="break-all"
+                            v-if="expandedMessageInfo === entry.items[0].lxmf_message.hash"
+                            class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
+                            :class="entry.items[0].is_outbound ? 'self-end' : 'self-start'"
                         >
-                            {{ line }}
+                            <div
+                                v-for="(line, index) in getMessageInfoLines(
+                                    entry.items[0].lxmf_message,
+                                    entry.items[0].is_outbound
+                                )"
+                                :key="index"
+                                class="break-all"
+                            >
+                                {{ line }}
+                            </div>
                         </div>
                     </div>
-                </div>
+                    <div
+                        v-for="chatItem in [entry.chatItem]"
+                        v-else
+                        :id="`message-${chatItem.lxmf_message.hash}`"
+                        :key="chatItem.lxmf_message.hash"
+                        class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
+                        :class="{
+                            'ml-auto items-end': chatItem.is_outbound,
+                            'mr-auto items-start': !chatItem.is_outbound,
+                        }"
+                        @contextmenu.prevent="onMessageContextMenu($event, chatItem)"
+                    >
+                        <!-- standalone image (outside bubble) -->
+                        <div
+                            v-if="chatItem.lxmf_message.fields?.image"
+                            class="relative group w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
+                            :class="chatItem.is_outbound ? 'ml-auto' : 'mr-auto'"
+                        >
+                            <img
+                                :src="pendingOutboundImageSrc(chatItem)"
+                                loading="lazy"
+                                decoding="async"
+                                class="max-h-[min(320px,55vh)] w-full cursor-pointer object-cover object-center transition-transform hover:scale-[1.01]"
+                                alt=""
+                                @click.stop="openImage(pendingOutboundImageSrc(chatItem))"
+                            />
+                            <div
+                                class="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-black/60 px-2.5 py-1 text-xs text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 sm:opacity-100"
+                            >
+                                <span>{{
+                                    (chatItem.lxmf_message.fields.image.image_type ?? "image").toUpperCase()
+                                }}</span>
+                                <span class="mx-1">·</span>
+                                <span>{{ formatAttachmentSize(chatItem.lxmf_message.fields.image, "image") }}</span>
+                            </div>
+                        </div>
+                        <!-- message content -->
+                        <div
+                            class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
+                            :class="[
+                                ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
+                                    ? 'shadow-sm'
+                                    : chatItem.lxmf_message.is_spam
+                                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
+                                      : isOutboundPathfindingBubble(chatItem)
+                                        ? 'bg-gray-200 dark:bg-zinc-700 text-gray-900 dark:text-zinc-100 border border-gray-300 dark:border-zinc-600 shadow-sm'
+                                        : chatItem.is_outbound
+                                          ? 'shadow-sm'
+                                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
+                            ]"
+                            :style="bubbleStyles(chatItem)"
+                            @click="onChatItemClick(chatItem)"
+                        >
+                            <button
+                                type="button"
+                                class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
+                                :class="
+                                    chatItem.is_outbound
+                                        ? 'hover:bg-white/20'
+                                        : 'hover:bg-gray-200 dark:hover:bg-zinc-700'
+                                "
+                                :title="$t('messages.message_actions')"
+                                @click.stop="onMessageContextMenu($event, chatItem)"
+                            >
+                                <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
+                            </button>
+                            <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
+                                <!-- reply snippet -->
+                                <div
+                                    v-if="chatItem.lxmf_message.reply_to_hash"
+                                    class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-blue-500/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                                    @click.stop="scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
+                                >
+                                    <div
+                                        class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight mb-0.5"
+                                        :class="outboundReplySnippetTitleClass(chatItem)"
+                                    >
+                                        <MaterialDesignIcon icon-name="reply" class="size-3" />
+                                        {{ $t("messages.replying_to") }}
+                                    </div>
+                                    <div class="text-xs opacity-70 truncate line-clamp-1 italic">
+                                        {{
+                                            chatItem.lxmf_message.fields?.reply_quoted_content ||
+                                            getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
+                                            (chatItem.lxmf_message.reply_to_hash
+                                                ? `Message <${chatItem.lxmf_message.reply_to_hash.substring(0, 8)}...>`
+                                                : "(Message not found)")
+                                        }}
+                                    </div>
+                                </div>
+
+                                <!-- spam badge -->
+                                <div
+                                    v-if="chatItem.lxmf_message.is_spam"
+                                    class="flex items-center gap-1.5 text-xs font-medium mb-1"
+                                    :class="
+                                        chatItem.is_outbound
+                                            ? 'text-orange-200'
+                                            : 'text-orange-700 dark:text-orange-300'
+                                    "
+                                >
+                                    <MaterialDesignIcon icon-name="alert-decagram" class="size-4" />
+                                    <span>Marked as Spam</span>
+                                </div>
+
+                                <!-- content -->
+                                <!-- eslint-disable vue/no-v-html -->
+                                <div
+                                    v-if="
+                                        chatItem.lxmf_message.content &&
+                                        !getParsedItems(chatItem)?.isOnlyPaperMessage &&
+                                        !shouldHideAutoImageCaption(chatItem)
+                                    "
+                                    class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
+                                    :style="{
+                                        'font-family': 'inherit',
+                                        'font-size': (config?.message_font_size || 14) + 'px',
+                                    }"
+                                    @click="handleMessageClick"
+                                    v-html="renderMarkdown(chatItem.lxmf_message.content)"
+                                ></div>
+                                <!-- eslint-enable vue/no-v-html -->
+
+                                <!-- telemetry placeholder for empty content messages -->
+                                <div
+                                    v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry"
+                                    class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                                >
+                                    <MaterialDesignIcon icon-name="satellite-variant" class="size-4 opacity-60" />
+                                    <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                        {{
+                                            chatItem.is_outbound ? "Telemetry update sent" : "Telemetry update received"
+                                        }}
+                                    </span>
+                                </div>
+
+                                <div
+                                    v-if="
+                                        !chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry_stream
+                                    "
+                                    class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                                >
+                                    <MaterialDesignIcon icon-name="database-sync" class="size-4 opacity-60" />
+                                    <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
+                                        >Telemetry stream received ({{
+                                            chatItem.lxmf_message.fields.telemetry_stream.length
+                                        }}
+                                        entries)</span
+                                    >
+                                </div>
+
+                                <div
+                                    v-if="
+                                        !chatItem.lxmf_message.content &&
+                                        chatItem.lxmf_message.fields?.commands?.some(
+                                            (c) => c['0x01'] || c['1'] || c['0x1']
+                                        )
+                                    "
+                                    class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                                >
+                                    <MaterialDesignIcon icon-name="crosshairs-question" class="size-4 opacity-60" />
+                                    <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                        {{
+                                            chatItem.is_outbound ? "Location Request Sent" : "Location Request Received"
+                                        }}
+                                    </span>
+                                </div>
+
+                                <!-- parsed items (contacts / paper messages) -->
+                                <div v-if="getParsedItems(chatItem)" class="mt-2 space-y-2">
+                                    <!-- contact -->
+                                    <div
+                                        v-if="getParsedItems(chatItem).contact && !chatItem.is_outbound"
+                                        class="flex flex-col gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
+                                    >
+                                        <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                            <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
+                                            <span class="text-sm font-bold">Contact Shared</span>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <LxmfUserIcon
+                                                :custom-image="getParsedItems(chatItem).contact.custom_image"
+                                                :icon-name="getParsedItems(chatItem).contact.lxmf_user_icon?.icon_name"
+                                                :icon-foreground-colour="
+                                                    getParsedItems(chatItem).contact.lxmf_user_icon?.foreground_colour
+                                                "
+                                                :icon-background-colour="
+                                                    getParsedItems(chatItem).contact.lxmf_user_icon?.background_colour
+                                                "
+                                                icon-class="size-10"
+                                            />
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                    {{ getParsedItems(chatItem).contact.name }}
+                                                </div>
+                                                <div
+                                                    class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
+                                                >
+                                                    {{ getParsedItems(chatItem).contact.hash }}
+                                                </div>
+                                                <div
+                                                    v-if="getParsedItems(chatItem).contact.lxmf_address"
+                                                    class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                                >
+                                                    LXMF: {{ getParsedItems(chatItem).contact.lxmf_address }}
+                                                </div>
+                                                <div
+                                                    v-if="getParsedItems(chatItem).contact.lxst_address"
+                                                    class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                                >
+                                                    LXST: {{ getParsedItems(chatItem).contact.lxst_address }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                            @click="
+                                                addContact(
+                                                    getParsedItems(chatItem).contact.name,
+                                                    getParsedItems(chatItem).contact.hash,
+                                                    getParsedItems(chatItem).contact.lxmf_address,
+                                                    getParsedItems(chatItem).contact.lxst_address
+                                                )
+                                            "
+                                        >
+                                            Add to Contacts
+                                        </button>
+                                    </div>
+
+                                    <!-- paper message auto-conversion -->
+                                    <div
+                                        v-if="getParsedItems(chatItem).paperMessage && !chatItem.is_outbound"
+                                        class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-black/60 border border-emerald-100 dark:border-zinc-700/50"
+                                    >
+                                        <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                                            <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
+                                            <span class="text-sm font-bold">Paper Message detected</span>
+                                        </div>
+                                        <p class="text-xs text-emerald-600/80 dark:text-zinc-400 leading-relaxed">
+                                            This message contains a signed LXMF URI that can be ingested into your
+                                            conversations.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                            @click="ingestPaperMessage(getParsedItems(chatItem).paperMessage)"
+                                        >
+                                            Ingest Message
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- audio field -->
+                                <div v-if="chatItem.lxmf_message.fields?.audio" class="pb-1">
+                                    <!-- audio is loaded -->
+                                    <AudioWaveformPlayer
+                                        v-if="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
+                                        :src="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
+                                        :is-outbound="chatItem.is_outbound"
+                                    />
+
+                                    <!-- audio is not yet loaded -->
+                                    <div
+                                        v-else
+                                        class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800 min-h-[54px]"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <div
+                                                class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                                            ></div>
+                                            <span
+                                                class="text-[10px] font-bold text-gray-400 uppercase tracking-wider"
+                                                >{{ $t("messages.downloading") }}</span
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="text-[10px] mt-1 text-right opacity-60"
+                                        :class="outboundAttachmentCaptionClass(chatItem)"
+                                    >
+                                        Voice Note •
+                                        {{ formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
+                                    </div>
+                                </div>
+
+                                <!-- file attachment fields -->
+                                <div v-if="chatItem.lxmf_message.fields?.file_attachments" class="space-y-2 mt-1">
+                                    <a
+                                        v-for="(file_attachment, index) of chatItem.lxmf_message.fields
+                                            ?.file_attachments ?? []"
+                                        :key="file_attachment.file_name"
+                                        target="_blank"
+                                        :download="file_attachment.file_name"
+                                        :href="`/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/file?file_index=${index}`"
+                                        class="flex items-center gap-3 border rounded-lg px-3 py-2 text-sm font-medium cursor-pointer transition-colors"
+                                        :class="
+                                            chatItem.is_outbound
+                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300 border-gray-200/60 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                        "
+                                        @click.stop
+                                    >
+                                        <div class="my-auto">
+                                            <MaterialDesignIcon icon-name="paperclip" class="size-5" />
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="truncate text-xs font-bold">
+                                                {{ file_attachment.file_name }}
+                                            </div>
+                                            <div
+                                                class="text-[10px] font-normal"
+                                                :class="
+                                                    chatItem.is_outbound
+                                                        ? 'text-white/60'
+                                                        : 'text-gray-500 dark:text-zinc-400'
+                                                "
+                                            >
+                                                {{ formatAttachmentSize(file_attachment, "file") }}
+                                            </div>
+                                        </div>
+                                        <div class="my-auto">
+                                            <MaterialDesignIcon icon-name="download" class="size-5" />
+                                        </div>
+                                    </a>
+                                </div>
+
+                                <!-- commands -->
+                                <div v-if="chatItem.lxmf_message.fields?.commands" class="space-y-2 mt-1">
+                                    <div v-for="(command, index) in chatItem.lxmf_message.fields.commands" :key="index">
+                                        <div
+                                            v-if="command['0x01'] || command['1'] || command['0x1']"
+                                            class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                            :class="
+                                                chatItem.is_outbound
+                                                    ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                            "
+                                        >
+                                            <MaterialDesignIcon icon-name="crosshairs-question" class="size-5" />
+                                            <div class="text-left">
+                                                <div class="font-bold text-xs uppercase tracking-wider opacity-80">
+                                                    {{ $t("messages.location_requested") }}
+                                                </div>
+                                                <div v-if="!chatItem.is_outbound" class="text-[10px] opacity-70">
+                                                    Peer is requesting your location
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- telemetry / location field -->
+                                <div v-if="chatItem.lxmf_message.fields?.telemetry" class="pb-1 mt-1 space-y-2">
+                                    <div class="flex flex-wrap gap-2">
+                                        <button
+                                            v-if="chatItem.lxmf_message.fields.telemetry.location"
+                                            type="button"
+                                            class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                            :class="
+                                                chatItem.is_outbound
+                                                    ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                            "
+                                            @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
+                                        >
+                                            <MaterialDesignIcon icon-name="map-marker" class="size-5" />
+                                            <div class="text-left">
+                                                <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
+                                                    Location
+                                                </div>
+                                                <div class="text-[9px] font-mono opacity-70">
+                                                    {{
+                                                        chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(
+                                                            6
+                                                        )
+                                                    }},
+                                                    {{
+                                                        chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(
+                                                            6
+                                                        )
+                                                    }}
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        <!-- Live Track Toggle Button (only for incoming) -->
+                                        <button
+                                            v-if="!chatItem.is_outbound"
+                                            type="button"
+                                            class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                            :class="[
+                                                selectedPeer?.is_tracking
+                                                    ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-inner'
+                                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                            ]"
+                                            @click="toggleTracking()"
+                                        >
+                                            <MaterialDesignIcon
+                                                :icon-name="selectedPeer?.is_tracking ? 'radar' : 'crosshairs'"
+                                                class="size-5"
+                                                :class="{ 'animate-pulse text-blue-500': selectedPeer?.is_tracking }"
+                                            />
+                                            <div class="text-left">
+                                                <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
+                                                    {{ selectedPeer?.is_tracking ? "Tracking Active" : "Live Track" }}
+                                                </div>
+                                                <div class="text-[9px] opacity-70">
+                                                    {{
+                                                        selectedPeer?.is_tracking
+                                                            ? "Auto-requesting location"
+                                                            : "Enable live tracking"
+                                                    }}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    <!-- other sensor data if available -->
+                                    <div
+                                        v-if="
+                                            chatItem.lxmf_message.fields.telemetry.battery ||
+                                            chatItem.lxmf_message.fields.telemetry.physical_link
+                                        "
+                                        class="flex gap-3 px-1"
+                                    >
+                                        <div
+                                            v-if="chatItem.lxmf_message.fields.telemetry.battery"
+                                            class="flex items-center gap-1 opacity-60 text-[10px]"
+                                        >
+                                            <MaterialDesignIcon icon-name="battery" class="size-3" />
+                                            <span
+                                                >{{
+                                                    chatItem.lxmf_message.fields.telemetry.battery.charge_percent
+                                                }}%</span
+                                            >
+                                        </div>
+                                        <div
+                                            v-if="chatItem.lxmf_message.fields.telemetry.physical_link"
+                                            class="flex items-center gap-1 opacity-60 text-[10px]"
+                                        >
+                                            <MaterialDesignIcon icon-name="antenna" class="size-3" />
+                                            <span
+                                                >SNR:
+                                                {{ chatItem.lxmf_message.fields.telemetry.physical_link.snr }}dB</span
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- message footer: timestamp and status icons -->
+                                <div class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3">
+                                    <span
+                                        class="text-[9px] opacity-80 font-medium"
+                                        :class="outboundBubbleFooterTimeClass(chatItem)"
+                                        :title="
+                                            getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound).join('\n')
+                                        "
+                                    >
+                                        {{ formatTimeAgo(chatItem.lxmf_message.created_at) }}
+                                    </span>
+
+                                    <!-- outbound status icons -->
+                                    <div v-if="chatItem.is_outbound" class="flex items-center gap-1">
+                                        <span
+                                            v-if="isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
+                                            class="text-[9px] font-bold uppercase tracking-wider text-amber-200"
+                                        >
+                                            {{ $t("messages.opportunistic_deferred_label") }}
+                                        </span>
+                                        <span
+                                            v-else-if="
+                                                ['failed', 'cancelled', 'rejected'].includes(
+                                                    chatItem.lxmf_message.state
+                                                )
+                                            "
+                                            class="text-[9px] font-bold uppercase tracking-wider text-white"
+                                        >
+                                            {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                                        </span>
+                                        <button
+                                            v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
+                                            type="button"
+                                            class="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                            title="Retry sending"
+                                            @click.stop="retrySendingMessage(chatItem)"
+                                        >
+                                            <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
+                                        </button>
+
+                                        <!-- delivered: double check -->
+                                        <MaterialDesignIcon
+                                            v-if="chatItem.lxmf_message.state === 'delivered'"
+                                            icon-name="check-all"
+                                            class="size-3 text-blue-300"
+                                            title="Delivered"
+                                        />
+                                        <!-- sent: single check (include unknown for initial outbound when server confirmed creation) -->
+                                        <MaterialDesignIcon
+                                            v-else-if="
+                                                ['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)
+                                            "
+                                            icon-name="check"
+                                            class="size-3 text-white/90"
+                                            :title="
+                                                chatItem.lxmf_message.state === 'propagated'
+                                                    ? 'Sent to propagation node'
+                                                    : 'Sent'
+                                            "
+                                        />
+                                        <svg
+                                            v-else-if="
+                                                showRichOutboundPendingUi(chatItem) && isOutboundPendingForUi(chatItem)
+                                            "
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            class="animate-spin size-3.5 shrink-0"
+                                            :class="outboundSendingStatusIconClass(chatItem)"
+                                            :title="outboundBubbleStatusHoverTitle(chatItem.lxmf_message)"
+                                        >
+                                            <title>{{ outboundBubbleStatusHoverTitle(chatItem.lxmf_message) }}</title>
+                                            <circle
+                                                class="opacity-25"
+                                                cx="12"
+                                                cy="12"
+                                                r="10"
+                                                stroke="currentColor"
+                                                stroke-width="4"
+                                            ></circle>
+                                            <path
+                                                class="opacity-75"
+                                                fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                            ></path>
+                                        </svg>
+                                        <MaterialDesignIcon
+                                            v-else-if="isOutboundPendingForUi(chatItem)"
+                                            icon-name="check"
+                                            class="size-3 text-white/90 opacity-50"
+                                            :title="$t('messages.sending_ellipsis')"
+                                        />
+                                        <div
+                                            v-else-if="isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
+                                            class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-amber-200/85"
+                                            :title="$t('messages.opportunistic_deferred_tooltip')"
+                                        >
+                                            <MaterialDesignIcon
+                                                icon-name="clock-outline"
+                                                class="size-2.5 text-amber-200/95"
+                                            />
+                                        </div>
+                                        <!-- failed/cancelled/rejected: alert -->
+                                        <MaterialDesignIcon
+                                            v-else-if="
+                                                ['failed', 'cancelled', 'rejected'].includes(
+                                                    chatItem.lxmf_message.state
+                                                )
+                                            "
+                                            icon-name="alert-circle-outline"
+                                            class="size-3 text-white"
+                                            :title="outboundBubbleFailedTitle(chatItem.lxmf_message)"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- actions (expanded) -->
+                            <div
+                                v-if="chatItem.is_actions_expanded"
+                                class="border-t px-4 py-2.5"
+                                :class="
+                                    chatItem.is_outbound
+                                        ? 'border-white/20 bg-white/10'
+                                        : 'border-gray-200/60 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/50'
+                                "
+                            >
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors"
+                                        @click.stop="replyToMessage(chatItem)"
+                                    >
+                                        {{ $t("messages.reply") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors"
+                                        @click.stop="deleteChatItem(chatItem)"
+                                    >
+                                        Delete
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors"
+                                        @click.stop="showRawMessage(chatItem)"
+                                    >
+                                        Raw LXM
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- expanded message details -->
+                        <div
+                            v-if="expandedMessageInfo === chatItem.lxmf_message.hash"
+                            class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
+                        >
+                            <div
+                                v-for="(line, index) in getMessageInfoLines(
+                                    chatItem.lxmf_message,
+                                    chatItem.is_outbound
+                                )"
+                                :key="index"
+                                class="break-all"
+                            >
+                                {{ line }}
+                            </div>
+                        </div>
+                    </div>
+                </template>
 
                 <!-- load previous -->
                 <button
@@ -1025,30 +1380,125 @@
                 <!-- message composer -->
                 <div>
                     <div class="space-y-2 mb-2">
-                        <!-- image attachments -->
-                        <div v-if="newMessageImages.length > 0" class="flex flex-wrap gap-2">
-                            <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
-                                <div
-                                    class="w-20 h-20 sm:w-24 sm:h-24 overflow-hidden rounded-xl bg-gray-100 dark:bg-zinc-800 cursor-pointer border border-gray-200 dark:border-zinc-800 shadow-sm"
-                                    @click.stop="openImage(newMessageImageUrls[index])"
-                                >
-                                    <img
-                                        v-if="newMessageImageUrls[index]"
-                                        :src="newMessageImageUrls[index]"
-                                        class="w-full h-full object-cover"
-                                    />
-                                </div>
+                        <!-- image attachments (mosaic, separate from text field) -->
+                        <div
+                            v-if="newMessageImages.length > 0"
+                            class="w-full max-w-[min(280px,100%)] rounded-xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-sm bg-black/5 dark:bg-white/5"
+                        >
+                            <div v-if="newMessageImages.length === 1" class="relative group">
                                 <button
                                     type="button"
-                                    class="absolute -top-1 -right-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-sm transition-all opacity-100 sm:opacity-0 group-hover:opacity-100"
-                                    @click.stop="removeImageAttachment(index)"
+                                    class="block w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                    @click.stop="openImage(newMessageImageUrls[0], newMessageImageUrls)"
                                 >
-                                    <MaterialDesignIcon icon-name="close" class="w-3 h-3" />
+                                    <img
+                                        v-if="newMessageImageUrls[0]"
+                                        :src="newMessageImageUrls[0]"
+                                        class="max-h-52 w-full object-cover object-center"
+                                    />
                                 </button>
-                                <div
-                                    class="absolute bottom-0 left-0 right-0 p-1 bg-black/40 text-white text-[9px] text-center rounded-b-xl backdrop-blur-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block"
+                                <button
+                                    type="button"
+                                    class="absolute -top-1 -right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
+                                    @click.stop="removeImageAttachment(0)"
                                 >
-                                    {{ formatBytes(image.size) }}
+                                    <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                            <div v-else-if="newMessageImages.length === 2" class="grid grid-cols-2 gap-0.5">
+                                <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
+                                    <button
+                                        type="button"
+                                        class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                        @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
+                                    >
+                                        <img
+                                            v-if="newMessageImageUrls[index]"
+                                            :src="newMessageImageUrls[index]"
+                                            class="h-full w-full object-cover"
+                                        />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                        @click.stop="removeImageAttachment(index)"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-else-if="newMessageImages.length === 3" class="grid grid-cols-2 gap-0.5">
+                                <div v-for="index in [0, 1]" :key="index" class="relative group">
+                                    <button
+                                        type="button"
+                                        class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                        @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
+                                    >
+                                        <img
+                                            v-if="newMessageImageUrls[index]"
+                                            :src="newMessageImageUrls[index]"
+                                            class="h-full w-full object-cover"
+                                        />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                        @click.stop="removeImageAttachment(index)"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                                <div class="relative group col-span-2">
+                                    <button
+                                        type="button"
+                                        class="relative block aspect-[2/1] max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                        @click.stop="openImage(newMessageImageUrls[2], newMessageImageUrls)"
+                                    >
+                                        <img
+                                            v-if="newMessageImageUrls[2]"
+                                            :src="newMessageImageUrls[2]"
+                                            class="h-full w-full object-cover"
+                                        />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                        @click.stop="removeImageAttachment(2)"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-else class="grid grid-cols-2 gap-0.5">
+                                <div
+                                    v-for="slot in Math.min(4, newMessageImages.length)"
+                                    :key="'compose-mosaic-' + slot"
+                                    class="relative group"
+                                >
+                                    <button
+                                        type="button"
+                                        class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                        @click.stop="openImage(newMessageImageUrls[slot - 1], newMessageImageUrls)"
+                                    >
+                                        <img
+                                            v-if="newMessageImageUrls[slot - 1]"
+                                            :src="newMessageImageUrls[slot - 1]"
+                                            class="h-full w-full object-cover"
+                                        />
+                                        <div
+                                            v-if="slot === 4 && newMessageImages.length > 4"
+                                            class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-2xl font-bold text-white"
+                                        >
+                                            +{{ newMessageImages.length - 4 }}
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                        @click.stop="removeImageAttachment(slot - 1)"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1093,20 +1543,33 @@
                         </div>
                     </div>
 
-                    <!-- text input -->
-                    <textarea
-                        id="message-input"
-                        ref="message-input"
-                        v-model="newMessageText"
-                        :readonly="isSendingMessage"
-                        class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full px-3 sm:px-4 py-2 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[40px] max-h-[200px] overflow-y-auto"
-                        rows="1"
-                        spellcheck="true"
-                        :placeholder="$t('messages.send_placeholder')"
-                        @keydown.enter.exact.prevent="onEnterPressed"
-                        @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
-                        @paste="onMessagePaste"
-                    ></textarea>
+                    <!-- text input + send -->
+                    <div class="flex items-end gap-2">
+                        <textarea
+                            id="message-input"
+                            ref="message-input"
+                            v-model="newMessageText"
+                            :readonly="isTranslatingMessage"
+                            class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 flex-1 px-3 sm:px-4 py-2 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto"
+                            rows="1"
+                            spellcheck="true"
+                            :placeholder="$t('messages.send_placeholder')"
+                            @keydown.enter.exact.prevent="onEnterPressed"
+                            @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
+                            @paste="onMessagePaste"
+                        ></textarea>
+                        <div class="shrink-0 pb-0.5">
+                            <SendMessageButton
+                                :is-sending-message="false"
+                                :can-send-message="canSendMessage"
+                                :delivery-method="newMessageDeliveryMethod"
+                                :compact="isMobile"
+                                :sending-tooltip="sendMessagePathfindingTooltip"
+                                @send="sendMessage"
+                                @delivery-method-changed="newMessageDeliveryMethod = $event"
+                            />
+                        </div>
+                    </div>
 
                     <!-- reply preview -->
                     <div
@@ -1202,15 +1665,6 @@
                             <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
                             <span class="hidden sm:inline">{{ $t("translator.translate") }}</span>
                         </button>
-                        <div class="ml-auto my-auto">
-                            <SendMessageButton
-                                :is-sending-message="isSendingMessage"
-                                :can-send-message="canSendMessage"
-                                :delivery-method="newMessageDeliveryMethod"
-                                @send="sendMessage"
-                                @delivery-method-changed="newMessageDeliveryMethod = $event"
-                            />
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1439,7 +1893,7 @@
                         id="compose-input"
                         ref="compose-input"
                         v-model="composeAddress"
-                        :readonly="isSendingMessage"
+                        :readonly="isTranslatingMessage"
                         type="text"
                         class="w-full bg-white dark:bg-zinc-900 border-2 border-gray-100 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-base rounded-3xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 pl-12 pr-4 py-4 shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600 font-medium"
                         placeholder="Enter LXMF address to start a conversation..."
@@ -1512,8 +1966,13 @@
     >
         <div
             v-if="imageModalUrl"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4"
+            ref="imageModalOverlay"
+            tabindex="0"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4 outline-none"
             @click="closeImageModal"
+            @keydown.left.prevent="imageModalNavigate(-1)"
+            @keydown.right.prevent="imageModalNavigate(1)"
+            @keydown.escape.prevent="closeImageModal"
         >
             <div class="relative max-w-7xl max-h-full" @click.stop>
                 <button
@@ -1523,6 +1982,30 @@
                 >
                     <MaterialDesignIcon icon-name="close" class="size-5" />
                 </button>
+                <button
+                    v-if="imageModalGallery && imageModalGallery.length > 1"
+                    type="button"
+                    class="absolute left-0 top-1/2 z-10 -translate-y-1/2 inline-flex items-center justify-center w-11 h-11 rounded-full bg-black/40 hover:bg-black/55 text-white transition-colors"
+                    aria-label="Previous image"
+                    @click.stop="imageModalNavigate(-1)"
+                >
+                    <MaterialDesignIcon icon-name="chevron-left" class="size-7" />
+                </button>
+                <button
+                    v-if="imageModalGallery && imageModalGallery.length > 1"
+                    type="button"
+                    class="absolute right-0 top-1/2 z-10 -translate-y-1/2 inline-flex items-center justify-center w-11 h-11 rounded-full bg-black/40 hover:bg-black/55 text-white transition-colors"
+                    aria-label="Next image"
+                    @click.stop="imageModalNavigate(1)"
+                >
+                    <MaterialDesignIcon icon-name="chevron-right" class="size-7" />
+                </button>
+                <div
+                    v-if="imageModalGallery && imageModalGallery.length > 1"
+                    class="pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white"
+                >
+                    {{ imageModalIndex + 1 }} / {{ imageModalGallery.length }}
+                </div>
                 <img :src="imageModalUrl" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl" alt="Image preview" />
             </div>
         </div>
@@ -1762,6 +2245,7 @@ import ToastUtils from "../../js/ToastUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
 import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
+import { createOutboundQueue } from "../../js/outboundSendQueue";
 
 export default {
     name: "ConversationViewer",
@@ -1816,7 +2300,7 @@ export default {
             newMessageAudio: null,
             newMessageTelemetry: null,
             newMessageFiles: [],
-            isSendingMessage: false,
+            isTranslatingMessage: false,
             autoScrollOnNewMessage: true,
             composeAddress: "",
             isComposeInputFocused: false,
@@ -1836,6 +2320,8 @@ export default {
             isDownloadingAudio: {},
             expandedMessageInfo: null,
             imageModalUrl: null,
+            imageModalGallery: null,
+            imageModalIndex: 0,
             isSelectedPeerBlocked: false,
             isStrangerPeer: false,
             strangerBannerDismissed: false,
@@ -1875,19 +2361,38 @@ export default {
             },
             now: Date.now(),
             updateTimer: null,
+            sendStatusUiMs: Date.now(),
+            sendStatusTickInterval: null,
         };
     },
     computed: {
         bubbleStyles() {
+            void GlobalState.detailedOutboundSendStatus;
+            void this.sendStatusUiMs;
             return (chatItem) => {
                 const styles = {};
-                const isFailed = ["cancelled", "failed"].includes(chatItem.lxmf_message.state);
+                const m = chatItem.lxmf_message;
+                const isFailed = ["cancelled", "failed"].includes(m.state);
 
                 if (isFailed) {
+                    if (m.state === "failed" && m.method === "opportunistic") {
+                        styles["background-color"] = "#b45309";
+                        styles["color"] = "#ffffff";
+                        return styles;
+                    }
                     const color = GlobalState.config.message_failed_bubble_color || "#ef4444";
                     styles["background-color"] = color;
                     styles["color"] = "#ffffff";
                 } else if (chatItem.is_outbound) {
+                    if (chatItem.lxmf_message?._pendingPathfinding) {
+                        if (!this.showRichOutboundPendingUi(chatItem)) {
+                            const color = GlobalState.config.message_outbound_bubble_color || "#4f46e5";
+                            styles["background-color"] = color;
+                            styles["color"] = "#ffffff";
+                            return styles;
+                        }
+                        return {};
+                    }
                     const color = GlobalState.config.message_outbound_bubble_color || "#4f46e5";
                     styles["background-color"] = color;
                     styles["color"] = "#ffffff";
@@ -1906,6 +2411,12 @@ export default {
                 minWidth: `${size}px`,
                 minHeight: `${size}px`,
             };
+        },
+        sendMessagePathfindingTooltip() {
+            if (GlobalState.detailedOutboundSendStatus) {
+                return "Finding path to peer (Reticulum is resolving a route). Your message sends as soon as the route is ready. Hover status icons in the bubble for details.";
+            }
+            return this.$t("messages.sending_ellipsis");
         },
         isSyncingPropagationNode() {
             return [
@@ -1994,11 +2505,6 @@ export default {
                 return false;
             }
 
-            // can't send if already sending
-            if (this.isSendingMessage) {
-                return false;
-            }
-
             return true;
         },
         selectedPeerChatItems() {
@@ -2049,6 +2555,41 @@ export default {
         selectedPeerChatItemsReversed() {
             // ensure a copy of the array is returned in reverse order
             return this.selectedPeerChatItems.map((message) => message).reverse();
+        },
+        selectedPeerChatDisplayGroups() {
+            const reversed = this.selectedPeerChatItemsReversed;
+            const groups = [];
+            let i = 0;
+            while (i < reversed.length) {
+                const item = reversed[i];
+                if (this.canMergeImageIntoImageStrip(item)) {
+                    const run = [item];
+                    let j = i + 1;
+                    while (j < reversed.length && run.length < 12) {
+                        const next = reversed[j];
+                        if (next.is_outbound !== item.is_outbound) break;
+                        if (!this.canMergeImageIntoImageStrip(next)) break;
+                        run.push(next);
+                        j++;
+                    }
+                    if (run.length >= 2) {
+                        groups.push({
+                            type: "imageGroup",
+                            items: run,
+                            key: run.map((x) => x.lxmf_message.hash).join("-"),
+                        });
+                        i = j;
+                        continue;
+                    }
+                }
+                groups.push({
+                    type: "single",
+                    chatItem: item,
+                    key: item.lxmf_message.hash,
+                });
+                i++;
+            }
+            return groups;
         },
         oldestMessageId() {
             if (this.selectedPeerChatItems.length > 0) {
@@ -2104,19 +2645,16 @@ export default {
             },
             immediate: true,
         },
-        async selectedPeerChatItems() {
-            // chat items for selected peer changed, so lets process any available audio
-            await this.processAudioForSelectedPeerChatItems();
-        },
         newMessageText() {
             this.$nextTick(() => {
                 this.adjustTextareaHeight();
             });
         },
-        "config.translator_enabled": {
+        config: {
             handler() {
                 this.checkTranslator();
             },
+            deep: true,
         },
         blockedDestinations: {
             handler() {
@@ -2124,6 +2662,17 @@ export default {
             },
             deep: true,
         },
+        selectedPeerChatItems: {
+            async handler() {
+                await this.processAudioForSelectedPeerChatItems();
+                this.$nextTick(() => this._scheduleOutboundSendStatusTick());
+            },
+            deep: true,
+        },
+    },
+    created() {
+        this._outboundQueue = createOutboundQueue((job) => this._executeOutboundSendJob(job));
+        this.sendStatusUiMs = Date.now();
     },
     mounted() {
         this.updateTimer = setInterval(() => {
@@ -2150,10 +2699,16 @@ export default {
         this.propagationStatusInterval = setInterval(() => {
             this.updatePropagationNodeStatus();
         }, 2000);
+
+        this._scheduleOutboundSendStatusTick();
     },
     beforeUnmount() {
         if (this.updateTimer) {
             clearInterval(this.updateTimer);
+        }
+        if (this.sendStatusTickInterval) {
+            clearInterval(this.sendStatusTickInterval);
+            this.sendStatusTickInterval = null;
         }
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -2247,10 +2802,10 @@ export default {
             }
         },
         async translateMessage() {
-            if (!this.newMessageText || this.isSendingMessage) return;
+            if (!this.newMessageText || this.isTranslatingMessage) return;
 
             try {
-                this.isSendingMessage = true;
+                this.isTranslatingMessage = true;
                 const targetLang = this.$i18n.locale || "en";
                 const response = await window.api.post("/api/v1/translator/translate", {
                     text: this.newMessageText,
@@ -2268,7 +2823,7 @@ export default {
                 console.error("Translation failed:", e);
                 ToastUtils.error(this.$t("messages.translation_failed"));
             } finally {
-                this.isSendingMessage = false;
+                this.isTranslatingMessage = false;
             }
         },
         adjustTextareaHeight() {
@@ -2389,6 +2944,7 @@ export default {
             this.getPeerPath();
             this.getPeerLxmfStampInfo();
             this.getPeerSignalMetrics();
+            this.warmPathToPeer();
 
             // mark as read
             this.markConversationAsRead(this.selectedPeer);
@@ -2448,7 +3004,6 @@ export default {
                     this.chatItems.unshift(chatItem);
                 }
 
-                // no more previous to load if received items is less than expected page size
                 if (chatItems.length < pageSize) {
                     this.hasMorePrevious = false;
                 }
@@ -2456,7 +3011,7 @@ export default {
                 // auto load audio
                 this.autoLoadAudioAttachments();
             } catch {
-                // do nothing
+                this.hasMorePrevious = false;
             } finally {
                 this.isLoadingPrevious = false;
             }
@@ -2716,6 +3271,8 @@ export default {
                 return;
             }
 
+            this.removeFirstPendingOutboundPlaceholderForPeer(lxmfMessage.destination_hash);
+
             if (!this.isLxmfMessageInUi(lxmfMessage.hash)) {
                 this.chatItems.push({
                     type: "lxmf_message",
@@ -2913,9 +3470,9 @@ export default {
                 DialogUtils.alert(this.$t("messages.failed_update_display_name"));
             }
         },
-        async onConversationDeleted() {
-            await this.initialLoad();
+        onConversationDeleted() {
             this.$emit("reload-conversations");
+            this.$emit("close");
         },
         async onBanishHeaderClick() {
             if (!this.selectedPeer) return;
@@ -3092,11 +3649,271 @@ export default {
             }
             return "0 B";
         },
-        openImage: async function (url) {
-            this.imageModalUrl = url;
+        openImage: async function (url, galleryUrls) {
+            if (galleryUrls && galleryUrls.length > 1) {
+                this.imageModalGallery = galleryUrls.slice();
+                let idx = galleryUrls.indexOf(url);
+                if (idx < 0) idx = 0;
+                this.imageModalIndex = idx;
+                this.imageModalUrl = galleryUrls[idx];
+            } else {
+                this.imageModalGallery = null;
+                this.imageModalIndex = 0;
+                this.imageModalUrl = url;
+            }
+            this.$nextTick(() => {
+                this.$refs.imageModalOverlay?.focus?.();
+            });
         },
         closeImageModal() {
             this.imageModalUrl = null;
+            this.imageModalGallery = null;
+            this.imageModalIndex = 0;
+        },
+        imageModalNavigate(delta) {
+            if (!this.imageModalGallery || this.imageModalGallery.length < 2) return;
+            const n = this.imageModalGallery.length;
+            this.imageModalIndex = (this.imageModalIndex + delta + n) % n;
+            this.imageModalUrl = this.imageModalGallery[this.imageModalIndex];
+        },
+        canMergeImageIntoImageStrip(chatItem) {
+            const m = chatItem.lxmf_message;
+            if (m.is_spam) return false;
+            if (["cancelled", "failed", "rejected"].includes(m.state)) return false;
+            if (!m.fields?.image) return false;
+            if (m.reply_to_hash) return false;
+            const c = (m.content || "").trim();
+            if (c && !this.isLikelyMultiImagePlaceholderCaption(c)) return false;
+            if (m.fields?.audio) return false;
+            if (m.fields?.file_attachments?.length) return false;
+            if (m.fields?.telemetry) return false;
+            if (m.fields?.telemetry_stream) return false;
+            if (m.fields?.commands?.length) return false;
+            return true;
+        },
+        isLikelyMultiImagePlaceholderCaption(text) {
+            if (!text || text.includes("\n") || text.includes("\r")) return false;
+            if (text.length > 240) return false;
+            if (/[\\/]/.test(text)) return false;
+            if (/[<>[\]{}]/.test(text)) return false;
+            return /^[\w.\- ()#@%&!+,;=']+\.(png|jpe?g|gif|webp|bmp|heif|heic|avif|svg|ico)$/i.test(text.trim());
+        },
+        shouldHideAutoImageCaption(chatItem) {
+            const m = chatItem.lxmf_message;
+            if (!m.fields?.image) return false;
+            return this.isLikelyMultiImagePlaceholderCaption((m.content || "").trim());
+        },
+        imageGroupSortedChron(items) {
+            return [...items].sort((a, b) => {
+                const ta = a.lxmf_message.timestamp ?? 0;
+                const tb = b.lxmf_message.timestamp ?? 0;
+                return ta - tb;
+            });
+        },
+        lxmfImageUrl(hash) {
+            return `/api/v1/lxmf-messages/attachment/${hash}/image`;
+        },
+        pendingOutboundImageSrc(chatItem) {
+            const prev = chatItem.lxmf_message?.fields?.image?._preview_url;
+            if (prev) {
+                return prev;
+            }
+            return this.lxmfImageUrl(chatItem.lxmf_message.hash);
+        },
+        removePendingOutboundPlaceholder(hash) {
+            if (!hash) {
+                return;
+            }
+            this.chatItems = this.chatItems.filter((item) => item.lxmf_message?.hash !== hash);
+        },
+        removeFirstPendingOutboundPlaceholderForPeer(destinationHash) {
+            let removed = false;
+            this.chatItems = this.chatItems.filter((item) => {
+                if (removed) {
+                    return true;
+                }
+                const h = item.lxmf_message?.hash;
+                if (
+                    item.is_outbound &&
+                    h?.startsWith("pending-") &&
+                    item.lxmf_message.destination_hash === destinationHash
+                ) {
+                    removed = true;
+                    return false;
+                }
+                return true;
+            });
+        },
+        outboundSendingStatusTooltip(lxmfMessage) {
+            if (!lxmfMessage) {
+                return "";
+            }
+            const synthetic = { is_outbound: true, lxmf_message: lxmfMessage };
+            if (!this.showRichOutboundPendingUi(synthetic)) {
+                return this.$t("messages.sending_ellipsis");
+            }
+            if (lxmfMessage._pendingPathfinding) {
+                return "Finding path: Reticulum is resolving a route to this peer. Your message sends when the route is ready.";
+            }
+            if (lxmfMessage.state === "generating") {
+                return "Preparing message…";
+            }
+            if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
+                return `Sending… ${Number(lxmfMessage.progress).toFixed(0)}%`;
+            }
+            if (lxmfMessage.state === "sending") {
+                return "Sending…";
+            }
+            return "Pending";
+        },
+        isOutboundPathfindingBubble(chatItem) {
+            return Boolean(
+                chatItem?.is_outbound &&
+                chatItem?.lxmf_message?._pendingPathfinding &&
+                this.showRichOutboundPendingUi(chatItem)
+            );
+        },
+        isOutboundSendingBusy(chatItem) {
+            const m = chatItem?.lxmf_message;
+            if (!chatItem?.is_outbound || !m) {
+                return false;
+            }
+            return ["outbound", "sending", "generating"].includes(m.state);
+        },
+        isOutboundPendingForUi(chatItem) {
+            const m = chatItem?.lxmf_message;
+            if (!chatItem?.is_outbound || !m) {
+                return false;
+            }
+            if (m._pendingPathfinding) {
+                return true;
+            }
+            return ["outbound", "sending", "generating"].includes(m.state);
+        },
+        isOutboundSendEscalated(chatItem) {
+            const m = chatItem?.lxmf_message;
+            if (!chatItem?.is_outbound || !m) {
+                return false;
+            }
+            if (!this.isOutboundPendingForUi(chatItem)) {
+                return false;
+            }
+            const created = m.created_at ? new Date(m.created_at).getTime() : 0;
+            if (!created) {
+                return false;
+            }
+            return this.sendStatusUiMs - created >= 3000;
+        },
+        showRichOutboundPendingUi(chatItem) {
+            if (GlobalState.detailedOutboundSendStatus) {
+                return true;
+            }
+            return this.isOutboundSendEscalated(chatItem);
+        },
+        _shouldTickOutboundSendStatusUi() {
+            return this.selectedPeerChatItems.some((item) => this.isOutboundPendingForUi(item));
+        },
+        _scheduleOutboundSendStatusTick() {
+            if (this.sendStatusTickInterval) {
+                clearInterval(this.sendStatusTickInterval);
+                this.sendStatusTickInterval = null;
+            }
+            if (!this._shouldTickOutboundSendStatusUi()) {
+                return;
+            }
+            this.sendStatusUiMs = Date.now();
+            this.sendStatusTickInterval = setInterval(() => {
+                this.sendStatusUiMs = Date.now();
+            }, 1000);
+        },
+        outboundBubbleFooterTimeClass(chatItem) {
+            if (!chatItem.is_outbound) {
+                return "text-gray-500 dark:text-zinc-400";
+            }
+            if (this.isOutboundPathfindingBubble(chatItem)) {
+                return "text-gray-600 dark:text-zinc-400";
+            }
+            return "text-white/90";
+        },
+        outboundSendingStatusIconClass(chatItem) {
+            if (this.isOutboundPathfindingBubble(chatItem)) {
+                return "text-gray-600 dark:text-zinc-400";
+            }
+            return "text-white/90";
+        },
+        outboundReplySnippetTitleClass(chatItem) {
+            if (!chatItem.is_outbound) {
+                return "text-indigo-500/80";
+            }
+            if (this.isOutboundPathfindingBubble(chatItem)) {
+                return "text-gray-700 dark:text-gray-300";
+            }
+            return "text-white/80";
+        },
+        outboundAttachmentCaptionClass(chatItem) {
+            if (!chatItem.is_outbound) {
+                return "text-gray-500 dark:text-zinc-400";
+            }
+            if (this.isOutboundPathfindingBubble(chatItem)) {
+                return "text-gray-600 dark:text-zinc-400";
+            }
+            return "text-white";
+        },
+        outboundBubbleStatusHoverTitle(lxmfMessage) {
+            if (!lxmfMessage) {
+                return "";
+            }
+            const synthetic = { is_outbound: true, lxmf_message: lxmfMessage };
+            if (!this.showRichOutboundPendingUi(synthetic)) {
+                return this.$t("messages.sending_ellipsis");
+            }
+            if (lxmfMessage._pendingPathfinding) {
+                return "Finding path";
+            }
+            if (lxmfMessage.state === "generating") {
+                return "Preparing message";
+            }
+            if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
+                return `Sending ${Number(lxmfMessage.progress).toFixed(0)}%`;
+            }
+            if (lxmfMessage.state === "sending") {
+                return "Sending";
+            }
+            if (lxmfMessage.state === "outbound") {
+                return "Outbound";
+            }
+            return this.outboundSendingStatusTooltip(lxmfMessage);
+        },
+        outboundBubbleFailedTitle(lxmfMessage) {
+            if (!lxmfMessage) {
+                return "";
+            }
+            if (lxmfMessage.state === "rejected") {
+                return "Rejected";
+            }
+            if (lxmfMessage.state === "cancelled") {
+                return "Cancelled";
+            }
+            return "Failed";
+        },
+        isOpportunisticDeferredDelivery(lxmfMessage) {
+            if (!lxmfMessage) {
+                return false;
+            }
+            return lxmfMessage.method === "opportunistic" && lxmfMessage.state === "failed";
+        },
+        async warmPathToPeer() {
+            if (!this.selectedPeer?.destination_hash) {
+                return;
+            }
+            try {
+                await window.api.post(`/api/v1/destination/${this.selectedPeer.destination_hash}/request-path`);
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        imageGroupGalleryUrls(items) {
+            return this.imageGroupSortedChron(items).map((it) => this.lxmfImageUrl(it.lxmf_message.hash));
         },
         downloadFileFromBase64: async function (fileName, fileBytesBase64) {
             // create blob from base64 encoded file bytes
@@ -3276,99 +4093,181 @@ export default {
             this.paperMessageHash = chatItem.lxmf_message.hash;
             this.isPaperMessageModalOpen = true;
         },
+        clearComposeAfterEnqueue() {
+            this.newMessageText = "";
+            if (this.selectedPeer) {
+                this.saveDraft(this.selectedPeer.destination_hash);
+            }
+            this.newMessageImages = [];
+            this.newMessageImageUrls = [];
+            this.newMessageAudio = null;
+            this.newMessageTelemetry = null;
+            this.newMessageFiles = [];
+            this.clearFileInput();
+            this.replyingTo = null;
+        },
+        async buildOutboundJobSnapshot() {
+            const destinationHash = this.selectedPeer.destination_hash;
+            const deliveryMethod = this.newMessageDeliveryMethod;
+            const text = this.newMessageText;
+            const replyToHash = this.replyingTo?.lxmf_message?.hash || null;
+            const replyQuotedContent =
+                (this.replyingTo && this.getRepliedMessage(this.replyingTo.lxmf_message?.hash)?.content) || null;
+
+            const fields = {};
+
+            if (this.newMessageTelemetry) {
+                fields["telemetry"] = this.newMessageTelemetry;
+            }
+
+            let fileAttachmentsTotalSize = 0;
+            if (this.newMessageFiles.length > 0) {
+                const fileAttachments = [];
+                for (const file of this.newMessageFiles) {
+                    fileAttachmentsTotalSize += file.size;
+                    fileAttachments.push({
+                        file_name: file.name,
+                        file_size: file.size,
+                        file_bytes: Utils.arrayBufferToBase64(await file.arrayBuffer()),
+                    });
+                }
+                fields["file_attachments"] = fileAttachments;
+            }
+
+            let imageTotalSize = 0;
+            const images = [];
+            if (this.newMessageImages.length > 0) {
+                for (const image of this.newMessageImages) {
+                    imageTotalSize += image.size;
+                    images.push({
+                        image_type: image.type.replace("image/", ""),
+                        image_size: image.size,
+                        image_bytes: Utils.arrayBufferToBase64(await image.arrayBuffer()),
+                        name: image.name,
+                    });
+                }
+            }
+
+            let audioTotalSize = 0;
+            if (this.newMessageAudio) {
+                audioTotalSize = this.newMessageAudio.size;
+                fields["audio"] = {
+                    audio_mode: this.newMessageAudio.audio_mode,
+                    audio_size: this.newMessageAudio.size,
+                    audio_bytes: Utils.arrayBufferToBase64(await this.newMessageAudio.audio_blob.arrayBuffer()),
+                };
+            }
+
+            const contentSize = text.length;
+            const totalMessageSize = contentSize + fileAttachmentsTotalSize + imageTotalSize + audioTotalSize;
+
+            if (totalMessageSize > 1000 * 900) {
+                if (
+                    !(await DialogUtils.confirm(
+                        `Your message exceeds 900KB (It's ${this.formatBytes(totalMessageSize)}). It may be rejected by the recipient unless they have increased their delivery limit. Do you want to try sending anyway?`
+                    ))
+                ) {
+                    return null;
+                }
+            }
+
+            const canOptimisticPending =
+                this.newMessageFiles.length === 0 &&
+                this.newMessageAudio == null &&
+                this.newMessageTelemetry == null &&
+                this.newMessageImages.length <= 1;
+
+            return {
+                destinationHash,
+                deliveryMethod,
+                text,
+                fields,
+                images,
+                imagePreviewUrls: [...this.newMessageImageUrls],
+                replyToHash,
+                replyQuotedContent,
+                myLxmfAddressHash: this.myLxmfAddressHash,
+                canOptimisticPending,
+            };
+        },
         async sendMessage() {
-            // do nothing if can't send message
             if (!this.canSendMessage) {
                 return;
             }
-
-            // do nothing if no peer selected
             if (!this.selectedPeer) {
                 return;
             }
-
-            this.isSendingMessage = true;
-
+            this._sendMessageChain = (this._sendMessageChain || Promise.resolve()).then(() =>
+                this._enqueueOutboundFromCompose()
+            );
+            await this._sendMessageChain;
+        },
+        async _enqueueOutboundFromCompose() {
             try {
-                // build fields
-                const fields = {};
-
-                // add telemetry if present
-                if (this.newMessageTelemetry) {
-                    fields["telemetry"] = this.newMessageTelemetry;
+                const job = await this.buildOutboundJobSnapshot();
+                if (!job) {
+                    return;
                 }
-
-                // add file attachments
-                var fileAttachmentsTotalSize = 0;
-                if (this.newMessageFiles.length > 0) {
-                    const fileAttachments = [];
-                    for (const file of this.newMessageFiles) {
-                        fileAttachmentsTotalSize += file.size;
-                        fileAttachments.push({
-                            file_name: file.name,
-                            file_size: file.size,
-                            file_bytes: Utils.arrayBufferToBase64(await file.arrayBuffer()),
-                        });
+                this._outboundQueue.enqueue(job);
+                this.clearComposeAfterEnqueue();
+                this.$nextTick(() => {
+                    this.adjustTextareaHeight();
+                    this.scrollMessagesToBottom();
+                });
+            } catch (e) {
+                console.error(e);
+                const msg = e?.response?.data?.message ?? e?.message ?? "failed to prepare message";
+                DialogUtils.alert(msg);
+            }
+        },
+        async _executeOutboundSendJob(job) {
+            try {
+                job.pendingHash = null;
+                if (job.canOptimisticPending) {
+                    const pendingHash = `pending-${crypto.randomUUID()}`;
+                    job.pendingHash = pendingHash;
+                    const pendingFields = {};
+                    if (job.images.length > 0) {
+                        pendingFields.image = {
+                            image_type: job.images[0].image_type,
+                            image_size: job.images[0].image_size,
+                            _preview_url: job.imagePreviewUrls[0],
+                        };
                     }
-                    fields["file_attachments"] = fileAttachments;
-                }
-
-                // add image attachment
-                var imageTotalSize = 0;
-                var images = [];
-                if (this.newMessageImages.length > 0) {
-                    for (const image of this.newMessageImages) {
-                        imageTotalSize += image.size;
-                        images.push({
-                            image_type: image.type.replace("image/", ""),
-                            image_size: image.size,
-                            image_bytes: Utils.arrayBufferToBase64(await image.arrayBuffer()),
-                            name: image.name,
-                        });
-                    }
-                }
-
-                // add audio attachment
-                var audioTotalSize = 0;
-                if (this.newMessageAudio) {
-                    audioTotalSize = this.newMessageAudio.size;
-                    fields["audio"] = {
-                        audio_mode: this.newMessageAudio.audio_mode,
-                        audio_size: this.newMessageAudio.size,
-                        audio_bytes: Utils.arrayBufferToBase64(await this.newMessageAudio.audio_blob.arrayBuffer()),
-                    };
-                }
-
-                // calculate estimated message size in bytes
-                const contentSize = this.newMessageText.length;
-                const totalMessageSize = contentSize + fileAttachmentsTotalSize + imageTotalSize + audioTotalSize;
-
-                // ask user if they still want to send message if it may be rejected by sender
-                if (totalMessageSize > 1000 * 900) {
-                    // actual limit in LXMF Router is 1mb
-                    if (
-                        !(await DialogUtils.confirm(
-                            `Your message exceeds 900KB (It's ${this.formatBytes(totalMessageSize)}). It may be rejected by the recipient unless they have increased their delivery limit. Do you want to try sending anyway?`
-                        ))
-                    ) {
-                        return;
-                    }
-                }
-
-                // if no images, send message as usual
-                if (images.length === 0) {
-                    const repliedContent =
-                        this.replyingTo && this.getRepliedMessage(this.replyingTo.lxmf_message?.hash)?.content;
-                    const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
-                        delivery_method: this.newMessageDeliveryMethod,
+                    this.chatItems.push({
+                        type: "lxmf_message",
                         lxmf_message: {
-                            destination_hash: this.selectedPeer.destination_hash,
-                            content: this.newMessageText,
-                            reply_to_hash: this.replyingTo?.lxmf_message?.hash || null,
-                            reply_quoted_content: repliedContent || null,
-                            fields: fields,
+                            hash: pendingHash,
+                            content: job.text,
+                            state: "sending",
+                            progress: 0,
+                            created_at: new Date().toISOString(),
+                            destination_hash: job.destinationHash,
+                            source_hash: job.myLxmfAddressHash,
+                            fields: Object.keys(pendingFields).length > 0 ? pendingFields : undefined,
+                            reply_to_hash: job.replyToHash,
+                            _pendingPathfinding: true,
+                        },
+                        is_outbound: true,
+                    });
+                    this.$nextTick(() => {
+                        this.scrollMessagesToBottom();
+                    });
+                }
+
+                if (job.images.length === 0) {
+                    const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
+                        delivery_method: job.deliveryMethod,
+                        lxmf_message: {
+                            destination_hash: job.destinationHash,
+                            content: job.text,
+                            reply_to_hash: job.replyToHash,
+                            reply_quoted_content: job.replyQuotedContent || null,
+                            fields: job.fields,
                         },
                     });
+
+                    this.removePendingOutboundPlaceholder(job.pendingHash);
 
                     if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
                         this.chatItems.push({
@@ -3378,24 +4277,24 @@ export default {
                         });
                     }
                 } else {
-                    const firstImage = images[0];
+                    const firstImage = job.images[0];
                     const firstFields = {
-                        ...fields,
+                        ...job.fields,
                         image: { image_type: firstImage.image_type, image_bytes: firstImage.image_bytes },
                     };
 
-                    const repliedContent =
-                        this.replyingTo && this.getRepliedMessage(this.replyingTo.lxmf_message?.hash)?.content;
                     const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
-                        delivery_method: this.newMessageDeliveryMethod,
+                        delivery_method: job.deliveryMethod,
                         lxmf_message: {
-                            destination_hash: this.selectedPeer.destination_hash,
-                            content: this.newMessageText,
-                            reply_to_hash: this.replyingTo?.lxmf_message?.hash || null,
-                            reply_quoted_content: repliedContent || null,
+                            destination_hash: job.destinationHash,
+                            content: job.text,
+                            reply_to_hash: job.replyToHash,
+                            reply_quoted_content: job.replyQuotedContent || null,
                             fields: firstFields,
                         },
                     });
+
+                    this.removePendingOutboundPlaceholder(job.pendingHash);
 
                     if (!this.isLxmfMessageInUi(response.data.lxmf_message.hash)) {
                         this.chatItems.push({
@@ -3405,18 +4304,18 @@ export default {
                         });
                     }
 
-                    for (let i = 1; i < images.length; i++) {
-                        const image = images[i];
+                    for (let i = 1; i < job.images.length; i++) {
+                        const image = job.images[i];
                         const subsequentFields = {
                             image: { image_type: image.image_type, image_bytes: image.image_bytes },
                         };
 
                         try {
                             const subResponse = await window.api.post(`/api/v1/lxmf-messages/send`, {
-                                delivery_method: this.newMessageDeliveryMethod,
+                                delivery_method: job.deliveryMethod,
                                 lxmf_message: {
-                                    destination_hash: this.selectedPeer.destination_hash,
-                                    content: image.name,
+                                    destination_hash: job.destinationHash,
+                                    content: "",
                                     fields: subsequentFields,
                                 },
                             });
@@ -3434,26 +4333,12 @@ export default {
                     }
                 }
 
-                // always scroll to bottom since we just sent a message
                 this.scrollMessagesToBottom();
-
-                // clear message inputs
-                this.newMessageText = "";
-                this.saveDraft(this.selectedPeer.destination_hash);
-                this.newMessageImages = [];
-                this.newMessageImageUrls = [];
-                this.newMessageAudio = null;
-                this.newMessageTelemetry = null;
-                this.newMessageFiles = [];
-                this.clearFileInput();
-                this.replyingTo = null;
             } catch (e) {
-                // show error
+                this.removePendingOutboundPlaceholder(job.pendingHash);
                 const message = e.response?.data?.message ?? "failed to send message";
                 DialogUtils.alert(message);
                 console.log(e);
-            } finally {
-                this.isSendingMessage = false;
             }
         },
         async cancelSendingMessage(chatItem) {

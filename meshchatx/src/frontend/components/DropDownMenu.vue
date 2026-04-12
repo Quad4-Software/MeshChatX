@@ -4,7 +4,7 @@
         class="cursor-default relative inline-block text-left"
     >
         <!-- menu button -->
-        <div ref="dropdown-button" @click.stop="toggleMenu">
+        <div ref="dropdown-button" class="touch-manipulation" @click.stop="toggleMenu">
             <slot name="button" />
         </div>
 
@@ -58,9 +58,8 @@ export default {
             this.isShowingMenu = false;
             this.dropdownPosition = null;
         },
-        onClickOutsideMenu(event) {
+        onClickOutsideMenu() {
             if (this.isShowingMenu) {
-                event.preventDefault();
                 this.hideMenu();
             }
         },

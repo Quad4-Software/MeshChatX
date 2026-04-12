@@ -303,6 +303,7 @@
                             GlobalState.config.banished_effect_enabled && isBlocked(conversation.destination_hash),
                             selectionMode,
                             selectedHashes.has(conversation.destination_hash),
+                            pinnedSet.has(conversation.destination_hash),
                             timeAgoTick,
                         ]"
                         class="flex cursor-pointer p-2 border-l-2 relative group conversation-item"
@@ -391,6 +392,13 @@
                         </div>
                         <div class="flex flex-col items-center justify-between ml-1 py-1 shrink-0">
                             <div class="flex items-center space-x-1">
+                                <div
+                                    v-if="pinnedSet.has(conversation.destination_hash)"
+                                    class="text-blue-500 dark:text-blue-400"
+                                    title="Pinned"
+                                >
+                                    <MaterialDesignIcon icon-name="pin" class="w-4 h-4" />
+                                </div>
                                 <div v-if="conversation.has_attachments" class="text-gray-500 dark:text-gray-300">
                                     <MaterialDesignIcon icon-name="paperclip" class="w-4 h-4" />
                                 </div>
@@ -431,6 +439,22 @@
                         >
                             <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />
                             <span class="font-medium">Mark as Read</span>
+                        </button>
+                        <button
+                            v-if="contextMenu.targetHash"
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="togglePinFromContextMenu"
+                        >
+                            <MaterialDesignIcon
+                                :icon-name="isContextTargetPinned ? 'pin-off' : 'pin'"
+                                class="size-4 text-gray-400"
+                            />
+                            <span class="font-medium">{{
+                                isContextTargetPinned
+                                    ? $t("messages.unpin_conversation")
+                                    : $t("messages.pin_conversation")
+                            }}</span>
                         </button>
                         <button
                             type="button"
@@ -751,6 +775,10 @@ export default {
             type: Number,
             default: 0,
         },
+        pinnedPeerHashes: {
+            type: Array,
+            default: () => [],
+        },
     },
     emits: [
         "conversation-click",
@@ -770,6 +798,7 @@ export default {
         "bulk-delete",
         "export-folders",
         "import-folders",
+        "toggle-conversation-pin",
     ],
     data() {
         let foldersExpanded = true;
@@ -816,8 +845,25 @@ export default {
         blockedDestinations() {
             return GlobalState.blockedDestinations;
         },
+        pinnedSet() {
+            return new Set(this.pinnedPeerHashes || []);
+        },
+        isContextTargetPinned() {
+            return Boolean(this.contextMenu.targetHash && this.pinnedSet.has(this.contextMenu.targetHash));
+        },
         displayedConversations() {
-            return this.conversations;
+            const list = [...this.conversations];
+            const pinned = this.pinnedSet;
+            const idx = new Map(list.map((c, i) => [c.destination_hash, i]));
+            list.sort((a, b) => {
+                const ap = pinned.has(a.destination_hash);
+                const bp = pinned.has(b.destination_hash);
+                if (ap !== bp) {
+                    return ap ? -1 : 1;
+                }
+                return idx.get(a.destination_hash) - idx.get(b.destination_hash);
+            });
+            return list;
         },
         peersCount() {
             return Object.keys(this.peers).length;
@@ -845,7 +891,10 @@ export default {
             return this.conversations.some((c) => c.is_unread);
         },
         allSelected() {
-            return this.conversations.length > 0 && this.selectedHashes.size === this.conversations.length;
+            return (
+                this.displayedConversations.length > 0 &&
+                this.selectedHashes.size === this.displayedConversations.length
+            );
         },
         messageIconStyle() {
             const size = GlobalState.config?.message_icon_size || 28;
@@ -906,7 +955,7 @@ export default {
             if (this.allSelected) {
                 this.selectedHashes.clear();
             } else {
-                this.conversations.forEach((c) => this.selectedHashes.add(c.destination_hash));
+                this.displayedConversations.forEach((c) => this.selectedHashes.add(c.destination_hash));
             }
         },
         toggleSelectConversation(hash) {
@@ -929,6 +978,14 @@ export default {
 
             // fetch contact info for trust status
             await this.fetchContactForContextMenu(hash);
+        },
+        togglePinFromContextMenu() {
+            const h = this.contextMenu.targetHash;
+            if (!h) {
+                return;
+            }
+            this.$emit("toggle-conversation-pin", h);
+            this.contextMenu.show = false;
         },
         onFolderContextMenu(event) {
             event.preventDefault();

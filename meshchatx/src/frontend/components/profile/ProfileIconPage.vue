@@ -212,8 +212,8 @@ import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ColourPickerDropdown from "../ColourPickerDropdown.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
-import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { mergeGlobalConfig } from "../../js/GlobalState";
 
 export default {
     name: "ProfileIconPage",
@@ -316,7 +316,11 @@ export default {
         async getConfig() {
             try {
                 const response = await window.api.get("/api/v1/config");
-                this.config = response.data.config;
+                const next = response.data?.config;
+                if (next && typeof next === "object") {
+                    this.config = next;
+                    mergeGlobalConfig(next);
+                }
             } catch (e) {
                 ToastUtils.error(this.$t("messages.failed_load_config"));
                 console.error(e);
@@ -325,9 +329,13 @@ export default {
         async updateConfig(config, silent = false) {
             try {
                 const response = await window.api.patch("/api/v1/config", config);
-                this.config = response.data.config;
-                GlobalState.config = response.data.config;
-                GlobalEmitter.emit("config-updated", response.data.config);
+                const next = response.data?.config;
+                if (!next || typeof next !== "object") {
+                    return false;
+                }
+                mergeGlobalConfig(next);
+                this.config = next;
+                GlobalEmitter.emit("config-updated", next);
                 this.saveOriginalValues();
 
                 if (!silent) {

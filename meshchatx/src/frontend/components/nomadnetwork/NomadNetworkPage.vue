@@ -45,9 +45,9 @@
                 </div>
 
                 <!-- header -->
-                <div class="flex p-2 border-b border-gray-300 dark:border-zinc-800">
+                <div class="flex items-center gap-1 p-2 border-b border-gray-300 dark:border-zinc-800 min-w-0">
                     <!-- favourite button -->
-                    <div class="my-auto mr-2">
+                    <div class="my-auto shrink-0 mr-1">
                         <IconButton
                             v-if="isFavourite(selectedNode.destination_hash)"
                             class="text-yellow-500 dark:text-yellow-300"
@@ -67,15 +67,15 @@
                     </div>
 
                     <!-- node info -->
-                    <div class="my-auto dark:text-gray-100 flex-1 min-w-0 flex items-baseline gap-1">
+                    <div class="my-auto dark:text-gray-100 flex-1 min-w-0 flex items-baseline gap-1 overflow-hidden">
                         <span
-                            class="font-semibold truncate inline-block max-w-xs sm:max-w-sm flex-shrink"
+                            class="font-semibold truncate inline-block min-w-0 max-w-[min(100%,12rem)] sm:max-w-xs md:max-w-sm"
                             :title="selectedNode.display_name"
                             >{{ selectedNode.display_name }}</span
                         >
                         <span
                             v-if="selectedNodePath"
-                            class="text-sm cursor-pointer whitespace-nowrap flex-shrink-0"
+                            class="text-sm cursor-pointer whitespace-nowrap flex-shrink-0 hidden sm:inline"
                             @click="onDestinationPathClick(selectedNodePath)"
                         >
                             - {{ selectedNodePath.hops }}
@@ -89,19 +89,8 @@
                         </span>
                     </div>
 
-                    <!-- identify button -->
-                    <div class="my-auto ml-auto mr-2">
-                        <IconButton
-                            class="text-gray-700 dark:text-gray-300"
-                            title="Identify"
-                            @click="identify(selectedNode.destination_hash)"
-                        >
-                            <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
-                        </IconButton>
-                    </div>
-
                     <!-- archive button -->
-                    <div v-if="pageArchives.length > 0 || nodePageContent" class="my-auto mr-2 relative">
+                    <div v-if="pageArchives.length > 0 || nodePageContent" class="my-auto shrink-0 relative">
                         <IconButton
                             class="text-gray-700 dark:text-gray-300"
                             :class="{ 'text-blue-500 dark:text-blue-400': pageArchives.length > 0 }"
@@ -153,19 +142,21 @@
                         </div>
                     </div>
 
-                    <!-- popout button -->
-                    <div class="my-auto mr-2">
+                    <div class="hidden md:flex items-center gap-1 shrink-0">
                         <IconButton
                             class="text-gray-700 dark:text-gray-300"
-                            :title="$t('messages.pop_out_chat')"
+                            :title="$t('nomadnet.identify')"
+                            @click="identify(selectedNode.destination_hash)"
+                        >
+                            <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
+                        </IconButton>
+                        <IconButton
+                            class="text-gray-700 dark:text-gray-300"
+                            :title="$t('nomadnet.pop_out_browser')"
                             @click="openNomadnetPopout"
                         >
                             <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                         </IconButton>
-                    </div>
-
-                    <!-- close button -->
-                    <div class="my-auto mr-2">
                         <IconButton
                             class="text-gray-700 dark:text-gray-300"
                             :title="$t('common.cancel')"
@@ -174,27 +165,61 @@
                             <MaterialDesignIcon icon-name="close" class="w-5 h-5" />
                         </IconButton>
                     </div>
+
+                    <DropDownMenu class="md:hidden shrink-0">
+                        <template #button>
+                            <IconButton :title="$t('messages.more_actions')" class="text-gray-700 dark:text-gray-300">
+                                <MaterialDesignIcon icon-name="dots-horizontal" class="size-5" />
+                            </IconButton>
+                        </template>
+                        <template #items>
+                            <DropDownMenuItem @click="identify(selectedNode.destination_hash)">
+                                <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
+                                <span>{{ $t("nomadnet.identify") }}</span>
+                            </DropDownMenuItem>
+                            <DropDownMenuItem @click="openNomadnetPopout">
+                                <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
+                                <span>{{ $t("nomadnet.pop_out_browser") }}</span>
+                            </DropDownMenuItem>
+                            <DropDownMenuItem @click="onCloseNodeViewer">
+                                <MaterialDesignIcon icon-name="close" class="size-5" />
+                                <span>{{ $t("common.cancel") }}</span>
+                            </DropDownMenuItem>
+                        </template>
+                    </DropDownMenu>
                 </div>
 
                 <!-- browser navigation -->
-                <div class="flex items-center w-full border-gray-300 dark:border-zinc-800 border-b p-2 gap-1">
-                    <IconButton title="Home" @click="loadNodePage(selectedNode.destination_hash, defaultNodePagePath)">
+                <div
+                    class="flex items-center w-full min-w-0 border-gray-300 dark:border-zinc-800 border-b p-2 gap-0.5 overflow-x-auto"
+                >
+                    <IconButton
+                        class="shrink-0"
+                        title="Home"
+                        @click="loadNodePage(selectedNode.destination_hash, defaultNodePagePath)"
+                    >
                         <MaterialDesignIcon icon-name="home" class="w-5 h-5" />
                     </IconButton>
-                    <IconButton :title="$t('common.refresh')" @click="reloadNodePage">
+                    <IconButton class="shrink-0" :title="$t('common.refresh')" @click="reloadNodePage">
                         <MaterialDesignIcon icon-name="refresh" class="w-5 h-5" />
                     </IconButton>
                     <IconButton
+                        class="shrink-0"
                         :title="$t('app.toggle_source')"
                         :class="{ 'bg-green-500/10 text-green-600 dark:text-green-400': isShowingNodePageSource }"
                         @click="toggleNodePageSource"
                     >
                         <MaterialDesignIcon icon-name="code-tags" class="size-5" />
                     </IconButton>
-                    <IconButton title="Back" :disabled="nodePagePathHistory.length === 0" @click="loadPreviousNodePage">
+                    <IconButton
+                        class="shrink-0"
+                        title="Back"
+                        :disabled="nodePagePathHistory.length === 0"
+                        @click="loadPreviousNodePage"
+                    >
                         <MaterialDesignIcon icon-name="arrow-left" class="w-5 h-5" />
                     </IconButton>
-                    <div class="my-auto mx-1 w-full">
+                    <div class="my-auto mx-1 min-w-0 flex-1">
                         <input
                             v-model="nodePagePathUrlInput"
                             type="text"
@@ -203,7 +228,7 @@
                             @keyup.enter="onNodePageUrlClick(nodePagePathUrlInput)"
                         />
                     </div>
-                    <IconButton title="Go" @click="onNodePageUrlClick(nodePagePathUrlInput)">
+                    <IconButton class="shrink-0" title="Go" @click="onNodePageUrlClick(nodePagePathUrlInput)">
                         <MaterialDesignIcon icon-name="arrow-right" class="w-5 h-5" />
                     </IconButton>
                 </div>
@@ -362,6 +387,8 @@ import Utils from "../../js/Utils";
 import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
+import DropDownMenu from "../DropDownMenu.vue";
+import DropDownMenuItem from "../DropDownMenuItem.vue";
 import GlobalState from "../../js/GlobalState";
 
 export default {
@@ -370,6 +397,8 @@ export default {
         NomadNetworkSidebar,
         MaterialDesignIcon,
         IconButton,
+        DropDownMenu,
+        DropDownMenuItem,
     },
     props: {
         destinationHash: {

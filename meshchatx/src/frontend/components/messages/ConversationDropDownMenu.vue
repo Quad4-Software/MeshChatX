@@ -6,10 +6,29 @@
             </IconButton>
         </template>
         <template #items>
+            <DropDownMenuItem v-if="hasFailedMessages" @click="$emit('retry-failed')">
+                <MaterialDesignIcon icon-name="refresh" class="size-5 text-red-500" />
+                <span>{{ $t("messages.retry_failed") }}</span>
+            </DropDownMenuItem>
+            <DropDownMenuItem @click="$emit('open-telemetry-history')">
+                <MaterialDesignIcon icon-name="satellite-variant" class="size-5" />
+                <span>{{ $t("messages.telemetry_history") }}</span>
+            </DropDownMenuItem>
+            <DropDownMenuItem @click="$emit('start-call')">
+                <MaterialDesignIcon icon-name="phone" class="size-5" />
+                <span>{{ $t("messages.start_call") }}</span>
+            </DropDownMenuItem>
+            <DropDownMenuItem @click="$emit('share-contact')">
+                <MaterialDesignIcon icon-name="notebook-outline" class="size-5" />
+                <span>{{ $t("messages.share_contact") }}</span>
+            </DropDownMenuItem>
+
+            <div class="border-t border-gray-100 dark:border-zinc-800" />
+
             <!-- popout button -->
             <DropDownMenuItem @click="$emit('popout')">
                 <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
-                <span>Popout Chat</span>
+                <span>{{ $t("messages.pop_out_chat") }}</span>
             </DropDownMenuItem>
 
             <!-- ping button -->
@@ -45,7 +64,7 @@
             </div>
 
             <!-- telemetry trust toggle -->
-            <div v-if="GlobalState.config.telemetry_enabled" class="border-t">
+            <div v-if="GlobalState.config?.telemetry_enabled" class="border-t">
                 <DropDownMenuItem @click="onToggleTelemetryTrust">
                     <MaterialDesignIcon
                         :icon-name="contact?.is_telemetry_trusted ? 'shield-check' : 'shield-outline'"
@@ -85,6 +104,10 @@ export default {
             type: Object,
             required: true,
         },
+        hasFailedMessages: {
+            type: Boolean,
+            default: false,
+        },
     },
     emits: [
         "conversation-deleted",
@@ -92,6 +115,10 @@ export default {
         "block-status-changed",
         "popout",
         "view-telemetry-history",
+        "retry-failed",
+        "open-telemetry-history",
+        "start-call",
+        "share-contact",
     ],
     data() {
         return {
@@ -208,16 +235,13 @@ export default {
                 return;
             }
 
-            // delete all lxmf messages from "us to destination" and from "destination to us"
             try {
                 await window.api.delete(`/api/v1/lxmf-messages/conversation/${this.peer.destination_hash}`);
+                this.$emit("conversation-deleted");
             } catch (e) {
                 DialogUtils.alert(this.$t("messages.failed_delete_history"));
                 console.log(e);
             }
-
-            // fire callback
-            this.$emit("conversation-deleted");
         },
         async onSetCustomDisplayName() {
             this.$emit("set-custom-display-name");

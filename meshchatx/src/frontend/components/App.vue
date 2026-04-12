@@ -562,7 +562,7 @@ import { useTheme } from "vuetify";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
-import GlobalState from "../js/GlobalState";
+import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
 import NotificationUtils from "../js/NotificationUtils";
@@ -712,6 +712,14 @@ export default {
         this.toneGenerator.stop();
     },
     mounted() {
+        try {
+            const v = localStorage.getItem("meshchatx_detailed_outbound_send_status");
+            if (v === "true" || v === "false") {
+                GlobalState.detailedOutboundSendStatus = v === "true";
+            }
+        } catch {
+            // ignore
+        }
         this.startShellAuthWatch();
         if (ElectronUtils.isElectron()) {
             window.electron.onProtocolLink((url) => {
@@ -820,9 +828,11 @@ export default {
             this.$refs.tutorialModal?.show();
         },
         onConfigUpdatedExternally(newConfig) {
-            if (!newConfig) return;
+            if (!newConfig || typeof newConfig !== "object") {
+                return;
+            }
+            mergeGlobalConfig(newConfig);
             this.config = newConfig;
-            GlobalState.config = newConfig;
             this.displayName = newConfig.display_name;
         },
         applyThemePreference(theme) {
@@ -830,8 +840,9 @@ export default {
             if (typeof document !== "undefined") {
                 document.documentElement.classList.toggle("dark", mode === "dark");
             }
-            if (this.vuetifyTheme?.global?.name) {
-                this.vuetifyTheme.global.name.value = mode;
+            const themeName = this.vuetifyTheme?.global?.name;
+            if (themeName && typeof themeName === "object" && "value" in themeName) {
+                themeName.value = mode;
             }
         },
         getHashPopoutValue() {
@@ -843,9 +854,12 @@ export default {
             const json = JSON.parse(message.data);
             switch (json.type) {
                 case "config": {
-                    this.config = json.config;
-                    GlobalState.config = json.config;
-                    this.displayName = json.config.display_name;
+                    const next = json?.config;
+                    if (next && typeof next === "object") {
+                        mergeGlobalConfig(next);
+                        this.config = next;
+                        this.displayName = next.display_name;
+                    }
                     break;
                 }
                 case "keyboard_shortcuts": {
@@ -1020,9 +1034,12 @@ export default {
         async getConfig() {
             try {
                 const response = await window.api.get(`/api/v1/config`);
-                this.config = response.data.config;
-                GlobalState.config = response.data.config;
-                this.displayName = response.data.config.display_name;
+                const next = response.data?.config;
+                if (next && typeof next === "object") {
+                    mergeGlobalConfig(next);
+                    this.config = next;
+                    this.displayName = next.display_name;
+                }
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);

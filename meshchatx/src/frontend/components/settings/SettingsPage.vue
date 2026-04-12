@@ -768,6 +768,26 @@
                                     Message Bubbles
                                 </div>
 
+                                <div
+                                    class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
+                                >
+                                    <input
+                                        id="detailed-outbound-send-status"
+                                        type="checkbox"
+                                        class="mt-1 rounded border-gray-300 dark:border-zinc-600"
+                                        :checked="GlobalState.detailedOutboundSendStatus"
+                                        @change="onDetailedOutboundSendStatusChange"
+                                    />
+                                    <label for="detailed-outbound-send-status" class="min-w-0 cursor-pointer">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.detailed_outbound_send_status") }}
+                                        </div>
+                                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                                            {{ $t("app.detailed_outbound_send_status_description") }}
+                                        </div>
+                                    </label>
+                                </div>
+
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div class="space-y-2">
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -1796,6 +1816,7 @@ import ShortcutRecorder from "./ShortcutRecorder.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
+import GlobalState from "../../js/GlobalState";
 
 export default {
     name: "SettingsPage",
@@ -1807,6 +1828,7 @@ export default {
     },
     data() {
         return {
+            GlobalState,
             ElectronUtils,
             KeyboardShortcuts,
             config: {
@@ -2249,6 +2271,15 @@ export default {
                     configKey
                 );
             }, 1000);
+        },
+        onDetailedOutboundSendStatusChange(event) {
+            const checked = event.target.checked;
+            GlobalState.detailedOutboundSendStatus = checked;
+            try {
+                localStorage.setItem("meshchatx_detailed_outbound_send_status", checked ? "true" : "false");
+            } catch {
+                // ignore
+            }
         },
         async onLanguageChange() {
             await this.updateConfig(
