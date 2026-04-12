@@ -41,6 +41,10 @@ class MessageHandler:
     def delete_conversation(self, local_hash, destination_hash):
         query = "DELETE FROM lxmf_messages WHERE peer_hash = ?"
         self.db.provider.execute(query, [destination_hash])
+        self.db.provider.execute(
+            "DELETE FROM lxmf_conversation_read_state WHERE destination_hash = ?",
+            [destination_hash],
+        )
         # Also clean up folder mapping
         self.db.provider.execute(
             "DELETE FROM lxmf_conversation_folders WHERE peer_hash = ?",
