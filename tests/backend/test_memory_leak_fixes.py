@@ -6,7 +6,6 @@ nomadnet link cache sweeping, and the telemetry warning cap.
 import asyncio
 import gc
 import json
-import secrets
 import threading
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -413,7 +412,8 @@ class TestStateUpdateMemory:
         db.messages.upsert_lxmf_message(msg)
 
         gc.collect()
-        import psutil, os
+        import os
+        import psutil
 
         mem_before = psutil.Process(os.getpid()).memory_info().rss
 
