@@ -90,6 +90,7 @@ class MessageHandler:
                 a.app_data as peer_app_data, 
                 c.display_name as custom_display_name,
                 con.custom_image as contact_image,
+                con.name as contact_name,
                 i.icon_name, i.foreground_colour, i.background_colour,
                 r.last_read_at,
                 f.id as folder_id,

@@ -8,7 +8,6 @@ class AnnounceDAO:
         self.provider = provider
 
     def upsert_announce(self, data):
-        # Ensure data is a dict if it's a sqlite3.Row
         if not isinstance(data, dict):
             data = dict(data)
 
@@ -22,12 +21,20 @@ class AnnounceDAO:
             "snr",
             "quality",
         ]
-        # These are safe as they are from a hardcoded list
         columns = ", ".join(fields)
         placeholders = ", ".join(["?"] * len(fields))
-        update_set = ", ".join(
-            [f"{f} = EXCLUDED.{f}" for f in fields if f != "destination_hash"],
-        )
+
+        update_parts = []
+        for f in fields:
+            if f == "destination_hash":
+                continue
+            if f == "app_data":
+                update_parts.append(
+                    "app_data = COALESCE(EXCLUDED.app_data, announces.app_data)",
+                )
+            else:
+                update_parts.append(f"{f} = EXCLUDED.{f}")
+        update_set = ", ".join(update_parts)
 
         query = (
             f"INSERT INTO announces ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "  # noqa: S608

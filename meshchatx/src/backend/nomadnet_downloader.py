@@ -31,6 +31,17 @@ def get_cached_active_link(destination_hash: bytes):
         return None
 
 
+def sweep_stale_links():
+    """Evict all non-ACTIVE links from the global cache."""
+    with _nomadnet_links_lock:
+        stale = [
+            k for k, v in nomadnet_cached_links.items()
+            if v.status is not RNS.Link.ACTIVE
+        ]
+        for k in stale:
+            del nomadnet_cached_links[k]
+
+
 def _cache_link_if_active(destination_hash: bytes, link) -> None:
     if link is None or link.status is not RNS.Link.ACTIVE:
         return
