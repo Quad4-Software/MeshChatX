@@ -95,12 +95,29 @@
                             </div>
                             <div>
                                 <label class="glass-label">{{ $t("rncp.file_path") }}</label>
-                                <input
-                                    v-model="sendFilePath"
-                                    type="text"
-                                    placeholder="/path/to/file"
-                                    class="input-field"
-                                />
+                                <div class="flex gap-2">
+                                    <input
+                                        v-model="sendFilePath"
+                                        type="text"
+                                        placeholder="/path/to/file"
+                                        class="input-field flex-1 min-w-0"
+                                    />
+                                    <input
+                                        ref="sendFileInput"
+                                        type="file"
+                                        class="hidden"
+                                        @change="onWebSendFilePicked"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                        :title="$t('rncp.browse_file')"
+                                        @click="pickSendFile"
+                                    >
+                                        <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                        {{ $t("rncp.browse_file") }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="grid md:grid-cols-2 gap-4">
@@ -153,14 +170,22 @@
                         </div>
                         <div
                             v-if="sendResult"
-                            class="p-3 rounded-lg"
+                            class="p-3 rounded-lg space-y-2"
                             :class="
                                 sendResult.success
                                     ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
                                     : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
                             "
                         >
-                            {{ sendResult.message }}
+                            <div>{{ sendResult.message }}</div>
+                            <div v-if="sendResult.success && sendResult.filePath" class="font-mono text-xs break-all">
+                                {{ sendResult.filePath }}
+                            </div>
+                            <div v-if="sendResult.success && sendResult.filePath" class="flex gap-2">
+                                <button type="button" class="secondary-chip text-xs py-1 px-2" @click="openPathInOs(sendResult.filePath)">
+                                    {{ $t("rncp.show_in_folder") }}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -188,12 +213,23 @@
                         <div class="grid md:grid-cols-2 gap-4">
                             <div>
                                 <label class="glass-label">{{ $t("rncp.save_path_optional") }}</label>
-                                <input
-                                    v-model="fetchSavePath"
-                                    type="text"
-                                    :placeholder="$t('rncp.save_path_placeholder')"
-                                    class="input-field"
-                                />
+                                <div class="flex gap-2">
+                                    <input
+                                        v-model="fetchSavePath"
+                                        type="text"
+                                        :placeholder="$t('rncp.save_path_placeholder')"
+                                        class="input-field flex-1 min-w-0"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                        :title="$t('rncp.browse_folder')"
+                                        @click="pickFetchSaveDirectory"
+                                    >
+                                        <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                        {{ $t("rncp.browse_folder") }}
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label class="glass-label">{{ $t("rncp.timeout_seconds") }}</label>
@@ -244,14 +280,22 @@
                         </div>
                         <div
                             v-if="fetchResult"
-                            class="p-3 rounded-lg"
+                            class="p-3 rounded-lg space-y-2"
                             :class="
                                 fetchResult.success
                                     ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
                                     : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
                             "
                         >
-                            {{ fetchResult.message }}
+                            <div>{{ fetchResult.message }}</div>
+                            <div v-if="fetchResult.success && fetchResult.savedPath" class="font-mono text-xs break-all">
+                                {{ fetchResult.savedPath }}
+                            </div>
+                            <div v-if="fetchResult.success && fetchResult.savedPath" class="flex gap-2">
+                                <button type="button" class="secondary-chip text-xs py-1 px-2" @click="openPathInOs(fetchResult.savedPath)">
+                                    {{ $t("rncp.show_in_folder") }}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -289,6 +333,59 @@
                                     }}</span>
                                 </label>
                             </div>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-zinc-400">
+                            {{ $t("rncp.listening_active_background") }}
+                        </p>
+                        <div
+                            v-if="receiveDirectory"
+                            class="p-3 rounded-lg bg-slate-50 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 space-y-2"
+                        >
+                            <div class="text-xs font-semibold text-gray-600 dark:text-zinc-300">
+                                {{ $t("rncp.receive_folder") }}
+                            </div>
+                            <div class="font-mono text-xs break-all text-gray-800 dark:text-zinc-200">
+                                {{ receiveDirectory }}
+                            </div>
+                            <button
+                                type="button"
+                                class="secondary-chip text-xs py-1.5 px-2"
+                                @click="openReceiveDirectory"
+                            >
+                                <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                {{ $t("rncp.open_folder") }}
+                            </button>
+                        </div>
+                        <div
+                            v-if="lastReceiveEvent"
+                            class="p-3 rounded-lg border space-y-2"
+                            :class="
+                                lastReceiveEvent.status === 'completed'
+                                    ? 'bg-green-50/80 dark:bg-green-900/15 border-green-200 dark:border-green-800'
+                                    : 'bg-amber-50/80 dark:bg-amber-900/15 border-amber-200 dark:border-amber-800'
+                            "
+                        >
+                            <div class="text-sm font-semibold text-gray-800 dark:text-zinc-100">
+                                {{
+                                    lastReceiveEvent.status === "completed"
+                                        ? $t("rncp.received_file")
+                                        : $t("rncp.receive_failed")
+                                }}
+                            </div>
+                            <div v-if="lastReceiveEvent.saved_path" class="font-mono text-xs break-all">
+                                {{ lastReceiveEvent.saved_path }}
+                            </div>
+                            <div v-if="lastReceiveEvent.error" class="text-xs text-red-600 dark:text-red-400">
+                                {{ lastReceiveEvent.error }}
+                            </div>
+                            <button
+                                v-if="lastReceiveEvent.saved_path"
+                                type="button"
+                                class="secondary-chip text-xs py-1 px-2"
+                                @click="openPathInOs(lastReceiveEvent.saved_path)"
+                            >
+                                {{ $t("rncp.show_in_folder") }}
+                            </button>
                         </div>
                         <div class="flex gap-2">
                             <button
@@ -337,9 +434,13 @@
 
 <script>
 import DialogUtils from "../../js/DialogUtils";
+import ElectronUtils from "../../js/ElectronUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
+import ToastUtils from "../../js/ToastUtils";
+
+const RNCP_LISTEN_PREFS_KEY = "meshchatx.rncp.listenForm.v1";
 
 export default {
     name: "RNCPPage",
@@ -372,10 +473,29 @@ export default {
             listenActive: false,
             listenDestinationHash: null,
             listenResult: null,
+            receiveDirectory: null,
+            lastReceiveEvent: null,
+            fetchTransferId: null,
         };
+    },
+    watch: {
+        listenAllowedHashes() {
+            this.saveRncpListenPrefs();
+        },
+        listenFetchJail() {
+            this.saveRncpListenPrefs();
+        },
+        listenFetchAllowed() {
+            this.saveRncpListenPrefs();
+        },
+        listenAllowOverwrite() {
+            this.saveRncpListenPrefs();
+        },
     },
     mounted() {
         WebSocketConnection.on("message", this.handleWebSocketMessage);
+        this.loadRncpListenPrefs();
+        this.syncListenerStatusFromServer();
     },
     beforeUnmount() {
         WebSocketConnection.off("message", this.handleWebSocketMessage);
@@ -383,14 +503,170 @@ export default {
         this.cancelFetch();
     },
     methods: {
+        loadRncpListenPrefs() {
+            try {
+                const raw = localStorage.getItem(RNCP_LISTEN_PREFS_KEY);
+                if (!raw) {
+                    return;
+                }
+                const o = JSON.parse(raw);
+                if (typeof o.listenAllowedHashes === "string") {
+                    this.listenAllowedHashes = o.listenAllowedHashes;
+                }
+                if (o.listenFetchJail != null) {
+                    this.listenFetchJail = o.listenFetchJail;
+                }
+                if (typeof o.listenFetchAllowed === "boolean") {
+                    this.listenFetchAllowed = o.listenFetchAllowed;
+                }
+                if (typeof o.listenAllowOverwrite === "boolean") {
+                    this.listenAllowOverwrite = o.listenAllowOverwrite;
+                }
+            } catch {
+                // ignore invalid storage
+            }
+        },
+        saveRncpListenPrefs() {
+            try {
+                localStorage.setItem(
+                    RNCP_LISTEN_PREFS_KEY,
+                    JSON.stringify({
+                        listenAllowedHashes: this.listenAllowedHashes,
+                        listenFetchJail: this.listenFetchJail,
+                        listenFetchAllowed: this.listenFetchAllowed,
+                        listenAllowOverwrite: this.listenAllowOverwrite,
+                    }),
+                );
+            } catch {
+                // ignore quota / private mode
+            }
+        },
+        async syncListenerStatusFromServer() {
+            try {
+                const response = await window.api.get("/api/v1/rncp/status");
+                const s = response.data;
+                this.receiveDirectory = s.receive_directory || null;
+                if (!s?.listening) {
+                    return;
+                }
+                this.listenActive = true;
+                this.listenDestinationHash = s.destination_hash || null;
+                if (Array.isArray(s.allowed_hashes) && s.allowed_hashes.length) {
+                    this.listenAllowedHashes = s.allowed_hashes.join("\n");
+                }
+                this.listenFetchAllowed = Boolean(s.fetch_allowed);
+                this.listenFetchJail = s.fetch_jail || null;
+                this.listenAllowOverwrite = Boolean(s.allow_overwrite);
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        notifyRncp(title, body) {
+            const text = body || title;
+            ToastUtils.success(text);
+            if (ElectronUtils.isElectron()) {
+                ElectronUtils.showNotification(title, body || "");
+            }
+        },
+        notifyRncpError(title, body) {
+            ToastUtils.error(body || title);
+            if (ElectronUtils.isElectron()) {
+                ElectronUtils.showNotification(title, body || "", true);
+            }
+        },
+        async openPathInOs(filePath) {
+            if (!filePath) {
+                return;
+            }
+            const ok = await ElectronUtils.revealPathInFolderOrCopy(filePath, () =>
+                ToastUtils.success(this.$t("common.copied")),
+            );
+            if (!ok) {
+                DialogUtils.alert(filePath);
+            }
+        },
+        async openReceiveDirectory() {
+            if (!this.receiveDirectory) {
+                await this.syncListenerStatusFromServer();
+            }
+            if (!this.receiveDirectory) {
+                return;
+            }
+            const ok = await ElectronUtils.openDirectoryOrCopy(this.receiveDirectory, () =>
+                ToastUtils.success(this.$t("common.copied")),
+            );
+            if (!ok) {
+                DialogUtils.alert(this.receiveDirectory);
+            }
+        },
+        async pickSendFile() {
+            const p = await ElectronUtils.pickFile();
+            if (p) {
+                this.sendFilePath = p;
+                return;
+            }
+            this.$refs.sendFileInput?.click();
+        },
+        onWebSendFilePicked(event) {
+            const f = event.target.files?.[0];
+            event.target.value = "";
+            if (!f) return;
+            this.sendFilePath = f.name;
+            DialogUtils.alert(this.$t("rncp.web_path_hint"));
+        },
+        async pickFetchSaveDirectory() {
+            const p = await ElectronUtils.pickDirectory();
+            if (p) {
+                this.fetchSavePath = p;
+                return;
+            }
+            if (ElectronUtils.isElectron()) {
+                return;
+            }
+            const entered = await DialogUtils.prompt(this.$t("rncp.web_save_path_prompt"));
+            if (entered != null && String(entered).trim()) {
+                this.fetchSavePath = String(entered).trim();
+            }
+        },
         handleWebSocketMessage(message) {
             try {
                 const data = JSON.parse(message.data);
                 if (data.type === "rncp.transfer.progress") {
-                    if (data.transfer_id === this.sendTransferId) {
-                        this.sendProgress = data.progress;
-                    } else {
-                        this.fetchProgress = data.progress;
+                    const tid = data.transfer_id;
+                    const p = typeof data.progress === "number" ? data.progress : 0;
+                    if (this.sendInProgress) {
+                        if (!this.sendTransferId && tid) {
+                            this.sendTransferId = tid;
+                        }
+                        if (tid && this.sendTransferId === tid) {
+                            this.sendProgress = p;
+                        }
+                    } else if (this.fetchInProgress) {
+                        if (!this.fetchTransferId && tid) {
+                            this.fetchTransferId = tid;
+                        }
+                        if (tid && this.fetchTransferId === tid) {
+                            this.fetchProgress = p;
+                        }
+                    }
+                    return;
+                }
+                if (data.type === "rncp.receive.completed") {
+                    this.lastReceiveEvent = {
+                        status: data.status,
+                        saved_path: data.saved_path,
+                        error: data.error,
+                    };
+                    if (data.status === "completed" && data.saved_path) {
+                        this.notifyRncp(
+                            this.$t("rncp.received_file"),
+                            data.saved_path,
+                        );
+                    } else if (data.status !== "completed") {
+                        this.notifyRncpError(
+                            this.$t("rncp.receive_failed"),
+                            data.error || data.status,
+                        );
                     }
                 }
             } catch {
@@ -410,6 +686,7 @@ export default {
             this.sendInProgress = true;
             this.sendProgress = 0;
             this.sendResult = null;
+            this.sendTransferId = null;
 
             try {
                 const response = await window.api.post("/api/v1/rncp/send", {
@@ -421,10 +698,13 @@ export default {
 
                 this.sendTransferId = response.data.transfer_id;
                 this.sendProgress = 1;
+                const fp = response.data.file_path;
                 this.sendResult = {
                     success: true,
                     message: this.$t("rncp.file_sent_successfully", { id: response.data.transfer_id }),
+                    filePath: fp,
                 };
+                this.notifyRncp(this.$t("rncp.send_complete"), fp || "");
             } catch (e) {
                 console.error(e);
                 this.sendResult = {
@@ -452,6 +732,7 @@ export default {
             this.fetchInProgress = true;
             this.fetchProgress = 0;
             this.fetchResult = null;
+            this.fetchTransferId = null;
 
             try {
                 const response = await window.api.post("/api/v1/rncp/fetch", {
@@ -463,12 +744,15 @@ export default {
                 });
 
                 this.fetchProgress = 1;
+                const saved = response.data.file_path;
                 this.fetchResult = {
                     success: true,
                     message: this.$t("rncp.file_fetched_successfully", {
-                        path: response.data.file_path || "current directory",
+                        path: saved || "current directory",
                     }),
+                    savedPath: saved,
                 };
+                this.notifyRncp(this.$t("rncp.fetch_complete"), saved || "");
             } catch (e) {
                 console.error(e);
                 this.fetchResult = {
@@ -510,6 +794,7 @@ export default {
                     success: true,
                     message: response.data.message,
                 };
+                this.saveRncpListenPrefs();
             } catch (e) {
                 console.error(e);
                 this.listenResult = {
@@ -518,7 +803,17 @@ export default {
                 };
             }
         },
-        stopListen() {
+        async stopListen() {
+            try {
+                await window.api.post("/api/v1/rncp/stop");
+            } catch (e) {
+                console.error(e);
+                this.listenResult = {
+                    success: false,
+                    message: e.response?.data?.message || this.$t("rncp.failed_to_stop_listener"),
+                };
+                return;
+            }
             this.listenActive = false;
             this.listenDestinationHash = null;
             this.listenResult = null;

@@ -990,6 +990,27 @@ export default {
                     GlobalEmitter.emit("identity-switched", json);
                     break;
                 }
+                case "rncp.receive.completed": {
+                    if (this.$route?.name !== "rncp") {
+                        const detail =
+                            json.status === "completed" && json.saved_path
+                                ? json.saved_path
+                                : json.error || json.status || "";
+                        if (json.status === "completed") {
+                            ToastUtils.success(
+                                `${this.$t("rncp.received_file")}${detail ? ": " + detail : ""}`,
+                            );
+                            if (ElectronUtils.isElectron()) {
+                                ElectronUtils.showNotification(this.$t("rncp.received_file"), detail || "");
+                            }
+                        } else {
+                            ToastUtils.error(
+                                `${this.$t("rncp.receive_failed")}${detail ? ": " + detail : ""}`,
+                            );
+                        }
+                    }
+                    break;
+                }
             }
         },
         async getAppInfo() {
