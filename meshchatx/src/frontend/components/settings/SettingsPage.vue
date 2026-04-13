@@ -98,7 +98,7 @@
 
                 <!-- search bar -->
                 <div
-                    class="sticky top-0 z-10 py-3 sm:py-4 -mx-3 sm:mx-0 px-3 sm:px-0 mb-2 border-b border-gray-200/50 dark:border-zinc-800/50 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900 [box-shadow:0_1px_0_0_rgb(255_255_255_/_0.6)_inset] dark:[box-shadow:0_1px_0_0_rgb(39_39_42_/_0.5)_inset]"
+                    class="sticky top-0 z-10 py-3 sm:py-4 -mx-3 sm:mx-0 px-3 sm:px-0 mb-2 border-b border-gray-200/50 dark:border-zinc-800/50 bg-transparent"
                 >
                     <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

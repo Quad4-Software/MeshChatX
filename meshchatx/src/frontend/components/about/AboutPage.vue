@@ -1257,16 +1257,28 @@ export default {
         showTutorial() {
             GlobalEmitter.emit("show-tutorial");
         },
-        showReticulumConfigFile() {
+        async showReticulumConfigFile() {
             const reticulumConfigPath = this.appInfo.reticulum_config_path;
-            if (reticulumConfigPath) {
-                ElectronUtils.showPathInFolder(reticulumConfigPath);
+            if (!reticulumConfigPath) {
+                return;
+            }
+            const ok = await ElectronUtils.revealPathInFolderOrCopy(reticulumConfigPath, () =>
+                ToastUtils.success(this.$t("common.copied")),
+            );
+            if (!ok) {
+                DialogUtils.alert(reticulumConfigPath);
             }
         },
-        showDatabaseFile() {
+        async showDatabaseFile() {
             const databasePath = this.appInfo.database_path;
-            if (databasePath) {
-                ElectronUtils.showPathInFolder(databasePath);
+            if (!databasePath) {
+                return;
+            }
+            const ok = await ElectronUtils.revealPathInFolderOrCopy(databasePath, () =>
+                ToastUtils.success(this.$t("common.copied")),
+            );
+            if (!ok) {
+                DialogUtils.alert(databasePath);
             }
         },
         formatBytes: function (bytes) {

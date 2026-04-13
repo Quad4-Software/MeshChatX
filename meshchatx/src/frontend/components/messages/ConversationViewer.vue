@@ -529,7 +529,7 @@
                                       : isOutboundPathfindingBubble(entry.items[0])
                                         ? 'bg-gray-200 dark:bg-zinc-700 text-gray-900 dark:text-zinc-100 border border-gray-300 dark:border-zinc-600 shadow-sm'
                                         : entry.items[0].is_outbound
-                                          ? 'shadow-sm'
+                                          ? outboundBubbleSurfaceClass(entry.items[0])
                                           : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
                             ]"
                             :style="bubbleStyles(entry.items[0])"
@@ -548,12 +548,17 @@
                                     {{ formatTimeAgo(entry.items[0].lxmf_message.created_at) }}
                                 </span>
                                 <div v-if="entry.items[0].is_outbound" class="flex items-center gap-1">
-                                    <span
-                                        v-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
-                                        class="text-[9px] font-bold uppercase tracking-wider text-amber-200"
-                                    >
-                                        {{ $t("messages.opportunistic_deferred_label") }}
-                                    </span>
+                                        <span
+                                            v-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
+                                            class="text-[9px] font-bold uppercase tracking-wider"
+                                            :class="
+                                                isThemeOutboundBubble(entry.items[0])
+                                                    ? 'text-amber-800 dark:text-amber-300'
+                                                    : 'text-amber-200'
+                                            "
+                                        >
+                                            {{ $t("messages.opportunistic_deferred_label") }}
+                                        </span>
                                     <span
                                         v-else-if="
                                             ['failed', 'cancelled', 'rejected'].includes(
@@ -576,7 +581,8 @@
                                     <MaterialDesignIcon
                                         v-if="entry.items[0].lxmf_message.state === 'delivered'"
                                         icon-name="check-all"
-                                        class="size-3 text-blue-300"
+                                        class="size-3"
+                                        :class="outboundBubbleDeliveredIconClass(entry.items[0])"
                                         title="Delivered"
                                     />
                                     <MaterialDesignIcon
@@ -586,7 +592,8 @@
                                             )
                                         "
                                         icon-name="check"
-                                        class="size-3 text-white/90"
+                                        class="size-3"
+                                        :class="outboundBubbleSentCheckIconClass(entry.items[0])"
                                         :title="
                                             entry.items[0].lxmf_message.state === 'propagated'
                                                 ? 'Sent to propagation node'
@@ -623,7 +630,8 @@
                                     <MaterialDesignIcon
                                         v-else-if="isOutboundPendingForUi(entry.items[0])"
                                         icon-name="check"
-                                        class="size-3 text-white/90 opacity-50"
+                                        class="size-3"
+                                        :class="outboundBubblePendingCheckIconClass(entry.items[0])"
                                         :title="$t('messages.sending_ellipsis')"
                                     />
                                     <div
@@ -652,11 +660,7 @@
                         <div
                             v-if="entry.items[0].is_actions_expanded"
                             class="border-t px-4 py-2.5 rounded-b-2xl rounded-t-md w-full max-w-[min(280px,85vw)]"
-                            :class="
-                                entry.items[0].is_outbound
-                                    ? 'border-white/20 bg-white/10'
-                                    : 'border-gray-200/60 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/50'
-                            "
+                            :class="outboundExpandedActionsShellClass(entry.items[0])"
                         >
                             <div class="flex items-center gap-2">
                                 <button
@@ -746,7 +750,7 @@
                                       : isOutboundPathfindingBubble(chatItem)
                                         ? 'bg-gray-200 dark:bg-zinc-700 text-gray-900 dark:text-zinc-100 border border-gray-300 dark:border-zinc-600 shadow-sm'
                                         : chatItem.is_outbound
-                                          ? 'shadow-sm'
+                                          ? outboundBubbleSurfaceClass(chatItem)
                                           : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
                             ]"
                             :style="bubbleStyles(chatItem)"
@@ -755,11 +759,7 @@
                             <button
                                 type="button"
                                 class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
-                                :class="
-                                    chatItem.is_outbound
-                                        ? 'hover:bg-white/20'
-                                        : 'hover:bg-gray-200 dark:hover:bg-zinc-700'
-                                "
+                                :class="outboundMessageMenuButtonHoverClass(chatItem)"
                                 :title="$t('messages.message_actions')"
                                 @click.stop="onMessageContextMenu($event, chatItem)"
                             >
@@ -796,7 +796,9 @@
                                     class="flex items-center gap-1.5 text-xs font-medium mb-1"
                                     :class="
                                         chatItem.is_outbound
-                                            ? 'text-orange-200'
+                                            ? isThemeOutboundBubble(chatItem)
+                                                ? 'text-orange-800 dark:text-orange-300'
+                                                : 'text-orange-200'
                                             : 'text-orange-700 dark:text-orange-300'
                                     "
                                 >
@@ -813,6 +815,13 @@
                                         !shouldHideAutoImageCaption(chatItem)
                                     "
                                     class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
+                                    :class="{
+                                        'markdown-content--outbound-theme':
+                                            chatItem.is_outbound && isThemeOutboundBubble(chatItem),
+                                        'markdown-content--outbound-solid':
+                                            chatItem.is_outbound && !isThemeOutboundBubble(chatItem),
+                                        'markdown-content--inbound': !chatItem.is_outbound,
+                                    }"
                                     :style="{
                                         'font-family': 'inherit',
                                         'font-size': (config?.message_font_size || 14) + 'px',
@@ -998,7 +1007,7 @@
                                         class="flex items-center gap-3 border rounded-lg px-3 py-2 text-sm font-medium cursor-pointer transition-colors"
                                         :class="
                                             chatItem.is_outbound
-                                                ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                ? outboundEmbeddedCardClass(chatItem)
                                                 : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300 border-gray-200/60 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800'
                                         "
                                         @click.stop
@@ -1014,7 +1023,7 @@
                                                 class="text-[10px] font-normal"
                                                 :class="
                                                     chatItem.is_outbound
-                                                        ? 'text-white/60'
+                                                        ? outboundEmbeddedSecondaryTextClass(chatItem)
                                                         : 'text-gray-500 dark:text-zinc-400'
                                                 "
                                             >
@@ -1035,7 +1044,7 @@
                                             class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                             :class="
                                                 chatItem.is_outbound
-                                                    ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                    ? outboundEmbeddedCardClass(chatItem)
                                                     : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
                                             "
                                         >
@@ -1061,7 +1070,7 @@
                                             class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
                                             :class="
                                                 chatItem.is_outbound
-                                                    ? 'bg-white/20 text-white border-white/20 hover:bg-white/30'
+                                                    ? outboundEmbeddedCardClass(chatItem)
                                                     : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
                                             "
                                             @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
@@ -1166,7 +1175,12 @@
                                     <div v-if="chatItem.is_outbound" class="flex items-center gap-1">
                                         <span
                                             v-if="isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
-                                            class="text-[9px] font-bold uppercase tracking-wider text-amber-200"
+                                            class="text-[9px] font-bold uppercase tracking-wider"
+                                            :class="
+                                                isThemeOutboundBubble(chatItem)
+                                                    ? 'text-amber-800 dark:text-amber-300'
+                                                    : 'text-amber-200'
+                                            "
                                         >
                                             {{ $t("messages.opportunistic_deferred_label") }}
                                         </span>
@@ -1194,7 +1208,8 @@
                                         <MaterialDesignIcon
                                             v-if="chatItem.lxmf_message.state === 'delivered'"
                                             icon-name="check-all"
-                                            class="size-3 text-blue-300"
+                                            class="size-3"
+                                            :class="outboundBubbleDeliveredIconClass(chatItem)"
                                             title="Delivered"
                                         />
                                         <!-- sent: single check (include unknown for initial outbound when server confirmed creation) -->
@@ -1203,7 +1218,8 @@
                                                 ['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)
                                             "
                                             icon-name="check"
-                                            class="size-3 text-white/90"
+                                            class="size-3"
+                                            :class="outboundBubbleSentCheckIconClass(chatItem)"
                                             :title="
                                                 chatItem.lxmf_message.state === 'propagated'
                                                     ? 'Sent to propagation node'
@@ -1239,7 +1255,8 @@
                                         <MaterialDesignIcon
                                             v-else-if="isOutboundPendingForUi(chatItem)"
                                             icon-name="check"
-                                            class="size-3 text-white/90 opacity-50"
+                                            class="size-3"
+                                            :class="outboundBubblePendingCheckIconClass(chatItem)"
                                             :title="$t('messages.sending_ellipsis')"
                                         />
                                         <div
@@ -1271,11 +1288,7 @@
                             <div
                                 v-if="chatItem.is_actions_expanded"
                                 class="border-t px-4 py-2.5"
-                                :class="
-                                    chatItem.is_outbound
-                                        ? 'border-white/20 bg-white/10'
-                                        : 'border-gray-200/60 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/50'
-                                "
+                                :class="outboundExpandedActionsShellClass(chatItem)"
                             >
                                 <div class="flex items-center gap-2">
                                     <button
@@ -2375,9 +2388,18 @@ export default {
         compactSendLayout() {
             return this.windowWidth < 640;
         },
+        usesThemeOutboundBubbleColor() {
+            const c = GlobalState?.config?.message_outbound_bubble_color;
+            if (c == null || String(c).trim() === "") {
+                return true;
+            }
+            return String(c).trim().toLowerCase() === "#4f46e5";
+        },
         bubbleStyles() {
             void GlobalState.detailedOutboundSendStatus;
             void this.sendStatusUiMs;
+            void this.usesThemeOutboundBubbleColor;
+            const useThemeOutbound = this.usesThemeOutboundBubbleColor;
             return (chatItem) => {
                 const styles = {};
                 const cfg = GlobalState?.config;
@@ -2396,11 +2418,17 @@ export default {
                 } else if (chatItem.is_outbound) {
                     if (chatItem.lxmf_message?._pendingPathfinding) {
                         if (!this.showRichOutboundPendingUi(chatItem)) {
+                            if (useThemeOutbound) {
+                                return {};
+                            }
                             const color = cfg?.message_outbound_bubble_color || "#4f46e5";
                             styles["background-color"] = color;
                             styles["color"] = "#ffffff";
                             return styles;
                         }
+                        return {};
+                    }
+                    if (useThemeOutbound) {
                         return {};
                     }
                     const color = cfg?.message_outbound_bubble_color || "#4f46e5";
@@ -3852,6 +3880,34 @@ export default {
                 this.sendStatusUiMs = Date.now();
             }, 1000);
         },
+        isThemeOutboundBubble(chatItem) {
+            if (!chatItem?.is_outbound) {
+                return false;
+            }
+            const st = chatItem.lxmf_message?.state;
+            if (["cancelled", "failed"].includes(st)) {
+                return false;
+            }
+            return this.usesThemeOutboundBubbleColor;
+        },
+        outboundBubbleSurfaceClass(chatItem) {
+            if (!chatItem?.is_outbound) {
+                return "";
+            }
+            if (["cancelled", "failed"].includes(chatItem.lxmf_message.state)) {
+                return "";
+            }
+            if (chatItem.lxmf_message.is_spam) {
+                return "";
+            }
+            if (this.isOutboundPathfindingBubble(chatItem)) {
+                return "";
+            }
+            if (!this.usesThemeOutboundBubbleColor) {
+                return "shadow-sm";
+            }
+            return "shadow-sm bg-sky-100 text-slate-900 border border-sky-200/90 dark:bg-sky-950/45 dark:text-sky-50 dark:border-sky-800/55";
+        },
         outboundBubbleFooterTimeClass(chatItem) {
             if (!chatItem.is_outbound) {
                 return "text-gray-500 dark:text-zinc-400";
@@ -3859,11 +3915,17 @@ export default {
             if (this.isOutboundPathfindingBubble(chatItem)) {
                 return "text-gray-600 dark:text-zinc-400";
             }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-700/90 dark:text-sky-200/85";
+            }
             return "text-white/90";
         },
         outboundSendingStatusIconClass(chatItem) {
             if (this.isOutboundPathfindingBubble(chatItem)) {
                 return "text-gray-600 dark:text-zinc-400";
+            }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-700 dark:text-sky-300";
             }
             return "text-white/90";
         },
@@ -3874,6 +3936,9 @@ export default {
             if (this.isOutboundPathfindingBubble(chatItem)) {
                 return "text-gray-700 dark:text-gray-300";
             }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-800 dark:text-sky-200";
+            }
             return "text-white/80";
         },
         outboundAttachmentCaptionClass(chatItem) {
@@ -3883,7 +3948,64 @@ export default {
             if (this.isOutboundPathfindingBubble(chatItem)) {
                 return "text-gray-600 dark:text-zinc-400";
             }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-800 dark:text-sky-200";
+            }
             return "text-white";
+        },
+        outboundBubbleDeliveredIconClass(chatItem) {
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-600 dark:text-sky-400";
+            }
+            return "text-blue-300";
+        },
+        outboundBubbleSentCheckIconClass(chatItem) {
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-700 dark:text-sky-300";
+            }
+            return "text-white/90";
+        },
+        outboundBubblePendingCheckIconClass(chatItem) {
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-700 dark:text-sky-300 opacity-50";
+            }
+            return "text-white/90 opacity-50";
+        },
+        outboundEmbeddedCardClass(chatItem) {
+            if (!chatItem?.is_outbound) {
+                return "";
+            }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "bg-sky-900/10 text-sky-900 border-sky-300/45 hover:bg-sky-900/14 dark:bg-white/10 dark:text-sky-50 dark:border-sky-700/45 dark:hover:bg-white/15";
+            }
+            return "bg-white/20 text-white border-white/20 hover:bg-white/30";
+        },
+        outboundEmbeddedSecondaryTextClass(chatItem) {
+            if (!chatItem?.is_outbound) {
+                return "";
+            }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-800/75 dark:text-sky-200/75";
+            }
+            return "text-white/60";
+        },
+        outboundExpandedActionsShellClass(chatItem) {
+            if (!chatItem?.is_outbound) {
+                return "border-gray-200/60 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/50";
+            }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "border-sky-200/70 dark:border-sky-800/50 bg-sky-50/40 dark:bg-sky-950/35";
+            }
+            return "border-white/20 bg-white/10";
+        },
+        outboundMessageMenuButtonHoverClass(chatItem) {
+            if (!chatItem?.is_outbound) {
+                return "hover:bg-gray-200 dark:hover:bg-zinc-700";
+            }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "hover:bg-sky-900/10 dark:hover:bg-white/10";
+            }
+            return "hover:bg-white/20";
         },
         outboundBubbleStatusHoverTitle(lxmfMessage) {
             if (!lxmfMessage) {
@@ -5061,5 +5183,27 @@ export default {
 .markdown-content :deep(h2),
 .markdown-content :deep(h3) {
     line-height: 1.2;
+}
+
+.markdown-content :deep(a) {
+    color: #0369a1;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.dark .markdown-content :deep(a) {
+    color: #7dd3fc;
+}
+
+.markdown-content--outbound-theme :deep(a) {
+    color: #075985;
+}
+
+.dark .markdown-content--outbound-theme :deep(a) {
+    color: #bae6fd;
+}
+
+.markdown-content--outbound-solid :deep(a) {
+    color: #dbeafe;
 }
 </style>

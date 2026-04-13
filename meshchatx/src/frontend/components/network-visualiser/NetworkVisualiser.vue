@@ -152,6 +152,30 @@
                         <Toggle id="enable-physics" v-model="enablePhysics" />
                     </div>
 
+                    <!-- max hops filter -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <label
+                                for="hop-filter-slider"
+                                class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
+                                >{{ $t("visualiser.max_hops_filter") }}</label
+                            >
+                            <span
+                                class="text-xs font-bold text-blue-600 dark:text-blue-400 tabular-nums min-w-[4rem] text-right"
+                                >{{ hopFilterSlider === 0 ? $t("visualiser.all") : hopFilterSlider }}</span
+                            >
+                        </div>
+                        <input
+                            id="hop-filter-slider"
+                            v-model.number="hopFilterSlider"
+                            type="range"
+                            min="0"
+                            :max="hopSliderMax"
+                            step="1"
+                            class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-zinc-700 accent-blue-600 dark:accent-blue-500"
+                        />
+                    </div>
+
                     <!-- stats -->
                     <div class="grid grid-cols-2 gap-3 pt-2">
                         <div
@@ -311,6 +335,8 @@ export default {
 
             pageSize: 1000,
             searchQuery: "",
+            hopFilterSlider: 0,
+            _hopFilterDebounce: null,
             abortController: new AbortController(),
             currentLOD: "high",
         };
@@ -321,6 +347,17 @@ export default {
         },
         offlineInterfaces() {
             return this.interfaces.filter((i) => !i.status);
+        },
+        hopSliderMax() {
+            let m = 0;
+            for (const e of this.pathTable) {
+                if (e.hops != null && e.hops > m) m = e.hops;
+            }
+            return Math.min(256, Math.max(1, m));
+        },
+        hopFilterMax() {
+            if (this.hopFilterSlider === 0) return null;
+            return this.hopFilterSlider;
         },
     },
     watch: {
@@ -354,6 +391,18 @@ export default {
             // we don't want to trigger a full update from server, just re-run the filtering on existing data
             this.processVisualization();
         },
+        hopSliderMax() {
+            if (this.hopFilterSlider > this.hopSliderMax) {
+                this.hopFilterSlider = this.hopSliderMax;
+            }
+        },
+        hopFilterSlider() {
+            if (this._hopFilterDebounce) clearTimeout(this._hopFilterDebounce);
+            this._hopFilterDebounce = setTimeout(() => {
+                this._hopFilterDebounce = null;
+                this.processVisualization();
+            }, 80);
+        },
     },
     beforeUnmount() {
         if (this.abortController) {
@@ -368,6 +417,10 @@ export default {
         this.stopOrbit();
         this.stopBouncingBalls();
         clearInterval(this.reloadInterval);
+        if (this._hopFilterDebounce) {
+            clearTimeout(this._hopFilterDebounce);
+            this._hopFilterDebounce = null;
+        }
         if (this.network) {
             this.network.destroy();
         }
@@ -1210,6 +1263,14 @@ export default {
                     continue;
                 }
 
+                if (
+                    this.hopFilterMax != null &&
+                    disc.hops != null &&
+                    disc.hops > this.hopFilterMax
+                ) {
+                    continue;
+                }
+
                 const isConnected = this.discoveredActive.some((a) => {
                     const aHost = a.target_host || a.remote || a.listen_ip;
                     const aPort = a.target_port || a.listen_port;
@@ -1284,6 +1345,7 @@ export default {
                 for (const entry of chunk) {
                     this.loadedNodesCount++;
                     if (entry.hops == null) continue;
+                    if (this.hopFilterMax != null && entry.hops > this.hopFilterMax) continue;
 
                     const announce = this.announces[entry.hash];
                     if (!announce || !aspectsToShow.includes(announce.aspect)) continue;
