@@ -42,61 +42,65 @@
                 </div>
             </div>
 
-            <div class="p-4 md:p-6 w-full max-w-6xl mx-auto">
+            <div class="p-4 md:p-6 xl:p-8 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] mx-auto">
                 <div
-                    class="rounded-lg border border-gray-200 dark:border-zinc-800 divide-y divide-gray-200 dark:divide-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
+                    class="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
                 >
-                    <RouterLink
-                        v-for="tool in filteredTools"
-                        :key="tool.name"
-                        :to="tool.comingSoon ? '' : tool.route"
-                        :class="
-                            [
-                                'tool-row',
-                                tool.customClass,
-                                tool.comingSoon ? 'opacity-60 grayscale-[0.5] cursor-default' : '',
-                            ].filter(Boolean)
-                        "
-                        @click="tool.comingSoon ? $event.preventDefault() : null"
+                    <div
+                        class="grid grid-cols-1 lg:grid-cols-2 divide-y divide-gray-200 dark:divide-zinc-800 divide-x-0 lg:divide-x lg:divide-y"
                     >
-                        <div :class="tool.iconBg">
-                            <MaterialDesignIcon v-if="tool.icon" :icon-name="tool.icon" class="w-6 h-6" />
-                            <img
-                                v-else-if="tool.image"
-                                :src="tool.image"
-                                :class="tool.imageClass"
-                                :alt="tool.imageAlt"
-                            />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <div class="tool-card__title">{{ tool.title }}</div>
-                                <span
-                                    v-if="tool.comingSoon"
-                                    class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded border border-gray-200 dark:border-zinc-700"
-                                >
-                                    Soon
-                                </span>
+                        <RouterLink
+                            v-for="tool in filteredTools"
+                            :key="tool.name"
+                            :to="tool.comingSoon ? '' : tool.route"
+                            :class="
+                                [
+                                    'tool-row',
+                                    tool.customClass,
+                                    tool.comingSoon ? 'opacity-60 grayscale-[0.5] cursor-default' : '',
+                                ].filter(Boolean)
+                            "
+                            @click="tool.comingSoon ? $event.preventDefault() : null"
+                        >
+                            <div :class="tool.iconBg">
+                                <MaterialDesignIcon v-if="tool.icon" :icon-name="tool.icon" class="w-6 h-6" />
+                                <img
+                                    v-else-if="tool.image"
+                                    :src="tool.image"
+                                    :class="tool.imageClass"
+                                    :alt="tool.imageAlt"
+                                />
                             </div>
-                            <div class="tool-card__description">
-                                {{ tool.description }}
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <div class="tool-card__title">{{ tool.title }}</div>
+                                    <span
+                                        v-if="tool.comingSoon"
+                                        class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded border border-gray-200 dark:border-zinc-700"
+                                    >
+                                        Soon
+                                    </span>
+                                </div>
+                                <div class="tool-card__description">
+                                    {{ tool.description }}
+                                </div>
                             </div>
-                        </div>
-                        <div v-if="!tool.comingSoon" class="shrink-0 flex items-center gap-1">
-                            <div v-if="tool.extraAction" class="flex items-center gap-2">
-                                <a
-                                    :href="tool.extraAction.href"
-                                    :target="tool.extraAction.target"
-                                    class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-blue-500"
-                                    @click.stop
-                                >
-                                    <MaterialDesignIcon :icon-name="tool.extraAction.icon" class="size-5" />
-                                </a>
-                                <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                            <div v-if="!tool.comingSoon" class="shrink-0 flex items-center gap-1">
+                                <div v-if="tool.extraAction" class="flex items-center gap-2">
+                                    <a
+                                        :href="tool.extraAction.href"
+                                        :target="tool.extraAction.target"
+                                        class="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-gray-400 hover:text-blue-500"
+                                        @click.stop
+                                    >
+                                        <MaterialDesignIcon :icon-name="tool.extraAction.icon" class="size-5" />
+                                    </a>
+                                    <MaterialDesignIcon icon-name="chevron-right" class="tool-card__chevron" />
+                                </div>
+                                <MaterialDesignIcon v-else icon-name="chevron-right" class="tool-card__chevron" />
                             </div>
-                            <MaterialDesignIcon v-else icon-name="chevron-right" class="tool-card__chevron" />
-                        </div>
-                    </RouterLink>
+                        </RouterLink>
+                    </div>
                 </div>
 
                 <div
@@ -264,11 +268,9 @@ export default {
                     route: { name: "debug-logs" },
                     icon: "console",
                     iconBg: "tool-card__icon bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
-                    titleKey: null,
-                    title: "Debug Logs",
-                    descriptionKey: null,
-                    description: "View and export internal system logs for troubleshooting.",
-                    customClass: "bg-amber-50/40 dark:bg-amber-950/20",
+                    titleKey: "debug.title",
+                    descriptionKey: "debug.description",
+                    customClass: "bg-amber-50/50 dark:bg-transparent",
                 },
             ],
         };
