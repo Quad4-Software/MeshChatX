@@ -83,3 +83,66 @@ def test_receive_resource_started(rncp_handler):
     rncp_handler._receive_resource_started(mock_resource)
     assert b"res_hash".hex() in rncp_handler.active_transfers
     assert rncp_handler.active_transfers[b"res_hash".hex()]["status"] == "receiving"
+
+
+def test_get_listener_status_not_listening(rncp_handler):
+    s = rncp_handler.get_listener_status()
+    assert s["listening"] is False
+    assert s["destination_hash"] is None
+    assert s["allowed_hashes"] == []
+
+
+@patch("meshchatx.src.backend.rncp_handler.RNS.Transport")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
+def test_teardown_receive_destination_deregisters(
+    mock_rns_reticulum,
+    mock_dest_class,
+    mock_identity_class,
+    mock_transport,
+    rncp_handler,
+):
+    mock_rns_reticulum.identitypath = "/tmp/rns/identities"
+    mock_id_obj = MagicMock()
+    mock_identity_class.from_file.return_value = mock_id_obj
+    mock_dest_obj = MagicMock()
+    mock_dest_obj.hash = b"\x01" * 16
+    mock_dest_class.return_value = mock_dest_obj
+
+    with patch("os.path.isfile", return_value=True):
+        rncp_handler.setup_receive_destination(allowed_hashes=["ab" * 16])
+
+    rncp_handler.teardown_receive_destination()
+
+    mock_transport.deregister_destination.assert_called_once_with(mock_dest_obj)
+    assert rncp_handler.receive_destination is None
+
+
+@patch("meshchatx.src.backend.rncp_handler.RNS.Transport")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
+def test_setup_receive_destination_idempotent_restarts_listener(
+    mock_rns_reticulum,
+    mock_dest_class,
+    mock_identity_class,
+    mock_transport,
+    rncp_handler,
+):
+    mock_rns_reticulum.identitypath = "/tmp/rns/identities"
+    mock_id_obj = MagicMock()
+    mock_identity_class.from_file.return_value = mock_id_obj
+    first_dest = MagicMock()
+    first_dest.hash = b"\x02" * 16
+    second_dest = MagicMock()
+    second_dest.hash = b"\x03" * 16
+    mock_dest_class.side_effect = [first_dest, second_dest]
+
+    with patch("os.path.isfile", return_value=True):
+        rncp_handler.setup_receive_destination(allowed_hashes=["cd" * 16])
+        rncp_handler.setup_receive_destination(allowed_hashes=["ef" * 16])
+
+    assert mock_transport.deregister_destination.call_count == 1
+    assert mock_transport.deregister_destination.call_args[0][0] is first_dest
+    assert rncp_handler.receive_destination is second_dest
