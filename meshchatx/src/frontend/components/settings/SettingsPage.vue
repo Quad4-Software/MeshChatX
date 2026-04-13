@@ -1682,6 +1682,20 @@
                                     <span class="setting-toggle__description">{{
                                         $t("app.auto_select_node_description")
                                     }}</span>
+                                    <span
+                                        v-if="config.lxmf_preferred_propagation_node_auto_select"
+                                        class="setting-toggle__hint block mt-1 text-xs text-gray-600 dark:text-gray-400"
+                                    >
+                                        <template v-if="config.lxmf_preferred_propagation_node_destination_hash">
+                                            <span class="block">{{ $t("app.auto_select_using_label") }}</span>
+                                            <span class="monospace-field break-all block mt-0.5">{{
+                                                config.lxmf_preferred_propagation_node_destination_hash
+                                            }}</span>
+                                        </template>
+                                        <template v-else>
+                                            {{ $t("app.auto_select_pending") }}
+                                        </template>
+                                    </span>
                                 </span>
                             </label>
                             <div class="space-y-2">
@@ -2037,6 +2051,10 @@ export default {
                     "app.browse_nodes",
                     "app.run_local_node",
                     "app.run_local_node_description",
+                    "app.auto_select_node",
+                    "app.auto_select_node_description",
+                    "app.auto_select_using_label",
+                    "app.auto_select_pending",
                     "app.preferred_propagation_node",
                     "app.auto_sync_interval",
                     "app.propagation_stamp_cost",

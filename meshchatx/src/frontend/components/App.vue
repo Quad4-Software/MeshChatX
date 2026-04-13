@@ -47,13 +47,7 @@
                                 {{ $t("app.name") }}
                             </div>
                             <div class="hidden sm:block text-sm text-gray-600 dark:text-zinc-300">
-                                {{ $t("app.custom_fork_by") }}
-                                <a
-                                    target="_blank"
-                                    :href="`${giteaBaseUrl}/Sudo-Ivan`"
-                                    class="text-blue-500 dark:text-blue-300 hover:underline"
-                                    >Sudo-Ivan</a
-                                >
+                                {{ $t("app.tagline") }}
                             </div>
                         </div>
                         <div class="flex my-auto ml-auto mr-0 sm:mr-2 space-x-1 sm:space-x-2">
@@ -535,21 +529,36 @@
         <transition name="fade-blur">
             <div
                 v-if="isSwitchingIdentity"
-                class="fixed inset-0 z-[200] flex items-center justify-center bg-white/10 dark:bg-black/10 backdrop-blur-md"
+                class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/45 dark:bg-black/55 backdrop-blur-sm px-4"
+                role="status"
+                aria-live="polite"
             >
-                <div class="flex flex-col items-center">
-                    <div class="relative">
+                <div
+                    class="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200/90 bg-white/95 shadow-xl dark:border-zinc-700/90 dark:bg-zinc-900/95"
+                >
+                    <div class="px-6 pt-7 pb-1 text-center">
                         <div
-                            class="w-20 h-20 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
-                        ></div>
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <MaterialDesignIcon icon-name="account-sync" class="w-8 h-8 text-blue-500 animate-pulse" />
+                            class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 ring-1 ring-gray-200/80 dark:bg-zinc-950 dark:ring-zinc-700"
+                        >
+                            <img :src="logoUrl" alt="" class="h-9 w-9 object-contain p-1" />
+                        </div>
+                        <p class="text-xs font-medium text-gray-500 dark:text-zinc-500">
+                            {{ $t("app.loading_overlay_kicker") }}
+                        </p>
+                        <h2 class="mt-1.5 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+                            {{ $t("app.loading_overlay_title") }}
+                        </h2>
+                        <p class="mt-3 text-sm leading-relaxed text-gray-600 dark:text-zinc-400">
+                            {{ $t("app.loading_overlay_subtitle") }}
+                        </p>
+                    </div>
+                    <div class="px-6 pb-7 pt-2">
+                        <div class="h-1 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-800">
+                            <div
+                                class="identity-switch-indeterminate h-full w-1/3 rounded-full bg-blue-600 dark:bg-blue-500"
+                            />
                         </div>
                     </div>
-                    <div class="mt-6 text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                        {{ $t("app.switching_identity") }}
-                    </div>
-                    <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ $t("app.loading_identity") }}</div>
                 </div>
             </div>
         </transition>
@@ -649,9 +658,6 @@ export default {
         };
     },
     computed: {
-        giteaBaseUrl() {
-            return this.config?.gitea_base_url || "https://git.quad4.io";
-        },
         currentPopoutType() {
             if (this.$route?.meta?.popoutType) {
                 return this.$route.meta.popoutType;
@@ -810,7 +816,7 @@ export default {
                 if (this.isSwitchingIdentity) {
                     this.isSwitchingIdentity = false;
                 }
-            }, 10000);
+            }, 45000);
         },
         onSyncPropagationNodeShell() {
             this.syncPropagationNode();
@@ -1527,5 +1533,18 @@ export default {
 .fade-blur-leave-to {
     opacity: 0;
     backdrop-filter: blur(0);
+}
+
+@keyframes identity-switch-indeterminate {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(350%);
+    }
+}
+
+.identity-switch-indeterminate {
+    animation: identity-switch-indeterminate 1.4s ease-in-out infinite;
 }
 </style>

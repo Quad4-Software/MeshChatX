@@ -427,10 +427,18 @@ export default {
                 for (const conversation of newConversations) {
                     if (!conversation?.destination_hash) continue;
                     const existingPeer = this.peers[conversation.destination_hash] || {};
+                    let displayName = conversation.display_name ?? existingPeer.display_name;
+                    if (
+                        displayName === "Anonymous Peer" &&
+                        existingPeer.display_name &&
+                        existingPeer.display_name !== "Anonymous Peer"
+                    ) {
+                        displayName = existingPeer.display_name;
+                    }
                     this.peers[conversation.destination_hash] = {
                         ...existingPeer,
                         destination_hash: conversation.destination_hash,
-                        display_name: conversation.display_name ?? existingPeer.display_name,
+                        display_name: displayName,
                         custom_display_name: conversation.custom_display_name ?? existingPeer.custom_display_name,
                         contact_image: conversation.contact_image ?? existingPeer.contact_image,
                         lxmf_user_icon: conversation.lxmf_user_icon ?? existingPeer.lxmf_user_icon,
@@ -528,7 +536,9 @@ export default {
 
                 const conv = this.conversations.find((c) => c.destination_hash === peerHash);
                 if (conv) {
-                    if (fresh.display_name) conv.display_name = fresh.display_name;
+                    if (fresh.display_name && fresh.display_name !== "Anonymous Peer") {
+                        conv.display_name = fresh.display_name;
+                    }
                     if (fresh.custom_display_name) conv.custom_display_name = fresh.custom_display_name;
                     if (fresh.contact_image) conv.contact_image = fresh.contact_image;
                     if (fresh.lxmf_user_icon) conv.lxmf_user_icon = fresh.lxmf_user_icon;
@@ -536,10 +546,15 @@ export default {
                 }
 
                 if (this.selectedPeer && this.selectedPeer.destination_hash === peerHash) {
-                    if (fresh.display_name && fresh.display_name !== this.selectedPeer.display_name) {
+                    const incomingName = fresh.display_name;
+                    const shouldUpdate =
+                        incomingName &&
+                        incomingName !== "Anonymous Peer" &&
+                        incomingName !== this.selectedPeer.display_name;
+                    if (shouldUpdate) {
                         this.selectedPeer = {
                             ...this.selectedPeer,
-                            display_name: fresh.display_name,
+                            display_name: incomingName,
                             custom_display_name: fresh.custom_display_name ?? this.selectedPeer.custom_display_name,
                         };
                     }
@@ -697,7 +712,15 @@ export default {
         },
         updatePeerFromAnnounce: function (announce) {
             const existing = this.peers[announce.destination_hash] || {};
-            this.peers[announce.destination_hash] = { ...existing, ...announce };
+            const merged = { ...existing, ...announce };
+            if (
+                announce.display_name === "Anonymous Peer" &&
+                existing.display_name &&
+                existing.display_name !== "Anonymous Peer"
+            ) {
+                merged.display_name = existing.display_name;
+            }
+            this.peers[announce.destination_hash] = merged;
         },
         onUpdatePeerTracking({ destination_hash, is_tracking }) {
             if (this.peers[destination_hash]) {

@@ -154,6 +154,10 @@
                 {{ $t("contacts.call_contact") }}
             </button>
             <div class="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
+            <button type="button" class="context-item" @click="editContactName(contextMenu.contact)">
+                <MaterialDesignIcon icon-name="pencil-outline" class="size-4" />
+                {{ $t("contacts.edit_contact") }}
+            </button>
             <button type="button" class="context-item" @click="shareContact(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="share-variant" class="size-4" />
                 {{ $t("contacts.share_contact") }}
@@ -377,6 +381,7 @@ import QRCode from "qrcode";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
+import DialogUtils from "../../js/DialogUtils";
 
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 
@@ -678,6 +683,26 @@ export default {
                 await this.getContacts();
             } catch {
                 ToastUtils.error(this.$t("contacts.failed_remove_contact"));
+            }
+        },
+        async editContactName(contact) {
+            this.closeContextMenu();
+            if (!contact?.id) return;
+            const name = await DialogUtils.prompt(this.$t("contacts.enter_contact_name"), contact.name);
+            if (name == null || name === contact.name) return;
+            try {
+                await window.api.patch(`/api/v1/telephone/contacts/${contact.id}`, { name });
+                const destHash =
+                    contact.remote_destination_hash || contact.lxmf_address || contact.remote_identity_hash;
+                if (destHash && name.length > 0) {
+                    await window.api.post(`/api/v1/destination/${destHash}/custom-display-name/update`, {
+                        display_name: name,
+                    });
+                }
+                ToastUtils.success(this.$t("contacts.contact_updated"));
+                await this.getContacts();
+            } catch {
+                ToastUtils.error(this.$t("contacts.failed_update_contact"));
             }
         },
         openConversation(contact) {

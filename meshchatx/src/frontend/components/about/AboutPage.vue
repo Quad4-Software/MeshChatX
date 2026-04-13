@@ -44,6 +44,13 @@
                                 <v-icon icon="mdi-history" size="20" class="mr-2"></v-icon>
                                 {{ $t("app.changelog_title") }}
                             </button>
+                            <router-link
+                                :to="{ name: 'licenses' }"
+                                class="secondary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center inline-flex items-center no-underline"
+                            >
+                                <v-icon icon="mdi-license" size="20" class="mr-2"></v-icon>
+                                {{ $t("about.third_party_licenses") }}
+                            </router-link>
                             <button
                                 v-if="isElectron"
                                 type="button"

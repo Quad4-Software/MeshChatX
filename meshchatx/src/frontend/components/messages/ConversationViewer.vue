@@ -3458,19 +3458,16 @@ export default {
             }
         },
         async updateCustomDisplayName() {
-            // do nothing if no peer selected
             if (!this.selectedPeer) {
                 return;
             }
 
-            // ask user for new display name
             const displayName = await DialogUtils.prompt(this.$t("messages.enter_display_name"));
             if (displayName == null) {
                 return;
             }
 
             try {
-                // update display name on server
                 await window.api.post(
                     `/api/v1/destination/${this.selectedPeer.destination_hash}/custom-display-name/update`,
                     {
@@ -3478,10 +3475,21 @@ export default {
                     }
                 );
 
-                // update display name in ui
-                await this.getCustomDisplayName();
+                if (displayName.length > 0) {
+                    try {
+                        const checkResp = await window.api.get(
+                            `/api/v1/telephone/contacts/check/${this.selectedPeer.destination_hash}`
+                        );
+                        const contactId = checkResp.data?.contact?.id;
+                        if (contactId) {
+                            await window.api.patch(`/api/v1/telephone/contacts/${contactId}`, { name: displayName });
+                        }
+                    } catch {
+                        // non-critical
+                    }
+                }
 
-                // reload conversations (so conversations list updates name)
+                await this.getCustomDisplayName();
                 this.$emit("reload-conversations");
             } catch (error) {
                 console.log(error);
