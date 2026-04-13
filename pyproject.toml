@@ -67,7 +67,7 @@ path = "logo"
 packages = {find = {}}
 
 [tool.setuptools.package-data]
-meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json"]
+meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json"]
 
 [build-system]
 requires = ["setuptools>=65.0", "wheel"]
