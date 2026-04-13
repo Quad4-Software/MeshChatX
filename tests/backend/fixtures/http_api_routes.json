@@ -637,6 +637,14 @@
       "path": "/api/v1/rncp/listen"
     },
     {
+      "method": "GET",
+      "path": "/api/v1/rncp/status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/rncp/stop"
+    },
+    {
       "method": "POST",
       "path": "/api/v1/rncp/send"
     },
