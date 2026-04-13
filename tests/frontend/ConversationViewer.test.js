@@ -105,6 +105,72 @@ describe("ConversationViewer.vue", () => {
         expect(wrapper.vm.newMessageImages).toHaveLength(1);
     });
 
+    it("onMessagePaste ignores non-image clipboard files (e.g. PDF) and does not prevent default", () => {
+        const wrapper = mountConversationViewer();
+        const file = new File([""], "doc.pdf", { type: "application/pdf" });
+        const event = {
+            preventDefault: vi.fn(),
+            clipboardData: {
+                items: [
+                    {
+                        kind: "file",
+                        type: "application/pdf",
+                        getAsFile: () => file,
+                    },
+                ],
+            },
+        };
+        wrapper.vm.onMessagePaste(event);
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(wrapper.vm.newMessageImages).toHaveLength(0);
+    });
+
+    it("onMessagePaste does nothing when clipboard has no image file items", () => {
+        const wrapper = mountConversationViewer();
+        const event = {
+            preventDefault: vi.fn(),
+            clipboardData: {
+                items: [{ kind: "string", type: "text/plain", getAsString: () => "hi" }],
+            },
+        };
+        wrapper.vm.onMessagePaste(event);
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(wrapper.vm.newMessageImages).toHaveLength(0);
+    });
+
+    it("onMessagePaste adds multiple images from a single paste event", () => {
+        const wrapper = mountConversationViewer();
+        const f1 = new File([""], "a.png", { type: "image/png" });
+        const f2 = new File([""], "b.png", { type: "image/png" });
+        const event = {
+            preventDefault: vi.fn(),
+            clipboardData: {
+                items: [
+                    { kind: "file", type: "image/png", getAsFile: () => f1 },
+                    { kind: "file", type: "image/png", getAsFile: () => f2 },
+                ],
+            },
+        };
+        wrapper.vm.onMessagePaste(event);
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(wrapper.vm.newMessageImages).toHaveLength(2);
+    });
+
+    it("pasteFromClipboard inserts text at the message input selection", async () => {
+        const readText = vi.fn(() => Promise.resolve("pasted-text"));
+        vi.stubGlobal("navigator", {
+            ...navigator,
+            clipboard: { readText },
+        });
+        const wrapper = mountConversationViewer();
+        const ta = wrapper.find("#message-input").element;
+        ta.selectionStart = 0;
+        ta.selectionEnd = 0;
+        wrapper.vm.newMessageText = "";
+        await wrapper.vm.pasteFromClipboard();
+        expect(wrapper.vm.newMessageText).toBe("pasted-text");
+    });
+
     it("adds multiple images and renders previews", async () => {
         const wrapper = mountConversationViewer();
 

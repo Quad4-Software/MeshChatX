@@ -15,6 +15,15 @@ vi.mock("@/js/DialogUtils", () => ({
     },
 }));
 
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        loading: vi.fn(),
+        info: vi.fn(),
+    },
+}));
+
 describe("ConversationViewer.vue button interactions", () => {
     let axiosMock;
 
@@ -68,7 +77,8 @@ describe("ConversationViewer.vue button interactions", () => {
                 ...overrides,
             },
             global: {
-                mocks: { $t: (key) => key },
+                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
+                mocks: { $t: (key) => key, $i18n: { locale: "en" } },
                 stubs: {
                     MaterialDesignIcon: true,
                     AddImageButton: true,
@@ -215,5 +225,135 @@ describe("ConversationViewer.vue button interactions", () => {
         const wrapper = mountViewer();
         expect(typeof wrapper.vm.openShareContactModal).toBe("function");
         wrapper.vm.openShareContactModal();
+    });
+
+    describe("compose area: clipboard, file attachments, and toolbar actions", () => {
+        it("add files button triggers the hidden file input click", async () => {
+            const wrapper = mountViewer();
+            await wrapper.vm.$nextTick();
+            const fileInput = wrapper.find('input[type="file"]');
+            const clickSpy = vi.spyOn(fileInput.element, "click").mockImplementation(() => {});
+
+            const actionButtons = wrapper.findAll(".attachment-action-button");
+            await actionButtons[0].trigger("click");
+
+            expect(clickSpy).toHaveBeenCalled();
+            clickSpy.mockRestore();
+        });
+
+        it("onFileInputChange appends selected files to newMessageFiles", () => {
+            const wrapper = mountViewer();
+            const f = new File(["x"], "attach.txt", { type: "text/plain" });
+            wrapper.vm.onFileInputChange({ target: { files: [f] } });
+            expect(wrapper.vm.newMessageFiles).toContain(f);
+        });
+
+        it("removeFileAttachment removes one file from newMessageFiles", () => {
+            const wrapper = mountViewer();
+            const f1 = new File(["a"], "a.txt", { type: "text/plain" });
+            const f2 = new File(["b"], "b.txt", { type: "text/plain" });
+            wrapper.vm.newMessageFiles = [f1, f2];
+            wrapper.vm.removeFileAttachment(f1);
+            expect(wrapper.vm.newMessageFiles).toEqual([f2]);
+        });
+
+        it("paste toolbar button reads clipboard text into the message field", async () => {
+            const readText = vi.fn(() => Promise.resolve("from-clipboard"));
+            vi.stubGlobal("navigator", {
+                ...navigator,
+                clipboard: { readText },
+            });
+            const wrapper = mountViewer();
+            await wrapper.vm.$nextTick();
+            const ta = wrapper.find("#message-input").element;
+            ta.selectionStart = 0;
+            ta.selectionEnd = 0;
+            wrapper.vm.newMessageText = "";
+
+            const actionButtons = wrapper.findAll(".attachment-action-button");
+            await actionButtons[1].trigger("click");
+            await vi.waitFor(() => expect(wrapper.vm.newMessageText).toBe("from-clipboard"));
+        });
+
+        it("translateMessage replaces text when the translator API succeeds", async () => {
+            axiosMock.post.mockImplementation((url) => {
+                if (url.includes("/translator/translate")) {
+                    return Promise.resolve({ data: { translated_text: "translated" } });
+                }
+                return Promise.resolve({ data: {} });
+            });
+            const wrapper = mountViewer();
+            wrapper.vm.newMessageText = "hello";
+            await wrapper.vm.translateMessage();
+            expect(wrapper.vm.newMessageText).toBe("translated");
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/translator/translate",
+                expect.objectContaining({
+                    text: "hello",
+                    target_lang: "en",
+                })
+            );
+        });
+
+        it("generatePaperMessageFromComposition sends lxm.generate_paper_uri over the websocket", async () => {
+            const sendSpy = vi.spyOn(WebSocketConnection, "send").mockImplementation(() => {});
+            const wrapper = mountViewer();
+            wrapper.vm.newMessageText = "paper body";
+            await wrapper.vm.generatePaperMessageFromComposition();
+            expect(sendSpy).toHaveBeenCalled();
+            const payload = JSON.parse(sendSpy.mock.calls[0][0]);
+            expect(payload.type).toBe("lxm.generate_paper_uri");
+            expect(payload.destination_hash).toBe("a".repeat(32));
+            expect(payload.content).toBe("paper body");
+            sendSpy.mockRestore();
+        });
+
+        it("requestLocation posts a telemetry request command", async () => {
+            const wrapper = mountViewer();
+            await wrapper.vm.requestLocation();
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/lxmf-messages/send",
+                expect.objectContaining({
+                    lxmf_message: expect.objectContaining({
+                        destination_hash: "a".repeat(32),
+                        fields: {
+                            commands: [{ "0x01": expect.any(Number) }],
+                        },
+                    }),
+                })
+            );
+        });
+
+        it("shareLocation with manual coordinates sets telemetry and calls sendMessage", async () => {
+            const wrapper = mountViewer({
+                config: {
+                    location_source: "manual",
+                    location_manual_lat: "12.34",
+                    location_manual_lon: "56.78",
+                    location_manual_alt: "9",
+                },
+            });
+            const sendSpy = vi.spyOn(wrapper.vm, "sendMessage").mockResolvedValue(undefined);
+            await wrapper.vm.shareLocation();
+            expect(sendSpy).toHaveBeenCalled();
+            expect(wrapper.vm.newMessageTelemetry).toMatchObject({
+                latitude: 12.34,
+                longitude: 56.78,
+                altitude: 9,
+            });
+            sendSpy.mockRestore();
+        });
+
+        it("openConversationPopout opens a popout URL with the peer hash", () => {
+            const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+            const wrapper = mountViewer();
+            wrapper.vm.openConversationPopout();
+            expect(openSpy).toHaveBeenCalledWith(
+                expect.stringContaining(encodeURIComponent("a".repeat(32))),
+                "_blank",
+                expect.stringContaining("width=")
+            );
+            openSpy.mockRestore();
+        });
     });
 });
