@@ -102,3 +102,5 @@ out/
 electron/backend-manifest.json
 
 scripts/private/
+
+*.exe
