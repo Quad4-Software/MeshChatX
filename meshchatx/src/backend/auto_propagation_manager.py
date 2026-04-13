@@ -4,6 +4,7 @@ import time
 import RNS
 from LXMF.LXMRouter import LXMRouter
 
+from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.meshchat_utils import parse_lxmf_propagation_node_app_data
 
 _PROP_FAILURE_STATES = frozenset(
@@ -131,7 +132,9 @@ class AutoPropagationManager:
         if not sorted_candidates:
             return
 
-        previous_hex = self.config.lxmf_preferred_propagation_node_destination_hash.get()
+        previous_hex = (
+            self.config.lxmf_preferred_propagation_node_destination_hash.get()
+        )
         ordered: list[tuple[int, str]] = []
         seen_hex: set[str] = set()
         if previous_hex and previous_hex in best_by_hex:
@@ -162,6 +165,9 @@ class AutoPropagationManager:
                 self.app.set_active_propagation_node(node_hex, context=self.context)
                 self.config.lxmf_preferred_propagation_node_destination_hash.set(
                     node_hex,
+                )
+                AsyncUtils.run_async(
+                    self.app.send_config_to_websocket_clients(context=ctx),
                 )
             return
 
