@@ -71,6 +71,7 @@ from meshchatx.src.backend.lxmf_utils import (
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
+    convert_lxmf_state_to_string,
 )
 from meshchatx.src.backend.map_manager import TRANSPARENT_TILE
 from meshchatx.src.backend.page_node_manager import PageNodeManager
@@ -92,6 +93,7 @@ from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetFileDownloader,
     NomadnetPageDownloader,
     get_cached_active_link,
+    sweep_stale_links,
 )
 from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
@@ -1518,11 +1520,12 @@ class ReticulumMeshChat:
     def get_lxst_version(self) -> str:
         return self.get_package_version("lxst", getattr(LXST, "__version__", "unknown"))
 
-    # automatically announces based on user config
     async def announce_loop(self, session_id, context=None):
         ctx = context or self.current_context
         if not ctx:
             return
+
+        gc_counter = 0
 
         while self.running and ctx.running and ctx.session_id == session_id:
             should_announce = False
@@ -1556,7 +1559,12 @@ class ReticulumMeshChat:
                 if ctx.forwarding_manager:
                     await asyncio.to_thread(ctx.forwarding_manager.announce_aliases)
 
-            # wait 1 second before next loop
+            gc_counter += 1
+            if gc_counter >= 300:
+                gc_counter = 0
+                sweep_stale_links()
+                gc.collect()
+
             await asyncio.sleep(1)
 
     # automatically syncs propagation nodes based on user config
@@ -2332,6 +2340,36 @@ class ReticulumMeshChat:
         # authentication middleware
         @web.middleware
         async def auth_middleware(request, handler):
+            path = request.path
+
+            # Health check for startup probes (Electron loading page, monitors).
+            if path == "/api/v1/status":
+                return await handler(request)
+
+            # Serve the web UI shell and static files while an identity context is still
+            # starting, so the browser can load assets and show in-app loading state.
+            if not path.startswith("/api/"):
+                if (
+                    path == "/"
+                    or path.startswith("/assets/")
+                    or path.startswith("/favicons/")
+                    or path in ("/manifest.json", "/service-worker.js")
+                    or path.endswith(
+                        (
+                            ".js",
+                            ".css",
+                            ".json",
+                            ".wasm",
+                            ".png",
+                            ".jpg",
+                            ".jpeg",
+                            ".ico",
+                            ".svg",
+                        ),
+                    )
+                ):
+                    return await handler(request)
+
             if not self.current_context or not self.current_context.running:
                 return web.json_response(
                     {"error": "Application is initializing or switching identity"},
@@ -2340,8 +2378,6 @@ class ReticulumMeshChat:
 
             if not self.auth_enabled:
                 return await handler(request)
-
-            path = request.path
 
             # allow access to auth endpoints and setup page
             public_paths = [
@@ -4207,6 +4243,17 @@ class ReticulumMeshChat:
                         "version": app_version,
                     },
                 )
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        # third-party dependency licenses (Python + Node)
+        @routes.get("/api/v1/licenses")
+        async def licenses_list(_request):
+            from meshchatx.src.backend.licenses_collector import build_licenses_payload
+
+            try:
+                payload = await asyncio.to_thread(build_licenses_payload)
+                return web.json_response(payload)
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
@@ -8365,12 +8412,16 @@ class ReticulumMeshChat:
             for row in db_conversations:
                 other_user_hash = row["peer_hash"]
 
-                # determine display name
-                display_name = "Anonymous Peer"
+                display_name = None
                 if row["peer_app_data"]:
                     display_name = parse_lxmf_display_name(
                         app_data_base64=row["peer_app_data"],
+                        default_value=None,
                     )
+                if not display_name and row.get("contact_name"):
+                    display_name = row["contact_name"]
+                if not display_name:
+                    display_name = "Anonymous Peer"
 
                 # user icon
                 user_icon = None
@@ -11212,14 +11263,19 @@ class ReticulumMeshChat:
         else:
             print("unhandled client message type: " + _type)
 
-    # broadcast provided data to all connected websocket clients
     async def websocket_broadcast(self, data):
+        dead = []
         for websocket_client in self.websocket_clients:
             try:
                 await websocket_client.send_str(data)
             except Exception as e:
-                # do nothing if failed to broadcast to a specific websocket client
                 print(f"Failed to broadcast to websocket client: {e}")
+                dead.append(websocket_client)
+        for client in dead:
+            try:
+                self.websocket_clients.remove(client)
+            except ValueError:
+                pass
 
     # broadcasts config to all websocket clients
     async def send_config_to_websocket_clients(self, context=None):
@@ -11782,6 +11838,8 @@ class ReticulumMeshChat:
                             if not hasattr(self, "_telemetry_no_location_warned"):
                                 self._telemetry_no_location_warned = set()
                             if source_hash not in self._telemetry_no_location_warned:
+                                if len(self._telemetry_no_location_warned) >= 256:
+                                    self._telemetry_no_location_warned.clear()
                                 self._telemetry_no_location_warned.add(source_hash)
                                 print(
                                     f"Cannot respond to telemetry request from {source_hash}: No location set. "
@@ -11790,18 +11848,16 @@ class ReticulumMeshChat:
 
                 self.db_upsert_lxmf_message(lxmf_message, context=ctx)
 
-                # broadcast notification
                 AsyncUtils.run_async(
                     self.websocket_broadcast(
                         json.dumps(
                             {
                                 "type": "lxmf.delivery",
                                 "remote_identity_name": source_hash[:8],
-                                "lxmf_message": convert_db_lxmf_message_to_dict(
-                                    ctx.database.messages.get_lxmf_message_by_hash(
-                                        lxmf_message.hash.hex(),
-                                    ),
+                                "lxmf_message": convert_lxmf_message_to_dict(
+                                    lxmf_message,
                                     include_attachments=False,
+                                    reticulum=self.reticulum,
                                 ),
                             },
                         ),
@@ -11967,14 +12023,6 @@ class ReticulumMeshChat:
                 print("failed to update lxmf user icon from lxmf message")
                 print(e)
 
-            # find message from database
-            db_lxmf_message = ctx.database.messages.get_lxmf_message_by_hash(
-                lxmf_message.hash.hex(),
-            )
-            if not db_lxmf_message:
-                return
-
-            # get sender name for notification
             sender_name = ctx.database.announces.get_custom_display_name(source_hash)
             if not sender_name:
                 announce = ctx.database.announces.get_announce_by_hash(source_hash)
@@ -11987,17 +12035,19 @@ class ReticulumMeshChat:
             if not sender_name:
                 sender_name = source_hash[:8]
 
-            # send received lxmf message data to all websocket clients
+            msg_dict = convert_lxmf_message_to_dict(
+                lxmf_message,
+                include_attachments=False,
+                reticulum=self.reticulum,
+            )
+
             AsyncUtils.run_async(
                 self.websocket_broadcast(
                     json.dumps(
                         {
                             "type": "lxmf.delivery",
                             "remote_identity_name": sender_name,
-                            "lxmf_message": convert_db_lxmf_message_to_dict(
-                                db_lxmf_message,
-                                include_attachments=False,
-                            ),
+                            "lxmf_message": msg_dict,
                         },
                     ),
                 ),
@@ -12109,12 +12159,38 @@ class ReticulumMeshChat:
 
             traceback.print_exc()
 
-    # handle delivery status update for an outbound lxmf message
     def on_lxmf_sending_state_updated(self, lxmf_message, context=None):
-        # upsert lxmf message to database
-        self.db_upsert_lxmf_message(lxmf_message, context=context)
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return
 
-        # send lxmf message state to all websocket clients
+        progress_pct = round(lxmf_message.progress * 100, 2)
+        rssi = lxmf_message.rssi
+        snr = lxmf_message.snr
+        quality = lxmf_message.q
+        if self.reticulum:
+            if rssi is None:
+                rssi = self.reticulum.get_packet_rssi(lxmf_message.hash)
+            if snr is None:
+                snr = self.reticulum.get_packet_snr(lxmf_message.hash)
+            if quality is None:
+                quality = self.reticulum.get_packet_q(lxmf_message.hash)
+
+        ctx.database.messages.update_lxmf_message_state(
+            message_hash=lxmf_message.hash.hex(),
+            state=convert_lxmf_state_to_string(lxmf_message),
+            progress=progress_pct,
+            delivery_attempts=lxmf_message.delivery_attempts,
+            next_delivery_attempt_at=getattr(
+                lxmf_message,
+                "next_delivery_attempt",
+                None,
+            ),
+            rssi=rssi,
+            snr=snr,
+            quality=quality,
+        )
+
         AsyncUtils.run_async(
             self.websocket_broadcast(
                 json.dumps(
@@ -12568,13 +12644,21 @@ class ReticulumMeshChat:
 
         should_update_message = True
         while should_update_message:
-            # wait 1 second between sending updates
             await asyncio.sleep(1)
 
-            # upsert lxmf message to database (as we want to update the progress in database too)
-            self.db_upsert_lxmf_message(lxmf_message, context=ctx)
+            progress_pct = round(lxmf_message.progress * 100, 2)
+            ctx.database.messages.update_lxmf_message_state(
+                message_hash=lxmf_message.hash.hex(),
+                state=convert_lxmf_state_to_string(lxmf_message),
+                progress=progress_pct,
+                delivery_attempts=lxmf_message.delivery_attempts,
+                next_delivery_attempt_at=getattr(
+                    lxmf_message,
+                    "next_delivery_attempt",
+                    None,
+                ),
+            )
 
-            # send update to websocket clients
             await self.websocket_broadcast(
                 json.dumps(
                     {
