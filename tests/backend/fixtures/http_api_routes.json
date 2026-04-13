@@ -25,6 +25,10 @@
       "path": "/api/v1/app/info"
     },
     {
+      "method": "GET",
+      "path": "/api/v1/licenses"
+    },
+    {
       "method": "POST",
       "path": "/api/v1/app/integrity/acknowledge"
     },
