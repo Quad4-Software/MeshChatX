@@ -6,42 +6,48 @@ All notable changes to this project will be documented in this file.
 
 ### Platform and backend
 
-- Split startup helpers from **`meshchat.py`** into **`path_utils`**, **`ssl_self_signed`**, and **`env_utils`**; **`meshchat.py`** re-exports for compatibility.
-- **`docs_manager`**, **`map_manager`**, and **`translator_handler`** use **`aiohttp`**; **`requests`** removed.
-- Headless CLI: prefer **`meshchatx`** (`python -m meshchatx.meshchat`, Docker, Make, Taskfile); **`meshchat`** remains an alias. **`--rns-log-level`** / **`MESHCHAT_RNS_LOG_LEVEL`**; optional **`--ssl-cert`** / **`--ssl-key`** (both required if used).
-- Stricter validation and clearer errors on several HTTP API handlers; route list kept in sync with **`tests/backend/fixtures/http_api_routes.json`**.
-- **Auth**: **`access_attempts`** and **`trusted_login_clients`** (schema **42**), rate limits and lockout for untrusted clients, **`GET /api/v1/debug/access-attempts`**. **`DELETE` conversation** also clears read state, folder mapping, and pins.
+- Split **`meshchat.py`** startup into **`path_utils`**, **`ssl_self_signed`**, and **`env_utils`** (re-exported from **`meshchat.py`** for compatibility).
+- **HTTP**: **`docs_manager`**, **`map_manager`**, and **`translator_handler`** use **`aiohttp`**; **`requests`** removed. Stricter request validation and clearer API errors; **`tests/backend/fixtures/http_api_routes.json`** kept in sync.
+- **CLI**: Prefer **`meshchatx`** (`python -m meshchatx.meshchat`, Docker, Make, Taskfile); **`meshchat`** remains an alias. **`--rns-log-level`** / **`MESHCHAT_RNS_LOG_LEVEL`**; optional **`--ssl-cert`** / **`--ssl-key`** (both required if used).
+- **Auth** (schema **42**): **`access_attempts`**, **`trusted_login_clients`**, rate limits and lockout for untrusted clients, **`GET /api/v1/debug/access-attempts`**. **`DELETE` conversation** clears read state, folder mapping, and pins.
+- **AsyncUtils**: thread-safe scheduling; pending coroutines flushed when the main event loop is set.
 - **NomadNet downloader**: thread-safe link cache, **`get_cached_active_link`**, phased WebSocket progress, faster polling, safer UTF-8 and cancel handling.
-- **RNPath / RNStatus**: interface discovery integration; optional geo fields on interfaces. **Network visualizer**: loads **`lxmf.delivery`** / **`nomadnetwork.node`** only; **`POST /api/v1/path-table`** filters by destination hashes.
-- **CI**: Gitea jobs largely shell-based with verified toolchains; optional **SLSA v1** cosign attestations; GitHub Actions for Windows/macOS builds and tests; **`priv.sh`** / **`exec-priv.sh`** for elevated steps; macOS universal build skips duplicate **`backend-manifest.json`**; Python bytecode stripped in backend packaging.
-- **Container image**: runs as non-root **`meshchat`**; **`HEALTHCHECK`** hits **`/api/v1/status`** (TLS verify off for default self-signed cert). Rootless Podman/OCI builds omit Docker-style **`HEALTHCHECK`** unless **`--format docker`**; bind mounts may need uid alignment for **`/config`**.
-- **Debug Logs** page: **Logs** and **Access attempts** tabs (search, filters, pagination for attempts).
+- **RNCP** (file transfer): receive-completed handling and error reporting; transfer start callbacks; **status** / **stop** API and websocket broadcast; listener destination setup/teardown and tests.
+- **RNPath / RNStatus**: interface discovery; optional geo fields on interfaces. **Network visualizer**: **`lxmf.delivery`** / **`nomadnetwork.node`** only; **`POST /api/v1/path-table`** filters by destination hashes; **max hops** filter in the UI.
+- **Licenses**: collector for Python and Node dependencies; **`GET /api/v1/licenses`**; **`licenses_frontend.json`** included in package data.
+- **CI / packaging**: Gitea shell-based jobs, optional **SLSA v1** cosign attestations; GitHub Actions for Windows/macOS; **`priv.sh`** / **`exec-priv.sh`**; macOS universal build avoids duplicate **`backend-manifest.json`**; stripped Python bytecode in backend bundle.
+- **Container**: non-root **`meshchat`**; **`HEALTHCHECK`** on **`/api/v1/status`** (TLS verify relaxed for default self-signed). Podman/OCI: no Docker-style **`HEALTHCHECK`** unless **`--format docker`**; **`/config`** bind mounts may need uid alignment.
+- **Debug Logs**: **Logs** and **Access attempts** tabs (search, filters, pagination).
+- **`scripts/ci/setup-python.sh`**: Sigstore verification and cosign download by architecture.
 
 ### Frontend and UX
 
-- **Vite 8**, **`@vitejs/plugin-vue` 6**, Rolldown-oriented chunking; **axios** removed in favor of **`fetch`** via **`apiClient.js`**.
-- **Announce limits**: per-aspect stored cap with trim, configurable fetch/search/discovered caps; settings and locales updated.
-- **Conversations**: serial **outbound send queue**, optional detailed outbound status (settings + i18n), **conversation pins** API and UI hooks, **Lift banishment** from viewer/sidebar context menus, clipboard image paste into compose, responsive **ConversationViewer** / dropdown actions.
-- **Notifications**: bell history toggle and refined unread handling.
-- **NomadNet UI**: phase-based loading copy, duration/size in header, context menus on announces/favourites (rename, banish, lift, favourites, sections).
-- **Map**: pop-out window for the map view.
-- **Tools hub**: list-style layout (**ToolsPage**), refreshed **Bots**, **Paper message**, **RN path**, **RN path trace**, and **RNode flasher** pages; general desktop/mobile polish (**About**, **Interface** overlays, etc.).
-- **`/robots.txt`** served and shipped in **`public/`**; **`SECURITY.md`** notes crawler guidance.
-- **Locales**: glob-based discovery (`import.meta.glob`), new strings for outbound status, archives export, NomadNet phases, lift banishment, announce limits, etc.
+- **Vite 8**, **`@vitejs/plugin-vue` 6**, Rolldown-oriented chunking; **`fetch`** via **`apiClient.js`** instead of axios.
+- **Announce limits**: per-aspect cap with trim; configurable fetch/search/discovered caps; settings and locales.
+- **Conversations**: serial **outbound send queue**; optional **detailed outbound status** (settings + i18n); **conversation pins**; **Lift banishment** from viewer/sidebar; **clipboard image paste** into compose; fix for **empty thread** when switching chats while a fetch is in flight; **compose drafts** persisted in **`localStorage`** (including on unmount); responsive **ConversationViewer** and dropdown actions.
+- **Notifications**: bell history toggle; refined unread handling.
+- **NomadNet**: phase-based loading copy; duration/size in header; context menus on announces/favourites (rename, banish, lift, sections).
+- **Map**: pop-out window.
+- **Tools**: list-style **ToolsPage**; refreshed **Bots**, **Paper message**, **RN path**, **RN path trace**, **RNode flasher**; **About**, **Interface**, **Settings**, **Contacts**, **App** polish (loading overlays, display names, license links).
+- **Electron**: default **context menu** for editable fields (cut/copy/paste, **spellcheck** suggestions, add to dictionary), links, and related actions; **pick file** / **pick directory** / **open path** / notifications and related **preload** helpers; loading screen refresh; CSP and **backend HTTP-only** IPC where applicable.
+- **`/robots.txt`** in **`public/`**; **`SECURITY.md`** crawler note.
+- **Locales**: `import.meta.glob` discovery; new strings for outbound status, archives, NomadNet, RNCP errors, max hops, etc.
 
 ### Micron and archives
 
-- **MicronParser**: fault-tolerant line and document fallbacks; safer monospace and sanitization paths.
-- **Archives**: export current or selected snapshots as **`.mu`** (multi-export avoids name collisions).
+- **MicronParser**: fault-tolerant line and document fallbacks; safer monospace and sanitization.
+- **Archives**: export snapshots as **`.mu`** (multi-export avoids name collisions).
 
 ### Removed
 
-- **axios** (see above), legacy PR vulnerability workflow, **Nix** flakes, obsolete scripts.
+- **axios** (replaced by **`fetch`**), legacy PR vulnerability workflow, **Nix** flakes, obsolete scripts.
 
 ### Testing and docs
 
-- **Playwright** e2e (`tests/e2e/`, **`pnpm run test:e2e`**) for smoke, navigation, shell chrome; Vitest coverage expanded (conversations, outbound queue, network visualiser, locales, access attempts UI, HTTP contract fixture). Backend: access attempts, announce limits, downloader, Micron resilience, SSL CLI, performance hot paths, fuzzing where applicable. Vitest setup suppresses noisy console noise in CI.
-- **README** / **`docs/meshchatx.md`**: **`meshchatx`** run examples, RNS log level, custom TLS, module layout. **pnpm** / **Poetry** bumps (Electron, Vue, Vuetify, Playwright, **cryptography** 46.0.7, **hypothesis**, **pytest**, **ruff**, **rns** 1.1.5, etc.).
+- **Frontend**: Vitest expanded for **ConversationViewer** (outbound bubble styling, clipboard images vs non-images, **paste** toolbar, file attachments, translation, conversation fetch ordering, compose drafts); **RNCP handler** listener/status tests; HTTP route contract fixture; console noise suppressed in CI.
+- **Backend**: access attempts, announce limits, downloader, Micron, SSL CLI, **memory-leak** regressions (message state updates, etc.), fuzzing where applicable.
+- **E2E**: **Playwright** (`tests/e2e/`, **`pnpm run test:e2e`**) smoke, navigation, shell chrome.
+- **Docs**: **README** / **`docs/meshchatx.md`** (**meshchatx** entry, RNS log level, TLS, layout). Dependency bumps via **pnpm** / **Poetry** (Electron, Vue, Vuetify, Playwright, **cryptography** 46.0.7, **hypothesis**, **pytest**, **ruff**, **rns** 1.1.5, Python **3.14** in CI, etc.).
 
 ## [4.3.1] - 2026-03-10
 
