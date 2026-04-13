@@ -30,7 +30,7 @@ jobs:
               run: sh scripts/ci/setup-pnpm.sh
 
             - name: Setup Python
-              run: sh scripts/ci/setup-python.sh 3.13
+              run: sh scripts/ci/setup-python.sh 3.14
 
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh

@@ -37,7 +37,7 @@ jobs:
             - name: Setup pnpm
               run: sh scripts/ci/setup-pnpm.sh
             - name: Setup Python
-              run: sh scripts/ci/setup-python.sh 3.13
+              run: sh scripts/ci/setup-python.sh 3.14
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
             - name: Setup Poetry
@@ -126,7 +126,7 @@ jobs:
                   git init -q && git remote add origin "${SERVER}/${REPO}.git"
                   git fetch -q --depth=1 origin "${GITHUB_SHA}" && git checkout -q FETCH_HEAD
             - name: Setup Python
-              run: sh scripts/ci/setup-python.sh 3.13
+              run: sh scripts/ci/setup-python.sh 3.14
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
             - name: Compile backend
@@ -157,7 +157,7 @@ jobs:
             - name: Setup pnpm
               run: sh scripts/ci/setup-pnpm.sh
             - name: Setup Python
-              run: sh scripts/ci/setup-python.sh 3.13
+              run: sh scripts/ci/setup-python.sh 3.14
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
             - name: Setup Poetry
