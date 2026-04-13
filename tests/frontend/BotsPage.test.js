@@ -62,8 +62,10 @@ describe("BotsPage.vue", () => {
         const wrapper = mountBotsPage();
         await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
 
-        const templateCard = wrapper.find(".glass-card[class*='cursor-pointer']");
-        await templateCard.trigger("click");
+        const selectBtn = wrapper
+            .findAll("button")
+            .find((b) => b.text().includes("bots.select"));
+        await selectBtn.trigger("click");
 
         expect(wrapper.vm.selectedTemplate).not.toBeNull();
         expect(wrapper.text()).toContain("bots.start_bot: Echo Bot");

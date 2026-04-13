@@ -37,14 +37,14 @@ describe("Interface.vue", () => {
 
     it("emits disable when Disable button is clicked", async () => {
         const wrapper = mountInterface();
-        const disableBtn = wrapper.find("button.secondary-chip");
+        const disableBtn = wrapper.find('button[title="interface.disable"]');
         await disableBtn.trigger("click");
         expect(wrapper.emitted("disable")).toHaveLength(1);
     });
 
     it("emits enable when Enable button is clicked for disabled interface", async () => {
         const wrapper = mountInterface({ enabled: false });
-        const enableBtn = wrapper.find("button.primary-chip");
+        const enableBtn = wrapper.find('button[title="interface.enable"]');
         await enableBtn.trigger("click");
         expect(wrapper.emitted("enable")).toHaveLength(1);
     });
@@ -93,9 +93,11 @@ describe("Interface.vue", () => {
 
     it("action buttons and dropdown have shrink-0 to prevent squashing", () => {
         const wrapper = mountInterface();
-        const actionsCol = wrapper.find(".flex.flex-col.sm\\:flex-row.gap-2");
+        const actionsCol = wrapper.find(
+            ".absolute.top-2.right-2.z-20.flex.flex-row.items-center.gap-1.sm\\:static",
+        );
         expect(actionsCol.classes()).toContain("sm:shrink-0");
-        const btn = wrapper.find("button.secondary-chip");
+        const btn = wrapper.find('button[title="interface.disable"]');
         expect(btn.classes()).toContain("shrink-0");
     });
 

@@ -21,6 +21,7 @@ describe("ToolsPage.vue", () => {
             { path: "/paper-message", name: "paper-message", component: { template: "div" } },
             { path: "/rnode-flasher", name: "rnode-flasher", component: { template: "div" } },
             { path: "/debug-logs", name: "debug-logs", component: { template: "div" } },
+            { path: "/mesh-server", name: "mesh-server", component: { template: "div" } },
         ],
     });
 
@@ -47,11 +48,10 @@ describe("ToolsPage.vue", () => {
         expect(wrapper.text()).toContain("tools.power_tools");
     });
 
-    it("renders all tool cards", () => {
+    it("renders all tool rows", () => {
         const wrapper = mountToolsPage();
-        const toolCards = wrapper.findAll(".tool-card");
-        // tools count in ToolsPage.vue is 17 (including coming soon ones)
-        expect(toolCards.length).toBe(17);
+        const toolRows = wrapper.findAll(".tool-row");
+        expect(toolRows.length).toBe(17);
     });
 
     it("filters tools based on search query", async () => {

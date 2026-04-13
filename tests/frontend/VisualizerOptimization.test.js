@@ -245,7 +245,7 @@ describe("NetworkVisualiser Optimization and Abort", () => {
         expect(end - start).toBeLessThan(100); // Should be very fast
     });
 
-    it("performance: icon cache hit vs miss for 500 nodes", async () => {
+    it("reuses one cached icon for 500 nodes with identical lxmf_user_icon", async () => {
         vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
         const wrapper = mountVisualiser();
 
@@ -266,30 +266,21 @@ describe("NetworkVisualiser Optimization and Abort", () => {
             return acc;
         }, {});
 
-        // Mock createIconImage to have some delay for the "miss" case
-        wrapper.vm.createIconImage = vi.fn().mockImplementation(async () => {
-            // Add a tiny delay to ensure "miss" is always measurable
+        wrapper.vm.createIconImage = vi.fn(async function (iconName, foregroundColor, backgroundColor, size = 64) {
+            const cacheKey = `${iconName}-${foregroundColor}-${backgroundColor}-${size}`;
+            if (this.iconCache[cacheKey]) {
+                return this.iconCache[cacheKey];
+            }
             await new Promise((r) => setTimeout(r, 0));
-            return "blob:mock-icon";
+            const url = "blob:mock-icon";
+            this.iconCache[cacheKey] = url;
+            return url;
         });
 
-        const startMiss = performance.now();
         await wrapper.vm.processVisualization();
-        const endMiss = performance.now();
-        const missTime = endMiss - startMiss;
+        expect(wrapper.vm.createIconImage).toHaveBeenCalledTimes(1);
 
-        // Second run will hit the cache check in processVisualization
-        // so it won't even call createIconImage.
-        const startHit = performance.now();
         await wrapper.vm.processVisualization();
-        const endHit = performance.now();
-        const hitTime = endHit - startHit;
-
-        console.log(`Icon cache MISS for 500 nodes: ${missTime.toFixed(2)}ms`);
-        console.log(`Icon cache HIT for 500 nodes: ${hitTime.toFixed(2)}ms`);
-
-        // Cache hit should be significantly faster, but we allow for some
-        // environmental noise in CI environments.
-        expect(hitTime).toBeLessThan(missTime + 200);
+        expect(wrapper.vm.createIconImage).toHaveBeenCalledTimes(1);
     });
 });
