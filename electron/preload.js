@@ -83,4 +83,8 @@ contextBridge.exposeInMainWorld("electron", {
     onProtocolLink: function (callback) {
         ipcRenderer.on("open-protocol-link", (event, url) => callback(url));
     },
+    // true when backend was started with --no-https (probe HTTP first in loading.html)
+    backendHttpOnly: async function () {
+        return await ipcRenderer.invoke("backend-http-only");
+    },
 });

@@ -193,6 +193,15 @@ ipcMain.handle("set-power-save-blocker", (event, enabled) => {
 // ignore ssl errors
 app.commandLine.appendSwitch("ignore-certificate-errors");
 
+function getUserProvidedArguments() {
+    const ignoredArguments = ["--no-sandbox", "--ozone-platform-hint=auto"];
+    return process.argv.slice(1).filter((arg) => !ignoredArguments.includes(arg));
+}
+
+ipcMain.handle("backend-http-only", () => {
+    return getUserProvidedArguments().includes("--no-https");
+});
+
 // add support for showing an alert window via ipc
 ipcMain.handle("alert", async (event, message) => {
     return await dialog.showMessageBox(mainWindow, {
@@ -350,7 +359,7 @@ app.whenReady().then(async () => {
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.cartocdn.com",
             "font-src 'self' data:",
-            "connect-src 'self' http://localhost:9337 https://localhost:9337 ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://git.quad4.io https://*.cartocdn.com",
+            "connect-src 'self' http://127.0.0.1:9337 https://127.0.0.1:9337 http://localhost:9337 https://localhost:9337 ws://127.0.0.1:* wss://127.0.0.1:* ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://git.quad4.io https://*.cartocdn.com",
             "media-src 'self' blob:",
             "worker-src 'self' blob:",
             "frame-src 'self'",
@@ -374,8 +383,7 @@ app.whenReady().then(async () => {
     createTray();
 
     // get arguments passed to application, and remove the provided application path
-    const ignoredArguments = ["--no-sandbox", "--ozone-platform-hint=auto"];
-    const userProvidedArguments = process.argv.slice(1).filter((arg) => !ignoredArguments.includes(arg));
+    const userProvidedArguments = getUserProvidedArguments();
     const shouldLaunchHeadless = userProvidedArguments.includes("--headless");
 
     if (!shouldLaunchHeadless) {
