@@ -2,13 +2,19 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
+from LXMF.LXMRouter import LXMRouter
 
 from meshchatx.src.backend.auto_propagation_manager import AutoPropagationManager
+
+_VALID_HASH_A = "01" * 16
+_VALID_HASH_B = "02" * 16
+_VALID_HASH_C = "03" * 16
+
+_APP_DATA_ENABLED = b"\x94\x00\x00\x01\x00"
 
 
 @pytest.mark.asyncio
 async def test_auto_propagation_logic():
-    # Mock dependencies
     app = MagicMock()
     context = MagicMock()
     config = MagicMock()
@@ -18,88 +24,92 @@ async def test_auto_propagation_logic():
     context.database = database
     context.identity_hash = "test_identity"
     context.running = True
+    context.message_router = MagicMock()
+    context.message_router.propagation_transfer_state = LXMRouter.PR_IDLE
 
     manager = AutoPropagationManager(app, context)
 
-    # 1. Test disabled state
     config.lxmf_preferred_propagation_node_auto_select.get.return_value = False
     with patch.object(manager, "check_and_update_propagation_node") as mock_check:
-        # Run one iteration manually
         if config.lxmf_preferred_propagation_node_auto_select.get():
             await manager.check_and_update_propagation_node()
         mock_check.assert_not_called()
 
-    # 2. Test selection logic
     config.lxmf_preferred_propagation_node_auto_select.get.return_value = True
     config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
 
-    # Mock announces
     announce1 = {
-        "destination_hash": "aaaa1111",
-        "app_data": b"\x94\x00\x00\x01\x00",  # msgpack for [0, 0, 1, 0] -> enabled=True
+        "destination_hash": _VALID_HASH_A,
+        "app_data": _APP_DATA_ENABLED,
     }
-    announce2 = {"destination_hash": "bbbb2222", "app_data": b"\x94\x00\x00\x01\x00"}
+    announce2 = {
+        "destination_hash": _VALID_HASH_B,
+        "app_data": _APP_DATA_ENABLED,
+    }
     database.announces.get_announces.return_value = [announce1, announce2]
 
-    # Mock RNS Transport
     with (
         patch.object(RNS.Transport, "has_path", return_value=True),
         patch.object(RNS.Transport, "hops_to") as mock_hops,
-        patch.object(manager, "probe_node", return_value=True),
+        patch.object(manager, "_wait_for_path", return_value=True),
+        patch.object(manager, "_probe_propagation_sync", return_value=True),
     ):
-        # announce1 is closer (1 hop)
-        # announce2 is further (3 hops)
-        mock_hops.side_effect = lambda dh: 1 if dh == bytes.fromhex("aaaa1111") else 3
+        mock_hops.side_effect = (
+            lambda dh: 1 if dh == bytes.fromhex(_VALID_HASH_A) else 3
+        )
 
         await manager.check_and_update_propagation_node()
 
-        # Should have selected aaaa1111
-        app.set_active_propagation_node.assert_called_with("aaaa1111", context=context)
+        app.set_active_propagation_node.assert_called_with(
+            _VALID_HASH_A,
+            context=context,
+        )
         config.lxmf_preferred_propagation_node_destination_hash.set.assert_called_with(
-            "aaaa1111",
+            _VALID_HASH_A,
         )
 
-    # 3. Test switching to better node
     config.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
-        "bbbb2222"
+        _VALID_HASH_B
     )
     app.set_active_propagation_node.reset_mock()
 
     with (
         patch.object(RNS.Transport, "has_path", return_value=True),
         patch.object(RNS.Transport, "hops_to") as mock_hops,
-        patch.object(manager, "probe_node", return_value=True),
+        patch.object(manager, "_wait_for_path", return_value=True),
+        patch.object(manager, "_probe_propagation_sync", side_effect=[False, True]),
     ):
-        mock_hops.side_effect = lambda dh: 1 if dh == bytes.fromhex("aaaa1111") else 3
+        mock_hops.side_effect = (
+            lambda dh: 1 if dh == bytes.fromhex(_VALID_HASH_A) else 3
+        )
 
         await manager.check_and_update_propagation_node()
 
-        # Should have switched to aaaa1111 because it's closer
-        app.set_active_propagation_node.assert_called_with("aaaa1111", context=context)
+        app.set_active_propagation_node.assert_called_with(
+            _VALID_HASH_A,
+            context=context,
+        )
 
-    # 4. Test failover when probe fails
     config.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
-        "cccc3333"
+        _VALID_HASH_C
     )
-    announce3 = {"destination_hash": "cccc3333", "app_data": b"\x94\x00\x00\x01\x00"}
+    announce3 = {
+        "destination_hash": _VALID_HASH_C,
+        "app_data": _APP_DATA_ENABLED,
+    }
     database.announces.get_announces.return_value = [announce1, announce3]
     app.set_active_propagation_node.reset_mock()
 
     with (
         patch.object(RNS.Transport, "has_path", return_value=True),
         patch.object(RNS.Transport, "hops_to") as mock_hops,
-        patch.object(manager, "probe_node") as mock_probe,
+        patch.object(manager, "_wait_for_path", return_value=True),
+        patch.object(manager, "_probe_propagation_sync", return_value=True),
     ):
-        # announce1 is 1 hop, but probe fails
-        # announce3 is 2 hops, probe succeeds
-        mock_hops.side_effect = lambda dh: 1 if dh == bytes.fromhex("aaaa1111") else 2
-        mock_probe.side_effect = lambda dh: (
-            False if dh == bytes.fromhex("aaaa1111") else True
+        mock_hops.side_effect = (
+            lambda dh: 1 if dh == bytes.fromhex(_VALID_HASH_A) else 2
         )
 
         await manager.check_and_update_propagation_node()
 
-        # Should NOT switch to aaaa1111 because probe failed
-        # Should STAY on cccc3333 or switch to it if it was different
-        # Since it's already on cccc3333 and it's the best reachable, no switch
         app.set_active_propagation_node.assert_not_called()
