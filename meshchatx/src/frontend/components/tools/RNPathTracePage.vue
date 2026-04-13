@@ -36,7 +36,9 @@
         <div class="flex-1 overflow-y-auto">
             <div class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
                 <!-- main input card -->
-                <div class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 md:p-6">
+                <div
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 md:p-6"
+                >
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <div class="relative flex-1 min-w-0">
                             <input
@@ -109,7 +111,9 @@
                         class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
                     >
                         <!-- compact summary bar -->
-                        <div class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-1 overflow-hidden">
+                        <div
+                            class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-1 overflow-hidden"
+                        >
                             <div class="flex flex-wrap items-center divide-x divide-gray-100 dark:divide-zinc-800">
                                 <div class="flex-1 min-w-[120px] p-3 md:p-4 flex flex-col items-center text-center">
                                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
@@ -145,7 +149,9 @@
                         </div>
 
                         <!-- path visualization -->
-                        <div class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 md:p-10 lg:p-16">
+                        <div
+                            class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 md:p-10 lg:p-16"
+                        >
                             <!-- Desktop View (Horizontal) -->
                             <div class="hidden md:flex items-start justify-center min-w-fit py-4">
                                 <template v-for="(node, idx) in traceResult.path" :key="'d-' + idx">
@@ -374,4 +380,3 @@ export default {
     },
 };
 </script>
-

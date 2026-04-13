@@ -40,7 +40,9 @@
         <!-- content -->
         <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
             <!-- setup card: Select device & Firmware -->
-            <div class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg overflow-hidden">
+            <div
+                class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg overflow-hidden"
+            >
                 <div class="grid grid-cols-1 md:grid-cols-2">
                     <!-- Left: Device Selection -->
                     <div class="p-6 border-b md:border-b-0 md:border-r border-gray-100 dark:border-zinc-800 space-y-4">

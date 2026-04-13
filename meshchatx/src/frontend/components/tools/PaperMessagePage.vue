@@ -5,7 +5,9 @@
                 <!-- header -->
                 <div class="border-b border-gray-200 dark:border-zinc-800 pb-4">
                     <div class="flex items-start gap-3 min-w-0">
-                        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0">
+                        <div
+                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0"
+                        >
                             <MaterialDesignIcon icon-name="qrcode" class="size-6" />
                         </div>
                         <div class="min-w-0">
@@ -22,10 +24,19 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <!-- composer -->
                     <div class="space-y-4 min-w-0">
-                        <section class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950">
-                            <div class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50">
-                                <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
-                                    <MaterialDesignIcon icon-name="pencil-outline" class="size-5 text-gray-400 shrink-0" />
+                        <section
+                            class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
+                        >
+                            <div
+                                class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50"
+                            >
+                                <h2
+                                    class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="pencil-outline"
+                                        class="size-5 text-gray-400 shrink-0"
+                                    />
                                     Compose Message
                                 </h2>
                             </div>
@@ -91,9 +102,15 @@
                         </section>
 
                         <!-- read / ingest section -->
-                        <section class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950">
-                            <div class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50">
-                                <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
+                        <section
+                            class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
+                        >
+                            <div
+                                class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/50"
+                            >
+                                <h2
+                                    class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white"
+                                >
                                     <MaterialDesignIcon icon-name="qrcode-scan" class="size-5 text-gray-400 shrink-0" />
                                     Ingest Paper Message
                                 </h2>
@@ -137,8 +154,12 @@
                             v-if="generatedUri"
                             class="rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950"
                         >
-                            <div class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-blue-50/80 dark:bg-blue-900/20">
-                                <h2 class="text-base font-semibold text-blue-600 dark:text-blue-400">Generated QR Code</h2>
+                            <div
+                                class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-blue-50/80 dark:bg-blue-900/20"
+                            >
+                                <h2 class="text-base font-semibold text-blue-600 dark:text-blue-400">
+                                    Generated QR Code
+                                </h2>
                             </div>
                             <div class="px-4 py-4 sm:p-6 flex flex-col items-center text-gray-900 dark:text-gray-100">
                                 <div class="p-3 bg-white rounded-2xl shadow-inner border border-gray-100 mb-6">

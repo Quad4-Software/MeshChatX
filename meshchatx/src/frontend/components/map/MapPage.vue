@@ -15,9 +15,7 @@
                 class="flex flex-wrap items-center gap-x-1.5 gap-y-2 sm:ml-auto sm:flex-nowrap sm:gap-2 sm:justify-end min-w-0"
             >
                 <!-- offline/online toggle -->
-                <div
-                    class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5 sm:p-1 min-w-0 max-w-full"
-                >
+                <div class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5 sm:p-1 min-w-0 max-w-full">
                     <button
                         class="p-1.5 sm:p-2 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
                         title="Map Discovered Interfaces"

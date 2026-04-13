@@ -44,7 +44,10 @@
                                 class="rounded-lg border border-dashed border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/50 p-4 flex flex-col items-center justify-center min-h-[140px] opacity-70"
                             >
                                 <div class="p-2 bg-gray-100 dark:bg-zinc-800 rounded-lg mb-2">
-                                    <MaterialDesignIcon icon-name="plus" class="size-6 text-gray-400 dark:text-gray-500" />
+                                    <MaterialDesignIcon
+                                        icon-name="plus"
+                                        class="size-6 text-gray-400 dark:text-gray-500"
+                                    />
                                 </div>
                                 <div class="text-sm font-medium text-gray-500 dark:text-gray-400 text-center">
                                     {{ $t("bots.more_bots_coming") }}
@@ -75,7 +78,9 @@
                                         />
                                     </div>
                                     <div class="min-w-0">
-                                        <div class="font-bold text-gray-900 dark:text-white truncate">{{ bot.name }}</div>
+                                        <div class="font-bold text-gray-900 dark:text-white truncate">
+                                            {{ bot.name }}
+                                        </div>
                                         <div class="text-xs font-mono text-gray-500 break-all">
                                             {{ bot.address || runningMap[bot.id]?.address || "Not running" }}
                                         </div>
@@ -87,42 +92,44 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-end sm:shrink-0 pt-1 sm:pt-0 border-t border-gray-100 dark:border-zinc-800 sm:border-0">
-                                        <template v-if="runningMap[bot.id]">
-                                            <button
-                                                class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                :title="$t('bots.stop_bot')"
-                                                @click="stopBot(bot.id)"
-                                            >
-                                                <MaterialDesignIcon icon-name="stop" class="size-5" />
-                                            </button>
-                                            <button
-                                                class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                :title="$t('bots.restart_bot')"
-                                                @click="restartExisting(bot)"
-                                            >
-                                                <MaterialDesignIcon icon-name="refresh" class="size-5" />
-                                            </button>
-                                        </template>
-                                        <template v-else>
-                                            <button class="primary-chip px-3 py-1 text-xs" @click="startExisting(bot)">
-                                                {{ $t("bots.start_bot") }}
-                                            </button>
-                                        </template>
-                                        <button
-                                            class="p-2 text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                                            :title="$t('bots.export_identity')"
-                                            @click="exportIdentity(bot.id)"
-                                        >
-                                            <MaterialDesignIcon icon-name="export" class="size-5" />
-                                        </button>
+                                <div
+                                    class="flex flex-wrap items-center gap-1.5 sm:gap-2 justify-end sm:shrink-0 pt-1 sm:pt-0 border-t border-gray-100 dark:border-zinc-800 sm:border-0"
+                                >
+                                    <template v-if="runningMap[bot.id]">
                                         <button
                                             class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                            :title="$t('bots.delete_bot')"
-                                            @click="deleteBot(bot.id)"
+                                            :title="$t('bots.stop_bot')"
+                                            @click="stopBot(bot.id)"
                                         >
-                                            <MaterialDesignIcon icon-name="delete" class="size-5" />
+                                            <MaterialDesignIcon icon-name="stop" class="size-5" />
                                         </button>
+                                        <button
+                                            class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                            :title="$t('bots.restart_bot')"
+                                            @click="restartExisting(bot)"
+                                        >
+                                            <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                                        </button>
+                                    </template>
+                                    <template v-else>
+                                        <button class="primary-chip px-3 py-1 text-xs" @click="startExisting(bot)">
+                                            {{ $t("bots.start_bot") }}
+                                        </button>
+                                    </template>
+                                    <button
+                                        class="p-2 text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                        :title="$t('bots.export_identity')"
+                                        @click="exportIdentity(bot.id)"
+                                    >
+                                        <MaterialDesignIcon icon-name="export" class="size-5" />
+                                    </button>
+                                    <button
+                                        class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        :title="$t('bots.delete_bot')"
+                                        @click="deleteBot(bot.id)"
+                                    >
+                                        <MaterialDesignIcon icon-name="delete" class="size-5" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -168,10 +175,19 @@
                     </div>
 
                     <div class="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end pt-2">
-                        <button type="button" class="secondary-chip px-6 py-2 w-full sm:w-auto" @click="selectedTemplate = null">
+                        <button
+                            type="button"
+                            class="secondary-chip px-6 py-2 w-full sm:w-auto"
+                            @click="selectedTemplate = null"
+                        >
                             {{ $t("bots.cancel") }}
                         </button>
-                        <button type="button" class="primary-chip px-6 py-2 w-full sm:w-auto" :disabled="isStarting" @click="startBot">
+                        <button
+                            type="button"
+                            class="primary-chip px-6 py-2 w-full sm:w-auto"
+                            :disabled="isStarting"
+                            @click="startBot"
+                        >
                             <span
                                 v-if="isStarting"
                                 class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"

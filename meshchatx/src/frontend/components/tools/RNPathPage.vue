@@ -6,7 +6,10 @@
         >
             <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg shrink-0">
-                    <MaterialDesignIcon icon-name="route" class="size-5 sm:size-6 text-indigo-600 dark:text-indigo-400" />
+                    <MaterialDesignIcon
+                        icon-name="route"
+                        class="size-5 sm:size-6 text-indigo-600 dark:text-indigo-400"
+                    />
                 </div>
                 <div class="min-w-0">
                     <h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">RNPath</h1>
@@ -264,7 +267,9 @@
             <!-- manual actions -->
             <div v-if="tab === 'actions'" class="max-w-2xl mx-auto space-y-6">
                 <!-- request path -->
-                <section class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4">
+                <section
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4"
+                >
                     <h2 class="text-lg font-bold">Request Path</h2>
                     <p class="text-sm text-gray-500">Broadcast a path request for a destination hash.</p>
                     <div class="flex flex-col sm:flex-row gap-2">
@@ -286,7 +291,9 @@
                 </section>
 
                 <!-- drop all via -->
-                <section class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4">
+                <section
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4"
+                >
                     <h2 class="text-lg font-bold">Drop All Via</h2>
                     <p class="text-sm text-gray-500">
                         Remove all known paths routed through a specific transport instance.
@@ -310,7 +317,9 @@
                 </section>
 
                 <!-- drop queues -->
-                <section class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4">
+                <section
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 space-y-4"
+                >
                     <h2 class="text-lg font-bold">Drop Announce Queues</h2>
                     <p class="text-sm text-gray-500">
                         Clear all outbound announce packets currently queued on all interfaces.
