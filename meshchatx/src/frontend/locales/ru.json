@@ -2,7 +2,7 @@
     "_languageName": "\u0420\u0443\u0441\u0441\u043a\u0438\u0439",
     "bots": {
         "title": "Боты LXMFy",
-        "description": "Управление автоматическими ботами для эха, заметок и напоминаний с помощью LXMFy.",
+        "description": "Простые боты LXMF (эхо, заметки, напоминания), если установлен LXMFy.",
         "bot_framework": "Фреймворк ботов",
         "lxmfy_not_detected": "LXMFy не обнаружен",
         "lxmfy_not_detected_desc": "Для использования ботов необходимо установить пакет LXMFy:",
@@ -109,6 +109,8 @@
         "fallback_node_description": "Сообщения будут отправляться на этот узел, если прямая доставка не удалась.",
         "auto_select_node": "Автовыбор лучшего узла",
         "auto_select_node_description": "Автоматически находить и переключаться на лучший доступный узел ретрансляции на основе количества переходов в сети.",
+        "auto_select_using_label": "Используется узел ретрансляции",
+        "auto_select_pending": "Узел ретрансляции ещё не выбран. Приложение выберет его, когда он будет доступен.",
         "auto_sync_interval": "Интервал автосинхронизации",
         "last_synced": "Последняя синхронизация {time} назад.",
         "last_synced_never": "Последняя синхронизация: никогда.",
@@ -116,7 +118,7 @@
         "propagation_stamp_description": "Требовать штампы Proof-of-Work для сообщений, передаваемых через ваш узел. Более высокие значения требуют больше вычислительной работы. Диапазон: 13-254. По умолчанию: 16. **Примечание:** изменение требует перезапуска приложения.",
         "language": "Язык",
         "select_language": "Выберите предпочтительный язык.",
-        "custom_fork_by": "Модифицированная версия от",
+        "tagline": "Универсальный клиент Reticulum",
         "open": "Открыть",
         "identity": "Личность",
         "lxmf_address_hash": "Хеш адреса LXMF",
@@ -207,6 +209,9 @@
         "sync_error": "Ошибка синхронизации: {status}",
         "switching_identity": "Переключение личности...",
         "loading_identity": "Загрузка вашей личности",
+        "loading_overlay_kicker": "Подождите",
+        "loading_overlay_title": "Смена профиля",
+        "loading_overlay_subtitle": "Загрузка чатов и настроек. Обычно это занимает несколько секунд.",
         "emergency_mode_active": "Аварийный режим активен — используется база данных в оперативной памяти и ограниченные службы.",
         "blackhole_integration_enabled": "Интеграция Blackhole",
         "blackhole_integration_description": "Автоматически блокировать (blackhole) личности на транспортном уровне Reticulum при изгнании пользователей в MeshChatX.",
@@ -415,10 +420,15 @@
         "import_success": "Импортировано контактов: {added}",
         "import_failed": "Ошибка импорта",
         "import_modal_title": "Импорт контактов",
-        "import_file_hint": "Выберите JSON-файл, экспортированный из Контактов."
+        "import_file_hint": "Выберите JSON-файл, экспортированный из Контактов.",
+        "edit_contact": "Редактировать контакт",
+        "enter_contact_name": "Введите имя контакта",
+        "contact_updated": "Контакт обновлён",
+        "failed_update_contact": "Не удалось обновить контакт"
     },
     "about": {
         "title": "О программе",
+        "third_party_licenses": "Лицензии сторонних компонентов",
         "version": "v{version}",
         "rns_version": "RNS {version}",
         "lxmf_version": "LXMF {version}",
@@ -537,7 +547,7 @@
     "map": {
         "title": "Карта",
         "pop_out": "Открыть карту в окне",
-        "description": "Офлайн-карта с поддержкой MBTiles.",
+        "description": "Офлайн-тайлы (MBTiles) и свои слои.",
         "upload_mbtiles": "Загрузить MBTiles",
         "select_file": "Выбрать файл MBTiles",
         "offline_mode": "Офлайн-режим",
@@ -846,7 +856,7 @@
     },
     "forwarder": {
         "title": "LXMF Форвардер",
-        "description": "Пересылка сообщений с одного адреса на другой с прозрачной обратной маршрутизацией.",
+        "description": "Пересылка LXMF между адресами с сохранением маршрута ответов.",
         "add_rule": "Добавить правило пересылки",
         "name": "Имя",
         "name_placeholder": "Название правила (например, Домашний узел)...",
@@ -864,7 +874,7 @@
         "delete_confirm": "Вы уверены, что хотите удалить это правило?"
     },
     "archives": {
-        "description": "Поиск и просмотр архивных страниц Nomad Network",
+        "description": "Поиск страниц Nomad, сохранённых в локальном архиве.",
         "search_placeholder": "Поиск по содержимому, хешу или пути...",
         "loading": "Загрузка архивов...",
         "no_archives_found": "Архивы не найдены",
@@ -880,7 +890,7 @@
     },
     "docs": {
         "title": "Документация",
-        "subtitle": "Руководства и справочники Reticulum.",
+        "subtitle": "Руководства Reticulum и MeshChat.",
         "status_title": "Статус документации",
         "status_downloading": "Загрузка...",
         "status_available": "Доступно офлайн",
@@ -892,29 +902,44 @@
         "docs_link_copied": "Documentation link copied to clipboard",
         "failed_copy_link": "Failed to copy link"
     },
+    "licenses": {
+        "section_label": "Правовая информация",
+        "title": "Лицензии сторонних компонентов",
+        "description": "Версии, авторы и SPDX или заявленные лицензии зависимостей во время работы. Данные берутся из установленной среды Python и из pnpm, если доступен.",
+        "short_description": "Версии, авторы и лицензии для бэкенда и фронтенда.",
+        "search_placeholder": "Поиск по пакетам, версиям, авторам, лицензиям...",
+        "generated_at": "Сформировано: {time}",
+        "frontend_source": "Данные фронтенда: {source}",
+        "backend_section": "Бэкенд (Python)",
+        "frontend_section": "Фронтенд (Node)",
+        "col_package": "Пакет",
+        "col_version": "Версия",
+        "col_author": "Автор",
+        "col_license": "Лицензия"
+    },
     "tools": {
         "utilities": "Утилиты",
-        "power_tools": "Инструменты для операторов",
-        "diagnostics_description": "Средства диагностики и прошивки поставляются вместе с MeshChat для устранения неполадок без использования консоли.",
+        "power_tools": "Утилиты",
+        "diagnostics_description": "Проверка связи, передачи файлов, путей, перевод, руководства и помощь с оборудованием в одном месте.",
         "ping": {
             "title": "Ping",
-            "description": "Тест задержки для любого LXMF хеша с отображением статуса."
+            "description": "Измерение RTT до узла, который принимает ping."
         },
         "rnprobe": {
             "title": "RNProbe",
-            "description": "Зондирование узлов пакетами произвольного размера для проверки связи."
+            "description": "Зонды с настраиваемым размером полезной нагрузки для проверки доступности и задержки."
         },
         "rncp": {
             "title": "RNCP",
-            "description": "Отправка и получение файлов через RNS с отслеживанием прогресса."
+            "description": "Отправка и приём файлов по Reticulum (RNCP) с прогрессом."
         },
         "rnstatus": {
             "title": "RNStatus",
-            "description": "Статистика интерфейсов и информация о состоянии сети."
+            "description": "Счётчики по интерфейсам и состояние канала от Reticulum."
         },
         "rnpath": {
             "title": "RNPath",
-            "description": "Управление таблицей путей, просмотр частоты анонсов и запрос путей.",
+            "description": "Просмотр путей и очередей анонсов; запрос или сброс маршрутов.",
             "failed_fetch": "Failed to fetch path data",
             "path_dropped": "Path dropped",
             "failed_drop": "Could not drop path",
@@ -928,7 +953,7 @@
         },
         "rnpath_trace": {
             "title": "RNS Трассировка пути",
-            "description": "Визуализация пути и переходов к любому хэшу назначения в сети.",
+            "description": "Список переходов к хэшу назначения по текущему пути.",
             "destination_hash": "Хэш назначения",
             "placeholder": "Введите 32-символьный хэш...",
             "trace": "Трассировать путь",
@@ -937,21 +962,21 @@
             "interface": "Выходной интерфейс",
             "next_hop": "Следующий переход",
             "ready_title": "Трассировка пути",
-            "ready_desc": "Введите хэш назначения выше, чтобы увидеть, как пакеты проходят через сеть.",
+            "ready_desc": "Введите хэш назначения, чтобы перечислить переходы по текущему пути.",
             "unknown_hops": "{count} промежуточных переходов",
             "ping_test": "Проверить с помощью Ping"
         },
         "translator": {
             "title": "Translator",
-            "description": "Перевод текста через LibreTranslate API или локальный Argos Translate."
+            "description": "Перевод текста через сервер LibreTranslate или локальный Argos Translate."
         },
         "forwarder": {
             "title": "Forwarder",
-            "description": "Пересылка LXMF с маршрутизацией обратного пути."
+            "description": "Пересылка LXMF между адресами с сохранением маршрута ответов."
         },
         "rnode_flasher": {
             "title": "RNode Flasher",
-            "description": "Прошивка и обновление адаптеров RNode без использования командной строки.",
+            "description": "Прошивка или обновление RNode из браузера (поддерживаемое оборудование).",
             "select_device": "1. Выберите устройство",
             "product": "Продукт",
             "model": "Модель",
@@ -1083,7 +1108,7 @@
         },
         "micron_editor": {
             "title": "Редактор Micron",
-            "description": "Редактирование и предпросмотр разметки Micron с живым рендерингом.",
+            "description": "Редактирование разметки Micron с живым предпросмотром.",
             "editor": "Редактор",
             "preview": "Предпросмотр",
             "save": "Сохранить",
@@ -1101,28 +1126,28 @@
         },
         "paper_message": {
             "title": "Бумажное сообщение",
-            "description": "Создание и чтение подписанных бумажных сообщений LXMF через QR-коды."
+            "description": "Создание или чтение бумажных сообщений LXMF через QR."
         },
         "mesh_server": {
             "title": "Mesh Server",
-            "description": "Раздавайте Micron-страницы и файлы напрямую через сеть Reticulum."
+            "description": "Публикация страниц Micron и файлов для узлов в mesh."
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",
-            "description": "Туннелирование обычного IP-трафика через сеть Reticulum."
+            "description": "IP-туннелирование по каналам Reticulum (в разработке)."
         },
         "rns_filesync": {
             "title": "RNS Filesync",
-            "description": "Эффективный обмен и синхронизация файлов с другими узлами mesh."
+            "description": "Синхронизация файлов между узлами mesh (в разработке)."
         },
         "bots": {
             "title": "LXMFy Боты",
-            "description": "Управление автоматизированными ботами для эха, заметок и напоминаний с помощью LXMFy."
+            "description": "Простые боты LXMF (эхо, заметки, напоминания), если установлен LXMFy."
         }
     },
     "ping": {
         "title": "Пинг узлов сети",
-        "description": "Только пункты назначения {code} отвечают на пинг.",
+        "description": "Отвечают только узлы, объявляющие тип приложения ping.",
         "destination_hash": "Хеш назначения",
         "timeout_seconds": "Тайм-аут пинга (секунды)",
         "start_ping": "Запустить пинг",
@@ -1143,7 +1168,7 @@
     "rncp": {
         "file_transfer": "Передача файлов",
         "title": "RNCP - Reticulum Network Copy",
-        "description": "Отправка и получение файлов через сеть Reticulum с использованием ресурсов RNS. Этот инструмент обеспечивает надежную передачу файлов между узлами сети даже через каналы с высокой задержкой.",
+        "description": "Отправка, приём или загрузка файлов по Reticulum через RNCP (блоки, сжатие по желанию).",
         "usage_steps": "Как использовать RNCP:",
         "step_1": "1. Чтобы **получить** файл, перейдите на вкладку **Прослушивание**, введите разрешенные хеши идентичности (кто может присылать вам файлы) и нажмите **Начать прослушивание**.",
         "step_2": "2. Чтобы **отправить** файл, получите **Хеш назначения** прослушиваемого узла, введите **Локальный путь к файлу** и нажмите **Отправить файл**.",
@@ -1180,7 +1205,7 @@
     "rnprobe": {
         "network_diagnostics": "Диагностика сети",
         "title": "RNProbe - Проверка назначения",
-        "description": "Проверка пунктов назначения с настраиваемым размером пакетов для тестирования связности и измерения RTT.",
+        "description": "Зонды с настраиваемым размером для измерения RTT и доставки.",
         "destination_hash": "Хеш назначения",
         "full_destination_name": "Полное имя назначения",
         "probe_size_bytes": "Размер пакета (байты)",
@@ -1212,7 +1237,7 @@
     "rnstatus": {
         "network_diagnostics": "Диагностика сети",
         "title": "RNStatus - Статус сети",
-        "description": "Просмотр статистики интерфейсов и информации о статусе сети.",
+        "description": "Статистика по интерфейсам и состояние канала от вашего экземпляра RNS.",
         "refresh": "Обновить",
         "include_link_stats": "Включить статистику ссылок",
         "sort_by": "Сортировать по:",
@@ -1244,7 +1269,7 @@
     "translator": {
         "text_translation": "Перевод текста",
         "title": "Переводчик",
-        "description": "Перевод текста с использованием LibreTranslate API или локального Argos Translate.",
+        "description": "Перевод текста через сервер LibreTranslate или локальный Argos Translate.",
         "argos_translate": "Argos Translate",
         "libretranslate": "LibreTranslate",
         "api_server": "Сервер API LibreTranslate",
@@ -1477,7 +1502,7 @@
         "learn_create_desc_page": "Узнайте, как использовать MeshChatX на полную мощность и создавать свой контент.",
         "documentation": "Документация",
         "documentation_desc": "Читайте официальную документацию MeshChatX и Reticulum.",
-        "documentation_desc_page": "Подробные руководства по MeshChatX и базовому стеку Reticulum Network.",
+        "documentation_desc_page": "Руководства по MeshChatX и стеку Reticulum.",
         "meshchatx_docs": "Документация MeshChatX",
         "reticulum_docs": "Документация Reticulum",
         "read_meshchatx_docs": "Читать документацию MeshChatX",
@@ -1487,13 +1512,13 @@
         "micron_editor_desc_page": "Узнайте, как создавать mesh-страницы и интерактивный контент с помощью языка разметки Micron.",
         "open_micron_editor": "Открыть редактор Micron",
         "paper_messages": "Обзор узлов NomadNet",
-        "paper_messages_desc": "Просмотр децентрализованных страниц и сервисов.",
+        "paper_messages_desc": "Просмотр страниц и сервисов Nomad.",
         "send_messages": "Отправка сообщений",
         "send_messages_desc": "Начните защищенный разговор.",
         "explore_nodes": "Визуализация узлов",
-        "explore_nodes_desc": "Просмотр карты и топологии сети.",
+        "explore_nodes_desc": "Открыть карту или граф сети.",
         "voice_calls": "Голосовые звонки",
-        "voice_calls_desc": "Посмотрите наш крутой редактор рингтонов!",
+        "voice_calls_desc": "Исходящие и входящие голосовые вызовы.",
         "ready": "Все готово!",
         "ready_desc": "Все настроено. Вам следует перезапустить приложение, чтобы изменения вступили в силу.",
         "ready_desc_page": "MeshChatX настроен. Вам следует перезапустить приложение для завершения подключения.",
@@ -1525,7 +1550,7 @@
         "auto_propagation_enabled": "Авторетрансляция включена"
     },
     "command_palette": {
-        "search_placeholder": "Поиск команд, навигация или поиск узлов...",
+        "search_placeholder": "Команды, маршруты или узлы",
         "no_results": "Результатов для \"{query}\" не найдено",
         "group_actions": "Действия",
         "group_recent": "Недавние узлы",
@@ -1533,53 +1558,53 @@
         "footer_navigate": "Навигация",
         "footer_select": "Выбор",
         "nav_messages": "Сообщения",
-        "nav_messages_desc": "Открыть страницу сообщений",
+        "nav_messages_desc": "Беседы и почта LXMF",
         "nav_nomad": "Nomad Network",
-        "nav_nomad_desc": "Просмотр страниц Nomad Network",
+        "nav_nomad_desc": "Страницы и сервисы Nomad",
         "nav_map": "Карта",
-        "nav_map_desc": "Просмотр карты топологии сети",
+        "nav_map_desc": "Географическая карта и слои",
         "nav_paper": "Бумажные сообщения",
-        "nav_paper_desc": "Создание офлайн-сообщений",
+        "nav_paper_desc": "Подписанные бумажные сообщения (QR)",
         "nav_call": "Голосовые звонки",
-        "nav_call_desc": "Открыть страницу голосовых звонков",
+        "nav_call_desc": "Голосовые вызовы в mesh",
         "nav_settings": "Настройки",
-        "nav_settings_desc": "Открыть страницу настроек",
+        "nav_settings_desc": "Приложение и транспорт",
         "nav_ping": "Ping",
-        "nav_ping_desc": "Пинг узлов сети",
+        "nav_ping_desc": "Измерить RTT до узла",
         "nav_rnprobe": "RNProbe",
-        "nav_rnprobe_desc": "Зондирование узлов Reticulum",
+        "nav_rnprobe_desc": "Проверка доступности и задержки",
         "nav_rncp": "RNCP",
-        "nav_rncp_desc": "Reticulum Control Protocol",
+        "nav_rncp_desc": "Копирование файлов по Reticulum (RNCP)",
         "nav_rnstatus": "RNStatus",
-        "nav_rnstatus_desc": "Просмотр статуса Reticulum",
+        "nav_rnstatus_desc": "Статистика интерфейса и канала",
         "nav_rnpath": "RNPath",
-        "nav_rnpath_desc": "Просмотр сетевых путей",
+        "nav_rnpath_desc": "Пути и очереди анонсов",
         "nav_rnpath_trace": "Трассировка пути",
-        "nav_rnpath_trace_desc": "Визуализация сетевых путей",
+        "nav_rnpath_trace_desc": "Список переходов к хэшу",
         "nav_translator": "Переводчик",
-        "nav_translator_desc": "Перевод сообщений",
+        "nav_translator_desc": "Перевод текста сообщений",
         "nav_forwarder": "Форвардер",
-        "nav_forwarder_desc": "Инструмент пересылки сообщений",
+        "nav_forwarder_desc": "Правила пересылки LXMF",
         "nav_documentation": "Документация",
-        "nav_documentation_desc": "Просмотр документации",
+        "nav_documentation_desc": "Офлайн-руководства",
         "nav_micron_editor": "Редактор Micron",
-        "nav_micron_editor_desc": "Создание mesh-страниц",
+        "nav_micron_editor_desc": "Редактировать разметку Micron",
         "nav_rnode_flasher": "RNode Flasher",
-        "nav_rnode_flasher_desc": "Прошивка адаптеров RNode",
+        "nav_rnode_flasher_desc": "Обновление прошивки устройства",
         "nav_debug_logs": "Логи отладки",
-        "nav_debug_logs_desc": "Просмотр логов отладки",
+        "nav_debug_logs_desc": "Журналы приложения и доступа",
         "action_sync": "Синхронизация",
         "action_sync_desc": "Синхронизация с узлом ретрансляции",
         "action_compose": "Написать сообщение",
-        "action_compose_desc": "Начать новое сообщение",
+        "action_compose_desc": "Новое сообщение LXMF",
         "action_orbit": "Переключить Orbit",
-        "action_orbit_desc": "Переключить режим Orbit",
+        "action_orbit_desc": "Камера Orbit на графе сети",
         "action_bouncing_balls": "Прыгающие шарики",
-        "action_bouncing_balls_desc": "Переключить режим прыгающих шариков",
+        "action_bouncing_balls_desc": "Демонстрация физики на графе",
         "action_getting_started": "Начало работы",
-        "action_getting_started_desc": "Показать руководство",
+        "action_getting_started_desc": "Открыть мастер настройки",
         "action_changelog": "Список изменений",
-        "action_changelog_desc": "Просмотр изменений"
+        "action_changelog_desc": "Последние изменения"
     },
     "settings": {
         "shortcut_saved": "Shortcut saved",
@@ -1595,7 +1620,7 @@
     },
     "debug": {
         "title": "Журнал отладки",
-        "description": "Просмотр журналов приложения и обнаруженных аномалий.",
+        "description": "Просмотр журналов приложения и фильтрация по уровню.",
         "tab_logs": "Журналы",
         "tab_access_attempts": "Попытки доступа",
         "search_logs_placeholder": "Поиск в журналах...",
@@ -1616,7 +1641,7 @@
     },
     "visualiser": {
         "title": "Network Visualiser",
-        "description": "Visualize the mesh network topology.",
+        "description": "Граф обнаруженных узлов и связей.",
         "reticulum_mesh": "Reticulum Mesh",
         "network_visualizer": "Network Visualizer",
         "node_info": "Node Info",
@@ -1668,7 +1693,7 @@
     },
     "banishment": {
         "title": "Banished",
-        "description": "Manage Banished users and nodes",
+        "description": "Просмотр и снятие блокировок с идентичностей и узлов.",
         "failed_load_banished": "Failed to load banished destinations",
         "search_placeholder": "Search by hash or display name...",
         "loading_items": "Loading banished items...",

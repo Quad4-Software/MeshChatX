@@ -2,7 +2,7 @@
     "_languageName": "Italiano",
     "bots": {
         "title": "LXMFy Bot",
-        "description": "Gestisci bot automatizzati per echo, note e promemoria usando LXMFy.",
+        "description": "Bot LXMF semplici (echo, note, promemoria) se LXMFy è installato.",
         "bot_framework": "Bot Framework",
         "lxmfy_not_detected": "LXMFy non rilevato",
         "lxmfy_not_detected_desc": "Per usare i bot, devi installare il pacchetto LXMFy:",
@@ -115,6 +115,8 @@
         "fallback_node_description": "I messaggi ripiegano su questo nodo ogni volta che la consegna diretta fallisce.",
         "auto_select_node": "Selezione automatica del miglior nodo",
         "auto_select_node_description": "Trova e passa automaticamente al miglior nodo di propagazione disponibile in base agli hop di rete.",
+        "auto_select_using_label": "Nodo di propagazione in uso",
+        "auto_select_pending": "Nessun nodo di propagazione selezionato. L'app ne sceglierà uno quando disponibile.",
         "auto_sync_interval": "Intervallo Sincronizzazione Automatica",
         "last_synced": "Ultima sincronizzazione {time} fa.",
         "last_synced_never": "Ultima sincronizzazione: mai.",
@@ -122,7 +124,7 @@
         "propagation_stamp_description": "Richiedi francobolli proof-of-work per i messaggi propagati attraverso il tuo nodo. Valori più alti richiedono più lavoro computazionale. Intervallo: 13-254. Predefinito: 16. **Nota:** La modifica richiede il riavvio dell'app.",
         "language": "Lingua",
         "select_language": "Seleziona la tua lingua preferita.",
-        "custom_fork_by": "Fork personalizzato da",
+        "tagline": "Client Reticulum tutto in uno",
         "open": "Apri",
         "identity": "Identità",
         "lxmf_address_hash": "Hash Indirizzo LXMF",
@@ -214,6 +216,9 @@
         "sync_error": "Errore sincronizzazione: {status}",
         "switching_identity": "Cambiando Identità...",
         "loading_identity": "Caricamento della tua identità",
+        "loading_overlay_kicker": "Attendere",
+        "loading_overlay_title": "Cambio profilo",
+        "loading_overlay_subtitle": "Caricamento chat e impostazioni. Di solito bastano pochi secondi.",
         "emergency_mode_active": "Modalità Emergenza Attiva - Utilizzo del database in memoria e servizi limitati.",
         "blackhole_integration_enabled": "Integrazione Blackhole",
         "blackhole_integration_description": "Metti automaticamente in blackhole le identità a livello di trasporto Reticulum quando esili gli utenti in MeshChatX.",
@@ -415,10 +420,15 @@
         "import_success": "Importati {added} contatto/i",
         "import_failed": "Importazione fallita",
         "import_modal_title": "Importa contatti",
-        "import_file_hint": "Seleziona un file JSON esportato da Contatti."
+        "import_file_hint": "Seleziona un file JSON esportato da Contatti.",
+        "edit_contact": "Modifica contatto",
+        "enter_contact_name": "Inserisci il nome del contatto",
+        "contact_updated": "Contatto aggiornato",
+        "failed_update_contact": "Impossibile aggiornare il contatto"
     },
     "about": {
         "title": "Informazioni",
+        "third_party_licenses": "Licenze di terze parti",
         "version": "v{version}",
         "rns_version": "RNS {version}",
         "lxmf_version": "LXMF {version}",
@@ -537,7 +547,7 @@
     "map": {
         "title": "Mappa",
         "pop_out": "Apri mappa in finestra",
-        "description": "Mappa compatibile con l'uso offline e supporto MBTiles.",
+        "description": "Tile offline (MBTiles) e livelli personalizzati.",
         "upload_mbtiles": "Carica MBTiles",
         "select_file": "Seleziona file MBTiles",
         "offline_mode": "Modalità Offline",
@@ -800,7 +810,7 @@
     },
     "debug": {
         "title": "Log di Debug",
-        "description": "Visualizza i log dell'applicazione e le anomalie rilevate.",
+        "description": "Sfoglia i log dell'app e filtra per livello.",
         "tab_logs": "Log",
         "tab_access_attempts": "Tentativi di accesso",
         "search_logs_placeholder": "Cerca nei log...",
@@ -821,7 +831,7 @@
     },
     "visualiser": {
         "title": "Visualizzatore di Rete",
-        "description": "Visualizza la topologia della rete mesh.",
+        "description": "Grafo di nodi e collegamenti rilevati.",
         "reticulum_mesh": "Reticulum Mesh",
         "network_visualizer": "Visualizzatore di Rete",
         "node_info": "Info Nodo",
@@ -873,7 +883,7 @@
     },
     "banishment": {
         "title": "Esiliati",
-        "description": "Gestisci gli utenti e i nodi esiliati",
+        "description": "Esamina e revoca i blocchi su identità e nodi.",
         "failed_load_banished": "Impossibile caricare le destinazioni esiliate",
         "search_placeholder": "Cerca per hash o nome visualizzato...",
         "loading_items": "Caricamento elementi esiliati...",
@@ -949,7 +959,7 @@
     },
     "forwarder": {
         "title": "Inoltro LXMF",
-        "description": "Inoltra i messaggi da un indirizzo a un altro, con instradamento di ritorno trasparente.",
+        "description": "Inoltra LXMF tra indirizzi mantenendo il routing delle risposte.",
         "add_rule": "Aggiungi Regola di Inoltro",
         "name": "Nome",
         "name_placeholder": "Nome regola (es. Nodo Casa)...",
@@ -967,7 +977,7 @@
         "delete_confirm": "Sei sicuro di voler eliminare questa regola?"
     },
     "archives": {
-        "description": "Cerca e visualizza le pagine Nomad Network archiviate",
+        "description": "Cerca pagine Nomad salvate nel tuo archivio locale.",
         "search_placeholder": "Cerca contenuto, hash o percorso...",
         "loading": "Caricamento archivi...",
         "no_archives_found": "Nessun archivio trovato",
@@ -983,7 +993,7 @@
     },
     "docs": {
         "title": "Documentazione",
-        "subtitle": "Manuali e guide Reticulum.",
+        "subtitle": "Manuali Reticulum e MeshChat.",
         "status_title": "Stato Documentazione",
         "status_downloading": "Scaricamento...",
         "status_available": "Manuale Offline Disponibile",
@@ -995,29 +1005,44 @@
         "docs_link_copied": "Link alla documentazione copiato negli appunti",
         "failed_copy_link": "Impossibile copiare il link"
     },
+    "licenses": {
+        "section_label": "Note legali",
+        "title": "Licenze di terze parti",
+        "description": "Versioni, autori e licenze SPDX o dichiarate delle dipendenze a runtime. I dati provengono dall'ambiente Python installato e da pnpm se disponibile.",
+        "short_description": "Versioni, autori e licenze per backend e frontend.",
+        "search_placeholder": "Cerca pacchetti, versioni, autori, licenze...",
+        "generated_at": "Generato alle {time}",
+        "frontend_source": "Dati frontend: {source}",
+        "backend_section": "Backend (Python)",
+        "frontend_section": "Frontend (Node)",
+        "col_package": "Pacchetto",
+        "col_version": "Versione",
+        "col_author": "Autore",
+        "col_license": "Licenza"
+    },
     "tools": {
         "utilities": "Utilità",
-        "power_tools": "Strumenti avanzati per operatori",
-        "diagnostics_description": "Gli strumenti di diagnostica e gli assistenti firmware sono inclusi in MeshChat per consentirti di risolvere i problemi dei peer senza lasciare la console.",
+        "power_tools": "Utilità",
+        "diagnostics_description": "Controlli di connettività, trasferimenti, percorsi, traduzione, manuali e assistenza hardware in un unico posto.",
         "ping": {
             "title": "Ping",
-            "description": "Test di latenza per qualsiasi destinazione LXMF con stato in tempo reale."
+            "description": "Misura il tempo di andata e ritorno verso una destinazione che accetta il ping."
         },
         "rnprobe": {
             "title": "RNProbe",
-            "description": "Sonda le destinazioni con dimensioni dei pacchetti personalizzate per testare la connettività."
+            "description": "Invia sonde con dimensione payload configurabile per verificare raggiungibilità e ritardo."
         },
         "rncp": {
             "title": "RNCP",
-            "description": "Invia e ricevi file su RNS con monitoraggio dell'avanzamento."
+            "description": "Invia e ricevi file su Reticulum (RNCP) con avanzamento."
         },
         "rnstatus": {
             "title": "RNStatus",
-            "description": "Visualizza le statistiche delle interfacce e le informazioni sullo stato della rete."
+            "description": "Contatori per interfaccia e stato orientato al collegamento da Reticulum."
         },
         "rnpath": {
             "title": "RNPath",
-            "description": "Gestisci la tabella dei percorsi, visualizza i tassi di annuncio e richiedi percorsi.",
+            "description": "Ispeziona percorsi e code di annuncio; richiedi o elimina route.",
             "failed_fetch": "Impossibile recuperare i dati del percorso",
             "path_dropped": "Percorso eliminato",
             "failed_drop": "Impossibile eliminare il percorso",
@@ -1031,7 +1056,7 @@
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
-            "description": "Visualizza il percorso e i salti verso qualsiasi hash di destinazione sulla mesh.",
+            "description": "Elenco dei salti verso l'hash di destinazione lungo il percorso attuale.",
             "destination_hash": "Hash di Destinazione",
             "placeholder": "Inserisci hash di destinazione a 32 caratteri...",
             "trace": "Traccia Percorso",
@@ -1040,21 +1065,21 @@
             "interface": "Interfaccia di Uscita",
             "next_hop": "Prossimo Salto",
             "ready_title": "Traccia un Percorso",
-            "ready_desc": "Inserisci un hash di destinazione sopra per visualizzare come i pacchetti viaggiano attraverso la mesh per raggiungerlo.",
+            "ready_desc": "Inserisci un hash di destinazione per elencare i salti lungo il percorso attuale.",
             "unknown_hops": "{count} Salti Intermedi",
             "ping_test": "Test con Ping"
         },
         "translator": {
             "title": "Traduttore",
-            "description": "Traduci testo usando l'API LibreTranslate o Argos Translate locale."
+            "description": "Traduci testo tramite un server LibreTranslate o Argos Translate locale."
         },
         "forwarder": {
             "title": "Inoltro",
-            "description": "Inoltro LXMF con instradamento del percorso di ritorno."
+            "description": "Inoltra LXMF tra indirizzi mantenendo il routing delle risposte."
         },
         "rnode_flasher": {
             "title": "Flasher RNode",
-            "description": "Flasher e aggiornamento degli adattatori RNode senza toccare la riga di comando.",
+            "description": "Flash o aggiorna il firmware RNode dal browser (hardware supportato).",
             "select_device": "1. Seleziona il tuo dispositivo",
             "product": "Prodotto",
             "model": "Modello",
@@ -1186,7 +1211,7 @@
         },
         "micron_editor": {
             "title": "Editor Micron",
-            "description": "Modifica e visualizza l'anteprima del markup Micron con rendering live.",
+            "description": "Modifica il markup Micron con anteprima live.",
             "editor": "Editor",
             "preview": "Anteprima",
             "save": "Salva",
@@ -1204,28 +1229,28 @@
         },
         "paper_message": {
             "title": "Messaggio Cartaceo",
-            "description": "Genera e leggi messaggi cartacei LXMF firmati tramite codici QR."
+            "description": "Crea o leggi messaggi cartacei LXMF tramite QR."
         },
         "mesh_server": {
             "title": "Mesh Server",
-            "description": "Servi pagine Micron e file direttamente sulla rete Reticulum."
+            "description": "Pubblica pagine Micron e file per i peer sulla mesh."
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",
-            "description": "Crea tunnel per il traffico IP regolare su collegamenti di rete Reticulum."
+            "description": "Tunnel IP su collegamenti Reticulum (in sviluppo)."
         },
         "rns_filesync": {
             "title": "RNS Filesync",
-            "description": "Condividi e sincronizza file in modo efficiente con altri peer della mesh."
+            "description": "Sincronizzazione file tra peer mesh (in sviluppo)."
         },
         "bots": {
             "title": "LXMFy Bot",
-            "description": "Gestisci bot automatizzati per echo, note e promemoria usando LXMFy."
+            "description": "Bot LXMF semplici (echo, note, promemoria) se LXMFy è installato."
         }
     },
     "ping": {
         "title": "Ping Peer della Mesh",
-        "description": "Solo le destinazioni {code} rispondono al ping.",
+        "description": "Rispondono solo le destinazioni che espongono il tipo app ping.",
         "destination_hash": "Hash di Destinazione",
         "timeout_seconds": "Timeout Ping (secondi)",
         "start_ping": "Inizia Ping",
@@ -1246,7 +1271,7 @@
     "rncp": {
         "file_transfer": "Trasferimento File",
         "title": "RNCP - Reticulum Network Copy",
-        "description": "Invia e ricevi file sulla rete Reticulum usando le risorse RNS. Questo strumento consente un trasferimento affidabile dei file tra i nodi della mesh anche su collegamenti ad alta latenza.",
+        "description": "Invia, ascolta o recupera file su Reticulum con RNCP (blocchi, compressione opzionale).",
         "usage_steps": "Come usare RNCP:",
         "step_1": "1. Per **ricevere** un file, vai alla scheda **Ascolta**, inserisci gli hash delle identità consentite (chi può inviarti file) e clicca su **Inizia Ascolto**.",
         "step_2": "2. Per **inviare** un file, ottieni l'**Hash di Destinazione** di un nodo in ascolto, inserisci il **Percorso File Locale** e clicca su **Invia File**.",
@@ -1283,7 +1308,7 @@
     "rnprobe": {
         "network_diagnostics": "Diagnostica di Rete",
         "title": "RNProbe - Sonda Destinazione",
-        "description": "Sonda le destinazioni con dimensioni dei pacchetti personalizzate per testare la connettività e misurare l'RTT.",
+        "description": "Invia sonde con dimensione configurabile per misurare RTT e consegna.",
         "destination_hash": "Hash di Destinazione",
         "full_destination_name": "Nome Destinazione Completo",
         "probe_size_bytes": "Dimensione Sonda (byte)",
@@ -1315,7 +1340,7 @@
     "rnstatus": {
         "network_diagnostics": "Diagnostica di Rete",
         "title": "RNStatus - Stato della Rete",
-        "description": "Visualizza le statistiche delle interfacce e le informazioni sullo stato della rete.",
+        "description": "Statistiche per interfaccia e stato del collegamento dalla tua istanza RNS.",
         "refresh": "Aggiorna",
         "include_link_stats": "Includi Statistiche Collegamento",
         "sort_by": "Ordina per:",
@@ -1347,7 +1372,7 @@
     "translator": {
         "text_translation": "Traduzione Testo",
         "title": "Traduttore",
-        "description": "Traduci testo usando l'API LibreTranslate o Argos Translate locale.",
+        "description": "Traduci testo tramite un server LibreTranslate o Argos Translate locale.",
         "argos_translate": "Argos Translate",
         "libretranslate": "LibreTranslate",
         "api_server": "Server API LibreTranslate",
@@ -1580,7 +1605,7 @@
         "learn_create_desc_page": "Scopri come usare MeshChatX al massimo delle sue potenzialità e crea i tuoi contenuti.",
         "documentation": "Documentazione",
         "documentation_desc": "Leggi la documentazione ufficiale di MeshChatX e Reticulum.",
-        "documentation_desc_page": "Guide complete per MeshChatX e lo stack di rete Reticulum sottostante.",
+        "documentation_desc_page": "Guide su MeshChatX e lo stack Reticulum.",
         "meshchatx_docs": "Doc MeshChatX",
         "reticulum_docs": "Doc Reticulum",
         "read_meshchatx_docs": "Leggi Doc MeshChatX",
@@ -1590,13 +1615,13 @@
         "micron_editor_desc_page": "Impara come creare pagine mesh-native e contenuti interattivi usando il linguaggio di markup Micron.",
         "open_micron_editor": "Apri Editor Micron",
         "paper_messages": "Esplora Nodi NomadNet",
-        "paper_messages_desc": "Sfoglia pagine e servizi decentralizzati.",
+        "paper_messages_desc": "Sfoglia pagine e servizi Nomad.",
         "send_messages": "Invia Messaggi",
         "send_messages_desc": "Inizia una conversazione sicura.",
         "explore_nodes": "Visualizza Nodi",
-        "explore_nodes_desc": "Visualizza la mappa e la topologia della rete.",
+        "explore_nodes_desc": "Apri la mappa o il grafico di rete.",
         "voice_calls": "Chiamate Vocali",
-        "voice_calls_desc": "Prova il fantastico editor di suonerie!",
+        "voice_calls_desc": "Effettua e ricevi chiamate vocali.",
         "ready": "Pronto per Iniziare!",
         "ready_desc": "Tutto è configurato. Si consiglia di riavviare l'applicazione affinché le modifiche abbiano effetto.",
         "ready_desc_page": "MeshChatX è ora configurato. Si consiglia di riavviare l'applicazione per finalizzare la connessione.",
@@ -1628,7 +1653,7 @@
         "auto_propagation_enabled": "Auto-propagazione abilitata"
     },
     "command_palette": {
-        "search_placeholder": "Cerca comandi, naviga o trova peer...",
+        "search_placeholder": "Cerca comandi, percorsi o peer",
         "no_results": "Nessun risultato trovato per \"{query}\"",
         "group_actions": "Azioni",
         "group_recent": "Peer Recenti",
@@ -1636,52 +1661,52 @@
         "footer_navigate": "Naviga",
         "footer_select": "Seleziona",
         "nav_messages": "Messaggi",
-        "nav_messages_desc": "Apri la pagina dei messaggi",
+        "nav_messages_desc": "Conversazioni e posta LXMF",
         "nav_nomad": "Nomad Network",
-        "nav_nomad_desc": "Sfoglia le pagine Nomad Network",
+        "nav_nomad_desc": "Sfoglia pagine e servizi Nomad",
         "nav_map": "Mappa",
-        "nav_map_desc": "Visualizza la mappa della topologia di rete",
+        "nav_map_desc": "Mappa geografica e livelli",
         "nav_paper": "Messaggi Cartacei",
-        "nav_paper_desc": "Genera messaggi offline",
+        "nav_paper_desc": "Messaggi cartacei firmati (QR)",
         "nav_call": "Chiamate Vocali",
-        "nav_call_desc": "Apri la pagina delle chiamate vocali",
+        "nav_call_desc": "Chiamate vocali sulla mesh",
         "nav_settings": "Impostazioni",
-        "nav_settings_desc": "Apri la pagina delle impostazioni",
+        "nav_settings_desc": "Preferenze app e trasporto",
         "nav_ping": "Ping",
-        "nav_ping_desc": "Ping nodi di rete",
+        "nav_ping_desc": "Misura RTT verso una destinazione",
         "nav_rnprobe": "RNProbe",
-        "nav_rnprobe_desc": "Sonda i nodi Reticulum",
+        "nav_rnprobe_desc": "Verifica raggiungibilità e ritardo",
         "nav_rncp": "RNCP",
-        "nav_rncp_desc": "Reticulum Control Protocol",
+        "nav_rncp_desc": "Copia file su Reticulum (RNCP)",
         "nav_rnstatus": "RNStatus",
-        "nav_rnstatus_desc": "Visualizza lo stato di Reticulum",
+        "nav_rnstatus_desc": "Statistiche interfaccia e collegamento",
         "nav_rnpath": "RNPath",
-        "nav_rnpath_desc": "Visualizza i percorsi di rete",
+        "nav_rnpath_desc": "Percorsi e code di annuncio",
         "nav_rnpath_trace": "RNPath Trace",
-        "nav_rnpath_trace_desc": "Visualizza i percorsi di rete",
+        "nav_rnpath_trace_desc": "Elenco salti verso un hash",
         "nav_translator": "Traduttore",
-        "nav_translator_desc": "Traduci messaggi",
+        "nav_translator_desc": "Traduci il testo dei messaggi",
         "nav_forwarder": "Inoltro",
-        "nav_forwarder_desc": "Strumento di inoltro messaggi",
+        "nav_forwarder_desc": "Regole di inoltro LXMF",
         "nav_documentation": "Documentazione",
-        "nav_documentation_desc": "Visualizza la documentazione",
+        "nav_documentation_desc": "Manuali offline",
         "nav_micron_editor": "Editor Micron",
-        "nav_micron_editor_desc": "Crea pagine mesh-native",
+        "nav_micron_editor_desc": "Modifica markup Micron",
         "nav_rnode_flasher": "Flasher RNode",
-        "nav_rnode_flasher_desc": "Flasha il firmware RNode",
+        "nav_rnode_flasher_desc": "Aggiornamento firmware dispositivo",
         "nav_debug_logs": "Log di Debug",
-        "nav_debug_logs_desc": "Visualizza i log di debug",
+        "nav_debug_logs_desc": "Log applicazione e accessi",
         "action_sync": "Sincronizza Messaggi",
         "action_sync_desc": "Sincronizza con il nodo di propagazione",
         "action_compose": "Componi Messaggio",
-        "action_compose_desc": "Inizia un nuovo messaggio",
+        "action_compose_desc": "Nuovo messaggio LXMF",
         "action_orbit": "Attiva/Disattiva Orbita",
-        "action_orbit_desc": "Attiva o disattiva la modalità orbita",
+        "action_orbit_desc": "Camera orbita nel grafico di rete",
         "action_bouncing_balls": "Palle Rimbalzanti",
-        "action_bouncing_balls_desc": "Attiva o disattiva la modalità palle rimbalzanti",
+        "action_bouncing_balls_desc": "Demo fisica sul grafico",
         "action_getting_started": "Guida Introduttiva",
-        "action_getting_started_desc": "Mostra la guida introduttiva",
+        "action_getting_started_desc": "Apri la guida di configurazione",
         "action_changelog": "Changelog",
-        "action_changelog_desc": "Visualizza le novità"
+        "action_changelog_desc": "Modifiche recenti"
     }
 }

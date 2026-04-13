@@ -2,7 +2,7 @@
     "_languageName": "English",
     "bots": {
         "title": "LXMFy Bots",
-        "description": "Manage automated bots for echo, notes, and reminders using LXMFy.",
+        "description": "Simple LXMF bots (echo, notes, reminders) when LXMFy is installed.",
         "bot_framework": "Bot Framework",
         "lxmfy_not_detected": "LXMFy not detected",
         "lxmfy_not_detected_desc": "To use bots, you must install the LXMFy package:",
@@ -115,6 +115,8 @@
         "fallback_node_description": "Messages fallback to this node whenever direct delivery fails.",
         "auto_select_node": "Auto-select best node",
         "auto_select_node_description": "Automatically find and switch to the best available propagation node based on network hops.",
+        "auto_select_using_label": "Using propagation node",
+        "auto_select_pending": "No propagation node selected yet. The app will choose one when available.",
         "auto_sync_interval": "Auto Sync Interval",
         "last_synced": "Last synced {time} ago.",
         "last_synced_never": "Last synced: never.",
@@ -122,7 +124,7 @@
         "propagation_stamp_description": "Require proof-of-work stamps for messages propagated through your node. Higher values require more computational work. Range: 13-254. Default: 16. **Note:** Changing this requires restarting the app.",
         "language": "Language",
         "select_language": "Select your preferred language.",
-        "custom_fork_by": "Custom fork by",
+        "tagline": "All-in-one Reticulum client",
         "open": "Open",
         "identity": "Identity",
         "lxmf_address_hash": "LXMF Address Hash",
@@ -214,6 +216,9 @@
         "sync_error": "Sync error: {status}",
         "switching_identity": "Switching Identity...",
         "loading_identity": "Loading your identity",
+        "loading_overlay_kicker": "One moment",
+        "loading_overlay_title": "Switching profile",
+        "loading_overlay_subtitle": "Loading your chats and settings. This usually takes a few seconds.",
         "emergency_mode_active": "Emergency Mode Active - Using in-memory database and restricted services.",
         "blackhole_integration_enabled": "Blackhole Integration",
         "blackhole_integration_description": "Automatically blackhole identities at the Reticulum transport layer when banishing users in MeshChatX.",
@@ -373,6 +378,7 @@
     },
     "about": {
         "title": "About",
+        "third_party_licenses": "Third-party licenses",
         "version": "v{version}",
         "rns_version": "RNS {version}",
         "lxmf_version": "LXMF {version}",
@@ -491,7 +497,7 @@
     "map": {
         "title": "Map",
         "pop_out": "Pop out map",
-        "description": "Offline-capable map with MBTiles support.",
+        "description": "Offline map tiles (MBTiles) and your own layers.",
         "upload_mbtiles": "Upload MBTiles",
         "select_file": "Select MBTiles file",
         "offline_mode": "Offline Mode",
@@ -754,7 +760,7 @@
     },
     "debug": {
         "title": "Debug Logs",
-        "description": "View application logs and detected anomalies.",
+        "description": "Browse application logs and filter by level.",
         "tab_logs": "Logs",
         "tab_access_attempts": "Access attempts",
         "search_logs_placeholder": "Search logs...",
@@ -775,7 +781,7 @@
     },
     "visualiser": {
         "title": "Network Visualiser",
-        "description": "Visualize the mesh network topology.",
+        "description": "Graph of discovered nodes and links.",
         "reticulum_mesh": "Reticulum Mesh",
         "network_visualizer": "Network Visualizer",
         "node_info": "Node Info",
@@ -827,7 +833,7 @@
     },
     "banishment": {
         "title": "Banished",
-        "description": "Manage Banished users and nodes",
+        "description": "Review and lift blocks on identities and nodes.",
         "failed_load_banished": "Failed to load banished destinations",
         "search_placeholder": "Search by hash or display name...",
         "loading_items": "Loading banished items...",
@@ -903,7 +909,7 @@
     },
     "forwarder": {
         "title": "LXMF Forwarder",
-        "description": "Forward messages from one address to another, with transparent return routing.",
+        "description": "Forward LXMF between addresses with reply routing preserved.",
         "add_rule": "Add Forwarding Rule",
         "name": "Name",
         "name_placeholder": "Rule name (e.g. Home Node)...",
@@ -921,7 +927,7 @@
         "delete_confirm": "Are you sure you want to delete this rule?"
     },
     "archives": {
-        "description": "Search and view archived Nomad Network pages",
+        "description": "Search Nomad Network pages stored in your local archive.",
         "search_placeholder": "Search content, hash or path...",
         "loading": "Loading archives...",
         "no_archives_found": "No archives found",
@@ -937,7 +943,7 @@
     },
     "docs": {
         "title": "Documentation",
-        "subtitle": "Reticulum manuals and guides.",
+        "subtitle": "Reticulum and MeshChat manuals.",
         "status_title": "Documentation Status",
         "status_downloading": "Downloading...",
         "status_available": "Offline Manual Available",
@@ -949,29 +955,44 @@
         "docs_link_copied": "Documentation link copied to clipboard",
         "failed_copy_link": "Failed to copy link"
     },
+    "licenses": {
+        "section_label": "Legal",
+        "title": "Third-party licenses",
+        "description": "Runtime dependency versions, authors, and SPDX or declared license strings. Data is collected from the installed Python environment and from pnpm when available.",
+        "short_description": "Dependency versions, authors, and licenses for backend and frontend.",
+        "search_placeholder": "Search packages, versions, authors, licenses...",
+        "generated_at": "Generated at {time}",
+        "frontend_source": "Frontend data: {source}",
+        "backend_section": "Backend (Python)",
+        "frontend_section": "Frontend (Node)",
+        "col_package": "Package",
+        "col_version": "Version",
+        "col_author": "Author",
+        "col_license": "License"
+    },
     "tools": {
         "utilities": "Utilities",
-        "power_tools": "Power tools for operators",
-        "diagnostics_description": "Diagnostics and firmware helpers ship with MeshChat so you can troubleshoot peers without leaving the console.",
+        "power_tools": "Utilities",
+        "diagnostics_description": "Connectivity checks, transfers, paths, translation, docs, and hardware helpers in one place.",
         "ping": {
             "title": "Ping",
-            "description": "Latency test for any LXMF destination hash with live status."
+            "description": "Measure round-trip time to a destination that accepts ping."
         },
         "rnprobe": {
             "title": "RNProbe",
-            "description": "Probe destinations with custom packet sizes to test connectivity."
+            "description": "Send probes with configurable payload size to test reachability and delay."
         },
         "rncp": {
             "title": "RNCP",
-            "description": "Send and receive files over RNS with progress tracking."
+            "description": "Send and receive files over Reticulum (RNCP) with progress."
         },
         "rnstatus": {
             "title": "RNStatus",
-            "description": "View interface statistics and network status information."
+            "description": "Per-interface counters and link-oriented status from Reticulum."
         },
         "rnpath": {
             "title": "RNPath",
-            "description": "Manage the path table, view announce rates and request paths.",
+            "description": "Inspect paths, announces, and request or drop routes.",
             "failed_fetch": "Failed to fetch path data",
             "path_dropped": "Path dropped",
             "failed_drop": "Could not drop path",
@@ -985,7 +1006,7 @@
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
-            "description": "Visualize the path and hops to any destination hash on the mesh.",
+            "description": "Show the hop list toward a destination hash.",
             "destination_hash": "Destination Hash",
             "placeholder": "Enter 32-char destination hash...",
             "trace": "Trace Path",
@@ -994,21 +1015,21 @@
             "interface": "Exit Interface",
             "next_hop": "Next Hop",
             "ready_title": "Trace a Path",
-            "ready_desc": "Enter a destination hash above to visualize how packets travel through the mesh to reach it.",
+            "ready_desc": "Enter a destination hash to list hops along the current path.",
             "unknown_hops": "{count} Intermediate Hops",
             "ping_test": "Test with Ping"
         },
         "translator": {
             "title": "Translator",
-            "description": "Translate text using LibreTranslate API or local Argos Translate."
+            "description": "Translate text via a LibreTranslate server or local Argos Translate."
         },
         "forwarder": {
             "title": "Forwarder",
-            "description": "LXMF forwarding with return path routing."
+            "description": "Forward LXMF between addresses with reply routing preserved."
         },
         "rnode_flasher": {
             "title": "RNode Flasher",
-            "description": "Flash and update RNode adapters without touching the command line.",
+            "description": "Flash or update RNode firmware from the browser (supported hardware).",
             "select_device": "1. Select your device",
             "product": "Product",
             "model": "Model",
@@ -1140,7 +1161,7 @@
         },
         "micron_editor": {
             "title": "Micron Editor",
-            "description": "Edit and preview Micron markup with live rendering.",
+            "description": "Edit Micron markup with a live preview.",
             "editor": "Editor",
             "preview": "Preview",
             "save": "Save",
@@ -1158,28 +1179,28 @@
         },
         "paper_message": {
             "title": "Paper Message",
-            "description": "Generate and read LXMF signed paper messages via QR codes."
+            "description": "Create or scan QR-encoded LXMF paper messages."
         },
         "mesh_server": {
             "title": "Mesh Server",
-            "description": "Serve Micron pages and files directly over the Reticulum mesh."
+            "description": "Host Micron pages and files for peers on the mesh."
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",
-            "description": "Tunnel regular IP traffic over Reticulum network links."
+            "description": "IP tunneling over Reticulum links (in development)."
         },
         "rns_filesync": {
             "title": "RNS Filesync",
-            "description": "Efficiently share and sync files with other mesh peers."
+            "description": "File sync between mesh peers (in development)."
         },
         "bots": {
             "title": "LXMFy Bots",
-            "description": "Manage automated bots for echo, notes, and reminders using LXMFy."
+            "description": "Simple LXMF bots (echo, notes, reminders) when LXMFy is installed."
         }
     },
     "ping": {
         "title": "Ping Mesh Peers",
-        "description": "Only {code} destinations respond to ping.",
+        "description": "Only destinations that expose the ping app type will answer.",
         "destination_hash": "Destination Hash",
         "timeout_seconds": "Ping Timeout (seconds)",
         "start_ping": "Start Ping",
@@ -1200,7 +1221,7 @@
     "rncp": {
         "file_transfer": "File Transfer",
         "title": "RNCP - Reticulum Network Copy",
-        "description": "Send and receive files over the Reticulum network using RNS resources. This tool allows for reliable file transfer between mesh nodes even over high-latency links.",
+        "description": "Send, listen, or fetch files over Reticulum using RNCP (chunked transfers, optional compression).",
         "usage_steps": "How to use RNCP:",
         "step_1": "1. To **receive** a file, go to the **Listen** tab, enter allowed identity hashes (who can send to you), and click **Start Listening**.",
         "step_2": "2. To **send** a file, get the **Destination Hash** of a listening node, enter the **Local File Path**, and click **Send File**.",
@@ -1237,7 +1258,7 @@
     "rnprobe": {
         "network_diagnostics": "Network Diagnostics",
         "title": "RNProbe - Destination Probe",
-        "description": "Probe destinations with custom packet sizes to test connectivity and measure RTT.",
+        "description": "Send probes with configurable size to measure RTT and delivery.",
         "destination_hash": "Destination Hash",
         "full_destination_name": "Full Destination Name",
         "probe_size_bytes": "Probe Size (bytes)",
@@ -1269,7 +1290,7 @@
     "rnstatus": {
         "network_diagnostics": "Network Diagnostics",
         "title": "RNStatus - Network Status",
-        "description": "View interface statistics and network status information.",
+        "description": "Per-interface statistics and link status from your RNS instance.",
         "refresh": "Refresh",
         "include_link_stats": "Include Link Stats",
         "sort_by": "Sort by:",
@@ -1301,7 +1322,7 @@
     "translator": {
         "text_translation": "Text Translation",
         "title": "Translator",
-        "description": "Translate text using LibreTranslate API or local Argos Translate.",
+        "description": "Translate text via a LibreTranslate server or local Argos Translate.",
         "argos_translate": "Argos Translate",
         "libretranslate": "LibreTranslate",
         "api_server": "LibreTranslate API Server",
@@ -1534,7 +1555,11 @@
         "import_success": "Imported {added} contact(s)",
         "import_failed": "Failed to import contacts",
         "import_modal_title": "Import Contacts",
-        "import_file_hint": "Select a JSON file exported from Contacts."
+        "import_file_hint": "Select a JSON file exported from Contacts.",
+        "edit_contact": "Edit Contact",
+        "enter_contact_name": "Enter contact name",
+        "contact_updated": "Contact updated",
+        "failed_update_contact": "Failed to update contact"
     },
     "tutorial": {
         "title": "Getting Started",
@@ -1580,7 +1605,7 @@
         "learn_create_desc_page": "Discover how to use MeshChatX to its full potential and create your own content.",
         "documentation": "Documentation",
         "documentation_desc": "Read the official MeshChatX and Reticulum documentation.",
-        "documentation_desc_page": "Comprehensive guides for MeshChatX and the underlying Reticulum Network Stack.",
+        "documentation_desc_page": "Guides for MeshChatX and the Reticulum stack.",
         "meshchatx_docs": "MeshChatX Docs",
         "reticulum_docs": "Reticulum Docs",
         "read_meshchatx_docs": "Read MeshChatX Docs",
@@ -1590,13 +1615,13 @@
         "micron_editor_desc_page": "Learn how to create mesh-native pages and interactive content using the Micron markup language.",
         "open_micron_editor": "Open Micron Editor",
         "paper_messages": "Explore NomadNet Nodes",
-        "paper_messages_desc": "Browse decentralized pages and services.",
+        "paper_messages_desc": "Browse Nomad pages and services.",
         "send_messages": "Send Messages",
         "send_messages_desc": "Start a secure conversation.",
         "explore_nodes": "Visualize Nodes",
-        "explore_nodes_desc": "View the network map and topology.",
+        "explore_nodes_desc": "Open the map or network graph.",
         "voice_calls": "Voice Calls",
-        "voice_calls_desc": "Check out the awesome ringtone editor!",
+        "voice_calls_desc": "Place and receive voice calls.",
         "ready": "Ready to Roll!",
         "ready_desc": "Everything is set up. You should restart the application for the changes to take effect.",
         "ready_desc_page": "MeshChatX is now configured. You should restart the application to finalize the connection.",
@@ -1628,7 +1653,7 @@
         "auto_propagation_enabled": "Auto-propagation enabled"
     },
     "command_palette": {
-        "search_placeholder": "Search commands, navigate, or find peers...",
+        "search_placeholder": "Search commands, routes, or peers",
         "no_results": "No results found for \"{query}\"",
         "group_actions": "Actions",
         "group_recent": "Recent Peers",
@@ -1636,52 +1661,52 @@
         "footer_navigate": "Navigate",
         "footer_select": "Select",
         "nav_messages": "Messages",
-        "nav_messages_desc": "Open messages page",
+        "nav_messages_desc": "Conversations and LXMF inbox",
         "nav_nomad": "Nomad Network",
-        "nav_nomad_desc": "Browse Nomad Network pages",
+        "nav_nomad_desc": "Browse Nomad pages and services",
         "nav_map": "Map",
-        "nav_map_desc": "View network topology map",
+        "nav_map_desc": "Geographic map and layers",
         "nav_paper": "Paper Messages",
-        "nav_paper_desc": "Generate offline messages",
+        "nav_paper_desc": "Signed paper messages (QR)",
         "nav_call": "Voice Calls",
-        "nav_call_desc": "Open voice calls page",
+        "nav_call_desc": "Voice calls over the mesh",
         "nav_settings": "Settings",
-        "nav_settings_desc": "Open settings page",
+        "nav_settings_desc": "App and transport preferences",
         "nav_ping": "Ping",
-        "nav_ping_desc": "Ping network nodes",
+        "nav_ping_desc": "Measure RTT to a destination",
         "nav_rnprobe": "RNProbe",
-        "nav_rnprobe_desc": "Probe Reticulum nodes",
+        "nav_rnprobe_desc": "Probe reachability and delay",
         "nav_rncp": "RNCP",
-        "nav_rncp_desc": "Reticulum Control Protocol",
+        "nav_rncp_desc": "File copy over Reticulum (RNCP)",
         "nav_rnstatus": "RNStatus",
-        "nav_rnstatus_desc": "View Reticulum status",
+        "nav_rnstatus_desc": "Interface and link statistics",
         "nav_rnpath": "RNPath",
-        "nav_rnpath_desc": "View network paths",
+        "nav_rnpath_desc": "Paths and announce queues",
         "nav_rnpath_trace": "RNPath Trace",
-        "nav_rnpath_trace_desc": "Visualize network paths",
+        "nav_rnpath_trace_desc": "Hop list toward a hash",
         "nav_translator": "Translator",
-        "nav_translator_desc": "Translate messages",
+        "nav_translator_desc": "Translate message text",
         "nav_forwarder": "Forwarder",
-        "nav_forwarder_desc": "Message forwarding tool",
+        "nav_forwarder_desc": "LXMF forwarding rules",
         "nav_documentation": "Documentation",
-        "nav_documentation_desc": "View documentation",
+        "nav_documentation_desc": "Offline manuals",
         "nav_micron_editor": "Micron Editor",
-        "nav_micron_editor_desc": "Create mesh-native pages",
+        "nav_micron_editor_desc": "Edit Micron markup",
         "nav_rnode_flasher": "RNode Flasher",
-        "nav_rnode_flasher_desc": "Flash RNode firmware",
+        "nav_rnode_flasher_desc": "Device firmware update",
         "nav_debug_logs": "Debug Logs",
-        "nav_debug_logs_desc": "View debug logs",
+        "nav_debug_logs_desc": "Application and access logs",
         "action_sync": "Sync Messages",
-        "action_sync_desc": "Sync with propagation node",
+        "action_sync_desc": "Sync with your propagation node",
         "action_compose": "Compose Message",
-        "action_compose_desc": "Start a new message",
+        "action_compose_desc": "New LXMF message",
         "action_orbit": "Toggle Orbit",
-        "action_orbit_desc": "Toggle orbit mode",
+        "action_orbit_desc": "Orbit camera in network graph",
         "action_bouncing_balls": "Bouncing Balls",
-        "action_bouncing_balls_desc": "Toggle bouncing balls mode",
+        "action_bouncing_balls_desc": "Physics demo on the graph",
         "action_getting_started": "Getting Started",
-        "action_getting_started_desc": "Show getting started guide",
+        "action_getting_started_desc": "Open the setup guide",
         "action_changelog": "Changelog",
-        "action_changelog_desc": "View what's new"
+        "action_changelog_desc": "Recent changes"
     }
 }
