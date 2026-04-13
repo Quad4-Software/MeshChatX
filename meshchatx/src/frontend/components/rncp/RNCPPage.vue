@@ -182,7 +182,11 @@
                                 {{ sendResult.filePath }}
                             </div>
                             <div v-if="sendResult.success && sendResult.filePath" class="flex gap-2">
-                                <button type="button" class="secondary-chip text-xs py-1 px-2" @click="openPathInOs(sendResult.filePath)">
+                                <button
+                                    type="button"
+                                    class="secondary-chip text-xs py-1 px-2"
+                                    @click="openPathInOs(sendResult.filePath)"
+                                >
                                     {{ $t("rncp.show_in_folder") }}
                                 </button>
                             </div>
@@ -288,11 +292,18 @@
                             "
                         >
                             <div>{{ fetchResult.message }}</div>
-                            <div v-if="fetchResult.success && fetchResult.savedPath" class="font-mono text-xs break-all">
+                            <div
+                                v-if="fetchResult.success && fetchResult.savedPath"
+                                class="font-mono text-xs break-all"
+                            >
                                 {{ fetchResult.savedPath }}
                             </div>
                             <div v-if="fetchResult.success && fetchResult.savedPath" class="flex gap-2">
-                                <button type="button" class="secondary-chip text-xs py-1 px-2" @click="openPathInOs(fetchResult.savedPath)">
+                                <button
+                                    type="button"
+                                    class="secondary-chip text-xs py-1 px-2"
+                                    @click="openPathInOs(fetchResult.savedPath)"
+                                >
                                     {{ $t("rncp.show_in_folder") }}
                                 </button>
                             </div>
@@ -535,7 +546,7 @@ export default {
                         listenFetchJail: this.listenFetchJail,
                         listenFetchAllowed: this.listenFetchAllowed,
                         listenAllowOverwrite: this.listenAllowOverwrite,
-                    }),
+                    })
                 );
             } catch {
                 // ignore quota / private mode
@@ -579,7 +590,7 @@ export default {
                 return;
             }
             const ok = await ElectronUtils.revealPathInFolderOrCopy(filePath, () =>
-                ToastUtils.success(this.$t("common.copied")),
+                ToastUtils.success(this.$t("common.copied"))
             );
             if (!ok) {
                 DialogUtils.alert(filePath);
@@ -593,7 +604,7 @@ export default {
                 return;
             }
             const ok = await ElectronUtils.openDirectoryOrCopy(this.receiveDirectory, () =>
-                ToastUtils.success(this.$t("common.copied")),
+                ToastUtils.success(this.$t("common.copied"))
             );
             if (!ok) {
                 DialogUtils.alert(this.receiveDirectory);
@@ -658,15 +669,9 @@ export default {
                         error: data.error,
                     };
                     if (data.status === "completed" && data.saved_path) {
-                        this.notifyRncp(
-                            this.$t("rncp.received_file"),
-                            data.saved_path,
-                        );
+                        this.notifyRncp(this.$t("rncp.received_file"), data.saved_path);
                     } else if (data.status !== "completed") {
-                        this.notifyRncpError(
-                            this.$t("rncp.receive_failed"),
-                            data.error || data.status,
-                        );
+                        this.notifyRncpError(this.$t("rncp.receive_failed"), data.error || data.status);
                     }
                 }
             } catch {

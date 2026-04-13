@@ -93,9 +93,7 @@ describe("Interface.vue", () => {
 
     it("action buttons and dropdown have shrink-0 to prevent squashing", () => {
         const wrapper = mountInterface();
-        const actionsCol = wrapper.find(
-            ".absolute.top-2.right-2.z-20.flex.flex-row.items-center.gap-1.sm\\:static",
-        );
+        const actionsCol = wrapper.find(".absolute.top-2.right-2.z-20.flex.flex-row.items-center.gap-1.sm\\:static");
         expect(actionsCol.classes()).toContain("sm:shrink-0");
         const btn = wrapper.find('button[title="interface.disable"]');
         expect(btn.classes()).toContain("shrink-0");

@@ -1263,7 +1263,7 @@ export default {
                 return;
             }
             const ok = await ElectronUtils.revealPathInFolderOrCopy(reticulumConfigPath, () =>
-                ToastUtils.success(this.$t("common.copied")),
+                ToastUtils.success(this.$t("common.copied"))
             );
             if (!ok) {
                 DialogUtils.alert(reticulumConfigPath);
@@ -1275,7 +1275,7 @@ export default {
                 return;
             }
             const ok = await ElectronUtils.revealPathInFolderOrCopy(databasePath, () =>
-                ToastUtils.success(this.$t("common.copied")),
+                ToastUtils.success(this.$t("common.copied"))
             );
             if (!ok) {
                 DialogUtils.alert(databasePath);

@@ -336,7 +336,7 @@ export default {
             pageSize: 1000,
             searchQuery: "",
             hopFilterSlider: 0,
-            _hopFilterDebounce: null,
+            hopFilterDebounceTimer: null,
             abortController: new AbortController(),
             currentLOD: "high",
         };
@@ -397,9 +397,9 @@ export default {
             }
         },
         hopFilterSlider() {
-            if (this._hopFilterDebounce) clearTimeout(this._hopFilterDebounce);
-            this._hopFilterDebounce = setTimeout(() => {
-                this._hopFilterDebounce = null;
+            if (this.hopFilterDebounceTimer) clearTimeout(this.hopFilterDebounceTimer);
+            this.hopFilterDebounceTimer = setTimeout(() => {
+                this.hopFilterDebounceTimer = null;
                 this.processVisualization();
             }, 80);
         },
@@ -417,9 +417,9 @@ export default {
         this.stopOrbit();
         this.stopBouncingBalls();
         clearInterval(this.reloadInterval);
-        if (this._hopFilterDebounce) {
-            clearTimeout(this._hopFilterDebounce);
-            this._hopFilterDebounce = null;
+        if (this.hopFilterDebounceTimer) {
+            clearTimeout(this.hopFilterDebounceTimer);
+            this.hopFilterDebounceTimer = null;
         }
         if (this.network) {
             this.network.destroy();
@@ -1263,11 +1263,7 @@ export default {
                     continue;
                 }
 
-                if (
-                    this.hopFilterMax != null &&
-                    disc.hops != null &&
-                    disc.hops > this.hopFilterMax
-                ) {
+                if (this.hopFilterMax != null && disc.hops != null && disc.hops > this.hopFilterMax) {
                     continue;
                 }
 

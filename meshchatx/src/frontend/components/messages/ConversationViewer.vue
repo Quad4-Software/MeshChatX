@@ -548,17 +548,17 @@
                                     {{ formatTimeAgo(entry.items[0].lxmf_message.created_at) }}
                                 </span>
                                 <div v-if="entry.items[0].is_outbound" class="flex items-center gap-1">
-                                        <span
-                                            v-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
-                                            class="text-[9px] font-bold uppercase tracking-wider"
-                                            :class="
-                                                isThemeOutboundBubble(entry.items[0])
-                                                    ? 'text-amber-800 dark:text-amber-300'
-                                                    : 'text-amber-200'
-                                            "
-                                        >
-                                            {{ $t("messages.opportunistic_deferred_label") }}
-                                        </span>
+                                    <span
+                                        v-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
+                                        class="text-[9px] font-bold uppercase tracking-wider"
+                                        :class="
+                                            isThemeOutboundBubble(entry.items[0])
+                                                ? 'text-amber-800 dark:text-amber-300'
+                                                : 'text-amber-200'
+                                        "
+                                    >
+                                        {{ $t("messages.opportunistic_deferred_label") }}
+                                    </span>
                                     <span
                                         v-else-if="
                                             ['failed', 'cancelled', 'rejected'].includes(
