@@ -829,7 +829,8 @@
         "wait_between_batches": "Wait between batches",
         "batch": "Batch",
         "loading_status": "Loading status",
-        "failed_load": "Failed to load network data"
+        "failed_load": "Failed to load network data",
+        "max_hops_filter": "Max hops"
     },
     "banishment": {
         "title": "Banished",
@@ -1253,7 +1254,21 @@
         "stop_listening": "Stop Listening",
         "listening_on": "Listening on:",
         "provide_allowed_hash": "Please provide at least one allowed identity hash!",
-        "failed_to_start_listener": "Failed to start listener"
+        "failed_to_start_listener": "Failed to start listener",
+        "failed_to_stop_listener": "Failed to stop listener",
+        "browse_file": "Browse",
+        "browse_folder": "Choose folder",
+        "receive_folder": "Received files folder",
+        "open_folder": "Open folder",
+        "show_in_folder": "Show in folder",
+        "received_file": "File received",
+        "receive_failed": "Receive failed",
+        "send_complete": "Send complete",
+        "fetch_complete": "Fetch complete",
+        "transfer_status": "Status",
+        "listening_active_background": "Listening continues in the background. Return here to manage or stop.",
+        "web_path_hint": "Browsers cannot expose full file paths. Use the desktop app to browse, or paste the full path to the file on this machine.",
+        "web_save_path_prompt": "Enter the absolute folder path on the machine running MeshChat (server) where the fetched file should be saved:"
     },
     "rnprobe": {
         "network_diagnostics": "Network Diagnostics",

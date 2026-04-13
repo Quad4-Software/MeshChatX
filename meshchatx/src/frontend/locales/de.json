@@ -1200,7 +1200,8 @@
         "stop_listening": "Hören stoppen",
         "listening_on": "Hört auf:",
         "provide_allowed_hash": "Bitte geben Sie mindestens einen erlaubten Identitäts-Hash an!",
-        "failed_to_start_listener": "Starten des Listeners fehlgeschlagen"
+        "failed_to_start_listener": "Starten des Listeners fehlgeschlagen",
+        "failed_to_stop_listener": "Stoppen des Listeners fehlgeschlagen"
     },
     "rnprobe": {
         "network_diagnostics": "Netzwerkdiagnose",
@@ -1689,7 +1690,8 @@
         "wait_between_batches": "Wait between batches",
         "batch": "Batch",
         "loading_status": "Loading status",
-        "failed_load": "Failed to load network data"
+        "failed_load": "Failed to load network data",
+        "max_hops_filter": "Max. Hops"
     },
     "banishment": {
         "title": "Banished",

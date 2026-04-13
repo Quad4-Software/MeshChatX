@@ -879,7 +879,8 @@
         "wait_between_batches": "Attesa tra i batch",
         "batch": "Batch",
         "loading_status": "Stato caricamento",
-        "failed_load": "Impossibile caricare i dati di rete"
+        "failed_load": "Impossibile caricare i dati di rete",
+        "max_hops_filter": "Salti max"
     },
     "banishment": {
         "title": "Esiliati",
@@ -1303,7 +1304,8 @@
         "stop_listening": "Ferma Ascolto",
         "listening_on": "In ascolto su:",
         "provide_allowed_hash": "Fornisci almeno un hash di identità consentito!",
-        "failed_to_start_listener": "Impossibile avviare il listener"
+        "failed_to_start_listener": "Impossibile avviare il listener",
+        "failed_to_stop_listener": "Impossibile fermare il listener"
     },
     "rnprobe": {
         "network_diagnostics": "Diagnostica di Rete",

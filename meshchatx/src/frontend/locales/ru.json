@@ -1200,7 +1200,8 @@
         "stop_listening": "Остановить прослушивание",
         "listening_on": "Прослушивание на:",
         "provide_allowed_hash": "Пожалуйста, укажите хотя бы один разрешенный хеш идентичности!",
-        "failed_to_start_listener": "Не удалось запустить прослушиватель"
+        "failed_to_start_listener": "Не удалось запустить прослушиватель",
+        "failed_to_stop_listener": "Не удалось остановить прослушиватель"
     },
     "rnprobe": {
         "network_diagnostics": "Диагностика сети",
@@ -1689,7 +1690,8 @@
         "wait_between_batches": "Wait between batches",
         "batch": "Batch",
         "loading_status": "Loading status",
-        "failed_load": "Failed to load network data"
+        "failed_load": "Failed to load network data",
+        "max_hops_filter": "Макс. хопов"
     },
     "banishment": {
         "title": "Banished",
