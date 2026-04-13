@@ -3,12 +3,12 @@
 # Source: https://www.python.org
 #
 # Usage: setup-python.sh [version]
-#   version: exact (3.13.9) or minor (3.13, resolved to latest patch).
+#   version: exact (3.14.x) or minor (3.14, resolved to latest patch).
 set -eu
 
 . "$(dirname "$0")/priv.sh"
 
-PY_INPUT="${1:-3.13}"
+PY_INPUT="${1:-3.14}"
 
 CURRENT="$(python3 --version 2>/dev/null | sed 's/Python //')" || true
 
