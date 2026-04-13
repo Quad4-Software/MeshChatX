@@ -2,86 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.4.0] - 2026-04-TBD
+## [4.4.0] - 2026-04-12
 
-### On Hold
+### Platform and backend
 
-- MicronParser truecolor support - until NomadNet supports etc.
+- Split startup helpers from **`meshchat.py`** into **`path_utils`**, **`ssl_self_signed`**, and **`env_utils`**; **`meshchat.py`** re-exports for compatibility.
+- **`docs_manager`**, **`map_manager`**, and **`translator_handler`** use **`aiohttp`**; **`requests`** removed.
+- Headless CLI: prefer **`meshchatx`** (`python -m meshchatx.meshchat`, Docker, Make, Taskfile); **`meshchat`** remains an alias. **`--rns-log-level`** / **`MESHCHAT_RNS_LOG_LEVEL`**; optional **`--ssl-cert`** / **`--ssl-key`** (both required if used).
+- Stricter validation and clearer errors on several HTTP API handlers; route list kept in sync with **`tests/backend/fixtures/http_api_routes.json`**.
+- **Auth**: **`access_attempts`** and **`trusted_login_clients`** (schema **42**), rate limits and lockout for untrusted clients, **`GET /api/v1/debug/access-attempts`**. **`DELETE` conversation** also clears read state, folder mapping, and pins.
+- **NomadNet downloader**: thread-safe link cache, **`get_cached_active_link`**, phased WebSocket progress, faster polling, safer UTF-8 and cancel handling.
+- **RNPath / RNStatus**: interface discovery integration; optional geo fields on interfaces. **Network visualizer**: loads **`lxmf.delivery`** / **`nomadnetwork.node`** only; **`POST /api/v1/path-table`** filters by destination hashes.
+- **CI**: Gitea jobs largely shell-based with verified toolchains; optional **SLSA v1** cosign attestations; GitHub Actions for Windows/macOS builds and tests; **`priv.sh`** / **`exec-priv.sh`** for elevated steps; macOS universal build skips duplicate **`backend-manifest.json`**; Python bytecode stripped in backend packaging.
+- **Container image**: runs as non-root **`meshchat`**; **`HEALTHCHECK`** hits **`/api/v1/status`** (TLS verify off for default self-signed cert). Rootless Podman/OCI builds omit Docker-style **`HEALTHCHECK`** unless **`--format docker`**; bind mounts may need uid alignment for **`/config`**.
+- **Debug Logs** page: **Logs** and **Access attempts** tabs (search, filters, pagination for attempts).
 
-### Changed
+### Frontend and UX
 
-- **Backend layout**: Startup helpers were moved out of **`meshchatx/meshchat.py`** into **`meshchatx/src/path_utils.py`** (`resolve_log_dir`, `get_file_path`, `request_client_ip`), **`meshchatx/src/ssl_self_signed.py`** (`generate_ssl_certificate`), and **`meshchatx/src/env_utils.py`** (`env_bool`). **`meshchat.py`** re-exports these names so existing imports and test patches keep working.
-- **HTTP client stack**: **`docs_manager`**, **`map_manager`**, and **`translator_handler`** use **`aiohttp`** instead of **`requests`**; the **`requests`** dependency was removed from **`pyproject.toml`**.
-- **CLI entry points**: The preferred headless command is **`meshchatx`**, matching the MeshChatX product name. The wheel and installs still expose **`meshchat`** as a **compatibility alias** to the same `meshchatx.meshchat:main` entry point, so existing scripts and automation using `meshchat` keep working. New documentation and examples use **`meshchatx`** first (Docker default command, `task run`, Make, README install examples). This is **not** a removal of `meshchat`; both names are installed side by side in 4.4.0.
-- **Frontend HTTP**: Removed the **axios** dependency; API traffic uses native **`fetch`** through the shared client in **`meshchatx/src/frontend/js/apiClient.js`** (same call sites, no axios runtime).
-- **Frontend build**: Upgraded to **Vite 8** with **`@vitejs/plugin-vue` 6**; production bundles use Rolldown (`build.rolldownOptions` and **`output.codeSplitting`** for vendor chunks). Dev and build scripts are unchanged (`vite dev`, `vite build`).
-- **Announce storage and fetch limits**: Per-aspect stored announces are capped (default **1000**); after each upsert, excess rows are trimmed **oldest first** (`trim_announces_for_aspect`). Default client fetch size (**500**), search fetch cap (`announce_search_max_fetch`), and discovered-interface list cap (`discovered_interfaces_max_return`) are configurable. Legacy `announce_limit_*` migrates to **`announce_max_stored_*`**; new keys include `announce_fetch_limit_*` per aspect. Clearing a numeric setting restores the default (`IntConfig.set(None)` removes the key). Settings UI and locales (en, de, it, ru) expose the new options; telephony-related aspects share LXMF announce keys where applicable.
+- **Vite 8**, **`@vitejs/plugin-vue` 6**, Rolldown-oriented chunking; **axios** removed in favor of **`fetch`** via **`apiClient.js`**.
+- **Announce limits**: per-aspect stored cap with trim, configurable fetch/search/discovered caps; settings and locales updated.
+- **Conversations**: serial **outbound send queue**, optional detailed outbound status (settings + i18n), **conversation pins** API and UI hooks, **Lift banishment** from viewer/sidebar context menus, clipboard image paste into compose, responsive **ConversationViewer** / dropdown actions.
+- **Notifications**: bell history toggle and refined unread handling.
+- **NomadNet UI**: phase-based loading copy, duration/size in header, context menus on announces/favourites (rename, banish, lift, favourites, sections).
+- **Map**: pop-out window for the map view.
+- **Tools hub**: list-style layout (**ToolsPage**), refreshed **Bots**, **Paper message**, **RN path**, **RN path trace**, and **RNode flasher** pages; general desktop/mobile polish (**About**, **Interface** overlays, etc.).
+- **`/robots.txt`** served and shipped in **`public/`**; **`SECURITY.md`** notes crawler guidance.
+- **Locales**: glob-based discovery (`import.meta.glob`), new strings for outbound status, archives export, NomadNet phases, lift banishment, announce limits, etc.
 
-### New Features
+### Micron and archives
 
-- **RNS log level**: **`--rns-log-level`** and **`MESHCHAT_RNS_LOG_LEVEL`** set the Reticulum (RNS) stack log level using named levels (**`none`**, **`critical`**, **`error`**, **`warning`**, **`notice`**, **`verbose`**, **`debug`**, **`extreme`**) or a numeric level. When the flag is passed, it **overrides** the environment variable.
-- **Custom TLS certificate paths**: Optional **`--ssl-cert`** and **`--ssl-key`** (and **`MESHCHAT_SSL_CERT`** / **`MESHCHAT_SSL_KEY`**) load PEM files for the web server; both must be set together. When unset, behaviour is unchanged (auto-generated or existing **`.../identities/<id>/ssl/cert.pem`** and **`key.pem`**).
-- **Auth access control (login and setup)**: Failed attempts and outcomes are stored in **`access_attempts`** (IP, User-Agent, path, method, time, outcome). **Untrusted** clients are **rate limited** per IP and path and **locked out** after repeated wrong passwords from the same IP (fingerprints that have successfully logged in for the current identity are **trusted** and use higher per-window limits and are excluded from lockout counting for their own UA). **`trusted_login_clients`** stores IP plus User-Agent hash per identity after a successful login or setup, with pruning of the oldest entries when the cap is exceeded. **`GET /api/v1/debug/access-attempts`** lists attempts for the debug tools (search, outcome filter, pagination). Database schema version **42** adds these tables.
-- **Debug Logs UI**: The debug logs page has tabs for **Logs** and **Access attempts**, with refresh, copy, search, outcome filter, and pagination for access attempts.
-- **LXMF Lift Banishment from context menus**: Right-click on a message in the conversation viewer or on a row in the messages sidebar shows **Lift Banishment** when that peer is blocked, calling the blocked-destinations API and refreshing UI state (aligned with NomadNet banish/lift patterns).
-
-### Fixes
-
-- **Multi-context shutdown**: Application shutdown tears down **every** `IdentityContext` (not only the active one): `ForwardingManager.teardown` for alias LXMF routers and links, `BotHandler.stop_all` including orphan entries in `bots_state`, per-context databases and resources, then clears context maps and stops the health monitor before websockets and RNS teardown. Mesh Server / page node shutdown order preserved.
-- **NomadNet favourites 3-dots**: Fixed 3-dots button on favourite cards not responding; added `flex-shrink-0` so the button is not squished in the flex layout. Wrapped announce tab dropdown in `flex-shrink-0` for consistency.
-- **LXMF inbound stamps**: Settings could not disable proof-of-work stamps for direct inbound messages (UI enforced minimum 1; API coerced sub-1 values to `None` and broke `IntConfig`). Added a **Require inbound stamps** toggle, allowed stored cost `0`, and clamp validation to `0–254` so LXMF correctly clears the delivery stamp requirement.
-- **Identity recall hex parsing**: UUID-style strings (hyphens in `bytes.fromhex`) no longer spam `Error recalling identity`; `recall_identity` and telephone identity resolution normalize separators. LXMF/telephony announce lookups compare normalized identity hashes so hyphenated inputs match stored hex.
-
-### Improvements
-
-- **`/robots.txt`**: Served with **`User-agent: *`** / **`Disallow: /`** for deployments exposed to HTTP crawlers; a matching file ships under **`meshchatx/src/frontend/public/robots.txt`** in frontend builds.
-- **`Makefile`** / **`Taskfile.yml`**: **`make run`** and **`task run`** invoke **`poetry run python -m meshchatx.meshchat`** so development runs work without relying on the **`meshchatx`** entry-point script being available to Poetry’s runner. README “from source” examples and **`docs/meshchatx_linux_sandbox.md`** (and the in-app copy) use the same form; wheels and installs still provide the **`meshchatx`** / **`meshchat`** CLI names.
-- **Container image (Docker/Podman)**: Final stage runs as non-root **`meshchat`** (`USER meshchat`). **`HEALTHCHECK`** probes **`https://127.0.0.1:8000/api/v1/status`** with TLS verification disabled for the self-signed default cert. **`podman build`** defaults to OCI layout, which omits **`HEALTHCHECK`**; use **`podman build --format docker`** when you rely on the embedded health check. Bind mounts for **`/config`** under rootless Podman may need **`:U`**, **`podman unshare chown`**, or host permissions so uid **1000** can write (same class of issue as Docker **`chown 1000:1000`** on a volume).
-- **Conversation image paste**: Pasting image data into the message field (e.g. screenshot or copied image) now attaches it like the image picker, without using the separate text-only paste button.
-- **Page Archives export**: Archives tool can download the current snapshot or all selected snapshots as `.mu` files (raw page body; multi-export uses path plus a short hash in the filename to avoid collisions).
-- **Network visualizer data loading**: Fetches only `lxmf.delivery` and `nomadnetwork.node` announces instead of all; path table filtered by those destination hashes via new `POST /api/v1/path-table` endpoint. Dramatically reduces load time on large networks.
-- **NomadNet context menus**: Right-click context menu on announces and favourites (like conversation viewer): Rename, Banish, Lift Banishment, Remove, Add to Favourites, Move to Section. Menus use Teleport to body and `justOpened` delay to avoid immediate close on click.
-- **Dynamic locale discovery**: Locales are now discovered automatically from `meshchatx/src/frontend/locales/*.json` via `import.meta.glob`. Adding a new language only requires a single JSON file with a `_languageName` key; no code changes to `main.js`, `LanguageSelector.vue`, or tests needed.
-- **CI supply chain hardening**: Replaced all third-party Gitea Actions with POSIX-compliant shell scripts in `scripts/ci/`. Checkout is inlined as plain git commands; Node.js, go-task, and Java binaries are SHA256-verified against upstream checksums; Python is built from official python.org source with GPG signature verification. Only `gitea-release-action` and `upload-artifact` remain as external actions.
-- **SLSA v1 release provenance**: Release workflow (`build.yml`) can attach cosign **SLSA v1** blob attestations (`*.cosign.bundle`) beside each release artifact when `COSIGN_PRIVATE_KEY` is configured; `scripts/ci/slsa-predicate.py`, `attest-release-assets.sh`, and `verify-release-attestation.sh` support signing and verification with Rekor transparency-log upload. Documented in `SECURITY.md` with `cosign.pub` at the repo root for downstream verification.
-- **Nomad Network downloader** (`nomadnet_downloader.py`): Thread-safe link cache (lock-protected); **`get_cached_active_link()`** returns only **ACTIVE** links and drops stale entries; faster path/link polling (~**20 ms**); cache re-checked after path resolution and before opening a new link to reduce redundant link setup; **cancel** removes the matching cache entry before link teardown; UTF-8 decode with replacement and safer handling for empty page bodies, file metadata, and list-shaped file payloads. **`GET /api/v1/nomadnetwork/{hash}/identify`** uses **`get_cached_active_link`** instead of reading the raw cache dict.
-- **NomadNet browser UI** (`NomadNetworkPage.vue`): Loading state shows **phase-based** copy (finding path, establishing link, requesting page, transferring) instead of a generic **“Loading 0%”**, with optional **(N%)** when transfer progress applies; header next to hop distance shows **last load duration** and **page body size** (human-readable bytes). New i18n keys **`nomadnet.load_phase_*`**, **`load_phase_default`**, and **`path_away_suffix`** (en, de, it, ru).
-- **WebSocket (NomadNet page/file downloads)**: Backend emits **`nomadnet.page.download`** / **`nomadnet.file.download`** messages with **`status: "phase"`** and **`load_phase`** so the UI can track **`finding_path`**, **`establishing_link`**, **`requesting_page`**, and **`transferring`** (phases emitted from **`NomadnetDownloader._emit_phase`**).
-- **MicronParser** (NomadNet `.mu` rendering): Parsing is **fault-tolerant**—a bad line yields an escaped fallback segment instead of failing the whole page; full-document fallback if conversion throws; **`Intl.Segmenter`** fallback in **`forceMonospace`**; DOMPurify sanitization and overlay stripping wrapped for robustness.
+- **MicronParser**: fault-tolerant line and document fallbacks; safer monospace and sanitization paths.
+- **Archives**: export current or selected snapshots as **`.mu`** (multi-export avoids name collisions).
 
 ### Removed
 
-- **axios**: Dropped as a frontend dependency in favour of native **`fetch`** (see **Changed**).
-- **Legacy PR vulnerability scanner**: Removed the old PR-oriented workflow and its helper script in favour of Trivy.
-- **Nix flakes**: Removed due to no longer used and maintained.
+- **axios** (see above), legacy PR vulnerability workflow, **Nix** flakes, obsolete scripts.
 
-### Testing
+### Testing and docs
 
-- **End-to-end (Playwright)**: Added `tests/e2e/` with `pnpm run test:e2e` and `scripts/e2e/start-e2e-stack.sh` (isolated backend storage, headless MeshChat HTTP server, Vite dev server). CI installs Chromium and runs the suite against the proxied app. `tests/e2e/smoke.spec.js` checks `/api/v1/status` via the Vite proxy, direct `app/info`, document shell, and key routes. `tests/e2e/navigation.spec.js` covers the standalone tutorial route, command palette (Ctrl+K, jump to Settings, Escape, Getting Started modal), sidebar navigation across main sections (with `prepareE2eSession` calling `POST /api/v1/app/tutorial/seen` and changelog seen so tutorial/changelog overlays do not block pointer clicks), Alt+1 / Alt+S shortcuts, and the tools hub including a paper-message deep link. `tests/e2e/shell.spec.js` covers desktop sidebar collapse and expand, header theme toggle (config-backed dark class on the root shell), notifications bell dropdown open and close, the Call page Phone tab, Messages Announces tab peer search input, and NomadNet favourites plus announces search inputs. Shell tests scope the top bar via the sticky chrome strip (the app does not use a `<header>` landmark). Related UI fixes for reliable palette tests: `KeyboardShortcuts` skips handling when the action is `command_palette` so Ctrl+K reaches the palette; `CommandPalette` listens for keydown in the capture phase and stops propagation on the palette shortcut.
-- **Announce limits**: DAO trim, manager upsert/limits, fuzzing, flood-load, smoke expectations, meshchat coverage mocks, and benchmark scripts updated for capped storage and fetch behaviour.
-- **ForwardingManager**: Teardown coverage for alias deregistration and cleanup.
-- **NomadNetworkSidebar**: Tests for 3-dots on favourite cards, context menu options, rename/remove/banish from context, announce right-click menu, add favourite and block from announce context.
-- **ConversationViewer**: Clipboard image paste on the compose field; context menu / banishment-related coverage as applicable.
-- **ArchivesPage**: Tests for `.mu` export filename helpers and download helper.
-- **i18n**: Dynamic locale file discovery in tests; added `_languageName` presence check for all locales.
-- **ConfigManager**: Inbound stamp cost may be set to `0`.
-- **meshchat_utils**: Tests for `normalize_hex_identifier` / `hex_identifier_to_bytes`.
-- **Nomad Network downloader**: `tests/backend/test_nomadnet_downloader_boost.py` covers cache eviction, cancel/cache removal, UTF-8 replacement for page bodies, path-wait cache hit, short list-shaped file payloads, and lock-safe cache access; `test_nomadnet_downloader.py` for cancel behaviour.
-- **MicronParser**: Resilience tests (forced **`parseLine`** failure, fragment fallback); existing Micron coverage retained.
-- **NomadNetworkPage**: **`formatShortDuration`** unit tests.
-- **Custom TLS CLI**: `tests/backend/test_ssl_custom_args.py` asserts **`--ssl-cert`** without **`--ssl-key`** (and the reverse) exits with code **2**.
-- **Auth access attempts**: `tests/backend/test_access_attempts_dao.py` (DAO behaviour, trusted pruning, cleanup, lockout counting, Hypothesis invariants for `user_agent_hash` and insert/list). `tests/backend/test_access_attempts_enforcement.py` (`_request_client_ip`, `_enforce_login_access` for untrusted rate limit and lockout, trusted bypass and trusted rate limit, Hypothesis monotone check, HTTP smoke for login logging, lockout and rate-limit **429** responses, debug access-attempts JSON shape). **Vitest**: `DebugLogsPage` access tab loads `/api/v1/debug/access-attempts`. **Playwright**: `smoke.spec.js` asserts **Logs** and **Access attempts** on `#/debug/logs`.
-
-### Updates
-
-- **README** (en + `lang/`): Headless CLI examples use **`meshchatx`**. **`docs/meshchatx_linux_sandbox.md`** and in-app **`meshchatx-docs`** copy updated the same way; **Android (Termux)** run instructions use **`meshchatx`** with an alias note.
-- **README** (en + `lang/`): Configuration table documents **`--rns-log-level`** / **`MESHCHAT_RNS_LOG_LEVEL`**.
-- **README**: Configuration table documents **`--ssl-cert` / `--ssl-key`** and **`MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY`**.
-- **`docs/meshchatx.md`**: Notes **`path_utils`**, **`ssl_self_signed`**, and **`env_utils`** as split-out modules; **`meshchat.py`** remains the orchestration entry.
-- **CI**: Gitea workflow **`.gitea/workflows/sync-github-release-assets.yml`** can mirror selected release assets to the GitHub mirror for Windows and macOS when configured.
-- **pnpm-lock.yaml**: Updated Vue, Vue-i18n, **Vite 8**, and **`@vitejs/plugin-vue`**.
-- **Locales**: Added `nomadnet.lift_banishment` to en, de, ru, it. Added `_languageName` to all locale files. Added `archives.export_mu` and `archives.export_selected_mu` for the archives export buttons. Strings for announce and discovered-interface limits were added for this release. NomadNet browser: **`nomadnet.load_phase_*`**, **`load_phase_default`**, **`path_away_suffix`**; corrected **`nomadnet.no_search_results_peers`** placement for de/ru where duplicated.
-- **Python dependencies**: `websockets` >= 16.0, `aiohttp` >= 3.13.3, `psutil` >= 7.2.2, `jaraco.context` >= 6.1.1, `hypothesis` >= 6.151.9.
+- **Playwright** e2e (`tests/e2e/`, **`pnpm run test:e2e`**) for smoke, navigation, shell chrome; Vitest coverage expanded (conversations, outbound queue, network visualiser, locales, access attempts UI, HTTP contract fixture). Backend: access attempts, announce limits, downloader, Micron resilience, SSL CLI, performance hot paths, fuzzing where applicable. Vitest setup suppresses noisy console noise in CI.
+- **README** / **`docs/meshchatx.md`**: **`meshchatx`** run examples, RNS log level, custom TLS, module layout. **pnpm** / **Poetry** bumps (Electron, Vue, Vuetify, Playwright, **cryptography** 46.0.7, **hypothesis**, **pytest**, **ruff**, etc.).
 
 ## [4.3.1] - 2026-03-10
 
