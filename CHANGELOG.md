@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.4.0] - 2026-04-12
+## [4.4.0] - 2026-04-15
 
 ### Platform and backend
 
