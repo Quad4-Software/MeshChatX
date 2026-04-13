@@ -161,14 +161,14 @@ tasks:
             - "{{.NPM}} run test:e2e"
 
     test:be:
-        desc: Run Python tests (pytest; excludes test_performance_hotpaths — use test:be:perf locally)
+        desc: Run Python tests (pytest; excludes performance and memory profiling — use test:be:perf / profile:mem locally)
         cmds:
-            - poetry run pytest tests/backend --ignore=tests/backend/test_performance_hotpaths.py --cov=meshchatx/src/backend
+            - poetry run pytest tests/backend --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --cov=meshchatx/src/backend
 
     test:be:cov:
-        desc: Run Python tests with detailed coverage (excludes performance hot-path tests)
+        desc: Run Python tests with detailed coverage (excludes performance hot-path and memory profiling tests)
         cmds:
-            - poetry run pytest tests/backend --ignore=tests/backend/test_performance_hotpaths.py --cov=meshchatx/src/backend --cov-report=term-missing
+            - poetry run pytest tests/backend --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --cov=meshchatx/src/backend --cov-report=term-missing
 
     test:be:perf:
         desc: Backend performance regression tests (not run in CI; run locally when needed)
