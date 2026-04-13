@@ -3,115 +3,95 @@
         <meta charset="UTF-8" />
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:9337 https://localhost:9337;"
+            content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:9337 https://127.0.0.1:9337 http://localhost:9337 https://localhost:9337;"
         />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="color-scheme" content="light dark" />
         <title>MeshChatX</title>
         <script src="./assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
+        <style>
+            @keyframes meshchatx-indeterminate {
+                0% {
+                    transform: translateX(-100%);
+                }
+                100% {
+                    transform: translateX(350%);
+                }
+            }
+            .meshchatx-bar {
+                animation: meshchatx-indeterminate 1.4s ease-in-out infinite;
+            }
+        </style>
     </head>
-    <body
-        class="min-h-screen bg-slate-100 text-gray-900 antialiased dark:bg-zinc-950 dark:text-zinc-50 transition-colors"
-    >
-        <div class="absolute inset-0 -z-10 overflow-hidden">
-            <div
-                class="absolute -left-32 -top-40 h-80 w-80 rounded-full bg-gradient-to-br from-blue-500/30 via-indigo-500/20 to-purple-500/30 blur-3xl dark:from-blue-600/25 dark:via-indigo-600/25 dark:to-purple-600/25"
-            ></div>
-            <div
-                class="absolute -right-24 top-20 h-64 w-64 rounded-full bg-gradient-to-br from-emerald-400/30 via-cyan-500/20 to-blue-500/30 blur-3xl dark:from-emerald-500/25 dark:via-cyan-500/25 dark:to-blue-500/25"
-            ></div>
-        </div>
-
-        <main class="relative flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
-            <div class="w-full max-w-xl">
+    <body class="min-h-screen antialiased bg-gradient-to-b from-slate-100 to-slate-200 text-slate-800 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-100">
+        <main class="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
+            <div class="w-full max-w-sm">
                 <div
-                    class="rounded-3xl border border-slate-200/80 bg-white/80 shadow-2xl backdrop-blur-xl ring-1 ring-white/60 dark:border-zinc-800/70 dark:bg-zinc-900/70 dark:ring-zinc-800/70 transition-colors"
+                    class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-lg shadow-slate-200/50 backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/90 dark:shadow-black/40"
                 >
-                    <div class="p-6 sm:p-8 space-y-6">
-                        <div
-                            class="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left"
-                        >
-                            <div
-                                class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 shadow-lg ring-4 ring-white/60 dark:ring-zinc-800/70"
-                            >
-                                <img
-                                    class="h-10 w-10 object-contain"
-                                    src="./assets/images/logo.png"
-                                    alt="MeshChatX logo"
-                                />
-                            </div>
-                            <div class="space-y-1">
-                                <div class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-                                    MeshChatX
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-300">Custom fork by Sudo-Ivan</div>
-                            </div>
+                    <div class="px-6 pt-8 pb-2 text-center">
+                        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-inner ring-1 ring-slate-200/80 dark:bg-zinc-950 dark:ring-zinc-700">
+                            <img
+                                class="h-10 w-10 object-contain"
+                                src="./assets/images/logo.png"
+                                alt=""
+                            />
                         </div>
+                        <h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">MeshChatX</h1>
+                        <p id="status-line" class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
+                            Starting…
+                        </p>
+                    </div>
 
-                        <div
-                            class="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/70 px-4 py-3 text-sm text-gray-700 dark:border-zinc-800/80 dark:bg-zinc-900/70 dark:text-gray-200 transition-colors"
-                        >
-                            <div class="flex items-center gap-2">
-                                <span class="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-                                <span>Preparing your app</span>
-                            </div>
+                    <div class="px-6 pb-6">
+                        <div class="h-1 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
                             <div
-                                class="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm dark:bg-blue-900/50 dark:text-blue-200"
-                            >
-                                <span class="h-2 w-2 rounded-full bg-blue-500"></span>
-                                <span id="status-text">Starting services</span>
-                            </div>
+                                class="meshchatx-bar h-full w-1/3 rounded-full bg-blue-600 dark:bg-blue-500"
+                                aria-hidden="true"
+                            ></div>
                         </div>
-
-                        <div
-                            class="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left"
-                        >
-                            <div class="relative inline-flex h-14 w-14 shrink-0 items-center justify-center">
-                                <span
-                                    class="absolute inset-0 rounded-full border-4 border-blue-500/25 dark:border-blue-500/20"
-                                ></span>
-                                <span
-                                    class="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-blue-500 dark:border-t-blue-400"
-                                ></span>
-                                <span class="absolute inset-2 rounded-full bg-blue-500/10 dark:bg-blue-500/15"></span>
-                            </div>
-                            <div class="flex-1 space-y-1">
-                                <div class="text-base font-medium text-gray-900 dark:text-white">Loading services</div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400">
-                                    Waiting for the MeshChatX API to come online.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="text-sm">
-                            <div
-                                class="rounded-2xl border border-slate-200/90 bg-white/70 p-4 dark:border-zinc-800/80 dark:bg-zinc-900/70 transition-colors"
-                            >
-                                <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                    Version
-                                </div>
-                                <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white" id="app-version">
-                                    v0.0.0
-                                </div>
-                            </div>
-                        </div>
+                        <p
+                            id="attempt-hint"
+                            class="mt-3 min-h-[1.25rem] text-center text-xs text-slate-500 dark:text-zinc-500"
+                        ></p>
+                        <p class="mt-4 text-center text-[11px] text-slate-400 dark:text-zinc-600" id="app-version">v0.0.0</p>
                     </div>
                 </div>
             </div>
         </main>
 
         <script>
-            const statusText = document.getElementById("status-text");
+            const statusLine = document.getElementById("status-line");
+            const attemptHint = document.getElementById("attempt-hint");
+
+            const API_HOST = "127.0.0.1";
+            const API_PORT = "9337";
+            const base = (protocol) => `${protocol}://${API_HOST}:${API_PORT}`;
+
+            let protocolOrder = ["https", "http"];
 
             applyTheme(detectPreferredTheme());
             showAppVersion();
-            check();
             listenForSystemThemeChanges();
 
+            (async function bootstrap() {
+                try {
+                    if (window.electron && typeof window.electron.backendHttpOnly === "function") {
+                        const httpOnly = await window.electron.backendHttpOnly();
+                        if (httpOnly) {
+                            protocolOrder = ["http", "https"];
+                        }
+                    }
+                } catch (e) {}
+                check();
+            })();
+
             async function showAppVersion() {
-                const appVersion = await window.electron.appVersion();
-                document.getElementById("app-version").innerText = "v" + appVersion;
+                try {
+                    const appVersion = await window.electron.appVersion();
+                    document.getElementById("app-version").innerText = "v" + appVersion;
+                } catch (e) {}
             }
 
             function detectPreferredTheme() {
@@ -144,19 +124,46 @@
             }
 
             let detectedProtocol = "http";
+            let attemptCount = 0;
+
+            function parseStatusJson(text) {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            async function tryOnce(protocol) {
+                const url = `${base(protocol)}/api/v1/status`;
+                const result = await fetch(url, { cache: "no-store" });
+                const text = await result.text();
+                if (result.status !== 200) {
+                    return null;
+                }
+                const data = parseStatusJson(text);
+                if (data && data.status === "ok") {
+                    return protocol;
+                }
+                return null;
+            }
 
             async function check() {
-                const protocols = ["https", "http"];
-                for (const protocol of protocols) {
+                attemptCount += 1;
+                if (attemptCount === 1) {
+                    attemptHint.textContent = "";
+                } else {
+                    attemptHint.textContent = "Still starting…";
+                }
+
+                // Prefer HTTPS unless the backend was started with --no-https (then HTTP first).
+                for (const protocol of protocolOrder) {
                     try {
-                        const result = await fetch(`${protocol}://localhost:9337/api/v1/status`, {
-                            cache: "no-store",
-                        });
-                        const status = result.status;
-                        const data = await result.json();
-                        if (status === 200 && data.status === "ok") {
-                            detectedProtocol = protocol;
-                            statusText.innerText = "Launching UI";
+                        const ok = await tryOnce(protocol);
+                        if (ok) {
+                            detectedProtocol = ok;
+                            statusLine.textContent = "Opening the app…";
+                            attemptHint.textContent = "";
                             syncThemeFromConfig();
                             setTimeout(onReady, 200);
                             return;
@@ -165,27 +172,29 @@
                         continue;
                     }
                 }
-                setTimeout(check, 300);
+                setTimeout(check, 350);
             }
 
             function onReady() {
                 const timestamp = new Date().getTime();
-                window.location.href = `${detectedProtocol}://localhost:9337/?nocache=${timestamp}`;
+                window.location.href = `${detectedProtocol}://${API_HOST}:${API_PORT}/?nocache=${timestamp}`;
             }
 
             async function syncThemeFromConfig() {
                 try {
-                    const response = await fetch(`${detectedProtocol}://localhost:9337/api/v1/config`, {
+                    const response = await fetch(`${detectedProtocol}://${API_HOST}:${API_PORT}/api/v1/config`, {
                         cache: "no-store",
                     });
                     if (!response.ok) {
                         return;
                     }
-                    const config = await response.json();
-                    if (config && (config.theme === "dark" || config.theme === "light")) {
-                        applyTheme(config.theme);
+                    const body = await response.json();
+                    const cfg = body && body.config ? body.config : body;
+                    const theme = cfg && cfg.theme;
+                    if (theme === "dark" || theme === "light") {
+                        applyTheme(theme);
                         try {
-                            localStorage.setItem("meshchat.theme", config.theme);
+                            localStorage.setItem("meshchat.theme", theme);
                         } catch (e) {}
                     }
                 } catch (e) {}
