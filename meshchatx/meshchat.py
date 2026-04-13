@@ -7131,6 +7131,10 @@ class ReticulumMeshChat:
 
             transfer_id = None
 
+            def on_transfer_started(tid):
+                nonlocal transfer_id
+                transfer_id = tid
+
             def on_progress(progress):
                 if transfer_id:
                     AsyncUtils.run_async(
@@ -7150,8 +7154,18 @@ class ReticulumMeshChat:
                     timeout=timeout,
                     on_progress=on_progress,
                     no_compress=no_compress,
+                    on_transfer_started=on_transfer_started,
                 )
-                transfer_id = result["transfer_id"]
+                AsyncUtils.run_async(
+                    self._broadcast_websocket_message(
+                        {
+                            "type": "rncp.send.completed",
+                            "transfer_id": result["transfer_id"],
+                            "file_path": result.get("file_path"),
+                            "status": "completed",
+                        },
+                    ),
+                )
                 return web.json_response(result)
             except Exception as e:
                 return web.json_response(
@@ -7178,6 +7192,10 @@ class ReticulumMeshChat:
 
             transfer_id = None
 
+            def on_transfer_started(tid):
+                nonlocal transfer_id
+                transfer_id = tid
+
             def on_progress(progress):
                 if transfer_id:
                     AsyncUtils.run_async(
@@ -7198,6 +7216,16 @@ class ReticulumMeshChat:
                     on_progress=on_progress,
                     save_path=save_path,
                     allow_overwrite=allow_overwrite,
+                    on_transfer_started=on_transfer_started,
+                )
+                AsyncUtils.run_async(
+                    self._broadcast_websocket_message(
+                        {
+                            "type": "rncp.fetch.completed",
+                            "file_path": result.get("file_path"),
+                            "status": "completed",
+                        },
+                    ),
                 )
                 return web.json_response(result)
             except Exception as e:
@@ -7243,6 +7271,18 @@ class ReticulumMeshChat:
                     {"message": str(e)},
                     status=500,
                 )
+
+        @routes.get("/api/v1/rncp/status")
+        async def rncp_status(_request):
+            return web.json_response(self.rncp_handler.get_listener_status())
+
+        @routes.post("/api/v1/rncp/stop")
+        async def rncp_stop(_request):
+            try:
+                self.rncp_handler.teardown_receive_destination()
+                return web.json_response({"message": "RNCP listener stopped"})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
 
         # --- Page Node API ---
 
