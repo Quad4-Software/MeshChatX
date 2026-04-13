@@ -93,6 +93,18 @@ class IdentityContext:
 
         self.running = False
 
+    def _rncp_emit_receive_completed(self, payload):
+        try:
+            from meshchatx.src.backend.async_utils import AsyncUtils
+
+            AsyncUtils.run_async(
+                self.app._broadcast_websocket_message(
+                    {"type": "rncp.receive.completed", **payload},
+                ),
+            )
+        except Exception:
+            pass
+
     def setup(self):
         print(f"Setting up Identity Context for {self.identity_hash}...")
 
@@ -235,6 +247,7 @@ class IdentityContext:
             identity=self.identity,
             storage_dir=self.app.storage_dir,
         )
+        self.rncp_handler.on_receive_completed = self._rncp_emit_receive_completed
         self.rnstatus_handler = RNStatusHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),
         )
@@ -479,6 +492,11 @@ class IdentityContext:
 
         # 2. Cleanup RNS destinations and links
         try:
+            if self.rncp_handler:
+                with contextlib.suppress(Exception):
+                    self.rncp_handler.teardown_receive_destination()
+                self.rncp_handler = None
+
             if self.message_router:
                 # Break cycles in mocks/objects
                 if hasattr(self.message_router, "register_delivery_callback"):
