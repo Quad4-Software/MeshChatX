@@ -41,7 +41,7 @@ All notable changes to this project will be documented in this file.
 ### Testing and docs
 
 - **Playwright** e2e (`tests/e2e/`, **`pnpm run test:e2e`**) for smoke, navigation, shell chrome; Vitest coverage expanded (conversations, outbound queue, network visualiser, locales, access attempts UI, HTTP contract fixture). Backend: access attempts, announce limits, downloader, Micron resilience, SSL CLI, performance hot paths, fuzzing where applicable. Vitest setup suppresses noisy console noise in CI.
-- **README** / **`docs/meshchatx.md`**: **`meshchatx`** run examples, RNS log level, custom TLS, module layout. **pnpm** / **Poetry** bumps (Electron, Vue, Vuetify, Playwright, **cryptography** 46.0.7, **hypothesis**, **pytest**, **ruff**, etc.).
+- **README** / **`docs/meshchatx.md`**: **`meshchatx`** run examples, RNS log level, custom TLS, module layout. **pnpm** / **Poetry** bumps (Electron, Vue, Vuetify, Playwright, **cryptography** 46.0.7, **hypothesis**, **pytest**, **ruff**, **rns** 1.1.5, etc.).
 
 ## [4.3.1] - 2026-03-10
 
