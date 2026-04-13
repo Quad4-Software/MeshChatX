@@ -10,6 +10,7 @@ const {
     Notification,
     powerSaveBlocker,
     session,
+    clipboard,
 } = require("electron");
 const electronPrompt = require("electron-prompt");
 const { spawn } = require("child_process");
@@ -308,6 +309,80 @@ ipcMain.handle("pick-directory", async () => {
     return filePaths[0];
 });
 
+function attachDefaultContextMenu(browserWindow) {
+    const webContents = browserWindow.webContents;
+    webContents.on("context-menu", (event, params) => {
+        const template = [];
+
+        if (params.isEditable) {
+            template.push(
+                { role: "undo" },
+                { role: "redo" },
+                { type: "separator" },
+                { role: "cut" },
+                { role: "copy" },
+                { role: "paste" },
+                { role: "pasteAndMatchStyle" },
+                { type: "separator" },
+                { role: "selectAll" }
+            );
+        } else if (params.selectionText) {
+            template.push({ role: "copy" });
+        }
+
+        if (params.misspelledWord) {
+            const suggestions = params.dictionarySuggestions || [];
+            if (suggestions.length > 0) {
+                if (template.length > 0) {
+                    template.push({ type: "separator" });
+                }
+                for (const suggestion of suggestions) {
+                    template.push({
+                        label: suggestion,
+                        click: () => {
+                            webContents.replaceMisspelling(suggestion);
+                        },
+                    });
+                }
+            }
+            if (template.length > 0) {
+                template.push({ type: "separator" });
+            }
+            template.push({
+                label: "Add to dictionary",
+                click: () => {
+                    void webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord);
+                },
+            });
+        }
+
+        if (params.linkURL) {
+            if (template.length > 0) {
+                template.push({ type: "separator" });
+            }
+            template.push({
+                label: "Open link",
+                click: () => {
+                    shell.openExternal(params.linkURL);
+                },
+            });
+            template.push({
+                label: "Copy link",
+                click: () => {
+                    clipboard.writeText(params.linkURL);
+                },
+            });
+        }
+
+        if (template.length === 0) {
+            return;
+        }
+
+        const menu = Menu.buildFromTemplate(template);
+        menu.popup({ window: browserWindow });
+    });
+}
+
 function log(message) {
     // log to stdout of this process
     console.log(message);
@@ -391,6 +466,10 @@ function createTray() {
 }
 
 app.whenReady().then(async () => {
+    app.on("browser-window-created", (event, browserWindow) => {
+        attachDefaultContextMenu(browserWindow);
+    });
+
     // Security: Enforce CSP for all requests as a shell-level fallback
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
         const responseHeaders = { ...details.responseHeaders };
