@@ -7,6 +7,7 @@ from collections.abc import Coroutine
 class AsyncUtils:
     main_loop: asyncio.AbstractEventLoop | None = None
     _pending_futures: list = []
+    _pending_coroutines: list = []
     _futures_lock = threading.Lock()
     _FUTURES_SWEEP_THRESHOLD = 64
 
@@ -48,6 +49,9 @@ class AsyncUtils:
     @staticmethod
     def set_main_loop(loop: asyncio.AbstractEventLoop):
         AsyncUtils.main_loop = loop
+        for coro in AsyncUtils._pending_coroutines:
+            AsyncUtils.run_async(coro)
+        AsyncUtils._pending_coroutines.clear()
 
     @staticmethod
     def run_async(coroutine: Coroutine):
@@ -68,4 +72,4 @@ class AsyncUtils:
                     ]
             return
 
-        print("WARNING: Main event loop not available. Could not schedule task.")
+        AsyncUtils._pending_coroutines.append(coroutine)
