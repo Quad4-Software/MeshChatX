@@ -50,7 +50,8 @@ export default defineConfig({
 
     build: {
         sourcemap: false,
-        chunkSizeWarningLimit: 700,
+        // @mdi/js and other vendor chunks exceed 700 kB minified; splitting icons further is a larger refactor.
+        chunkSizeWarningLimit: 3500,
         minify: "terser",
         terserOptions: {
             compress: {
@@ -64,6 +65,9 @@ export default defineConfig({
         emptyOutDir: false,
 
         rolldownOptions: {
+            checks: {
+                pluginTimings: false,
+            },
             treeshake: {
                 moduleSideEffects: (id) => {
                     if (id.includes("@mdi/js")) {
