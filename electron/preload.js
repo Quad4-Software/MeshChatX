@@ -63,6 +63,15 @@ contextBridge.exposeInMainWorld("electron", {
     showPathInFolder: async function (path) {
         return await ipcRenderer.invoke("showPathInFolder", path);
     },
+    openPath: async function (path) {
+        return await ipcRenderer.invoke("open-path", path);
+    },
+    pickFile: async function () {
+        return await ipcRenderer.invoke("pick-file");
+    },
+    pickDirectory: async function () {
+        return await ipcRenderer.invoke("pick-directory");
+    },
     // allow checking hardware acceleration status
     isHardwareAccelerationEnabled: async function () {
         return await ipcRenderer.invoke("is-hardware-acceleration-enabled");

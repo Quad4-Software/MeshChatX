@@ -21,6 +21,17 @@ const crypto = require("crypto");
 // remember main window
 var mainWindow = null;
 
+function getDialogParentWindow() {
+    const focused = BrowserWindow.getFocusedWindow();
+    if (focused && !focused.isDestroyed()) {
+        return focused;
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        return mainWindow;
+    }
+    return null;
+}
+
 // tray instance
 var tray = null;
 
@@ -263,6 +274,38 @@ ipcMain.handle("get-memory-usage", async () => {
 // allow showing a file path in os file manager
 ipcMain.handle("showPathInFolder", (event, path) => {
     shell.showItemInFolder(path);
+});
+
+ipcMain.handle("open-path", (event, p) => {
+    return shell.openPath(p);
+});
+
+ipcMain.handle("pick-file", async () => {
+    const win = getDialogParentWindow();
+    if (!win) {
+        return null;
+    }
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+        properties: ["openFile"],
+    });
+    if (canceled || !filePaths || filePaths.length === 0) {
+        return null;
+    }
+    return filePaths[0];
+});
+
+ipcMain.handle("pick-directory", async () => {
+    const win = getDialogParentWindow();
+    if (!win) {
+        return null;
+    }
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+        properties: ["openDirectory"],
+    });
+    if (canceled || !filePaths || filePaths.length === 0) {
+        return null;
+    }
+    return filePaths[0];
 });
 
 function log(message) {
