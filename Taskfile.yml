@@ -8,7 +8,7 @@ vars:
     LEGACY_ELECTRON_VERSION:
         sh: echo "${LEGACY_ELECTRON_VERSION:-30.0.8}"
     WINE_PYTHON:
-        sh: echo "${WINE_PYTHON:-wine python}"
+        sh: echo "${WINE_PYTHON:-wine C:/Python314/python.exe}"
     DOCKER_COMPOSE_CMD:
         sh: echo "${DOCKER_COMPOSE_CMD:-docker compose}"
     DOCKER_COMPOSE_FILE:
