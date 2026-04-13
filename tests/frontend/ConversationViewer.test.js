@@ -486,4 +486,231 @@ describe("ConversationViewer.vue", () => {
         );
         expect(wrapper.vm.replyingTo).toBeNull();
     });
+
+    describe("conversation history loading", () => {
+        const deferredConversationGet = () => {
+            const deferredResolvers = [];
+            axiosMock.get.mockImplementation((url) => {
+                if (url.includes("/lxmf-messages/conversation/")) {
+                    return new Promise((resolve) => {
+                        deferredResolvers.push(resolve);
+                    });
+                }
+                if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
+                if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+                if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+                if (url.includes("/contacts/check/")) return Promise.resolve({ data: {} });
+                return Promise.resolve({ data: {} });
+            });
+            return deferredResolvers;
+        };
+
+        let inboundMsgId = 1000;
+        const inboundFrom = (hash, content) => ({
+            id: inboundMsgId++,
+            hash: `msg-${hash.slice(0, 4)}-${content}`,
+            source_hash: hash,
+            destination_hash: "my-hash",
+            content,
+            state: "delivered",
+            timestamp: 1700000000,
+            fields: {},
+        });
+
+        it("loads the current peer after switching while a prior fetch was still in flight", async () => {
+            const deferredResolvers = deferredConversationGet();
+
+            const peerA = { destination_hash: "a".repeat(32), display_name: "A" };
+            const peerB = { destination_hash: "b".repeat(32), display_name: "B" };
+
+            const wrapper = mountConversationViewer({
+                selectedPeer: peerA,
+            });
+
+            await vi.waitFor(() => expect(deferredResolvers.length).toBeGreaterThanOrEqual(1));
+
+            await wrapper.setProps({ selectedPeer: peerB });
+            await wrapper.vm.$nextTick();
+
+            await vi.waitFor(() => expect(deferredResolvers.length).toBeGreaterThanOrEqual(2));
+
+            deferredResolvers[0]({ data: { lxmf_messages: [] } });
+            await wrapper.vm.$nextTick();
+            await Promise.resolve();
+            expect(wrapper.vm.chatItems).toHaveLength(0);
+
+            deferredResolvers[1]({
+                data: {
+                    lxmf_messages: [inboundFrom("b".repeat(32), "hello")],
+                },
+            });
+            await vi.waitFor(() => expect(wrapper.vm.chatItems.length).toBe(1));
+            expect(wrapper.vm.chatItems[0].lxmf_message.content).toBe("hello");
+        });
+
+        it("applies only the latest peer response when multiple requests resolve out of order", async () => {
+            const deferredResolvers = deferredConversationGet();
+
+            const peerA = { destination_hash: "a".repeat(32), display_name: "A" };
+            const peerB = { destination_hash: "b".repeat(32), display_name: "B" };
+            const peerC = { destination_hash: "c".repeat(32), display_name: "C" };
+
+            const wrapper = mountConversationViewer({ selectedPeer: peerA });
+            await vi.waitFor(() => expect(deferredResolvers.length).toBeGreaterThanOrEqual(1));
+
+            await wrapper.setProps({ selectedPeer: peerB });
+            await wrapper.vm.$nextTick();
+            await vi.waitFor(() => expect(deferredResolvers.length).toBeGreaterThanOrEqual(2));
+
+            await wrapper.setProps({ selectedPeer: peerC });
+            await wrapper.vm.$nextTick();
+            await vi.waitFor(() => expect(deferredResolvers.length).toBeGreaterThanOrEqual(3));
+
+            deferredResolvers[0]({
+                data: { lxmf_messages: [inboundFrom("a".repeat(32), "stale-a")] },
+            });
+            deferredResolvers[1]({
+                data: { lxmf_messages: [inboundFrom("b".repeat(32), "stale-b")] },
+            });
+            await wrapper.vm.$nextTick();
+            await Promise.resolve();
+            expect(wrapper.vm.chatItems).toHaveLength(0);
+
+            deferredResolvers[2]({
+                data: { lxmf_messages: [inboundFrom("c".repeat(32), "current")] },
+            });
+            await vi.waitFor(() => expect(wrapper.vm.chatItems.length).toBe(1));
+            expect(wrapper.vm.chatItems[0].lxmf_message.content).toBe("current");
+        });
+
+        it("does not start another page fetch while pagination is already in flight", async () => {
+            const baseMsg = {
+                id: 42,
+                hash: "page1-msg",
+                source_hash: "test-hash",
+                destination_hash: "my-hash",
+                content: "first page",
+                state: "delivered",
+                timestamp: 1700000000,
+                fields: {},
+            };
+            axiosMock.get.mockImplementation((url) => {
+                if (url.includes("/lxmf-messages/conversation/")) {
+                    return Promise.resolve({ data: { lxmf_messages: [baseMsg] } });
+                }
+                if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
+                if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+                if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+                if (url.includes("/contacts/check/")) return Promise.resolve({ data: {} });
+                return Promise.resolve({ data: {} });
+            });
+
+            const wrapper = mountConversationViewer();
+            await vi.waitFor(() => expect(wrapper.vm.chatItems.length).toBe(1));
+
+            const conversationGets = () =>
+                axiosMock.get.mock.calls.filter((c) => String(c[0]).includes("/lxmf-messages/conversation/"));
+            const countBefore = conversationGets().length;
+
+            wrapper.vm.isLoadingPrevious = true;
+            await wrapper.vm.loadPrevious();
+
+            expect(conversationGets().length).toBe(countBefore);
+        });
+    });
+
+    describe("compose draft persistence", () => {
+        let draftStore;
+
+        beforeEach(() => {
+            draftStore = {};
+            vi.stubGlobal("localStorage", {
+                getItem: (key) => (Object.prototype.hasOwnProperty.call(draftStore, key) ? draftStore[key] : null),
+                setItem: (key, value) => {
+                    draftStore[key] = String(value);
+                },
+                removeItem: (key) => {
+                    delete draftStore[key];
+                },
+            });
+        });
+
+        it("persists the previous peer draft in localStorage when switching peers", async () => {
+            const peerA = { destination_hash: "a".repeat(32), display_name: "A" };
+            const peerB = { destination_hash: "b".repeat(32), display_name: "B" };
+
+            const wrapper = mountConversationViewer({ selectedPeer: peerA });
+            await wrapper.vm.$nextTick();
+
+            wrapper.vm.newMessageText = "draft for A";
+            await wrapper.setProps({ selectedPeer: peerB });
+            await wrapper.vm.$nextTick();
+
+            const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
+            expect(drafts["a".repeat(32)]).toBe("draft for A");
+        });
+
+        it("loads the stored draft when opening a peer", async () => {
+            draftStore["meshchat.drafts"] = JSON.stringify({
+                ["b".repeat(32)]: "remembered",
+            });
+
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: "b".repeat(32), display_name: "B" },
+            });
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.newMessageText).toBe("remembered");
+        });
+
+        it("round-trips drafts for A then B then back to A", async () => {
+            const peerA = { destination_hash: "a".repeat(32), display_name: "A" };
+            const peerB = { destination_hash: "b".repeat(32), display_name: "B" };
+
+            const wrapper = mountConversationViewer({ selectedPeer: peerA });
+            await wrapper.vm.$nextTick();
+            wrapper.vm.newMessageText = "text-a";
+            await wrapper.setProps({ selectedPeer: peerB });
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.newMessageText).toBe("");
+
+            wrapper.vm.newMessageText = "text-b";
+            await wrapper.setProps({ selectedPeer: peerA });
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.newMessageText).toBe("text-a");
+
+            await wrapper.setProps({ selectedPeer: peerB });
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.newMessageText).toBe("text-b");
+        });
+
+        it("removes the draft key when saving an empty compose box for that peer", async () => {
+            draftStore["meshchat.drafts"] = JSON.stringify({
+                ["a".repeat(32)]: "will clear",
+            });
+
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: "a".repeat(32), display_name: "A" },
+            });
+            await wrapper.vm.$nextTick();
+
+            wrapper.vm.newMessageText = "";
+            wrapper.vm.saveDraft("a".repeat(32));
+
+            const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
+            expect(drafts["a".repeat(32)]).toBeUndefined();
+        });
+
+        it("persists the current compose text when the component unmounts", async () => {
+            const peer = { destination_hash: "a".repeat(32), display_name: "A" };
+            const wrapper = mountConversationViewer({ selectedPeer: peer });
+            await wrapper.vm.$nextTick();
+
+            wrapper.vm.newMessageText = "save on leave";
+            wrapper.unmount();
+
+            const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
+            expect(drafts["a".repeat(32)]).toBe("save on leave");
+        });
+    });
 });

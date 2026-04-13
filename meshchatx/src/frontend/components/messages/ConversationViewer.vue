@@ -2306,6 +2306,7 @@ export default {
             chatItems: [],
 
             isLoadingPrevious: false,
+            loadPreviousInFlight: 0,
             hasMorePrevious: true,
 
             newMessageDeliveryMethod: null,
@@ -2746,6 +2747,9 @@ export default {
         window.addEventListener("resize", this._onWindowResize);
     },
     beforeUnmount() {
+        if (this.selectedPeer) {
+            this.saveDraft(this.selectedPeer.destination_hash);
+        }
         if (this._onWindowResize) {
             window.removeEventListener("resize", this._onWindowResize);
         }
@@ -3005,11 +3009,14 @@ export default {
             this.autoLoadAudioAttachments();
         },
         async loadPrevious() {
-            // do nothing if already loading
-            if (this.isLoadingPrevious) {
+            // Pagination requests must not overlap. Initial page loads (empty thread) must still run
+            // if a previous peer's fetch or a scroll load left isLoadingPrevious true; otherwise
+            // initialLoad clears chatItems and loadPrevious returns without fetching (empty UI).
+            if (this.isLoadingPrevious && this.oldestMessageId != null) {
                 return;
             }
 
+            this.loadPreviousInFlight += 1;
             this.isLoadingPrevious = true;
 
             try {
@@ -3059,7 +3066,8 @@ export default {
             } catch {
                 this.hasMorePrevious = false;
             } finally {
-                this.isLoadingPrevious = false;
+                this.loadPreviousInFlight = Math.max(0, this.loadPreviousInFlight - 1);
+                this.isLoadingPrevious = this.loadPreviousInFlight > 0;
             }
         },
         getParsedItems(chatItem) {
