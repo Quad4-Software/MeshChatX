@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
+import GlobalState from "@/js/GlobalState";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -13,6 +14,7 @@ describe("ConversationViewer.vue", () => {
     let axiosMock;
 
     beforeEach(() => {
+        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
         WebSocketConnection.connect();
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
@@ -388,6 +390,72 @@ describe("ConversationViewer.vue", () => {
 
         const addedItem = wrapper.vm.chatItems.find((i) => i.lxmf_message?.hash === "db-hash");
         expect(addedItem.lxmf_message.created_at).toBe("2023-11-14T22:13:20.000Z");
+    });
+
+    it("uses theme outbound bubble: no inline background for default indigo config", () => {
+        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
+        const wrapper = mountConversationViewer();
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "h1",
+                state: "delivered",
+                content: "hi",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+            },
+        };
+        const styles = wrapper.vm.bubbleStyles(chatItem);
+        expect(styles["background-color"]).toBeUndefined();
+        expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toContain("bg-sky-100");
+        expect(wrapper.vm.isThemeOutboundBubble(chatItem)).toBe(true);
+    });
+
+    it("uses solid outbound bubble when custom color is set", () => {
+        GlobalState.config.message_outbound_bubble_color = "#ff0000";
+        const wrapper = mountConversationViewer();
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "h2",
+                state: "delivered",
+                content: "hi",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+            },
+        };
+        expect(wrapper.vm.bubbleStyles(chatItem)).toMatchObject({
+            "background-color": "#ff0000",
+            color: "#ffffff",
+        });
+        expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toBe("shadow-sm");
+        expect(wrapper.vm.isThemeOutboundBubble(chatItem)).toBe(false);
+    });
+
+    it("marks inbound messages with markdown-content--inbound for link styling", async () => {
+        GlobalState.config.message_outbound_bubble_color = "#4f46e5";
+        const wrapper = mountConversationViewer();
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: false,
+            lxmf_message: {
+                hash: "in1",
+                state: "delivered",
+                content: "https://example.com",
+                destination_hash: "my-hash",
+                source_hash: "test-hash",
+                fields: {},
+            },
+        };
+        wrapper.vm.chatItems = [chatItem];
+        await wrapper.vm.$nextTick();
+        await vi.waitFor(() => {
+            expect(wrapper.find(".markdown-content--inbound").exists()).toBe(true);
+        });
     });
 
     it("sets reply state and includes reply_to_hash in sendMessage", async () => {
