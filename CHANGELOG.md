@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [4.4.0] - 2026-04-15
 
+### TL;DR
+
+- **Chatting**: Pin important conversations, keep draft text when you switch chats (without them disappearing randomly), see clearer send status, paste images straight into the message box, and send one message at a time in order (outbound queue). Deleting a conversation also clears its read state, folder placement, and pins.
+- **Emoji and stickers**: One place in the composer opens emojis or your own sticker images (per identity); you can import/export sticker libraries in settings, add images by drag-and-drop or upload, and save an image from a message into stickers when it makes sense.
+- **Nomad Network browsing**: Besides Micron pages, the built-in browser can show Markdown, plain text, and simple web-style pages; you can tune what gets rendered, pick a default page when a node has no path, and links are handled more safely so the app stays on the mesh (not opening clearnet or risky URLs). Loading shows clearer phase text and file size; announces and favourites have richer context menus (rename, banish, lift, sections). Sidebars can collapse on medium-and-up screens with quick previews of recent chats and favourites.
+- **Map**: You can pop out the map in a separate window now.
+- **Look and layout**: Cleaner, more consistent light and dark appearance; Tools is a single list with refreshed pages (Bots, paper message, RN path tools, RNode flasher, About, Interface, Settings, Contacts, App); third-party licenses sit under About with an API-backed list.
+- **Network noise**: Caps on how many announces are fetched, searched, and shown per aspect (configurable in settings) so busy meshes stay usable.
+- **Security and troubleshooting**: Stricter limits on failed logins from untrusted devices when auth enabled (since there are some exposed meshchatx instances out there); optional screens on debug tool to inspect login attempts and search or filter logs.
+- **Working with other mesh apps**: Voice messages use a format that tends to play better elsewhere; outgoing messages can tell other clients to treat text as Markdown; messages to saved contacts can include a stamp ticket so they can reply without extra proof-of-work; file transfers and path tools expose clearer status, stop controls, and filters (including max hops and path table by destination).
+- **Blocked peers**: Lift a banishment from the conversation header or sidebar when you want to hear from someone again.
+- **Notifications**: Refined unread handling (finally no more getting tricked with fake notifications, hopefully) and a toggle for bell history.
+- **Checking reachability**: Ping destination shows a clear working state while the request runs.
+- **Archives**: Export saved snapshots as Micron (`.mu`) files; multi-export avoids filename clashes.
+- **Large Nomad Micron pages**: Smoother scrolling and resizing on big `.mu` pages (including a faster path for ordinary Latin/Cyrillic monospace text).
+- **Desktop app (Electron)**: Right-click menus in text fields (cut/copy/paste, spellcheck, add to dictionary), sensible behaviour for links, and file/folder pickers wired through the desktop shell where applicable.
+
 ### Platform and backend
 
 - Split **`meshchat.py`** startup into **`path_utils`**, **`ssl_self_signed`**, and **`env_utils`** (re-exported from **`meshchat.py`** for compatibility).
