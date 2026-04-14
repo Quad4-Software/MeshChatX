@@ -66,7 +66,11 @@ def test_web_audio_bridge_asyncutils_fallback():
     """Test that WebAudioBridge falls back to AsyncUtils.main_loop if no loop is running."""
     from meshchatx.src.backend.async_utils import AsyncUtils
 
+    AsyncUtils.main_loop = None
+    AsyncUtils._pending_coroutines.clear()
+
     mock_loop = MagicMock(spec=asyncio.AbstractEventLoop)
+    mock_loop.is_running.return_value = False
     AsyncUtils.set_main_loop(mock_loop)
 
     mock_tele_mgr = MagicMock()
