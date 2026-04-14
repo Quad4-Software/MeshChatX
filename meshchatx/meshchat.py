@@ -69,10 +69,12 @@ from meshchatx.src.backend.lxmf_message_fields import (
     LxmfImageField,
 )
 from meshchatx.src.backend.lxmf_utils import (
+    LXMF_APP_EXTENSIONS_FIELD,
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_state_to_string,
+    lxmf_fields_are_columba_reaction,
 )
 from meshchatx.src.backend.map_manager import TRANSPARENT_TILE
 from meshchatx.src.backend.page_node_manager import PageNodeManager
@@ -8152,6 +8154,42 @@ class ReticulumMeshChat:
                     status=503,
                 )
 
+        @routes.post("/api/v1/lxmf-messages/reactions")
+        async def lxmf_messages_reactions(request):
+            data = await request.json()
+            destination_hash = data.get("destination_hash")
+            target_message_hash = data.get("target_message_hash")
+            emoji = data.get("emoji", "")
+            if not destination_hash or not target_message_hash or not emoji:
+                return web.json_response(
+                    {
+                        "message": "destination_hash, target_message_hash, and emoji are required",
+                    },
+                    status=422,
+                )
+            try:
+                lxmf_message = await self.send_reaction(
+                    destination_hash=destination_hash,
+                    target_message_hash=target_message_hash,
+                    emoji=emoji,
+                )
+                return web.json_response(
+                    {
+                        "lxmf_message": convert_lxmf_message_to_dict(
+                            lxmf_message,
+                            include_attachments=False,
+                            reticulum=self.reticulum,
+                        ),
+                    },
+                )
+            except Exception as e:
+                return web.json_response(
+                    {
+                        "message": str(e),
+                    },
+                    status=503,
+                )
+
         # cancel sending lxmf message
         @routes.post("/api/v1/lxmf-messages/{hash}/cancel")
         async def lxmf_messages_cancel(request):
@@ -12131,9 +12169,22 @@ class ReticulumMeshChat:
             message_content = (
                 lxmf_message.content if hasattr(lxmf_message, "content") else ""
             )
+            if isinstance(message_content, bytes):
+                message_content = message_content.decode("utf-8", errors="replace")
+            elif message_content is None:
+                message_content = ""
+            if isinstance(message_title, bytes):
+                message_title = message_title.decode("utf-8", errors="replace")
+            elif message_title is None:
+                message_title = ""
+
+            is_reaction_delivery = lxmf_fields_are_columba_reaction(lxmf_fields)
 
             # check spam keywords
-            if self.check_spam_keywords(message_title, message_content):
+            if not is_reaction_delivery and self.check_spam_keywords(
+                message_title,
+                message_content,
+            ):
                 is_spam = True
                 print(
                     f"Marking LXMF message as spam due to keyword match: {source_hash}",
@@ -12339,6 +12390,13 @@ class ReticulumMeshChat:
                 ]
                 file_attachments_field = LxmfFileAttachmentsField(attachments)
 
+            app_extensions = None
+            if LXMF_APP_EXTENSIONS_FIELD in lxmf_fields and isinstance(
+                lxmf_fields[LXMF_APP_EXTENSIONS_FIELD],
+                dict,
+            ):
+                app_extensions = lxmf_fields[LXMF_APP_EXTENSIONS_FIELD]
+
             # check if this message is for an alias identity (REPLY PATH)
             mapping = ctx.database.messages.get_forwarding_mapping(
                 alias_hash=destination_hash,
@@ -12359,6 +12417,7 @@ class ReticulumMeshChat:
                         image_field=image_field,
                         audio_field=audio_field,
                         file_attachments_field=file_attachments_field,
+                        app_extensions=app_extensions,
                         context=ctx,
                     ),
                 )
@@ -12401,6 +12460,7 @@ class ReticulumMeshChat:
                         image_field=image_field,
                         audio_field=audio_field,
                         file_attachments_field=file_attachments_field,
+                        app_extensions=app_extensions,
                         context=ctx,
                     ),
                 )
@@ -12572,12 +12632,32 @@ class ReticulumMeshChat:
         sender_identity_hash: str = None,
         reply_to_hash: str = None,
         reply_quoted_content: str = None,
+        app_extensions: dict = None,
         no_display: bool = False,
         context=None,
     ) -> LXMF.LXMessage:
         ctx = context or self.current_context
         if not ctx:
             raise RuntimeError("No identity context available for sending message")
+
+        if isinstance(content, bytes):
+            content_str = content.decode("utf-8", errors="replace")
+        else:
+            content_str = content or ""
+        quoted_str = reply_quoted_content or ""
+        is_reaction_only = bool(
+            app_extensions
+            and isinstance(app_extensions, dict)
+            and ("reaction_to" in app_extensions)
+            and not (content_str and content_str.strip())
+            and image_field is None
+            and audio_field is None
+            and file_attachments_field is None
+            and telemetry_data is None
+            and commands is None
+            and reply_to_hash is None
+            and not (quoted_str and quoted_str.strip())
+        )
 
         # convert destination hash to bytes
         destination_hash_bytes = bytes.fromhex(destination_hash)
@@ -12655,9 +12735,10 @@ class ReticulumMeshChat:
 
         lxmf_message.fields = {}
 
-        lxmf_message.fields[LXMF.FIELD_RENDERER] = LXMF.RENDERER_MARKDOWN
+        if not is_reaction_only:
+            lxmf_message.fields[LXMF.FIELD_RENDERER] = LXMF.RENDERER_MARKDOWN
 
-        if self._is_contact(destination_hash, context=ctx):
+        if self._is_contact(destination_hash, context=ctx) and not is_reaction_only:
             lxmf_message.include_ticket = True
 
         # add file attachments field
@@ -12702,9 +12783,12 @@ class ReticulumMeshChat:
         if reply_quoted_content is not None and reply_quoted_content:
             lxmf_message.fields[0x31] = reply_quoted_content.encode("utf-8")
 
+        if app_extensions is not None:
+            lxmf_message.fields[LXMF_APP_EXTENSIONS_FIELD] = app_extensions
+
         # add icon appearance if configured and not already sent to this destination
         current_icon_hash = self.get_current_icon_hash()
-        if current_icon_hash is not None:
+        if current_icon_hash is not None and not is_reaction_only:
             last_sent_icon_hash = self.database.misc.get_last_sent_icon_hash(
                 destination_hash,
             )
@@ -12782,6 +12866,30 @@ class ReticulumMeshChat:
             )
 
         return lxmf_message
+
+    async def send_reaction(
+        self,
+        destination_hash: str,
+        target_message_hash: str,
+        emoji: str,
+        context=None,
+    ) -> LXMF.LXMessage:
+        ctx = context or self.current_context
+        if not ctx:
+            raise RuntimeError("No identity context available for sending reaction")
+        sender_hex = ctx.identity.hash.hex()
+        app_extensions = {
+            "reaction_to": target_message_hash,
+            "emoji": emoji,
+            "sender": sender_hex,
+        }
+        return await self.send_message(
+            destination_hash=destination_hash,
+            content="",
+            delivery_method="opportunistic",
+            app_extensions=app_extensions,
+            context=context,
+        )
 
     # get hash of current icon appearance configuration
     def get_current_icon_hash(self, context=None):

@@ -1313,6 +1313,18 @@
                             </div>
                         </div>
 
+                        <div
+                            v-if="chatItem.lxmf_message.reactions?.length"
+                            class="mt-1 flex w-full flex-wrap justify-end gap-0.5 px-0.5"
+                        >
+                            <span
+                                v-for="(r, ridx) in chatItem.lxmf_message.reactions"
+                                :key="r.reactionHash || ridx"
+                                class="inline-flex min-h-[1.35rem] min-w-[1.35rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1.5 py-0.5 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
+                                :title="reactionReactorLabel(r.sender)"
+                                >{{ r.emoji }}</span>
+                        </div>
+
                         <!-- expanded message details -->
                         <div
                             v-if="expandedMessageInfo === chatItem.lxmf_message.hash"
@@ -1822,82 +1834,94 @@
 
         <!-- Message Context Menu (Teleport to body to avoid overflow clipping) -->
         <Teleport to="body">
-            <div
-                v-if="messageContextMenu.show"
+            <ContextMenuPanel
+                :show="messageContextMenu.show"
+                :x="messageContextMenu.x"
+                :y="messageContextMenu.y"
+                panel-class="z-[200]"
                 v-click-outside="{
                     handler: () => {
                         if (!messageContextMenu.justOpened) messageContextMenu.show = false;
                     },
                     capture: true,
                 }"
-                class="fixed z-[200] min-w-[180px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                :style="{ top: messageContextMenu.y + 'px', left: messageContextMenu.x + 'px' }"
             >
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                    @click="replyToMessage(messageContextMenu.chatItem)"
-                >
+                <ContextMenuItem @click="replyToMessage(messageContextMenu.chatItem)">
                     <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
-                    <span class="font-medium">Reply</span>
-                </button>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                    Reply
+                </ContextMenuItem>
+                <div
+                    v-if="messageContextMenu.chatItem && !messageContextMenu.chatItem.lxmf_message?.is_reaction"
+                    class="px-3 py-2 border-t border-gray-100 dark:border-zinc-700"
+                >
+                    <div
+                        class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+                    >
+                        {{ $t("messages.react") }}
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                        <button
+                            v-for="(emo, emi) in columbaReactionEmojis"
+                            :key="emi"
+                            type="button"
+                            class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                            :title="emo"
+                            @click="sendReactionEmojiFromMenu(messageContextMenu.chatItem, emo)"
+                        >
+                            {{ emo }}
+                        </button>
+                    </div>
+                </div>
+                <ContextMenuItem
                     @click="
                         showRawMessage(messageContextMenu.chatItem);
                         messageContextMenu.show = false;
                     "
                 >
                     <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
-                    <span class="font-medium">View Raw LXM</span>
-                </button>
-                <button
+                    View Raw LXM
+                </ContextMenuItem>
+                <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
                     @click="saveMessageImageToStickers(messageContextMenu.chatItem)"
                 >
                     <MaterialDesignIcon icon-name="bookmark-plus-outline" class="size-4 text-teal-500" />
-                    <span class="font-medium">{{ $t("stickers.save_to_library") }}</span>
-                </button>
-                <button
+                    {{ $t("stickers.save_to_library") }}
+                </ContextMenuItem>
+                <ContextMenuItem
                     v-if="
                         messageContextMenu.chatItem?.is_outbound &&
                         ['failed', 'cancelled'].includes(messageContextMenu.chatItem?.lxmf_message?.state)
                     "
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all active:scale-95"
+                    item-class="text-amber-600 dark:text-amber-400"
                     @click="
                         retrySendingMessage(messageContextMenu.chatItem);
                         messageContextMenu.show = false;
                     "
                 >
                     <MaterialDesignIcon icon-name="refresh" class="size-4" />
-                    <span class="font-medium">Retry</span>
-                </button>
-                <button
+                    Retry
+                </ContextMenuItem>
+                <ContextMenuItem
                     v-if="isSelectedPeerBlocked && selectedPeer"
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all active:scale-95"
+                    item-class="text-emerald-600 dark:text-emerald-400"
                     @click="liftBanishmentFromMessageMenu"
                 >
                     <MaterialDesignIcon icon-name="check-circle" class="size-4" />
-                    <span class="font-medium">{{ $t("banishment.lift_banishment") }}</span>
-                </button>
-                <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
-                <button
-                    type="button"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all active:scale-95"
+                    {{ $t("banishment.lift_banishment") }}
+                </ContextMenuItem>
+                <ContextMenuDivider />
+                <ContextMenuItem
+                    item-class="text-red-600 dark:text-red-400"
                     @click="
                         deleteChatItem(messageContextMenu.chatItem);
                         messageContextMenu.show = false;
                     "
                 >
                     <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                    <span class="font-medium">Delete</span>
-                </button>
-            </div>
+                    Delete
+                </ContextMenuItem>
+            </ContextMenuPanel>
         </Teleport>
     </div>
 
@@ -2391,6 +2415,9 @@ import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 import SendMessageButton from "./SendMessageButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
+import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
+import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
 import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
@@ -2401,6 +2428,7 @@ import ToastUtils from "../../js/ToastUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
 import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
+import { COLUMBA_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
 import "emoji-picker-element";
@@ -2410,6 +2438,9 @@ export default {
     components: {
         IconButton,
         AddImageButton,
+        ContextMenuDivider,
+        ContextMenuItem,
+        ContextMenuPanel,
         ConversationDropDownMenu,
         MaterialDesignIcon,
         SendMessageButton,
@@ -2519,6 +2550,7 @@ export default {
                 chatItem: null,
                 justOpened: false,
             },
+            columbaReactionEmojis: COLUMBA_REACTION_EMOJIS,
             userStickers: [],
             isStickerPickerOpen: false,
             emojiStickerTab: "emoji",
@@ -2711,6 +2743,10 @@ export default {
 
                         // filter telemetry if disabled
                         if (!this.showTelemetryInChat && this.isTelemetryOnly(chatItem.lxmf_message)) {
+                            return false;
+                        }
+
+                        if (chatItem.lxmf_message.is_reaction) {
                             return false;
                         }
 
@@ -3224,7 +3260,7 @@ export default {
 
                 // convert lxmf messages to chat items
                 const chatItems = [];
-                const lxmfMessages = response.data.lxmf_messages;
+                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(response.data.lxmf_messages);
                 for (const lxmfMessage of lxmfMessages) {
                     chatItems.push({
                         type: "lxmf_message",
@@ -3481,6 +3517,11 @@ export default {
         },
         onLxmfMessageReceived(lxmfMessage) {
             if (lxmfMessage.source_hash !== this.selectedPeer?.destination_hash) {
+                return;
+            }
+
+            if (lxmfMessage.is_reaction && lxmfMessage.reaction_to) {
+                this.applyIncomingReaction(lxmfMessage);
                 return;
             }
 
@@ -3794,6 +3835,81 @@ export default {
         getRepliedMessage(hash) {
             const item = this.chatItems.find((i) => i.lxmf_message?.hash === hash);
             return item ? item.lxmf_message : null;
+        },
+        reactionReactorLabel(senderHex) {
+            if (!senderHex || typeof senderHex !== "string") {
+                return "";
+            }
+            const hex = senderHex.toLowerCase();
+            if (this.myLxmfAddressHash && hex === String(this.myLxmfAddressHash).toLowerCase()) {
+                return this.$t("messages.reaction_you");
+            }
+            if (
+                this.selectedPeer?.destination_hash &&
+                hex === String(this.selectedPeer.destination_hash).toLowerCase()
+            ) {
+                return (
+                    this.selectedPeer.custom_display_name ??
+                    this.selectedPeer.display_name ??
+                    this.formatDestinationHash(hex)
+                );
+            }
+            const conv = this.conversations.find(
+                (c) => c.destination_hash && String(c.destination_hash).toLowerCase() === hex,
+            );
+            if (conv) {
+                return conv.custom_display_name ?? conv.display_name ?? this.formatDestinationHash(hex);
+            }
+            return this.formatDestinationHash(hex);
+        },
+        applyIncomingReaction(lxmfMessage) {
+            const target = this.chatItems.find((i) => i.lxmf_message?.hash === lxmfMessage.reaction_to);
+            if (!target || !target.lxmf_message) {
+                return;
+            }
+            if (!target.lxmf_message.reactions) {
+                target.lxmf_message.reactions = [];
+            }
+            const sender = lxmfMessage.reaction_sender || lxmfMessage.source_hash || "";
+            const emoji = lxmfMessage.reaction_emoji || "";
+            const dup = target.lxmf_message.reactions.some((r) => r.sender === sender && r.emoji === emoji);
+            if (dup) {
+                return;
+            }
+            target.lxmf_message.reactions.push({
+                emoji,
+                sender,
+                reactionHash: lxmfMessage.hash,
+            });
+        },
+        async sendReactionEmojiFromMenu(chatItem, emoji) {
+            this.messageContextMenu.show = false;
+            const hash = chatItem.lxmf_message?.hash;
+            if (!hash || !this.selectedPeer?.destination_hash) {
+                return;
+            }
+            try {
+                await window.api.post("/api/v1/lxmf-messages/reactions", {
+                    destination_hash: this.selectedPeer.destination_hash,
+                    target_message_hash: hash,
+                    emoji,
+                });
+                const sender = this.myLxmfAddressHash;
+                if (!chatItem.lxmf_message.reactions) {
+                    chatItem.lxmf_message.reactions = [];
+                }
+                const dup = chatItem.lxmf_message.reactions.some((r) => r.sender === sender && r.emoji === emoji);
+                if (!dup) {
+                    chatItem.lxmf_message.reactions.push({
+                        emoji,
+                        sender,
+                        reactionHash: null,
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("messages.reaction_send_failed"));
+            }
         },
         onMessageContextMenu(event, chatItem) {
             this.messageContextMenu.chatItem = chatItem;

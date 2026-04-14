@@ -774,6 +774,9 @@
         "reply": "Reply",
         "replying_to": "Replying to",
         "message_actions": "Message actions",
+        "react": "React",
+        "reaction_you": "You",
+        "reaction_send_failed": "Could not send reaction",
         "message_not_found_in_cache": "Message not found in cache"
     },
     "settings": {

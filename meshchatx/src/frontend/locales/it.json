@@ -824,6 +824,9 @@
         "reply": "Rispondi",
         "replying_to": "In risposta a",
         "message_actions": "Azioni messaggio",
+        "react": "Reagisci",
+        "reaction_you": "Tu",
+        "reaction_send_failed": "Impossibile inviare la reazione",
         "message_not_found_in_cache": "Messaggio non trovato nella cache"
     },
     "settings": {

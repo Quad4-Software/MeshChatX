@@ -5,6 +5,16 @@ import LXMF
 
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
+# Columba-compatible app extensions (emoji reactions, reply metadata, etc.)
+LXMF_APP_EXTENSIONS_FIELD = 16
+
+
+def lxmf_fields_are_columba_reaction(lxmf_fields: dict) -> bool:
+    if not isinstance(lxmf_fields, dict):
+        return False
+    val = lxmf_fields.get(LXMF_APP_EXTENSIONS_FIELD)
+    return isinstance(val, dict) and "reaction_to" in val
+
 
 def convert_lxmf_message_to_dict(
     lxmf_message: LXMF.LXMessage,
@@ -14,6 +24,10 @@ def convert_lxmf_message_to_dict(
     # handle fields
     fields = {}
     message_fields = lxmf_message.get_fields()
+    is_reaction = False
+    reaction_to = None
+    reaction_emoji = None
+    reaction_sender = None
     for field_type in message_fields:
         value = message_fields[field_type]
 
@@ -123,6 +137,14 @@ def convert_lxmf_message_to_dict(
                 else value
             )
 
+        if field_type == LXMF_APP_EXTENSIONS_FIELD and isinstance(value, dict):
+            fields["app_extensions"] = dict(value)
+            if "reaction_to" in value:
+                is_reaction = True
+                reaction_to = value.get("reaction_to") or ""
+                reaction_emoji = value.get("emoji") or ""
+                reaction_sender = value.get("sender") or ""
+
     # convert 0.0-1.0 progress to 0.00-100 percentage
     progress_percentage = round(lxmf_message.progress * 100, 2)
 
@@ -161,7 +183,7 @@ def convert_lxmf_message_to_dict(
         if match:
             reply_to_hash = match.group(1)
 
-    return {
+    out = {
         "hash": lxmf_message.hash.hex(),
         "source_hash": lxmf_message.source_hash.hex(),
         "destination_hash": lxmf_message.destination_hash.hex(),
@@ -185,7 +207,13 @@ def convert_lxmf_message_to_dict(
         "snr": snr,
         "quality": quality,
         "reply_to_hash": reply_to_hash,
+        "is_reaction": is_reaction,
     }
+    if is_reaction:
+        out["reaction_to"] = reaction_to
+        out["reaction_emoji"] = reaction_emoji
+        out["reaction_sender"] = reaction_sender
+    return out
 
 
 def convert_lxmf_state_to_string(lxmf_message: LXMF.LXMessage):
@@ -238,6 +266,17 @@ def convert_db_lxmf_message_to_dict(
 
     if not isinstance(fields, dict):
         fields = {}
+
+    is_reaction = False
+    reaction_to = None
+    reaction_emoji = None
+    reaction_sender = None
+    app = fields.get("app_extensions")
+    if isinstance(app, dict) and "reaction_to" in app:
+        is_reaction = True
+        reaction_to = app.get("reaction_to") or ""
+        reaction_emoji = app.get("emoji") or ""
+        reaction_sender = app.get("sender") or ""
 
     # normalize commands if present
     if "commands" in fields:
@@ -329,7 +368,7 @@ def convert_db_lxmf_message_to_dict(
     if updated_at and "+" not in updated_at and "Z" not in updated_at:
         updated_at += "Z"
 
-    return {
+    out = {
         "id": db_lxmf_message["id"],
         "hash": db_lxmf_message["hash"],
         "source_hash": db_lxmf_message["source_hash"],
@@ -352,7 +391,13 @@ def convert_db_lxmf_message_to_dict(
         "attachments_stripped": bool(db_lxmf_message.get("attachments_stripped", 0)),
         "created_at": created_at,
         "updated_at": updated_at,
+        "is_reaction": is_reaction,
     }
+    if is_reaction:
+        out["reaction_to"] = reaction_to
+        out["reaction_emoji"] = reaction_emoji
+        out["reaction_sender"] = reaction_sender
+    return out
 
 
 def compute_lxmf_conversation_unread_from_latest_row(row):

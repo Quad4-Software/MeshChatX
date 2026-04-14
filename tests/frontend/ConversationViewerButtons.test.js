@@ -171,7 +171,7 @@ describe("ConversationViewer.vue button interactions", () => {
 
         expect(wrapper.vm.messageContextMenu.show).toBe(true);
 
-        const menuEl = Array.from(document.body.querySelectorAll(".fixed")).find(
+        const menuEl = Array.from(document.body.querySelectorAll(".context-menu-panel")).find(
             (el) => el.textContent?.includes("Reply") && el.textContent?.includes("Delete")
         );
         expect(menuEl).toBeTruthy();
@@ -201,7 +201,7 @@ describe("ConversationViewer.vue button interactions", () => {
         wrapper.vm.messageContextMenu.show = true;
         await wrapper.vm.$nextTick();
 
-        const menuEl = Array.from(document.body.querySelectorAll(".fixed")).find(
+        const menuEl = Array.from(document.body.querySelectorAll(".context-menu-panel")).find(
             (el) => el.textContent?.includes("Reply") && el.textContent?.includes("Delete")
         );
         const deleteBtn = menuEl
