@@ -139,6 +139,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "ConversationDropDownMenu",
@@ -177,6 +178,7 @@ export default {
         return {
             contact: null,
             GlobalState,
+            pingInFlight: false,
         };
     },
     computed: {
@@ -312,8 +314,13 @@ export default {
                 return;
             }
 
+            if (this.pingInFlight) {
+                return;
+            }
+            this.pingInFlight = true;
+            const pingToastKey = "conversation-ping";
+            ToastUtils.loading(this.$t("messages.ping_in_progress"), 0, pingToastKey);
             try {
-                // ping destination
                 const response = await window.api.get(`/api/v1/ping/${destinationHash}/lxmf.delivery`, {
                     params: {
                         timeout: 30,
@@ -352,6 +359,9 @@ export default {
                 console.log(e);
                 const message = e.response?.data?.message ?? this.$t("messages.ping_failed");
                 DialogUtils.alert(message);
+            } finally {
+                ToastUtils.dismiss(pingToastKey);
+                this.pingInFlight = false;
             }
         },
     },

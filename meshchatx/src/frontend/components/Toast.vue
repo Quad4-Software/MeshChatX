@@ -68,10 +68,21 @@ export default {
         this.toastHandler = (toast) => {
             this.add(toast);
         };
+        this.dismissHandler = ({ key }) => {
+            if (key == null) {
+                return;
+            }
+            const index = this.toasts.findIndex((t) => t.key === key);
+            if (index !== -1) {
+                this.remove(this.toasts[index].id);
+            }
+        };
         GlobalEmitter.on("toast", this.toastHandler);
+        GlobalEmitter.on("toast-dismiss", this.dismissHandler);
     },
     beforeUnmount() {
         GlobalEmitter.off("toast", this.toastHandler);
+        GlobalEmitter.off("toast-dismiss", this.dismissHandler);
     },
     methods: {
         add(toast) {
