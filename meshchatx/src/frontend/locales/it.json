@@ -813,6 +813,7 @@
         "invalid_destination_hash": "Hash di destinazione non valido",
         "invalid_destination_hash_format": "Formato hash di destinazione non valido",
         "ping_failed": "Ping fallito. Riprova più tardi",
+        "ping_in_progress": "Ping alla destinazione in corso",
         "ping_reply_from": "Risposta valida da {hash}",
         "duration": "Durata: {duration}",
         "hops_there": "Salti Andata: {count}",

@@ -811,6 +811,7 @@
         "invalid_destination_hash": "Invalid destination hash",
         "invalid_destination_hash_format": "Invalid destination hash format",
         "ping_failed": "Ping failed. Try again later",
+        "ping_in_progress": "Ziel wird angepingt",
         "ping_reply_from": "Valid reply from {hash}",
         "duration": "Duration: {duration}",
         "hops_there": "Hops There: {count}",
