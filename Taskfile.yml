@@ -161,24 +161,29 @@ tasks:
             - "{{.NPM}} run test:e2e"
 
     test:be:
-        desc: Run Python tests (pytest; excludes performance and memory profiling — use test:be:perf / profile:mem locally)
+        desc: Run Python tests (pytest; excludes timing-sensitive perf and memory profiling — use test:be:perf / profile:mem locally)
         cmds:
-            - poetry run pytest tests/backend --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --cov=meshchatx/src/backend
+            - poetry run pytest tests/backend -n auto --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --ignore=tests/backend/test_performance_bottlenecks.py --cov=meshchatx/src/backend
 
     test:be:cov:
-        desc: Run Python tests with detailed coverage (excludes performance hot-path and memory profiling tests)
+        desc: Run Python tests with detailed coverage (excludes performance hot-path, bottleneck timing, and memory profiling tests)
         cmds:
-            - poetry run pytest tests/backend --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --cov=meshchatx/src/backend --cov-report=term-missing
+            - poetry run pytest tests/backend -n auto --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --ignore=tests/backend/test_performance_bottlenecks.py --cov=meshchatx/src/backend --cov-report=term-missing
 
     test:be:perf:
         desc: Backend performance regression tests (not run in CI; run locally when needed)
         cmds:
-            - poetry run pytest tests/backend/test_performance_hotpaths.py
+            - poetry run pytest tests/backend/test_performance_hotpaths.py tests/backend/test_performance_bottlenecks.py
 
     test:be:full:
         desc: All backend tests including performance hot paths (local)
         cmds:
-            - poetry run pytest tests/backend --cov=meshchatx/src/backend
+            - poetry run pytest tests/backend -n auto --cov=meshchatx/src/backend
+
+    test:mutation:
+        desc: Mutation testing (mutmut; slow; optional; default targets meshchat_utils)
+        cmds:
+            - poetry run mutmut run "meshchatx.src.backend.meshchat_utils*"
 
     test:fe:
         desc: Run frontend tests (vitest)

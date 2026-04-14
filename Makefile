@@ -40,10 +40,10 @@ lint:
 
 test:
 	pnpm run test
-	poetry run python -m pytest tests/backend --ignore=tests/backend/test_performance_hotpaths.py --cov=meshchatx/src/backend
+	poetry run python -m pytest tests/backend -n auto --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --ignore=tests/backend/test_performance_bottlenecks.py --cov=meshchatx/src/backend
 
 test-be-perf:
-	poetry run python -m pytest tests/backend/test_performance_hotpaths.py
+	poetry run python -m pytest tests/backend/test_performance_hotpaths.py tests/backend/test_performance_bottlenecks.py
 
 clean:
 	rm -rf node_modules build dist python-dist meshchatx/public build-dir out
