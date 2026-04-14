@@ -1,6 +1,4 @@
-"""Regression tests for conversation/bell unread semantics: no false positives from
-outgoing-latest threads or inconsistent read cursors.
-"""
+"""Unread semantics for conversations and the bell (no false positives)."""
 
 from datetime import UTC, datetime
 

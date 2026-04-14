@@ -68,11 +68,10 @@ async def test_websocket_broadcast_soak_iterations(mock_app):
 
 @pytest.mark.asyncio
 async def test_websocket_broadcast_iterates_snapshot_not_live_list(mock_app):
-    """Mutating ``websocket_clients`` during iteration (e.g. another handler removes
-    a connection) must not skip entries; iterate a snapshot, not the live list.
+    """Broadcast must iterate a snapshot of websocket clients, not the live list.
 
-    Without ``list(...)``, removing a later client while iterating can skip that client
-    entirely (classic for-loop over mutating list).
+    If another coroutine mutates ``websocket_clients`` during iteration, using
+    ``list(...)`` avoids skipping entries (classic mutating-list pitfall).
     """
     mock_app.websocket_clients.clear()
     clients = [MagicWs() for _ in range(5)]

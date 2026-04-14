@@ -1,6 +1,4 @@
-"""Tests that HTTPS/WSS is used so local traffic cannot be sniffed by other apps.
-Server must speak TLS only on the API/WS port; plain HTTP must not be accepted.
-"""
+"""HTTPS/WSS: local API traffic must be TLS-only (no plain HTTP on the same port)."""
 
 import os
 import socket
@@ -74,9 +72,9 @@ def ssl_context_and_cert(temp_storage):
 async def test_https_serves_over_tls_only_plain_http_gets_no_http_response(
     ssl_context_and_cert,
 ):
-    """Server started with ssl_context must not respond to plain HTTP.
-    A local sniffer connecting with raw TCP and sending HTTP would get
-    TLS handshake bytes or connection closure, not plaintext HTTP response.
+    """TLS-only server must not emit a plaintext HTTP response to raw HTTP bytes.
+
+    Raw TCP clients should see handshake noise or close, not ``HTTP/`` headers.
     """
     ssl_context, _, _ = ssl_context_and_cert
     app = web.Application()
@@ -124,9 +122,7 @@ async def test_https_serves_over_tls_only_plain_http_gets_no_http_response(
 
 @pytest.mark.asyncio
 async def test_wss_over_same_tls_port(ssl_context_and_cert):
-    """WebSocket upgrade over the same TLS port uses WSS (encrypted).
-    Verifies that a WS endpoint is reachable only via TLS.
-    """
+    """WebSocket on the TLS port must use WSS (encrypted transport)."""
     ssl_context, _, _ = ssl_context_and_cert
     app = web.Application()
 
@@ -147,10 +143,13 @@ async def test_wss_over_same_tls_port(ssl_context_and_cert):
         client_ctx.check_hostname = False
         client_ctx.verify_mode = ssl.CERT_NONE
 
-        async with aiohttp.ClientSession() as session, session.ws_connect(
-            f"wss://127.0.0.1:{port}/ws",
-            ssl=client_ctx,
-        ) as ws:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.ws_connect(
+                f"wss://127.0.0.1:{port}/ws",
+                ssl=client_ctx,
+            ) as ws,
+        ):
             msg = await ws.receive()
         assert msg.type in (
             aiohttp.WSMsgType.CLOSE,

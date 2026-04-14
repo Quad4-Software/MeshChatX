@@ -8,11 +8,8 @@ from meshchatx.src.backend.meshchat_utils import parse_lxmf_display_name
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
 
-def test_parse_lxmf_display_name_bug_fix():
-    """Test that parse_lxmf_display_name handles both bytes and strings
-    in the msgpack list, fixing the 'str' object has no attribute 'decode' bug.
-    """
-    # 1. Test with bytes (normal case)
+def test_parse_lxmf_display_name_bytes_and_strings_in_msgpack_list():
+    """``parse_lxmf_display_name`` accepts msgpack list elements as bytes or str."""
     display_name_bytes = b"Test User"
     app_data_list = [display_name_bytes, None, None]
     app_data_bytes = msgpack.packb(app_data_list)
@@ -20,17 +17,12 @@ def test_parse_lxmf_display_name_bug_fix():
 
     assert parse_lxmf_display_name(app_data_base64) == "Test User"
 
-    # 2. Test with string (the bug case where msgpack already decoded it)
-    # We simulate this by mocking msgpack.unpackb to return strings
     display_name_str = "Test User Str"
     app_data_list_str = [display_name_str, None, None]
 
     with patch("RNS.vendor.umsgpack.unpackb", return_value=app_data_list_str):
-        # The input app_data_base64 doesn't really matter much here since we mock unpackb,
-        # but it must be valid base64 for the initial decode.
         assert parse_lxmf_display_name(app_data_base64) == "Test User Str"
 
-    # 3. Test with bytes directly passed (as in meshchat.py updated call)
     assert parse_lxmf_display_name(app_data_bytes) == "Test User"
 
 

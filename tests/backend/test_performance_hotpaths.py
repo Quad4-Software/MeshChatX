@@ -642,14 +642,8 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertEqual(len(write_errors), 0, f"Write errors: {write_errors[:5]}")
         self.assertEqual(len(read_errors), 0, f"Read errors: {read_errors[:5]}")
 
-    # ===================================================================
-    # LIKE SEARCH SCALING — how search degrades with data size
-    # ===================================================================
-
     def test_like_search_scaling(self):
-        """Measure how LIKE search scales across different table sizes.
-        This catches missing FTS indexes or query plan regressions.
-        """
+        """Exercise LIKE search at scale (catches missing indexes / bad plans)."""
         print("\n[Scaling] LIKE search across data sizes:")
 
         # Message search on the existing 10k dataset
@@ -699,13 +693,16 @@ class TestPerformanceHotPaths(unittest.TestCase):
         durations = []
         for _ in range(5):
             _, ms = timed_call(
-                self.db.messages.mark_all_notifications_as_viewed, hashes,
+                self.db.messages.mark_all_notifications_as_viewed,
+                hashes,
             )
             durations.append(ms)
 
         stats = latency_report("mark_viewed_200", durations)
         self.assertLess(
-            stats["p95"], 50, "mark_all_notifications_as_viewed(200) p95 > 50ms",
+            stats["p95"],
+            50,
+            "mark_all_notifications_as_viewed(200) p95 > 50ms",
         )
 
     def test_move_conversations_to_folder_batch(self):
@@ -719,13 +716,17 @@ class TestPerformanceHotPaths(unittest.TestCase):
         durations = []
         for _ in range(5):
             _, ms = timed_call(
-                self.db.messages.move_conversations_to_folder, hashes, folder_id,
+                self.db.messages.move_conversations_to_folder,
+                hashes,
+                folder_id,
             )
             durations.append(ms)
 
         stats = latency_report("move_folder_200", durations)
         self.assertLess(
-            stats["p95"], 50, "move_conversations_to_folder(200) p95 > 50ms",
+            stats["p95"],
+            50,
+            "move_conversations_to_folder(200) p95 > 50ms",
         )
 
     # ===================================================================

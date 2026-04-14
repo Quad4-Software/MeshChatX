@@ -1,6 +1,4 @@
-"""Path traversal regression tests and property-based fuzzing for mesh PageNode
-page/file APIs and normalize_page_filename.
-"""
+"""Path traversal and fuzz tests for PageNode and ``normalize_page_filename``."""
 
 import os
 import shutil
@@ -177,7 +175,9 @@ class TestPageRespondersTraversal:
         assert result == b"ok"
 
     def test_file_responder_ignores_path_prefix_in_request_path(
-        self, node_dir, mock_rns,
+        self,
+        node_dir,
+        mock_rns,
     ):
         node = _make_node(node_dir, mock_rns)
         node.setup()

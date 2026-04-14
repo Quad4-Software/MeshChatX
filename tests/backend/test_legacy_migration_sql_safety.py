@@ -357,9 +357,7 @@ def test_validate_identifier_rejects_pure_metacharacter_strings(name):
 )
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_attach_path_escaping_never_breaks_sql(path_segment):
-    """The quote-doubling escaping produces a string that SQLite can parse
-    without breaking out of the literal, regardless of the path content.
-    """
+    """Quote-doubled ATTACH paths stay inside the SQL string literal."""
     safe = path_segment.replace("'", "''")
     sql = f"ATTACH DATABASE '{safe}' AS test_alias"
 
