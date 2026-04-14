@@ -152,4 +152,78 @@ describe("CallPage.vue", () => {
             throw new Error("Call button not found");
         }
     });
+
+    // Keep in sync with tests/backend/test_lxst_telephony_profiles_contract.py
+    const LXST_TELEPHONY_AUDIO_PROFILES_CONTRACT = {
+        default_audio_profile_id: 64,
+        audio_profiles: [
+            { id: 16, name: "Ultra Low Bandwidth" },
+            { id: 32, name: "Very Low Bandwidth" },
+            { id: 48, name: "Low Bandwidth" },
+            { id: 64, name: "Medium Quality" },
+            { id: 80, name: "High Quality" },
+            { id: 96, name: "Super High Quality" },
+            { id: 112, name: "Ultra Low Latency" },
+            { id: 128, name: "Low Latency" },
+        ],
+    };
+
+    it("getAudioProfiles maps API default and profile list (LXST contract)", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.get.mockResolvedValueOnce({ data: LXST_TELEPHONY_AUDIO_PROFILES_CONTRACT });
+        await wrapper.vm.getAudioProfiles();
+        expect(wrapper.vm.audioProfiles).toEqual(LXST_TELEPHONY_AUDIO_PROFILES_CONTRACT.audio_profiles);
+        expect(wrapper.vm.selectedAudioProfileId).toBe(64);
+    });
+
+    it("toggleDoNotDisturb patches config", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.config = { do_not_disturb_enabled: false };
+        await wrapper.vm.toggleDoNotDisturb(true);
+        expect(axiosMock.patch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/config"), {
+            do_not_disturb_enabled: true,
+        });
+    });
+
+    it("toggleAllowCallsFromContactsOnly patches config", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.config = { telephone_allow_calls_from_contacts_only: false };
+        await wrapper.vm.toggleAllowCallsFromContactsOnly(true);
+        expect(axiosMock.patch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/config"), {
+            telephone_allow_calls_from_contacts_only: true,
+        });
+    });
+
+    it("ensureWebAudio stops when web audio bridge disabled", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.config = { telephone_web_audio_enabled: false };
+        const stop = vi.spyOn(wrapper.vm, "stopWebAudio");
+        await wrapper.vm.ensureWebAudio({ enabled: true });
+        expect(stop).toHaveBeenCalled();
+    });
+
+    it("ensureWebAudio starts when bridge enabled and call active", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.config = { telephone_web_audio_enabled: true };
+        wrapper.vm.activeCall = { status: 6 };
+        const start = vi.spyOn(wrapper.vm, "startWebAudio").mockResolvedValue(undefined);
+        await wrapper.vm.ensureWebAudio({ enabled: true, frame_ms: 48 });
+        expect(start).toHaveBeenCalled();
+        expect(wrapper.vm.audioFrameMs).toBe(48);
+    });
+
+    it("ensureWebAudio stops when no active call", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.config = { telephone_web_audio_enabled: true };
+        wrapper.vm.activeCall = null;
+        const stop = vi.spyOn(wrapper.vm, "stopWebAudio");
+        await wrapper.vm.ensureWebAudio({ enabled: true });
+        expect(stop).toHaveBeenCalled();
+    });
 });

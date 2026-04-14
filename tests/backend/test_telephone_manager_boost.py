@@ -37,6 +37,17 @@ def test_init_telephone(mock_tel_class, tel_manager):
     mock_tel_class.assert_called_once()
 
 
+@patch("meshchatx.src.backend.telephone_manager.Telephone")
+def test_init_telephone_applies_config_audio_profile(mock_tel_class, mock_identity, tmp_path):
+    storage_dir = tmp_path / "tel"
+    storage_dir.mkdir()
+    cfg = MagicMock()
+    cfg.telephone_audio_profile_id.get.return_value = 96
+    tm = TelephoneManager(mock_identity, config_manager=cfg, storage_dir=str(storage_dir))
+    tm.init_telephone()
+    mock_tel_class.return_value.switch_profile.assert_called_with(96)
+
+
 def test_is_recording_false(tel_manager):
     assert tel_manager.is_recording is False
 

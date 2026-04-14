@@ -62,6 +62,29 @@ async def test_web_audio_bridge_lazy_loop():
         assert bridge._loop == current_loop
 
 
+def test_web_audio_config_enabled_follows_telephone_web_audio_flag():
+    cfg = MagicMock()
+    cfg.telephone_web_audio_enabled.get.return_value = True
+    bridge = WebAudioBridge(None, cfg)
+    assert bridge.config_enabled() is True
+    cfg.telephone_web_audio_enabled.get.return_value = False
+    assert bridge.config_enabled() is False
+
+
+def test_web_audio_config_disabled_without_config_manager():
+    bridge = WebAudioBridge(None, None)
+    assert not bridge.config_enabled()
+
+
+def test_web_audio_allow_fallback_follows_config():
+    cfg = MagicMock()
+    cfg.telephone_web_audio_allow_fallback.get.return_value = True
+    bridge = WebAudioBridge(None, cfg)
+    assert bridge.allow_fallback() is True
+    cfg.telephone_web_audio_allow_fallback.get.return_value = False
+    assert bridge.allow_fallback() is False
+
+
 def test_web_audio_bridge_asyncutils_fallback():
     """Test that WebAudioBridge falls back to AsyncUtils.main_loop if no loop is running."""
     from meshchatx.src.backend.async_utils import AsyncUtils
