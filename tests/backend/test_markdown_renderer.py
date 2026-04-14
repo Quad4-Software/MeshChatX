@@ -1,5 +1,5 @@
-import unittest
 import time
+import unittest
 
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 

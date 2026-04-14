@@ -105,7 +105,7 @@ def test_download_task_success(mock_session_cls, docs_manager, temp_dirs):
         yield b"data" * 25
 
     mock_response.content.iter_chunked = MagicMock(
-        side_effect=lambda n: iter_chunked(n)
+        side_effect=lambda n: iter_chunked(n),
     )
 
     mock_get = MagicMock()

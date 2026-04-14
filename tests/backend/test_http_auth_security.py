@@ -1,5 +1,6 @@
 import asyncio
 import secrets
+
 import bcrypt
 import pytest
 from aiohttp import web

@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from meshchatx.src.backend.translator_handler import TranslatorHandler
 
@@ -73,7 +74,7 @@ def test_translate_argos_cli(mock_run):
 
     with patch("shutil.which", return_value="/usr/bin/argos-translate"):
         result = handler.translate_text(
-            "Hello", source_lang="en", target_lang="es", use_argos=True
+            "Hello", source_lang="en", target_lang="es", use_argos=True,
         )
         assert result["translated_text"] == "Hola"
 
@@ -81,7 +82,6 @@ def test_translate_argos_cli(mock_run):
 def test_detect_language_simple():
     TranslatorHandler(enabled=True)
     # _detect_language is private
-    pass
 
 
 @patch("meshchatx.src.backend.translator_handler.aiohttp.ClientSession")

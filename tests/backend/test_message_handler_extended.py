@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from meshchatx.src.backend.message_handler import MessageHandler
 
 
@@ -70,7 +72,7 @@ def test_get_conversations_base(mock_db):
 def test_get_conversations_with_filters(mock_db):
     handler = MessageHandler(mock_db)
     handler.get_conversations(
-        "local", search="test", filter_unread=True, filter_failed=True
+        "local", search="test", filter_unread=True, filter_failed=True,
     )
 
     args, _ = mock_db.provider.fetchall.call_args

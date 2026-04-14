@@ -1,6 +1,8 @@
-import pytest
 import base64
 from unittest.mock import MagicMock
+
+import pytest
+
 from meshchatx.src.backend.announce_manager import AnnounceManager
 
 
@@ -24,7 +26,7 @@ def test_upsert_announce(mock_db):
     identity.get_public_key.return_value = b"pub_key"
 
     manager.upsert_announce(
-        reticulum, identity, b"dest_hash", "aspect", b"app_data", b"packet_hash"
+        reticulum, identity, b"dest_hash", "aspect", b"app_data", b"packet_hash",
     )
 
     mock_db.announces.upsert_announce.assert_called_once()
@@ -52,7 +54,7 @@ def test_get_filtered_announces_count(mock_db):
     manager = AnnounceManager(mock_db)
     mock_db.provider.fetchone.return_value = {"count": 5}
     count = manager.get_filtered_announces_count(
-        aspect="test", query="q", blocked_identity_hashes=["b1"]
+        aspect="test", query="q", blocked_identity_hashes=["b1"],
     )
     assert count == 5
 

@@ -30,7 +30,6 @@ from meshchatx.src.backend.meshchat_utils import (
 )
 from meshchatx.src.backend.message_handler import MessageHandler
 
-
 # ---------------------------------------------------------------------------
 # Strategies
 # ---------------------------------------------------------------------------
@@ -60,7 +59,7 @@ st_sql_payloads = st.sampled_from(
         "1=1",
         "admin'--",
         "' AND 1=CONVERT(int,(SELECT TOP 1 table_name FROM information_schema.tables))--",
-    ]
+    ],
 )
 
 st_search_term = st.one_of(st_nasty_text, st_sql_payloads)
@@ -182,7 +181,7 @@ class TestConfigDAOFuzzing:
         db.config.set(key, "injected?")
         assert db.config.get(key) == "injected?"
         tables = db.provider.fetchall(
-            "SELECT name FROM sqlite_master WHERE type='table'"
+            "SELECT name FROM sqlite_master WHERE type='table'",
         )
         table_names = {r["name"] for r in tables}
         assert "config" in table_names
@@ -227,7 +226,7 @@ class TestMiscDAOFuzzing:
         max_examples=40,
     )
     def test_add_notification_never_crashes(
-        self, db, ntype, remote_hash, title, content
+        self, db, ntype, remote_hash, title, content,
     ):
         db.misc.add_notification(ntype, remote_hash, title, content)
         notifications = db.misc.get_notifications()
@@ -260,7 +259,7 @@ class TestMiscDAOFuzzing:
     def test_archived_pages_search_never_crashes(self, db, query, dest):
         results = db.misc.get_archived_pages_paginated(
             destination_hash=dest,
-            query=query if query else None,
+            query=query or None,
         )
         assert isinstance(results, list)
 
@@ -464,7 +463,7 @@ class TestMapDrawingsDAOFuzzing:
             st.builds(
                 json.dumps,
                 st.dictionaries(
-                    st.text(max_size=10), st.text(max_size=50), max_size=10
+                    st.text(max_size=10), st.text(max_size=50), max_size=10,
                 ),
             ),
         ),
@@ -573,7 +572,7 @@ class TestMessageHandlerFuzzing:
         max_examples=40,
     )
     def test_get_conversation_messages_never_crashes(
-        self, handler, dest, after_id, before_id
+        self, handler, dest, after_id, before_id,
     ):
         results = handler.get_conversation_messages(
             "local_hash",
@@ -633,7 +632,7 @@ class TestSafeHrefFuzzing:
         url=st.from_regex(
             r"(javascript|data|vbscript|file):[A-Za-z0-9()=;,/+]+",
             fullmatch=True,
-        )
+        ),
     )
     @settings(deadline=None, max_examples=100)
     def test_safe_href_blocks_all_generated_dangerous_urls(self, url):
@@ -641,8 +640,8 @@ class TestSafeHrefFuzzing:
 
     @given(
         scheme=st.text(min_size=1, max_size=20).filter(
-            lambda s: ":" not in s and "/" not in s
-        )
+            lambda s: ":" not in s and "/" not in s,
+        ),
     )
     @settings(deadline=None, max_examples=60)
     def test_safe_href_blocks_unknown_schemes(self, scheme):
@@ -711,7 +710,7 @@ class TestMessageFieldsHaveAttachments:
             st.text(max_size=20),
             st.one_of(st.text(max_size=50), st.integers(), st.booleans(), st.none()),
             max_size=10,
-        )
+        ),
     )
     @settings(deadline=None, max_examples=80)
     def test_never_crashes_on_arbitrary_json_objects(self, obj):
@@ -743,7 +742,7 @@ class TestMessageFieldsHaveAttachments:
                 | st.dictionaries(st.text(max_size=10), children, max_size=5)
             ),
             max_leaves=30,
-        )
+        ),
     )
     @settings(deadline=None, max_examples=60)
     def test_deeply_nested_json_never_crashes(self, data):

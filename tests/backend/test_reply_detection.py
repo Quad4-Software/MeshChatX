@@ -1,7 +1,10 @@
-from hypothesis import given, strategies as st
-import LXMF
-from meshchatx.meshchat import ReticulumMeshChat
 from unittest.mock import MagicMock
+
+import LXMF
+from hypothesis import given
+from hypothesis import strategies as st
+
+from meshchatx.meshchat import ReticulumMeshChat
 
 
 def get_mock_mesh_chat():

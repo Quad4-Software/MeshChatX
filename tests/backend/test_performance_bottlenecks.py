@@ -1,3 +1,10 @@
+"""Wall-clock database throughput tests (large seeds + strict ms ceilings).
+
+Excluded from default `task test:be` / CI (like test_performance_hotpaths.py and
+test_memory_profiling.py). Run locally: `task test:be:perf` or
+`pytest tests/backend/test_performance_bottlenecks.py`.
+"""
+
 import os
 import secrets
 import shutil
@@ -8,6 +15,19 @@ from unittest.mock import MagicMock
 
 from meshchatx.src.backend.announce_manager import AnnounceManager
 from meshchatx.src.backend.database import Database
+
+
+def _ci_ms_ceiling(local_ms: float, factor: float = 3.0) -> float:
+    """Shared runners are noisy; relax ceilings when CI is set."""
+    if os.environ.get("CI"):
+        return local_ms * factor
+    return local_ms
+
+
+def _ci_seconds_ceiling(local_s: float, factor: float = 3.0) -> float:
+    if os.environ.get("CI"):
+        return local_s * factor
+    return local_s
 
 
 class TestPerformanceBottlenecks(unittest.TestCase):
@@ -68,7 +88,11 @@ class TestPerformanceBottlenecks(unittest.TestCase):
             duration = (time.time() - start) * 1000
             print(f"Fetch {limit} messages at offset {offset}: {duration:.2f}ms")
             self.assertEqual(len(msgs), limit)
-            self.assertLess(duration, 50, f"Pagination at offset {offset} is too slow!")
+            self.assertLess(
+                duration,
+                _ci_ms_ceiling(50),
+                f"Pagination at offset {offset} is too slow!",
+            )
 
     def test_announce_flood_bottleneck(self):
         """Simulate a flood of incoming announces and measure processing time."""
@@ -108,7 +132,11 @@ class TestPerformanceBottlenecks(unittest.TestCase):
             f"Processed {num_announces} announces in {duration_total:.2f}s (Avg: {avg_duration:.2f}ms/announce)",
         )
 
-        self.assertLess(avg_duration, 20, "Announce processing is too slow!")
+        self.assertLess(
+            avg_duration,
+            _ci_ms_ceiling(20),
+            "Announce processing is too slow!",
+        )
 
     def test_announce_pagination_performance(self):
         """Test performance of announce pagination with search and filtering."""
@@ -138,7 +166,11 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         duration = (time.time() - start) * 1000
         print(f"Filtered announce pagination (offset 1000): {duration:.2f}ms")
         self.assertEqual(len(results), 50)
-        self.assertLess(duration, 50, "Announce pagination is too slow!")
+        self.assertLess(
+            duration,
+            _ci_ms_ceiling(50),
+            "Announce pagination is too slow!",
+        )
 
     def test_concurrent_announce_handling(self):
         """Test how the database handles concurrent announce insertions from multiple threads."""
@@ -180,7 +212,11 @@ class TestPerformanceBottlenecks(unittest.TestCase):
         print(
             f"Concurrent insertion took {duration:.2f}s for {num_threads * announces_per_thread} announces",
         )
-        self.assertLess(duration, 10.0, "Concurrent announce insertion is too slow!")
+        self.assertLess(
+            duration,
+            _ci_seconds_ceiling(10.0),
+            "Concurrent announce insertion is too slow!",
+        )
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
-import pytest
 import sqlite3
 import threading
+
+import pytest
+
 from meshchatx.src.backend.database.provider import DatabaseProvider
 
 

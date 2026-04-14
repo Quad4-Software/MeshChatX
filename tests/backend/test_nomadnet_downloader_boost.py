@@ -1,16 +1,16 @@
 import threading
+from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
-from unittest.mock import MagicMock, patch
 
 from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetDownloader,
     NomadnetFileDownloader,
     NomadnetPageDownloader,
+    _nomadnet_links_lock,
     get_cached_active_link,
     nomadnet_cached_links,
-    _nomadnet_links_lock,
 )
 
 
@@ -29,7 +29,7 @@ def downloader():
     on_failure = MagicMock()
     on_progress = MagicMock()
     return NomadnetDownloader(
-        b"dest", "/path", "data", on_success, on_failure, on_progress
+        b"dest", "/path", "data", on_success, on_failure, on_progress,
     )
 
 
@@ -81,7 +81,7 @@ async def test_download_no_path(downloader):
     ):
         await downloader.download(path_lookup_timeout=0.1)
         downloader._download_failure_callback.assert_called_with(
-            "Could not find path to destination."
+            "Could not find path to destination.",
         )
 
 
@@ -120,7 +120,7 @@ async def test_download_uses_path_wait_cache_hit(downloader):
     ):
         with patch.object(downloader, "link_established") as mock_established:
             await downloader.download(
-                path_lookup_timeout=5, link_establishment_timeout=5
+                path_lookup_timeout=5, link_establishment_timeout=5,
             )
 
     mock_established.assert_called_once_with(mock_link)

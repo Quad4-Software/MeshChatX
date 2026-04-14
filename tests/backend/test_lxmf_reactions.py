@@ -39,7 +39,7 @@ def test_convert_lxmf_message_to_dict_reaction_field_16():
             "reaction_to": target,
             "emoji": "\U0001f44d",
             "sender": "f" * 32,
-        }
+        },
     }
 
     out = convert_lxmf_message_to_dict(mock_msg, include_attachments=False)
@@ -59,7 +59,7 @@ def test_convert_db_lxmf_message_to_dict_reaction():
             "reaction_to": target,
             "emoji": "\u2764\ufe0f",
             "sender": "11" * 16,
-        }
+        },
     }
     row = {
         "id": 1,

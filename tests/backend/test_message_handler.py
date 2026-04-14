@@ -67,7 +67,7 @@ class TestMessageHandler(unittest.TestCase):
                 "folder_name": None,
                 "failed_count": 3,
                 "is_contact": 0,
-            }
+            },
         ]
         result = self.handler.get_conversations("local")
         self.assertEqual(len(result), 1)
@@ -81,7 +81,7 @@ class TestMessageHandler(unittest.TestCase):
 
     def test_search_messages(self):
         self.db.provider.fetchall.return_value = [
-            {"peer_hash": "peer1", "max_ts": 1234567890}
+            {"peer_hash": "peer1", "max_ts": 1234567890},
         ]
         result = self.handler.search_messages("local", "test")
         self.assertEqual(len(result), 1)

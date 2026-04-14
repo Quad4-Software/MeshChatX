@@ -119,7 +119,7 @@ def test_backup_suspicious_when_messages_gone_skips_cleanup_and_baseline(temp_di
             "quality": None,
             "is_spam": 0,
             "reply_to_hash": None,
-        }
+        },
     )
     result1 = db.backup_database(temp_dir, max_count=3)
     assert result1.get("suspicious") is not True
@@ -173,7 +173,7 @@ def test_backup_suspicious_when_size_collapsed_skips_cleanup(temp_dir):
                 "quality": None,
                 "is_spam": 0,
                 "reply_to_hash": None,
-            }
+            },
         )
     db.backup_database(temp_dir, max_count=3)
     baseline_path = os.path.join(temp_dir, "database-backups", "backup-baseline.json")
@@ -256,7 +256,7 @@ def test_check_db_health_at_open_baseline_suspicious_content(temp_dir):
             "quality": None,
             "is_spam": 0,
             "reply_to_hash": None,
-        }
+        },
     )
     db.backup_database(temp_dir)
     db.messages.delete_all_lxmf_messages()

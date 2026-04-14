@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from meshchatx.src.backend.rncp_handler import RNCPHandler
 
 
@@ -30,7 +32,7 @@ def test_rncp_handler_init(rncp_handler, mock_reticulum, mock_identity):
 @patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
 @patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
 def test_setup_receive_destination(
-    mock_rns_reticulum, mock_dest, mock_identity_class, rncp_handler
+    mock_rns_reticulum, mock_dest, mock_identity_class, rncp_handler,
 ):
     mock_rns_reticulum.identitypath = "/tmp/rns/identities"
     mock_id_obj = MagicMock()

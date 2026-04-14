@@ -1,7 +1,7 @@
 import shutil
+import sqlite3
 import tempfile
 import unittest
-import sqlite3
 from pathlib import Path
 
 from meshchatx.src.backend.integrity_manager import IntegrityManager
@@ -87,7 +87,7 @@ class TestIntegrityManager(unittest.TestCase):
             any(
                 "Critical security component" in i or "File signature mismatch" in i
                 for i in issues
-            )
+            ),
         )
 
     def test_new_identity_detected(self):

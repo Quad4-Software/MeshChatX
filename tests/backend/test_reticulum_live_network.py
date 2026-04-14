@@ -1,5 +1,4 @@
-"""
-Optional live Reticulum smoke test.
+"""Optional live Reticulum smoke test.
 
 Reticulum is a process-wide singleton; this test runs a short script in a
 subprocess so it does not interfere with other tests.

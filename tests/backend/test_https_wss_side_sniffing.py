@@ -1,5 +1,4 @@
-"""
-Tests that HTTPS/WSS is used so local traffic cannot be sniffed by other apps.
+"""Tests that HTTPS/WSS is used so local traffic cannot be sniffed by other apps.
 Server must speak TLS only on the API/WS port; plain HTTP must not be accepted.
 """
 
@@ -75,8 +74,7 @@ def ssl_context_and_cert(temp_storage):
 async def test_https_serves_over_tls_only_plain_http_gets_no_http_response(
     ssl_context_and_cert,
 ):
-    """
-    Server started with ssl_context must not respond to plain HTTP.
+    """Server started with ssl_context must not respond to plain HTTP.
     A local sniffer connecting with raw TCP and sending HTTP would get
     TLS handshake bytes or connection closure, not plaintext HTTP response.
     """
@@ -112,7 +110,7 @@ async def test_https_serves_over_tls_only_plain_http_gets_no_http_response(
             sock.sendall(b"GET / HTTP/1.0\r\n\r\n")
             try:
                 raw = sock.recv(1024)
-            except socket.timeout:
+            except TimeoutError:
                 raw = b""
         finally:
             sock.close()
@@ -126,8 +124,7 @@ async def test_https_serves_over_tls_only_plain_http_gets_no_http_response(
 
 @pytest.mark.asyncio
 async def test_wss_over_same_tls_port(ssl_context_and_cert):
-    """
-    WebSocket upgrade over the same TLS port uses WSS (encrypted).
+    """WebSocket upgrade over the same TLS port uses WSS (encrypted).
     Verifies that a WS endpoint is reachable only via TLS.
     """
     ssl_context, _, _ = ssl_context_and_cert
@@ -150,12 +147,11 @@ async def test_wss_over_same_tls_port(ssl_context_and_cert):
         client_ctx.check_hostname = False
         client_ctx.verify_mode = ssl.CERT_NONE
 
-        async with aiohttp.ClientSession() as session:
-            async with session.ws_connect(
-                f"wss://127.0.0.1:{port}/ws",
-                ssl=client_ctx,
-            ) as ws:
-                msg = await ws.receive()
+        async with aiohttp.ClientSession() as session, session.ws_connect(
+            f"wss://127.0.0.1:{port}/ws",
+            ssl=client_ctx,
+        ) as ws:
+            msg = await ws.receive()
         assert msg.type in (
             aiohttp.WSMsgType.CLOSE,
             aiohttp.WSMsgType.CLOSING,

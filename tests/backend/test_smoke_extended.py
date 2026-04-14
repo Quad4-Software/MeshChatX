@@ -1,9 +1,10 @@
+import os
+import sqlite3
 import subprocess
 import sys
-import os
-import pytest
 import tempfile
-import sqlite3
+
+import pytest
 
 
 def test_cli_help():
@@ -82,8 +83,8 @@ def test_markdown_renderer_smoke():
 
 def test_config_manager_smoke():
     """Smoke test for ConfigManager basic operations."""
-    from meshchatx.src.backend.database import Database
     from meshchatx.src.backend.config_manager import ConfigManager
+    from meshchatx.src.backend.database import Database
 
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = os.path.join(tmpdir, "test_config.db")
@@ -113,6 +114,7 @@ def test_config_manager_smoke():
 def test_telephone_manager_smoke():
     """Smoke test for TelephoneManager initialization."""
     import RNS
+
     from meshchatx.src.backend.telephone_manager import TelephoneManager
 
     # Mock identity
@@ -124,8 +126,9 @@ def test_telephone_manager_smoke():
 
 def test_voicemail_manager_smoke():
     """Smoke test for VoicemailManager initialization."""
-    from meshchatx.src.backend.voicemail_manager import VoicemailManager
     from unittest.mock import MagicMock
+
+    from meshchatx.src.backend.voicemail_manager import VoicemailManager
 
     mock_db = MagicMock()
     mock_config = MagicMock()
@@ -151,9 +154,11 @@ def test_lxst_smoke():
 
 def test_identity_context_smoke():
     """Smoke test for IdentityContext creation."""
-    import RNS
-    from meshchatx.src.backend.identity_context import IdentityContext
     from unittest.mock import MagicMock
+
+    import RNS
+
+    from meshchatx.src.backend.identity_context import IdentityContext
 
     identity = RNS.Identity()
     mock_app = MagicMock()
@@ -171,8 +176,9 @@ def test_identity_context_smoke():
 
 def test_announce_manager_smoke():
     """Smoke test for AnnounceManager."""
-    from meshchatx.src.backend.announce_manager import AnnounceManager
     from unittest.mock import MagicMock
+
+    from meshchatx.src.backend.announce_manager import AnnounceManager
 
     mock_db = MagicMock()
     manager = AnnounceManager(mock_db)
@@ -181,8 +187,9 @@ def test_announce_manager_smoke():
 
 def test_rnstatus_handler_smoke():
     """Smoke test for RNStatusHandler."""
-    from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
     from unittest.mock import MagicMock
+
+    from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 
     mock_rns = MagicMock()
     handler = RNStatusHandler(mock_rns)
@@ -191,9 +198,11 @@ def test_rnstatus_handler_smoke():
 
 def test_lxmf_router_creation_smoke():
     """Smoke test for create_lxmf_router utility."""
-    import RNS
-    from meshchatx.src.backend.meshchat_utils import create_lxmf_router
     from unittest.mock import patch
+
+    import RNS
+
+    from meshchatx.src.backend.meshchat_utils import create_lxmf_router
 
     identity = RNS.Identity()
     with tempfile.TemporaryDirectory() as tmpdir:

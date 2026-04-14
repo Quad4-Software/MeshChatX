@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from meshchatx.src.backend.database.contacts import ContactsDAO
 
 

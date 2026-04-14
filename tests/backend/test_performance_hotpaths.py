@@ -34,7 +34,6 @@ from meshchatx.src.backend.announce_manager import AnnounceManager
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.message_handler import MessageHandler
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -105,7 +104,7 @@ def latency_report(name, durations_ms):
     ops = 1000 / avg if avg > 0 else float("inf")
     print(
         f"  {name}: avg={avg:.2f}ms  p50={p50:.2f}ms  p95={p95:.2f}ms  "
-        f"p99={p99:.2f}ms  ops/s={ops:.0f}"
+        f"p99={p99:.2f}ms  ops/s={ops:.0f}",
     )
     return {"avg": avg, "p50": p50, "p95": p95, "p99": p99, "ops": ops}
 
@@ -524,7 +523,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         total_ops = num_threads * msgs_per_thread
         throughput = total_ops / (wall_ms / 1000)
         print(
-            f"  Wall time: {wall_ms:.0f}ms for {total_ops} inserts ({throughput:.0f} ops/s)"
+            f"  Wall time: {wall_ms:.0f}ms for {total_ops} inserts ({throughput:.0f} ops/s)",
         )
         latency_report("concurrent_write", all_durations)
 
@@ -570,7 +569,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         total_ops = num_threads * announces_per_thread
         throughput = total_ops / (wall_ms / 1000)
         print(
-            f"  Wall time: {wall_ms:.0f}ms for {total_ops} upserts ({throughput:.0f} ops/s)"
+            f"  Wall time: {wall_ms:.0f}ms for {total_ops} upserts ({throughput:.0f} ops/s)",
         )
         latency_report("concurrent_announce_write", all_durations)
 
@@ -649,7 +648,8 @@ class TestPerformanceHotPaths(unittest.TestCase):
 
     def test_like_search_scaling(self):
         """Measure how LIKE search scales across different table sizes.
-        This catches missing FTS indexes or query plan regressions."""
+        This catches missing FTS indexes or query plan regressions.
+        """
         print("\n[Scaling] LIKE search across data sizes:")
 
         # Message search on the existing 10k dataset
@@ -699,13 +699,13 @@ class TestPerformanceHotPaths(unittest.TestCase):
         durations = []
         for _ in range(5):
             _, ms = timed_call(
-                self.db.messages.mark_all_notifications_as_viewed, hashes
+                self.db.messages.mark_all_notifications_as_viewed, hashes,
             )
             durations.append(ms)
 
         stats = latency_report("mark_viewed_200", durations)
         self.assertLess(
-            stats["p95"], 50, "mark_all_notifications_as_viewed(200) p95 > 50ms"
+            stats["p95"], 50, "mark_all_notifications_as_viewed(200) p95 > 50ms",
         )
 
     def test_move_conversations_to_folder_batch(self):
@@ -719,13 +719,13 @@ class TestPerformanceHotPaths(unittest.TestCase):
         durations = []
         for _ in range(5):
             _, ms = timed_call(
-                self.db.messages.move_conversations_to_folder, hashes, folder_id
+                self.db.messages.move_conversations_to_folder, hashes, folder_id,
             )
             durations.append(ms)
 
         stats = latency_report("move_folder_200", durations)
         self.assertLess(
-            stats["p95"], 50, "move_conversations_to_folder(200) p95 > 50ms"
+            stats["p95"], 50, "move_conversations_to_folder(200) p95 > 50ms",
         )
 
     # ===================================================================
@@ -736,7 +736,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         """Verify critical indexes exist in the schema."""
         print("\n[Indexes] Checking critical indexes exist:")
         rows = self.db.provider.fetchall(
-            "SELECT name FROM sqlite_master WHERE type='index'"
+            "SELECT name FROM sqlite_master WHERE type='index'",
         )
         index_names = {r["name"] for r in rows}
 

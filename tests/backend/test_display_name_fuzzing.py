@@ -1,11 +1,14 @@
 import base64
-from hypothesis import given, strategies as st, settings, HealthCheck
+
 import RNS.vendor.umsgpack as msgpack
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
+
 from meshchatx.src.backend.meshchat_utils import (
     parse_lxmf_display_name,
-    parse_nomadnetwork_node_display_name,
     parse_lxmf_propagation_node_app_data,
     parse_lxmf_stamp_cost,
+    parse_nomadnetwork_node_display_name,
 )
 
 # Strategies for generating diverse display names
@@ -22,7 +25,7 @@ st_display_name = st.one_of(
 
 @st.composite
 def st_lxmf_announce_app_data(draw):
-    """Generates valid LXMF announce app_data (msgpack list [name, ...])"""
+    """Generates valid LXMF announce app_data (msgpack list [name, ...])."""
     name = draw(st_display_name)
     # LXMF announces are usually [display_name, stamp_cost, propagation_node_data, ...]
     # We'll generate lists of various lengths
@@ -72,7 +75,7 @@ def test_parse_lxmf_display_name_invalid_base64(data):
 
 @given(app_data=st_lxmf_announce_app_data())
 def test_parse_lxmf_display_name_logic_check(app_data):
-    """Verify that if we can manually unpack it, parse_lxmf_display_name matches our expectation"""
+    """Verify that if we can manually unpack it, parse_lxmf_display_name matches our expectation."""
     try:
         unpacked = msgpack.unpackb(app_data)
         if isinstance(unpacked, list) and len(unpacked) >= 1:

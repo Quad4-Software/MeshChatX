@@ -24,7 +24,7 @@ def test_meshchat_http_routes_match_fixture():
     if os.environ.get("UPDATE_HTTP_API_ROUTES") == "1":
         write_route_fixture(_FIXTURE, live)
         pytest.skip(
-            "UPDATE_HTTP_API_ROUTES=1: fixture updated; re-run without the env var"
+            "UPDATE_HTTP_API_ROUTES=1: fixture updated; re-run without the env var",
         )
     expected = load_route_fixture(_FIXTURE)
     assert live == expected, (

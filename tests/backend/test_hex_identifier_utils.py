@@ -1,3 +1,6 @@
+from hypothesis import given
+from hypothesis import strategies as st
+
 from meshchatx.src.backend.meshchat_utils import (
     hex_identifier_to_bytes,
     normalize_hex_identifier,
@@ -32,3 +35,34 @@ def test_hex_identifier_to_bytes_invalid_returns_none():
     assert hex_identifier_to_bytes("") is None
     assert hex_identifier_to_bytes(None) is None
     assert hex_identifier_to_bytes("abc") is None
+
+
+@given(s=st.text())
+def test_normalize_hex_identifier_never_raises(s):
+    normalize_hex_identifier(s)
+
+
+@given(s=st.text())
+def test_hex_identifier_to_bytes_never_raises(s):
+    hex_identifier_to_bytes(s)
+
+
+@given(h=st.from_regex(r"[0-9a-fA-F]{0,200}"))
+def test_hex_identifier_length_invariant(h):
+    n = normalize_hex_identifier(h)
+    b = hex_identifier_to_bytes(h)
+    if not n or len(n) % 2:
+        assert b is None
+    else:
+        assert b is not None
+        assert len(b) == len(n) // 2
+
+
+@given(
+    a=st.from_regex(r"[0-9a-fA-F]{2,64}"),
+    b=st.from_regex(r"[0-9a-fA-F]{2,64}"),
+)
+def test_normalize_concat_equals_normalize_join(a, b):
+    assert normalize_hex_identifier(a + b) == normalize_hex_identifier(
+        normalize_hex_identifier(a) + normalize_hex_identifier(b),
+    )

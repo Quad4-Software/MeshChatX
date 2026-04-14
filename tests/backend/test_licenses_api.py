@@ -40,7 +40,7 @@ def mock_rns_minimal():
 async def test_licenses_endpoint_returns_json(mock_rns_minimal, temp_dir):
     payload = {
         "backend": [
-            {"name": "aiohttp", "version": "1", "author": "x", "license": "Apache-2.0"}
+            {"name": "aiohttp", "version": "1", "author": "x", "license": "Apache-2.0"},
         ],
         "frontend": [],
         "meta": {

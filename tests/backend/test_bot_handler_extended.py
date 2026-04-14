@@ -1,6 +1,8 @@
 import os
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from meshchatx.src.backend.bot_handler import BotHandler
 
 
@@ -102,7 +104,7 @@ def test_restore_enabled_bots(temp_identity_dir):
             "name": "N",
             "enabled": True,
             "storage_dir": "/tmp/b1",
-        }
+        },
     ]
     with patch.object(handler, "start_bot") as mock_start:
         handler.restore_enabled_bots()

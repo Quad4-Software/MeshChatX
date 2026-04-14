@@ -6,7 +6,7 @@ import time
 import unittest
 
 from meshchatx.src.backend.database import Database
-from meshchatx.src.backend.recovery.crash_recovery import CrashRecovery, _DEFAULT_PRIORS
+from meshchatx.src.backend.recovery.crash_recovery import _DEFAULT_PRIORS, CrashRecovery
 
 
 class TestCrashHistoryDAO(unittest.TestCase):

@@ -100,7 +100,7 @@ def test_validate_export_document_ok():
 def test_validate_export_document_wrong_format():
     with pytest.raises(ValueError, match="invalid_format"):
         sticker_utils.validate_export_document(
-            {"format": "other", "version": 1, "stickers": []}
+            {"format": "other", "version": 1, "stickers": []},
         )
 
 
@@ -135,7 +135,7 @@ def test_mime_for_image_type():
         st.none(),
         st.text(max_size=40),
         st.sampled_from(
-            ["png", "jpeg", "jpg", "webp", "gif", "bmp", "svg", "image/png", ""]
+            ["png", "jpeg", "jpg", "webp", "gif", "bmp", "svg", "image/png", ""],
         ),
     ),
 )

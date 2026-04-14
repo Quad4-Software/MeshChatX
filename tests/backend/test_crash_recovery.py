@@ -442,7 +442,7 @@ class TestCrashRecovery(unittest.TestCase):
 
     def test_diagnosis_empty_db_file(self):
         """0-byte database file should trigger a warning."""
-        open(self.db_path, "w").close()  # noqa: SIM115
+        open(self.db_path, "w").close()
 
         output = io.StringIO()
         self.recovery.run_diagnosis(file=output)

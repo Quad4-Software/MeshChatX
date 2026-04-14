@@ -123,8 +123,8 @@ async def test_contacts_import_valid(mock_rns_minimal, temp_dir):
                         "remote_identity_hash": "e" * 32,
                         "lxmf_address": "f" * 32,
                     },
-                ]
-            }
+                ],
+            },
         )
         response = await handler(request)
         data = json.loads(response.body)
@@ -160,8 +160,8 @@ async def test_contacts_import_skips_invalid(mock_rns_minimal, temp_dir):
                     {"name": "Valid", "remote_identity_hash": "a" * 32},
                     {"name": ""},
                     {"remote_identity_hash": "b" * 32},
-                ]
-            }
+                ],
+            },
         )
         response = await handler(request)
         data = json.loads(response.body)

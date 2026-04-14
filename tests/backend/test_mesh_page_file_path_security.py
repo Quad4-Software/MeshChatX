@@ -1,5 +1,4 @@
-"""
-Path traversal regression tests and property-based fuzzing for mesh PageNode
+"""Path traversal regression tests and property-based fuzzing for mesh PageNode
 page/file APIs and normalize_page_filename.
 """
 
@@ -178,7 +177,7 @@ class TestPageRespondersTraversal:
         assert result == b"ok"
 
     def test_file_responder_ignores_path_prefix_in_request_path(
-        self, node_dir, mock_rns
+        self, node_dir, mock_rns,
     ):
         node = _make_node(node_dir, mock_rns)
         node.setup()
@@ -190,7 +189,7 @@ class TestPageRespondersTraversal:
 
 
 def test_try_serve_local_helpers_strip_traversal():
-    """Regression: meshchat local serve must not join parent dirs for file names."""
+    """Local page-node serve uses basenames only; request paths must not escape dirs."""
     from meshchatx.meshchat import ReticulumMeshChat
 
     app = MagicMock(spec=ReticulumMeshChat)

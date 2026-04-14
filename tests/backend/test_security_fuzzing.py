@@ -1394,7 +1394,7 @@ def test_nomadnet_page_archive_load_fuzzing(mock_app, archive_id):
     ),
 )
 def test_nomadnet_page_archive_add_fuzzing(
-    mock_app, destination_hash, page_path, content
+    mock_app, destination_hash, page_path, content,
 ):
     """Fuzz nomadnet.page.archive.add WebSocket handler and archive_page."""
     import asyncio
@@ -1465,7 +1465,7 @@ def test_nomadnet_file_download_fuzzing(mock_app, destination_hash, file_path):
     ),
 )
 def test_nomadnet_page_download_fuzzing(
-    mock_app, destination_hash, page_path, field_data
+    mock_app, destination_hash, page_path, field_data,
 ):
     """Fuzz nomadnet.page.download WebSocket handler (page_path with backtick, field_data)."""
     import asyncio
@@ -1627,7 +1627,7 @@ def test_messages_delete_by_hash_fuzzing(mock_app, message_hash):
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
-    message_hashes=st.lists(st.text(min_size=0, max_size=100), min_size=0, max_size=50)
+    message_hashes=st.lists(st.text(min_size=0, max_size=100), min_size=0, max_size=50),
 )
 def test_messages_delete_by_hashes_fuzzing(mock_app, message_hashes):
     """Fuzz bulk message delete by hashes."""
@@ -2284,7 +2284,7 @@ class TestLxmfFieldHardening:
             pass
 
     @settings(
-        suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None
+        suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None,
     )
     @given(
         fields_data=st.dictionaries(
@@ -2412,7 +2412,7 @@ class TestStrangerAttachmentBlocking:
         """Text-only messages from strangers are delivered normally."""
         source_hash = os.urandom(16)
         mock_msg = self._make_mock_message(
-            source_hash=source_hash, with_attachments=False
+            source_hash=source_hash, with_attachments=False,
         )
 
         mock_app.config.block_attachments_from_strangers.get.return_value = True

@@ -1,6 +1,8 @@
-import pytest
 import os
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from meshchatx.src.backend.voicemail_manager import VoicemailManager
 
 
@@ -27,7 +29,7 @@ def test_find_bundled_binary_not_frozen(voicemail_manager):
 
 def test_find_espeak_shutil(voicemail_manager):
     with patch(
-        "shutil.which", side_effect=lambda x: f"/usr/bin/{x}" if "espeak" in x else None
+        "shutil.which", side_effect=lambda x: f"/usr/bin/{x}" if "espeak" in x else None,
     ):
         path = voicemail_manager._find_espeak()
         assert "espeak" in path

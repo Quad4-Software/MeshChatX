@@ -1,6 +1,4 @@
-"""
-Incoming-call policy: blocked list, DND, contacts-only / block-strangers, voicemail + ring.
-"""
+"""Incoming-call policy: blocked list, DND, contacts-only / block-strangers, voicemail + ring."""
 
 from unittest.mock import MagicMock, patch
 

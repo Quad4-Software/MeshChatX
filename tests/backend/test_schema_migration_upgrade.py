@@ -9,7 +9,7 @@ from meshchatx.src.backend.database.schema import DatabaseSchema
 def _column_names(provider, table: str) -> set[str]:
     cur = provider.connection.cursor()
     try:
-        cur.execute(f"PRAGMA table_info({table})")  # noqa: S608
+        cur.execute(f"PRAGMA table_info({table})")
         return {row[1] for row in cur.fetchall()}
     finally:
         cur.close()

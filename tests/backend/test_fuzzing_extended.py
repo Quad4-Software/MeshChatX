@@ -364,7 +364,7 @@ def test_markdown_renderer_fuzzing(text):
                 "[](" * 500 + ")" * 500,
                 "\x00\x01\x02\n\t",
                 "\ufffd" * 100,
-            ]
+            ],
         ),
     ),
 )

@@ -3,8 +3,9 @@ import secrets
 import shutil
 import tempfile
 import threading
-import unittest
 import time
+import unittest
+
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.identity_manager import IdentityManager
@@ -69,8 +70,8 @@ class TestConcurrencyStress(unittest.TestCase):
     def db_reader_worker(self, worker_id):
         """Spams the message table with reads and searches."""
         try:
-            from meshchatx.src.backend.database.messages import MessageDAO
             from meshchatx.src.backend.database.announces import AnnounceDAO
+            from meshchatx.src.backend.database.messages import MessageDAO
 
             provider = DatabaseProvider.get_instance(self.db_path)
             msg_dao = MessageDAO(provider)
@@ -107,10 +108,10 @@ class TestConcurrencyStress(unittest.TestCase):
 
         # Check if we ended up with the expected number of messages
         total = self.db.provider.fetchone(
-            "SELECT COUNT(*) as count FROM lxmf_messages"
+            "SELECT COUNT(*) as count FROM lxmf_messages",
         )["count"]
         self.assertEqual(
-            total, 5 * 50, "Total messages inserted doesn't match expected count"
+            total, 5 * 50, "Total messages inserted doesn't match expected count",
         )
         print(f"Stress test completed. Total messages inserted: {total}")
 
@@ -131,7 +132,7 @@ class TestConcurrencyStress(unittest.TestCase):
 
         id_thread = threading.Thread(target=identity_worker)
         db_thread = threading.Thread(
-            target=self.db_writer_worker, args=("id_collision",)
+            target=self.db_writer_worker, args=("id_collision",),
         )
 
         id_thread.start()
@@ -148,10 +149,10 @@ class TestConcurrencyStress(unittest.TestCase):
         self.assertEqual(len(identities), 20, "Should have created 20 identities")
 
         total_messages = self.db.provider.fetchone(
-            "SELECT COUNT(*) as count FROM lxmf_messages"
+            "SELECT COUNT(*) as count FROM lxmf_messages",
         )["count"]
         self.assertEqual(
-            total_messages, 50, "Should have inserted 50 messages during collision test"
+            total_messages, 50, "Should have inserted 50 messages during collision test",
         )
 
 

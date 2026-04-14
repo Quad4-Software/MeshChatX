@@ -261,7 +261,7 @@ def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
         mock_int_class.return_value.check_integrity.return_value = (True, [])
         mock_db_instance = mock_db_class.return_value
         mock_db_instance.check_db_health_at_open.return_value = [
-            "Database content anomaly: test."
+            "Database content anomaly: test.",
         ]
         mock_config = mock_config_class.return_value
         mock_config.auth_session_secret.get.return_value = base64.urlsafe_b64encode(
@@ -284,7 +284,7 @@ def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
         )
         app.run(host="127.0.0.1", port=8000, launch_browser=False, enable_https=False)
         assert getattr(app, "database_health_issues", []) == [
-            "Database content anomaly: test."
+            "Database content anomaly: test.",
         ]
         app.teardown_identity()
 

@@ -1,7 +1,9 @@
-import pytest
 import os
 from unittest.mock import MagicMock, patch
-from meshchatx.src.backend.telephone_manager import TelephoneManager, Tee
+
+import pytest
+
+from meshchatx.src.backend.telephone_manager import Tee, TelephoneManager
 
 
 @pytest.fixture

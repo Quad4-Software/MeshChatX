@@ -1,9 +1,7 @@
-"""Tests confirming SQL-injection fixes in the raw-SQL database layer.
+"""Legacy migration and schema: safe ATTACH paths, identifiers, and raw SQL helpers.
 
-Covers:
-  - ATTACH DATABASE path escaping (single-quote doubling) in LegacyMigrator
-  - Column-name identifier filtering during legacy migration
-  - _validate_identifier / _ensure_column rejection in DatabaseSchema
+Covers ATTACH DATABASE path escaping in LegacyMigrator, column identifier filtering,
+and DatabaseSchema _validate_identifier / _ensure_column behaviour.
 """
 
 import os
@@ -17,7 +15,6 @@ from hypothesis import strategies as st
 from meshchatx.src.backend.database.legacy_migrator import LegacyMigrator
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema, _validate_identifier
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -144,7 +141,7 @@ class TestAttachDatabasePathEscaping:
         migrator.migrate()
 
         tables = provider.fetchall(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='config'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='config'",
         )
         assert len(tables) > 0, "config table must still exist after injection attempt"
 
@@ -186,7 +183,7 @@ class TestLegacyColumnFiltering:
         db_path = os.path.join(identity_dir, "database.db")
         conn = sqlite3.connect(db_path)
         conn.execute(
-            'CREATE TABLE config (key TEXT UNIQUE, value TEXT, "key; DROP TABLE config" TEXT)'
+            'CREATE TABLE config (key TEXT UNIQUE, value TEXT, "key; DROP TABLE config" TEXT)',
         )
         conn.execute("INSERT INTO config (key, value) VALUES ('safe', 'data')")
         conn.commit()
@@ -335,7 +332,7 @@ def test_validate_identifier_accepts_all_valid_identifiers(name):
         alphabet=st.sampled_from(list(";'\"()- \t\n\r,/*")),
         min_size=1,
         max_size=30,
-    )
+    ),
 )
 @settings(deadline=None)
 def test_validate_identifier_rejects_pure_metacharacter_strings(name):
@@ -356,12 +353,13 @@ def test_validate_identifier_rejects_pure_metacharacter_strings(name):
         ),
         min_size=1,
         max_size=60,
-    )
+    ),
 )
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_attach_path_escaping_never_breaks_sql(path_segment):
     """The quote-doubling escaping produces a string that SQLite can parse
-    without breaking out of the literal, regardless of the path content."""
+    without breaking out of the literal, regardless of the path content.
+    """
     safe = path_segment.replace("'", "''")
     sql = f"ATTACH DATABASE '{safe}' AS test_alias"
 
@@ -375,10 +373,9 @@ def test_attach_path_escaping_never_breaks_sql(path_segment):
             if i + 1 < len(after_open) and after_open[i + 1] == "'":
                 i += 2
                 continue
-            else:
-                in_literal = False
-                remainder = after_open[i + 1 :]
-                break
+            in_literal = False
+            remainder = after_open[i + 1 :]
+            break
         i += 1
 
     if not in_literal:

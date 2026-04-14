@@ -1,11 +1,7 @@
-"""Tests for the contact/conversation name overwrite bug fixes.
+"""Contacts and announces: display names, custom labels, and announce app_data upserts.
 
-Covers:
-- Announce upsert preserving app_data via COALESCE when new value is NULL
-- Contacts DAO upsert conflict behaviour
-- Custom display name lifecycle (set, get, delete, re-set)
-- Contact name update propagation
-- Edge cases: empty strings, unicode, very long names, concurrent upserts
+Covers announce upsert semantics when app_data is NULL (COALESCE), contacts DAO
+conflict behaviour, custom display name lifecycle, and related edge cases.
 """
 
 import base64
@@ -75,13 +71,12 @@ def _base_announce(dest="d" * 32, app_data="some_data"):
 
 
 # ---------------------------------------------------------------------------
-# Announce upsert COALESCE tests
+# Announce upsert when app_data is NULL (COALESCE)
 # ---------------------------------------------------------------------------
 
 
-class TestAnnounceUpsertPreservesAppData:
-    """The core bug: upserting an announce with app_data=None must NOT wipe
-    the previously stored app_data."""
+class TestAnnounceUpsertNullAppDataCoalesce:
+    """Upsert with app_data=None must not clear an existing app_data value."""
 
     def test_null_app_data_preserves_existing(self, announce_dao):
         announce_dao.upsert_announce(_base_announce(app_data="original_name"))
@@ -128,10 +123,10 @@ class TestAnnounceUpsertPreservesAppData:
     def test_other_fields_still_update_on_null_app_data(self, announce_dao):
         dest = "c" * 32
         announce_dao.upsert_announce(
-            {**_base_announce(dest=dest, app_data="keep_me"), "rssi": -50}
+            {**_base_announce(dest=dest, app_data="keep_me"), "rssi": -50},
         )
         announce_dao.upsert_announce(
-            {**_base_announce(dest=dest, app_data=None), "rssi": -90}
+            {**_base_announce(dest=dest, app_data=None), "rssi": -90},
         )
         row = announce_dao.get_announce_by_hash(dest)
         assert row["app_data"] == "keep_me"
@@ -208,33 +203,33 @@ class TestCustomDisplayNameLifecycle:
 class TestContactsEdgeCases:
     def test_add_contact_upsert_preserves_addresses(self, contacts_dao, provider):
         contacts_dao.add_contact(
-            "Alice", "ih1", lxmf_address="lxmf1", lxst_address="lxst1"
+            "Alice", "ih1", lxmf_address="lxmf1", lxst_address="lxst1",
         )
         contacts_dao.add_contact(
-            "Alice Updated", "ih1", lxmf_address=None, lxst_address=None
+            "Alice Updated", "ih1", lxmf_address=None, lxst_address=None,
         )
         row = provider.fetchone(
-            "SELECT * FROM contacts WHERE remote_identity_hash = ?", ("ih1",)
+            "SELECT * FROM contacts WHERE remote_identity_hash = ?", ("ih1",),
         )
         assert row["name"] == "Alice Updated"
         assert row["lxmf_address"] == "lxmf1"
         assert row["lxst_address"] == "lxst1"
 
     def test_add_contact_upsert_replaces_name_unconditionally(
-        self, contacts_dao, provider
+        self, contacts_dao, provider,
     ):
         """Verifies add_contact always overwrites name on conflict."""
         contacts_dao.add_contact("Real Name", "ih2")
         contacts_dao.add_contact("Overwritten", "ih2")
         row = provider.fetchone(
-            "SELECT * FROM contacts WHERE remote_identity_hash = ?", ("ih2",)
+            "SELECT * FROM contacts WHERE remote_identity_hash = ?", ("ih2",),
         )
         assert row["name"] == "Overwritten"
 
     def test_update_contact_partial(self, contacts_dao, provider):
         contacts_dao.add_contact("Alice", "ih3", lxmf_address="lx3")
         row = provider.fetchone(
-            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih3",)
+            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih3",),
         )
         cid = row["id"]
         contacts_dao.update_contact(cid, name="Alice Renamed")
@@ -245,7 +240,7 @@ class TestContactsEdgeCases:
     def test_update_contact_no_fields_is_noop(self, contacts_dao, provider):
         contacts_dao.add_contact("NoOp", "ih4")
         row = provider.fetchone(
-            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih4",)
+            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih4",),
         )
         contacts_dao.update_contact(row["id"])
         updated = provider.fetchone("SELECT * FROM contacts WHERE id = ?", (row["id"],))
@@ -253,10 +248,10 @@ class TestContactsEdgeCases:
 
     def test_update_contact_clear_image(self, contacts_dao, provider):
         contacts_dao.add_contact(
-            "WithImage", "ih5", custom_image="data:image/png;base64,abc"
+            "WithImage", "ih5", custom_image="data:image/png;base64,abc",
         )
         row = provider.fetchone(
-            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih5",)
+            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih5",),
         )
         assert row is not None
         cid = row["id"]
@@ -282,7 +277,7 @@ class TestContactsEdgeCases:
     def test_unicode_contact_name(self, contacts_dao, provider):
         contacts_dao.add_contact("\u00c9milie \u00d6sterreich", "ih8")
         row = provider.fetchone(
-            "SELECT * FROM contacts WHERE remote_identity_hash = ?", ("ih8",)
+            "SELECT * FROM contacts WHERE remote_identity_hash = ?", ("ih8",),
         )
         assert row["name"] == "\u00c9milie \u00d6sterreich"
 
@@ -347,13 +342,13 @@ class TestParseLxmfDisplayNameFallback:
 
 class TestNameResolutionPriority:
     """Simulates the priority chain:
-    custom_display_name > announce app_data > contact name > 'Anonymous Peer'
+    custom_display_name > announce app_data > contact name > 'Anonymous Peer'.
     """
 
     def test_custom_name_wins_over_announce(self, announce_dao):
         dest = "f" * 32
         announce_dao.upsert_announce(
-            _base_announce(dest=dest, app_data="AnnounceAlice")
+            _base_announce(dest=dest, app_data="AnnounceAlice"),
         )
         announce_dao.upsert_custom_display_name(dest, "CustomAlice")
 
@@ -381,7 +376,7 @@ class TestNameResolutionPriority:
         assert display == "Anonymous Peer"
 
     def test_contact_name_used_when_no_announce_no_custom(
-        self, announce_dao, contacts_dao, provider
+        self, announce_dao, contacts_dao, provider,
     ):
         dest = "f" * 32
         announce_dao.upsert_announce(_base_announce(dest=dest, app_data=None))
@@ -406,10 +401,11 @@ class TestNameResolutionPriority:
         assert display == "AnnounceName"
 
     def test_wiping_announce_with_contact_still_resolves(
-        self, announce_dao, contacts_dao
+        self, announce_dao, contacts_dao,
     ):
         """After the COALESCE fix, this should not happen, but if app_data
-        was already NULL, the contact name should still be available."""
+        was already NULL, the contact name should still be available.
+        """
         dest = "f" * 32
         contacts_dao.add_contact("ContactFallback", dest, lxmf_address=dest)
         announce_dao.upsert_announce(_base_announce(dest=dest, app_data=None))
@@ -431,7 +427,7 @@ class TestAnnounceTrimSafety:
     def test_trim_does_not_remove_active_announce(self, announce_dao):
         for i in range(5):
             announce_dao.upsert_announce(
-                _base_announce(dest=f"{i:032x}", app_data=f"name_{i}")
+                _base_announce(dest=f"{i:032x}", app_data=f"name_{i}"),
             )
         announce_dao.trim_announces_for_aspect("lxmf.delivery", max_rows=3)
         remaining = announce_dao.get_announces(aspect="lxmf.delivery")
@@ -448,11 +444,11 @@ class TestAnnounceTrimSafety:
 
 class TestContactCustomNameSync:
     def test_renaming_contact_and_custom_name_independently(
-        self, contacts_dao, announce_dao, provider
+        self, contacts_dao, announce_dao, provider,
     ):
         contacts_dao.add_contact("Alice", "ih20", lxmf_address="lx20")
         row = provider.fetchone(
-            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih20",)
+            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih20",),
         )
         cid = row["id"]
 
@@ -467,7 +463,7 @@ class TestContactCustomNameSync:
         """Simulates what the UI should do: update both contact and custom name."""
         contacts_dao.add_contact("Bob", "ih21", lxmf_address="lx21")
         row = provider.fetchone(
-            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih21",)
+            "SELECT id FROM contacts WHERE remote_identity_hash = ?", ("ih21",),
         )
         cid = row["id"]
 

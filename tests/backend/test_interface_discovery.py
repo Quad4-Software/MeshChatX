@@ -448,7 +448,7 @@ async def test_interface_add_discovery_payload_fuzz_tcp_client(temp_dir):
             config.write_called = False
 
             name = f"fuzz-{i}-" + "".join(
-                random.choices(string.ascii_letters + string.digits, k=8)
+                random.choices(string.ascii_letters + string.digits, k=8),
             )
             announce = random.randint(5, 1440)
             lat = random.uniform(-90, 90)

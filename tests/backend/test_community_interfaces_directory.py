@@ -171,7 +171,7 @@ def test_transform_tcp_row_with_numeric_id():
             "typeName": "TCPClientInterface",
             "host": "10.0.0.1",
             "port": 4242,
-        }
+        },
     ]
     out = transform_directory_rows(rows)
     assert len(out) == 1
@@ -202,7 +202,7 @@ def test_transform_tcp_with_backbone_in_config_and_identity():
         st.fixed_dictionaries(
             {
                 "id": st.one_of(
-                    st.none(), st.integers(min_value=-1000, max_value=10000)
+                    st.none(), st.integers(min_value=-1000, max_value=10000),
                 ),
                 "name": st.text(max_size=40),
                 "type": st.sampled_from(["backbone", "tcp", "i2p", "rnode", ""]),

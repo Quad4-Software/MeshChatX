@@ -1,7 +1,7 @@
 from meshchatx.src.backend.rnstatus_handler import (
     fmt_packet_count,
-    fmt_percentage,
     fmt_per_second,
+    fmt_percentage,
 )
 
 

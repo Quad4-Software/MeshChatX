@@ -39,7 +39,7 @@ def test_trim_called_when_over_max_stored(mock_db, mock_config):
     identity.get_public_key.return_value = b"pub_key"
 
     manager.upsert_announce(
-        reticulum, identity, b"new_dest", "lxmf.delivery", b"app_data", b"packet_hash"
+        reticulum, identity, b"new_dest", "lxmf.delivery", b"app_data", b"packet_hash",
     )
 
     mock_db.announces.upsert_announce.assert_called_once()
@@ -57,7 +57,7 @@ def test_no_trim_without_config(mock_db):
     identity.get_public_key.return_value = b"pub_key"
 
     manager.upsert_announce(
-        reticulum, identity, b"dest", "lxmf.delivery", b"app_data", b"packet"
+        reticulum, identity, b"dest", "lxmf.delivery", b"app_data", b"packet",
     )
 
     mock_db.announces.upsert_announce.assert_called_once()
@@ -74,7 +74,7 @@ def test_max_stored_none_skips_trim(mock_db, mock_config):
     identity.get_public_key.return_value = b"pub_key"
 
     manager.upsert_announce(
-        reticulum, identity, b"dest", "lxmf.delivery", b"app_data", b"packet"
+        reticulum, identity, b"dest", "lxmf.delivery", b"app_data", b"packet",
     )
 
     mock_db.announces.trim_announces_for_aspect.assert_not_called()
@@ -147,7 +147,7 @@ def test_announce_handles_none_packet_hash(mock_db):
     identity.get_public_key.return_value = b"pub_key"
 
     manager.upsert_announce(
-        reticulum, identity, b"dest", "lxmf.delivery", b"app_data", None
+        reticulum, identity, b"dest", "lxmf.delivery", b"app_data", None,
     )
 
     mock_db.announces.upsert_announce.assert_called_once()

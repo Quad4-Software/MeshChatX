@@ -1,6 +1,8 @@
-import pytest
 import json
 from unittest.mock import MagicMock
+
+import pytest
+
 from meshchatx.src.backend.database.telemetry import TelemetryDAO
 
 

@@ -214,7 +214,8 @@ def test_notification_spike_fuzzing(db, num_notifs):
 
 class TestNotificationReliability:
     """Comprehensive tests to verify notifications are accurate, reliable,
-    and never produce false positives."""
+    and never produce false positives.
+    """
 
     def test_unread_count_matches_actual_unread(self, db):
         """Unread count must exactly match unviewed notifications."""

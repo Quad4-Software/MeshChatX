@@ -10,9 +10,9 @@ from hypothesis import strategies as st
 
 from meshchatx.src.backend.database.access_attempts import (
     LOGIN_PATH,
+    MAX_TRUSTED_FINGERPRINTS_PER_IDENTITY,
     SETUP_PATH,
     AccessAttemptsDAO,
-    MAX_TRUSTED_FINGERPRINTS_PER_IDENTITY,
     user_agent_hash,
 )
 
@@ -65,7 +65,7 @@ def test_count_matches_list_for_no_filters(dao):
 def test_search_filters(dao):
     ih = _id_hash()
     dao.insert(
-        ih, "192.168.99.1", "UniqueSearchUA", LOGIN_PATH, "POST", "success", "detail-x"
+        ih, "192.168.99.1", "UniqueSearchUA", LOGIN_PATH, "POST", "success", "detail-x",
     )
     found = dao.list_attempts(search="UniqueSearchUA", limit=50)
     assert any(r["user_agent"] == "UniqueSearchUA" for r in found)
