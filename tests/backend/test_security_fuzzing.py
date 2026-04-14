@@ -2424,6 +2424,80 @@ class TestStrangerAttachmentBlocking:
         mock_app.on_lxmf_delivery(mock_msg)
         mock_app.db_upsert_lxmf_message.assert_called_once()
 
+    def test_stranger_lxmf_image_stripped_when_enabled(self, mock_app):
+        """Image attachments (including sticker-shaped PNGs) use FIELD_IMAGE; strip like files."""
+        source_hash = os.urandom(16)
+        mock_msg = MagicMock()
+        mock_msg.source_hash = source_hash
+        mock_msg.destination_hash = os.urandom(16)
+        mock_msg.hash = os.urandom(16)
+        mock_msg.content = b"sticker msg"
+        mock_msg.title = b""
+        mock_msg.incoming = True
+        mock_msg.state = LXMF.LXMessage.DELIVERED
+        mock_msg.method = LXMF.LXMessage.DIRECT
+        mock_msg.progress = 1.0
+        mock_msg.timestamp = 123456789.0
+        mock_msg.rssi = -50
+        mock_msg.snr = 10
+        mock_msg.q = 100
+        mock_msg.delivery_attempts = 1
+        mock_msg.next_delivery_attempt = None
+
+        fields = {
+            LXMF.FIELD_IMAGE: [b"png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 64],
+        }
+        mock_msg.get_fields.return_value = fields
+        mock_msg.fields = fields
+
+        mock_app.config.block_attachments_from_strangers.get.return_value = True
+        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=False)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+
+        mock_app.db_upsert_lxmf_message.assert_called_once()
+        call_kwargs = mock_app.db_upsert_lxmf_message.call_args
+        assert call_kwargs[1].get("attachments_stripped") is True or (
+            len(call_kwargs[0]) > 2 and call_kwargs[0][2] is True
+        )
+        assert LXMF.FIELD_IMAGE not in mock_msg.get_fields()
+
+    def test_contact_lxmf_image_not_stripped(self, mock_app):
+        source_hash = os.urandom(16)
+        mock_msg = MagicMock()
+        mock_msg.source_hash = source_hash
+        mock_msg.destination_hash = os.urandom(16)
+        mock_msg.hash = os.urandom(16)
+        mock_msg.content = b"img"
+        mock_msg.title = b""
+        mock_msg.incoming = True
+        mock_msg.state = LXMF.LXMessage.DELIVERED
+        mock_msg.method = LXMF.LXMessage.DIRECT
+        mock_msg.progress = 1.0
+        mock_msg.timestamp = 123456789.0
+        mock_msg.rssi = -50
+        mock_msg.snr = 10
+        mock_msg.q = 100
+        mock_msg.delivery_attempts = 1
+        mock_msg.next_delivery_attempt = None
+
+        fields = {LXMF.FIELD_IMAGE: [b"png", b"\x00" * 32]}
+        mock_msg.get_fields.return_value = fields
+        mock_msg.fields = fields
+
+        mock_app.config.block_attachments_from_strangers.get.return_value = True
+        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app._is_contact = MagicMock(return_value=True)
+        mock_app.is_destination_blocked = MagicMock(return_value=False)
+        mock_app.check_spam_keywords = MagicMock(return_value=False)
+
+        mock_app.on_lxmf_delivery(mock_msg)
+
+        assert LXMF.FIELD_IMAGE in mock_msg.get_fields()
+
 
 class TestBlockAllFromStrangers:
     """Tests for the block-everything-from-strangers feature."""

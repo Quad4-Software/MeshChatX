@@ -1,9 +1,12 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
 import json
 import os
+import subprocess
+import LXMF
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.lxmf_message_fields import LxmfAudioField
 
 
 @pytest.fixture
@@ -167,6 +170,7 @@ def test_get_config_dict_basic(mock_app):
         "message_outbound_bubble_color",
         "message_inbound_bubble_color",
         "message_failed_bubble_color",
+        "message_waiting_bubble_color",
     ]:
         getattr(mock_config, attr).get.return_value = None
 
@@ -289,18 +293,34 @@ async def test_send_config_to_websocket_clients(mock_app):
 @pytest.mark.asyncio
 async def test_on_lxmf_sending_state_updated(mock_app):
     mock_msg = MagicMock()
-    mock_app.db_upsert_lxmf_message = MagicMock()
+    mock_msg.progress = 0.75
+    mock_msg.rssi = None
+    mock_msg.snr = None
+    mock_msg.q = None
+    mock_msg.hash.hex.return_value = "ab" * 16
+    mock_msg.delivery_attempts = 2
+
+    ctx = mock_app.current_context
     mock_app.websocket_broadcast = MagicMock(return_value=asyncio.Future())
     mock_app.websocket_broadcast.return_value.set_result(None)
 
-    with patch(
-        "meshchatx.meshchat.convert_lxmf_message_to_dict", return_value={"h": "v"}
+    with (
+        patch(
+            "meshchatx.meshchat.convert_lxmf_message_to_dict", return_value={"h": "v"}
+        ),
+        patch(
+            "meshchatx.meshchat.convert_lxmf_state_to_string", return_value="delivered"
+        ),
+        patch("meshchatx.meshchat.AsyncUtils.run_async") as mock_run_async,
     ):
-        # Pass context explicitly to match expectation or fix expectation
-        ctx = mock_app.current_context
         mock_app.on_lxmf_sending_state_updated(mock_msg, context=ctx)
-        mock_app.db_upsert_lxmf_message.assert_called_once_with(mock_msg, context=ctx)
-        mock_app.websocket_broadcast.assert_called_once()
+
+        ctx.database.messages.update_lxmf_message_state.assert_called_once()
+        call_kwargs = ctx.database.messages.update_lxmf_message_state.call_args
+        assert call_kwargs.kwargs["message_hash"] == "ab" * 16
+        assert call_kwargs.kwargs["progress"] == 75.0
+        assert call_kwargs.kwargs["state"] == "delivered"
+        mock_run_async.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -344,3 +364,141 @@ def test_on_lxmf_sending_failed_no_propagation(mock_app):
     mock_app.on_lxmf_sending_state_updated.assert_called_once_with(
         mock_msg, context=None
     )
+
+
+def test_convert_webm_opus_to_ogg_already_ogg(mock_app):
+    ogg_data = b"OggS" + b"\x00" * 100
+    result = mock_app._convert_webm_opus_to_ogg(ogg_data)
+    assert result is ogg_data
+
+
+def test_convert_webm_opus_to_ogg_no_ffmpeg(mock_app):
+    webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
+    with patch("shutil.which", return_value=None):
+        result = mock_app._convert_webm_opus_to_ogg(webm_data)
+    assert result is webm_data
+
+
+def test_convert_webm_opus_to_ogg_success(mock_app):
+    webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
+    fake_ogg = b"OggS" + b"\xff" * 50
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_result.stdout = fake_ogg
+
+    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            result = mock_app._convert_webm_opus_to_ogg(webm_data)
+
+    assert result == fake_ogg
+    mock_run.assert_called_once()
+    call_args = mock_run.call_args
+    assert call_args.kwargs["input"] == webm_data
+    assert "-f" in call_args[0][0]
+    assert "ogg" in call_args[0][0]
+
+
+def test_convert_webm_opus_to_ogg_ffmpeg_fails(mock_app):
+    webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+    mock_result.stdout = b""
+
+    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
+        with patch("subprocess.run", return_value=mock_result):
+            result = mock_app._convert_webm_opus_to_ogg(webm_data)
+
+    assert result is webm_data
+
+
+def test_convert_webm_opus_to_ogg_exception(mock_app):
+    webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
+
+    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
+        with patch(
+            "subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd="ffmpeg", timeout=30),
+        ):
+            result = mock_app._convert_webm_opus_to_ogg(webm_data)
+
+    assert result is webm_data
+
+
+@pytest.fixture
+def sendable_app(mock_app):
+    """mock_app wired so send_message can run to completion."""
+    ctx = mock_app.current_context
+    ctx.config.auto_send_failed_messages_to_propagation_node.get.return_value = False
+    ctx.message_router.delivery_link_available.return_value = True
+    ctx.local_lxmf_destination = MagicMock()
+    ctx.forwarding_manager = None
+
+    mock_app._await_transport_path = AsyncMock()
+    mock_app.get_current_icon_hash = MagicMock(return_value=None)
+    mock_app.db_upsert_lxmf_message = MagicMock()
+    mock_app.websocket_broadcast = AsyncMock()
+    mock_app.handle_lxmf_message_progress = AsyncMock()
+    mock_app._convert_webm_opus_to_ogg = MagicMock(side_effect=lambda b: b)
+
+    return mock_app
+
+
+async def _run_send(app, destination_hash="aa" * 16, **kwargs):
+    fake_identity = MagicMock()
+    fake_destination = MagicMock()
+    fake_lxm = MagicMock(spec=LXMF.LXMessage)
+    fake_lxm.fields = {}
+    fake_lxm.include_ticket = False
+
+    with (
+        patch("meshchatx.meshchat.RNS.Identity.recall", return_value=fake_identity),
+        patch("meshchatx.meshchat.RNS.Destination", return_value=fake_destination),
+        patch("meshchatx.meshchat.LXMF.LXMessage", return_value=fake_lxm),
+        patch(
+            "meshchatx.meshchat.convert_lxmf_message_to_dict",
+            return_value={"hash": "x"},
+        ),
+        patch("meshchatx.meshchat.AsyncUtils.run_async"),
+    ):
+        await app.send_message(
+            destination_hash=destination_hash, content="hi", **kwargs
+        )
+
+    return fake_lxm
+
+
+@pytest.mark.asyncio
+async def test_send_message_sets_renderer_markdown(sendable_app):
+    lxm = await _run_send(sendable_app)
+    assert LXMF.FIELD_RENDERER in lxm.fields
+    assert lxm.fields[LXMF.FIELD_RENDERER] == LXMF.RENDERER_MARKDOWN
+
+
+@pytest.mark.asyncio
+async def test_send_message_include_ticket_for_contact(sendable_app):
+    sendable_app._is_contact = MagicMock(return_value=True)
+    lxm = await _run_send(sendable_app)
+    assert lxm.include_ticket is True
+
+
+@pytest.mark.asyncio
+async def test_send_message_no_ticket_for_stranger(sendable_app):
+    sendable_app._is_contact = MagicMock(return_value=False)
+    lxm = await _run_send(sendable_app)
+    assert lxm.include_ticket is False
+
+
+@pytest.mark.asyncio
+async def test_send_message_opus_audio_triggers_conversion(sendable_app):
+    audio = LxmfAudioField(audio_mode=LXMF.AM_OPUS_OGG, audio_bytes=b"\x1a\x45")
+    lxm = await _run_send(sendable_app, audio_field=audio)
+    sendable_app._convert_webm_opus_to_ogg.assert_called_once_with(b"\x1a\x45")
+    assert LXMF.FIELD_AUDIO in lxm.fields
+
+
+@pytest.mark.asyncio
+async def test_send_message_codec2_audio_skips_conversion(sendable_app):
+    audio = LxmfAudioField(audio_mode=LXMF.AM_CODEC2_1200, audio_bytes=b"\xcc")
+    lxm = await _run_send(sendable_app, audio_field=audio)
+    sendable_app._convert_webm_opus_to_ogg.assert_not_called()
+    assert lxm.fields[LXMF.FIELD_AUDIO] == [LXMF.AM_CODEC2_1200, b"\xcc"]
