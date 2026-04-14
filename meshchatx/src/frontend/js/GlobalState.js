@@ -19,6 +19,7 @@ const globalState = reactive({
         message_outbound_bubble_color: "#4f46e5",
         message_inbound_bubble_color: null,
         message_failed_bubble_color: "#ef4444",
+        message_waiting_bubble_color: "#e5e7eb",
     },
 });
 
