@@ -25,6 +25,7 @@ import time
 import traceback
 import webbrowser
 import io
+import subprocess
 import zipfile
 import fnmatch
 from datetime import UTC, datetime, timedelta
@@ -103,6 +104,12 @@ from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
+from meshchatx.src.backend.sticker_utils import (
+    build_export_document,
+    mime_for_image_type,
+    sanitize_sticker_name,
+    validate_export_document,
+)
 from meshchatx.src.backend.telemetry_utils import Telemeter
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.version import __version__ as app_version
@@ -4831,6 +4838,12 @@ class ReticulumMeshChat:
             self.database.misc.delete_all_user_icons()
             return web.json_response({"message": "All LXMF icons cleared"})
 
+        @routes.delete("/api/v1/maintenance/stickers")
+        async def maintenance_clear_stickers(request):
+            identity_hash = self.identity.hash.hex()
+            n = self.database.stickers.delete_all_for_identity(identity_hash)
+            return web.json_response({"message": "Stickers cleared", "deleted": n})
+
         # maintenance - export messages
         @routes.get("/api/v1/maintenance/messages/export")
         async def maintenance_export_messages(request):
@@ -9170,6 +9183,110 @@ class ReticulumMeshChat:
             self.database.map_drawings.update_drawing(drawing_id, name, drawing_data)
             return web.json_response({"message": "Drawing updated successfully"})
 
+        @routes.get("/api/v1/stickers")
+        async def stickers_list(request):
+            identity_hash = self.identity.hash.hex()
+            rows = self.database.stickers.list_for_identity(identity_hash)
+            return web.json_response({"stickers": [dict(r) for r in rows]})
+
+        @routes.post("/api/v1/stickers")
+        async def stickers_create(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            image_b64 = data.get("image_bytes")
+            if not isinstance(image_b64, str) or not image_b64.strip():
+                return web.json_response({"error": "missing_image_bytes"}, status=400)
+            try:
+                raw = base64.b64decode(image_b64.strip(), validate=True)
+            except (ValueError, TypeError):
+                return web.json_response({"error": "invalid_base64"}, status=400)
+            name = sanitize_sticker_name(data.get("name"))
+            image_type = data.get("image_type")
+            src = data.get("source_message_hash")
+            src = src if isinstance(src, str) else None
+            try:
+                row = self.database.stickers.insert(
+                    identity_hash,
+                    name,
+                    image_type,
+                    raw,
+                    src,
+                )
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=400)
+            if row is None:
+                return web.json_response({"error": "duplicate_sticker"}, status=409)
+            return web.json_response({"sticker": row})
+
+        @routes.delete("/api/v1/stickers/{sticker_id}")
+        async def stickers_delete(request):
+            identity_hash = self.identity.hash.hex()
+            sticker_id = int(request.match_info.get("sticker_id", "0"))
+            ok = self.database.stickers.delete(sticker_id, identity_hash)
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"message": "deleted"})
+
+        @routes.patch("/api/v1/stickers/{sticker_id}")
+        async def stickers_patch(request):
+            identity_hash = self.identity.hash.hex()
+            sticker_id = int(request.match_info.get("sticker_id", "0"))
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            if "name" not in data:
+                return web.json_response({"error": "missing_name"}, status=400)
+            name = sanitize_sticker_name(data.get("name"))
+            ok = self.database.stickers.update_name(sticker_id, identity_hash, name)
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"message": "updated"})
+
+        @routes.get("/api/v1/stickers/{sticker_id}/image")
+        async def stickers_get_image(request):
+            identity_hash = self.identity.hash.hex()
+            sticker_id = int(request.match_info.get("sticker_id", "0"))
+            row = self.database.stickers.get_row(sticker_id, identity_hash)
+            if row is None:
+                return web.json_response({"error": "not_found"}, status=404)
+            ct = mime_for_image_type(row["image_type"])
+            return web.Response(body=row["image_blob"], content_type=ct)
+
+        @routes.get("/api/v1/stickers/export")
+        async def stickers_export(request):
+            identity_hash = self.identity.hash.hex()
+            payloads = self.database.stickers.export_payloads_for_identity(
+                identity_hash
+            )
+            doc = build_export_document(
+                payloads,
+                datetime.now(UTC).isoformat(),
+            )
+            return web.json_response(doc)
+
+        @routes.post("/api/v1/stickers/import")
+        async def stickers_import(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            replace = bool(data.get("replace_duplicates", False))
+            try:
+                items = validate_export_document(data)
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=400)
+            result = self.database.stickers.import_payloads(
+                identity_hash,
+                items,
+                replace_duplicates=replace,
+            )
+            return web.json_response(result)
+
         # get latest telemetry for all peers
         @routes.get("/api/v1/telemetry/peers")
         async def get_all_latest_telemetry(request):
@@ -10262,6 +10379,11 @@ class ReticulumMeshChat:
         if "message_failed_bubble_color" in data:
             self.config.message_failed_bubble_color.set(
                 data["message_failed_bubble_color"]
+            )
+
+        if "message_waiting_bubble_color" in data:
+            self.config.message_waiting_bubble_color.set(
+                data["message_waiting_bubble_color"]
             )
 
         # update desktop settings
@@ -11429,6 +11551,7 @@ class ReticulumMeshChat:
             "message_outbound_bubble_color": ctx.config.message_outbound_bubble_color.get(),
             "message_inbound_bubble_color": ctx.config.message_inbound_bubble_color.get(),
             "message_failed_bubble_color": ctx.config.message_failed_bubble_color.get(),
+            "message_waiting_bubble_color": ctx.config.message_waiting_bubble_color.get(),
             "translator_enabled": ctx.config.translator_enabled.get(),
             "libretranslate_url": ctx.config.libretranslate_url.get(),
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
@@ -11777,6 +11900,47 @@ class ReticulumMeshChat:
             return contact is not None
         except Exception:
             return False
+
+    def _convert_webm_opus_to_ogg(self, audio_bytes: bytes) -> bytes:
+        """Convert WebM/Opus audio to OGG/Opus using ffmpeg.
+
+        Browser MediaRecorder outputs Opus in a WebM container, but LXMF
+        AM_OPUS_OGG expects an OGG container. If ffmpeg is unavailable or
+        the input is already OGG, the original bytes are returned as-is.
+        """
+        if audio_bytes[:4] == b"OggS":
+            return audio_bytes
+
+        ffmpeg_path = shutil.which("ffmpeg")
+        if ffmpeg_path is None:
+            return audio_bytes
+
+        try:
+            result = subprocess.run(  # noqa: S603
+                [
+                    ffmpeg_path,
+                    "-i",
+                    "pipe:0",
+                    "-c:a",
+                    "libopus",
+                    "-b:a",
+                    "24k",
+                    "-vbr",
+                    "on",
+                    "-f",
+                    "ogg",
+                    "pipe:1",
+                ],
+                input=audio_bytes,
+                capture_output=True,
+                timeout=30,
+            )
+            if result.returncode == 0 and len(result.stdout) > 0:
+                return result.stdout
+        except Exception as e:
+            print(f"WebM to OGG conversion failed: {e}")
+
+        return audio_bytes
 
     # check if a destination is blocked
     def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
@@ -12444,6 +12608,11 @@ class ReticulumMeshChat:
 
         lxmf_message.fields = {}
 
+        lxmf_message.fields[LXMF.FIELD_RENDERER] = LXMF.RENDERER_MARKDOWN
+
+        if self._is_contact(destination_hash, context=ctx):
+            lxmf_message.include_ticket = True
+
         # add file attachments field
         if file_attachments_field is not None:
             # create array of [[file_name, file_bytes], [file_name, file_bytes], ...]
@@ -12464,9 +12633,12 @@ class ReticulumMeshChat:
 
         # add audio field
         if audio_field is not None:
+            audio_bytes = audio_field.audio_bytes
+            if audio_field.audio_mode == LXMF.AM_OPUS_OGG:
+                audio_bytes = self._convert_webm_opus_to_ogg(audio_bytes)
             lxmf_message.fields[LXMF.FIELD_AUDIO] = [
                 audio_field.audio_mode,
-                audio_field.audio_bytes,
+                audio_bytes,
             ]
 
         # add telemetry field

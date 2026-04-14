@@ -18,6 +18,7 @@ from .misc import MiscDAO
 from .provider import DatabaseProvider
 from .ringtones import RingtoneDAO
 from .schema import DatabaseSchema
+from .stickers import UserStickersDAO
 from .telemetry import TelemetryDAO
 from .telephone import TelephoneDAO
 from .voicemails import VoicemailDAO
@@ -42,6 +43,7 @@ class Database:
         self.ringtones = RingtoneDAO(self.provider)
         self.contacts = ContactsDAO(self.provider)
         self.map_drawings = MapDrawingsDAO(self.provider)
+        self.stickers = UserStickersDAO(self.provider)
         self.debug_logs = DebugLogsDAO(self.provider)
         self.access_attempts = AccessAttemptsDAO(self.provider)
         self.crash_history = CrashHistoryDAO(self.provider)

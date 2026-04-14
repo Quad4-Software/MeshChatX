@@ -59,9 +59,17 @@ class MessageDAO:
 
         self.provider.execute(query, params)
 
-    def update_lxmf_message_state(self, message_hash, state, progress,
-                                   delivery_attempts, next_delivery_attempt_at,
-                                   rssi=None, snr=None, quality=None):
+    def update_lxmf_message_state(
+        self,
+        message_hash,
+        state,
+        progress,
+        delivery_attempts,
+        next_delivery_attempt_at,
+        rssi=None,
+        snr=None,
+        quality=None,
+    ):
         """Lightweight update for delivery-state changes only.
 
         Avoids re-serializing the full message (including base64 attachment
@@ -73,8 +81,17 @@ class MessageDAO:
             "delivery_attempts = ?, next_delivery_attempt_at = ?, "
             "rssi = ?, snr = ?, quality = ?, updated_at = ? "
             "WHERE hash = ?",
-            (state, progress, delivery_attempts, next_delivery_attempt_at,
-             rssi, snr, quality, now, message_hash),
+            (
+                state,
+                progress,
+                delivery_attempts,
+                next_delivery_attempt_at,
+                rssi,
+                snr,
+                quality,
+                now,
+                message_hash,
+            ),
         )
 
     def get_lxmf_message_by_hash(self, message_hash):

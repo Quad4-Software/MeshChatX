@@ -317,6 +317,11 @@ class ConfigManager:
             "message_failed_bubble_color",
             "#ef4444",
         )
+        self.message_waiting_bubble_color = self.StringConfig(
+            self,
+            "message_waiting_bubble_color",
+            "#e5e7eb",
+        )
 
         # announce caps: max rows stored per aspect (oldest dropped). Default 1000.
         self.announce_max_stored_lxmf_delivery = self.IntConfig(

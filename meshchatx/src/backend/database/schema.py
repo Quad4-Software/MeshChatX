@@ -13,7 +13,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 43
+    LATEST_VERSION = 44
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -415,6 +415,20 @@ class DatabaseSchema:
                     data TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "user_stickers": """
+                CREATE TABLE IF NOT EXISTS user_stickers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    name TEXT,
+                    image_type TEXT NOT NULL,
+                    image_blob BLOB NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    source_message_hash TEXT,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    UNIQUE(identity_hash, content_hash)
                 )
             """,
             "lxmf_last_sent_icon_hashes": """
@@ -1117,6 +1131,28 @@ class DatabaseSchema:
             """)
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_pins_pinned_at ON lxmf_conversation_pins(pinned_at)",
+            )
+
+        if current_version < 44:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS user_stickers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    name TEXT,
+                    image_type TEXT NOT NULL,
+                    image_blob BLOB NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    source_message_hash TEXT,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    UNIQUE(identity_hash, content_hash)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_stickers_identity ON user_stickers(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_stickers_identity_updated ON user_stickers(identity_hash, updated_at)",
             )
 
         # Update version in config

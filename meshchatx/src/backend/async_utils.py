@@ -62,11 +62,15 @@ class AsyncUtils:
         """
         if AsyncUtils.main_loop and AsyncUtils.main_loop.is_running():
             future = asyncio.run_coroutine_threadsafe(
-                coroutine, AsyncUtils.main_loop,
+                coroutine,
+                AsyncUtils.main_loop,
             )
             with AsyncUtils._futures_lock:
                 AsyncUtils._pending_futures.append(future)
-                if len(AsyncUtils._pending_futures) >= AsyncUtils._FUTURES_SWEEP_THRESHOLD:
+                if (
+                    len(AsyncUtils._pending_futures)
+                    >= AsyncUtils._FUTURES_SWEEP_THRESHOLD
+                ):
                     AsyncUtils._pending_futures = [
                         f for f in AsyncUtils._pending_futures if not f.done()
                     ]
