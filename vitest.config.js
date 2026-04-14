@@ -2,8 +2,21 @@ import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 
+const appBuildTimeIso = new Date().toISOString();
+
 export default defineConfig({
-    plugins: [vue()],
+    define: {
+        __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
+    },
+    plugins: [
+        vue({
+            template: {
+                compilerOptions: {
+                    isCustomElement: (tag) => tag === "emoji-picker",
+                },
+            },
+        }),
+    ],
     test: {
         execArgv: [
             "--no-experimental-webstorage",
