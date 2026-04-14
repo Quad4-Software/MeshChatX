@@ -31,8 +31,22 @@ const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
 const e2eBackendOrigin = `http://127.0.0.1:${e2eBackendPort}`;
 const e2eBackendWs = `ws://127.0.0.1:${e2eBackendPort}`;
 
+const appBuildTimeIso = new Date().toISOString();
+
 export default defineConfig({
-    plugins: [vue(), vuetify()],
+    define: {
+        __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
+    },
+    plugins: [
+        vue({
+            template: {
+                compilerOptions: {
+                    isCustomElement: (tag) => tag === "emoji-picker",
+                },
+            },
+        }),
+        vuetify(),
+    ],
 
     server: {
         port: 5173,
@@ -97,7 +111,7 @@ export default defineConfig({
     },
 
     optimizeDeps: {
-        include: ["dayjs", "vue"],
+        include: ["dayjs", "vue", "emoji-picker-element"],
     },
 
     resolve: {

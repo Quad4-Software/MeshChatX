@@ -43,6 +43,7 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.node,
+                __APP_BUILD_TIME__: "readonly",
                 axios: "readonly",
                 Codec2Lib: "readonly",
                 Codec2MicrophoneRecorder: "readonly",
