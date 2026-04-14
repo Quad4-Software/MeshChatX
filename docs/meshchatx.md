@@ -141,6 +141,12 @@ Reliability features include:
 - explicit teardown flows for multi-context and forwarding resources,
 - status endpoint for orchestration and container probes.
 
+## NomadNet pages and Mesh Server
+
+The built-in **NomadNet** browser and **Mesh Server** (page nodes) support Micron (`.mu`), Markdown (`.md`), plain text (`.txt`), and sanitised static HTML (`.html`). Pages are registered under `/page/<name>` on each node’s destination.
+
+Authoring rules, security constraints for HTML/CSS, and API behaviour are documented in **`nomadmesh_pages.md`** in the same docs bundle (also available under **Documentation** in the app when MeshChatX docs are populated).
+
 ## Extensibility Points
 
 The most practical extension points today are:
