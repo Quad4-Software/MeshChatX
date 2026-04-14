@@ -226,6 +226,22 @@ describe("MarkdownRenderer.js", () => {
         });
     });
 
+    describe("isSingleEmojiMessage", () => {
+        it("is true for one emoji and false for text or multiple emojis", () => {
+            expect(MarkdownRenderer.isSingleEmojiMessage("\u{1F600}")).toBe(true);
+            expect(MarkdownRenderer.isSingleEmojiMessage("  \u{1F600}  ")).toBe(true);
+            expect(MarkdownRenderer.isSingleEmojiMessage("**\u{1F600}**")).toBe(true);
+            expect(MarkdownRenderer.isSingleEmojiMessage("\u{1F600}\u{1F600}")).toBe(false);
+            expect(MarkdownRenderer.isSingleEmojiMessage("hi")).toBe(false);
+            expect(MarkdownRenderer.isSingleEmojiMessage("\u{1F600} a")).toBe(false);
+        });
+
+        it("treats ZWJ family and skin tone as a single emoji", () => {
+            expect(MarkdownRenderer.isSingleEmojiMessage("\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}")).toBe(true);
+            expect(MarkdownRenderer.isSingleEmojiMessage("\u{1F44D}\u{1F3FD}")).toBe(true);
+        });
+    });
+
     describe("strip", () => {
         it("strips markdown correctly", () => {
             const md = "# Header\n**Bold** *Italic* `code` ```\nblock\n```";

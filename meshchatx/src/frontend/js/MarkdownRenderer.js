@@ -81,6 +81,30 @@ export default class MarkdownRenderer {
     }
 
     /**
+     * True when the body is only a single emoji (after markdown strip), for large bubble rendering.
+     */
+    static isSingleEmojiMessage(raw) {
+        if (raw == null || typeof raw !== "string") {
+            return false;
+        }
+        let plain = MarkdownRenderer.strip(raw);
+        plain = plain.replace(/\s+/g, "");
+        if (!plain) {
+            return false;
+        }
+        if (typeof Intl === "undefined" || typeof Intl.Segmenter !== "function") {
+            return false;
+        }
+        const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+        const clusters = [...seg.segment(plain)].map((s) => s.segment);
+        if (clusters.length !== 1) {
+            return false;
+        }
+        const g = clusters[0];
+        return /\p{Extended_Pictographic}/u.test(g) || /\p{Emoji}/u.test(g);
+    }
+
+    /**
      * Strips markdown from text for previews.
      */
     static strip(text) {

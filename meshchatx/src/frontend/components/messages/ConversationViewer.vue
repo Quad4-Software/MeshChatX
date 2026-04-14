@@ -818,10 +818,11 @@
                                         'markdown-content--outbound-solid':
                                             chatItem.is_outbound && !isThemeOutboundBubble(chatItem),
                                         'markdown-content--inbound': !chatItem.is_outbound,
+                                        'markdown-content--single-emoji': messageMarkdownSingleEmoji(chatItem),
                                     }"
                                     :style="{
                                         'font-family': 'inherit',
-                                        'font-size': (config?.message_font_size || 14) + 'px',
+                                        'font-size': messageMarkdownFontSizePx(chatItem) + 'px',
                                     }"
                                     @click="handleMessageClick"
                                     v-html="renderMarkdown(chatItem.lxmf_message.content)"
@@ -2988,6 +2989,26 @@ export default {
         },
         renderMarkdown(text) {
             return MarkdownRenderer.render(text);
+        },
+        messageMarkdownSingleEmoji(chatItem) {
+            const c = chatItem?.lxmf_message?.content;
+            if (!c) {
+                return false;
+            }
+            if (this.getParsedItems(chatItem)?.isOnlyPaperMessage) {
+                return false;
+            }
+            if (this.shouldHideAutoImageCaption(chatItem)) {
+                return false;
+            }
+            return MarkdownRenderer.isSingleEmojiMessage(c);
+        },
+        messageMarkdownFontSizePx(chatItem) {
+            const base = Number(this.config?.message_font_size) || 14;
+            if (this.messageMarkdownSingleEmoji(chatItem)) {
+                return Math.round(base * 2.75);
+            }
+            return base;
         },
         handleMessageClick(event) {
             const nomadnetLink = event.target.closest(".nomadnet-link");
@@ -5722,6 +5743,15 @@ export default {
 }
 .markdown-content :deep(p) {
     margin: 0.5rem 0;
+}
+
+.markdown-content--single-emoji {
+    line-height: 1;
+}
+
+.markdown-content--single-emoji :deep(p) {
+    margin: 0;
+    line-height: 1;
 }
 
 .markdown-content :deep(strong) {
