@@ -22,4 +22,13 @@ if [[ -n "${PYTHON_CMD_X64:-}" ]]; then
 else
     cross-env ARCH=x64 pnpm run build-backend
 fi
+
+# @electron/universal v2.x checks SHA equality for every non-Mach-O file
+# and throws if any differ (no x64ArchFiles escape for PLAIN files).
+# cx_Freeze's library.zip contains only architecture-independent Python
+# bytecode; the per-arch native extensions (.dylib/.so) live outside the
+# zip. The two zips differ solely in .pyc header timestamps and zip
+# metadata, so copying one over the other is safe and makes the merge pass.
+bash scripts/unify-backend-plain-files.sh
+
 exec pnpm exec electron-builder --mac --universal --publish=never
