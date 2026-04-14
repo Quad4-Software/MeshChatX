@@ -137,6 +137,7 @@
                 "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
                 "com.apple.security.device.audio-input": true
             },
+            "x64ArchFiles": "Contents/Resources/backend/**",
             "extraResources": [
                 {
                     "from": "build/exe/darwin-${arch}",
