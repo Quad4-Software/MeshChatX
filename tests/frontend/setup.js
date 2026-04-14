@@ -1,6 +1,35 @@
+import "fake-indexeddb/auto";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 import { vi } from "vitest";
 import { config } from "@vue/test-utils";
 import createDOMPurify from "dompurify";
+
+const EMOJI_PICKER_DATA_PATH = join(
+    process.cwd(),
+    "node_modules",
+    "emoji-picker-element-data",
+    "en",
+    "emojibase",
+    "data.json"
+);
+
+const origFetch = globalThis.fetch;
+globalThis.fetch = async (input, init) => {
+    const reqUrl = typeof input === "string" ? input : input?.url ?? "";
+    if (
+        reqUrl.includes("emoji-picker-element-data") &&
+        reqUrl.includes("data.json") &&
+        existsSync(EMOJI_PICKER_DATA_PATH)
+    ) {
+        const data = readFileSync(EMOJI_PICKER_DATA_PATH, "utf8");
+        return new Response(data, { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (typeof origFetch === "function") {
+        return origFetch(input, init);
+    }
+    throw new Error(`fetch not available for ${reqUrl}`);
+};
 
 // Initialize DOMPurify with the jsdom window
 let DOMPurify;

@@ -86,7 +86,7 @@ describe("MessagesSidebar UI", () => {
 
     it("switches to announces tab when Announces tab is clicked", async () => {
         const wrapper = mountSidebar();
-        const tabs = wrapper.findAll(".border-b-2.py-3");
+        const tabs = wrapper.findAll("div.flex.w-full.cursor-pointer.border-b-2");
         const announcesTab = tabs[1];
         await announcesTab.trigger("click");
         await wrapper.vm.$nextTick();

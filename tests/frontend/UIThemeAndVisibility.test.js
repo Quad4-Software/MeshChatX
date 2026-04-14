@@ -485,7 +485,7 @@ describe("Visibility Checks", () => {
         await wrapper.vm.$nextTick();
 
         const colorInputs = wrapper.findAll('input[type="color"]');
-        expect(colorInputs.length).toBe(2);
+        expect(colorInputs.length).toBe(3);
 
         delete window.api;
     });

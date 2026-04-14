@@ -170,6 +170,19 @@ describe("NetworkVisualiser.vue", () => {
         expect(wrapper.text()).toContain("Links");
     });
 
+    it("toggles control panel when the header strip is clicked", async () => {
+        const wrapper = mountVisualiser();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        const before = wrapper.vm.isShowingControls;
+        const headerRow = wrapper
+            .findAll("div")
+            .find((d) => d.text().includes("Reticulum Mesh") && d.classes().includes("cursor-pointer"));
+        expect(headerRow).toBeDefined();
+        await headerRow.trigger("click");
+        expect(wrapper.vm.isShowingControls).toBe(!before);
+    });
+
     it("shows loading overlay with batch indication during update", async () => {
         const wrapper = mountVisualiser();
         wrapper.vm.isLoading = true;

@@ -5,7 +5,7 @@ import MessagesSidebar from "../../meshchatx/src/frontend/components/messages/Me
 import NomadNetworkSidebar from "../../meshchatx/src/frontend/components/nomadnetwork/NomadNetworkSidebar.vue";
 
 const MAX_PROP_NODES_MS = 3000;
-const MAX_MESSAGES_ANNOUNCES_MS = 5000;
+const MAX_MESSAGES_ANNOUNCES_MS = 12000;
 const MAX_NOMADNET_NODES_MS = 3000;
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({

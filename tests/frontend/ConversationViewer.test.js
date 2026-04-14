@@ -15,6 +15,7 @@ describe("ConversationViewer.vue", () => {
 
     beforeEach(() => {
         GlobalState.config.message_outbound_bubble_color = "#4f46e5";
+        GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
         WebSocketConnection.connect();
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
@@ -500,6 +501,29 @@ describe("ConversationViewer.vue", () => {
         });
         expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toBe("shadow-sm");
         expect(wrapper.vm.isThemeOutboundBubble(chatItem)).toBe(false);
+    });
+
+    it("applies waiting bubble color when pathfinding", () => {
+        GlobalState.config.message_waiting_bubble_color = "#ccddff";
+        const wrapper = mountConversationViewer();
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "h-wait",
+                state: "sending",
+                content: "hi",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+                _pendingPathfinding: true,
+            },
+        };
+        expect(wrapper.vm.bubbleStyles(chatItem)).toMatchObject({
+            "background-color": "#ccddff",
+            color: "#111827",
+        });
+        expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toBe("");
     });
 
     it("marks inbound messages with markdown-content--inbound for link styling", async () => {

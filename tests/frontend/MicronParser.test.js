@@ -62,13 +62,21 @@ describe("MicronParser.js", () => {
     });
 
     describe("forceMonospace wide cells", () => {
-        it("uses Mu-mnt-full for CJK and Mu-mnt for Latin in the same line", () => {
+        it("uses Mu-mnt-group for Latin-only words and Mu-mnt-full per grapheme for CJK", () => {
             const monoParser = new MicronParser(true, true);
             const html = monoParser.splitAtSpaces("Hi \u4e2d\u6587");
-            expect(html).toContain("class='Mu-mnt'>H</span>");
-            expect(html).toContain("class='Mu-mnt'>i</span>");
+            expect(html).toContain("Mu-mnt-group");
+            expect(html).not.toContain("class='Mu-mnt'>H</span>");
             expect(html).toContain("class='Mu-mnt-full'>\u4e2d</span>");
             expect(html).toContain("class='Mu-mnt-full'>\u6587</span>");
+        });
+
+        it("uses Mu-mnt-group for Cyrillic without per-character Mu-mnt spans", () => {
+            const monoParser = new MicronParser(true, true);
+            const html = monoParser.forceMonospace("\u041f\u0440\u0438\u0432\u0435\u0442");
+            expect(html).toContain("Mu-mnt-group");
+            expect(html).toContain("\u041f\u0440\u0438\u0432\u0435\u0442");
+            expect(html).not.toMatch(/class='Mu-mnt'>/);
         });
     });
 
