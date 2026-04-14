@@ -19,35 +19,46 @@ All notable changes to this project will be documented in this file.
 - **Container**: non-root **`meshchat`**; **`HEALTHCHECK`** on **`/api/v1/status`** (TLS verify relaxed for default self-signed). Podman/OCI: no Docker-style **`HEALTHCHECK`** unless **`--format docker`**; **`/config`** bind mounts may need uid alignment.
 - **Debug Logs**: **Logs** and **Access attempts** tabs (search, filters, pagination).
 - **`scripts/ci/setup-python.sh`**: Sigstore verification and cosign download by architecture.
+- **Stickers**: per-identity image library (schema, validation, DAO), **`/api/v1/stickers`** CRUD and **`GET …/image`**, settings **import/export**, **`DELETE /api/v1/maintenance/stickers`**; **`tests/backend/fixtures/http_api_routes.json`** updated when routes change.
 
 ### Frontend and UX
 
 - **Vite 8**, **`@vitejs/plugin-vue` 6**, Rolldown-oriented chunking; **`fetch`** via **`apiClient.js`** instead of axios.
 - **Announce limits**: per-aspect cap with trim; configurable fetch/search/discovered caps; settings and locales.
 - **Conversations**: serial **outbound send queue**; optional **detailed outbound status** (settings + i18n); **conversation pins**; **Lift banishment** from viewer/sidebar; **clipboard image paste** into compose; fix for **empty thread** when switching chats while a fetch is in flight; **compose drafts** persisted in **`localStorage`** (including on unmount); responsive **ConversationViewer** and dropdown actions.
+- **Emoji and stickers (composer)**: single **emoticon** control at the end of the message field opens a **tabbed** popup (**Emojis** | **Stickers**). **Emojis** use **`emoji-picker-element`** with **`emoji-picker-element-data` bundled** via Vite (`?url`) so emoji metadata loads **same-origin** and satisfies strict **CSP** (no CDN fetch). **Stickers** tab: library grid, drag/drop and file upload, **save image to stickers** from the message menu where applicable.
 - **Notifications**: bell history toggle; refined unread handling.
-- **NomadNet**: phase-based loading copy; duration/size in header; context menus on announces/favourites (rename, banish, lift, sections).
+- **NomadNet**: phase-based loading copy; duration/size in header; context menus on announces/favourites (rename, banish, lift, sections); **collapsible** Messages and Nomad list sidebars on **sm+** (chevron); when **collapsed**, **Messages** shows tab icons plus up to **five** conversation avatars (**Conversations** tab, pinned/recent order) and **no** extra strip on **Announces**; **Nomad** collapsed rail shows up to **five** favourites (section order) on **Favourites** and up to **five** nodes (latest announce order) on **Announces**.
+- **Shell chrome**: Opaque **white** / dark **zinc-950** surfaces aligned across the top bar, navigation drawer, Messages/Nomad sidebars, conversation header, message list, and composer (replacing mixed translucent, backdrop-blur, and gradient backgrounds for consistent light/dark appearance).
+- **Vue lint**: **`vue/no-reserved-keys`** — internal **`data()`** fields renamed (peer header **ResizeObserver**, Nomad Micron partial scheduling **requestAnimationFrame** handle) so ESLint passes without reserved `_` prefixes.
 - **Map**: pop-out window.
 - **Tools**: list-style **ToolsPage**; refreshed **Bots**, **Paper message**, **RN path**, **RN path trace**, **RNode flasher**; **About**, **Interface**, **Settings**, **Contacts**, **App** polish (loading overlays, display names, license links).
 - **Electron**: default **context menu** for editable fields (cut/copy/paste, **spellcheck** suggestions, add to dictionary), links, and related actions; **pick file** / **pick directory** / **open path** / notifications and related **preload** helpers; loading screen refresh; CSP and **backend HTTP-only** IPC where applicable.
 - **`/robots.txt`** in **`public/`**; **`SECURITY.md`** crawler note.
-- **Locales**: `import.meta.glob` discovery; new strings for outbound status, archives, NomadNet, RNCP errors, max hops, etc.
+- **Locales**: `import.meta.glob` discovery; new strings for outbound status, archives, NomadNet, RNCP (including browse/folder/web hints), max hops, stickers, emoji picker tabs, etc.
 
 ### Micron and archives
 
-- **MicronParser**: fault-tolerant line and document fallbacks; safer monospace and sanitization.
+- **MicronParser**: fault-tolerant line and document fallbacks; safer monospace and sanitization; **monospace fast path** for Latin and Cyrillic (and other non-CJK text) using grouped spans instead of one DOM node per character when the line does not need CJK or box-drawing cell alignment, improving scroll and **resize** performance on large **.mu** pages.
+- **NomadNet Micron viewer**: **`v-memo`** on the rendered page HTML, **`contain: layout paint`** on the scroll container, and **early exit** in partial processing when the page source has no partial placeholders; **Messages** and **Nomad** sidebars use **`matchMedia(min-width: 640px)`** instead of **`window.resize`** so the **sm** breakpoint updates only when crossing the threshold (smoother responsive / DevTools resizing).
 - **Archives**: export snapshots as **`.mu`** (multi-export avoids name collisions).
 
 ### Removed
 
 - **axios** (replaced by **`fetch`**), legacy PR vulnerability workflow, **Nix** flakes, obsolete scripts.
 
+### LXMF interoperability
+
+- **Markdown renderer field**: Outbound messages now set **`FIELD_RENDERER`** to **`RENDERER_MARKDOWN`**, so receiving clients (Sideband, etc.) know to render content as Markdown.
+- **Stamp tickets for contacts**: Outbound messages to saved contacts automatically include a **`FIELD_TICKET`** (`include_ticket`), allowing trusted peers to reply without generating a proof-of-work stamp.
+- **Opus voice messages**: Browser-recorded Opus audio (WebM container) is converted to **OGG/Opus** via ffmpeg before sending, fixing playback on Sideband and reducing file size (~24 kbps VBR).
+
 ### Testing and docs
 
-- **Frontend**: Vitest expanded for **ConversationViewer** (outbound bubble styling, clipboard images vs non-images, **paste** toolbar, file attachments, translation, conversation fetch ordering, compose drafts); **RNCP handler** listener/status tests; HTTP route contract fixture; console noise suppressed in CI.
-- **Backend**: access attempts, announce limits, downloader, Micron, SSL CLI, **memory-leak** regressions (message state updates, etc.), fuzzing where applicable.
+- **Frontend**: Vitest expanded for **ConversationViewer** (outbound bubble styling, clipboard images vs non-images, **paste** toolbar, file attachments, translation, conversation fetch ordering, compose drafts, **stickers** / emoji picker); **RNCP handler** listener/status tests; **HTTP route contract** (`tests/backend/fixtures/http_api_routes.json`); **`tests/frontend/setup.js`**: **`fake-indexeddb`**, **`fetch`** stub for bundled emoji JSON; console noise suppressed in CI; **MicronParser** tests for Cyrillic/CJK monospace paths; **NomadNetwork** sidebar/page tests aligned with collapse and Micron behavior; **i18n** parity for RNCP keys (**de** / **it** / **ru**); **SettingsPage** visibility test updated for **three** message bubble color pickers; large-list **performance** tests use looser jsdom timing ceilings to reduce CI flake.
+- **Backend**: access attempts, announce limits, downloader, Micron, SSL CLI, **memory-leak** regressions (message state updates, etc.), **sticker** utils/DAO/API tests, fuzzing where applicable; WebM-to-OGG conversion unit tests.
 - **E2E**: **Playwright** (`tests/e2e/`, **`pnpm run test:e2e`**) smoke, navigation, shell chrome.
-- **Docs**: **README** / **`docs/meshchatx.md`** (**meshchatx** entry, RNS log level, TLS, layout). Dependency bumps via **pnpm** / **Poetry** (Electron, Vue, Vuetify, Playwright, **cryptography** 46.0.7, **hypothesis**, **pytest**, **ruff**, **rns** 1.1.5, Python **3.14** in CI, etc.).
+- **Docs**: **README** / **`docs/meshchatx.md`** (**meshchatx** entry, RNS log level, TLS, layout); **README** section **Linux desktop: emoji fonts** (e.g. **`noto-fonts-emoji`** on Arch/Artix, Debian/Fedora equivalents) when glyphs show as tofu. Dependency bumps via **pnpm** / **Poetry** (Electron, Vue, Vuetify, Playwright, **emoji-picker-element**, **emoji-picker-element-data**, **fake-indexeddb**, **cryptography** 46.0.7, **hypothesis**, **pytest**, **ruff**, **rns** 1.1.5, Python **3.14** in CI, etc.).
 
 ## [4.3.1] - 2026-03-10
 
