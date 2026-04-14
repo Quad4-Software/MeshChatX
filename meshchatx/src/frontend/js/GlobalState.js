@@ -20,6 +20,10 @@ const globalState = reactive({
         message_inbound_bubble_color: null,
         message_failed_bubble_color: "#ef4444",
         message_waiting_bubble_color: "#e5e7eb",
+        nomad_render_markdown_enabled: true,
+        nomad_render_html_enabled: true,
+        nomad_render_plaintext_enabled: true,
+        nomad_default_page_path: "/page/index.mu",
     },
 });
 

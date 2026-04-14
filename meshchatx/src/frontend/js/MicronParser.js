@@ -146,7 +146,7 @@ export default class MicronParser extends BaseMicronParser {
             }
             .Mu-mnt-group {
                 display: inline;
-                font-family: ui-monospace, monospace, "Courier New", monospace;
+                font-family: inherit;
                 white-space: pre;
                 text-decoration: inherit;
                 vertical-align: baseline;

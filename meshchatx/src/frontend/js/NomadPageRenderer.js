@@ -37,7 +37,7 @@ function escapeHtmlText(text) {
 }
 
 export function escapeNomadPlainText(content) {
-    return `<div class="whitespace-pre-wrap text-gray-100">${escapeHtmlText(content)}</div>`;
+    return `<div class="whitespace-pre-wrap text-gray-900 dark:text-gray-100">${escapeHtmlText(content)}</div>`;
 }
 
 const NOMAD_HTML_ROOT_CLASS = "nomad-html-root";
@@ -49,11 +49,11 @@ function normalizeMarkdownInput(md) {
     let s = String(md);
     s = s.replace(/\r\n/g, "\n");
     // CommonMark requires a space after # for ATX headings; "#Title" is not a heading
-    s = s.replace(/^(\s{0,3})(\#{1,6})([^\s#])/gm, "$1$2 $3");
+    s = s.replace(/^(\s{0,3})(#{1,6})([^\s#])/gm, "$1$2 $3");
     return s;
 }
 
-function rewriteCssBodyHtmlSelectors(css) {
+export function rewriteCssBodyHtmlSelectors(css) {
     if (!css) {
         return "";
     }
@@ -66,7 +66,7 @@ function rewriteCssBodyHtmlSelectors(css) {
     return s;
 }
 
-function stripExternalFromCss(css) {
+export function stripExternalFromCss(css) {
     if (!css) {
         return "";
     }
@@ -85,10 +85,24 @@ function isAllowedNomadHref(href) {
         return false;
     }
     const h = href.trim();
+    const lower = h.toLowerCase();
+    if (
+        lower.startsWith("http:") ||
+        lower.startsWith("https:") ||
+        lower.startsWith("//") ||
+        lower.startsWith("javascript:") ||
+        lower.startsWith("vbscript:") ||
+        lower.startsWith("data:") ||
+        lower.startsWith("mailto:") ||
+        lower.startsWith("ftp:") ||
+        lower.startsWith("file:")
+    ) {
+        return false;
+    }
     if (h.startsWith("#")) {
         return true;
     }
-    if (h.startsWith(":")) {
+    if (h.startsWith(":") && !h.startsWith("://")) {
         return true;
     }
     if (/^[a-f0-9]{32}:/i.test(h)) {
@@ -98,6 +112,62 @@ function isAllowedNomadHref(href) {
         return true;
     }
     return false;
+}
+
+/**
+ * Rewrites in-renderer links so the browser does not follow relative or mesh paths as normal navigation.
+ * Produces `href="#"` plus `data-nomadnet-url` for use with NomadNetworkPage `onElementClick`.
+ */
+export function isolateNomadLinksInHtml(html, destinationHash) {
+    if (!html || !destinationHash || typeof destinationHash !== "string") {
+        return html;
+    }
+    const dh = destinationHash.trim();
+    if (!/^[a-f0-9]{32}$/i.test(dh)) {
+        return html;
+    }
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div class="nomad-link-root">${html}</div>`, "text/html");
+        const root = doc.body.firstElementChild;
+        if (!root) {
+            return html;
+        }
+        const anchors = root.querySelectorAll("a[href]");
+        anchors.forEach((a) => {
+            const href = a.getAttribute("href");
+            if (href == null) {
+                return;
+            }
+            const h = href.trim();
+            if (h.startsWith("#")) {
+                if (h === "" || h === "#") {
+                    a.setAttribute("href", "#");
+                }
+                return;
+            }
+            let full = null;
+            if (/^[a-f0-9]{32}:/i.test(h)) {
+                full = h;
+            } else if (h.startsWith("/page/") || h.startsWith("/file/")) {
+                full = `${dh}:${h}`;
+            } else if (h.startsWith(":") && !h.startsWith("://")) {
+                full = `${dh}:${h.slice(1)}`;
+            }
+            if (full) {
+                a.setAttribute("href", "#");
+                a.setAttribute("data-nomadnet-url", full);
+                a.classList.add("nomadnet-link", "text-blue-600", "dark:text-blue-400", "hover:underline");
+            } else {
+                a.setAttribute("href", "#");
+            }
+            a.removeAttribute("target");
+            a.removeAttribute("rel");
+        });
+        return root.innerHTML;
+    } catch {
+        return html;
+    }
 }
 
 function isAllowedImgSrc(src) {
@@ -185,30 +255,63 @@ export function sanitizeNomadHtmlDocument(html) {
     });
 }
 
-export function renderNomadMarkdown(markdown) {
+export function renderNomadMarkdown(markdown, options = {}) {
+    const { destinationHash } = options;
     const raw = marked.parse(normalizeMarkdownInput(markdown ?? ""));
-    const inner = sanitizeNomadHtmlFragment(raw);
+    let inner = sanitizeNomadHtmlFragment(raw);
+    if (destinationHash) {
+        inner = isolateNomadLinksInHtml(inner, destinationHash);
+    }
     return `<div class="nomad-markdown">${inner}</div>`;
 }
 
-export function renderNomadHtmlPage(html) {
-    return sanitizeNomadHtmlDocument(html);
+export function renderNomadHtmlPage(html, options = {}) {
+    const { destinationHash } = options;
+    let out = sanitizeNomadHtmlDocument(html);
+    if (destinationHash) {
+        out = isolateNomadLinksInHtml(out, destinationHash);
+    }
+    return out;
 }
 
-export function renderNomadPageByPath(pagePathWithoutData, content, pagePartials, MicronParserClass) {
+export function renderNomadPageByPath(
+    pagePathWithoutData,
+    content,
+    pagePartials,
+    MicronParserClass,
+    renderOptions = {}
+) {
+    const renderMarkdown = renderOptions.renderMarkdown !== false;
+    const renderHtml = renderOptions.renderHtml !== false;
+    const renderPlaintext = renderOptions.renderPlaintext !== false;
+    const nomadDestinationHash = renderOptions.nomadDestinationHash || null;
+    const linkOpts = { destinationHash: nomadDestinationHash };
     const p = (pagePathWithoutData || "").toLowerCase();
     if (p.endsWith(".mu")) {
         const muParser = new MicronParserClass();
-        return muParser.convertMicronToHtml(content, pagePartials);
+        let out = muParser.convertMicronToHtml(content, pagePartials);
+        if (nomadDestinationHash) {
+            out = isolateNomadLinksInHtml(out, nomadDestinationHash);
+        }
+        return out;
     }
     if (p.endsWith(".md")) {
-        return renderNomadMarkdown(content);
+        if (renderMarkdown) {
+            return renderNomadMarkdown(content, linkOpts);
+        }
+        return escapeNomadPlainText(content);
     }
     if (p.endsWith(".html")) {
-        return renderNomadHtmlPage(content);
+        if (renderHtml) {
+            return renderNomadHtmlPage(content, linkOpts);
+        }
+        return escapeNomadPlainText(content);
     }
     if (p.endsWith(".txt")) {
-        return escapeNomadPlainText(content);
+        if (renderPlaintext) {
+            return escapeNomadPlainText(content);
+        }
+        return `<pre class="whitespace-pre-wrap text-gray-900 dark:text-gray-100">${escapeHtmlText(content)}</pre>`;
     }
     return escapeHtmlText(content);
 }

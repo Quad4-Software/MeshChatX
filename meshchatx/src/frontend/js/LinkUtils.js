@@ -1,3 +1,10 @@
+import GlobalState from "./GlobalState.js";
+
+function defaultNomadPagePath() {
+    const p = GlobalState.config?.nomad_default_page_path;
+    return typeof p === "string" && p.startsWith("/page/") ? p : "/page/index.mu";
+}
+
 export default class LinkUtils {
     /**
      * Detects and wraps Reticulum (NomadNet and LXMF) links in HTML.
@@ -22,7 +29,7 @@ export default class LinkUtils {
                 (prefix && (prefix.startsWith("nomadnet://") || prefix.startsWith("nomadnet@"))) || !!path;
 
             if (isNomadNet) {
-                const fullPath = path || "/page/index.mu";
+                const fullPath = path || defaultNomadPagePath();
                 const url = `${hash}:${fullPath}`;
                 return `<a href="#" class="nomadnet-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-nomadnet-url="${url}">${match}</a>`;
             } else {
