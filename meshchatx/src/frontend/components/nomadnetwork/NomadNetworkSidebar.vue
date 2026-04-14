@@ -278,16 +278,16 @@
                 <!-- Favourite Context Menu (Teleport to body to avoid overflow clipping) -->
                 <Teleport to="body">
                     <ContextMenuPanel
-                        :show="favouriteContextMenu.show"
-                        :x="favouriteContextMenu.x"
-                        :y="favouriteContextMenu.y"
-                        panel-class="z-[200] min-w-56"
                         v-click-outside="{
                             handler: () => {
                                 if (!favouriteContextMenu.justOpened) closeContextMenus();
                             },
                             capture: true,
                         }"
+                        :show="favouriteContextMenu.show"
+                        :x="favouriteContextMenu.x"
+                        :y="favouriteContextMenu.y"
+                        panel-class="z-[200] min-w-56"
                     >
                         <ContextMenuItem @click="renameFavouriteFromContext">
                             <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
@@ -309,7 +309,10 @@
                             <MaterialDesignIcon icon-name="check-circle" class="size-4 text-emerald-500" />
                             {{ $t("nomadnet.lift_banishment") }}
                         </ContextMenuItem>
-                        <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="removeFavouriteFromContext">
+                        <ContextMenuItem
+                            item-class="text-red-600 dark:text-red-400"
+                            @click="removeFavouriteFromContext"
+                        >
                             <MaterialDesignIcon icon-name="trash-can" class="size-4 text-red-400" />
                             {{ $t("nomadnet.remove") }}
                         </ContextMenuItem>
@@ -331,11 +334,11 @@
                 <!-- Section Context Menu (Teleport to body) -->
                 <Teleport to="body">
                     <ContextMenuPanel
+                        v-click-outside="{ handler: closeContextMenus, capture: true }"
                         :show="sectionContextMenu.show"
                         :x="sectionContextMenu.x"
                         :y="sectionContextMenu.y"
                         panel-class="z-[200]"
-                        v-click-outside="{ handler: closeContextMenus, capture: true }"
                     >
                         <ContextMenuItem @click="renameSectionFromContext">
                             <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
@@ -462,16 +465,16 @@
                 <!-- Announce Context Menu (right-click, Teleport to body) -->
                 <Teleport to="body">
                     <ContextMenuPanel
-                        :show="announceContextMenu.show"
-                        :x="announceContextMenu.x"
-                        :y="announceContextMenu.y"
-                        panel-class="z-[200]"
                         v-click-outside="{
                             handler: () => {
                                 if (!announceContextMenu.justOpened) closeContextMenus();
                             },
                             capture: true,
                         }"
+                        :show="announceContextMenu.show"
+                        :x="announceContextMenu.x"
+                        :y="announceContextMenu.y"
+                        panel-class="z-[200]"
                     >
                         <ContextMenuItem
                             v-if="!isFavourite(announceContextMenu.node?.destination_hash)"

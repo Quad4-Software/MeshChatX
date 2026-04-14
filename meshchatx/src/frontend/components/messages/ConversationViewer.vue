@@ -1323,7 +1323,8 @@
                                 :key="r.reactionHash || ridx"
                                 class="inline-flex min-h-[1.35rem] min-w-[1.35rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1.5 py-0.5 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
                                 :title="reactionReactorLabel(r.sender)"
-                                >{{ r.emoji }}</span>
+                                >{{ r.emoji }}</span
+                            >
                         </div>
 
                         <!-- expanded message details -->
@@ -1836,16 +1837,16 @@
         <!-- Message Context Menu (Teleport to body to avoid overflow clipping) -->
         <Teleport to="body">
             <ContextMenuPanel
-                :show="messageContextMenu.show"
-                :x="messageContextMenu.x"
-                :y="messageContextMenu.y"
-                panel-class="z-[200]"
                 v-click-outside="{
                     handler: () => {
                         if (!messageContextMenu.justOpened) messageContextMenu.show = false;
                     },
                     capture: true,
                 }"
+                :show="messageContextMenu.show"
+                :x="messageContextMenu.x"
+                :y="messageContextMenu.y"
+                panel-class="z-[200]"
             >
                 <ContextMenuItem @click="replyToMessage(messageContextMenu.chatItem)">
                     <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
@@ -3876,7 +3877,7 @@ export default {
                 );
             }
             const conv = this.conversations.find(
-                (c) => c.destination_hash && String(c.destination_hash).toLowerCase() === hex,
+                (c) => c.destination_hash && String(c.destination_hash).toLowerCase() === hex
             );
             if (conv) {
                 return conv.custom_display_name ?? conv.display_name ?? this.formatDestinationHash(hex);

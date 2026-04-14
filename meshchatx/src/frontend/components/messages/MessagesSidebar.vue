@@ -519,11 +519,11 @@
 
                         <!-- Context Menu -->
                         <ContextMenuPanel
+                            v-click-outside="{ handler: () => (contextMenu.show = false), capture: true }"
                             :show="contextMenu.show"
                             :x="contextMenu.x"
                             :y="contextMenu.y"
                             panel-class="z-[100]"
-                            v-click-outside="{ handler: () => (contextMenu.show = false), capture: true }"
                         >
                             <ContextMenuItem @click="bulkMarkAsRead">
                                 <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />

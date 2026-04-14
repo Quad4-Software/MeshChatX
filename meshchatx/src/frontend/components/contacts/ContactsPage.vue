@@ -140,12 +140,7 @@
         </div>
 
         <!-- Contact context menu -->
-        <ContextMenuPanel
-            :show="contextMenu.visible"
-            :x="contextMenu.x"
-            :y="contextMenu.y"
-            panel-class="z-[210]"
-        >
+        <ContextMenuPanel :show="contextMenu.visible" :x="contextMenu.x" :y="contextMenu.y" panel-class="z-[210]">
             <ContextMenuItem @click="openConversation(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="message-text-outline" class="size-4" />
                 {{ $t("contacts.send_message") }}
