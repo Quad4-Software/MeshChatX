@@ -46,7 +46,7 @@ describe("ArchivesPage.vue", () => {
                 page_path: "/readme.txt",
                 hash: "abcdef",
             })
-        ).toBe("readme.mu");
+        ).toBe("readme.txt");
     });
 
     it("muExportFilenameDisambiguated appends hash prefix", () => {
@@ -57,6 +57,12 @@ describe("ArchivesPage.vue", () => {
                 hash: "1234567890ab",
             })
         ).toBe("a_12345678.mu");
+        expect(
+            wrapper.vm.muExportFilenameDisambiguated({
+                page_path: "/notes.md",
+                hash: "1234567890ab",
+            })
+        ).toBe("notes_12345678.md");
     });
 
     it("downloadTextAsFile creates a blob URL and revokes it", () => {

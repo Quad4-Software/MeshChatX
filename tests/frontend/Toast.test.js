@@ -54,6 +54,18 @@ describe("Toast.vue", () => {
         expect(wrapper.text()).not.toContain("Test Message");
     });
 
+    it("removes a toast when GlobalEmitter emits toast-dismiss with matching key", async () => {
+        GlobalEmitter.emit("toast", { message: "Loading", type: "loading", duration: 0, key: "job-1" });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("Loading");
+
+        GlobalEmitter.emit("toast-dismiss", { key: "job-1" });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).not.toContain("Loading");
+    });
+
     it("removes a toast when clicking the close button", async () => {
         GlobalEmitter.emit("toast", { message: "Test Message", duration: 0 });
         await wrapper.vm.$nextTick();

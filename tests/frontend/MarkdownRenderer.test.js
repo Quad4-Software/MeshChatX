@@ -2,6 +2,15 @@ import { describe, it, expect } from "vitest";
 import MarkdownRenderer from "@/js/MarkdownRenderer";
 
 describe("MarkdownRenderer.js", () => {
+    describe("render (ConversationViewer / message bodies)", () => {
+        it("escapes leading greater-than so blockquote regex does not apply (documented behaviour)", () => {
+            const result = MarkdownRenderer.render("> quoted line\n\nNormal paragraph.");
+            expect(result).toContain("&gt; quoted line");
+            expect(result).toContain("Normal paragraph");
+            expect(result).not.toContain("blockquote");
+        });
+    });
+
     describe("render", () => {
         it("renders basic text correctly", () => {
             expect(MarkdownRenderer.render("Hello")).toContain("Hello");
@@ -185,6 +194,20 @@ describe("MarkdownRenderer.js", () => {
                 const result = MarkdownRenderer.render(text);
                 expect(typeof result).toBe("string");
             });
+        });
+
+        it("fuzzing: full unicode code points do not crash render or strip", () => {
+            for (let i = 0; i < 200; i++) {
+                let s = "";
+                const len = Math.floor(Math.random() * 900);
+                for (let j = 0; j < len; j++) {
+                    s += String.fromCharCode(Math.floor(Math.random() * 65536));
+                }
+                expect(() => MarkdownRenderer.render(s)).not.toThrow();
+                expect(() => MarkdownRenderer.strip(s)).not.toThrow();
+                const r = MarkdownRenderer.render(s);
+                expect(r.toLowerCase()).not.toContain("<script");
+            }
         });
 
         it("handles malformed or unclosed markdown tags gracefully", () => {

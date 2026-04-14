@@ -74,6 +74,27 @@ describe("NomadPageRenderer", () => {
         expect(renderNomadPageByPath("/page/a.html", '<p class="x">z</p>', {}, MicronParser)).toContain("z");
     });
 
+    it("renderNomadPageByPath respects disabled markdown and html", () => {
+        const mdOff = renderNomadPageByPath("/page/a.md", "# Title", {}, MicronParser, {
+            renderMarkdown: false,
+        });
+        expect(mdOff).not.toContain("<h1");
+        expect(mdOff).toContain("Title");
+
+        const htmlOff = renderNomadPageByPath("/page/a.html", "<p>x</p>", {}, MicronParser, {
+            renderHtml: false,
+        });
+        expect(htmlOff.toLowerCase()).not.toContain("<p>");
+        expect(htmlOff).toContain("&lt;");
+    });
+
+    it("renderNomadPageByPath respects disabled plaintext for .txt", () => {
+        const on = renderNomadPageByPath("/page/a.txt", "line", {}, MicronParser, { renderPlaintext: true });
+        const off = renderNomadPageByPath("/page/a.txt", "line", {}, MicronParser, { renderPlaintext: false });
+        expect(on).toContain("whitespace-pre-wrap");
+        expect(off).toContain("<pre");
+    });
+
     it("sanitizeNomadHtmlFragment handles arbitrary strings without throwing", () => {
         expect(() => sanitizeNomadHtmlFragment("<div>ok</div>")).not.toThrow();
     });

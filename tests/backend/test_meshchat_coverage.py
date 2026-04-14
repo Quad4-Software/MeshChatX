@@ -167,6 +167,10 @@ def test_get_config_dict_basic(mock_app):
         "location_manual_lon",
         "location_manual_alt",
         "telemetry_enabled",
+        "nomad_render_markdown_enabled",
+        "nomad_render_html_enabled",
+        "nomad_render_plaintext_enabled",
+        "nomad_default_page_path",
         "message_outbound_bubble_color",
         "message_inbound_bubble_color",
         "message_failed_bubble_color",
@@ -189,6 +193,54 @@ def test_get_config_dict_basic(mock_app):
     assert config_dict["theme"] == "light"
     assert config_dict["is_transport_enabled"] is True
     assert config_dict["identity_public_key"] == "a1" * 32
+    assert "nomad_default_page_path" in config_dict
+    assert "nomad_render_markdown_enabled" in config_dict
+
+
+@pytest.mark.asyncio
+async def test_update_config_nomad_renderer(mock_app):
+    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
+    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
+    for name in (
+        "nomad_render_markdown_enabled",
+        "nomad_render_html_enabled",
+        "nomad_render_plaintext_enabled",
+        "nomad_default_page_path",
+    ):
+        setattr(mock_app.config, name, MagicMock())
+
+    await mock_app.update_config(
+        {
+            "nomad_render_markdown_enabled": False,
+            "nomad_render_html_enabled": True,
+            "nomad_render_plaintext_enabled": False,
+            "nomad_default_page_path": "/page/index.html",
+        }
+    )
+    mock_app.config.nomad_render_markdown_enabled.set.assert_called_with(False)
+    mock_app.config.nomad_render_html_enabled.set.assert_called_with(True)
+    mock_app.config.nomad_render_plaintext_enabled.set.assert_called_with(False)
+    mock_app.config.nomad_default_page_path.set.assert_called_with("/page/index.html")
+
+
+@pytest.mark.asyncio
+async def test_update_config_nomad_default_page_path_empty_resets(mock_app):
+    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
+    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
+    mock_app.config.nomad_default_page_path = MagicMock()
+
+    await mock_app.update_config({"nomad_default_page_path": ""})
+    mock_app.config.nomad_default_page_path.set.assert_called_with("/page/index.mu")
+
+
+@pytest.mark.asyncio
+async def test_update_config_nomad_default_page_path_invalid_skipped(mock_app):
+    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
+    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
+    mock_app.config.nomad_default_page_path = MagicMock()
+
+    await mock_app.update_config({"nomad_default_page_path": "/page/../../etc/passwd"})
+    mock_app.config.nomad_default_page_path.set.assert_not_called()
 
 
 @pytest.mark.asyncio

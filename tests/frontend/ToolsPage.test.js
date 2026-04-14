@@ -17,7 +17,6 @@ describe("ToolsPage.vue", () => {
             { path: "/bots", name: "bots", component: { template: "div" } },
             { path: "/forwarder", name: "forwarder", component: { template: "div" } },
             { path: "/documentation", name: "documentation", component: { template: "div" } },
-            { path: "/licenses", name: "licenses", component: { template: "div" } },
             { path: "/micron-editor", name: "micron-editor", component: { template: "div" } },
             { path: "/paper-message", name: "paper-message", component: { template: "div" } },
             { path: "/rnode-flasher", name: "rnode-flasher", component: { template: "div" } },
@@ -52,7 +51,7 @@ describe("ToolsPage.vue", () => {
     it("renders all tool rows", () => {
         const wrapper = mountToolsPage();
         const toolRows = wrapper.findAll(".tool-row");
-        expect(toolRows.length).toBe(18);
+        expect(toolRows.length).toBe(17);
     });
 
     it("filters tools based on search query", async () => {
@@ -77,6 +76,6 @@ describe("ToolsPage.vue", () => {
         await clearButton.trigger("click");
 
         expect(wrapper.vm.searchQuery).toBe("");
-        expect(wrapper.vm.filteredTools.length).toBe(18);
+        expect(wrapper.vm.filteredTools.length).toBe(17);
     });
 });

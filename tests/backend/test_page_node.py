@@ -298,6 +298,16 @@ class TestPageNodeResponders:
         result = responder("/page/index.mu", None, "req1", "link1", None, 0)
         assert result == b"page content"
 
+    def test_page_responder_records_remote_identity(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        node.add_page("index.mu", "x")
+        rid = MagicMock()
+        rid.hash = bytes.fromhex("ef" * 16)
+        responder = node._make_page_responder("index.mu")
+        responder("/page/index.mu", None, "req1", "link1", rid, 0)
+        assert node.get_status()["unique_connections"] == 1
+
     def test_page_responder_missing_returns_none(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
         node.setup()
@@ -361,6 +371,8 @@ class TestPageNodeStatus:
         assert status["destination_hash"] is not None
         assert "index.mu" in status["pages"]
         assert isinstance(status["stats"], dict)
+        assert status["unique_connections"] == 0
+        assert status["uptime_seconds"] >= 0
 
     def test_get_destination_hash_when_not_running(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
@@ -372,10 +384,21 @@ class TestPageNodeLinkCallbacks:
         node = _make_node(node_dir, mock_rns)
         node.setup()
         mock_link = MagicMock()
+        mock_link.get_remote_identity.return_value = None
         node._link_established(mock_link)
         assert mock_link in node.active_links
         assert node._stats["links_established"] == 1
         mock_link.set_link_closed_callback.assert_called_once()
+
+    def test_link_established_records_remote_identity(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        mock_link = MagicMock()
+        rid = MagicMock()
+        rid.hash = bytes.fromhex("cd" * 16)
+        mock_link.get_remote_identity.return_value = rid
+        node._link_established(mock_link)
+        assert node.get_status()["unique_connections"] == 1
 
     def test_link_closed_callback(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
