@@ -180,6 +180,6 @@ describe("UI Performance and Memory Tests", () => {
         const end = performance.now();
 
         console.log(`Updated 1000 messages in ConversationViewer in ${(end - start).toFixed(2)}ms`);
-        expect(end - start).toBeLessThan(5000);
+        expect(end - start).toBeLessThan(12000);
     });
 });

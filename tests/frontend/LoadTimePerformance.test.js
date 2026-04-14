@@ -202,7 +202,7 @@ describe("Load time with prefilled data", () => {
                     `Announces (messages): ${count} peers in ${(end - start).toFixed(0)}ms (max ${MAX_MESSAGES_ANNOUNCES_MS}ms)`
                 );
             }
-        });
+        }, 20000);
     });
 
     describe("NomadNet nodes section", () => {

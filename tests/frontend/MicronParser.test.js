@@ -140,6 +140,13 @@ describe("MicronParser.js", () => {
                 expect(html).toContain("rgb(170, 187, 204)");
                 expect(html).toContain("Red Text");
             });
+
+            it("handles NomadNet 0.9.9 truecolor `FT (6 hex) for foreground", () => {
+                const markup = "`FTff0000Red text`";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toMatch(/#ff0000|rgb\(255,\s*0,\s*0\)/);
+                expect(html).toContain("Red text");
+            });
         });
 
         describe("background color", () => {
@@ -148,6 +155,13 @@ describe("MicronParser.js", () => {
                 const html = parser.convertMicronToHtml(markup);
                 expect(html).toContain("rgb(255, 255, 255)");
                 expect(html).toContain("Yellow BG");
+            });
+
+            it("handles NomadNet 0.9.9 truecolor `BT (6 hex) for background", () => {
+                const markup = "`BT00ff00On green`";
+                const html = parser.convertMicronToHtml(markup);
+                expect(html).toMatch(/#00ff00|rgb\(0,\s*255,\s*0\)/);
+                expect(html).toContain("On green");
             });
         });
 

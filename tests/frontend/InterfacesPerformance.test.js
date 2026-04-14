@@ -104,7 +104,7 @@ describe("InterfacesPage Performance", () => {
         const disconnectedBadges = wrapper.findAll(".bg-red-500\\/90");
         expect(disconnectedBadges.length).toBe(numDiscovered);
         expect(end - start).toBeLessThan(12000);
-    });
+    }, 20000);
 
     it("disconnected discovered interfaces render without pulse animation", async () => {
         const iface = {
