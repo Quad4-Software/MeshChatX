@@ -146,6 +146,18 @@ To run the native `meshchatx` binary (alias: `meshchat`) with extra filesystem i
 
 The same page appears in the in-app **Documentation** list (MeshChatX docs) when served from the bundled or synced `meshchatx-docs` files.
 
+## Linux desktop: emoji fonts
+
+The emoji picker renders standard Unicode emoji using your system fonts (Electron/Chromium). If emoji show as empty squares (“tofu”), install a color emoji package and restart the app.
+
+| Family (examples) | Package |
+| ----------------- | ------- |
+| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`) |
+| Debian, Ubuntu | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`) |
+| Fedora | `google-noto-emoji-color-fonts` |
+
+After installing, run `fc-cache -fv` if glyphs still fail until the next login. Optional: `noto-fonts` for broader symbol coverage on minimal installs.
+
 ## Build Desktop Packages from Source
 
 These scripts are defined in `package.json` and `Taskfile.yml`.
