@@ -10,7 +10,7 @@
 #
 # Repository secrets:
 #   GITEA_API_URL, GITEA_TOKEN     — same as .gitea/workflows/build.yml
-#   GITHUB_SYNC_PAT                — GitHub PAT: repo + actions:read (list/download workflow artifacts)
+#   SYNC_PAT                       — GitHub PAT: repo + actions:read (list/download workflow artifacts)
 #
 # Run after the Gitea "Build and Release" job has created the draft (or any release with that tag).
 name: Sync GitHub Win/mac release assets
@@ -56,13 +56,13 @@ jobs:
               env:
                   TAG: ${{ inputs.tag }}
                   GITHUB_REPOSITORY: ${{ env.GITHUB_SYNC_REPOSITORY }}
-                  GITHUB_PAT: ${{ secrets.GITHUB_SYNC_PAT }}
+                  GITHUB_PAT: ${{ secrets.SYNC_PAT }}
                   GITEA_REPOSITORY: ${{ env.GITEA_SYNC_REPOSITORY }}
                   GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
               run: |
                   set -eu
                   if [ -z "${GITHUB_PAT:-}" ]; then
-                    echo "Configure secret GITHUB_SYNC_PAT." >&2
+                    echo "Configure secret SYNC_PAT." >&2
                     exit 1
                   fi
                   if [ -z "${GITEA_API_URL:-}" ]; then
