@@ -385,6 +385,27 @@ class ConfigManager:
         self.csp_extra_script_src = self.StringConfig(self, "csp_extra_script_src", "")
         self.csp_extra_style_src = self.StringConfig(self, "csp_extra_style_src", "")
 
+        self.nomad_render_markdown_enabled = self.BoolConfig(
+            self,
+            "nomad_render_markdown_enabled",
+            True,
+        )
+        self.nomad_render_html_enabled = self.BoolConfig(
+            self,
+            "nomad_render_html_enabled",
+            True,
+        )
+        self.nomad_render_plaintext_enabled = self.BoolConfig(
+            self,
+            "nomad_render_plaintext_enabled",
+            True,
+        )
+        self.nomad_default_page_path = self.StringConfig(
+            self,
+            "nomad_default_page_path",
+            "/page/index.mu",
+        )
+
         self._migrate_legacy_announce_limit_keys()
 
     def get(self, key: str, default_value=None) -> str | None:

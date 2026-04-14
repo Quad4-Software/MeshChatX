@@ -216,11 +216,13 @@
                     <MaterialDesignIcon icon-name="archive-clock-outline" class="size-16 opacity-20" />
                     <div class="text-sm font-bold uppercase tracking-widest opacity-50">Select a snapshot to view</div>
                 </div>
-                <pre
+                <div
                     v-else
-                    class="h-full break-words whitespace-pre-wrap text-white selection:bg-blue-500/30"
+                    class="h-full selection:bg-blue-500/30"
+                    :class="archiveViewerClasses"
+                    @click.capture="onArchiveContentClick"
                     v-html="renderedContent"
-                ></pre>
+                ></div>
             </div>
         </div>
     </div>
@@ -230,6 +232,8 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Utils from "../../js/Utils";
 import MicronParser from "../../js/MicronParser.js";
+import GlobalState from "../../js/GlobalState.js";
+import { renderNomadPageByPath } from "../../js/NomadPageRenderer.js";
 import ArchiveSidebar from "./ArchiveSidebar.vue";
 
 export default {
@@ -242,7 +246,6 @@ export default {
         return {
             archives: [],
             isLoading: false,
-            muParser: new MicronParser(),
             selectedNodeHash: null,
             viewingArchive: null,
             isSidebar1Hidden: false,
@@ -257,6 +260,16 @@ export default {
         };
     },
     computed: {
+        nomadRenderOptions() {
+            const c = GlobalState.config || {};
+            const hash = this.viewingArchive?.destination_hash || null;
+            return {
+                renderMarkdown: c.nomad_render_markdown_enabled !== false,
+                renderHtml: c.nomad_render_html_enabled !== false,
+                renderPlaintext: c.nomad_render_plaintext_enabled !== false,
+                nomadDestinationHash: hash,
+            };
+        },
         selectedNode() {
             if (!this.selectedNodeHash) return null;
             return this.groupedArchives.find((g) => g.destination_hash === this.selectedNodeHash);
@@ -264,6 +277,31 @@ export default {
         isAllSelected() {
             if (!this.selectedNode || this.selectedNode.archives.length === 0) return false;
             return this.selectedNode.archives.every((a) => this.selectedArchives.includes(a.id));
+        },
+        archiveViewerClasses() {
+            const a = this.viewingArchive;
+            if (!a?.page_path) {
+                return ["break-words", "whitespace-pre-wrap", "text-gray-100"];
+            }
+            const pl = (a.page_path || "").split("`")[0].toLowerCase();
+            const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
+            const isHtml = pl.endsWith(".html");
+            const isMd = pl.endsWith(".md");
+            const classes = ["break-words"];
+            if (isRich) {
+                classes.push("nomad-page-rich");
+            } else {
+                classes.push("whitespace-pre-wrap");
+            }
+            if (isHtml) {
+                classes.push("nomad-page-html-host");
+            } else {
+                classes.push("text-gray-100");
+            }
+            if (isMd) {
+                classes.push("nomad-markdown-host");
+            }
+            return classes;
         },
         groupedArchives() {
             // Optimization: Use a simple object for grouping
@@ -428,6 +466,42 @@ export default {
         formatDate(dateStr) {
             return Utils.formatTimeAgo(dateStr);
         },
+        onArchiveContentClick(event) {
+            const nomadLink = event.target.closest("a.nomadnet-link[data-nomadnet-url]");
+            if (nomadLink) {
+                event.preventDefault();
+                event.stopPropagation();
+                const url = nomadLink.getAttribute("data-nomadnet-url");
+                if (!url) {
+                    return;
+                }
+                const [hash, ...pathParts] = url.split(":");
+                const path = pathParts.join(":");
+                this.$router.push({
+                    name: "nomadnetwork",
+                    params: { destinationHash: hash },
+                    query: { path: path },
+                });
+                return;
+            }
+            const fragAnchor = event.target.closest("a[href]");
+            if (
+                fragAnchor &&
+                fragAnchor.getAttribute("href") &&
+                fragAnchor.getAttribute("href") !== "#" &&
+                fragAnchor.getAttribute("href").startsWith("#") &&
+                !fragAnchor.getAttribute("data-nomadnet-url")
+            ) {
+                event.preventDefault();
+                event.stopPropagation();
+                const raw = fragAnchor.getAttribute("href").slice(1);
+                const id = decodeURIComponent(raw);
+                const el = document.getElementById(id);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+            }
+        },
         downloadTextAsFile(content, filename) {
             const blob = new Blob([content ?? ""], { type: "text/plain;charset=utf-8" });
             const url = URL.createObjectURL(blob);
@@ -447,16 +521,21 @@ export default {
         },
         muExportFilename(archive) {
             let base = this.muExportBasename(archive);
-            if (base.toLowerCase().endsWith(".mu")) {
+            const lower = base.toLowerCase();
+            const allowed = [".mu", ".md", ".txt", ".html"];
+            if (allowed.some((ext) => lower.endsWith(ext))) {
                 return base;
             }
             const without = base.includes(".") ? base.replace(/\.[^.]+$/, "") : base;
             return `${without || "page"}.mu`;
         },
         muExportFilenameDisambiguated(archive) {
-            const stem = this.muExportFilename(archive).replace(/\.mu$/i, "");
+            const name = this.muExportFilename(archive);
+            const m = name.match(/^(.+)(\.[^.]+)$/);
+            const stem = m ? m[1] : name.replace(/\.[^.]+$/, "");
+            const ext = m ? m[2] : ".mu";
             const short = (archive.hash || "snap").substring(0, 8);
-            return `${stem}_${short}.mu`;
+            return `${stem}_${short}${ext}`;
         },
         exportArchiveAsMu(archive) {
             if (!archive) {
@@ -473,27 +552,26 @@ export default {
             });
         },
         renderFullContent(archive) {
-            if (!archive.content) return "";
-
-            // convert micron to html if it looks like micron or ends with .mu
-            if (archive.page_path?.endsWith(".mu") || archive.content.includes("`")) {
-                try {
-                    // Optimization: check if content is extremely large and maybe simplify rendering
-                    // For now, just catch potential parser errors
-                    return this.muParser.convertMicronToHtml(archive.content);
-                } catch (e) {
-                    console.error("Micron parsing failed", e);
-                    return archive.content;
-                }
+            if (!archive.content) {
+                return "";
             }
-
-            // otherwise, we will just serve the raw content, making sure to prevent injecting html
-            return archive.content
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+            const pathPart = (archive.page_path || "").split("`")[0];
+            const pl = pathPart.toLowerCase();
+            const hasKnownExt = /\.(mu|md|txt|html)$/.test(pl);
+            try {
+                if (!hasKnownExt && archive.content.includes("`")) {
+                    return new MicronParser().convertMicronToHtml(archive.content, {});
+                }
+                return renderNomadPageByPath(pathPart, archive.content, {}, MicronParser, this.nomadRenderOptions);
+            } catch (e) {
+                console.error("Archive render failed", e);
+                return String(archive.content)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
         },
     },
 };
@@ -545,5 +623,87 @@ pre {
     margin: 1.5rem 0;
     border: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+</style>
+
+<style>
+/* Match NomadNetworkPage so archives render Markdown/HTML before that route is loaded */
+.nomad-markdown-host {
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.nomad-markdown-host .nomad-markdown {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.nomad-markdown-host .nomad-markdown table {
+    white-space: normal;
+}
+
+.nomad-markdown-host .nomad-markdown h1 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+    font-weight: 700;
+    margin: 0.75rem 0 0.5rem;
+}
+
+.nomad-markdown-host .nomad-markdown h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    margin: 0.65rem 0 0.45rem;
+}
+
+.nomad-markdown-host .nomad-markdown h3 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    margin: 0.55rem 0 0.4rem;
+}
+
+.nomad-markdown-host .nomad-markdown h4 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0.35rem;
+}
+
+.nomad-markdown-host .nomad-markdown h5,
+.nomad-markdown-host .nomad-markdown h6 {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    margin: 0.45rem 0 0.3rem;
+}
+
+.nomad-markdown-host .nomad-markdown p {
+    margin: 0.4rem 0;
+}
+
+.nomad-markdown-host .nomad-markdown ul,
+.nomad-markdown-host .nomad-markdown ol {
+    margin: 0.4rem 0;
+    padding-left: 1.5rem;
+}
+
+.nomad-markdown-host .nomad-markdown blockquote {
+    margin: 0.5rem 0;
+    padding-left: 0.75rem;
+    border-left: 3px solid rgb(107 114 128);
+}
+
+.nomad-markdown-host .nomad-markdown pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+}
+
+.nomad-page-html-host {
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.nomad-page-html-host .nomad-html-root {
+    color: rgb(229 231 235);
 }
 </style>

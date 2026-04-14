@@ -104,10 +104,15 @@
                             </div>
                         </div>
 
-                        <div v-if="node.stats" class="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-                            <span>{{ node.stats.pages_served }} pages served</span>
-                            <span>{{ node.stats.files_served }} files served</span>
-                            <span>{{ node.stats.links_established }} links</span>
+                        <div
+                            v-if="node.stats || node.running"
+                            class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                            <span v-if="node.running">{{ formatMeshUptime(node.uptime_seconds) }} uptime</span>
+                            <span>{{ node.unique_connections ?? 0 }} unique connections</span>
+                            <span v-if="node.stats">{{ node.stats.pages_served }} pages served</span>
+                            <span v-if="node.stats">{{ node.stats.files_served }} files served</span>
+                            <span v-if="node.stats">{{ node.stats.links_established }} links</span>
                         </div>
                     </div>
                 </div>
@@ -486,8 +491,16 @@ export default {
                 const response = await window.api.get(
                     `/api/v1/page-nodes/${this.selectedNode.node_id}/pages/${encodeURIComponent(pageName)}`
                 );
+                let body = response.data;
+                if (typeof body === "string") {
+                    try {
+                        body = JSON.parse(body);
+                    } catch {
+                        body = {};
+                    }
+                }
                 this.editingPage = pageName;
-                this.editingPageContent = response.data.content;
+                this.editingPageContent = body?.content ?? "";
             } catch {
                 this.showStatus("Failed to load page", false);
             }
@@ -562,6 +575,26 @@ export default {
             if (bytes < 1024) return bytes + " B";
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
             return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+        },
+        formatMeshUptime(seconds) {
+            if (seconds == null || seconds < 0) return "—";
+            let s = Math.floor(seconds);
+            if (s < 60) return `${s}s`;
+            if (s < 3600) return `${Math.floor(s / 60)}m`;
+            if (s < 86400) return `${Math.floor(s / 3600)}h`;
+            if (s < 30 * 86400) return `${Math.floor(s / 86400)}d`;
+            const yearSec = 365 * 86400;
+            const monthSec = 30 * 86400;
+            const years = Math.floor(s / yearSec);
+            s -= years * yearSec;
+            const months = Math.floor(s / monthSec);
+            s -= months * monthSec;
+            const days = Math.floor(s / 86400);
+            const parts = [];
+            if (years) parts.push(`${years} year${years === 1 ? "" : "s"}`);
+            if (months) parts.push(`${months} month${months === 1 ? "" : "s"}`);
+            if (days) parts.push(`${days} day${days === 1 ? "" : "s"}`);
+            return parts.length ? parts.join(" ") : "0d";
         },
         showStatus(message, success) {
             this.statusMessage = message;

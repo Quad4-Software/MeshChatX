@@ -661,6 +661,85 @@
                         </div>
                     </section>
 
+                    <!-- NomadNet browser renderer -->
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.nomadRenderer)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
+                            <div>
+                                <div class="settings-section__eyebrow">Browsing</div>
+                                <h2>NomadNet browser renderer</h2>
+                                <p>
+                                    Control how Micron, Markdown, HTML, and plain text pages are rendered in the Nomad
+                                    browser and archives. Set the default page path when opening a node without a path.
+                                </p>
+                            </div>
+                        </header>
+                        <div class="settings-section__body space-y-3">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="nomad-render-markdown"
+                                    v-model="config.nomad_render_markdown_enabled"
+                                    @update:model-value="onNomadRendererMarkdownToggle"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">Render Markdown (.md) pages</span>
+                                    <span class="setting-toggle__description"
+                                        >When off, .md files are shown as escaped text instead of formatted
+                                        Markdown.</span
+                                    >
+                                </span>
+                            </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="nomad-render-html"
+                                    v-model="config.nomad_render_html_enabled"
+                                    @update:model-value="onNomadRendererHtmlToggle"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">Render HTML (.html) pages</span>
+                                    <span class="setting-toggle__description"
+                                        >When off, .html files are shown as escaped text instead of sanitized
+                                        HTML.</span
+                                    >
+                                </span>
+                            </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="nomad-render-plaintext"
+                                    v-model="config.nomad_render_plaintext_enabled"
+                                    @update:model-value="onNomadRendererPlaintextToggle"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">Render plain text (.txt) pages</span>
+                                    <span class="setting-toggle__description"
+                                        >When off, .txt files use a simpler escaped layout.</span
+                                    >
+                                </span>
+                            </label>
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Default page path (no URL path)
+                                </div>
+                                <select
+                                    v-model="config.nomad_default_page_path"
+                                    class="input-field max-w-xl"
+                                    @change="onNomadDefaultPagePathChange"
+                                >
+                                    <option value="/page/index.mu">/page/index.mu (Micron)</option>
+                                    <option value="/page/index.html">/page/index.html (HTML)</option>
+                                    <option value="/page/index.md">/page/index.md (Markdown)</option>
+                                    <option value="/page/index.txt">/page/index.txt (plain text)</option>
+                                </select>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    Used when opening a Nomad node without a path, for hash-only links, and for the
+                                    Smart Crawler homepage fetch.
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Smart Crawler -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.crawler)"
@@ -2008,6 +2087,10 @@ export default {
                 csp_extra_frame_src: "",
                 csp_extra_script_src: "",
                 csp_extra_style_src: "",
+                nomad_render_markdown_enabled: true,
+                nomad_render_html_enabled: true,
+                nomad_render_plaintext_enabled: true,
+                nomad_default_page_path: "/page/index.mu",
             },
             saveTimeouts: {},
             lastRememberedInboundStampCost: 8,
@@ -2072,6 +2155,18 @@ export default {
                     "app.desktop_hardware_acceleration_enabled_description",
                 ],
                 archiver: ["Browsing", "Page Archiver", "archiver", "archive", "versions", "storage", "flush"],
+                nomadRenderer: [
+                    "NomadNet",
+                    "NomadNet browser renderer",
+                    "browser",
+                    "renderer",
+                    "markdown",
+                    "HTML",
+                    "plaintext",
+                    "index.mu",
+                    "index.html",
+                    "default page",
+                ],
                 crawler: ["Discovery", "Smart Crawler", "crawler", "crawl", "retries", "delay", "concurrent"],
                 csp: [
                     "Security",
@@ -2635,6 +2730,41 @@ export default {
                     "page_archiver"
                 );
             }, 1000);
+        },
+        async onNomadRendererMarkdownToggle(value) {
+            this.config.nomad_render_markdown_enabled = value;
+            await this.updateConfig(
+                {
+                    nomad_render_markdown_enabled: this.config.nomad_render_markdown_enabled,
+                },
+                null
+            );
+        },
+        async onNomadRendererHtmlToggle(value) {
+            this.config.nomad_render_html_enabled = value;
+            await this.updateConfig(
+                {
+                    nomad_render_html_enabled: this.config.nomad_render_html_enabled,
+                },
+                null
+            );
+        },
+        async onNomadRendererPlaintextToggle(value) {
+            this.config.nomad_render_plaintext_enabled = value;
+            await this.updateConfig(
+                {
+                    nomad_render_plaintext_enabled: this.config.nomad_render_plaintext_enabled,
+                },
+                null
+            );
+        },
+        async onNomadDefaultPagePathChange() {
+            await this.updateConfig(
+                {
+                    nomad_default_page_path: this.config.nomad_default_page_path,
+                },
+                null
+            );
         },
         async onStrangerAttachmentBlockChange(value) {
             this.config.block_attachments_from_strangers = value;

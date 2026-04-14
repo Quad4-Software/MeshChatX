@@ -241,14 +241,23 @@
                     </IconButton>
                 </div>
 
-                <!-- page content -->
+                <!-- page content: capture-phase clicks so <a href> is handled before browser default navigation -->
                 <div
-                    class="flex-1 overflow-y-auto p-3 bg-black text-white nodeContainer relative [contain:layout_paint]"
+                    :class="[
+                        'flex-1 overflow-y-auto nodeContainer relative [contain:layout_paint]',
+                        nomadRenderedShellFullBleed
+                            ? 'p-0 bg-transparent text-gray-900 dark:text-gray-100'
+                            : 'p-3 bg-black text-white',
+                    ]"
+                    @click.capture="onElementClick"
                 >
                     <!-- archived version notice -->
                     <div
                         v-if="isShowingArchivedVersion"
-                        class="mb-4 p-2 bg-yellow-900/40 border border-yellow-700/50 rounded flex items-center justify-between text-yellow-200"
+                        :class="[
+                            'mb-4 p-2 bg-yellow-900/40 border border-yellow-700/50 rounded flex items-center justify-between text-yellow-200',
+                            nomadRenderedShellFullBleed ? 'mx-3 mt-3' : '',
+                        ]"
                     >
                         <div class="flex items-center gap-2">
                             <MaterialDesignIcon icon-name="clock" class="size-4" />
@@ -444,7 +453,6 @@ export default {
 
             isLoadingNodePage: false,
             isShowingNodePageSource: false,
-            defaultNodePagePath: "/page/index.mu",
             nodePageRequestSequence: 0,
             nodePagePath: null,
             nodePagePathUrlInput: null,
@@ -487,6 +495,19 @@ export default {
         };
     },
     computed: {
+        defaultNodePagePath() {
+            const p = GlobalState.config?.nomad_default_page_path;
+            return typeof p === "string" && p.startsWith("/page/") ? p : "/page/index.mu";
+        },
+        nomadRenderOptions() {
+            const c = GlobalState.config || {};
+            return {
+                renderMarkdown: c.nomad_render_markdown_enabled !== false,
+                renderHtml: c.nomad_render_html_enabled !== false,
+                renderPlaintext: c.nomad_render_plaintext_enabled !== false,
+                nomadDestinationHash: this.selectedNode?.destination_hash || null,
+            };
+        },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
         },
@@ -527,6 +548,25 @@ export default {
             }
             return this.renderPageContent(this.nodePagePath, this.nodePageContent);
         },
+        nomadRenderedShellFullBleed() {
+            if (!this.nodePagePath || this.isShowingNodePageSource) {
+                return false;
+            }
+            if (this.isLoadingNodePage) {
+                return false;
+            }
+            if (
+                this.nodePageContent === "request_failed" ||
+                (this.nodePageContent && String(this.nodePageContent).includes("failure"))
+            ) {
+                return false;
+            }
+            const [p] = this.nodePagePath.split("`");
+            if ((p || "").toLowerCase().endsWith(".mu")) {
+                return false;
+            }
+            return true;
+        },
         nomadPageContentClasses() {
             if (!this.nodePagePath || this.isShowingNodePageSource) {
                 return ["h-full", "break-words", "whitespace-pre-wrap", "text-gray-100"];
@@ -537,6 +577,9 @@ export default {
             const isHtml = pl.endsWith(".html");
             const isMd = pl.endsWith(".md");
             const classes = ["h-full", "break-words"];
+            if (this.nomadRenderedShellFullBleed && !isHtml) {
+                classes.push("px-3", "py-3");
+            }
             if (isRich) {
                 classes.push("nomad-page-rich");
             } else {
@@ -544,8 +587,10 @@ export default {
             }
             if (isHtml) {
                 classes.push("nomad-page-html-host");
-            } else {
+            } else if (pl.endsWith(".mu")) {
                 classes.push("text-gray-100");
+            } else {
+                classes.push("text-gray-900", "dark:text-gray-100");
             }
             if (isMd) {
                 classes.push("nomad-markdown-host");
@@ -584,14 +629,10 @@ export default {
         this.clearPartials();
 
         WebSocketConnection.off("message", this.onWebsocketMessage);
-        window.document.removeEventListener("click", this.onElementClick);
     },
     mounted() {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
-
-        // listen for element clicks
-        window.document.addEventListener("click", this.onElementClick);
 
         // load nomadnetwork node if a destination hash was provided on page load
         if (this.destinationHash) {
@@ -668,6 +709,36 @@ export default {
             );
         },
         onElementClick(event) {
+            const nomadLink = event.target.closest("a.nomadnet-link[data-nomadnet-url]");
+            if (nomadLink) {
+                event.preventDefault();
+                event.stopPropagation();
+                const url = nomadLink.getAttribute("data-nomadnet-url");
+                if (url) {
+                    this.onNodePageUrlClick(url);
+                }
+                return;
+            }
+
+            const fragAnchor = event.target.closest("a[href]");
+            if (
+                fragAnchor &&
+                fragAnchor.getAttribute("href") &&
+                fragAnchor.getAttribute("href") !== "#" &&
+                fragAnchor.getAttribute("href").startsWith("#") &&
+                !fragAnchor.getAttribute("data-nomadnet-url")
+            ) {
+                event.preventDefault();
+                event.stopPropagation();
+                const raw = fragAnchor.getAttribute("href").slice(1);
+                const id = decodeURIComponent(raw);
+                const el = document.getElementById(id);
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+                return;
+            }
+
             const element = event.target.closest('[data-action="openNode"]');
             if (!element) {
                 return;
@@ -1268,7 +1339,13 @@ export default {
             if (!this.isShowingNodePageSource) {
                 // address:/page/index.mu`Data=123
                 const [pagePathWithoutData] = path.split("`");
-                return renderNomadPageByPath(pagePathWithoutData, content, this.pagePartials, MicronParser);
+                return renderNomadPageByPath(
+                    pagePathWithoutData,
+                    content,
+                    this.pagePartials,
+                    MicronParser,
+                    this.nomadRenderOptions
+                );
             }
 
             return content
@@ -1926,11 +2003,26 @@ pre.text-wrap > div > :last-child {
     overflow-x: auto;
 }
 
+.nomad-markdown-host .nomad-markdown a.nomadnet-link,
+.nomad-markdown-host .nomad-markdown a[href^="#"]:not([href="#"]) {
+    cursor: pointer;
+    pointer-events: auto;
+}
+
 .nomad-page-html-host {
     font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    min-height: 100%;
+    width: 100%;
 }
 
 .nomad-page-html-host .nomad-html-root {
     color: rgb(229 231 235);
+    min-height: 100%;
+}
+
+.nomad-page-html-host .nomad-html-root a.nomadnet-link,
+.nomad-page-html-host .nomad-html-root a[href^="#"]:not([href="#"]) {
+    cursor: pointer;
+    pointer-events: auto;
 }
 </style>

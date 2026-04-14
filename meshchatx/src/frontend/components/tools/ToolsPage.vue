@@ -208,14 +208,6 @@ export default {
                     descriptionKey: "docs.subtitle",
                 },
                 {
-                    name: "licenses",
-                    route: { name: "licenses" },
-                    icon: "license",
-                    iconBg: "tool-card__icon bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-                    titleKey: "licenses.title",
-                    descriptionKey: "licenses.short_description",
-                },
-                {
                     name: "micron-editor",
                     route: { name: "micron-editor" },
                     icon: "code-tags",

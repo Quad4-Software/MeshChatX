@@ -1631,7 +1631,8 @@ class ReticulumMeshChat:
                             break
                         self.queue_crawler_task(
                             node["destination_hash"],
-                            "/page/index.mu",
+                            ctx.config.nomad_default_page_path.get()
+                            or "/page/index.mu",
                             context=ctx,
                         )
 
@@ -9522,6 +9523,8 @@ class ReticulumMeshChat:
             if response is None:
                 return None
             path = request.path
+            if path.startswith("/api/"):
+                return response
             if path.endswith(".js") or path.endswith(".mjs"):
                 response.headers["Content-Type"] = (
                     "application/javascript; charset=utf-8"
@@ -10328,6 +10331,39 @@ class ReticulumMeshChat:
             self.config.telemetry_enabled.set(
                 self._parse_bool(data["telemetry_enabled"]),
             )
+
+        if "nomad_render_markdown_enabled" in data:
+            self.config.nomad_render_markdown_enabled.set(
+                self._parse_bool(data["nomad_render_markdown_enabled"]),
+            )
+
+        if "nomad_render_html_enabled" in data:
+            self.config.nomad_render_html_enabled.set(
+                self._parse_bool(data["nomad_render_html_enabled"]),
+            )
+
+        if "nomad_render_plaintext_enabled" in data:
+            self.config.nomad_render_plaintext_enabled.set(
+                self._parse_bool(data["nomad_render_plaintext_enabled"]),
+            )
+
+        if "nomad_default_page_path" in data:
+            from meshchatx.src.backend.page_node import is_allowed_page_filename
+
+            raw = data["nomad_default_page_path"]
+            if raw is None or str(raw).strip() == "":
+                self.config.nomad_default_page_path.set("/page/index.mu")
+            else:
+                s = str(raw).strip()
+                if s.startswith("/page/"):
+                    base = s[6:]
+                    if (
+                        base
+                        and "/" not in base
+                        and ".." not in base
+                        and is_allowed_page_filename(base)
+                    ):
+                        self.config.nomad_default_page_path.set(s)
 
         if "block_attachments_from_strangers" in data:
             self.config.block_attachments_from_strangers.set(
@@ -11584,6 +11620,10 @@ class ReticulumMeshChat:
             "location_manual_lon": ctx.config.location_manual_lon.get(),
             "location_manual_alt": ctx.config.location_manual_alt.get(),
             "telemetry_enabled": ctx.config.telemetry_enabled.get(),
+            "nomad_render_markdown_enabled": ctx.config.nomad_render_markdown_enabled.get(),
+            "nomad_render_html_enabled": ctx.config.nomad_render_html_enabled.get(),
+            "nomad_render_plaintext_enabled": ctx.config.nomad_render_plaintext_enabled.get(),
+            "nomad_default_page_path": ctx.config.nomad_default_page_path.get(),
         }
 
     # try and get a name for the provided identity hash
@@ -13268,7 +13308,10 @@ class ReticulumMeshChat:
         )
 
         # queue crawler task (existence check in queue_crawler_task handles duplicates)
-        self.queue_crawler_task(destination_hash.hex(), "/page/index.mu")
+        self.queue_crawler_task(
+            destination_hash.hex(),
+            self.config.nomad_default_page_path.get() or "/page/index.mu",
+        )
 
     def _try_serve_local_page_node(self, destination_hash, page_path):
         """If destination_hash belongs to one of our page nodes, serve the page
@@ -13280,6 +13323,7 @@ class ReticulumMeshChat:
                 page_name = page_path.lstrip("/")
                 if page_name.startswith("page/"):
                     page_name = page_name[5:]
+                page_name = os.path.basename(page_name)
                 content = node.get_page_content(page_name)
                 if content is not None:
                     node._stats["pages_served"] += 1
@@ -13297,6 +13341,8 @@ class ReticulumMeshChat:
                 if file_name.startswith("file/"):
                     file_name = file_name[5:]
                 file_name = os.path.basename(file_name)
+                if not file_name or file_name in (".", ".."):
+                    return None
                 full_path = os.path.join(node.files_dir, file_name)
                 if os.path.isfile(full_path):
                     with open(full_path, "rb") as f:

@@ -15,6 +15,7 @@ Supported page filename extensions are ``.mu``, ``.md``, ``.txt``, and ``.html``
 
 import json
 import os
+import time
 
 import RNS
 
@@ -31,6 +32,8 @@ def normalize_page_filename(name: str) -> str:
     name = os.path.basename((name or "").strip())
     if not name or name in (".", ".."):
         raise ValueError("page name is required")
+    if "/" in name or "\\" in name:
+        raise ValueError("invalid page name")
     lower = name.lower()
     for ext in ALLOWED_PAGE_EXTENSIONS:
         if lower.endswith(ext):
@@ -43,6 +46,16 @@ def normalize_page_filename(name: str) -> str:
 def is_allowed_page_filename(name: str) -> bool:
     lower = os.path.basename(name or "").lower()
     return any(lower.endswith(ext) for ext in ALLOWED_PAGE_EXTENSIONS)
+
+
+def _safe_mesh_file_basename(name: str) -> str:
+    """Reject empty, dot, or parent-segment names after basename (path traversal)."""
+    base = os.path.basename((name or "").strip())
+    if not base or base in (".", ".."):
+        raise ValueError("invalid file name")
+    if "/" in base or "\\" in base:
+        raise ValueError("invalid file name")
+    return base
 
 
 class PageNode:
@@ -63,6 +76,8 @@ class PageNode:
         self._registered_page_paths = set()
         self._registered_file_paths = set()
         self._stats = {"pages_served": 0, "files_served": 0, "links_established": 0}
+        self._serve_started_at = None
+        self._unique_remote_hashes = set()
 
     def setup(self):
         """Create directories, load or create identity, set up RNS destination."""
@@ -91,6 +106,7 @@ class PageNode:
         self._ensure_local_path()
 
         self.running = True
+        self._serve_started_at = time.time()
         return self.destination.hash.hex()
 
     def announce(self):
@@ -103,6 +119,8 @@ class PageNode:
     def teardown(self):
         """Deregister handlers and clean up."""
         self.running = False
+        self._serve_started_at = None
+        self._unique_remote_hashes.clear()
         if self.destination:
             for rpath in list(self._registered_page_paths):
                 self.destination.deregister_request_handler(rpath)
@@ -121,9 +139,23 @@ class PageNode:
                 pass
         self.active_links.clear()
 
+    def _note_remote_identity(self, remote_identity):
+        if remote_identity is None:
+            return
+        try:
+            h = getattr(remote_identity, "hash", None)
+            if h is not None:
+                self._unique_remote_hashes.add(h.hex())
+        except Exception:
+            pass
+
     def _link_established(self, link):
         self.active_links.append(link)
         self._stats["links_established"] += 1
+        try:
+            self._note_remote_identity(link.get_remote_identity())
+        except Exception:
+            pass
         link.set_link_closed_callback(self._link_closed)
 
     def _link_closed(self, link):
@@ -223,6 +255,7 @@ class PageNode:
         """Return a closure that serves a specific page."""
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
+            self._note_remote_identity(remote_identity)
             safe_name = os.path.basename(page_name)
             page_path = os.path.join(self.pages_dir, safe_name)
             if not os.path.isfile(page_path):
@@ -241,6 +274,7 @@ class PageNode:
         """Return a closure that serves a specific file."""
 
         def responder(path, data, request_id, link_id, remote_identity, requested_at):
+            self._note_remote_identity(remote_identity)
             safe_name = os.path.basename(file_name)
             file_path = os.path.join(self.files_dir, safe_name)
             if not os.path.isfile(file_path):
@@ -305,7 +339,7 @@ class PageNode:
 
     def add_file(self, name, data):
         """Write a file and register its request handler."""
-        name = os.path.basename(name)
+        name = _safe_mesh_file_basename(name)
         file_path = os.path.join(self.files_dir, name)
         mode = "wb" if isinstance(data, bytes) else "w"
         with open(file_path, mode) as f:
@@ -316,7 +350,10 @@ class PageNode:
 
     def remove_file(self, name):
         """Remove a file and deregister its request handler."""
-        name = os.path.basename(name)
+        try:
+            name = _safe_mesh_file_basename(name)
+        except ValueError:
+            return False
         file_path = os.path.join(self.files_dir, name)
         if os.path.isfile(file_path):
             os.remove(file_path)
@@ -343,6 +380,9 @@ class PageNode:
 
     def get_status(self):
         """Return current node status dict."""
+        uptime_seconds = 0
+        if self.running and self._serve_started_at is not None:
+            uptime_seconds = max(0, int(time.time() - self._serve_started_at))
         return {
             "node_id": self.node_id,
             "name": self.name,
@@ -350,6 +390,8 @@ class PageNode:
             "destination_hash": self.get_destination_hash(),
             "identity_hash": self.identity.hash.hex() if self.identity else None,
             "active_links": len(self.active_links),
+            "unique_connections": len(self._unique_remote_hashes),
+            "uptime_seconds": uptime_seconds,
             "pages": self.list_pages(),
             "files": self.list_files(),
             "stats": dict(self._stats),
