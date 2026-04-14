@@ -7,9 +7,12 @@ import base64
 import configparser
 import contextlib
 import copy
+import fnmatch
 import gc
 import hashlib
+import importlib
 import importlib.metadata
+import io
 import json
 import logging
 import os
@@ -18,16 +21,14 @@ import secrets
 import shutil
 import socket
 import ssl
+import subprocess
 import sys
 import tempfile
 import threading
 import time
 import traceback
 import webbrowser
-import io
-import subprocess
 import zipfile
-import fnmatch
 from datetime import UTC, datetime, timedelta
 from logging.handlers import RotatingFileHandler
 from urllib.parse import urlparse
@@ -45,6 +46,9 @@ from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from RNS.Discovery import InterfaceDiscovery
 from serial.tools import list_ports
 
+from meshchatx.src.backend.announce_manager import (
+    filter_announced_dicts_by_search_query,
+)
 from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.colour_utils import ColourUtils
 from meshchatx.src.backend.database.access_attempts import (
@@ -77,7 +81,6 @@ from meshchatx.src.backend.lxmf_utils import (
     lxmf_fields_are_columba_reaction,
 )
 from meshchatx.src.backend.map_manager import TRANSPARENT_TILE
-from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.meshchat_utils import (
     convert_db_favourite_to_dict,
@@ -102,6 +105,7 @@ from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
     convert_nomadnet_string_data_to_map,
 )
+from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
@@ -114,15 +118,16 @@ from meshchatx.src.backend.sticker_utils import (
 )
 from meshchatx.src.backend.telemetry_utils import Telemeter
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
-from meshchatx.src.version import __version__ as app_version
 from meshchatx.src.env_utils import env_bool
 from meshchatx.src.path_utils import (
     get_file_path,
-    request_client_ip as _request_client_ip,
     resolve_log_dir,
 )
+from meshchatx.src.path_utils import (
+    request_client_ip as _request_client_ip,
+)
 from meshchatx.src.ssl_self_signed import generate_ssl_certificate
-
+from meshchatx.src.version import __version__ as app_version
 
 # Global log handler
 memory_log_handler = PersistentLogHandler()
@@ -204,6 +209,7 @@ class ReticulumMeshChat:
         self.docs_download_urls_override = docs_download_urls
         self._rns_loglevel_cli = rns_loglevel
         self.websocket_clients: list[web.WebSocketResponse] = []
+        self._websocket_broadcast_lock = asyncio.Lock()
 
         # track announce timestamps for rate calculation
         self.announce_timestamps = []
@@ -500,8 +506,9 @@ class ReticulumMeshChat:
         return self.database.restore_database(backup_path)
 
     def _ensure_reticulum_config(self):
-        """Ensures that a valid Reticulum config file exists at the expected location.
-        If the config is missing or invalid, it creates a sane default one.
+        """Ensure a valid Reticulum config exists at the expected location.
+
+        If the config is missing or invalid, create a sane default.
         """
         config_dir = (
             self.reticulum_config_dir
@@ -1381,17 +1388,74 @@ class ReticulumMeshChat:
 
     @staticmethod
     def get_package_version(package_name: str, default: str = "unknown") -> str:
+        """Resolve an installed distribution version for About /app/info.
+
+        cx_Freeze and similar bundles often omit .dist-info; fall back to module
+        attributes and known submodule layouts (e.g. ``websockets.version``).
+        """
+        from packaging.utils import canonicalize_name
+
+        def _from_metadata(dist_name: str) -> str | None:
+            for candidate in dict.fromkeys((dist_name, canonicalize_name(dist_name))):
+                try:
+                    v = importlib.metadata.version(candidate)
+                    if v:
+                        return str(v)
+                except Exception:
+                    pass
+                try:
+                    v = importlib.metadata.distribution(candidate).version
+                    if v:
+                        return str(v)
+                except Exception:
+                    pass
+            return None
+
+        resolved = _from_metadata(package_name)
+        if resolved:
+            return resolved
+
+        module_name = package_name.replace("-", "_")
+        top_level = module_name.split(".")[0]
+
         try:
-            return importlib.metadata.version(package_name)
+            for dist_name in importlib.metadata.packages_distributions().get(
+                top_level,
+                (),
+            ):
+                resolved = _from_metadata(dist_name)
+                if resolved:
+                    return resolved
         except Exception:
+            pass
+
+        try:
+            module = importlib.import_module(module_name)
+            ver = getattr(module, "__version__", None)
+            if ver:
+                return str(ver)
+        except Exception:
+            pass
+
+        if top_level == "websockets":
             try:
-                # try to import the package and get __version__
-                # some packages use underscores instead of hyphens in module names
-                module_name = package_name.replace("-", "_")
-                module = __import__(module_name)
-                return getattr(module, "__version__", default)
+                from websockets.version import version as websockets_semver
+
+                if websockets_semver:
+                    return str(websockets_semver)
             except Exception:
-                return default
+                pass
+
+        if top_level == "lxmfy":
+            try:
+                vmod = importlib.import_module("lxmfy.__version__")
+                ver = getattr(vmod, "__version__", None)
+                if ver:
+                    return str(ver)
+            except Exception:
+                pass
+
+        return default
 
     @staticmethod
     def parse_discovery_patterns(value):
@@ -1488,7 +1552,9 @@ class ReticulumMeshChat:
 
     @staticmethod
     def filter_discovered_interfaces(
-        interfaces, whitelist_patterns, blacklist_patterns
+        interfaces,
+        whitelist_patterns,
+        blacklist_patterns,
     ):
         if not isinstance(interfaces, list):
             return interfaces
@@ -1503,7 +1569,8 @@ class ReticulumMeshChat:
                     or ReticulumMeshChat.matches_discovery_pattern(whitelist, interface)
                 )
                 and not ReticulumMeshChat.matches_discovery_pattern(
-                    blacklist, interface
+                    blacklist,
+                    interface,
                 )
             )
         ]
@@ -2323,8 +2390,8 @@ class ReticulumMeshChat:
             with contextlib.suppress(Exception):
                 self._health_monitor.stop()
 
-        # force close websocket clients
-        for websocket_client in self.websocket_clients:
+        # force close websocket clients (copy: close() may touch the client list)
+        for websocket_client in list(self.websocket_clients):
             try:
                 await websocket_client.close(code=WSCloseCode.GOING_AWAY)
             except Exception:  # noqa: S110
@@ -3407,7 +3474,7 @@ class ReticulumMeshChat:
                 interface_details["remote"] = str(remote).strip()
                 interface_details["target_port"] = interface_target_port
                 interface_details["transport_identity"] = str(
-                    transport_identity
+                    transport_identity,
                 ).strip()
 
             # handle I2P interface
@@ -4217,7 +4284,9 @@ class ReticulumMeshChat:
                         "emergency": getattr(self, "emergency", False),
                         "integrity_issues": getattr(self, "integrity_issues", []),
                         "database_health_issues": getattr(
-                            self, "database_health_issues", []
+                            self,
+                            "database_health_issues",
+                            [],
                         ),
                         "user_guidance": self.build_user_guidance_messages(),
                         "tutorial_seen": self.config.get("tutorial_seen", "false")
@@ -4864,7 +4933,8 @@ class ReticulumMeshChat:
             offset = 0
             while True:
                 page = self.database.messages.get_all_lxmf_messages(
-                    limit=page_size, offset=offset
+                    limit=page_size,
+                    offset=offset,
                 )
                 messages_list.extend(dict(m) for m in page)
                 if len(page) < page_size:
@@ -5021,10 +5091,10 @@ class ReticulumMeshChat:
                 interfaces = discovery.list_discovered_interfaces()
                 reticulum_config = self._get_reticulum_section()
                 whitelist_patterns = reticulum_config.get(
-                    "interface_discovery_whitelist"
+                    "interface_discovery_whitelist",
                 )
                 blacklist_patterns = reticulum_config.get(
-                    "interface_discovery_blacklist"
+                    "interface_discovery_blacklist",
                 )
                 interfaces = ReticulumMeshChat.filter_discovered_interfaces(
                     interfaces,
@@ -6298,7 +6368,7 @@ class ReticulumMeshChat:
             blocked_identity_hashes = None
             if not include_blocked:
                 blocked = await asyncio.to_thread(
-                    self.database.misc.get_blocked_destinations
+                    self.database.misc.get_blocked_destinations,
                 )
                 blocked_identity_hashes = [b["destination_hash"] for b in blocked]
 
@@ -6465,23 +6535,10 @@ class ReticulumMeshChat:
 
             # apply search query filter if provided
             if search_query:
-                q = search_query.lower()
-                all_announces = [
-                    a
-                    for a in all_announces
-                    if (
-                        (a.get("display_name") and q in a["display_name"].lower())
-                        or (
-                            a.get("destination_hash")
-                            and q in a["destination_hash"].lower()
-                        )
-                        or (a.get("identity_hash") and q in a["identity_hash"].lower())
-                        or (
-                            a.get("custom_display_name")
-                            and q in a["custom_display_name"].lower()
-                        )
-                    )
-                ]
+                all_announces = filter_announced_dicts_by_search_query(
+                    all_announces,
+                    search_query,
+                )
 
                 # Re-calculate total_count after search filter
                 total_count = len(all_announces)
@@ -7348,7 +7405,7 @@ class ReticulumMeshChat:
                 if node and node.running:
                     self._register_local_page_node_announce(node)
                 return web.json_response(
-                    {"destination_hash": dest_hash, "message": "Node started"}
+                    {"destination_hash": dest_hash, "message": "Node started"},
                 )
             except KeyError:
                 return web.json_response({"message": "Node not found"}, status=404)
@@ -7369,7 +7426,8 @@ class ReticulumMeshChat:
                 node = self.page_node_manager.get_node(node_id)
                 if node is None or not node.running:
                     return web.json_response(
-                        {"message": "Node not running"}, status=400
+                        {"message": "Node not running"},
+                        status=400,
                     )
                 node.announce()
                 self._register_local_page_node_announce(node)
@@ -7409,7 +7467,8 @@ class ReticulumMeshChat:
             content = data.get("content", "")
             if not name:
                 return web.json_response(
-                    {"message": "Page name is required"}, status=400
+                    {"message": "Page name is required"},
+                    status=400,
                 )
             try:
                 saved_name = node.add_page(name, content)
@@ -8376,15 +8435,12 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/lxmf-messages/{message_hash}/uri")
         async def lxmf_message_uri(request):
+            """Build a reticulum:// URI; prefer the router cache over DB-only state."""
             message_hash = request.match_info.get("message_hash")
 
-            # check if message exists in router's internal storage first
-            # as it might still be in outbound queue or recent received cache
             lxm = self.message_router.get_message(bytes.fromhex(message_hash))
 
             if not lxm:
-                # if not in router, we can't easily recreate it with same signatures
-                # unless we stored the raw bytes. MeshChatX seems to store fields.
                 return web.json_response(
                     {
                         "message": "Original message bytes not available for URI generation",
@@ -8413,7 +8469,7 @@ class ReticulumMeshChat:
             local_hash = self.local_lxmf_destination.hash.hex()
 
             for message_hash in self.database.messages.list_message_hashes_for_peer(
-                destination_hash
+                destination_hash,
             ):
                 try:
                     self.message_router.cancel_outbound(bytes.fromhex(message_hash))
@@ -8445,7 +8501,8 @@ class ReticulumMeshChat:
             )
             if not destination_hash:
                 return web.json_response(
-                    {"message": "missing destination_hash"}, status=400
+                    {"message": "missing destination_hash"},
+                    status=400,
                 )
             pinned = self.database.messages.toggle_peer_pin(destination_hash)
             return web.json_response(
@@ -8656,7 +8713,7 @@ class ReticulumMeshChat:
             local_hash = self.local_lxmf_destination.hexhash
             for dest_hash in destination_hashes:
                 for message_hash in self.database.messages.list_message_hashes_for_peer(
-                    dest_hash
+                    dest_hash,
                 ):
                     try:
                         self.message_router.cancel_outbound(bytes.fromhex(message_hash))
@@ -9311,7 +9368,7 @@ class ReticulumMeshChat:
         async def stickers_export(request):
             identity_hash = self.identity.hash.hex()
             payloads = self.database.stickers.export_payloads_for_identity(
-                identity_hash
+                identity_hash,
             )
             doc = build_export_document(
                 payloads,
@@ -10458,22 +10515,22 @@ class ReticulumMeshChat:
 
         if "message_outbound_bubble_color" in data:
             self.config.message_outbound_bubble_color.set(
-                data["message_outbound_bubble_color"]
+                data["message_outbound_bubble_color"],
             )
 
         if "message_inbound_bubble_color" in data:
             self.config.message_inbound_bubble_color.set(
-                data["message_inbound_bubble_color"]
+                data["message_inbound_bubble_color"],
             )
 
         if "message_failed_bubble_color" in data:
             self.config.message_failed_bubble_color.set(
-                data["message_failed_bubble_color"]
+                data["message_failed_bubble_color"],
             )
 
         if "message_waiting_bubble_color" in data:
             self.config.message_waiting_bubble_color.set(
-                data["message_waiting_bubble_color"]
+                data["message_waiting_bubble_color"],
             )
 
         # update desktop settings
@@ -11516,18 +11573,22 @@ class ReticulumMeshChat:
             print("unhandled client message type: " + _type)
 
     async def websocket_broadcast(self, data):
-        dead = []
-        for websocket_client in self.websocket_clients:
-            try:
-                await websocket_client.send_str(data)
-            except Exception as e:
-                print(f"Failed to broadcast to websocket client: {e}")
-                dead.append(websocket_client)
-        for client in dead:
-            try:
-                self.websocket_clients.remove(client)
-            except ValueError:
-                pass
+        # Serialize: concurrent callers must not interleave; the second snapshot must run
+        # only after the first broadcast has finished mutating the live client list.
+        async with self._websocket_broadcast_lock:
+            dead = []
+            # Iterate a copy: awaits allow other tasks to mutate self.websocket_clients.
+            for websocket_client in list(self.websocket_clients):
+                try:
+                    await websocket_client.send_str(data)
+                except Exception as e:
+                    print(f"Failed to broadcast to websocket client: {e}")
+                    dead.append(websocket_client)
+            for client in dead:
+                try:
+                    self.websocket_clients.remove(client)
+                except ValueError:
+                    pass
 
     # broadcasts config to all websocket clients
     async def send_config_to_websocket_clients(self, context=None):
@@ -12036,8 +12097,8 @@ class ReticulumMeshChat:
 
         return audio_bytes
 
-    # check if a destination is blocked
     def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
+        """Return whether ``destination_hash`` is in the block list."""
         ctx = context or self.current_context
         if not ctx or not ctx.database:
             return False
@@ -12046,8 +12107,8 @@ class ReticulumMeshChat:
         except Exception:
             return False
 
-    # check if message content matches spam keywords
     def check_spam_keywords(self, title: str, content: str, context=None) -> bool:
+        """Return whether title/content match configured spam keywords."""
         ctx = context or self.current_context
         if not ctx or not ctx.database:
             return False
@@ -12056,11 +12117,8 @@ class ReticulumMeshChat:
         except Exception:
             return False
 
-    # check if message has attachments and should be rejected
-
-    # handle an lxmf delivery from reticulum
-    # NOTE: cant be async, as Reticulum doesn't await it
     def on_lxmf_delivery(self, lxmf_message: LXMF.LXMessage, context=None):
+        """Handle inbound LXMF delivery from Reticulum (synchronous callback)."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.database:
             return
@@ -12141,7 +12199,7 @@ class ReticulumMeshChat:
                                 self._telemetry_no_location_warned.add(source_hash)
                                 print(
                                     f"Cannot respond to telemetry request from {source_hash}: No location set. "
-                                    "Set manual coordinates in Settings > Location to respond."
+                                    "Set manual coordinates in Settings > Location to respond.",
                                 )
 
                 self.db_upsert_lxmf_message(lxmf_message, context=ctx)
@@ -12165,7 +12223,8 @@ class ReticulumMeshChat:
 
             # block entire message from strangers if setting is enabled
             if ctx.config.block_all_from_strangers.get() and not self._is_contact(
-                source_hash, context=ctx
+                source_hash,
+                context=ctx,
             ):
                 print(
                     f"Blocking entire message from stranger: {source_hash}",
@@ -12665,7 +12724,7 @@ class ReticulumMeshChat:
             and telemetry_data is None
             and commands is None
             and reply_to_hash is None
-            and not (quoted_str and quoted_str.strip())
+            and not (quoted_str and quoted_str.strip()),
         )
 
         # convert destination hash to bytes
@@ -13061,8 +13120,6 @@ class ReticulumMeshChat:
             if has_delivered or has_propagated or has_failed or is_cancelled:
                 should_update_message = False
 
-    # handle an announce received from reticulum, for a telephone address
-    # NOTE: cant be async, as Reticulum doesn't await it
     def on_telephone_announce_received(
         self,
         aspect,
@@ -13072,10 +13129,10 @@ class ReticulumMeshChat:
         announce_packet_hash,
         context=None,
     ):
+        """Handle lxst.telephony announces (synchronous Reticulum callback)."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
             return
-        # check if source is blocked - drop announce and path if blocked
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
             print(f"Dropping telephone announce from blocked source: {identity_hash}")
@@ -13130,8 +13187,6 @@ class ReticulumMeshChat:
             ),
         )
 
-    # handle an announce received from reticulum, for an lxmf address
-    # NOTE: cant be async, as Reticulum doesn't await it
     def on_lxmf_announce_received(
         self,
         aspect,
@@ -13141,6 +13196,7 @@ class ReticulumMeshChat:
         announce_packet_hash,
         context=None,
     ):
+        """Handle lxmf.delivery announces (synchronous Reticulum callback)."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
             return
@@ -13206,8 +13262,6 @@ class ReticulumMeshChat:
                 ),
             )
 
-    # handle an announce received from reticulum, for an lxmf propagation node address
-    # NOTE: cant be async, as Reticulum doesn't await it
     def on_lxmf_propagation_announce_received(
         self,
         aspect,
@@ -13217,6 +13271,7 @@ class ReticulumMeshChat:
         announce_packet_hash,
         context=None,
     ):
+        """Handle lxmf.propagation announces (synchronous Reticulum callback)."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
             return
@@ -13347,8 +13402,6 @@ class ReticulumMeshChat:
             except Exception as e:
                 print("Error resending failed message: " + str(e))
 
-    # handle an announce received from reticulum, for a nomadnet node
-    # NOTE: cant be async, as Reticulum doesn't await it
     def on_nomadnet_node_announce_received(
         self,
         aspect,
@@ -13358,6 +13411,7 @@ class ReticulumMeshChat:
         announce_packet_hash,
         context=None,
     ):
+        """Handle nomadnetwork.node announces (synchronous Reticulum callback)."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
             return
@@ -13424,22 +13478,22 @@ class ReticulumMeshChat:
             ),
         )
 
-        # queue crawler task (existence check in queue_crawler_task handles duplicates)
         self.queue_crawler_task(
             destination_hash.hex(),
             self.config.nomad_default_page_path.get() or "/page/index.mu",
         )
 
     def _try_serve_local_page_node(self, destination_hash, page_path):
-        """If destination_hash belongs to one of our page nodes, serve the page
-        directly from disk. Returns the page content string or None."""
+        """Serve a page from disk when the hash matches a local page node.
+
+        Returns the page content string, or None.
+        """
         for node in self.page_node_manager.nodes.values():
             if not node.running or not node.destination:
                 continue
             if node.destination.hash == destination_hash:
                 page_name = page_path.lstrip("/")
-                if page_name.startswith("page/"):
-                    page_name = page_name[5:]
+                page_name = page_name.removeprefix("page/")
                 page_name = os.path.basename(page_name)
                 content = node.get_page_content(page_name)
                 if content is not None:
@@ -13448,15 +13502,16 @@ class ReticulumMeshChat:
         return None
 
     def _try_serve_local_page_node_file(self, destination_hash, file_path):
-        """If destination_hash belongs to one of our page nodes, serve the file
-        directly from disk. Returns (file_name, file_bytes) or None."""
+        """Serve a file from disk when the hash matches a local page node.
+
+        Returns ``(file_name, file_bytes)``, or None.
+        """
         for node in self.page_node_manager.nodes.values():
             if not node.running or not node.destination:
                 continue
             if node.destination.hash == destination_hash:
                 file_name = file_path.lstrip("/")
-                if file_name.startswith("file/"):
-                    file_name = file_name[5:]
+                file_name = file_name.removeprefix("file/")
                 file_name = os.path.basename(file_name)
                 if not file_name or file_name in (".", ".."):
                     return None
@@ -13470,8 +13525,10 @@ class ReticulumMeshChat:
         return None
 
     def _register_local_page_node_announce(self, node):
-        """Inject a local page node's announce into the database so it appears
-        in the NomadNet announces list without relying on RNS loopback."""
+        """Insert a synthetic announce for a local page node into the database.
+
+        Ensures the node appears in the NomadNet announce list without RNS loopback.
+        """
         ctx = self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
             return
