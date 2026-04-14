@@ -500,21 +500,47 @@ app.whenReady().then(async () => {
 });
 
 function quit() {
-    // kill python process
-    if (exeChildProcess) {
-        exeChildProcess.kill("SIGKILL");
+    if (!exeChildProcess) {
+        app.quit();
+        return;
     }
-
-    // quit electron app
-    app.quit();
+    if (exeChildProcess.exitCode !== null || exeChildProcess.signalCode !== null) {
+        return;
+    }
+    try {
+        exeChildProcess.kill("SIGTERM");
+    } catch (e) {
+        log(e);
+        try {
+            exeChildProcess.kill("SIGKILL");
+        } catch (e2) {
+            log(e2);
+        }
+        app.quit();
+        return;
+    }
+    const timeoutMs = 5000;
+    const timeout = setTimeout(() => {
+        try {
+            if (
+                exeChildProcess &&
+                exeChildProcess.exitCode === null &&
+                exeChildProcess.signalCode === null
+            ) {
+                exeChildProcess.kill("SIGKILL");
+            }
+        } catch (e) {
+            log(e);
+        }
+        app.quit();
+    }, timeoutMs);
+    exeChildProcess.once("exit", () => {
+        clearTimeout(timeout);
+        app.quit();
+    });
 }
 
 // quit electron if all windows are closed
 app.on("window-all-closed", () => {
-    quit();
-});
-
-// make sure child process is killed if app is quiting
-app.on("quit", () => {
     quit();
 });

@@ -475,6 +475,13 @@ class IdentityContext:
             self.auto_propagation_manager.stop()
             self.auto_propagation_manager = None
 
+        if self.bot_handler:
+            try:
+                self.bot_handler.stop_all()
+            except Exception as e:
+                print(f"Error while stopping bots for {self.identity_hash}: {e}")
+            self.bot_handler = None
+
         # 1. Deregister announce handlers
         for handler in self.announce_handlers:
             with contextlib.suppress(Exception):
@@ -585,13 +592,6 @@ class IdentityContext:
 
         if self.nomadnet_manager:
             self.nomadnet_manager = None
-
-        if self.bot_handler:
-            try:
-                self.bot_handler.stop_all()
-            except Exception as e:
-                print(f"Error while stopping bots for {self.identity_hash}: {e}")
-            self.bot_handler = None
 
         if self.database:
             try:

@@ -2296,6 +2296,15 @@ class ReticulumMeshChat:
 
     # web server has shutdown, likely ctrl+c, but if we don't do the following, the script never exits
     async def shutdown(self, app):
+        for identity_hash in list(self.contexts.keys()):
+            ctx = self.contexts.get(identity_hash)
+            if ctx is None:
+                continue
+            bh = getattr(ctx, "bot_handler", None)
+            if bh is not None:
+                with contextlib.suppress(Exception):
+                    bh.stop_all()
+
         if hasattr(self, "page_node_manager"):
             self.page_node_manager.teardown()
 
