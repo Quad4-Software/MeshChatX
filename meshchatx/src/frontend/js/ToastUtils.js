@@ -24,6 +24,13 @@ class ToastUtils {
     static loading(message, duration = 0, key = null) {
         this.show(message, "loading", duration, key);
     }
+
+    static dismiss(key) {
+        if (key == null) {
+            return;
+        }
+        GlobalEmitter.emit("toast-dismiss", { key });
+    }
 }
 
 export default ToastUtils;
