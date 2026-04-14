@@ -150,11 +150,11 @@ The same page appears in the in-app **Documentation** list (MeshChatX docs) when
 
 The emoji picker renders standard Unicode emoji using your system fonts (Electron/Chromium). If emoji show as empty squares (“tofu”), install a color emoji package and restart the app.
 
-| Family (examples) | Package |
-| ----------------- | ------- |
-| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`) |
-| Debian, Ubuntu | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`) |
-| Fedora | `google-noto-emoji-color-fonts` |
+| Family (examples)          | Package                                                              |
+| -------------------------- | -------------------------------------------------------------------- |
+| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`)               |
+| Debian, Ubuntu             | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`) |
+| Fedora                     | `google-noto-emoji-color-fonts`                                      |
 
 After installing, run `fc-cache -fv` if glyphs still fail until the next login. Optional: `noto-fonts` for broader symbol coverage on minimal installs.
 

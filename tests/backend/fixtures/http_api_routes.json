@@ -1,960 +1,960 @@
 {
-  "routes": [
-    {
-      "method": "GET",
-      "path": "/"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/announce"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/announces"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/app/changelog"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/app/changelog/seen"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/app/info"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/app/integrity/acknowledge"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/app/shutdown"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/app/tutorial/seen"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/auth/login"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/auth/logout"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/auth/setup"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/auth/status"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/blocked-destinations"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/blocked-destinations"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/blocked-destinations/{destination_hash}"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/bots/delete"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/bots/export"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/bots/restart"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/bots/start"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/bots/status"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/bots/stop"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/community-interfaces"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/comports"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/config"
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/config"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/database/backup"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/database/backup/download"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/database/backups"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/database/backups/{filename}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/database/backups/{filename}/download"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/database/health"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/database/recover"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/database/restore"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/database/restore"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/database/snapshot"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/database/snapshots"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/database/snapshots/{filename}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/database/snapshots/{filename}/download"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/database/vacuum"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/debug/access-attempts"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/debug/logs"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/destination/{destination_hash}/custom-display-name"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/destination/{destination_hash}/custom-display-name/update"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/destination/{destination_hash}/drop-path"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/destination/{destination_hash}/lxmf-stamp-info"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/destination/{destination_hash}/path"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/destination/{destination_hash}/request-path"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/destination/{destination_hash}/signal-metrics"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/docs/export"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/docs/search"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/docs/status"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/docs/switch"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/docs/update"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/docs/upload"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/docs/version/{version}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/favourites"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/favourites/add"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/favourites/{destination_hash}"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/favourites/{destination_hash}/rename"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/identities"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/identities/create"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/identities/export-all"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/identities/switch"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/identities/{identity_hash}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/identity/backup/base32"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/identity/backup/download"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/identity/restore"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/interface-stats"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/licenses"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf-messages/attachment/{message_hash}/{attachment_type}"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/lxmf-messages/conversation/{destination_hash}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf-messages/conversation/{destination_hash}"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf-messages/send"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/lxmf-messages/{hash}"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf-messages/{hash}/cancel"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf-messages/{hash}/spam"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf-messages/{message_hash}/uri"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf/conversation-pins"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf/conversation-pins/toggle"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf/conversations"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf/conversations/bulk-delete"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf/conversations/bulk-mark-as-read"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf/conversations/move-to-folder"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf/conversations/{destination_hash}/mark-as-read"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf/folders"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf/folders"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf/folders/export"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/lxmf/folders/import"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/lxmf/folders/{id}"
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/lxmf/folders/{id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf/propagation-node/status"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf/propagation-node/stop-sync"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf/propagation-node/sync"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/lxmf/propagation-nodes"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/maintenance/announces"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/maintenance/archives"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/maintenance/docs/reticulum"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/maintenance/favourites"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/maintenance/lxmf-icons"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/maintenance/messages"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/maintenance/messages/export"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/maintenance/messages/import"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/maintenance/stickers"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/map/drawings"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/map/drawings"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/map/drawings/{drawing_id}"
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/map/drawings/{drawing_id}"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/map/export"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/map/export/{export_id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/map/export/{export_id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/map/export/{export_id}/download"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/map/mbtiles"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/map/mbtiles/active"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/map/mbtiles/{filename}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/map/offline"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/map/offline"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/map/tiles/{z}/{x}/{y}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/meshchatx-docs/content"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/meshchatx-docs/list"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/nomadnet/archives"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/nomadnet/archives"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/nomadnetwork/{destination_hash}/identify"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/notifications"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/notifications/mark-as-viewed"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/page-nodes"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/page-nodes"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/page-nodes/{node_id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/page-nodes/{node_id}"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/page-nodes/{node_id}/announce"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/page-nodes/{node_id}/files"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/page-nodes/{node_id}/files"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/page-nodes/{node_id}/files/{file_name}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/page-nodes/{node_id}/pages"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/page-nodes/{node_id}/pages"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/page-nodes/{node_id}/pages/{page_name}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/page-nodes/{node_id}/pages/{page_name}"
-    },
-    {
-      "method": "PUT",
-      "path": "/api/v1/page-nodes/{node_id}/rename"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/page-nodes/{node_id}/start"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/page-nodes/{node_id}/stop"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/path-table"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/path-table"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/ping/{destination_hash}/lxmf.delivery"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/reticulum/blackhole"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/disable-transport"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/reticulum/discovered-interfaces"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/reticulum/discovery"
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/reticulum/discovery"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/enable-transport"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/reticulum/interfaces"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/interfaces/add"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/interfaces/delete"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/interfaces/disable"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/interfaces/enable"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/interfaces/export"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/interfaces/import"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/interfaces/import-preview"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/reticulum/reload"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rncp/fetch"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rncp/listen"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rncp/send"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/rncp/status"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rncp/stop"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/rncp/transfer/{transfer_id}"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rnpath/drop"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rnpath/drop-queues"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rnpath/drop-via"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/rnpath/rates"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rnpath/request"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/rnpath/table"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/rnpath/trace/{destination_hash}"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/rnprobe"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/rnstatus"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/spam-keywords"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/spam-keywords"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/spam-keywords/{keyword_id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/status"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/stickers"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/stickers"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/stickers/export"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/stickers/import"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/stickers/{sticker_id}"
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/stickers/{sticker_id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/stickers/{sticker_id}/image"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telemetry/history/{destination_hash}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telemetry/latest/{destination_hash}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telemetry/peers"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telemetry/tracking"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telemetry/tracking/{destination_hash}/toggle"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telemetry/trusted-peers"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/answer"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/audio-profiles"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/call/{identity_hash}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/contacts"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telephone/contacts"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/contacts/check/{identity_hash}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/contacts/export"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telephone/contacts/import"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/telephone/contacts/{id}"
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/telephone/contacts/{id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/hangup"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/telephone/history"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/history"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/mute-receive"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/mute-transmit"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/recordings"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/telephone/recordings/{id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/recordings/{id}/audio/{side}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/ringtones"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/ringtones/status"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telephone/ringtones/upload"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/telephone/ringtones/{id}"
-    },
-    {
-      "method": "PATCH",
-      "path": "/api/v1/telephone/ringtones/{id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/ringtones/{id}/audio"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/send-to-voicemail"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/status"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/switch-audio-profile/{profile_id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/unmute-receive"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/unmute-transmit"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telephone/voicemail/generate-greeting"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/telephone/voicemail/greeting"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/voicemail/greeting/audio"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telephone/voicemail/greeting/record/start"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telephone/voicemail/greeting/record/stop"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telephone/voicemail/greeting/upload"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/voicemail/status"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/voicemails"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/telephone/voicemails/{id}"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/telephone/voicemails/{id}/audio"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/telephone/voicemails/{id}/read"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/tools/rnode/download_firmware"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/translator/install-languages"
-    },
-    {
-      "method": "GET",
-      "path": "/api/v1/translator/languages"
-    },
-    {
-      "method": "POST",
-      "path": "/api/v1/translator/translate"
-    },
-    {
-      "method": "GET",
-      "path": "/call.html"
-    },
-    {
-      "method": "GET",
-      "path": "/manifest.json"
-    },
-    {
-      "method": "GET",
-      "path": "/service-worker.js"
-    },
-    {
-      "method": "GET",
-      "path": "/ws"
-    },
-    {
-      "method": "GET",
-      "path": "/ws/telephone/audio"
-    }
-  ]
+    "routes": [
+        {
+            "method": "GET",
+            "path": "/"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/announce"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/announces"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/app/changelog"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/app/changelog/seen"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/app/info"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/app/integrity/acknowledge"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/app/shutdown"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/app/tutorial/seen"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/auth/login"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/auth/logout"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/auth/setup"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/auth/status"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/blocked-destinations"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/blocked-destinations"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/blocked-destinations/{destination_hash}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/bots/delete"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/bots/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/bots/restart"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/bots/start"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/bots/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/bots/stop"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/community-interfaces"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/comports"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/config"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/config"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/database/backup"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/database/backup/download"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/database/backups"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/database/backups/{filename}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/database/backups/{filename}/download"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/database/health"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/database/recover"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/database/restore"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/database/restore"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/database/snapshot"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/database/snapshots"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/database/snapshots/{filename}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/database/snapshots/{filename}/download"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/database/vacuum"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/debug/access-attempts"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/debug/logs"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/destination/{destination_hash}/custom-display-name"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/destination/{destination_hash}/custom-display-name/update"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/destination/{destination_hash}/drop-path"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/destination/{destination_hash}/lxmf-stamp-info"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/destination/{destination_hash}/path"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/destination/{destination_hash}/request-path"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/destination/{destination_hash}/signal-metrics"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/docs/export"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/docs/search"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/docs/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/docs/switch"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/docs/update"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/docs/upload"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/docs/version/{version}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/favourites"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/favourites/add"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/favourites/{destination_hash}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/favourites/{destination_hash}/rename"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/identities"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/identities/create"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/identities/export-all"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/identities/switch"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/identities/{identity_hash}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/identity/backup/base32"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/identity/backup/download"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/identity/restore"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/interface-stats"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/licenses"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf-messages/attachment/{message_hash}/{attachment_type}"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/lxmf-messages/conversation/{destination_hash}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf-messages/conversation/{destination_hash}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf-messages/send"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/lxmf-messages/{hash}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf-messages/{hash}/cancel"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf-messages/{hash}/spam"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf-messages/{message_hash}/uri"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/conversation-pins"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/conversation-pins/toggle"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/conversations"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/conversations/bulk-delete"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/conversations/bulk-mark-as-read"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/conversations/move-to-folder"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/conversations/{destination_hash}/mark-as-read"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/folders"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/folders"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/folders/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/folders/import"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/lxmf/folders/{id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/lxmf/folders/{id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/propagation-node/status"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/propagation-node/stop-sync"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/propagation-node/sync"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/propagation-nodes"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/announces"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/archives"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/docs/reticulum"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/favourites"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/lxmf-icons"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/messages"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/maintenance/messages/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/maintenance/messages/import"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/stickers"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/drawings"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/drawings"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/map/drawings/{drawing_id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/map/drawings/{drawing_id}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/export"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/map/export/{export_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/export/{export_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/export/{export_id}/download"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/mbtiles"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/mbtiles/active"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/map/mbtiles/{filename}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/offline"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/offline"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/tiles/{z}/{x}/{y}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/meshchatx-docs/content"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/meshchatx-docs/list"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/nomadnet/archives"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/nomadnet/archives"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/nomadnetwork/{destination_hash}/identify"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/notifications"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/notifications/mark-as-viewed"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/page-nodes"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/page-nodes"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/page-nodes/{node_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/page-nodes/{node_id}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/page-nodes/{node_id}/announce"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/page-nodes/{node_id}/files"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/page-nodes/{node_id}/files"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/page-nodes/{node_id}/files/{file_name}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/page-nodes/{node_id}/pages"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/page-nodes/{node_id}/pages"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/page-nodes/{node_id}/pages/{page_name}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/page-nodes/{node_id}/pages/{page_name}"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/page-nodes/{node_id}/rename"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/page-nodes/{node_id}/start"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/page-nodes/{node_id}/stop"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/path-table"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/path-table"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/ping/{destination_hash}/lxmf.delivery"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/reticulum/blackhole"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/disable-transport"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/reticulum/discovered-interfaces"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/reticulum/discovery"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/reticulum/discovery"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/enable-transport"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/reticulum/interfaces"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/add"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/delete"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/disable"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/enable"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/import"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/import-preview"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/reload"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rncp/fetch"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rncp/listen"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rncp/send"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rncp/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rncp/stop"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rncp/transfer/{transfer_id}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnpath/drop"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnpath/drop-queues"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnpath/drop-via"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rnpath/rates"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnpath/request"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rnpath/table"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rnpath/trace/{destination_hash}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnprobe"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rnstatus"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/spam-keywords"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/spam-keywords"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/spam-keywords/{keyword_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/status"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/stickers"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/stickers"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/stickers/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/stickers/import"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/stickers/{sticker_id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/stickers/{sticker_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/stickers/{sticker_id}/image"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telemetry/history/{destination_hash}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telemetry/latest/{destination_hash}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telemetry/peers"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telemetry/tracking"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telemetry/tracking/{destination_hash}/toggle"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telemetry/trusted-peers"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/answer"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/audio-profiles"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/call/{identity_hash}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/contacts"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/contacts"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/contacts/check/{identity_hash}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/contacts/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/contacts/import"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/telephone/contacts/{id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/telephone/contacts/{id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/hangup"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/telephone/history"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/history"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/mute-receive"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/mute-transmit"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/recordings"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/telephone/recordings/{id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/recordings/{id}/audio/{side}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/ringtones"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/ringtones/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/ringtones/upload"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/telephone/ringtones/{id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/telephone/ringtones/{id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/ringtones/{id}/audio"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/send-to-voicemail"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/status"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/switch-audio-profile/{profile_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/unmute-receive"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/unmute-transmit"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/voicemail/generate-greeting"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/telephone/voicemail/greeting"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/voicemail/greeting/audio"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/voicemail/greeting/record/start"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/voicemail/greeting/record/stop"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/voicemail/greeting/upload"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/voicemail/status"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/voicemails"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/telephone/voicemails/{id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/voicemails/{id}/audio"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/voicemails/{id}/read"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/tools/rnode/download_firmware"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/translator/install-languages"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/translator/languages"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/translator/translate"
+        },
+        {
+            "method": "GET",
+            "path": "/call.html"
+        },
+        {
+            "method": "GET",
+            "path": "/manifest.json"
+        },
+        {
+            "method": "GET",
+            "path": "/service-worker.js"
+        },
+        {
+            "method": "GET",
+            "path": "/ws"
+        },
+        {
+            "method": "GET",
+            "path": "/ws/telephone/audio"
+        }
+    ]
 }

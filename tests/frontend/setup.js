@@ -16,7 +16,7 @@ const EMOJI_PICKER_DATA_PATH = join(
 
 const origFetch = globalThis.fetch;
 globalThis.fetch = async (input, init) => {
-    const reqUrl = typeof input === "string" ? input : input?.url ?? "";
+    const reqUrl = typeof input === "string" ? input : (input?.url ?? "");
     if (
         reqUrl.includes("emoji-picker-element-data") &&
         reqUrl.includes("data.json") &&
