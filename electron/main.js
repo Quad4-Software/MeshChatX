@@ -774,11 +774,7 @@ function quit() {
     const timeoutMs = 5000;
     const timeout = setTimeout(() => {
         try {
-            if (
-                exeChildProcess &&
-                exeChildProcess.exitCode === null &&
-                exeChildProcess.signalCode === null
-            ) {
+            if (exeChildProcess && exeChildProcess.exitCode === null && exeChildProcess.signalCode === null) {
                 exeChildProcess.kill("SIGKILL");
             }
         } catch (e) {
