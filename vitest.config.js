@@ -45,6 +45,7 @@ export default defineConfig({
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "meshchatx", "src", "frontend"),
+            "micron-parser": path.resolve(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
         },
     },
 });

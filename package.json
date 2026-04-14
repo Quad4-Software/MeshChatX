@@ -249,7 +249,7 @@
         "emoji-picker-element": "^1.29.1",
         "emoji-picker-element-data": "^1.8.0",
         "marked": "^18.0.0",
-        "micron-parser": "^1.0.3",
+        "micron-parser": "github:RFnexus/micron-parser-js",
         "mitt": "^3.0.1",
         "ol": "^10.8.0",
         "protobufjs": "^7.5.4",

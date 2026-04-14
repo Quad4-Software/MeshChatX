@@ -116,5 +116,8 @@ export default defineConfig({
 
     resolve: {
         dedupe: ["vue"],
+        alias: {
+            "micron-parser": path.join(__dirname, "node_modules", "micron-parser", "js", "micron-parser.js"),
+        },
     },
 });
