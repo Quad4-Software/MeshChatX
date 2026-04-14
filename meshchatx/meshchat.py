@@ -7399,7 +7399,10 @@ class ReticulumMeshChat:
                 return web.json_response(
                     {"message": "Page name is required"}, status=400
                 )
-            saved_name = node.add_page(name, content)
+            try:
+                saved_name = node.add_page(name, content)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
             return web.json_response({"name": saved_name, "message": "Page saved"})
 
         @routes.get("/api/v1/page-nodes/{node_id}/pages/{page_name}")
@@ -9531,6 +9534,10 @@ class ReticulumMeshChat:
                 response.headers["Content-Type"] = "application/wasm"
             elif path.endswith(".html"):
                 response.headers["Content-Type"] = "text/html; charset=utf-8"
+            elif path.endswith(".md"):
+                response.headers["Content-Type"] = "text/markdown; charset=utf-8"
+            elif path.endswith(".txt"):
+                response.headers["Content-Type"] = "text/plain; charset=utf-8"
             elif path.endswith(".opus"):
                 response.headers["Content-Type"] = "audio/opus"
             elif path.endswith(".ogg"):

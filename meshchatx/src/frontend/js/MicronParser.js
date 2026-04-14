@@ -51,6 +51,29 @@ export default class MicronParser extends BaseMicronParser {
         return false;
     }
 
+    /**
+     * When false, forceMonospace can render a whole word in one span (Latin/Cyrillic/etc.),
+     * avoiding one DOM node per character (critical for large pages and resize performance).
+     */
+    static lineNeedsPerCharCells(line) {
+        if (!line) {
+            return false;
+        }
+        for (const char of line) {
+            if (MicronParser.isWideMonospaceCell(char)) {
+                return true;
+            }
+            const cp = char.codePointAt(0);
+            if (cp >= 0x2500 && cp <= 0x257f) {
+                return true;
+            }
+            if (cp >= 0x2580 && cp <= 0x259f) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static stripOverlayStyles(html) {
         if (typeof html !== "string") return html;
         const dangerousProps = ["zindex", "inset", "top", "left", "right", "bottom", "transform"];
@@ -120,6 +143,14 @@ export default class MicronParser extends BaseMicronParser {
                 column-gap: 0;
                 row-gap: 0;
                 gap: 0;
+            }
+            .Mu-mnt-group {
+                display: inline;
+                font-family: ui-monospace, monospace, "Courier New", monospace;
+                white-space: pre;
+                text-decoration: inherit;
+                vertical-align: baseline;
+                line-height: 1.25;
             }
         `;
         document.head.appendChild(styleEl);
@@ -365,6 +396,12 @@ export default class MicronParser extends BaseMicronParser {
     }
 
     forceMonospace(line) {
+        if (line == null || line === "") {
+            return "";
+        }
+        if (!MicronParser.lineNeedsPerCharCells(line)) {
+            return "<span class='Mu-mnt-group'>" + escapeHtmlForFallback(line) + "</span>";
+        }
         let out = "";
         let charArr;
         try {
@@ -378,7 +415,7 @@ export default class MicronParser extends BaseMicronParser {
         }
         for (let char of charArr) {
             const cellClass = MicronParser.isWideMonospaceCell(char) ? "Mu-mnt-full" : "Mu-mnt";
-            out += "<span class='" + cellClass + "'>" + char + "</span>";
+            out += "<span class='" + cellClass + "'>" + escapeHtmlForFallback(char) + "</span>";
         }
         return out;
     }

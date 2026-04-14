@@ -25,6 +25,7 @@ from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
     convert_nomadnet_string_data_to_map,
 )
+from meshchatx.src.backend.page_node import normalize_page_filename
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
 
@@ -89,6 +90,16 @@ def test_nomadnet_field_conversion_fuzzing(field_data):
         pytest.fail(
             f"convert_nomadnet_field_data_to_map crashed with data {field_data}: {e}",
         )
+
+
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@given(name=st.text(min_size=0, max_size=500))
+def test_normalize_page_filename_fuzzing(name):
+    """Fuzz mesh server page filename normalization."""
+    try:
+        normalize_page_filename(name)
+    except ValueError:
+        pass
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)

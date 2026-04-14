@@ -19,9 +19,9 @@ test.describe("Messages (conversations)", () => {
         await page.goto("/#/messages");
         await page.getByText("Announces", { exact: true }).first().click();
         await expect(page.getByPlaceholder(/Search .* recent announces/i)).toBeVisible({ timeout: 20000 });
-        await expect(
-            page.getByText(/No Peers Discovered|Waiting for someone to announce/i).first()
-        ).toBeVisible({ timeout: 20000 });
+        await expect(page.getByText(/No Peers Discovered|Waiting for someone to announce/i).first()).toBeVisible({
+            timeout: 20000,
+        });
     });
 
     test("sidebar navigates between Nomad Network and Messages", async ({ page }) => {

@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from meshchatx.src.backend.page_node import normalize_page_filename
+
 
 @pytest.fixture
 def node_dir():
@@ -171,6 +173,39 @@ class TestPageNodePages:
         node = _make_node(node_dir, mock_rns)
         node.setup()
         assert node.add_page("test.mu", "x") == "test.mu"
+
+    def test_add_page_accepts_md_txt_html(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        assert node.add_page("notes.md", "# x") == "notes.md"
+        assert node.add_page("readme.txt", "plain") == "readme.txt"
+        assert node.add_page("static.html", "<p>a</p>") == "static.html"
+        assert os.path.isfile(os.path.join(node.pages_dir, "notes.md"))
+        assert "/page/notes.md" in node._registered_page_paths
+
+    def test_add_page_rejects_unknown_extension(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        with pytest.raises(ValueError):
+            node.add_page("bad.exe", "x")
+
+    def test_remove_page_invalid_extension_returns_false(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        assert node.remove_page("bad.exe") is False
+
+    def test_get_page_content_invalid_extension_returns_none(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        assert node.get_page_content("bad.exe") is None
+
+    def test_setup_skips_unlisted_page_files(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        os.makedirs(node.pages_dir, exist_ok=True)
+        with open(os.path.join(node.pages_dir, "junk.exe"), "wb") as f:
+            f.write(b"x")
+        node.setup()
+        assert "/page/junk.exe" not in node._registered_page_paths
 
     def test_add_page_registers_handler(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
@@ -355,6 +390,19 @@ class TestPageNodeLinkCallbacks:
         node.setup()
         node._link_closed(MagicMock())
         assert len(node.active_links) == 0
+
+
+class TestNormalizePageFilename:
+    def test_accepts_allowed_extensions(self):
+        assert normalize_page_filename("a.mu") == "a.mu"
+        assert normalize_page_filename("b.md") == "b.md"
+        assert normalize_page_filename("c.txt") == "c.txt"
+        assert normalize_page_filename("d.html") == "d.html"
+        assert normalize_page_filename("x") == "x.mu"
+
+    def test_rejects_bad_extension(self):
+        with pytest.raises(ValueError):
+            normalize_page_filename("x.exe")
 
 
 class TestPageNodeEdgeCases:

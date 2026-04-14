@@ -9,6 +9,8 @@ request/response with specific path conventions).
 
 Clients link to the destination and call link.request("/page/name.mu")
 to fetch a page, or /file/name for files.
+
+Supported page filename extensions are ``.mu``, ``.md``, ``.txt``, and ``.html``.
 """
 
 import json
@@ -20,6 +22,27 @@ import RNS
 APP_NAME = "nomadnetwork"
 ASPECT = "node"
 DEFAULT_INDEX = "index.mu"
+
+ALLOWED_PAGE_EXTENSIONS = frozenset({".mu", ".md", ".txt", ".html"})
+
+
+def normalize_page_filename(name: str) -> str:
+    """Return a safe basename with an allowed extension. Unknown extensions raise ValueError."""
+    name = os.path.basename((name or "").strip())
+    if not name or name in (".", ".."):
+        raise ValueError("page name is required")
+    lower = name.lower()
+    for ext in ALLOWED_PAGE_EXTENSIONS:
+        if lower.endswith(ext):
+            return name
+    if "." in name:
+        raise ValueError("unsupported page extension")
+    return f"{name}.mu"
+
+
+def is_allowed_page_filename(name: str) -> bool:
+    lower = os.path.basename(name or "").lower()
+    return any(lower.endswith(ext) for ext in ALLOWED_PAGE_EXTENSIONS)
 
 
 class PageNode:
@@ -134,8 +157,11 @@ class PageNode:
         if not os.path.isdir(self.pages_dir):
             return
         for fname in os.listdir(self.pages_dir):
-            if os.path.isfile(os.path.join(self.pages_dir, fname)):
-                self._register_page_handler(fname)
+            if not os.path.isfile(os.path.join(self.pages_dir, fname)):
+                continue
+            if not is_allowed_page_filename(fname):
+                continue
+            self._register_page_handler(fname)
 
     def _register_existing_files(self):
         """Scan files directory and register a handler for each file."""
@@ -230,10 +256,8 @@ class PageNode:
         return responder
 
     def add_page(self, name, content):
-        """Write a Micron page and register its request handler."""
-        name = os.path.basename(name)
-        if not name.endswith(".mu"):
-            name += ".mu"
+        """Write a page file and register its request handler."""
+        name = normalize_page_filename(name)
         page_path = os.path.join(self.pages_dir, name)
         if isinstance(content, str):
             content = content.encode("utf-8")
@@ -245,7 +269,10 @@ class PageNode:
 
     def remove_page(self, name):
         """Remove a page and deregister its request handler."""
-        name = os.path.basename(name)
+        try:
+            name = normalize_page_filename(name)
+        except ValueError:
+            return False
         page_path = os.path.join(self.pages_dir, name)
         if os.path.isfile(page_path):
             os.remove(page_path)
@@ -261,11 +288,15 @@ class PageNode:
             f
             for f in os.listdir(self.pages_dir)
             if os.path.isfile(os.path.join(self.pages_dir, f))
+            and is_allowed_page_filename(f)
         )
 
     def get_page_content(self, name):
         """Read and return a page's content."""
-        name = os.path.basename(name)
+        try:
+            name = normalize_page_filename(name)
+        except ValueError:
+            return None
         page_path = os.path.join(self.pages_dir, name)
         if not os.path.isfile(page_path):
             return None

@@ -321,12 +321,12 @@
                         </div>
                     </div>
                     <!-- eslint-disable vue/no-v-html -->
-                    <pre
+                    <div
                         v-else
-                        v-memo="[renderedNodePageHtml]"
-                        class="h-full break-words whitespace-pre-wrap"
+                        v-memo="[renderedNodePageHtml, nodePagePath, isShowingNodePageSource]"
+                        :class="nomadPageContentClasses"
                         v-html="renderedNodePageHtml"
-                    ></pre>
+                    ></div>
                     <!-- eslint-enable vue/no-v-html -->
                 </div>
 
@@ -396,6 +396,7 @@
 
 <script>
 import MicronParser from "../../js/MicronParser";
+import { renderNomadPageByPath } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
@@ -525,6 +526,31 @@ export default {
                 return "";
             }
             return this.renderPageContent(this.nodePagePath, this.nodePageContent);
+        },
+        nomadPageContentClasses() {
+            if (!this.nodePagePath || this.isShowingNodePageSource) {
+                return ["h-full", "break-words", "whitespace-pre-wrap", "text-gray-100"];
+            }
+            const [p] = this.nodePagePath.split("`");
+            const pl = (p || "").toLowerCase();
+            const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
+            const isHtml = pl.endsWith(".html");
+            const isMd = pl.endsWith(".md");
+            const classes = ["h-full", "break-words"];
+            if (isRich) {
+                classes.push("nomad-page-rich");
+            } else {
+                classes.push("whitespace-pre-wrap");
+            }
+            if (isHtml) {
+                classes.push("nomad-page-html-host");
+            } else {
+                classes.push("text-gray-100");
+            }
+            if (isMd) {
+                classes.push("nomad-markdown-host");
+            }
+            return classes;
         },
     },
     watch: {
@@ -1240,18 +1266,11 @@ export default {
         renderPageContent(path, content) {
             // render page content if we aren't viewing source
             if (!this.isShowingNodePageSource) {
-                // check if page url ends with .mu but remove page data first
                 // address:/page/index.mu`Data=123
                 const [pagePathWithoutData] = path.split("`");
-
-                // convert micron to html if page ends with .mu extension
-                if (pagePathWithoutData.endsWith(".mu")) {
-                    const muParser = new MicronParser();
-                    return muParser.convertMicronToHtml(content, this.pagePartials);
-                }
+                return renderNomadPageByPath(pagePathWithoutData, content, this.pagePartials, MicronParser);
             }
 
-            // otherwise, we will just serve the raw content, making sure to prevent injecting html
             return content
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
@@ -1834,5 +1853,84 @@ pre.text-wrap > div > :last-child {
     background: transparent;
     color: inherit;
     box-sizing: content-box;
+}
+
+.nomad-markdown-host {
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.nomad-markdown-host .nomad-markdown {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.nomad-markdown-host .nomad-markdown table {
+    white-space: normal;
+}
+
+.nomad-markdown-host .nomad-markdown h1 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+    font-weight: 700;
+    margin: 0.75rem 0 0.5rem;
+}
+
+.nomad-markdown-host .nomad-markdown h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    margin: 0.65rem 0 0.45rem;
+}
+
+.nomad-markdown-host .nomad-markdown h3 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    margin: 0.55rem 0 0.4rem;
+}
+
+.nomad-markdown-host .nomad-markdown h4 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0.35rem;
+}
+
+.nomad-markdown-host .nomad-markdown h5,
+.nomad-markdown-host .nomad-markdown h6 {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    margin: 0.45rem 0 0.3rem;
+}
+
+.nomad-markdown-host .nomad-markdown p {
+    margin: 0.4rem 0;
+}
+
+.nomad-markdown-host .nomad-markdown ul,
+.nomad-markdown-host .nomad-markdown ol {
+    margin: 0.4rem 0;
+    padding-left: 1.5rem;
+}
+
+.nomad-markdown-host .nomad-markdown blockquote {
+    margin: 0.5rem 0;
+    padding-left: 0.75rem;
+    border-left: 3px solid rgb(107 114 128);
+}
+
+.nomad-markdown-host .nomad-markdown pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+}
+
+.nomad-page-html-host {
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.nomad-page-html-host .nomad-html-root {
+    color: rgb(229 231 235);
 }
 </style>

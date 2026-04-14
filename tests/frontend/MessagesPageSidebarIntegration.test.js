@@ -27,7 +27,7 @@ vi.mock("@/js/Utils", () => ({
 
 const ConversationViewerStub = {
     name: "ConversationViewer",
-    template: "<div class=\"cv-stub\"></div>",
+    template: '<div class="cv-stub"></div>',
     methods: {
         markConversationAsRead: vi.fn(),
     },
@@ -46,11 +46,9 @@ describe("MessagesPage with MessagesSidebar integration", () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config")
                 return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
-            if (url === "/api/v1/lxmf/conversations")
-                return Promise.resolve({ data: { conversations: [] } });
+            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
             if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            if (url === "/api/v1/lxmf/conversation-pins")
-                return Promise.resolve({ data: { peer_hashes: [] } });
+            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
             if (url === "/api/v1/lxmf/folders") return Promise.resolve({ data: [] });
             return Promise.resolve({ data: {} });
         });
@@ -111,8 +109,7 @@ describe("MessagesPage with MessagesSidebar integration", () => {
                     },
                 });
             if (url === "/api/v1/announces") return Promise.resolve({ data: { announces: [] } });
-            if (url === "/api/v1/lxmf/conversation-pins")
-                return Promise.resolve({ data: { peer_hashes: [] } });
+            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
             if (url === "/api/v1/lxmf/folders") return Promise.resolve({ data: [] });
             return Promise.resolve({ data: {} });
         });
