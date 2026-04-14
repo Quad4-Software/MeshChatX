@@ -17,13 +17,13 @@
         <RouterView v-if="$route.name === 'auth'" />
 
         <template v-else>
-            <div v-if="isPopoutMode" class="flex flex-1 h-full w-full overflow-hidden bg-slate-50/90 dark:bg-zinc-950">
+            <div v-if="isPopoutMode" class="flex flex-1 h-full w-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
                 <RouterView class="flex-1" />
             </div>
 
             <template v-else>
                 <div
-                    class="sticky top-0 z-[100] flex bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors overflow-x-hidden"
+                    class="sticky top-0 z-[100] flex bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors overflow-x-hidden"
                 >
                     <div class="flex w-full px-2 sm:px-4 overflow-x-auto no-scrollbar">
                         <button
@@ -34,10 +34,10 @@
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
                         </button>
                         <div
-                            class="hidden sm:flex cursor-pointer my-auto w-12 h-12 mr-2 rounded-xl overflow-hidden bg-white/70 dark:bg-white/10 border border-gray-200 dark:border-zinc-700 shadow-inner"
+                            class="my-auto mr-2 hidden w-14 shrink-0 cursor-pointer overflow-hidden rounded-xl sm:flex"
                             @click="onAppNameClick"
                         >
-                            <img class="w-12 h-12 object-contain p-1.5" :src="logoUrl" />
+                            <img class="h-14 w-14 object-contain p-1" :src="logoUrl" alt="" />
                         </div>
                         <div class="my-auto">
                             <div
@@ -92,7 +92,7 @@
                             </button>
                             <button type="button" class="hidden sm:flex rounded-full" @click="composeNewMessage">
                                 <span
-                                    class="flex text-white bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 hover:from-blue-500/90 hover:to-purple-500/90 px-3 py-1.5 rounded-full shadow-md transition"
+                                    class="flex rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-white shadow-sm transition hover:bg-zinc-800 dark:border-zinc-400 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
                                 >
                                     <span>
                                         <MaterialDesignIcon icon-name="email" class="w-6 h-6" />
@@ -109,7 +109,7 @@
                 <!-- middle -->
                 <div
                     ref="middle"
-                    class="flex flex-1 w-full overflow-hidden bg-slate-50/80 dark:bg-zinc-950 transition-colors"
+                    class="flex flex-1 w-full overflow-hidden bg-slate-50 dark:bg-zinc-950 transition-colors"
                 >
                     <!-- sidebar backdrop for mobile -->
                     <div
@@ -123,14 +123,16 @@
                         class="fixed inset-y-0 left-0 z-[70] transform transition-all duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
                         :class="[
                             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-                            isSidebarCollapsed ? 'w-16' : 'w-80',
+                            isSidebarCollapsed ? 'w-16' : 'w-80 md:max-lg:w-64 lg:w-80',
                         ]"
                     >
                         <div
-                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200/70 bg-white dark:border-zinc-800 dark:bg-zinc-900 backdrop-blur pt-16 sm:pt-0"
+                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 pt-16 sm:pt-0"
                         >
-                            <!-- toggle button for desktop -->
-                            <div class="hidden sm:flex justify-end p-2 border-b border-gray-100 dark:border-zinc-800">
+                            <!-- toggle button for desktop (h-12 aligns with Messages/Nomad collapse rows) -->
+                            <div
+                                class="hidden sm:flex h-12 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
+                            >
                                 <button
                                     type="button"
                                     class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
@@ -316,7 +318,7 @@
                                 <!-- my identity -->
                                 <div
                                     v-if="config"
-                                    class="bg-white/80 border-t dark:border-zinc-800 dark:bg-zinc-900/70 backdrop-blur"
+                                    class="bg-white border-t border-gray-200 dark:border-zinc-800 dark:bg-zinc-950"
                                 >
                                     <div
                                         class="flex text-gray-700 p-3 cursor-pointer"
@@ -393,7 +395,7 @@
                                 <!-- auto announce -->
                                 <div
                                     v-if="config"
-                                    class="bg-white/80 border-t dark:bg-zinc-900/70 dark:border-zinc-800"
+                                    class="bg-white border-t border-gray-200 dark:border-zinc-800 dark:bg-zinc-950"
                                 >
                                     <div
                                         class="flex text-gray-700 p-3 cursor-pointer dark:text-white"
@@ -1145,9 +1147,12 @@ export default {
             }
         },
         async saveIdentitySettings() {
-            await this.updateConfig({
-                display_name: this.displayName,
-            });
+            await this.updateConfig(
+                {
+                    display_name: this.displayName,
+                },
+                "display_name_placeholder"
+            );
         },
         async onAnnounceIntervalSecondsChange() {
             await this.updateConfig(

@@ -225,7 +225,7 @@
             v-if="(status.has_docs || status.has_meshchatx_docs) && !isSearching"
             class="lg:hidden px-3 py-2 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 z-10"
         >
-            <div class="flex flex-col md:flex-row items-center gap-2 w-full">
+            <div class="flex flex-col lg:flex-row items-center gap-2 w-full">
                 <!-- Tabs -->
                 <div class="flex bg-gray-100 dark:bg-zinc-800 p-0.5 rounded-lg w-full md:w-auto">
                     <button

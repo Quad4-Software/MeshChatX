@@ -1,9 +1,9 @@
 <template>
     <div
-        class="flex flex-col h-full bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 shrink-0 overflow-hidden"
+        class="flex h-full shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
     >
         <!-- Sidebar Header -->
-        <div class="p-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+        <div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-zinc-800">
             <h2
                 class="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2"
             >
@@ -16,7 +16,7 @@
         </div>
 
         <!-- Search Bar -->
-        <div class="p-2 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
+        <div class="border-b border-gray-200 bg-white p-2 dark:border-zinc-800 dark:bg-zinc-950">
             <div class="relative">
                 <MaterialDesignIcon
                     icon-name="magnify"

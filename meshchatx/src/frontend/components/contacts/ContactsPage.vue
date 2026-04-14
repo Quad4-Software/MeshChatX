@@ -2,7 +2,7 @@
     <div class="flex flex-1 min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <div class="flex-1 overflow-y-auto p-4 md:p-6">
             <div class="max-w-5xl mx-auto space-y-4">
-                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100">{{ $t("contacts.title") }}</h1>
                         <p class="text-sm text-gray-600 dark:text-zinc-400">

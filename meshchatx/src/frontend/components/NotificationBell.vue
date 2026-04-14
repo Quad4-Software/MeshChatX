@@ -18,7 +18,7 @@
             <div
                 v-if="isDropdownOpen"
                 v-click-outside="closeDropdown"
-                class="fixed w-80 sm:w-96 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] max-h-[500px] overflow-hidden flex flex-col"
+                class="fixed w-80 sm:w-96 md:max-lg:w-80 lg:w-96 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] max-h-[500px] overflow-hidden flex flex-col"
                 :style="dropdownStyle"
             >
                 <div class="p-4 border-b border-gray-200 dark:border-zinc-800">

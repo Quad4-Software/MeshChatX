@@ -170,7 +170,7 @@
             <div
                 v-if="!offlineEnabled"
                 ref="searchContainer"
-                class="absolute top-2 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-30"
+                class="absolute top-2 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 md:max-lg:w-72 lg:w-80 z-30"
             >
                 <div class="relative">
                     <div class="flex items-center bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border-0 ring-0">
@@ -361,7 +361,7 @@
             <!-- telemetry marker overlay -->
             <div
                 v-if="selectedMarker"
-                class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 z-20 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
+                class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 md:max-lg:w-72 lg:w-80 z-20 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
             >
                 <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
                     <div class="flex items-center gap-3">

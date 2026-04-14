@@ -4,7 +4,7 @@
         <!-- Sidebar 1: Nodes -->
         <ArchiveSidebar
             v-if="!isSidebar1Hidden"
-            class="w-full sm:w-64 border-r border-gray-200 dark:border-zinc-800 shrink-0"
+            class="w-full sm:w-64 md:max-lg:w-56 lg:w-64 shrink-0 border-r border-gray-200 dark:border-zinc-800"
             :class="{ 'hidden sm:flex': selectedNodeHash }"
             :nodes="groupedArchives"
             :selected-node-hash="selectedNodeHash"
@@ -16,11 +16,11 @@
         <!-- Sidebar 2: Snapshots -->
         <div
             v-if="selectedNode && !isSidebar2Hidden"
-            class="w-full sm:w-80 border-r border-gray-200 dark:border-zinc-800 flex flex-col shrink-0 bg-gray-50 dark:bg-zinc-900/50"
+            class="flex w-full shrink-0 flex-col border-r border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 sm:w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80"
             :class="{ 'hidden sm:flex': viewingArchive }"
         >
             <div
-                class="p-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col gap-3"
+                class="flex flex-col gap-3 border-b border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950"
             >
                 <div class="flex items-center gap-2">
                     <button class="sm:hidden p-1 -ml-1 text-gray-500" @click="selectedNodeHash = null">
@@ -134,58 +134,68 @@
             <!-- Content Header -->
             <div
                 v-if="viewingArchive"
-                class="flex items-center gap-2 p-2 border-b border-zinc-800 bg-zinc-900 text-zinc-300 shrink-0"
+                class="flex shrink-0 items-center gap-2 border-b border-gray-200 bg-white p-2 text-gray-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
             >
-                <button class="sm:hidden p-1 text-zinc-500" @click="viewingArchive = null">
+                <button class="p-1 text-gray-500 sm:hidden dark:text-zinc-500" @click="viewingArchive = null">
                     <MaterialDesignIcon icon-name="arrow-left" class="size-6" />
                 </button>
 
-                <div class="flex-1 min-w-0 px-2">
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-0.5">
+                <div class="min-w-0 flex-1 px-2">
+                    <div
+                        class="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-zinc-500"
+                    >
                         Viewing Archive
                     </div>
-                    <div class="text-sm font-mono truncate text-white">{{ viewingArchive.page_path || "/" }}</div>
+                    <div class="truncate font-mono text-sm text-gray-900 dark:text-white">
+                        {{ viewingArchive.page_path || "/" }}
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-1">
                     <button
-                        class="p-2 hover:bg-zinc-800 rounded transition-colors hidden sm:block"
-                        :class="{ 'text-blue-400': !isSidebar1Hidden, 'text-zinc-600': isSidebar1Hidden }"
+                        class="hidden rounded p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
+                        :class="{
+                            'text-blue-600 dark:text-blue-400': !isSidebar1Hidden,
+                            'text-gray-400 dark:text-zinc-500': isSidebar1Hidden,
+                        }"
                         :title="isSidebar1Hidden ? 'Show Nodes' : 'Hide Nodes'"
                         @click="isSidebar1Hidden = !isSidebar1Hidden"
                     >
                         <MaterialDesignIcon icon-name="page-layout-sidebar-left" class="size-4" />
                     </button>
                     <button
-                        class="p-2 hover:bg-zinc-800 rounded transition-colors hidden sm:block"
-                        :class="{ 'text-blue-400': !isSidebar2Hidden, 'text-zinc-600': isSidebar2Hidden }"
+                        class="hidden rounded p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
+                        :class="{
+                            'text-blue-600 dark:text-blue-400': !isSidebar2Hidden,
+                            'text-gray-400 dark:text-zinc-500': isSidebar2Hidden,
+                        }"
                         :title="isSidebar2Hidden ? 'Show Snapshots' : 'Hide Snapshots'"
                         @click="isSidebar2Hidden = !isSidebar2Hidden"
                     >
                         <MaterialDesignIcon icon-name="view-list" class="size-4" />
                     </button>
-                    <div class="hidden sm:block w-px h-6 bg-zinc-800 mx-1"></div>
+                    <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 sm:block"></div>
                     <button
-                        class="p-2 hover:bg-zinc-800 rounded transition-colors text-zinc-300 flex items-center gap-2"
+                        class="flex items-center gap-2 rounded p-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         :title="$t('archives.export_mu')"
                         @click="exportArchiveAsMu(viewingArchive)"
                     >
                         <MaterialDesignIcon icon-name="download" class="size-4" />
-                        <span class="hidden xs:inline text-xs font-bold uppercase tracking-wider">{{
+                        <span class="hidden text-xs font-bold uppercase tracking-wider xs:inline">{{
                             $t("archives.export_mu")
                         }}</span>
                     </button>
-                    <div class="hidden xs:block w-px h-6 bg-zinc-800 mx-1"></div>
+                    <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 xs:block"></div>
                     <button
-                        class="p-2 hover:bg-zinc-800 rounded transition-colors text-blue-400 flex items-center gap-2"
+                        class="flex items-center gap-2 rounded p-2 text-blue-600 transition-colors hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-zinc-800"
                         @click="openInNomadnet(viewingArchive)"
                     >
                         <MaterialDesignIcon icon-name="open-in-new" class="size-4" />
-                        <span class="hidden xs:inline text-xs font-bold uppercase tracking-wider">Open Live</span>
+                        <span class="hidden text-xs font-bold uppercase tracking-wider xs:inline">Open Live</span>
                     </button>
-                    <div class="hidden xs:block w-px h-6 bg-zinc-800 mx-1"></div>
+                    <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 xs:block"></div>
                     <button
-                        class="p-2 hover:bg-zinc-800 rounded transition-colors hidden sm:block"
+                        class="hidden rounded p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
                         title="Close"
                         @click="viewingArchive = null"
                     >

@@ -3,6 +3,7 @@
         <MessagesSidebar
             v-if="!isPopoutMode"
             :class="{ 'hidden sm:flex': destinationHash }"
+            :collapsed="messagesListSidebarCollapsed"
             :conversations="conversations"
             :peers="peers"
             :folders="folders"
@@ -38,10 +39,11 @@
             @export-folders="onExportFolders"
             @import-folders="onImportFolders"
             @toggle-conversation-pin="onToggleConversationPin"
+            @toggle-collapse="messagesListSidebarCollapsed = !messagesListSidebarCollapsed"
         />
 
         <div
-            class="flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900/80"
+            class="flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950"
             :class="destinationHash ? 'flex' : 'hidden sm:flex'"
         >
             <!-- messages tab -->
@@ -156,6 +158,7 @@ export default {
 
             config: snapshotGlobalConfig(),
             hasLoadedConversations: false,
+            messagesListSidebarCollapsed: false,
             peers: {},
             selectedPeer: null,
 

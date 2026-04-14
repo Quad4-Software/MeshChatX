@@ -2,7 +2,7 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-8 py-4 sm:py-6">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
             <div class="space-y-0 w-full min-w-0 max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto flex-1">
                 <div
                     v-if="showRestartReminder"
@@ -27,7 +27,7 @@
                 </div>
 
                 <div
-                    class="interfaces-section interfaces-section--hero flex flex-col md:flex-row md:items-center justify-between gap-6"
+                    class="interfaces-section interfaces-section--hero flex flex-col lg:flex-row lg:items-center justify-between gap-6"
                 >
                     <div class="space-y-3 flex-1 min-w-0">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -467,7 +467,7 @@
                                     Configure Per-Interface
                                 </RouterLink>
                             </div>
-                            <div class="grid gap-4 min-w-0 md:grid-cols-2">
+                            <div class="grid gap-4 min-w-0 lg:grid-cols-2">
                                 <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300 min-w-0">
                                     <div class="font-semibold text-gray-900 dark:text-white">Publish (Server)</div>
                                     <div>

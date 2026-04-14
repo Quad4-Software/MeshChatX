@@ -3,10 +3,10 @@
         v-if="config"
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-8 py-4 sm:py-6">
+        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
             <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
                 <div class="settings-section settings-section--hero">
-                    <div class="flex flex-col md:flex-row md:items-center gap-4">
+                    <div class="flex flex-col lg:flex-row lg:items-center gap-4">
                         <div class="flex-1 space-y-1">
                             <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 {{ $t("app.profile") }}
@@ -274,6 +274,61 @@
                         </div>
                     </section>
 
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.stickers)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
+                            <div>
+                                <div class="settings-section__eyebrow">Messages</div>
+                                <h2>{{ $t("stickers.settings_title") }}</h2>
+                                <p>{{ $t("stickers.settings_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="settings-section__body space-y-4">
+                            <div class="text-sm text-gray-600 dark:text-gray-400">
+                                {{ $t("stickers.count", { count: stickerCount }) }}
+                            </div>
+                            <label
+                                class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
+                            >
+                                <input v-model="stickerImportReplaceDuplicates" type="checkbox" class="rounded" />
+                                {{ $t("stickers.replace_duplicates") }}
+                            </label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
+                                    @click="exportStickers"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="export"
+                                        class="size-6 text-amber-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">{{ $t("stickers.export") }}</div>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
+                                    @click="triggerStickerImport"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="import"
+                                        class="size-6 text-teal-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">{{ $t("stickers.import") }}</div>
+                                </button>
+                                <input
+                                    ref="stickerImportFile"
+                                    type="file"
+                                    accept=".json,application/json"
+                                    class="hidden"
+                                    @change="importStickers"
+                                />
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Maintenance & Data -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.maintenance)"
@@ -348,6 +403,22 @@
                                         </div>
                                         <div class="text-xs opacity-80">
                                             {{ $t("maintenance.clear_lxmf_icons_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-amber-200 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
+                                    @click="clearStickers"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="emoticon-outline" class="size-4" />
+                                            {{ $t("maintenance.clear_stickers") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_stickers_desc") }}
                                         </div>
                                     </div>
                                 </button>
@@ -835,6 +906,26 @@
                                                 type="text"
                                                 class="input-field monospace-field flex-1"
                                                 @input="onMessageBubbleColorChange('failed')"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Waiting Color
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <input
+                                                v-model="config.message_waiting_bubble_color"
+                                                type="color"
+                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                                @input="onMessageBubbleColorChange('waiting')"
+                                            />
+                                            <input
+                                                v-model="config.message_waiting_bubble_color"
+                                                type="text"
+                                                class="input-field monospace-field flex-1"
+                                                @input="onMessageBubbleColorChange('waiting')"
                                             />
                                         </div>
                                     </div>
@@ -1812,7 +1903,7 @@
                             </div>
                         </div>
                         <div class="settings-section__body">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div
                                     v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
                                     :key="shortcut.action"
@@ -1902,6 +1993,7 @@ export default {
                 message_outbound_bubble_color: "#4f46e5",
                 message_inbound_bubble_color: null,
                 message_failed_bubble_color: "#ef4444",
+                message_waiting_bubble_color: "#e5e7eb",
                 telephone_tone_generator_enabled: true,
                 telephone_tone_generator_volume: 50,
                 location_source: "browser",
@@ -1923,6 +2015,8 @@ export default {
             reloadingRns: false,
             searchQuery: "",
             trustedTelemetryPeers: [],
+            stickerCount: 0,
+            stickerImportReplaceDuplicates: false,
             sectionKeywords: {
                 banishment: [
                     "Visuals",
@@ -1935,6 +2029,14 @@ export default {
                     "app.banished_color_label",
                     "app.banished_color_description",
                 ],
+                stickers: [
+                    "Stickers",
+                    "stickers.settings_title",
+                    "stickers.settings_description",
+                    "stickers.export",
+                    "stickers.import",
+                    "stickers.replace_duplicates",
+                ],
                 maintenance: [
                     "Maintenance",
                     "maintenance.title",
@@ -1945,8 +2047,14 @@ export default {
                     "maintenance.clear_announces_desc",
                     "maintenance.clear_nomadnet_favs",
                     "maintenance.clear_nomadnet_favs_desc",
+                    "maintenance.clear_lxmf_icons",
+                    "maintenance.clear_lxmf_icons_desc",
+                    "maintenance.clear_stickers",
+                    "maintenance.clear_stickers_desc",
                     "maintenance.clear_archives",
                     "maintenance.clear_archives_desc",
+                    "maintenance.clear_reticulum_docs",
+                    "maintenance.clear_reticulum_docs_desc",
                     "maintenance.export_messages",
                     "maintenance.export_messages_desc",
                     "maintenance.import_messages",
@@ -1986,6 +2094,8 @@ export default {
                     "app.dark_theme",
                     "Message Font Size",
                     "Icon Size",
+                    "Message Bubbles",
+                    "Waiting Color",
                     "app.live_preview",
                     "app.realtime",
                 ],
@@ -2125,6 +2235,7 @@ export default {
 
         this.getConfig();
         this.getTrustedTelemetryPeers();
+        this.loadStickerCount();
     },
     methods: {
         async getTrustedTelemetryPeers() {
@@ -2247,6 +2358,7 @@ export default {
             this.config.banished_color = hex6(this.config.banished_color, "#dc2626");
             this.config.message_outbound_bubble_color = hex6(this.config.message_outbound_bubble_color, "#4f46e5");
             this.config.message_failed_bubble_color = hex6(this.config.message_failed_bubble_color, "#ef4444");
+            this.config.message_waiting_bubble_color = hex6(this.config.message_waiting_bubble_color, "#e5e7eb");
             const inbound = this.config.message_inbound_bubble_color;
             if (inbound == null || inbound === "") {
                 this.config.message_inbound_bubble_color = null;
@@ -2752,6 +2864,70 @@ export default {
             } catch {
                 ToastUtils.error(this.$t("common.error"));
             }
+        },
+        async clearStickers() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await window.api.delete("/api/v1/maintenance/stickers");
+                ToastUtils.success(this.$t("maintenance.stickers_cleared"));
+                await this.loadStickerCount();
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async loadStickerCount() {
+            try {
+                const response = await window.api.get("/api/v1/stickers");
+                const list = response.data?.stickers;
+                this.stickerCount = Array.isArray(list) ? list.length : 0;
+            } catch {
+                this.stickerCount = 0;
+            }
+        },
+        async exportStickers() {
+            try {
+                const response = await window.api.get("/api/v1/stickers/export");
+                const dataStr = JSON.stringify(response.data, null, 2);
+                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+                const exportFileDefaultName = `meshchat_stickers_${new Date().toISOString().slice(0, 10)}.json`;
+                const linkElement = document.createElement("a");
+                linkElement.setAttribute("href", dataUri);
+                linkElement.setAttribute("download", exportFileDefaultName);
+                linkElement.click();
+                ToastUtils.success(this.$t("stickers.export_done"));
+            } catch {
+                ToastUtils.error(this.$t("stickers.import_failed"));
+            }
+        },
+        triggerStickerImport() {
+            this.$refs.stickerImportFile.click();
+        },
+        async importStickers(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const response = await window.api.post("/api/v1/stickers/import", {
+                        ...data,
+                        replace_duplicates: this.stickerImportReplaceDuplicates,
+                    });
+                    const r = response.data;
+                    ToastUtils.success(
+                        this.$t("stickers.import_success", {
+                            imported: r.imported ?? 0,
+                            skipped_duplicates: r.skipped_duplicates ?? 0,
+                            skipped_invalid: r.skipped_invalid ?? 0,
+                        })
+                    );
+                    await this.loadStickerCount();
+                } catch {
+                    ToastUtils.error(this.$t("stickers.import_failed"));
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = "";
         },
         async clearArchives() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;

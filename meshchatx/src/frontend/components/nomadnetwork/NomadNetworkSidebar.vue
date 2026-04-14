@@ -1,424 +1,525 @@
 <template>
-    <div
-        class="flex flex-col w-full sm:w-80 sm:min-w-80 min-h-0 bg-white/90 dark:bg-zinc-950/80 backdrop-blur border-r border-gray-200 dark:border-zinc-800"
-    >
-        <div class="flex">
-            <button
-                type="button"
-                class="sidebar-tab"
-                :class="{ 'sidebar-tab--active': tab === 'favourites' }"
-                @click="tab = 'favourites'"
-            >
-                {{ $t("nomadnet.favourites") }}
-            </button>
-            <button
-                type="button"
-                class="sidebar-tab"
-                :class="{ 'sidebar-tab--active': tab === 'announces' }"
-                @click="tab = 'announces'"
-            >
-                {{ $t("nomadnet.announces") }}
-            </button>
-        </div>
-
-        <div v-if="tab === 'favourites'" class="flex-1 flex flex-col min-h-0">
-            <div class="p-3 border-b border-gray-200 dark:border-zinc-800">
-                <input
-                    v-model="favouritesSearchTerm"
-                    type="text"
-                    :placeholder="$t('nomadnet.search_favourites_placeholder', { count: favourites.length })"
-                    class="input-field w-full rounded-none"
-                />
-            </div>
+    <div :class="sidebarRootClass">
+        <div
+            v-if="effectiveCollapsed"
+            class="flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800"
+        >
             <div
-                class="flex items-center justify-between px-3 pt-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                class="hidden sm:flex h-12 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
             >
-                <span class="font-semibold">Sections</span>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                    @click="createSection"
+                    class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                    @click="$emit('toggle-collapse')"
                 >
-                    <MaterialDesignIcon icon-name="plus" class="size-4" />
-                    <span>Add Section</span>
+                    <MaterialDesignIcon icon-name="chevron-right" class="size-5" />
                 </button>
             </div>
-            <div class="flex-1 overflow-y-auto px-2 pb-4">
-                <div v-if="favourites.length === 0" class="empty-state">
-                    <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
-                    <div class="font-semibold">{{ $t("nomadnet.no_favourites") }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ $t("nomadnet.add_nodes_from_announces") }}
-                    </div>
-                </div>
-                <div v-else-if="hasFavouriteResults" class="space-y-3 pt-2">
-                    <div
-                        v-for="section in sectionsWithFavourites"
-                        :key="section.id"
-                        class="rounded-xl"
-                        :class="[
-                            dragOverSectionId === section.id
-                                ? 'ring-1 ring-blue-400 dark:ring-blue-600 bg-blue-50/40 dark:bg-blue-900/10'
-                                : '',
-                            draggingSectionOverId === section.id
-                                ? 'ring-1 ring-blue-300 dark:ring-blue-700 bg-blue-50/30 dark:bg-blue-900/5'
-                                : '',
-                        ]"
-                        @dragover.prevent="onSectionDragOver(section.id)"
-                        @dragleave="onSectionDragLeave"
-                        @drop.prevent="onDropOnSection(section.id)"
+            <div class="flex flex-col items-center gap-1 py-2 px-1 border-b border-gray-200 dark:border-zinc-800">
+                <button
+                    type="button"
+                    class="p-2 rounded-xl transition-colors"
+                    :class="
+                        tab === 'favourites'
+                            ? 'bg-blue-600 text-white dark:bg-blue-500'
+                            : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                    "
+                    @click="tab = 'favourites'"
+                >
+                    <MaterialDesignIcon icon-name="star" class="size-6" />
+                </button>
+                <button
+                    type="button"
+                    class="p-2 rounded-xl transition-colors"
+                    :class="
+                        tab === 'announces'
+                            ? 'bg-blue-600 text-white dark:bg-blue-500'
+                            : 'text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                    "
+                    @click="tab = 'announces'"
+                >
+                    <MaterialDesignIcon icon-name="satellite-uplink" class="size-6" />
+                </button>
+            </div>
+            <div
+                v-if="tab === 'favourites'"
+                class="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden flex flex-col items-center gap-1 py-1 px-0.5"
+            >
+                <button
+                    v-for="fav in collapsedFavouritePreview"
+                    :key="fav.destination_hash"
+                    type="button"
+                    class="shrink-0 p-1 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    :class="
+                        fav.destination_hash === selectedDestinationHash
+                            ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
+                            : 'hover:bg-white/10'
+                    "
+                    :title="fav.display_name"
+                    @click="onFavouriteClick(fav)"
+                >
+                    <MaterialDesignIcon icon-name="server-network" class="size-6 text-gray-600 dark:text-gray-300" />
+                </button>
+            </div>
+            <div
+                v-else-if="tab === 'announces'"
+                class="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden flex flex-col items-center gap-1 py-1 px-0.5"
+            >
+                <button
+                    v-for="node in collapsedAnnounceNodesPreview"
+                    :key="node.destination_hash"
+                    type="button"
+                    class="shrink-0 p-1 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    :class="
+                        node.destination_hash === selectedDestinationHash
+                            ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
+                            : 'hover:bg-white/10'
+                    "
+                    :title="node.display_name"
+                    @click="onNodeClick(node)"
+                >
+                    <MaterialDesignIcon icon-name="satellite-uplink" class="size-6 text-gray-600 dark:text-gray-300" />
+                </button>
+            </div>
+        </div>
+        <template v-else>
+            <div
+                class="flex h-12 min-w-0 items-stretch border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
+            >
+                <div class="flex min-w-0 flex-1">
+                    <button
+                        type="button"
+                        class="sidebar-tab"
+                        :class="{ 'sidebar-tab--active': tab === 'favourites' }"
+                        @click="tab = 'favourites'"
                     >
+                        {{ $t("nomadnet.favourites") }}
+                    </button>
+                    <button
+                        type="button"
+                        class="sidebar-tab"
+                        :class="{ 'sidebar-tab--active': tab === 'announces' }"
+                        @click="tab = 'announces'"
+                    >
+                        {{ $t("nomadnet.announces") }}
+                    </button>
+                </div>
+                <button
+                    type="button"
+                    class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                    @click="$emit('toggle-collapse')"
+                >
+                    <MaterialDesignIcon icon-name="chevron-left" class="size-5" />
+                </button>
+            </div>
+
+            <div v-if="tab === 'favourites'" class="flex-1 flex flex-col min-h-0">
+                <div class="p-3 border-b border-gray-200 dark:border-zinc-800">
+                    <input
+                        v-model="favouritesSearchTerm"
+                        type="text"
+                        :placeholder="$t('nomadnet.search_favourites_placeholder', { count: favourites.length })"
+                        class="input-field w-full rounded-none"
+                    />
+                </div>
+                <div
+                    class="flex items-center justify-between px-3 pt-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                >
+                    <span class="font-semibold">Sections</span>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                        @click="createSection"
+                    >
+                        <MaterialDesignIcon icon-name="plus" class="size-4" />
+                        <span>Add Section</span>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto px-2 pb-4">
+                    <div v-if="favourites.length === 0" class="empty-state">
+                        <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
+                        <div class="font-semibold">{{ $t("nomadnet.no_favourites") }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            {{ $t("nomadnet.add_nodes_from_announces") }}
+                        </div>
+                    </div>
+                    <div v-else-if="hasFavouriteResults" class="space-y-3 pt-2">
                         <div
-                            class="flex items-center justify-between px-2 py-1 cursor-pointer select-none"
-                            draggable="true"
-                            @click="toggleSectionCollapse(section.id)"
-                            @contextmenu.prevent="openSectionContextMenu($event, section)"
-                            @dragstart="onSectionDragStart(section.id)"
-                            @dragover.prevent="onSectionReorderDragOver(section.id)"
-                            @drop.prevent="onSectionDrop(section.id)"
-                            @dragend="onSectionDragEnd"
+                            v-for="section in sectionsWithFavourites"
+                            :key="section.id"
+                            class="rounded-xl"
+                            :class="[
+                                dragOverSectionId === section.id
+                                    ? 'ring-1 ring-blue-400 dark:ring-blue-600 bg-blue-50/40 dark:bg-blue-900/10'
+                                    : '',
+                                draggingSectionOverId === section.id
+                                    ? 'ring-1 ring-blue-300 dark:ring-blue-700 bg-blue-50/30 dark:bg-blue-900/5'
+                                    : '',
+                            ]"
+                            @dragover.prevent="onSectionDragOver(section.id)"
+                            @dragleave="onSectionDragLeave"
+                            @drop.prevent="onDropOnSection(section.id)"
                         >
-                            <div class="flex items-center gap-2">
-                                <MaterialDesignIcon
-                                    :icon-name="section.collapsed ? 'chevron-right' : 'chevron-down'"
-                                    class="size-4 text-gray-400"
-                                />
-                                <span
-                                    class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300"
-                                >
-                                    {{ section.name }}
-                                </span>
-                                <span
-                                    v-if="section.collapsed"
-                                    class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full"
-                                >
-                                    {{ section.favourites.length }}
-                                </span>
+                            <div
+                                class="flex items-center justify-between px-2 py-1 cursor-pointer select-none"
+                                draggable="true"
+                                @click="toggleSectionCollapse(section.id)"
+                                @contextmenu.prevent="openSectionContextMenu($event, section)"
+                                @dragstart="onSectionDragStart(section.id)"
+                                @dragover.prevent="onSectionReorderDragOver(section.id)"
+                                @drop.prevent="onSectionDrop(section.id)"
+                                @dragend="onSectionDragEnd"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <MaterialDesignIcon
+                                        :icon-name="section.collapsed ? 'chevron-right' : 'chevron-down'"
+                                        class="size-4 text-gray-400"
+                                    />
+                                    <span
+                                        class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300"
+                                    >
+                                        {{ section.name }}
+                                    </span>
+                                    <span
+                                        v-if="section.collapsed"
+                                        class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full"
+                                    >
+                                        {{ section.favourites.length }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-1" @click.stop>
+                                    <button
+                                        type="button"
+                                        class="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition"
+                                        @click="openSectionContextMenu($event, section)"
+                                    >
+                                        <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
+                                    </button>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-1" @click.stop>
-                                <button
-                                    type="button"
-                                    class="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition"
-                                    @click="openSectionContextMenu($event, section)"
+                            <div class="h-px bg-gray-200 dark:bg-zinc-800 mx-1"></div>
+                            <div v-if="!section.collapsed" class="space-y-2 pt-2 pb-1 px-1">
+                                <div
+                                    v-for="favourite of section.favourites"
+                                    :key="favourite.destination_hash"
+                                    class="favourite-card relative"
+                                    :class="[
+                                        favourite.destination_hash === selectedDestinationHash
+                                            ? 'favourite-card--active'
+                                            : '',
+                                        draggingFavouriteHash === favourite.destination_hash
+                                            ? 'favourite-card--dragging'
+                                            : '',
+                                    ]"
+                                    draggable="true"
+                                    @click="onFavouriteClick(favourite)"
+                                    @contextmenu.prevent="openFavouriteContextMenu($event, favourite, section.id)"
+                                    @dragstart="onFavouriteDragStart($event, favourite, section.id)"
+                                    @dragover.prevent="onFavouriteDragOver($event)"
+                                    @drop.prevent="onFavouriteDrop($event, section.id, favourite)"
+                                    @dragend="onFavouriteDragEnd"
                                 >
-                                    <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
-                                </button>
+                                    <div
+                                        v-if="
+                                            GlobalState.config.banished_effect_enabled &&
+                                            isBlocked(favourite.destination_hash)
+                                        "
+                                        class="banished-overlay"
+                                        :style="{ background: GlobalState.config.banished_color + '33' }"
+                                    >
+                                        <span
+                                            class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                            :style="{ 'background-color': GlobalState.config.banished_color }"
+                                            >{{ GlobalState.config.banished_text }}</span
+                                        >
+                                    </div>
+
+                                    <div class="favourite-card__icon flex-shrink-0">
+                                        <MaterialDesignIcon icon-name="server-network" class="w-5 h-5" />
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="text-sm font-semibold text-gray-900 dark:text-white truncate"
+                                            :title="favourite.display_name"
+                                        >
+                                            {{ favourite.display_name }}
+                                        </div>
+                                        <div
+                                            class="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer inline-flex items-center"
+                                            :title="$t('common.copy_to_clipboard')"
+                                            @click.stop="copyToClipboard(favourite.destination_hash, 'Address')"
+                                        >
+                                            {{ formatDestinationHash(favourite.destination_hash) }}
+                                        </div>
+                                    </div>
+                                    <IconButton
+                                        class="flex-shrink-0 text-gray-500 dark:text-gray-300"
+                                        @click.stop="openFavouriteContextMenu($event, favourite, section.id)"
+                                    >
+                                        <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
+                                    </IconButton>
+                                </div>
+                                <div
+                                    v-if="section.favourites.length === 0"
+                                    class="text-xs text-gray-500 dark:text-gray-400 px-3 pb-2 italic"
+                                >
+                                    No favourites in this section.
+                                </div>
                             </div>
                         </div>
-                        <div class="h-px bg-gray-200 dark:bg-zinc-800 mx-1"></div>
-                        <div v-if="!section.collapsed" class="space-y-2 pt-2 pb-1 px-1">
-                            <div
-                                v-for="favourite of section.favourites"
-                                :key="favourite.destination_hash"
-                                class="favourite-card relative"
-                                :class="[
-                                    favourite.destination_hash === selectedDestinationHash
-                                        ? 'favourite-card--active'
-                                        : '',
-                                    draggingFavouriteHash === favourite.destination_hash
-                                        ? 'favourite-card--dragging'
-                                        : '',
-                                ]"
-                                draggable="true"
-                                @click="onFavouriteClick(favourite)"
-                                @contextmenu.prevent="openFavouriteContextMenu($event, favourite, section.id)"
-                                @dragstart="onFavouriteDragStart($event, favourite, section.id)"
-                                @dragover.prevent="onFavouriteDragOver($event)"
-                                @drop.prevent="onFavouriteDrop($event, section.id, favourite)"
-                                @dragend="onFavouriteDragEnd"
-                            >
-                                <div
-                                    v-if="
-                                        GlobalState.config.banished_effect_enabled &&
-                                        isBlocked(favourite.destination_hash)
-                                    "
-                                    class="banished-overlay"
-                                    :style="{ background: GlobalState.config.banished_color + '33' }"
-                                >
-                                    <span
-                                        class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
-                                        :style="{ 'background-color': GlobalState.config.banished_color }"
-                                        >{{ GlobalState.config.banished_text }}</span
-                                    >
-                                </div>
+                    </div>
+                    <div v-else class="empty-state">
+                        <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
+                        <div class="font-semibold">No favourites match your search</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Try a different search term.</div>
+                    </div>
+                </div>
 
-                                <div class="favourite-card__icon flex-shrink-0">
-                                    <MaterialDesignIcon icon-name="server-network" class="w-5 h-5" />
+                <!-- Favourite Context Menu (Teleport to body to avoid overflow clipping) -->
+                <Teleport to="body">
+                    <div
+                        v-if="favouriteContextMenu.show"
+                        v-click-outside="{
+                            handler: () => {
+                                if (!favouriteContextMenu.justOpened) closeContextMenus();
+                            },
+                            capture: true,
+                        }"
+                        class="fixed z-[200] min-w-[220px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                        :style="{ top: favouriteContextMenu.y + 'px', left: favouriteContextMenu.x + 'px' }"
+                    >
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="renameFavouriteFromContext"
+                        >
+                            <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
+                            <span class="font-medium">{{ $t("nomadnet.rename") }}</span>
+                        </button>
+                        <button
+                            v-if="!isBlocked(favouriteContextMenu.targetHash)"
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                            @click="banishFavouriteFromContext"
+                        >
+                            <MaterialDesignIcon icon-name="gavel" class="size-4 text-red-400" />
+                            <span class="font-medium">{{ $t("nomadnet.block_node") }}</span>
+                        </button>
+                        <button
+                            v-else
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all active:scale-95"
+                            @click="unblockFavouriteFromContext"
+                        >
+                            <MaterialDesignIcon icon-name="check-circle" class="size-4 text-green-400" />
+                            <span class="font-medium">{{ $t("nomadnet.lift_banishment") }}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                            @click="removeFavouriteFromContext"
+                        >
+                            <MaterialDesignIcon icon-name="trash-can" class="size-4 text-red-400" />
+                            <span class="font-medium">{{ $t("nomadnet.remove") }}</span>
+                        </button>
+                        <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                        <div
+                            class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
+                        >
+                            Move to Section
+                        </div>
+                        <div class="max-h-56 overflow-y-auto custom-scrollbar">
+                            <button
+                                v-for="section in sectionsWithFavourites"
+                                :key="section.id + '-move'"
+                                type="button"
+                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
+                                @click="moveContextFavouriteToSection(section.id)"
+                            >
+                                <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
+                                <span class="truncate">{{ section.name }}</span>
+                            </button>
+                        </div>
+                    </div>
+                </Teleport>
+
+                <!-- Section Context Menu (Teleport to body) -->
+                <Teleport to="body">
+                    <div
+                        v-if="sectionContextMenu.show"
+                        v-click-outside="{ handler: closeContextMenus, capture: true }"
+                        class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                        :style="{ top: sectionContextMenu.y + 'px', left: sectionContextMenu.x + 'px' }"
+                    >
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="renameSectionFromContext"
+                        >
+                            <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
+                            <span class="font-medium">Rename Section</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                            :disabled="sectionContextMenu.sectionId === defaultSectionId"
+                            :class="
+                                sectionContextMenu.sectionId === defaultSectionId ? 'opacity-50 cursor-not-allowed' : ''
+                            "
+                            @click="removeSectionFromContext"
+                        >
+                            <MaterialDesignIcon icon-name="delete" class="size-4 text-red-400" />
+                            <span class="font-medium">Delete Section</span>
+                        </button>
+                    </div>
+                </Teleport>
+            </div>
+
+            <div v-else class="flex-1 flex flex-col min-h-0">
+                <div class="p-3 border-b border-gray-200 dark:border-zinc-800">
+                    <input
+                        :value="nodesSearchTerm"
+                        type="text"
+                        :placeholder="$t('nomadnet.search_placeholder_announces', { count: totalNodesCount })"
+                        class="input-field w-full rounded-none"
+                        @input="onNodesSearchInput"
+                    />
+                </div>
+                <div class="flex-1 overflow-y-auto px-2 pb-4" @scroll="onNodesScroll">
+                    <div v-if="searchedNodes.length > 0" class="space-y-2 pt-2">
+                        <div
+                            v-for="node of searchedNodes"
+                            :key="node.destination_hash"
+                            class="announce-card relative"
+                            :class="{ 'announce-card--active': node.destination_hash === selectedDestinationHash }"
+                            @contextmenu.prevent="openAnnounceContextMenu($event, node)"
+                        >
+                            <!-- banished overlay -->
+                            <div
+                                v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
+                                class="banished-overlay"
+                                :style="{ background: GlobalState.config.banished_color + '33' }"
+                            >
+                                <span
+                                    class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                    :style="{ 'background-color': GlobalState.config.banished_color }"
+                                    >{{ GlobalState.config.banished_text }}</span
+                                >
+                            </div>
+
+                            <div
+                                class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                                @click="onNodeClick(node)"
+                            >
+                                <div class="announce-card__icon flex-shrink-0">
+                                    <MaterialDesignIcon icon-name="satellite-uplink" class="w-5 h-5" />
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div
                                         class="text-sm font-semibold text-gray-900 dark:text-white truncate"
-                                        :title="favourite.display_name"
+                                        :title="node.display_name"
                                     >
-                                        {{ favourite.display_name }}
+                                        {{ node.display_name }}
                                     </div>
-                                    <div
-                                        class="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer inline-flex items-center"
-                                        :title="$t('common.copy_to_clipboard')"
-                                        @click.stop="copyToClipboard(favourite.destination_hash, 'Address')"
-                                    >
-                                        {{ formatDestinationHash(favourite.destination_hash) }}
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5">
+                                        <span class="truncate">{{
+                                            $t("nomadnet.announced_time_ago", { time: formatTimeAgo(node.updated_at) })
+                                        }}</span>
+                                        <span
+                                            class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400 inline-flex items-center"
+                                            :title="$t('common.copy_to_clipboard')"
+                                            @click.stop="copyToClipboard(node.destination_hash, 'Address')"
+                                        >
+                                            {{ formatDestinationHash(node.destination_hash) }}
+                                        </span>
                                     </div>
                                 </div>
-                                <IconButton
-                                    class="flex-shrink-0 text-gray-500 dark:text-gray-300"
-                                    @click.stop="openFavouriteContextMenu($event, favourite, section.id)"
-                                >
-                                    <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
-                                </IconButton>
                             </div>
-                            <div
-                                v-if="section.favourites.length === 0"
-                                class="text-xs text-gray-500 dark:text-gray-400 px-3 pb-2 italic"
-                            >
-                                No favourites in this section.
+                            <div class="flex-shrink-0">
+                                <DropDownMenu>
+                                    <template #button>
+                                        <IconButton>
+                                            <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
+                                        </IconButton>
+                                    </template>
+                                    <template #items>
+                                        <DropDownMenuItem
+                                            v-if="!isBlocked(node.identity_hash)"
+                                            @click.stop="onBlockNode(node)"
+                                        >
+                                            <MaterialDesignIcon icon-name="gavel" class="w-5 h-5 text-red-500" />
+                                            <span class="text-red-500">{{ $t("nomadnet.block_node") }}</span>
+                                        </DropDownMenuItem>
+                                        <DropDownMenuItem v-else @click.stop="onUnblockNode(node.identity_hash)">
+                                            <MaterialDesignIcon
+                                                icon-name="check-circle"
+                                                class="w-5 h-5 text-green-500"
+                                            />
+                                            <span class="text-green-500">{{ $t("nomadnet.lift_banishment") }}</span>
+                                        </DropDownMenuItem>
+                                    </template>
+                                </DropDownMenu>
                             </div>
+                        </div>
+
+                        <!-- loading more spinner -->
+                        <div v-if="isLoadingMoreNodes" class="p-4 text-center">
+                            <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
+                        </div>
+                    </div>
+                    <div v-else class="empty-state">
+                        <MaterialDesignIcon icon-name="radar" class="w-8 h-8" />
+                        <div class="font-semibold">{{ $t("nomadnet.no_announces_yet") }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            {{ $t("nomadnet.listening_for_peers") }}
                         </div>
                     </div>
                 </div>
-                <div v-else class="empty-state">
-                    <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
-                    <div class="font-semibold">No favourites match your search</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">Try a different search term.</div>
-                </div>
-            </div>
 
-            <!-- Favourite Context Menu (Teleport to body to avoid overflow clipping) -->
-            <Teleport to="body">
-                <div
-                    v-if="favouriteContextMenu.show"
-                    v-click-outside="{
-                        handler: () => {
-                            if (!favouriteContextMenu.justOpened) closeContextMenus();
-                        },
-                        capture: true,
-                    }"
-                    class="fixed z-[200] min-w-[220px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                    :style="{ top: favouriteContextMenu.y + 'px', left: favouriteContextMenu.x + 'px' }"
-                >
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                        @click="renameFavouriteFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
-                        <span class="font-medium">{{ $t("nomadnet.rename") }}</span>
-                    </button>
-                    <button
-                        v-if="!isBlocked(favouriteContextMenu.targetHash)"
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                        @click="banishFavouriteFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="gavel" class="size-4 text-red-400" />
-                        <span class="font-medium">{{ $t("nomadnet.block_node") }}</span>
-                    </button>
-                    <button
-                        v-else
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all active:scale-95"
-                        @click="unblockFavouriteFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="check-circle" class="size-4 text-green-400" />
-                        <span class="font-medium">{{ $t("nomadnet.lift_banishment") }}</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                        @click="removeFavouriteFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="trash-can" class="size-4 text-red-400" />
-                        <span class="font-medium">{{ $t("nomadnet.remove") }}</span>
-                    </button>
-                    <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
+                <!-- Announce Context Menu (right-click, Teleport to body) -->
+                <Teleport to="body">
                     <div
-                        class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
+                        v-if="announceContextMenu.show"
+                        v-click-outside="{
+                            handler: () => {
+                                if (!announceContextMenu.justOpened) closeContextMenus();
+                            },
+                            capture: true,
+                        }"
+                        class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
+                        :style="{ top: announceContextMenu.y + 'px', left: announceContextMenu.x + 'px' }"
                     >
-                        Move to Section
-                    </div>
-                    <div class="max-h-56 overflow-y-auto custom-scrollbar">
                         <button
-                            v-for="section in sectionsWithFavourites"
-                            :key="section.id + '-move'"
+                            v-if="!isFavourite(announceContextMenu.node?.destination_hash)"
                             type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
-                            @click="moveContextFavouriteToSection(section.id)"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                            @click="addFavouriteFromContext"
                         >
-                            <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
-                            <span class="truncate">{{ section.name }}</span>
+                            <MaterialDesignIcon icon-name="star-outline" class="size-4 text-yellow-500" />
+                            <span class="font-medium">{{ $t("nomadnet.add_favourite") }}</span>
+                        </button>
+                        <button
+                            v-if="!isBlocked(announceContextMenu.node?.identity_hash)"
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                            @click="blockAnnounceFromContext"
+                        >
+                            <MaterialDesignIcon icon-name="gavel" class="size-4 text-red-400" />
+                            <span class="font-medium">{{ $t("nomadnet.block_node") }}</span>
+                        </button>
+                        <button
+                            v-else
+                            type="button"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all active:scale-95"
+                            @click="unblockAnnounceFromContext"
+                        >
+                            <MaterialDesignIcon icon-name="check-circle" class="size-4 text-green-400" />
+                            <span class="font-medium">{{ $t("nomadnet.lift_banishment") }}</span>
                         </button>
                     </div>
-                </div>
-            </Teleport>
-
-            <!-- Section Context Menu (Teleport to body) -->
-            <Teleport to="body">
-                <div
-                    v-if="sectionContextMenu.show"
-                    v-click-outside="{ handler: closeContextMenus, capture: true }"
-                    class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                    :style="{ top: sectionContextMenu.y + 'px', left: sectionContextMenu.x + 'px' }"
-                >
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                        @click="renameSectionFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
-                        <span class="font-medium">Rename Section</span>
-                    </button>
-                    <button
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                        :disabled="sectionContextMenu.sectionId === defaultSectionId"
-                        :class="
-                            sectionContextMenu.sectionId === defaultSectionId ? 'opacity-50 cursor-not-allowed' : ''
-                        "
-                        @click="removeSectionFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="delete" class="size-4 text-red-400" />
-                        <span class="font-medium">Delete Section</span>
-                    </button>
-                </div>
-            </Teleport>
-        </div>
-
-        <div v-else class="flex-1 flex flex-col min-h-0">
-            <div class="p-3 border-b border-gray-200 dark:border-zinc-800">
-                <input
-                    :value="nodesSearchTerm"
-                    type="text"
-                    :placeholder="$t('nomadnet.search_placeholder_announces', { count: totalNodesCount })"
-                    class="input-field w-full rounded-none"
-                    @input="onNodesSearchInput"
-                />
+                </Teleport>
             </div>
-            <div class="flex-1 overflow-y-auto px-2 pb-4" @scroll="onNodesScroll">
-                <div v-if="searchedNodes.length > 0" class="space-y-2 pt-2">
-                    <div
-                        v-for="node of searchedNodes"
-                        :key="node.destination_hash"
-                        class="announce-card relative"
-                        :class="{ 'announce-card--active': node.destination_hash === selectedDestinationHash }"
-                        @contextmenu.prevent="openAnnounceContextMenu($event, node)"
-                    >
-                        <!-- banished overlay -->
-                        <div
-                            v-if="GlobalState.config.banished_effect_enabled && isBlocked(node.identity_hash)"
-                            class="banished-overlay"
-                            :style="{ background: GlobalState.config.banished_color + '33' }"
-                        >
-                            <span
-                                class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
-                                :style="{ 'background-color': GlobalState.config.banished_color }"
-                                >{{ GlobalState.config.banished_text }}</span
-                            >
-                        </div>
-
-                        <div class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" @click="onNodeClick(node)">
-                            <div class="announce-card__icon flex-shrink-0">
-                                <MaterialDesignIcon icon-name="satellite-uplink" class="w-5 h-5" />
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div
-                                    class="text-sm font-semibold text-gray-900 dark:text-white truncate"
-                                    :title="node.display_name"
-                                >
-                                    {{ node.display_name }}
-                                </div>
-                                <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5">
-                                    <span class="truncate">{{
-                                        $t("nomadnet.announced_time_ago", { time: formatTimeAgo(node.updated_at) })
-                                    }}</span>
-                                    <span
-                                        class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400 inline-flex items-center"
-                                        :title="$t('common.copy_to_clipboard')"
-                                        @click.stop="copyToClipboard(node.destination_hash, 'Address')"
-                                    >
-                                        {{ formatDestinationHash(node.destination_hash) }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <DropDownMenu>
-                                <template #button>
-                                    <IconButton>
-                                        <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
-                                    </IconButton>
-                                </template>
-                                <template #items>
-                                    <DropDownMenuItem
-                                        v-if="!isBlocked(node.identity_hash)"
-                                        @click.stop="onBlockNode(node)"
-                                    >
-                                        <MaterialDesignIcon icon-name="gavel" class="w-5 h-5 text-red-500" />
-                                        <span class="text-red-500">{{ $t("nomadnet.block_node") }}</span>
-                                    </DropDownMenuItem>
-                                    <DropDownMenuItem v-else @click.stop="onUnblockNode(node.identity_hash)">
-                                        <MaterialDesignIcon icon-name="check-circle" class="w-5 h-5 text-green-500" />
-                                        <span class="text-green-500">{{ $t("nomadnet.lift_banishment") }}</span>
-                                    </DropDownMenuItem>
-                                </template>
-                            </DropDownMenu>
-                        </div>
-                    </div>
-
-                    <!-- loading more spinner -->
-                    <div v-if="isLoadingMoreNodes" class="p-4 text-center">
-                        <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
-                    </div>
-                </div>
-                <div v-else class="empty-state">
-                    <MaterialDesignIcon icon-name="radar" class="w-8 h-8" />
-                    <div class="font-semibold">{{ $t("nomadnet.no_announces_yet") }}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ $t("nomadnet.listening_for_peers") }}</div>
-                </div>
-            </div>
-
-            <!-- Announce Context Menu (right-click, Teleport to body) -->
-            <Teleport to="body">
-                <div
-                    v-if="announceContextMenu.show"
-                    v-click-outside="{
-                        handler: () => {
-                            if (!announceContextMenu.justOpened) closeContextMenus();
-                        },
-                        capture: true,
-                    }"
-                    class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                    :style="{ top: announceContextMenu.y + 'px', left: announceContextMenu.x + 'px' }"
-                >
-                    <button
-                        v-if="!isFavourite(announceContextMenu.node?.destination_hash)"
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                        @click="addFavouriteFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="star-outline" class="size-4 text-yellow-500" />
-                        <span class="font-medium">{{ $t("nomadnet.add_favourite") }}</span>
-                    </button>
-                    <button
-                        v-if="!isBlocked(announceContextMenu.node?.identity_hash)"
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                        @click="blockAnnounceFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="gavel" class="size-4 text-red-400" />
-                        <span class="font-medium">{{ $t("nomadnet.block_node") }}</span>
-                    </button>
-                    <button
-                        v-else
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all active:scale-95"
-                        @click="unblockAnnounceFromContext"
-                    >
-                        <MaterialDesignIcon icon-name="check-circle" class="size-4 text-green-400" />
-                        <span class="font-medium">{{ $t("nomadnet.lift_banishment") }}</span>
-                    </button>
-                </div>
-            </Teleport>
-        </div>
+        </template>
     </div>
 </template>
 
@@ -465,6 +566,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        collapsed: {
+            type: Boolean,
+            default: false,
+        },
     },
     emits: [
         "node-click",
@@ -473,6 +578,7 @@ export default {
         "add-favourite",
         "nodes-search-changed",
         "load-more-nodes",
+        "toggle-collapse",
     ],
     data() {
         return {
@@ -509,9 +615,19 @@ export default {
                 node: null,
                 justOpened: false,
             },
+            smUp: typeof window !== "undefined" ? window.innerWidth >= 640 : true,
         };
     },
     computed: {
+        effectiveCollapsed() {
+            return this.collapsed && this.smUp;
+        },
+        sidebarRootClass() {
+            if (this.effectiveCollapsed) {
+                return "flex flex-col w-16 min-w-16 max-w-16 h-full min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800";
+            }
+            return "flex flex-col w-full sm:w-80 sm:min-w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80 min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800";
+        },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
         },
@@ -563,6 +679,27 @@ export default {
             }
             return this.sectionsWithFavourites.some((section) => section.favourites.length > 0);
         },
+        collapsedFavouritePreview() {
+            const out = [];
+            const max = 5;
+            for (const section of this.orderedSections) {
+                const hashes = this.favouritesBySection[section.id] || [];
+                for (const hash of hashes) {
+                    const fav = this.favourites.find((f) => f.destination_hash === hash);
+                    if (!fav) {
+                        continue;
+                    }
+                    if (out.length >= max) {
+                        return out;
+                    }
+                    out.push(fav);
+                }
+            }
+            return out;
+        },
+        collapsedAnnounceNodesPreview() {
+            return this.nodesOrderedByLatestAnnounce.slice(0, 5);
+        },
     },
     watch: {
         favourites: {
@@ -575,6 +712,17 @@ export default {
     mounted() {
         this.loadFavouriteLayout();
         this.ensureFavouriteLayout();
+        this._smUpMql = window.matchMedia("(min-width: 640px)");
+        this._smUpResize = () => {
+            this.smUp = this._smUpMql.matches;
+        };
+        this._smUpResize();
+        this._smUpMql.addEventListener("change", this._smUpResize);
+    },
+    unmounted() {
+        if (this._smUpMql && this._smUpResize) {
+            this._smUpMql.removeEventListener("change", this._smUpResize);
+        }
     },
     methods: {
         matchesFavouriteSearch(favourite, searchTerm = this.favouritesSearchTerm.toLowerCase()) {
@@ -1071,7 +1219,7 @@ export default {
 
 <style scoped>
 .sidebar-tab {
-    @apply w-1/2 py-3 text-sm font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent transition;
+    @apply flex h-full w-1/2 items-center justify-center text-sm font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent transition;
 }
 .sidebar-tab--active {
     @apply text-blue-600 border-blue-500 dark:text-blue-300 dark:border-blue-400;

@@ -4,6 +4,7 @@
         <NomadNetworkSidebar
             v-if="!isPopoutMode"
             :class="{ 'hidden sm:flex': selectedNode }"
+            :collapsed="nomadNetworkSidebarCollapsed"
             :nodes="nodes"
             :favourites="favourites"
             :selected-destination-hash="selectedNode?.destination_hash"
@@ -17,10 +18,11 @@
             @add-favourite="addFavourite"
             @nodes-search-changed="onNodesSearchChanged"
             @load-more-nodes="loadMoreNodes"
+            @toggle-collapse="nomadNetworkSidebarCollapsed = !nomadNetworkSidebarCollapsed"
         />
 
         <div
-            class="flex-col flex-1 overflow-hidden min-w-0 dark:bg-zinc-950"
+            class="flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950"
             :class="selectedNode ? 'flex' : 'hidden sm:flex'"
         >
             <!-- node -->
@@ -45,7 +47,9 @@
                 </div>
 
                 <!-- header -->
-                <div class="flex items-center gap-1 p-2 border-b border-gray-300 dark:border-zinc-800 min-w-0">
+                <div
+                    class="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 min-w-0"
+                >
                     <!-- favourite button -->
                     <div class="my-auto shrink-0 mr-1">
                         <IconButton
@@ -143,14 +147,14 @@
                     </div>
 
                     <IconButton
-                        class="md:hidden shrink-0 text-gray-700 dark:text-gray-300"
+                        class="lg:hidden shrink-0 text-gray-700 dark:text-gray-300"
                         :title="$t('nomadnet.identify')"
                         @click="identify(selectedNode.destination_hash)"
                     >
                         <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
                     </IconButton>
 
-                    <div class="hidden md:flex items-center gap-1 shrink-0">
+                    <div class="hidden lg:flex items-center gap-1 shrink-0">
                         <IconButton
                             class="text-gray-700 dark:text-gray-300"
                             :title="$t('nomadnet.identify')"
@@ -174,7 +178,7 @@
                         </IconButton>
                     </div>
 
-                    <DropDownMenu class="md:hidden shrink-0">
+                    <DropDownMenu class="lg:hidden shrink-0">
                         <template #button>
                             <IconButton :title="$t('messages.more_actions')" class="text-gray-700 dark:text-gray-300">
                                 <MaterialDesignIcon icon-name="dots-horizontal" class="size-5" />
@@ -238,7 +242,9 @@
                 </div>
 
                 <!-- page content -->
-                <div class="flex-1 overflow-y-auto p-3 bg-black text-white nodeContainer relative">
+                <div
+                    class="flex-1 overflow-y-auto p-3 bg-black text-white nodeContainer relative [contain:layout_paint]"
+                >
                     <!-- archived version notice -->
                     <div
                         v-if="isShowingArchivedVersion"
@@ -314,8 +320,14 @@
                             </button>
                         </div>
                     </div>
-                    <!-- eslint-disable-next-line vue/no-v-html -->
-                    <pre v-else class="h-full break-words whitespace-pre-wrap" v-html="renderedNodePageContent()"></pre>
+                    <!-- eslint-disable vue/no-v-html -->
+                    <pre
+                        v-else
+                        v-memo="[renderedNodePageHtml]"
+                        class="h-full break-words whitespace-pre-wrap"
+                        v-html="renderedNodePageHtml"
+                    ></pre>
+                    <!-- eslint-enable vue/no-v-html -->
                 </div>
 
                 <!-- file download bottom bar -->
@@ -417,6 +429,7 @@ export default {
             nodesRefreshTimeout: null,
             abortController: new AbortController(),
 
+            nomadNetworkSidebarCollapsed: false,
             nodes: {},
             totalNodesCount: 0,
             hasMoreNodes: true,
@@ -465,9 +478,11 @@ export default {
             isSelectedNodeBlocked: false,
 
             pagePartials: {},
+            loadedPartialIds: {},
             partialIdsByKey: {},
             partialRefreshByKey: {},
             partialRefreshTimers: {},
+            processPartialsRaf: null,
         };
     },
     computed: {
@@ -505,8 +520,20 @@ export default {
             }
             return base;
         },
+        renderedNodePageHtml() {
+            if (!this.nodePagePath || this.nodePageContent == null) {
+                return "";
+            }
+            return this.renderPageContent(this.nodePagePath, this.nodePageContent);
+        },
     },
     watch: {
+        renderedNodePageHtml(newVal, oldVal) {
+            if (newVal !== oldVal) {
+                this.loadedPartialIds = {};
+            }
+            this.scheduleProcessPartials();
+        },
         selectedNode: {
             handler() {
                 this.checkIfSelectedNodeBlocked();
@@ -520,10 +547,11 @@ export default {
             deep: true,
         },
     },
-    updated() {
-        this.$nextTick(() => this.processPartials());
-    },
     beforeUnmount() {
+        if (this.processPartialsRaf != null) {
+            cancelAnimationFrame(this.processPartialsRaf);
+            this.processPartialsRaf = null;
+        }
         if (this.nodesRefreshTimeout) clearTimeout(this.nodesRefreshTimeout);
         clearInterval(this.reloadInterval);
         this.abortController.abort();
@@ -581,8 +609,19 @@ export default {
         this.reloadInterval = setInterval(() => {
             this.getFavourites();
         }, 5000);
+
+        this.$nextTick(() => this.scheduleProcessPartials());
     },
     methods: {
+        scheduleProcessPartials() {
+            if (this.processPartialsRaf != null) {
+                cancelAnimationFrame(this.processPartialsRaf);
+            }
+            this.processPartialsRaf = requestAnimationFrame(() => {
+                this.processPartialsRaf = null;
+                this.processPartials();
+            });
+        },
         openNomadnetPopout() {
             if (!this.selectedNode) {
                 return;
@@ -1084,6 +1123,7 @@ export default {
             Object.values(this.partialRefreshTimers).forEach((t) => clearTimeout(t));
             this.partialRefreshTimers = {};
             this.pagePartials = {};
+            this.loadedPartialIds = {};
             this.partialIdsByKey = {};
             this.partialRefreshByKey = {};
         },
@@ -1092,6 +1132,9 @@ export default {
                 return;
             const [pagePathWithoutData] = this.nodePagePath.split("`");
             if (!pagePathWithoutData.endsWith(".mu")) return;
+            if (!this.nodePageContent.includes("`{")) {
+                return;
+            }
 
             const container = this.$el.querySelector(".nodeContainer");
             if (!container) return;
@@ -1129,7 +1172,7 @@ export default {
                     }
                     fieldsByKey[key] = fieldData;
                 }
-                if (!this.pagePartials[id]) needLoad.add(key);
+                if (!this.loadedPartialIds[id]) needLoad.add(key);
             });
 
             this.partialIdsByKey = idsByKey;
@@ -1160,6 +1203,12 @@ export default {
                         const ids = this.partialIdsByKey[key];
                         if (ids) {
                             updatePartialDom(html, ids);
+                            for (const { id } of ids) {
+                                if (id) {
+                                    this.loadedPartialIds[id] = true;
+                                }
+                            }
+                            this.$nextTick(() => this.scheduleProcessPartials());
                         }
                         const refreshSec = this.partialRefreshByKey[key];
                         if (refreshSec != null && refreshSec > 0) {
@@ -1170,6 +1219,12 @@ export default {
                                         const idList = this.partialIdsByKey[key];
                                         if (idList) {
                                             updatePartialDom(h, idList);
+                                            for (const { id } of idList) {
+                                                if (id) {
+                                                    this.loadedPartialIds[id] = true;
+                                                }
+                                            }
+                                            this.$nextTick(() => this.scheduleProcessPartials());
                                         }
                                         scheduleRefresh();
                                     });
@@ -1711,9 +1766,6 @@ export default {
             } catch (e) {
                 console.error(e);
             }
-        },
-        renderedNodePageContent() {
-            return this.renderPageContent(this.nodePagePath, this.nodePageContent);
         },
         cancelPageDownload() {
             if (this.currentPageDownloadId !== null) {

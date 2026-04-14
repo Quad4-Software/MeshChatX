@@ -2,7 +2,7 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
+        <div class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6">
             <div class="space-y-6 w-full max-w-4xl mx-auto">
                 <!-- header -->
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

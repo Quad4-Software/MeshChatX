@@ -1,32 +1,42 @@
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
-        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-8 py-4 sm:py-6 text-gray-900 dark:text-zinc-100">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <div
+            class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 text-gray-900 dark:text-zinc-100"
+        >
             <div class="space-y-0 w-full max-w-4xl mx-auto pb-16 sm:pb-24">
                 <div v-if="appInfo" class="about-section">
-                    <div class="flex flex-col gap-8 md:flex-row md:items-center">
+                    <div class="flex flex-col gap-8 lg:flex-row lg:items-center">
                         <!-- Logo & Title -->
                         <div class="flex items-center gap-6">
-                            <div
-                                class="w-20 h-20 rounded-3xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-xl"
-                            >
-                                <img src="../../public/favicons/favicon-512x512.png" class="w-12 h-12 object-contain" />
-                            </div>
+                            <img
+                                src="../../public/favicons/favicon-512x512.png"
+                                class="h-20 w-20 shrink-0 object-contain"
+                                alt=""
+                            />
                             <div class="space-y-1">
                                 <div
                                     class="text-4xl font-black text-gray-900 dark:text-white leading-none tracking-tight"
                                 >
                                     MeshChatX
                                 </div>
-                                <div class="text-sm font-black text-blue-500 uppercase tracking-[0.2em] opacity-80">
-                                    {{ $t("about.version", { version: appInfo.version }) }}
+                                <div
+                                    class="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-3 sm:gap-y-0"
+                                >
+                                    <div class="text-sm font-black uppercase tracking-[0.2em] text-blue-500 opacity-80">
+                                        {{ $t("about.version", { version: appInfo.version }) }}
+                                    </div>
+                                    <div
+                                        v-if="formattedUiBuildDate"
+                                        class="text-xs font-medium normal-case tracking-normal text-gray-500 dark:text-zinc-500"
+                                    >
+                                        {{ $t("about.ui_build", { date: formattedUiBuildDate }) }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div
-                            class="flex-1 flex flex-wrap justify-stretch sm:justify-end gap-2 sm:gap-3 w-full md:w-auto"
+                            class="flex w-full flex-1 flex-wrap justify-stretch gap-2 sm:justify-end sm:gap-3 md:w-auto"
                         >
                             <button
                                 type="button"
@@ -179,7 +189,7 @@
                 <div class="space-y-6">
                     <!-- Security & Integrity -->
                     <div v-if="appInfo" class="about-section">
-                        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
@@ -522,7 +532,7 @@
 
                     <!-- Database Health -->
                     <div class="about-section">
-                        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-8">
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
@@ -559,7 +569,7 @@
                             </div>
                         </div>
 
-                        <div v-if="databaseHealth" class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 md:gap-8 mb-8">
+                        <div v-if="databaseHealth" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-8 mb-8">
                             <div
                                 class="py-3 px-2 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/60 md:border md:rounded-xl"
                             >
@@ -615,7 +625,7 @@
 
                         <div class="border-t border-zinc-100 dark:border-zinc-800 pt-8 space-y-8">
                             <!-- Backups -->
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                 <div class="space-y-1">
                                     <div
                                         class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
@@ -641,7 +651,7 @@
 
                             <!-- Snapshots -->
                             <div class="space-y-6">
-                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                     <div class="space-y-1">
                                         <div
                                             class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
@@ -749,7 +759,7 @@
 
                             <!-- Auto Backups -->
                             <div v-if="autoBackups && autoBackups.length > 0" class="space-y-6">
-                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                     <div class="space-y-1">
                                         <div
                                             class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
@@ -897,6 +907,25 @@ export default {
     computed: {
         isElectron() {
             return ElectronUtils.isElectron();
+        },
+        formattedUiBuildDate() {
+            try {
+                const raw = typeof __APP_BUILD_TIME__ !== "undefined" ? __APP_BUILD_TIME__ : "";
+                if (!raw) {
+                    return "";
+                }
+                const d = new Date(raw);
+                if (Number.isNaN(d.getTime())) {
+                    return raw;
+                }
+                return d.toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                });
+            } catch {
+                return "";
+            }
         },
     },
     mounted() {

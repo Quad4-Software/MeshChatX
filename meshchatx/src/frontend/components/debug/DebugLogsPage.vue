@@ -2,7 +2,7 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex flex-col h-full overflow-hidden w-full px-4 md:px-8 py-6">
+        <div class="flex flex-col h-full overflow-hidden w-full px-4 md:px-5 lg:px-8 py-6">
             <div class="flex flex-col mb-4 w-full max-w-6xl mx-auto space-y-4">
                 <div class="flex items-center justify-between">
                     <div class="space-y-1">

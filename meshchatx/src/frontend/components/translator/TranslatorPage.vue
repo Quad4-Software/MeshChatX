@@ -2,7 +2,7 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
+        <div class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6">
             <div class="space-y-4 w-full max-w-4xl mx-auto">
                 <div class="glass-card space-y-5">
                     <div class="space-y-2">
@@ -84,7 +84,7 @@
                         </div>
                     </div>
 
-                    <div class="grid md:grid-cols-2 gap-4">
+                    <div class="grid lg:grid-cols-2 gap-4">
                         <div>
                             <label class="glass-label">Source Language</label>
                             <select v-model="sourceLang" class="input-field">

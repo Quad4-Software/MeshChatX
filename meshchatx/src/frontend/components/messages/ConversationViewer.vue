@@ -22,7 +22,8 @@
 
         <!-- header -->
         <div
-            class="relative z-20 flex flex-wrap items-center gap-y-2 px-3 sm:px-4 py-3 border-b border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm"
+            ref="conversationPeerHeader"
+            class="relative z-20 flex flex-wrap items-center gap-y-2 px-3 sm:px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
         >
             <!-- peer icon -->
             <div class="flex-shrink-0 mr-3">
@@ -389,16 +390,12 @@
         </div>
 
         <!-- chat items -->
-        <div
-            id="messages"
-            class="h-full overflow-y-scroll bg-gray-50/30 dark:bg-zinc-950/50"
-            @scroll="onMessagesScroll"
-        >
+        <div id="messages" class="h-full overflow-y-scroll bg-white dark:bg-zinc-950" @scroll="onMessagesScroll">
             <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6 min-w-0">
                 <template v-for="entry in selectedPeerChatDisplayGroups" :key="entry.key">
                     <div
                         v-if="entry.type === 'imageGroup'"
-                        class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
+                        class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-4 group min-w-0"
                         :class="{
                             'ml-auto items-end': entry.items[0].is_outbound,
                             'mr-auto items-start': !entry.items[0].is_outbound,
@@ -526,8 +523,8 @@
                                     ? 'shadow-sm'
                                     : entry.items[0].lxmf_message.is_spam
                                       ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
-                                      : isOutboundPathfindingBubble(entry.items[0])
-                                        ? 'bg-gray-200 dark:bg-zinc-700 text-gray-900 dark:text-zinc-100 border border-gray-300 dark:border-zinc-600 shadow-sm'
+                                      : isOutboundWaitingBubble(entry.items[0])
+                                        ? 'shadow-sm'
                                         : entry.items[0].is_outbound
                                           ? outboundBubbleSurfaceClass(entry.items[0])
                                           : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
@@ -708,7 +705,7 @@
                         v-else
                         :id="`message-${chatItem.lxmf_message.hash}`"
                         :key="chatItem.lxmf_message.hash"
-                        class="flex flex-col max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] mb-4 group min-w-0"
+                        class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-4 group min-w-0"
                         :class="{
                             'ml-auto items-end': chatItem.is_outbound,
                             'mr-auto items-start': !chatItem.is_outbound,
@@ -747,8 +744,8 @@
                                     ? 'shadow-sm'
                                     : chatItem.lxmf_message.is_spam
                                       ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
-                                      : isOutboundPathfindingBubble(chatItem)
-                                        ? 'bg-gray-200 dark:bg-zinc-700 text-gray-900 dark:text-zinc-100 border border-gray-300 dark:border-zinc-600 shadow-sm'
+                                      : isOutboundWaitingBubble(chatItem)
+                                        ? 'shadow-sm'
                                         : chatItem.is_outbound
                                           ? outboundBubbleSurfaceClass(chatItem)
                                           : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
@@ -1363,9 +1360,7 @@
         </div>
 
         <!-- send message -->
-        <div
-            class="w-full border-t border-gray-200/60 dark:border-zinc-800/60 bg-white/80 dark:bg-zinc-900/50 backdrop-blur-sm px-3 sm:px-4 py-2.5"
-        >
+        <div class="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-4 py-2.5">
             <div class="w-full">
                 <!-- banished user notification -->
                 <div
@@ -1558,20 +1553,158 @@
                     </div>
 
                     <!-- text input + send -->
-                    <div class="flex items-center gap-2">
-                        <textarea
-                            id="message-input"
-                            ref="message-input"
-                            v-model="newMessageText"
-                            :readonly="isTranslatingMessage"
-                            class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 flex-1 px-3 sm:px-4 py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
-                            rows="1"
-                            spellcheck="true"
-                            :placeholder="$t('messages.send_placeholder')"
-                            @keydown.enter.exact.prevent="onEnterPressed"
-                            @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
-                            @paste="onMessagePaste"
-                        ></textarea>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div
+                            v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
+                            class="relative flex-1 min-w-0"
+                        >
+                            <textarea
+                                id="message-input"
+                                ref="message-input"
+                                v-model="newMessageText"
+                                :readonly="isTranslatingMessage"
+                                class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-11 py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                rows="1"
+                                spellcheck="true"
+                                :placeholder="$t('messages.send_placeholder')"
+                                @keydown.enter.exact.prevent="onEnterPressed"
+                                @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
+                                @paste="onMessagePaste"
+                            ></textarea>
+                            <button
+                                type="button"
+                                class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100"
+                                :title="$t('stickers.picker_tooltip')"
+                                @click.stop="toggleStickerPicker"
+                            >
+                                <MaterialDesignIcon icon-name="emoticon-outline" class="w-5 h-5" />
+                            </button>
+                            <div
+                                v-if="isStickerPickerOpen"
+                                class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden"
+                                :class="{
+                                    'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
+                                        stickerDropActive && emojiStickerTab === 'stickers',
+                                }"
+                                @click.stop
+                            >
+                                <div
+                                    class="flex shrink-0 border-b border-gray-200 dark:border-zinc-700 p-1 gap-0.5"
+                                    role="tablist"
+                                >
+                                    <button
+                                        type="button"
+                                        role="tab"
+                                        :aria-selected="emojiStickerTab === 'emoji'"
+                                        class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
+                                        :class="
+                                            emojiStickerTab === 'emoji'
+                                                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
+                                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                        "
+                                        @click="emojiStickerTab = 'emoji'"
+                                    >
+                                        {{ $t("stickers.tab_emojis") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="tab"
+                                        :aria-selected="emojiStickerTab === 'stickers'"
+                                        class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
+                                        :class="
+                                            emojiStickerTab === 'stickers'
+                                                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
+                                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                        "
+                                        @click="emojiStickerTab = 'stickers'"
+                                    >
+                                        {{ $t("stickers.tab_stickers") }}
+                                    </button>
+                                </div>
+                                <div
+                                    v-show="emojiStickerTab === 'emoji'"
+                                    class="min-h-0 flex-1 flex flex-col overflow-hidden p-0"
+                                    role="tabpanel"
+                                >
+                                    <emoji-picker
+                                        :data-source="emojiPickerDataUrl"
+                                        :class="emojiPickerThemeClass"
+                                        class="compose-emoji-picker"
+                                        @emoji-click="onEmojiPickerClick"
+                                    />
+                                </div>
+                                <div
+                                    v-show="emojiStickerTab === 'stickers'"
+                                    class="min-h-0 flex-1 overflow-y-auto p-2"
+                                    role="tabpanel"
+                                    @dragover.prevent="onStickerPanelDragOver"
+                                    @dragleave.prevent="onStickerPanelDragLeave"
+                                    @drop.prevent="onStickerPanelDrop"
+                                >
+                                    <input
+                                        ref="sticker-upload-input"
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,.png,.jpg,.jpeg,.gif,.webp,.bmp"
+                                        multiple
+                                        class="hidden"
+                                        @change="onStickerUploadInputChange"
+                                    />
+                                    <div v-if="userStickers.length > 0" class="grid grid-cols-4 gap-2 mb-2">
+                                        <button
+                                            v-for="s in userStickers"
+                                            :key="s.id"
+                                            type="button"
+                                            class="aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500/50"
+                                            :title="s.name || 'Sticker'"
+                                            @click="addStickerFromLibrary(s)"
+                                        >
+                                            <img
+                                                :src="stickerImageUrl(s.id)"
+                                                class="w-full h-full object-contain bg-gray-50 dark:bg-zinc-800"
+                                                alt=""
+                                            />
+                                        </button>
+                                    </div>
+                                    <div
+                                        v-if="userStickers.length === 0"
+                                        class="text-center text-sm text-gray-500 dark:text-zinc-400 mb-2 px-1"
+                                    >
+                                        {{ $t("stickers.empty_library") }}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-3 py-3 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
+                                        :class="
+                                            stickerDropActive ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40' : ''
+                                        "
+                                        :disabled="isStickerUploading"
+                                        @click="triggerStickerUploadInput"
+                                    >
+                                        <div class="flex items-start gap-2">
+                                            <MaterialDesignIcon
+                                                icon-name="upload"
+                                                class="size-5 shrink-0 text-blue-500 mt-0.5"
+                                            />
+                                            <div class="min-w-0">
+                                                <div class="text-xs font-medium text-gray-800 dark:text-zinc-100">
+                                                    {{
+                                                        userStickers.length > 0
+                                                            ? $t("stickers.add_more_hint")
+                                                            : $t("stickers.drop_or_click_hint")
+                                                    }}
+                                                </div>
+                                                <div
+                                                    v-if="isStickerUploading"
+                                                    class="text-[11px] text-blue-600 dark:text-blue-400 mt-1"
+                                                >
+                                                    {{ $t("common.loading") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="shrink-0 flex items-center">
                             <SendMessageButton
                                 :is-sending-message="false"
@@ -1718,6 +1851,15 @@
                 >
                     <MaterialDesignIcon icon-name="code-json" class="size-4 text-gray-400" />
                     <span class="font-medium">View Raw LXM</span>
+                </button>
+                <button
+                    v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
+                    type="button"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
+                    @click="saveMessageImageToStickers(messageContextMenu.chatItem)"
+                >
+                    <MaterialDesignIcon icon-name="bookmark-plus-outline" class="size-4 text-teal-500" />
+                    <span class="font-medium">{{ $t("stickers.save_to_library") }}</span>
                 </button>
                 <button
                     v-if="
@@ -2074,7 +2216,7 @@
                 <div class="p-0 overflow-y-auto bg-gray-50 dark:bg-zinc-950 flex-grow">
                     <div class="p-6 space-y-6">
                         <!-- header / status info -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div class="space-y-1">
                                 <label
                                     class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
@@ -2120,7 +2262,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div class="space-y-1">
                                 <label
                                     class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
@@ -2141,7 +2283,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             <div class="space-y-1">
                                 <label
                                     class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
@@ -2260,6 +2402,8 @@ import PaperMessageModal from "./PaperMessageModal.vue";
 import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
+import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
+import "emoji-picker-element";
 
 export default {
     name: "ConversationViewer",
@@ -2375,19 +2519,31 @@ export default {
                 chatItem: null,
                 justOpened: false,
             },
+            userStickers: [],
+            isStickerPickerOpen: false,
+            emojiStickerTab: "emoji",
+            emojiPickerDataUrl: emojiPickerEnDataUrl,
+            stickerDropActive: false,
+            isStickerUploading: false,
             now: Date.now(),
             updateTimer: null,
             sendStatusUiMs: Date.now(),
             sendStatusTickInterval: null,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
+            peerHeaderCompact: false,
+            peerHeaderResizeObserver: null,
         };
     },
     computed: {
         compactPeerActions() {
-            return this.windowWidth < 640;
+            return this.windowWidth < 640 || this.peerHeaderCompact;
         },
         compactSendLayout() {
-            return this.windowWidth < 640;
+            return this.windowWidth < 640 || this.peerHeaderCompact;
+        },
+        emojiPickerThemeClass() {
+            void GlobalState.config?.theme;
+            return GlobalState.config?.theme === "dark" ? "dark" : "light";
         },
         usesThemeOutboundBubbleColor() {
             const c = GlobalState?.config?.message_outbound_bubble_color;
@@ -2418,16 +2574,11 @@ export default {
                     styles["color"] = "#ffffff";
                 } else if (chatItem.is_outbound) {
                     if (chatItem.lxmf_message?._pendingPathfinding) {
-                        if (!this.showRichOutboundPendingUi(chatItem)) {
-                            if (useThemeOutbound) {
-                                return {};
-                            }
-                            const color = cfg?.message_outbound_bubble_color || "#4f46e5";
-                            styles["background-color"] = color;
-                            styles["color"] = "#ffffff";
-                            return styles;
-                        }
-                        return {};
+                        const hex = cfg?.message_waiting_bubble_color || "#e5e7eb";
+                        styles["background-color"] = hex;
+                        styles["color"] = this.pickTextColorForBubbleBackground(hex);
+                        styles["border"] = this.waitingBubbleBorderForHex(hex);
+                        return styles;
                     }
                     if (useThemeOutbound) {
                         return {};
@@ -2674,12 +2825,17 @@ export default {
                 if (oldPeer) {
                     this.saveDraft(oldPeer.destination_hash);
                 }
+                this.teardownPeerHeaderResizeObserver();
+                if (!newPeer) {
+                    this.peerHeaderCompact = false;
+                }
                 this.checkIfSelectedPeerBlocked();
                 this.strangerBannerDismissed = false;
                 this.checkIfStrangerPeer();
                 this.initialLoad();
                 if (newPeer) {
                     this.loadDraft(newPeer.destination_hash);
+                    this.$nextTick(() => this.setupPeerHeaderResizeObserver());
                 }
             },
             immediate: true,
@@ -2740,6 +2896,7 @@ export default {
         }, 2000);
 
         this._scheduleOutboundSendStatusTick();
+        this.loadUserStickers();
 
         this._onWindowResize = () => {
             this.windowWidth = window.innerWidth;
@@ -2747,6 +2904,7 @@ export default {
         window.addEventListener("resize", this._onWindowResize);
     },
     beforeUnmount() {
+        this.teardownPeerHeaderResizeObserver();
         if (this.selectedPeer) {
             this.saveDraft(this.selectedPeer.destination_hash);
         }
@@ -2769,6 +2927,29 @@ export default {
         }
     },
     methods: {
+        setupPeerHeaderResizeObserver() {
+            this.teardownPeerHeaderResizeObserver();
+            const el = this.$refs.conversationPeerHeader;
+            if (!el || typeof ResizeObserver === "undefined") {
+                return;
+            }
+            const threshold = 820;
+            const apply = (width) => {
+                this.peerHeaderCompact = width > 0 && width < threshold;
+            };
+            this.peerHeaderResizeObserver = new ResizeObserver((entries) => {
+                const w = entries[0]?.contentRect?.width ?? 0;
+                apply(w);
+            });
+            this.peerHeaderResizeObserver.observe(el);
+            apply(el.clientWidth);
+        },
+        teardownPeerHeaderResizeObserver() {
+            if (this.peerHeaderResizeObserver) {
+                this.peerHeaderResizeObserver.disconnect();
+                this.peerHeaderResizeObserver = null;
+            }
+        },
         renderMarkdown(text) {
             return MarkdownRenderer.render(text);
         },
@@ -3828,12 +4009,49 @@ export default {
             }
             return "Pending";
         },
-        isOutboundPathfindingBubble(chatItem) {
-            return Boolean(
-                chatItem?.is_outbound &&
-                chatItem?.lxmf_message?._pendingPathfinding &&
-                this.showRichOutboundPendingUi(chatItem)
-            );
+        isOutboundWaitingBubble(chatItem) {
+            return Boolean(chatItem?.is_outbound && chatItem?.lxmf_message?._pendingPathfinding);
+        },
+        _hexToRgb(hex) {
+            const s = String(hex ?? "")
+                .trim()
+                .replace(/^#/, "");
+            if (s.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(s)) {
+                return null;
+            }
+            return {
+                r: parseInt(s.slice(0, 2), 16),
+                g: parseInt(s.slice(2, 4), 16),
+                b: parseInt(s.slice(4, 6), 16),
+            };
+        },
+        _hexRelativeLuminance(hex) {
+            const rgb = this._hexToRgb(hex);
+            if (!rgb) {
+                return null;
+            }
+            const toLinear = (c) => {
+                const x = c / 255;
+                return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+            };
+            const R = toLinear(rgb.r);
+            const G = toLinear(rgb.g);
+            const B = toLinear(rgb.b);
+            return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+        },
+        pickTextColorForBubbleBackground(hex) {
+            const lum = this._hexRelativeLuminance(hex);
+            if (lum == null) {
+                return "#111827";
+            }
+            return lum > 0.45 ? "#111827" : "#ffffff";
+        },
+        waitingBubbleBorderForHex(hex) {
+            const lum = this._hexRelativeLuminance(hex);
+            if (lum == null) {
+                return "1px solid rgba(15, 23, 42, 0.12)";
+            }
+            return lum > 0.45 ? "1px solid rgba(15, 23, 42, 0.12)" : "1px solid rgba(255, 255, 255, 0.14)";
         },
         isOutboundSendingBusy(chatItem) {
             const m = chatItem?.lxmf_message;
@@ -3908,7 +4126,7 @@ export default {
             if (chatItem.lxmf_message.is_spam) {
                 return "";
             }
-            if (this.isOutboundPathfindingBubble(chatItem)) {
+            if (chatItem.lxmf_message?._pendingPathfinding) {
                 return "";
             }
             if (!this.usesThemeOutboundBubbleColor) {
@@ -3920,7 +4138,7 @@ export default {
             if (!chatItem.is_outbound) {
                 return "text-gray-500 dark:text-zinc-400";
             }
-            if (this.isOutboundPathfindingBubble(chatItem)) {
+            if (this.isOutboundWaitingBubble(chatItem)) {
                 return "text-gray-600 dark:text-zinc-400";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
@@ -3929,7 +4147,7 @@ export default {
             return "text-white/90";
         },
         outboundSendingStatusIconClass(chatItem) {
-            if (this.isOutboundPathfindingBubble(chatItem)) {
+            if (this.isOutboundWaitingBubble(chatItem)) {
                 return "text-gray-600 dark:text-zinc-400";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
@@ -3941,7 +4159,7 @@ export default {
             if (!chatItem.is_outbound) {
                 return "text-indigo-500/80";
             }
-            if (this.isOutboundPathfindingBubble(chatItem)) {
+            if (this.isOutboundWaitingBubble(chatItem)) {
                 return "text-gray-700 dark:text-gray-300";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
@@ -3953,7 +4171,7 @@ export default {
             if (!chatItem.is_outbound) {
                 return "text-gray-500 dark:text-zinc-400";
             }
-            if (this.isOutboundPathfindingBubble(chatItem)) {
+            if (this.isOutboundWaitingBubble(chatItem)) {
                 return "text-gray-600 dark:text-zinc-400";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
@@ -3999,7 +4217,7 @@ export default {
         },
         outboundExpandedActionsShellClass(chatItem) {
             if (!chatItem?.is_outbound) {
-                return "border-gray-200/60 dark:border-zinc-800/60 bg-gray-50/50 dark:bg-zinc-900/50";
+                return "border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900";
             }
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "border-sky-200/70 dark:border-sky-800/50 bg-sky-50/40 dark:bg-sky-950/35";
@@ -4827,6 +5045,218 @@ export default {
             // convert image to data url
             fileReader.readAsDataURL(imageBlob);
         },
+        onStickerPickerClickOutside() {
+            this.isStickerPickerOpen = false;
+            this.stickerDropActive = false;
+        },
+        toggleStickerPicker() {
+            if (!this.isStickerPickerOpen) {
+                this.loadUserStickers();
+                this.emojiStickerTab = "emoji";
+            }
+            this.isStickerPickerOpen = !this.isStickerPickerOpen;
+        },
+        onEmojiPickerClick(event) {
+            const unicode = event?.detail?.unicode;
+            if (unicode) {
+                this.insertEmojiAtCaret(unicode);
+            }
+        },
+        insertEmojiAtCaret(emoji) {
+            const ta = this.$refs["message-input"];
+            const text = this.newMessageText ?? "";
+            if (!ta || typeof ta.selectionStart !== "number") {
+                this.newMessageText = text + emoji;
+                return;
+            }
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd ?? start;
+            this.newMessageText = text.slice(0, start) + emoji + text.slice(end);
+            this.$nextTick(() => {
+                const el = this.$refs["message-input"];
+                if (!el) {
+                    return;
+                }
+                el.focus();
+                const pos = start + emoji.length;
+                el.setSelectionRange(pos, pos);
+            });
+        },
+        async loadUserStickers() {
+            try {
+                const r = await window.api.get("/api/v1/stickers");
+                this.userStickers = r.data?.stickers ?? [];
+            } catch {
+                this.userStickers = [];
+            }
+        },
+        stickerImageUrl(stickerId) {
+            return `/api/v1/stickers/${stickerId}/image`;
+        },
+        onStickerPanelDragOver(event) {
+            event.preventDefault();
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = "copy";
+            }
+            this.stickerDropActive = true;
+        },
+        onStickerPanelDragLeave(event) {
+            const el = event.currentTarget;
+            if (el && event.relatedTarget && el.contains(event.relatedTarget)) {
+                return;
+            }
+            this.stickerDropActive = false;
+        },
+        onStickerPanelDrop(event) {
+            event.preventDefault();
+            this.stickerDropActive = false;
+            const files = event.dataTransfer?.files;
+            if (files?.length) {
+                this.uploadStickerImageFiles(files);
+            }
+        },
+        triggerStickerUploadInput() {
+            const input = this.$refs["sticker-upload-input"];
+            if (input) input.click();
+        },
+        onStickerUploadInputChange(event) {
+            const files = event.target.files;
+            if (files?.length) {
+                this.uploadStickerImageFiles(files);
+            }
+            event.target.value = "";
+        },
+        mimeToStickerType(mime, name = "") {
+            const m = (mime || "").toLowerCase().split(";")[0].trim();
+            const map = {
+                "image/png": "png",
+                "image/jpeg": "jpeg",
+                "image/jpg": "jpeg",
+                "image/gif": "gif",
+                "image/webp": "webp",
+                "image/bmp": "bmp",
+                "image/x-ms-bmp": "bmp",
+            };
+            if (map[m]) {
+                return map[m];
+            }
+            const ext = (name.split(".").pop() || "").toLowerCase();
+            const extMap = { png: "png", jpg: "jpeg", jpeg: "jpeg", gif: "gif", webp: "webp", bmp: "bmp" };
+            return extMap[ext] || null;
+        },
+        async uploadStickerImageFiles(fileList) {
+            const maxBytes = 512 * 1024;
+            const files = Array.from(fileList || []).filter((f) => f && f.size > 0);
+            if (files.length === 0) {
+                return;
+            }
+            this.isStickerUploading = true;
+            let added = 0;
+            let dup = 0;
+            let failed = 0;
+            try {
+                for (const file of files) {
+                    if (file.size > maxBytes) {
+                        ToastUtils.error(this.$t("stickers.file_too_large"));
+                        failed++;
+                        continue;
+                    }
+                    const imageType = this.mimeToStickerType(file.type, file.name);
+                    if (!imageType) {
+                        ToastUtils.error(this.$t("stickers.unsupported_type"));
+                        failed++;
+                        continue;
+                    }
+                    try {
+                        const buf = await file.arrayBuffer();
+                        const imageBytes = Utils.arrayBufferToBase64(buf);
+                        await window.api.post("/api/v1/stickers", {
+                            image_bytes: imageBytes,
+                            image_type: imageType,
+                            name: null,
+                        });
+                        added++;
+                    } catch (e) {
+                        const err = e?.response?.data?.error;
+                        if (err === "duplicate_sticker") {
+                            dup++;
+                        } else {
+                            failed++;
+                            console.error(e);
+                        }
+                    }
+                }
+                await this.loadUserStickers();
+                if (added > 0) {
+                    ToastUtils.success(this.$t("stickers.uploaded_count", { count: added }));
+                }
+                if (dup > 0 && added === 0 && failed === 0) {
+                    ToastUtils.info(this.$t("stickers.duplicate"));
+                } else if (dup > 0 && added > 0) {
+                    ToastUtils.info(this.$t("stickers.duplicate"));
+                }
+                if (failed > 0 && added === 0 && dup === 0) {
+                    ToastUtils.error(this.$t("stickers.save_failed"));
+                }
+            } finally {
+                this.isStickerUploading = false;
+            }
+        },
+        async addStickerFromLibrary(sticker) {
+            try {
+                const res = await window.api.get(`/api/v1/stickers/${sticker.id}/image`, {
+                    responseType: "blob",
+                });
+                const blob = res.data;
+                const ext = sticker.image_type === "jpeg" ? "jpg" : sticker.image_type;
+                const mime = blob.type || `image/${sticker.image_type}`;
+                const file = new File([blob], `sticker-${sticker.id}.${ext}`, { type: mime });
+                this.onImageSelected(file);
+                this.isStickerPickerOpen = false;
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("stickers.save_failed"));
+            }
+        },
+        async saveMessageImageToStickers(chatItem) {
+            this.messageContextMenu.show = false;
+            const msg = chatItem.lxmf_message;
+            const img = msg.fields?.image;
+            if (!img) {
+                return;
+            }
+            let b64 = img.image_bytes;
+            if (!b64) {
+                try {
+                    const res = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+                        responseType: "arraybuffer",
+                    });
+                    b64 = Utils.arrayBufferToBase64(res.data);
+                } catch (e) {
+                    console.error(e);
+                    ToastUtils.error(this.$t("stickers.save_failed"));
+                    return;
+                }
+            }
+            const imageType = String(img.image_type || "png").replace(/^image\//, "");
+            try {
+                await window.api.post("/api/v1/stickers", {
+                    image_bytes: b64,
+                    image_type: imageType,
+                    source_message_hash: msg.hash,
+                    name: null,
+                });
+                ToastUtils.success(this.$t("stickers.saved"));
+                await this.loadUserStickers();
+            } catch (e) {
+                const err = e?.response?.data?.error;
+                if (err === "duplicate_sticker") {
+                    ToastUtils.info(this.$t("stickers.duplicate"));
+                } else {
+                    ToastUtils.error(this.$t("stickers.save_failed"));
+                }
+            }
+        },
         async startRecordingAudioAttachment(args) {
             // do nothing if already recording
             if (this.isRecordingAudioAttachment) {
@@ -5150,6 +5580,13 @@ export default {
 }
 .dark .attachment-action-button:hover {
     @apply bg-zinc-800 text-white border-blue-500 !important;
+}
+
+.compose-emoji-picker {
+    width: 100%;
+    height: min(320px, 50vh);
+    min-height: 220px;
+    --border-radius: 0.75rem;
 }
 
 .audio-controls-light {

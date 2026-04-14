@@ -1543,7 +1543,7 @@
 
                             <div class="space-y-6">
                                 <!-- Enabled Toggle & Volume -->
-                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                     <div class="flex-1">
                                         <div class="flex items-center justify-between mb-1">
                                             <div class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -1602,7 +1602,7 @@
 
                                 <!-- Tone Generator Settings -->
                                 <div
-                                    class="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-4 border-t border-gray-100 dark:border-zinc-800/50"
+                                    class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pt-4 border-t border-gray-100 dark:border-zinc-800/50"
                                 >
                                     <div class="flex-1">
                                         <div class="flex items-center justify-between mb-1">
@@ -1671,7 +1671,7 @@
                                 <div
                                     class="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/30"
                                 >
-                                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                         <div>
                                             <div class="text-sm font-semibold text-gray-900 dark:text-white">
                                                 {{ $t("call.default_ringtone") }}

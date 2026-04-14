@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <div class="overflow-y-auto flex-1 min-h-0">
-            <div class="w-full max-w-[1920px] mx-auto px-4 md:px-8 py-4 md:py-8 space-y-6">
+            <div class="w-full max-w-[1920px] mx-auto px-4 md:px-5 lg:px-8 py-4 md:py-6 lg:py-8 space-y-6">
                 <!-- Header Section -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div class="min-w-0">

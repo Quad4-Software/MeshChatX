@@ -2,7 +2,7 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
+        <div class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6">
             <div class="space-y-4 w-full max-w-6xl mx-auto">
                 <div class="glass-card space-y-5 rounded-2xl border border-slate-200/70 p-5 dark:border-zinc-700/80">
                     <div class="space-y-2">
@@ -48,7 +48,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
                         <div
                             v-if="linkCount !== null"
                             class="rounded-xl border border-blue-200/80 bg-blue-50/90 p-4 text-blue-800 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-200"

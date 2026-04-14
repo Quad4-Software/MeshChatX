@@ -2,10 +2,10 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-8 py-6">
+        <div class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6">
             <div class="space-y-4 w-full max-w-5xl mx-auto">
                 <div class="glass-card space-y-5">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div class="space-y-2">
                             <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 Reticulum Content Serving

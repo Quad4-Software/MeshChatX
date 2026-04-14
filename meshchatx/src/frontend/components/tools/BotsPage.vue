@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-zinc-950">
-        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-4 md:px-8 py-4 sm:py-6">
+        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-4 md:px-5 lg:px-8 py-4 sm:py-6">
             <div class="space-y-8 w-full max-w-4xl mx-auto">
                 <div class="space-y-2 border-b border-gray-200 dark:border-zinc-800 pb-6">
                     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
