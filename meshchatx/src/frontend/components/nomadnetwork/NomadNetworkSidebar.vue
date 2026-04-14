@@ -277,101 +277,84 @@
 
                 <!-- Favourite Context Menu (Teleport to body to avoid overflow clipping) -->
                 <Teleport to="body">
-                    <div
-                        v-if="favouriteContextMenu.show"
+                    <ContextMenuPanel
+                        :show="favouriteContextMenu.show"
+                        :x="favouriteContextMenu.x"
+                        :y="favouriteContextMenu.y"
+                        panel-class="z-[200] min-w-56"
                         v-click-outside="{
                             handler: () => {
                                 if (!favouriteContextMenu.justOpened) closeContextMenus();
                             },
                             capture: true,
                         }"
-                        class="fixed z-[200] min-w-[220px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                        :style="{ top: favouriteContextMenu.y + 'px', left: favouriteContextMenu.x + 'px' }"
                     >
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                            @click="renameFavouriteFromContext"
-                        >
+                        <ContextMenuItem @click="renameFavouriteFromContext">
                             <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
-                            <span class="font-medium">{{ $t("nomadnet.rename") }}</span>
-                        </button>
-                        <button
+                            {{ $t("nomadnet.rename") }}
+                        </ContextMenuItem>
+                        <ContextMenuItem
                             v-if="!isBlocked(favouriteContextMenu.targetHash)"
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                            item-class="text-red-600 dark:text-red-400"
                             @click="banishFavouriteFromContext"
                         >
                             <MaterialDesignIcon icon-name="gavel" class="size-4 text-red-400" />
-                            <span class="font-medium">{{ $t("nomadnet.block_node") }}</span>
-                        </button>
-                        <button
+                            {{ $t("nomadnet.block_node") }}
+                        </ContextMenuItem>
+                        <ContextMenuItem
                             v-else
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all active:scale-95"
+                            item-class="text-emerald-600 dark:text-emerald-400"
                             @click="unblockFavouriteFromContext"
                         >
-                            <MaterialDesignIcon icon-name="check-circle" class="size-4 text-green-400" />
-                            <span class="font-medium">{{ $t("nomadnet.lift_banishment") }}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                            @click="removeFavouriteFromContext"
-                        >
+                            <MaterialDesignIcon icon-name="check-circle" class="size-4 text-emerald-500" />
+                            {{ $t("nomadnet.lift_banishment") }}
+                        </ContextMenuItem>
+                        <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="removeFavouriteFromContext">
                             <MaterialDesignIcon icon-name="trash-can" class="size-4 text-red-400" />
-                            <span class="font-medium">{{ $t("nomadnet.remove") }}</span>
-                        </button>
-                        <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
-                        <div
-                            class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
-                        >
-                            Move to Section
-                        </div>
+                            {{ $t("nomadnet.remove") }}
+                        </ContextMenuItem>
+                        <ContextMenuDivider />
+                        <ContextMenuSectionLabel>Move to Section</ContextMenuSectionLabel>
                         <div class="max-h-56 overflow-y-auto custom-scrollbar">
-                            <button
+                            <ContextMenuItem
                                 v-for="section in sectionsWithFavourites"
                                 :key="section.id + '-move'"
-                                type="button"
-                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
                                 @click="moveContextFavouriteToSection(section.id)"
                             >
                                 <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
                                 <span class="truncate">{{ section.name }}</span>
-                            </button>
+                            </ContextMenuItem>
                         </div>
-                    </div>
+                    </ContextMenuPanel>
                 </Teleport>
 
                 <!-- Section Context Menu (Teleport to body) -->
                 <Teleport to="body">
-                    <div
-                        v-if="sectionContextMenu.show"
+                    <ContextMenuPanel
+                        :show="sectionContextMenu.show"
+                        :x="sectionContextMenu.x"
+                        :y="sectionContextMenu.y"
+                        panel-class="z-[200]"
                         v-click-outside="{ handler: closeContextMenus, capture: true }"
-                        class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                        :style="{ top: sectionContextMenu.y + 'px', left: sectionContextMenu.x + 'px' }"
                     >
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                            @click="renameSectionFromContext"
-                        >
+                        <ContextMenuItem @click="renameSectionFromContext">
                             <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
-                            <span class="font-medium">Rename Section</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                            :disabled="sectionContextMenu.sectionId === defaultSectionId"
-                            :class="
-                                sectionContextMenu.sectionId === defaultSectionId ? 'opacity-50 cursor-not-allowed' : ''
+                            Rename Section
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            :item-class="
+                                'text-red-600 dark:text-red-400' +
+                                (sectionContextMenu.sectionId === defaultSectionId
+                                    ? ' opacity-50 cursor-not-allowed'
+                                    : '')
                             "
+                            :disabled="sectionContextMenu.sectionId === defaultSectionId"
                             @click="removeSectionFromContext"
                         >
                             <MaterialDesignIcon icon-name="delete" class="size-4 text-red-400" />
-                            <span class="font-medium">Delete Section</span>
-                        </button>
-                    </div>
+                            Delete Section
+                        </ContextMenuItem>
+                    </ContextMenuPanel>
                 </Teleport>
             </div>
 
@@ -478,45 +461,42 @@
 
                 <!-- Announce Context Menu (right-click, Teleport to body) -->
                 <Teleport to="body">
-                    <div
-                        v-if="announceContextMenu.show"
+                    <ContextMenuPanel
+                        :show="announceContextMenu.show"
+                        :x="announceContextMenu.x"
+                        :y="announceContextMenu.y"
+                        panel-class="z-[200]"
                         v-click-outside="{
                             handler: () => {
                                 if (!announceContextMenu.justOpened) closeContextMenus();
                             },
                             capture: true,
                         }"
-                        class="fixed z-[200] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                        :style="{ top: announceContextMenu.y + 'px', left: announceContextMenu.x + 'px' }"
                     >
-                        <button
+                        <ContextMenuItem
                             v-if="!isFavourite(announceContextMenu.node?.destination_hash)"
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
                             @click="addFavouriteFromContext"
                         >
                             <MaterialDesignIcon icon-name="star-outline" class="size-4 text-yellow-500" />
-                            <span class="font-medium">{{ $t("nomadnet.add_favourite") }}</span>
-                        </button>
-                        <button
+                            {{ $t("nomadnet.add_favourite") }}
+                        </ContextMenuItem>
+                        <ContextMenuItem
                             v-if="!isBlocked(announceContextMenu.node?.identity_hash)"
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
+                            item-class="text-red-600 dark:text-red-400"
                             @click="blockAnnounceFromContext"
                         >
                             <MaterialDesignIcon icon-name="gavel" class="size-4 text-red-400" />
-                            <span class="font-medium">{{ $t("nomadnet.block_node") }}</span>
-                        </button>
-                        <button
+                            {{ $t("nomadnet.block_node") }}
+                        </ContextMenuItem>
+                        <ContextMenuItem
                             v-else
-                            type="button"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all active:scale-95"
+                            item-class="text-emerald-600 dark:text-emerald-400"
                             @click="unblockAnnounceFromContext"
                         >
-                            <MaterialDesignIcon icon-name="check-circle" class="size-4 text-green-400" />
-                            <span class="font-medium">{{ $t("nomadnet.lift_banishment") }}</span>
-                        </button>
-                    </div>
+                            <MaterialDesignIcon icon-name="check-circle" class="size-4 text-emerald-500" />
+                            {{ $t("nomadnet.lift_banishment") }}
+                        </ContextMenuItem>
+                    </ContextMenuPanel>
                 </Teleport>
             </div>
         </template>
@@ -526,6 +506,10 @@
 <script>
 import Utils from "../../js/Utils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
+import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
+import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
+import ContextMenuSectionLabel from "../contextmenu/ContextMenuSectionLabel.vue";
 import DropDownMenu from "../DropDownMenu.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
@@ -536,7 +520,16 @@ import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "NomadNetworkSidebar",
-    components: { DropDownMenuItem, IconButton, DropDownMenu, MaterialDesignIcon },
+    components: {
+        ContextMenuDivider,
+        ContextMenuItem,
+        ContextMenuPanel,
+        ContextMenuSectionLabel,
+        DropDownMenuItem,
+        IconButton,
+        DropDownMenu,
+        MaterialDesignIcon,
+    },
     props: {
         nodes: {
             type: Object,

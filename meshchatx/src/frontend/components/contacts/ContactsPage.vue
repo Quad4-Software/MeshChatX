@@ -140,42 +140,39 @@
         </div>
 
         <!-- Contact context menu -->
-        <div
-            v-if="contextMenu.visible"
-            class="fixed z-[210] min-w-48 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl"
-            :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
+        <ContextMenuPanel
+            :show="contextMenu.visible"
+            :x="contextMenu.x"
+            :y="contextMenu.y"
+            panel-class="z-[210]"
         >
-            <button type="button" class="context-item" @click="openConversation(contextMenu.contact)">
+            <ContextMenuItem @click="openConversation(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="message-text-outline" class="size-4" />
                 {{ $t("contacts.send_message") }}
-            </button>
-            <button type="button" class="context-item" @click="callContact(contextMenu.contact)">
+            </ContextMenuItem>
+            <ContextMenuItem @click="callContact(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="phone-outline" class="size-4" />
                 {{ $t("contacts.call_contact") }}
-            </button>
-            <div class="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
-            <button type="button" class="context-item" @click="editContactName(contextMenu.contact)">
+            </ContextMenuItem>
+            <ContextMenuDivider />
+            <ContextMenuItem @click="editContactName(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="pencil-outline" class="size-4" />
                 {{ $t("contacts.edit_contact") }}
-            </button>
-            <button type="button" class="context-item" @click="shareContact(contextMenu.contact)">
+            </ContextMenuItem>
+            <ContextMenuItem @click="shareContact(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="share-variant" class="size-4" />
                 {{ $t("contacts.share_contact") }}
-            </button>
-            <button type="button" class="context-item" @click="copyContactUri(contextMenu.contact)">
+            </ContextMenuItem>
+            <ContextMenuItem @click="copyContactUri(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="content-copy" class="size-4" />
                 {{ $t("contacts.copy_contact_uri") }}
-            </button>
-            <div class="border-t border-gray-100 dark:border-zinc-800 my-1"></div>
-            <button
-                type="button"
-                class="context-item text-red-600 dark:text-red-400"
-                @click="removeContact(contextMenu.contact)"
-            >
+            </ContextMenuItem>
+            <ContextMenuDivider />
+            <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="removeContact(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="delete-outline" class="size-4" />
                 {{ $t("contacts.remove_contact") }}
-            </button>
-        </div>
+            </ContextMenuItem>
+        </ContextMenuPanel>
 
         <!-- Add contact dialog -->
         <div
@@ -384,12 +381,18 @@ import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 
 import LxmfUserIcon from "../LxmfUserIcon.vue";
+import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
+import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
+import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 
 export default {
     name: "ContactsPage",
     components: {
         MaterialDesignIcon,
         LxmfUserIcon,
+        ContextMenuDivider,
+        ContextMenuItem,
+        ContextMenuPanel,
     },
     data() {
         return {
@@ -890,9 +893,5 @@ export default {
 
 .secondary-chip {
     @apply inline-flex items-center gap-1 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 px-3 py-2 text-xs font-semibold transition;
-}
-
-.context-item {
-    @apply w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 flex items-center gap-2;
 }
 </style>

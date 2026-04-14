@@ -207,3 +207,19 @@ select.input-field option {
 .animate-spin-reverse {
     animation: spin-reverse 1s linear infinite;
 }
+
+.context-menu-panel {
+    @apply fixed min-w-48 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl;
+}
+
+.context-item {
+    @apply w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 flex items-center gap-2;
+}
+
+.context-menu-divider {
+    @apply border-t border-gray-100 dark:border-zinc-800 my-1;
+}
+
+.context-menu-section-label {
+    @apply px-3 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest;
+}

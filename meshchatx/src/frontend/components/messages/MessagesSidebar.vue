@@ -518,58 +518,43 @@
                         </div>
 
                         <!-- Context Menu -->
-                        <div
-                            v-if="contextMenu.show"
+                        <ContextMenuPanel
+                            :show="contextMenu.show"
+                            :x="contextMenu.x"
+                            :y="contextMenu.y"
+                            panel-class="z-[100]"
                             v-click-outside="{ handler: () => (contextMenu.show = false), capture: true }"
-                            class="fixed z-[100] min-w-[200px] bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-700 py-1.5 overflow-hidden animate-in fade-in zoom-in duration-100"
-                            :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
                         >
-                            <button
-                                type="button"
-                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                                @click="bulkMarkAsRead"
-                            >
+                            <ContextMenuItem @click="bulkMarkAsRead">
                                 <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />
-                                <span class="font-medium">Mark as Read</span>
-                            </button>
-                            <button
-                                v-if="contextMenu.targetHash"
-                                type="button"
-                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                                @click="togglePinFromContextMenu"
-                            >
+                                Mark as Read
+                            </ContextMenuItem>
+                            <ContextMenuItem v-if="contextMenu.targetHash" @click="togglePinFromContextMenu">
                                 <MaterialDesignIcon
                                     :icon-name="isContextTargetPinned ? 'pin-off' : 'pin'"
                                     class="size-4 text-gray-400"
                                 />
-                                <span class="font-medium">{{
+                                {{
                                     isContextTargetPinned
                                         ? $t("messages.unpin_conversation")
                                         : $t("messages.pin_conversation")
-                                }}</span>
-                            </button>
-                            <button
-                                type="button"
-                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
-                                @click="contextMenuIngestPaperMessage"
-                            >
+                                }}
+                            </ContextMenuItem>
+                            <ContextMenuItem @click="contextMenuIngestPaperMessage">
                                 <MaterialDesignIcon icon-name="qrcode-scan" class="size-4 text-gray-400" />
-                                <span class="font-medium">{{ $t("messages.ingest_paper_message") }}</span>
-                            </button>
-                            <button
+                                {{ $t("messages.ingest_paper_message") }}
+                            </ContextMenuItem>
+                            <ContextMenuItem
                                 v-if="contextMenu.targetHash && isBlocked(contextMenu.targetHash)"
-                                type="button"
-                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all active:scale-95"
+                                item-class="text-emerald-600 dark:text-emerald-400"
                                 @click="liftBanishmentFromConversationMenu"
                             >
                                 <MaterialDesignIcon icon-name="check-circle" class="size-4" />
-                                <span class="font-medium">{{ $t("banishment.lift_banishment") }}</span>
-                            </button>
-                            <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
-                            <button
+                                {{ $t("banishment.lift_banishment") }}
+                            </ContextMenuItem>
+                            <ContextMenuDivider />
+                            <ContextMenuItem
                                 v-if="GlobalState.config.telemetry_enabled"
-                                type="button"
-                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-95"
                                 @click="toggleTelemetryTrust(contextMenu.targetHash)"
                             >
                                 <MaterialDesignIcon
@@ -580,56 +565,38 @@
                                     "
                                     :class="
                                         contextMenu.targetContact?.is_telemetry_trusted
-                                            ? 'text-blue-500'
-                                            : 'text-gray-400'
+                                            ? 'size-4 text-blue-500'
+                                            : 'size-4 text-gray-400'
                                     "
-                                    class="size-4"
                                 />
-                                <span class="font-medium">{{
+                                {{
                                     contextMenu.targetContact?.is_telemetry_trusted
                                         ? "Revoke Telemetry Trust"
                                         : "Trust for Telemetry"
-                                }}</span>
-                            </button>
-                            <div
-                                v-if="GlobalState.config.telemetry_enabled"
-                                class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"
-                            ></div>
-                            <div
-                                class="px-4 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest"
-                            >
-                                Move to Folder
-                            </div>
-                            <button
-                                type="button"
-                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
-                                @click="moveSelectedToFolder(null)"
-                            >
+                                }}
+                            </ContextMenuItem>
+                            <ContextMenuDivider v-if="GlobalState.config.telemetry_enabled" />
+                            <ContextMenuSectionLabel>Move to Folder</ContextMenuSectionLabel>
+                            <ContextMenuItem @click="moveSelectedToFolder(null)">
                                 <MaterialDesignIcon icon-name="inbox-arrow-down" class="size-4 opacity-70" />
-                                <span>Uncategorized</span>
-                            </button>
+                                Uncategorized
+                            </ContextMenuItem>
                             <div class="max-h-[200px] overflow-y-auto custom-scrollbar">
-                                <button
+                                <ContextMenuItem
                                     v-for="folder in folders"
                                     :key="folder.id"
-                                    type="button"
-                                    class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-95"
                                     @click="moveSelectedToFolder(folder.id)"
                                 >
                                     <MaterialDesignIcon icon-name="folder" class="size-4 opacity-70" />
                                     <span class="truncate">{{ folder.name }}</span>
-                                </button>
+                                </ContextMenuItem>
                             </div>
-                            <div class="border-t border-gray-100 dark:border-zinc-700 my-1.5 mx-2"></div>
-                            <button
-                                type="button"
-                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95"
-                                @click="bulkDelete"
-                            >
+                            <ContextMenuDivider />
+                            <ContextMenuItem item-class="text-red-600 dark:text-red-400" @click="bulkDelete">
                                 <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                                <span class="font-bold">Delete</span>
-                            </button>
-                        </div>
+                                Delete
+                            </ContextMenuItem>
+                        </ContextMenuPanel>
 
                         <!-- loading more spinner -->
                         <div v-if="isLoadingMore" class="p-4 text-center">
@@ -802,13 +769,24 @@ import Utils from "../../js/Utils";
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
+import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
+import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
+import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
+import ContextMenuSectionLabel from "../contextmenu/ContextMenuSectionLabel.vue";
 import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 
 export default {
     name: "MessagesSidebar",
-    components: { MaterialDesignIcon, LxmfUserIcon },
+    components: {
+        MaterialDesignIcon,
+        LxmfUserIcon,
+        ContextMenuDivider,
+        ContextMenuItem,
+        ContextMenuPanel,
+        ContextMenuSectionLabel,
+    },
     props: {
         peers: {
             type: Object,

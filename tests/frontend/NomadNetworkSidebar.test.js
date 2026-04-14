@@ -108,7 +108,7 @@ describe("NomadNetworkSidebar.vue", () => {
         wrapper.vm.sectionContextMenu.show = false;
         await wrapper.vm.$nextTick();
 
-        const menuEls = document.body.querySelectorAll(".fixed");
+        const menuEls = document.body.querySelectorAll(".context-menu-panel");
         const menuEl = Array.from(menuEls).find((el) => el.textContent.includes("nomadnet.rename"));
         expect(menuEl).toBeTruthy();
         expect(menuEl.textContent).toContain("nomadnet.block_node");
@@ -152,7 +152,7 @@ describe("NomadNetworkSidebar.vue", () => {
         wrapper.vm.sectionContextMenu.show = false;
         await wrapper.vm.$nextTick();
 
-        const menuEls = document.body.querySelectorAll(".fixed");
+        const menuEls = document.body.querySelectorAll(".context-menu-panel");
         const menuEl = Array.from(menuEls).find((el) => el.textContent.includes("nomadnet.rename"));
         expect(menuEl).toBeTruthy();
         const banishBtn = Array.from(menuEl.querySelectorAll("button")).find((b) =>
