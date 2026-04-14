@@ -21,6 +21,7 @@ fi
 unified=0
 
 while IFS= read -r -d '' rel; do
+    rel="${rel#./}"
     arm64_file="$ARM64_DIR/$rel"
     x64_file="$X64_DIR/$rel"
 
@@ -38,7 +39,7 @@ while IFS= read -r -d '' rel; do
     cp "$arm64_file" "$x64_file"
     echo "  unified: $rel"
     unified=$((unified + 1))
-done < <(cd "$ARM64_DIR" && find . -type f -print0 | sed -z 's|^\./||')
+done < <(cd "$ARM64_DIR" && find . -type f -print0)
 
 if [[ $unified -gt 0 ]]; then
     echo "unify-backend-plain-files: copied $unified file(s) from arm64 → x64"
