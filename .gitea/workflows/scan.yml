@@ -44,18 +44,11 @@ jobs:
                   . scripts/ci/ci-node-path.sh
                   task deps:fe
 
-            - name: pnpm audit
-              run: |
-                  . scripts/ci/ci-node-path.sh
-                  pnpm audit --audit-level=high
-
-            - name: Download Trivy
-              run: |
-                  curl -L -o /tmp/trivy.deb https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/fdfe96b77d2f7b7f5a90cea00af5024c9f728f17/trivy_0.69.3_Linux-64bit.deb
-                  sh scripts/ci/exec-priv.sh dpkg -i /tmp/trivy.deb || sh scripts/ci/exec-priv.sh apt-get install -f -y
+            - name: Setup Trivy
+              run: sh scripts/ci/setup-trivy.sh
 
             - name: Trivy FS scan
-              run: trivy fs --exit-code 1 --skip-dirs .pnpm-store .
+              run: sh scripts/ci/trivy-fs-scan.sh
 
             - name: Trivy Dockerfile misconfiguration
               run: trivy config --exit-code 1 Dockerfile
