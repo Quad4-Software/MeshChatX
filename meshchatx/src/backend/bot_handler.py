@@ -17,6 +17,11 @@ class BotHandler:
     def __init__(self, identity_path, config_manager=None):
         self.identity_path = os.path.abspath(identity_path)
         self.config_manager = config_manager
+        self.bot_reticulum_config_dir = os.path.abspath(
+            os.path.expanduser(
+                os.environ.get("MESHCHAT_BOT_RETICULUM_CONFIG_DIR", "~/.reticulum"),
+            ),
+        )
         self.bots_dir = os.path.join(self.identity_path, "bots")
         os.makedirs(self.bots_dir, exist_ok=True)
         self.running_bots = {}
@@ -36,6 +41,14 @@ class BotHandler:
                 for entry in self.bots_state:
                     if "storage_dir" in entry:
                         entry["storage_dir"] = os.path.abspath(entry["storage_dir"])
+                    if "bot_config_dir" in entry and entry["bot_config_dir"]:
+                        entry["bot_config_dir"] = os.path.abspath(
+                            os.path.expanduser(entry["bot_config_dir"]),
+                        )
+                    if "reticulum_config_dir" in entry and entry["reticulum_config_dir"]:
+                        entry["reticulum_config_dir"] = os.path.abspath(
+                            os.path.expanduser(entry["reticulum_config_dir"]),
+                        )
         except FileNotFoundError:
             self.bots_state = []
         except Exception:
@@ -156,6 +169,8 @@ class BotHandler:
                 "template_id": template_id,
                 "name": name or f"{template_id.title()} Bot",
                 "storage_dir": bot_storage_dir,
+                "bot_config_dir": os.path.join(bot_storage_dir, "config"),
+                "reticulum_config_dir": self.bot_reticulum_config_dir,
                 "enabled": True,
                 "pid": None,
             }
@@ -164,6 +179,10 @@ class BotHandler:
             bot_storage_dir = entry["storage_dir"]
             entry["template_id"] = template_id
             entry["name"] = name or entry.get("name") or f"{template_id.title()} Bot"
+            if not entry.get("bot_config_dir"):
+                entry["bot_config_dir"] = os.path.join(bot_storage_dir, "config")
+            if not entry.get("reticulum_config_dir"):
+                entry["reticulum_config_dir"] = self.bot_reticulum_config_dir
             entry["enabled"] = True
 
         os.makedirs(bot_storage_dir, exist_ok=True)
@@ -177,6 +196,10 @@ class BotHandler:
             entry["name"],
             "--storage",
             bot_storage_dir,
+            "--config-path",
+            entry["bot_config_dir"],
+            "--reticulum-config-dir",
+            entry["reticulum_config_dir"],
         ]
 
         proc = subprocess.Popen(cmd, cwd=bot_storage_dir)  # noqa: S603
@@ -298,6 +321,18 @@ class BotHandler:
         storage_dir = entry.get("storage_dir")
         if not storage_dir:
             return None
+
+        bot_config_dir = entry.get("bot_config_dir")
+        if bot_config_dir:
+            id_path_bot_cfg = os.path.join(bot_config_dir, "identity")
+            if os.path.exists(id_path_bot_cfg):
+                return id_path_bot_cfg
+
+        reticulum_config_dir = entry.get("reticulum_config_dir")
+        if reticulum_config_dir:
+            id_path_shared = os.path.join(reticulum_config_dir, "identity")
+            if os.path.exists(id_path_shared):
+                return id_path_shared
 
         # LXMFy stores identity in the 'config' subdirectory by default
         id_path = os.path.join(storage_dir, "config", "identity")

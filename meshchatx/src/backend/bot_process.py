@@ -20,15 +20,35 @@ def main():
     parser.add_argument("--template", required=True, choices=TEMPLATE_MAP.keys())
     parser.add_argument("--name", required=True)
     parser.add_argument("--storage", required=True)
+    parser.add_argument("--config-path", default=None)
+    parser.add_argument(
+        "--reticulum-config-dir",
+        default=os.environ.get(
+            "MESHCHAT_BOT_RETICULUM_CONFIG_DIR",
+            os.path.expanduser("~/.reticulum"),
+        ),
+    )
     args = parser.parse_args()
 
     os.makedirs(args.storage, exist_ok=True)
-    os.chdir(args.storage)
+
+    config_path = args.config_path
+    if config_path:
+        config_path = os.path.abspath(os.path.expanduser(config_path))
+    else:
+        config_path = os.path.join(os.path.abspath(args.storage), "config")
+    os.makedirs(config_path, exist_ok=True)
+    reticulum_config_dir = os.path.abspath(os.path.expanduser(args.reticulum_config_dir))
+    os.makedirs(reticulum_config_dir, exist_ok=True)
 
     BotCls = TEMPLATE_MAP[args.template]
-    # LXMFy hardcodes its config directory to os.path.join(os.getcwd(), 'config').
-    # By chdir'ing into args.storage, we ensure 'config' and data are kept within that folder.
-    bot_instance = BotCls(name=args.name, storage_path=args.storage, test_mode=False)
+    bot_instance = BotCls(
+        name=args.name,
+        storage_path=args.storage,
+        test_mode=False,
+        config_path=config_path,
+        reticulum_config_dir=reticulum_config_dir,
+    )
 
     # Optional immediate announce for reachability
     with contextlib.suppress(Exception):

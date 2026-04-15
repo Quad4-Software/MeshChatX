@@ -19,7 +19,14 @@ class StoppableBot:
 
 
 class EchoBotTemplate(StoppableBot):
-    def __init__(self, name="Echo Bot", storage_path=None, test_mode=False):
+    def __init__(
+        self,
+        name="Echo Bot",
+        storage_path=None,
+        test_mode=False,
+        config_path=None,
+        reticulum_config_dir=None,
+    ):
         super().__init__()
 
         self.bot = LXMFBot(
@@ -29,6 +36,8 @@ class EchoBotTemplate(StoppableBot):
             first_message_enabled=True,
             test_mode=test_mode,
             storage_path=storage_path,
+            config_path=config_path,
+            reticulum_config_dir=reticulum_config_dir,
         )
         self.setup_commands()
         self.setup_message_handlers()
@@ -97,7 +106,14 @@ class EchoBotTemplate(StoppableBot):
 
 
 class NoteBotTemplate(StoppableBot):
-    def __init__(self, name="Note Bot", storage_path=None, test_mode=False):
+    def __init__(
+        self,
+        name="Note Bot",
+        storage_path=None,
+        test_mode=False,
+        config_path=None,
+        reticulum_config_dir=None,
+    ):
         super().__init__()
 
         self.bot = LXMFBot(
@@ -107,6 +123,8 @@ class NoteBotTemplate(StoppableBot):
             storage_type="json",
             storage_path=storage_path or "data/notes",
             test_mode=test_mode,
+            config_path=config_path,
+            reticulum_config_dir=reticulum_config_dir,
         )
         self.setup_commands()
 
@@ -176,7 +194,14 @@ class NoteBotTemplate(StoppableBot):
 
 
 class ReminderBotTemplate(StoppableBot):
-    def __init__(self, name="Reminder Bot", storage_path=None, test_mode=False):
+    def __init__(
+        self,
+        name="Reminder Bot",
+        storage_path=None,
+        test_mode=False,
+        config_path=None,
+        reticulum_config_dir=None,
+    ):
         super().__init__()
 
         self.bot = LXMFBot(
@@ -186,6 +211,8 @@ class ReminderBotTemplate(StoppableBot):
             storage_type="sqlite",
             storage_path=storage_path or "data/reminders.db",
             test_mode=test_mode,
+            config_path=config_path,
+            reticulum_config_dir=reticulum_config_dir,
         )
         self.setup_commands()
         self.bot.scheduler.add_task(
