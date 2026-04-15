@@ -52,10 +52,19 @@ test.describe("Deep-linked routes", () => {
         await expect(page.getByText("Reticulum Mesh", { exact: true })).toBeVisible({ timeout: 30000 });
     });
 
-    test("propagation nodes empty state", async ({ page }) => {
+    test("propagation nodes route loads empty state or searchable list", async ({ page }) => {
         await page.goto("/#/propagation-nodes");
         await expect(page).toHaveURL(/#\/propagation-nodes/);
-        await expect(page.getByText("No Propagation Nodes", { exact: true })).toBeVisible({ timeout: 20000 });
+        await expect(page.getByText("Hosted Propagation Node", { exact: true })).toBeVisible({ timeout: 20000 });
+
+        const emptyState = page.getByText("No Propagation Nodes", { exact: true });
+        const searchInput = page.getByPlaceholder(/Search \d+ Propagation Nodes\.\.\./);
+        const hasEmptyState = (await emptyState.count()) > 0;
+        if (hasEmptyState) {
+            await expect(emptyState).toBeVisible({ timeout: 20000 });
+        } else {
+            await expect(searchInput).toBeVisible({ timeout: 20000 });
+        }
     });
 
     test("ping tool page shows title", async ({ page }) => {

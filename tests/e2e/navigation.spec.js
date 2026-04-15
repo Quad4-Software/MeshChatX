@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { PALETTE_PLACEHOLDER, openCommandPalette, prepareE2eSession } = require("./helpers");
+const { PALETTE_PLACEHOLDER, dismissMapOnboardingTooltip, openCommandPalette, prepareE2eSession } = require("./helpers");
 
 test.describe("Getting started (tutorial page)", () => {
     test("tutorial route shows welcome copy", async ({ page }) => {
@@ -8,13 +8,17 @@ test.describe("Getting started (tutorial page)", () => {
         await expect(page.getByRole("heading", { name: /Welcome to\s*MeshChatX/i }).first()).toBeVisible({
             timeout: 30000,
         });
-        await expect(page.getByText("The future of off-grid communication", { exact: false }).first()).toBeVisible({
+        await expect(page.getByText(/Secure,\s*local-first communication/i).first()).toBeVisible({
             timeout: 10000,
         });
     });
 });
 
 test.describe("Command palette", () => {
+    test.beforeEach(async ({ request }) => {
+        await prepareE2eSession(request);
+    });
+
     test("Ctrl+K opens palette with search field", async ({ page }) => {
         await page.goto("/#/messages");
         await openCommandPalette(page);
@@ -69,6 +73,9 @@ test.describe("Sidebar and keyboard navigation", () => {
         test.setTimeout(120000);
         await prepareE2eSession(request);
         await page.goto("/#/messages");
+        await page.evaluate(() => {
+            localStorage.setItem("map_onboarding_seen", "true");
+        });
         await expect(page).toHaveURL(/#\/messages/);
 
         const sideNav = page.locator("ul.py-3");
@@ -78,10 +85,11 @@ test.describe("Sidebar and keyboard navigation", () => {
 
         await sideNav.locator('a[href*="#/map"]').click();
         await expect(page).toHaveURL(/#\/map/);
+        await dismissMapOnboardingTooltip(page);
 
         await sideNav.locator('a[href*="#/tools"]').click();
         await expect(page).toHaveURL(/#\/tools/);
-        await expect(page.getByText("Power tools for operators", { exact: true })).toBeVisible({
+        await expect(page.getByText("Utilities", { exact: true }).first()).toBeVisible({
             timeout: 20000,
         });
 
@@ -112,7 +120,9 @@ test.describe("Sidebar and keyboard navigation", () => {
 test.describe("Tools hub", () => {
     test("tools index lists utilities heading", async ({ page }) => {
         await page.goto("/#/tools");
-        await expect(page.getByText("Utilities", { exact: true })).toBeVisible({ timeout: 20000 });
+        await expect(page.locator("div.text-2xl.md\\:text-3xl.font-black").first()).toHaveText("Utilities", {
+            timeout: 20000,
+        });
         await expect(page.getByPlaceholder("Search tools...", { exact: true })).toBeVisible();
     });
 

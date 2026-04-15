@@ -13,10 +13,11 @@ test.describe("Shell: sidebar, theme, notifications, call, search", () => {
     test("desktop sidebar collapse toggle changes width", async ({ page }) => {
         await page.goto("/#/messages");
         const sidebar = page.locator("div.fixed.inset-y-0.left-0").filter({ has: page.locator("ul.py-3") });
+        const toggleButton = sidebar.locator("div.hidden.sm\\:flex button").first();
         await expect(sidebar).toHaveClass(/w-80/);
-        await page.locator("div.hidden.sm\\:flex.justify-end.p-2.border-b button").click();
+        await toggleButton.click();
         await expect(sidebar).toHaveClass(/w-16/);
-        await page.locator("div.hidden.sm\\:flex.justify-end.p-2.border-b button").click();
+        await toggleButton.click();
         await expect(sidebar).toHaveClass(/w-80/);
     });
 
