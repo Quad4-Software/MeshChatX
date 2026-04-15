@@ -91,11 +91,33 @@ try {
 
     const cmdParts = pythonCmd.trim().split(/\s+/).filter(Boolean);
     const cmd = cmdParts[0];
-    const args = [...cmdParts.slice(1), "cx_setup.py", "build"];
+    const baseArgs = cmdParts.slice(1);
+    const licensesArgs = [...baseArgs, "-m", "meshchatx.src.backend.licenses_collector", "--write-artifacts"];
+    const args = [...baseArgs, "cx_setup.py", "build"];
 
     let spawnCmd = cmd;
-    let spawnArgs = args;
+    let spawnArgs = licensesArgs;
     const rosettaX64 = isDarwin && arch === "x64" && process.arch === "arm64" && !process.env.PYTHON_CMD;
+    if (rosettaX64) {
+        spawnCmd = "arch";
+        spawnArgs = ["-x86_64", cmd, ...licensesArgs];
+    }
+
+    console.log("Generating embedded third-party license artifacts...");
+    const licensesResult = spawnSync(spawnCmd, spawnArgs, {
+        stdio: "inherit",
+        shell: false,
+        env: env,
+    });
+    if (licensesResult.error) {
+        throw licensesResult.error;
+    }
+    if (licensesResult.status !== 0) {
+        process.exit(licensesResult.status || 1);
+    }
+
+    spawnCmd = cmd;
+    spawnArgs = args;
     if (rosettaX64) {
         spawnCmd = "arch";
         spawnArgs = ["-x86_64", cmd, ...args];

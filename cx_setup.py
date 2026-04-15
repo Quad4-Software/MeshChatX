@@ -18,6 +18,18 @@ changelog_path = ROOT / "CHANGELOG.md"
 if changelog_path.exists():
     include_files.append((str(changelog_path), "CHANGELOG.md"))
 
+frontend_licenses_path = (
+    ROOT / "meshchatx" / "src" / "backend" / "data" / "licenses_frontend.json"
+)
+if frontend_licenses_path.exists():
+    include_files.append((str(frontend_licenses_path), "licenses_frontend.json"))
+
+third_party_notices_path = (
+    ROOT / "meshchatx" / "src" / "backend" / "data" / "THIRD_PARTY_NOTICES.txt"
+)
+if third_party_notices_path.exists():
+    include_files.append((str(third_party_notices_path), "THIRD_PARTY_NOTICES.txt"))
+
 if PUBLIC_DIR.exists() and PUBLIC_DIR.is_dir():
     include_files.append((str(PUBLIC_DIR), "public"))
 

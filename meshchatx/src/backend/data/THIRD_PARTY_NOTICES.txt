@@ -1,0 +1,91 @@
+Reticulum MeshChatX - Third-party notices
+Generated at: 2026-04-15T07:29:13.270941Z
+Frontend source: embedded
+
+Python dependencies
+-------------------
+aiohappyeyeballs 2.6.1
+  License: PSF-2.0
+  Author: J. Nick Koston
+aiohttp 3.13.5
+  License: Apache-2.0 AND MIT
+  Author: —
+aiohttp-session 2.12.1
+  License: Apache 2
+  Author: Andrew Svetlov
+aiosignal 1.4.0
+  License: Apache 2.0
+  Author: aiohttp team <team@aiohttp.org>
+attrs 26.1.0
+  License: MIT
+  Author: Hynek Schlawack <hs@ox.cx>
+audioop-lts 0.2.2
+  License: PSF-2.0
+  Author: —
+bcrypt 5.0.0
+  License: Apache-2.0
+  Author: The Python Cryptographic Authority developers <cryptography-dev@python.org>
+cffi 2.0.0
+  License: MIT
+  Author: Armin Rigo, Maciej Fijalkowski
+cryptography 46.0.7
+  License: Apache-2.0 OR BSD-3-Clause
+  Author: The Python Cryptographic Authority and individual contributors <cryptography-dev@python.org>
+frozenlist 1.8.0
+  License: Apache-2.0
+  Author: aiohttp team <team@aiohttp.org>
+idna 3.11
+  License: BSD-3-Clause
+  Author: Kim Davies <kim+pypi@gumleaf.org>
+jaraco.context 6.1.2
+  License: MIT
+  Author: "Jason R. Coombs" <jaraco@jaraco.com>
+lxmf 0.9.4
+  License: Reticulum License
+  Author: Mark Qvist
+lxmfy 1.6.1
+  License: BSD-0-Clause
+  Author: Quad4
+lxst 0.4.6
+  License: Other/Proprietary License
+  Author: Mark Qvist
+multidict 6.7.1
+  License: Apache License 2.0
+  Author: Andrew Svetlov
+numpy 2.4.4
+  License: BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
+  Author: Travis E. Oliphant et al.
+ply 3.11
+  License: BSD
+  Author: David Beazley
+propcache 0.4.1
+  License: Apache-2.0
+  Author: Andrew Svetlov
+psutil 7.2.2
+  License: BSD-3-Clause
+  Author: Giampaolo Rodola
+pycodec2 4.1.1
+  License: OSI Approved :: BSD License
+  Author: Grzegorz Milka
+pycparser 3.0
+  License: BSD-3-Clause
+  Author: Eli Bendersky <eliben@gmail.com>
+pyserial 3.5
+  License: BSD
+  Author: Chris Liechti
+reticulum-meshchatx 4.4.0
+  License: MIT
+  Author: Sudo-Ivan
+rns 1.1.5
+  License: Reticulum License
+  Author: Mark Qvist
+websockets 16.0
+  License: BSD-3-Clause
+  Author: Aymeric Augustin <aymeric.augustin@m4x.org>
+yarl 1.23.0
+  License: Apache-2.0
+  Author: Andrew Svetlov
+
+Node dependencies
+-----------------
+No entries.

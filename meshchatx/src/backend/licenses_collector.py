@@ -6,6 +6,7 @@ import importlib.metadata
 import json
 import shutil
 import subprocess
+import sys
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,6 +16,9 @@ from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
 _ROOT_DIST_CANDIDATES = ("reticulum-meshchatx", "reticulum_meshchatx")
+_DATA_SUBPATH = Path("meshchatx") / "src" / "backend" / "data"
+_FRONTEND_LICENSES_FILENAME = "licenses_frontend.json"
+_THIRD_PARTY_NOTICES_FILENAME = "THIRD_PARTY_NOTICES.txt"
 
 
 def _repo_root() -> Path:
@@ -162,18 +166,35 @@ def _flatten_pnpm_licenses_json(data: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
+def _embedded_data_paths(filename: str) -> list[Path]:
+    paths = [Path(__file__).resolve().parent / "data" / filename]
+    exe_parent = Path(sys.executable).resolve().parent
+    paths.append(exe_parent / filename)
+    paths.append(exe_parent / "data" / filename)
+    paths.append(exe_parent / _DATA_SUBPATH / filename)
+    seen: set[str] = set()
+    unique_paths: list[Path] = []
+    for path in paths:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_paths.append(path)
+    return unique_paths
+
+
 def _load_embedded_frontend_licenses() -> list[dict[str, Any]] | None:
-    data_dir = Path(__file__).resolve().parent / "data"
-    path = data_dir / "licenses_frontend.json"
-    if not path.is_file():
-        return None
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(raw, list):
-        return None
-    return [x for x in raw if isinstance(x, dict)]
+    for path in _embedded_data_paths(_FRONTEND_LICENSES_FILENAME):
+        if not path.is_file():
+            continue
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(raw, list):
+            continue
+        return [x for x in raw if isinstance(x, dict)]
+    return None
 
 
 def collect_frontend_licenses() -> tuple[list[dict[str, Any]], str]:
@@ -221,3 +242,82 @@ def build_licenses_payload() -> dict[str, Any]:
             "frontend_source": fe_source,
         },
     }
+
+
+def render_third_party_notices(payload: dict[str, Any]) -> str:
+    """Render third-party dependency notices as plain text."""
+    meta = payload.get("meta", {}) if isinstance(payload, dict) else {}
+    generated_at = str(meta.get("generated_at", "unknown"))
+    frontend_source = str(meta.get("frontend_source", "unknown"))
+    lines = [
+        "Reticulum MeshChatX - Third-party notices",
+        f"Generated at: {generated_at}",
+        f"Frontend source: {frontend_source}",
+        "",
+    ]
+    sections: list[tuple[str, list[dict[str, Any]]]] = [
+        ("Python dependencies", payload.get("backend", [])),
+        ("Node dependencies", payload.get("frontend", [])),
+    ]
+    for title, rows in sections:
+        lines.append(title)
+        lines.append("-" * len(title))
+        if not isinstance(rows, list) or not rows:
+            lines.append("No entries.")
+            lines.append("")
+            continue
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            name = str(row.get("name", "?"))
+            version = str(row.get("version", "?"))
+            author = str(row.get("author", "—"))
+            license_name = str(row.get("license", "—"))
+            lines.append(f"{name} {version}")
+            lines.append(f"  License: {license_name}")
+            lines.append(f"  Author: {author}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def write_embedded_license_artifacts(repo_root: Path | None = None) -> dict[str, Any]:
+    """Generate and write embedded license metadata and notices artifacts."""
+    if repo_root is None:
+        repo_root = _repo_root()
+    data_dir = repo_root / _DATA_SUBPATH
+    data_dir.mkdir(parents=True, exist_ok=True)
+    payload = build_licenses_payload()
+    frontend = payload.get("frontend", [])
+    meta = payload.get("meta", {}) if isinstance(payload, dict) else {}
+    frontend_source = str(meta.get("frontend_source", "unknown"))
+    frontend_path = data_dir / _FRONTEND_LICENSES_FILENAME
+    notices_path = data_dir / _THIRD_PARTY_NOTICES_FILENAME
+    frontend_rows = frontend if isinstance(frontend, list) else []
+    should_write_frontend = (
+        bool(frontend_rows) or not frontend_path.exists() or frontend_source == "pnpm"
+    )
+    if should_write_frontend:
+        frontend_path.write_text(
+            json.dumps(frontend_rows, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    notices_path.write_text(render_third_party_notices(payload), encoding="utf-8")
+    return {
+        "frontend_path": str(frontend_path),
+        "frontend_count": len(frontend_rows),
+        "frontend_written": should_write_frontend,
+        "notices_path": str(notices_path),
+    }
+
+
+def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == "--write-artifacts":
+        result = write_embedded_license_artifacts()
+        print(json.dumps(result, indent=2))
+        return 0
+    print(json.dumps(build_licenses_payload(), indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
