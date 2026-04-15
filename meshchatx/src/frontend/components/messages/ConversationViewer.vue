@@ -353,861 +353,219 @@
             </div>
         </div>
 
-        <!-- stranger trust banner -->
         <div
-            v-if="isStrangerPeer && !strangerBannerDismissed && showUnknownContactBanner"
-            class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex items-center gap-3 text-sm"
+            class="flex flex-col flex-1 min-h-0 min-w-0 relative"
+            @dragover.prevent="onComposerImageDragOver"
+            @dragleave="onComposerImageDragLeave"
+            @drop.prevent="onComposerImageDrop"
         >
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 9v3.75m0 3.75h.008v-.008H12v.008Zm9.303-5.626a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-            </svg>
-            <span class="flex-1 text-amber-900 dark:text-amber-200">
-                {{ $t("messages.stranger_banner_text") }}
-            </span>
-            <button
-                class="px-3 py-1 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors"
-                @click="addStrangerAsContact"
-            >
-                {{ $t("messages.add_to_contacts") }}
-            </button>
-            <button
-                class="px-2 py-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors"
-                @click="strangerBannerDismissed = true"
-            >
-                {{ $t("messages.dismiss") }}
-            </button>
-        </div>
+            <div
+                v-show="composerImageDropActive"
+                class="pointer-events-none absolute inset-0 z-[5] border-2 border-dashed border-blue-400/70 bg-blue-500/[0.06] dark:bg-blue-400/[0.08]"
+                aria-hidden="true"
+            />
 
-        <!-- chat items -->
-        <div id="messages" class="h-full overflow-y-scroll bg-white dark:bg-zinc-950" @scroll="onMessagesScroll">
-            <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6 min-w-0">
-                <template v-for="entry in selectedPeerChatDisplayGroups" :key="entry.key">
-                    <div
-                        v-if="entry.type === 'imageGroup'"
-                        class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-4 group min-w-0"
-                        :class="{
-                            'ml-auto items-end': entry.items[0].is_outbound,
-                            'mr-auto items-start': !entry.items[0].is_outbound,
-                        }"
-                        @contextmenu.prevent="onMessageContextMenu($event, entry.items[0])"
-                    >
+            <!-- stranger trust banner -->
+            <div
+                v-if="isStrangerPeer && !strangerBannerDismissed && showUnknownContactBanner"
+                class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex items-center gap-3 text-sm"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                    class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M12 9v3.75m0 3.75h.008v-.008H12v.008Zm9.303-5.626a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                    />
+                </svg>
+                <span class="flex-1 text-amber-900 dark:text-amber-200">
+                    {{ $t("messages.stranger_banner_text") }}
+                </span>
+                <button
+                    class="px-3 py-1 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                    @click="addStrangerAsContact"
+                >
+                    {{ $t("messages.add_to_contacts") }}
+                </button>
+                <button
+                    class="px-2 py-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors"
+                    @click="strangerBannerDismissed = true"
+                >
+                    {{ $t("messages.dismiss") }}
+                </button>
+            </div>
+
+            <!-- chat items -->
+            <div
+                id="messages"
+                class="flex-1 min-h-0 overflow-y-scroll bg-white dark:bg-zinc-950"
+                @scroll="onMessagesScroll"
+            >
+                <div v-if="selectedPeerChatItems.length > 0" class="flex flex-col flex-col-reverse px-4 py-6 min-w-0">
+                    <template v-for="entry in selectedPeerChatDisplayGroups" :key="entry.key">
                         <div
-                            class="relative w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
-                            :class="entry.items[0].is_outbound ? 'ml-auto' : 'mr-auto'"
-                            @click.stop="onChatItemClick(entry.items[0])"
+                            v-if="entry.type === 'imageGroup'"
+                            class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-4 group min-w-0"
+                            :class="{
+                                'ml-auto items-end': entry.items[0].is_outbound,
+                                'mr-auto items-start': !entry.items[0].is_outbound,
+                            }"
+                            @contextmenu.prevent="onMessageContextMenu($event, entry.items[0])"
                         >
-                            <button
-                                type="button"
-                                class="absolute top-1 right-1 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
-                                :title="$t('messages.message_actions')"
-                                @click.stop="onMessageContextMenu($event, entry.items[0])"
-                            >
-                                <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
-                            </button>
                             <div
-                                v-if="imageGroupSortedChron(entry.items).length === 2"
-                                class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
+                                class="relative w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
+                                :class="entry.items[0].is_outbound ? 'ml-auto' : 'mr-auto'"
+                                @click.stop="onChatItemClick(entry.items[0])"
                             >
                                 <button
-                                    v-for="imgItem in imageGroupSortedChron(entry.items)"
-                                    :id="`message-${imgItem.lxmf_message.hash}`"
-                                    :key="imgItem.lxmf_message.hash"
                                     type="button"
-                                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-                                    @click.stop="
-                                        openImage(
-                                            lxmfImageUrl(imgItem.lxmf_message.hash),
-                                            imageGroupGalleryUrls(entry.items)
-                                        )
-                                    "
+                                    class="absolute top-1 right-1 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                                    :title="$t('messages.message_actions')"
+                                    @click.stop="onMessageContextMenu($event, entry.items[0])"
                                 >
-                                    <img
-                                        :src="lxmfImageUrl(imgItem.lxmf_message.hash)"
-                                        loading="lazy"
-                                        decoding="async"
-                                        class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
-                                        alt=""
-                                    />
+                                    <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
                                 </button>
-                            </div>
-                            <div
-                                v-else-if="imageGroupSortedChron(entry.items).length === 3"
-                                class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
-                            >
-                                <button
-                                    v-for="imgItem in imageGroupSortedChron(entry.items).slice(0, 2)"
-                                    :id="`message-${imgItem.lxmf_message.hash}`"
-                                    :key="imgItem.lxmf_message.hash"
-                                    type="button"
-                                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-                                    @click.stop="
-                                        openImage(
-                                            lxmfImageUrl(imgItem.lxmf_message.hash),
-                                            imageGroupGalleryUrls(entry.items)
-                                        )
-                                    "
+                                <div
+                                    v-if="imageGroupSortedChron(entry.items).length === 2"
+                                    class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
                                 >
-                                    <img
-                                        :src="lxmfImageUrl(imgItem.lxmf_message.hash)"
-                                        loading="lazy"
-                                        decoding="async"
-                                        class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
-                                        alt=""
-                                    />
-                                </button>
-                                <button
-                                    :id="`message-${imageGroupSortedChron(entry.items)[2].lxmf_message.hash}`"
-                                    type="button"
-                                    class="relative col-span-2 aspect-[2/1] max-h-52 min-h-[80px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-                                    @click.stop="
-                                        openImage(
-                                            lxmfImageUrl(imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
-                                            imageGroupGalleryUrls(entry.items)
-                                        )
-                                    "
-                                >
-                                    <img
-                                        :src="lxmfImageUrl(imageGroupSortedChron(entry.items)[2].lxmf_message.hash)"
-                                        loading="lazy"
-                                        decoding="async"
-                                        class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
-                                        alt=""
-                                    />
-                                </button>
-                            </div>
-                            <div v-else class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5">
-                                <button
-                                    v-for="(cell, idx) in imageGroupSortedChron(entry.items).slice(0, 4)"
-                                    :id="`message-${cell.lxmf_message.hash}`"
-                                    :key="cell.lxmf_message.hash"
-                                    type="button"
-                                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-                                    @click.stop="
-                                        openImage(
-                                            lxmfImageUrl(cell.lxmf_message.hash),
-                                            imageGroupGalleryUrls(entry.items)
-                                        )
-                                    "
-                                >
-                                    <img
-                                        :src="lxmfImageUrl(cell.lxmf_message.hash)"
-                                        loading="lazy"
-                                        decoding="async"
-                                        class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
-                                        alt=""
-                                    />
-                                    <div
-                                        v-if="idx === 3 && imageGroupSortedChron(entry.items).length > 4"
-                                        class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-white text-3xl font-bold"
-                                    >
-                                        +{{ imageGroupSortedChron(entry.items).length - 4 }}
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-                        <div
-                            class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0 px-3 py-2"
-                            :class="[
-                                ['cancelled', 'failed'].includes(entry.items[0].lxmf_message.state)
-                                    ? 'shadow-sm'
-                                    : entry.items[0].lxmf_message.is_spam
-                                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
-                                      : isOutboundWaitingBubble(entry.items[0])
-                                        ? 'shadow-sm'
-                                        : entry.items[0].is_outbound
-                                          ? outboundBubbleSurfaceClass(entry.items[0])
-                                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
-                            ]"
-                            :style="bubbleStyles(entry.items[0])"
-                        >
-                            <div class="flex items-center justify-end gap-1.5 select-none h-3">
-                                <span
-                                    class="text-[9px] opacity-80 font-medium"
-                                    :class="outboundBubbleFooterTimeClass(entry.items[0])"
-                                    :title="
-                                        getMessageInfoLines(
-                                            entry.items[0].lxmf_message,
-                                            entry.items[0].is_outbound
-                                        ).join('\n')
-                                    "
-                                >
-                                    {{ formatTimeAgo(entry.items[0].lxmf_message.created_at) }}
-                                </span>
-                                <div v-if="entry.items[0].is_outbound" class="flex items-center gap-1">
-                                    <span
-                                        v-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
-                                        class="text-[9px] font-bold uppercase tracking-wider"
-                                        :class="
-                                            isThemeOutboundBubble(entry.items[0])
-                                                ? 'text-amber-800 dark:text-amber-300'
-                                                : 'text-amber-200'
-                                        "
-                                    >
-                                        {{ $t("messages.opportunistic_deferred_label") }}
-                                    </span>
-                                    <span
-                                        v-else-if="
-                                            ['failed', 'cancelled', 'rejected'].includes(
-                                                entry.items[0].lxmf_message.state
-                                            )
-                                        "
-                                        class="text-[9px] font-bold uppercase tracking-wider text-white"
-                                    >
-                                        {{ entry.items[0].lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
-                                    </span>
                                     <button
-                                        v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
+                                        v-for="imgItem in imageGroupSortedChron(entry.items)"
+                                        :id="`message-${imgItem.lxmf_message.hash}`"
+                                        :key="imgItem.lxmf_message.hash"
                                         type="button"
-                                        class="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
-                                        title="Retry sending"
-                                        @click.stop="retrySendingMessage(entry.items[0])"
-                                    >
-                                        <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
-                                    </button>
-                                    <MaterialDesignIcon
-                                        v-if="entry.items[0].lxmf_message.state === 'delivered'"
-                                        icon-name="check-all"
-                                        class="size-3"
-                                        :class="outboundBubbleDeliveredIconClass(entry.items[0])"
-                                        title="Delivered"
-                                    />
-                                    <MaterialDesignIcon
-                                        v-else-if="
-                                            ['sent', 'propagated', 'unknown'].includes(
-                                                entry.items[0].lxmf_message.state
+                                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                                        @click.stop="
+                                            openImage(
+                                                lxmfImageUrl(imgItem.lxmf_message.hash),
+                                                imageGroupGalleryUrls(entry.items)
                                             )
                                         "
-                                        icon-name="check"
-                                        class="size-3"
-                                        :class="outboundBubbleSentCheckIconClass(entry.items[0])"
-                                        :title="
-                                            entry.items[0].lxmf_message.state === 'propagated'
-                                                ? 'Sent to propagation node'
-                                                : 'Sent'
-                                        "
-                                    />
-                                    <svg
-                                        v-else-if="
-                                            showRichOutboundPendingUi(entry.items[0]) &&
-                                            isOutboundPendingForUi(entry.items[0])
-                                        "
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        class="animate-spin size-3.5 shrink-0"
-                                        :class="outboundSendingStatusIconClass(entry.items[0])"
-                                        :title="outboundBubbleStatusHoverTitle(entry.items[0].lxmf_message)"
                                     >
-                                        <title>{{ outboundBubbleStatusHoverTitle(entry.items[0].lxmf_message) }}</title>
-                                        <circle
-                                            class="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            stroke-width="4"
-                                        ></circle>
-                                        <path
-                                            class="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        ></path>
-                                    </svg>
-                                    <MaterialDesignIcon
-                                        v-else-if="isOutboundPendingForUi(entry.items[0])"
-                                        icon-name="check"
-                                        class="size-3"
-                                        :class="outboundBubblePendingCheckIconClass(entry.items[0])"
-                                        :title="$t('messages.sending_ellipsis')"
-                                    />
-                                    <div
-                                        v-else-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
-                                        class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-amber-200/85"
-                                        :title="$t('messages.opportunistic_deferred_tooltip')"
-                                    >
-                                        <MaterialDesignIcon
-                                            icon-name="clock-outline"
-                                            class="size-2.5 text-amber-200/95"
+                                        <img
+                                            :src="lxmfImageUrl(imgItem.lxmf_message.hash)"
+                                            loading="lazy"
+                                            decoding="async"
+                                            class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                                            alt=""
                                         />
-                                    </div>
-                                    <MaterialDesignIcon
-                                        v-else-if="
-                                            ['failed', 'cancelled', 'rejected'].includes(
-                                                entry.items[0].lxmf_message.state
+                                    </button>
+                                </div>
+                                <div
+                                    v-else-if="imageGroupSortedChron(entry.items).length === 3"
+                                    class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
+                                >
+                                    <button
+                                        v-for="imgItem in imageGroupSortedChron(entry.items).slice(0, 2)"
+                                        :id="`message-${imgItem.lxmf_message.hash}`"
+                                        :key="imgItem.lxmf_message.hash"
+                                        type="button"
+                                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                                        @click.stop="
+                                            openImage(
+                                                lxmfImageUrl(imgItem.lxmf_message.hash),
+                                                imageGroupGalleryUrls(entry.items)
                                             )
                                         "
-                                        icon-name="alert-circle-outline"
-                                        class="size-3 text-white"
-                                        :title="outboundBubbleFailedTitle(entry.items[0].lxmf_message)"
-                                    />
+                                    >
+                                        <img
+                                            :src="lxmfImageUrl(imgItem.lxmf_message.hash)"
+                                            loading="lazy"
+                                            decoding="async"
+                                            class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                                            alt=""
+                                        />
+                                    </button>
+                                    <button
+                                        :id="`message-${imageGroupSortedChron(entry.items)[2].lxmf_message.hash}`"
+                                        type="button"
+                                        class="relative col-span-2 aspect-[2/1] max-h-52 min-h-[80px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                                        @click.stop="
+                                            openImage(
+                                                lxmfImageUrl(imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
+                                                imageGroupGalleryUrls(entry.items)
+                                            )
+                                        "
+                                    >
+                                        <img
+                                            :src="lxmfImageUrl(imageGroupSortedChron(entry.items)[2].lxmf_message.hash)"
+                                            loading="lazy"
+                                            decoding="async"
+                                            class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                                            alt=""
+                                        />
+                                    </button>
+                                </div>
+                                <div v-else class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5">
+                                    <button
+                                        v-for="(cell, idx) in imageGroupSortedChron(entry.items).slice(0, 4)"
+                                        :id="`message-${cell.lxmf_message.hash}`"
+                                        :key="cell.lxmf_message.hash"
+                                        type="button"
+                                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                                        @click.stop="
+                                            openImage(
+                                                lxmfImageUrl(cell.lxmf_message.hash),
+                                                imageGroupGalleryUrls(entry.items)
+                                            )
+                                        "
+                                    >
+                                        <img
+                                            :src="lxmfImageUrl(cell.lxmf_message.hash)"
+                                            loading="lazy"
+                                            decoding="async"
+                                            class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                                            alt=""
+                                        />
+                                        <div
+                                            v-if="idx === 3 && imageGroupSortedChron(entry.items).length > 4"
+                                            class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-white text-3xl font-bold"
+                                        >
+                                            +{{ imageGroupSortedChron(entry.items).length - 4 }}
+                                        </div>
+                                    </button>
                                 </div>
                             </div>
-                        </div>
-                        <div
-                            v-if="entry.items[0].is_actions_expanded"
-                            class="border-t px-4 py-2.5 rounded-b-2xl rounded-t-md w-full max-w-[min(280px,85vw)]"
-                            :class="outboundExpandedActionsShellClass(entry.items[0])"
-                        >
-                            <div class="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors"
-                                    @click.stop="replyToMessage(entry.items[0])"
-                                >
-                                    {{ $t("messages.reply") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors"
-                                    @click.stop="deleteChatItem(entry.items[0])"
-                                >
-                                    Delete
-                                </button>
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors"
-                                    @click.stop="showRawMessage(entry.items[0])"
-                                >
-                                    Raw LXM
-                                </button>
-                            </div>
-                        </div>
-                        <div
-                            v-if="expandedMessageInfo === entry.items[0].lxmf_message.hash"
-                            class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
-                            :class="entry.items[0].is_outbound ? 'self-end' : 'self-start'"
-                        >
                             <div
-                                v-for="(line, index) in getMessageInfoLines(
-                                    entry.items[0].lxmf_message,
-                                    entry.items[0].is_outbound
-                                )"
-                                :key="index"
-                                class="break-all"
-                            >
-                                {{ line }}
-                            </div>
-                        </div>
-                    </div>
-                    <div
-                        v-for="chatItem in [entry.chatItem]"
-                        v-else
-                        :id="`message-${chatItem.lxmf_message.hash}`"
-                        :key="chatItem.lxmf_message.hash"
-                        class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-4 group min-w-0"
-                        :class="{
-                            'ml-auto items-end': chatItem.is_outbound,
-                            'mr-auto items-start': !chatItem.is_outbound,
-                        }"
-                        @contextmenu.prevent="onMessageContextMenu($event, chatItem)"
-                    >
-                        <!-- standalone image (outside bubble) -->
-                        <div
-                            v-if="chatItem.lxmf_message.fields?.image"
-                            class="relative group w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
-                            :class="chatItem.is_outbound ? 'ml-auto' : 'mr-auto'"
-                        >
-                            <img
-                                :src="pendingOutboundImageSrc(chatItem)"
-                                loading="lazy"
-                                decoding="async"
-                                class="max-h-[min(320px,55vh)] w-full cursor-pointer object-cover object-center transition-transform hover:scale-[1.01]"
-                                alt=""
-                                @click.stop="openImage(pendingOutboundImageSrc(chatItem))"
-                            />
-                            <div
-                                class="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-black/60 px-2.5 py-1 text-xs text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 sm:opacity-100"
-                            >
-                                <span>{{
-                                    (chatItem.lxmf_message.fields.image.image_type ?? "image").toUpperCase()
-                                }}</span>
-                                <span class="mx-1">·</span>
-                                <span>{{ formatAttachmentSize(chatItem.lxmf_message.fields.image, "image") }}</span>
-                            </div>
-                        </div>
-                        <!-- image-only: inline timestamp overlay (no bubble) -->
-                        <div
-                            v-if="isImageOnlyMessage(chatItem)"
-                            class="flex items-center gap-1.5 select-none mt-0.5"
-                            :class="chatItem.is_outbound ? 'justify-end' : 'justify-start'"
-                        >
-                            <span class="text-[9px] opacity-50 font-medium">
-                                {{ formatTimeAgo(chatItem.lxmf_message.created_at) }}
-                            </span>
-                            <template v-if="chatItem.is_outbound">
-                                <MaterialDesignIcon
-                                    v-if="chatItem.lxmf_message.state === 'delivered'"
-                                    icon-name="check-all"
-                                    class="size-3 opacity-50"
-                                />
-                                <MaterialDesignIcon
-                                    v-else-if="['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)"
-                                    icon-name="check"
-                                    class="size-3 opacity-50"
-                                />
-                                <span
-                                    v-else-if="
-                                        ['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)
-                                    "
-                                    class="text-[9px] font-bold uppercase tracking-wider text-red-500"
-                                >
-                                    {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
-                                </span>
-                            </template>
-                        </div>
-
-                        <!-- message content -->
-                        <div
-                            v-if="!isImageOnlyMessage(chatItem)"
-                            class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
-                            :class="[
-                                ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
-                                    ? 'shadow-sm'
-                                    : chatItem.lxmf_message.is_spam
-                                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
-                                      : isOutboundWaitingBubble(chatItem)
+                                class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0 px-3 py-2"
+                                :class="[
+                                    ['cancelled', 'failed'].includes(entry.items[0].lxmf_message.state)
                                         ? 'shadow-sm'
-                                        : chatItem.is_outbound
-                                          ? outboundBubbleSurfaceClass(chatItem)
-                                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
-                            ]"
-                            :style="bubbleStyles(chatItem)"
-                            @click="onChatItemClick(chatItem)"
-                        >
-                            <button
-                                type="button"
-                                class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
-                                :class="outboundMessageMenuButtonHoverClass(chatItem)"
-                                :title="$t('messages.message_actions')"
-                                @click.stop="onMessageContextMenu($event, chatItem)"
+                                        : entry.items[0].lxmf_message.is_spam
+                                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
+                                          : isOutboundWaitingBubble(entry.items[0])
+                                            ? 'shadow-sm'
+                                            : entry.items[0].is_outbound
+                                              ? outboundBubbleSurfaceClass(entry.items[0])
+                                              : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
+                                ]"
+                                :style="bubbleStyles(entry.items[0])"
                             >
-                                <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
-                            </button>
-                            <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
-                                <!-- reply snippet -->
-                                <div
-                                    v-if="chatItem.lxmf_message.reply_to_hash"
-                                    class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-blue-500/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                                    @click.stop="scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
-                                >
-                                    <div
-                                        class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight mb-0.5"
-                                        :class="outboundReplySnippetTitleClass(chatItem)"
-                                    >
-                                        <MaterialDesignIcon icon-name="reply" class="size-3" />
-                                        {{ $t("messages.replying_to") }}
-                                    </div>
-                                    <div class="text-xs opacity-70 truncate line-clamp-1 italic">
-                                        {{
-                                            chatItem.lxmf_message.fields?.reply_quoted_content ||
-                                            getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
-                                            (chatItem.lxmf_message.reply_to_hash
-                                                ? `Message <${chatItem.lxmf_message.reply_to_hash.substring(0, 8)}...>`
-                                                : "(Message not found)")
-                                        }}
-                                    </div>
-                                </div>
-
-                                <!-- spam badge -->
-                                <div
-                                    v-if="chatItem.lxmf_message.is_spam"
-                                    class="flex items-center gap-1.5 text-xs font-medium mb-1"
-                                    :class="
-                                        chatItem.is_outbound
-                                            ? isThemeOutboundBubble(chatItem)
-                                                ? 'text-orange-800 dark:text-orange-300'
-                                                : 'text-orange-200'
-                                            : 'text-orange-700 dark:text-orange-300'
-                                    "
-                                >
-                                    <MaterialDesignIcon icon-name="alert-decagram" class="size-4" />
-                                    <span>Marked as Spam</span>
-                                </div>
-
-                                <!-- content -->
-                                <!-- eslint-disable vue/no-v-html -->
-                                <div
-                                    v-if="
-                                        chatItem.lxmf_message.content &&
-                                        !getParsedItems(chatItem)?.isOnlyPaperMessage &&
-                                        !shouldHideAutoImageCaption(chatItem)
-                                    "
-                                    class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
-                                    :class="{
-                                        'markdown-content--outbound-theme':
-                                            chatItem.is_outbound && isThemeOutboundBubble(chatItem),
-                                        'markdown-content--outbound-solid':
-                                            chatItem.is_outbound && !isThemeOutboundBubble(chatItem),
-                                        'markdown-content--inbound': !chatItem.is_outbound,
-                                        'markdown-content--single-emoji': messageMarkdownSingleEmoji(chatItem),
-                                    }"
-                                    :style="{
-                                        'font-family': 'inherit',
-                                        'font-size': messageMarkdownFontSizePx(chatItem) + 'px',
-                                    }"
-                                    @click="handleMessageClick"
-                                    v-html="renderMarkdown(chatItem.lxmf_message.content)"
-                                ></div>
-                                <!-- eslint-enable vue/no-v-html -->
-
-                                <!-- telemetry placeholder for empty content messages -->
-                                <div
-                                    v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry"
-                                    class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
-                                >
-                                    <MaterialDesignIcon icon-name="satellite-variant" class="size-4 opacity-60" />
-                                    <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                                        {{
-                                            chatItem.is_outbound ? "Telemetry update sent" : "Telemetry update received"
-                                        }}
-                                    </span>
-                                </div>
-
-                                <div
-                                    v-if="
-                                        !chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry_stream
-                                    "
-                                    class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
-                                >
-                                    <MaterialDesignIcon icon-name="database-sync" class="size-4 opacity-60" />
-                                    <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
-                                        >Telemetry stream received ({{
-                                            chatItem.lxmf_message.fields.telemetry_stream.length
-                                        }}
-                                        entries)</span
-                                    >
-                                </div>
-
-                                <div
-                                    v-if="
-                                        !chatItem.lxmf_message.content &&
-                                        chatItem.lxmf_message.fields?.commands?.some(
-                                            (c) => c['0x01'] || c['1'] || c['0x1']
-                                        )
-                                    "
-                                    class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
-                                >
-                                    <MaterialDesignIcon icon-name="crosshairs-question" class="size-4 opacity-60" />
-                                    <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                                        {{
-                                            chatItem.is_outbound ? "Location Request Sent" : "Location Request Received"
-                                        }}
-                                    </span>
-                                </div>
-
-                                <!-- parsed items (contacts / paper messages) -->
-                                <div v-if="getParsedItems(chatItem)" class="mt-2 space-y-2">
-                                    <!-- contact -->
-                                    <div
-                                        v-if="getParsedItems(chatItem).contact && !chatItem.is_outbound"
-                                        class="flex flex-col gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
-                                    >
-                                        <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                                            <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
-                                            <span class="text-sm font-bold">Contact Shared</span>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <LxmfUserIcon
-                                                :custom-image="getParsedItems(chatItem).contact.custom_image"
-                                                :icon-name="getParsedItems(chatItem).contact.lxmf_user_icon?.icon_name"
-                                                :icon-foreground-colour="
-                                                    getParsedItems(chatItem).contact.lxmf_user_icon?.foreground_colour
-                                                "
-                                                :icon-background-colour="
-                                                    getParsedItems(chatItem).contact.lxmf_user_icon?.background_colour
-                                                "
-                                                icon-class="size-10"
-                                            />
-                                            <div class="flex-1 min-w-0">
-                                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                    {{ getParsedItems(chatItem).contact.name }}
-                                                </div>
-                                                <div
-                                                    class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
-                                                >
-                                                    {{ getParsedItems(chatItem).contact.hash }}
-                                                </div>
-                                                <div
-                                                    v-if="getParsedItems(chatItem).contact.lxmf_address"
-                                                    class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
-                                                >
-                                                    LXMF: {{ getParsedItems(chatItem).contact.lxmf_address }}
-                                                </div>
-                                                <div
-                                                    v-if="getParsedItems(chatItem).contact.lxst_address"
-                                                    class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
-                                                >
-                                                    LXST: {{ getParsedItems(chatItem).contact.lxst_address }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
-                                            @click="
-                                                addContact(
-                                                    getParsedItems(chatItem).contact.name,
-                                                    getParsedItems(chatItem).contact.hash,
-                                                    getParsedItems(chatItem).contact.lxmf_address,
-                                                    getParsedItems(chatItem).contact.lxst_address
-                                                )
-                                            "
-                                        >
-                                            Add to Contacts
-                                        </button>
-                                    </div>
-
-                                    <!-- paper message auto-conversion -->
-                                    <div
-                                        v-if="getParsedItems(chatItem).paperMessage && !chatItem.is_outbound"
-                                        class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-black/60 border border-emerald-100 dark:border-zinc-700/50"
-                                    >
-                                        <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                                            <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
-                                            <span class="text-sm font-bold">Paper Message detected</span>
-                                        </div>
-                                        <p class="text-xs text-emerald-600/80 dark:text-zinc-400 leading-relaxed">
-                                            This message contains a signed LXMF URI that can be ingested into your
-                                            conversations.
-                                        </p>
-                                        <button
-                                            type="button"
-                                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
-                                            @click="ingestPaperMessage(getParsedItems(chatItem).paperMessage)"
-                                        >
-                                            Ingest Message
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- audio field -->
-                                <div v-if="chatItem.lxmf_message.fields?.audio" class="pb-1">
-                                    <!-- audio is loaded -->
-                                    <AudioWaveformPlayer
-                                        v-if="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
-                                        :src="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
-                                        :is-outbound="chatItem.is_outbound"
-                                    />
-
-                                    <!-- audio is not yet loaded -->
-                                    <div
-                                        v-else
-                                        class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800 min-h-[54px]"
-                                    >
-                                        <div class="flex items-center gap-2">
-                                            <div
-                                                class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
-                                            ></div>
-                                            <span
-                                                class="text-[10px] font-bold text-gray-400 uppercase tracking-wider"
-                                                >{{ $t("messages.downloading") }}</span
-                                            >
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        class="text-[10px] mt-1 text-right opacity-60"
-                                        :class="outboundAttachmentCaptionClass(chatItem)"
-                                    >
-                                        Voice Note •
-                                        {{ formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
-                                    </div>
-                                </div>
-
-                                <!-- file attachment fields -->
-                                <div v-if="chatItem.lxmf_message.fields?.file_attachments" class="space-y-2 mt-1">
-                                    <a
-                                        v-for="(file_attachment, index) of chatItem.lxmf_message.fields
-                                            ?.file_attachments ?? []"
-                                        :key="file_attachment.file_name"
-                                        target="_blank"
-                                        :download="file_attachment.file_name"
-                                        :href="`/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/file?file_index=${index}`"
-                                        class="flex items-center gap-3 border rounded-lg px-3 py-2 text-sm font-medium cursor-pointer transition-colors"
-                                        :class="
-                                            chatItem.is_outbound
-                                                ? outboundEmbeddedCardClass(chatItem)
-                                                : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300 border-gray-200/60 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800'
-                                        "
-                                        @click.stop
-                                    >
-                                        <div class="my-auto">
-                                            <MaterialDesignIcon icon-name="paperclip" class="size-5" />
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="truncate text-xs font-bold">
-                                                {{ file_attachment.file_name }}
-                                            </div>
-                                            <div
-                                                class="text-[10px] font-normal"
-                                                :class="
-                                                    chatItem.is_outbound
-                                                        ? outboundEmbeddedSecondaryTextClass(chatItem)
-                                                        : 'text-gray-500 dark:text-zinc-400'
-                                                "
-                                            >
-                                                {{ formatAttachmentSize(file_attachment, "file") }}
-                                            </div>
-                                        </div>
-                                        <div class="my-auto">
-                                            <MaterialDesignIcon icon-name="download" class="size-5" />
-                                        </div>
-                                    </a>
-                                </div>
-
-                                <!-- commands -->
-                                <div v-if="chatItem.lxmf_message.fields?.commands" class="space-y-2 mt-1">
-                                    <div v-for="(command, index) in chatItem.lxmf_message.fields.commands" :key="index">
-                                        <div
-                                            v-if="command['0x01'] || command['1'] || command['0x1']"
-                                            class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                            :class="
-                                                chatItem.is_outbound
-                                                    ? outboundEmbeddedCardClass(chatItem)
-                                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                                            "
-                                        >
-                                            <MaterialDesignIcon icon-name="crosshairs-question" class="size-5" />
-                                            <div class="text-left">
-                                                <div class="font-bold text-xs uppercase tracking-wider opacity-80">
-                                                    {{ $t("messages.location_requested") }}
-                                                </div>
-                                                <div v-if="!chatItem.is_outbound" class="text-[10px] opacity-70">
-                                                    Peer is requesting your location
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- telemetry / location field -->
-                                <div v-if="chatItem.lxmf_message.fields?.telemetry" class="pb-1 mt-1 space-y-2">
-                                    <div class="flex flex-wrap gap-2">
-                                        <button
-                                            v-if="chatItem.lxmf_message.fields.telemetry.location"
-                                            type="button"
-                                            class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                            :class="
-                                                chatItem.is_outbound
-                                                    ? outboundEmbeddedCardClass(chatItem)
-                                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
-                                            "
-                                            @click="viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)"
-                                        >
-                                            <MaterialDesignIcon icon-name="map-marker" class="size-5" />
-                                            <div class="text-left">
-                                                <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
-                                                    Location
-                                                </div>
-                                                <div class="text-[9px] font-mono opacity-70">
-                                                    {{
-                                                        chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(
-                                                            6
-                                                        )
-                                                    }},
-                                                    {{
-                                                        chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(
-                                                            6
-                                                        )
-                                                    }}
-                                                </div>
-                                            </div>
-                                        </button>
-
-                                        <!-- Live Track Toggle Button (only for incoming) -->
-                                        <button
-                                            v-if="!chatItem.is_outbound"
-                                            type="button"
-                                            class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
-                                            :class="[
-                                                selectedPeer?.is_tracking
-                                                    ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-inner'
-                                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
-                                            ]"
-                                            @click="toggleTracking()"
-                                        >
-                                            <MaterialDesignIcon
-                                                :icon-name="selectedPeer?.is_tracking ? 'radar' : 'crosshairs'"
-                                                class="size-5"
-                                                :class="{ 'animate-pulse text-blue-500': selectedPeer?.is_tracking }"
-                                            />
-                                            <div class="text-left">
-                                                <div class="font-bold text-[10px] uppercase tracking-wider opacity-80">
-                                                    {{ selectedPeer?.is_tracking ? "Tracking Active" : "Live Track" }}
-                                                </div>
-                                                <div class="text-[9px] opacity-70">
-                                                    {{
-                                                        selectedPeer?.is_tracking
-                                                            ? "Auto-requesting location"
-                                                            : "Enable live tracking"
-                                                    }}
-                                                </div>
-                                            </div>
-                                        </button>
-                                    </div>
-
-                                    <!-- other sensor data if available -->
-                                    <div
-                                        v-if="
-                                            chatItem.lxmf_message.fields.telemetry.battery ||
-                                            chatItem.lxmf_message.fields.telemetry.physical_link
-                                        "
-                                        class="flex gap-3 px-1"
-                                    >
-                                        <div
-                                            v-if="chatItem.lxmf_message.fields.telemetry.battery"
-                                            class="flex items-center gap-1 opacity-60 text-[10px]"
-                                        >
-                                            <MaterialDesignIcon icon-name="battery" class="size-3" />
-                                            <span
-                                                >{{
-                                                    chatItem.lxmf_message.fields.telemetry.battery.charge_percent
-                                                }}%</span
-                                            >
-                                        </div>
-                                        <div
-                                            v-if="chatItem.lxmf_message.fields.telemetry.physical_link"
-                                            class="flex items-center gap-1 opacity-60 text-[10px]"
-                                        >
-                                            <MaterialDesignIcon icon-name="antenna" class="size-3" />
-                                            <span
-                                                >SNR:
-                                                {{ chatItem.lxmf_message.fields.telemetry.physical_link.snr }}dB</span
-                                            >
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- message footer: timestamp and status icons -->
-                                <div class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3">
+                                <div class="flex items-center justify-end gap-1.5 select-none h-3">
                                     <span
                                         class="text-[9px] opacity-80 font-medium"
-                                        :class="outboundBubbleFooterTimeClass(chatItem)"
+                                        :class="outboundBubbleFooterTimeClass(entry.items[0])"
                                         :title="
-                                            getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound).join('\n')
+                                            getMessageInfoLines(
+                                                entry.items[0].lxmf_message,
+                                                entry.items[0].is_outbound
+                                            ).join('\n')
                                         "
                                     >
-                                        {{ formatTimeAgo(chatItem.lxmf_message.created_at) }}
+                                        {{ formatTimeAgo(entry.items[0].lxmf_message.created_at) }}
                                     </span>
-
-                                    <!-- outbound status icons -->
-                                    <div v-if="chatItem.is_outbound" class="flex items-center gap-1">
+                                    <div v-if="entry.items[0].is_outbound" class="flex items-center gap-1">
                                         <span
-                                            v-if="isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
+                                            v-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
                                             class="text-[9px] font-bold uppercase tracking-wider"
                                             :class="
-                                                isThemeOutboundBubble(chatItem)
+                                                isThemeOutboundBubble(entry.items[0])
                                                     ? 'text-amber-800 dark:text-amber-300'
                                                     : 'text-amber-200'
                                             "
@@ -1217,57 +575,61 @@
                                         <span
                                             v-else-if="
                                                 ['failed', 'cancelled', 'rejected'].includes(
-                                                    chatItem.lxmf_message.state
+                                                    entry.items[0].lxmf_message.state
                                                 )
                                             "
                                             class="text-[9px] font-bold uppercase tracking-wider text-white"
                                         >
-                                            {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                                            {{
+                                                entry.items[0].lxmf_message.state === "rejected" ? "Rejected" : "Failed"
+                                            }}
                                         </span>
                                         <button
-                                            v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
+                                            v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
                                             type="button"
                                             class="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
                                             title="Retry sending"
-                                            @click.stop="retrySendingMessage(chatItem)"
+                                            @click.stop="retrySendingMessage(entry.items[0])"
                                         >
                                             <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
                                         </button>
-
-                                        <!-- delivered: double check -->
                                         <MaterialDesignIcon
-                                            v-if="chatItem.lxmf_message.state === 'delivered'"
+                                            v-if="entry.items[0].lxmf_message.state === 'delivered'"
                                             icon-name="check-all"
                                             class="size-3"
-                                            :class="outboundBubbleDeliveredIconClass(chatItem)"
+                                            :class="outboundBubbleDeliveredIconClass(entry.items[0])"
                                             title="Delivered"
                                         />
-                                        <!-- sent: single check (include unknown for initial outbound when server confirmed creation) -->
                                         <MaterialDesignIcon
                                             v-else-if="
-                                                ['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)
+                                                ['sent', 'propagated', 'unknown'].includes(
+                                                    entry.items[0].lxmf_message.state
+                                                )
                                             "
                                             icon-name="check"
                                             class="size-3"
-                                            :class="outboundBubbleSentCheckIconClass(chatItem)"
+                                            :class="outboundBubbleSentCheckIconClass(entry.items[0])"
                                             :title="
-                                                chatItem.lxmf_message.state === 'propagated'
+                                                entry.items[0].lxmf_message.state === 'propagated'
                                                     ? 'Sent to propagation node'
                                                     : 'Sent'
                                             "
                                         />
                                         <svg
                                             v-else-if="
-                                                showRichOutboundPendingUi(chatItem) && isOutboundPendingForUi(chatItem)
+                                                showRichOutboundPendingUi(entry.items[0]) &&
+                                                isOutboundPendingForUi(entry.items[0])
                                             "
                                             xmlns="http://www.w3.org/2000/svg"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             class="animate-spin size-3.5 shrink-0"
-                                            :class="outboundSendingStatusIconClass(chatItem)"
-                                            :title="outboundBubbleStatusHoverTitle(chatItem.lxmf_message)"
+                                            :class="outboundSendingStatusIconClass(entry.items[0])"
+                                            :title="outboundBubbleStatusHoverTitle(entry.items[0].lxmf_message)"
                                         >
-                                            <title>{{ outboundBubbleStatusHoverTitle(chatItem.lxmf_message) }}</title>
+                                            <title>
+                                                {{ outboundBubbleStatusHoverTitle(entry.items[0].lxmf_message) }}
+                                            </title>
                                             <circle
                                                 class="opacity-25"
                                                 cx="12"
@@ -1283,14 +645,14 @@
                                             ></path>
                                         </svg>
                                         <MaterialDesignIcon
-                                            v-else-if="isOutboundPendingForUi(chatItem)"
+                                            v-else-if="isOutboundPendingForUi(entry.items[0])"
                                             icon-name="check"
                                             class="size-3"
-                                            :class="outboundBubblePendingCheckIconClass(chatItem)"
+                                            :class="outboundBubblePendingCheckIconClass(entry.items[0])"
                                             :title="$t('messages.sending_ellipsis')"
                                         />
                                         <div
-                                            v-else-if="isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
+                                            v-else-if="isOpportunisticDeferredDelivery(entry.items[0].lxmf_message)"
                                             class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-amber-200/85"
                                             :title="$t('messages.opportunistic_deferred_tooltip')"
                                         >
@@ -1299,572 +661,1269 @@
                                                 class="size-2.5 text-amber-200/95"
                                             />
                                         </div>
-                                        <!-- failed/cancelled/rejected: alert -->
                                         <MaterialDesignIcon
                                             v-else-if="
                                                 ['failed', 'cancelled', 'rejected'].includes(
-                                                    chatItem.lxmf_message.state
+                                                    entry.items[0].lxmf_message.state
                                                 )
                                             "
                                             icon-name="alert-circle-outline"
                                             class="size-3 text-white"
-                                            :title="outboundBubbleFailedTitle(chatItem.lxmf_message)"
+                                            :title="outboundBubbleFailedTitle(entry.items[0].lxmf_message)"
                                         />
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- actions (expanded) -->
                             <div
-                                v-if="chatItem.is_actions_expanded"
-                                class="border-t px-4 py-2.5"
-                                :class="outboundExpandedActionsShellClass(chatItem)"
+                                v-if="entry.items[0].is_actions_expanded"
+                                class="border-t px-4 py-2.5 rounded-b-2xl rounded-t-md w-full max-w-[min(280px,85vw)]"
+                                :class="outboundExpandedActionsShellClass(entry.items[0])"
                             >
                                 <div class="flex items-center gap-2">
                                     <button
                                         type="button"
                                         class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors"
-                                        @click.stop="replyToMessage(chatItem)"
+                                        @click.stop="replyToMessage(entry.items[0])"
                                     >
                                         {{ $t("messages.reply") }}
                                     </button>
                                     <button
                                         type="button"
                                         class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors"
-                                        @click.stop="deleteChatItem(chatItem)"
+                                        @click.stop="deleteChatItem(entry.items[0])"
                                     >
                                         Delete
                                     </button>
                                     <button
                                         type="button"
                                         class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors"
-                                        @click.stop="showRawMessage(chatItem)"
+                                        @click.stop="showRawMessage(entry.items[0])"
                                     >
                                         Raw LXM
                                     </button>
                                 </div>
                             </div>
-                        </div>
-
-                        <div
-                            v-if="chatItem.lxmf_message.reactions?.length"
-                            class="mt-1 flex w-full flex-wrap justify-end gap-0.5 px-0.5"
-                        >
-                            <span
-                                v-for="(r, ridx) in chatItem.lxmf_message.reactions"
-                                :key="r.reactionHash || ridx"
-                                class="inline-flex min-h-[1.35rem] min-w-[1.35rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1.5 py-0.5 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
-                                :title="reactionReactorLabel(r.sender)"
-                                >{{ r.emoji }}</span
-                            >
-                        </div>
-
-                        <!-- expanded message details -->
-                        <div
-                            v-if="expandedMessageInfo === chatItem.lxmf_message.hash"
-                            class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
-                        >
                             <div
-                                v-for="(line, index) in getMessageInfoLines(
-                                    chatItem.lxmf_message,
-                                    chatItem.is_outbound
-                                )"
-                                :key="index"
-                                class="break-all"
+                                v-if="expandedMessageInfo === entry.items[0].lxmf_message.hash"
+                                class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
+                                :class="entry.items[0].is_outbound ? 'self-end' : 'self-start'"
                             >
-                                {{ line }}
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- load previous -->
-                <button
-                    v-show="!isLoadingPrevious && hasMorePrevious"
-                    id="load-previous"
-                    type="button"
-                    class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
-                    @click="loadPrevious"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="w-4 h-4"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                        />
-                    </svg>
-                    <span>Load Previous</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- send message -->
-        <div class="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-4 py-2.5">
-            <div class="w-full">
-                <!-- banished user notification -->
-                <div
-                    v-if="isSelectedPeerBlocked"
-                    class="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-2"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
-                        stroke="currentColor"
-                        class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                        />
-                    </svg>
-                    <span class="text-sm text-yellow-800 dark:text-yellow-200"
-                        >You have banished this user. They cannot send you messages or establish links.</span
-                    >
-                </div>
-
-                <!-- message composer -->
-                <div>
-                    <div class="space-y-2 mb-2">
-                        <!-- image attachments (mosaic, separate from text field) -->
-                        <div
-                            v-if="newMessageImages.length > 0"
-                            class="w-full max-w-[min(280px,100%)] rounded-xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-sm bg-black/5 dark:bg-white/5"
-                        >
-                            <div v-if="newMessageImages.length === 1" class="relative group">
-                                <button
-                                    type="button"
-                                    class="block w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-                                    @click.stop="openImage(newMessageImageUrls[0], newMessageImageUrls)"
-                                >
-                                    <img
-                                        v-if="newMessageImageUrls[0]"
-                                        :src="newMessageImageUrls[0]"
-                                        class="max-h-52 w-full object-cover object-center"
-                                    />
-                                </button>
-                                <button
-                                    type="button"
-                                    class="absolute -top-1 -right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
-                                    @click.stop="removeImageAttachment(0)"
-                                >
-                                    <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                            <div v-else-if="newMessageImages.length === 2" class="grid grid-cols-2 gap-0.5">
-                                <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
-                                    <button
-                                        type="button"
-                                        class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-                                        @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
-                                    >
-                                        <img
-                                            v-if="newMessageImageUrls[index]"
-                                            :src="newMessageImageUrls[index]"
-                                            class="h-full w-full object-cover"
-                                        />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
-                                        @click.stop="removeImageAttachment(index)"
-                                    >
-                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div v-else-if="newMessageImages.length === 3" class="grid grid-cols-2 gap-0.5">
-                                <div v-for="index in [0, 1]" :key="index" class="relative group">
-                                    <button
-                                        type="button"
-                                        class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-                                        @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
-                                    >
-                                        <img
-                                            v-if="newMessageImageUrls[index]"
-                                            :src="newMessageImageUrls[index]"
-                                            class="h-full w-full object-cover"
-                                        />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
-                                        @click.stop="removeImageAttachment(index)"
-                                    >
-                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                                <div class="relative group col-span-2">
-                                    <button
-                                        type="button"
-                                        class="relative block aspect-[2/1] max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-                                        @click.stop="openImage(newMessageImageUrls[2], newMessageImageUrls)"
-                                    >
-                                        <img
-                                            v-if="newMessageImageUrls[2]"
-                                            :src="newMessageImageUrls[2]"
-                                            class="h-full w-full object-cover"
-                                        />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
-                                        @click.stop="removeImageAttachment(2)"
-                                    >
-                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div v-else class="grid grid-cols-2 gap-0.5">
                                 <div
-                                    v-for="slot in Math.min(4, newMessageImages.length)"
-                                    :key="'compose-mosaic-' + slot"
-                                    class="relative group"
+                                    v-for="(line, index) in getMessageInfoLines(
+                                        entry.items[0].lxmf_message,
+                                        entry.items[0].is_outbound
+                                    )"
+                                    :key="index"
+                                    class="break-all"
                                 >
-                                    <button
-                                        type="button"
-                                        class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
-                                        @click.stop="openImage(newMessageImageUrls[slot - 1], newMessageImageUrls)"
-                                    >
-                                        <img
-                                            v-if="newMessageImageUrls[slot - 1]"
-                                            :src="newMessageImageUrls[slot - 1]"
-                                            class="h-full w-full object-cover"
-                                        />
-                                        <div
-                                            v-if="slot === 4 && newMessageImages.length > 4"
-                                            class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-2xl font-bold text-white"
-                                        >
-                                            +{{ newMessageImages.length - 4 }}
-                                        </div>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
-                                        @click.stop="removeImageAttachment(slot - 1)"
-                                    >
-                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
-                                    </button>
+                                    {{ line }}
                                 </div>
                             </div>
                         </div>
-
-                        <!-- audio attachment -->
-                        <div v-if="newMessageAudio" class="attachment-card">
-                            <div class="attachment-card__body w-full">
-                                <div class="attachment-card__title">Voice Note</div>
-                                <div class="attachment-card__meta mb-2">
-                                    {{ formatBytes(newMessageAudio.audio_blob.size) }}
-                                </div>
-                                <AudioWaveformPlayer :src="newMessageAudio.audio_preview_url" :is-outbound="true" />
-                            </div>
-                            <button type="button" class="attachment-card__remove" @click="removeAudioAttachment">
-                                <MaterialDesignIcon icon-name="delete" class="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <!-- file attachments -->
-                        <div v-if="newMessageFiles.length > 0" class="flex flex-wrap gap-2">
-                            <div v-for="file in newMessageFiles" :key="file.name + file.size" class="attachment-chip">
-                                <div class="flex items-center gap-2">
-                                    <MaterialDesignIcon
-                                        icon-name="paperclip"
-                                        class="w-4 h-4 text-gray-500 dark:text-gray-300"
-                                    />
-                                    <div class="text-sm text-gray-800 dark:text-gray-200 truncate max-w-[160px]">
-                                        {{ file.name }}
-                                    </div>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                                        formatBytes(file.size)
+                        <div
+                            v-for="chatItem in [entry.chatItem]"
+                            v-else
+                            :id="`message-${chatItem.lxmf_message.hash}`"
+                            :key="chatItem.lxmf_message.hash"
+                            class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-4 group min-w-0"
+                            :class="{
+                                'ml-auto items-end': chatItem.is_outbound,
+                                'mr-auto items-start': !chatItem.is_outbound,
+                            }"
+                            @contextmenu.prevent="onMessageContextMenu($event, chatItem)"
+                        >
+                            <!-- standalone image (outside bubble) -->
+                            <div
+                                v-if="chatItem.lxmf_message.fields?.image"
+                                class="relative group w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
+                                :class="chatItem.is_outbound ? 'ml-auto' : 'mr-auto'"
+                            >
+                                <img
+                                    :src="pendingOutboundImageSrc(chatItem)"
+                                    loading="lazy"
+                                    decoding="async"
+                                    class="max-h-[min(320px,55vh)] w-full cursor-pointer object-cover object-center transition-transform hover:scale-[1.01]"
+                                    alt=""
+                                    @click.stop="openImage(pendingOutboundImageSrc(chatItem))"
+                                />
+                                <div
+                                    class="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-black/60 px-2.5 py-1 text-xs text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 sm:opacity-100"
+                                >
+                                    <span>{{
+                                        (chatItem.lxmf_message.fields.image.image_type ?? "image").toUpperCase()
                                     }}</span>
+                                    <span class="mx-1">·</span>
+                                    <span>{{ formatAttachmentSize(chatItem.lxmf_message.fields.image, "image") }}</span>
                                 </div>
+                            </div>
+                            <!-- image-only: inline timestamp overlay (no bubble) -->
+                            <div
+                                v-if="isImageOnlyMessage(chatItem)"
+                                class="flex items-center gap-1.5 select-none mt-0.5"
+                                :class="chatItem.is_outbound ? 'justify-end' : 'justify-start'"
+                            >
+                                <span class="text-[9px] opacity-50 font-medium">
+                                    {{ formatTimeAgo(chatItem.lxmf_message.created_at) }}
+                                </span>
+                                <template v-if="chatItem.is_outbound">
+                                    <MaterialDesignIcon
+                                        v-if="chatItem.lxmf_message.state === 'delivered'"
+                                        icon-name="check-all"
+                                        class="size-3 opacity-50"
+                                    />
+                                    <MaterialDesignIcon
+                                        v-else-if="
+                                            ['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)
+                                        "
+                                        icon-name="check"
+                                        class="size-3 opacity-50"
+                                    />
+                                    <span
+                                        v-else-if="
+                                            ['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)
+                                        "
+                                        class="text-[9px] font-bold uppercase tracking-wider text-red-500"
+                                    >
+                                        {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                                    </span>
+                                </template>
+                            </div>
+
+                            <!-- message content -->
+                            <div
+                                v-if="!isImageOnlyMessage(chatItem)"
+                                class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
+                                :class="[
+                                    ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
+                                        ? 'shadow-sm'
+                                        : chatItem.lxmf_message.is_spam
+                                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
+                                          : isOutboundWaitingBubble(chatItem)
+                                            ? 'shadow-sm'
+                                            : chatItem.is_outbound
+                                              ? outboundBubbleSurfaceClass(chatItem)
+                                              : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
+                                ]"
+                                :style="bubbleStyles(chatItem)"
+                                @click="onChatItemClick(chatItem)"
+                            >
                                 <button
                                     type="button"
-                                    class="attachment-chip__remove"
-                                    @click="removeFileAttachment(file)"
+                                    class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
+                                    :class="outboundMessageMenuButtonHoverClass(chatItem)"
+                                    :title="$t('messages.message_actions')"
+                                    @click.stop="onMessageContextMenu($event, chatItem)"
                                 >
-                                    <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                    <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
                                 </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- text input + send -->
-                    <div class="flex items-center gap-2 min-w-0">
-                        <div
-                            v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
-                            class="relative flex-1 min-w-0"
-                            @dragover.prevent="onComposerImageDragOver"
-                            @dragleave="onComposerImageDragLeave"
-                            @drop.prevent="onComposerImageDrop"
-                        >
-                            <textarea
-                                id="message-input"
-                                ref="message-input"
-                                v-model="newMessageText"
-                                :readonly="isTranslatingMessage"
-                                class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-11 py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
-                                :class="{
-                                    'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
-                                        composerImageDropActive,
-                                }"
-                                rows="1"
-                                spellcheck="true"
-                                :placeholder="$t('messages.send_placeholder')"
-                                @keydown.enter.exact.prevent="onEnterPressed"
-                                @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
-                                @paste="onMessagePaste"
-                            ></textarea>
-                            <button
-                                type="button"
-                                class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100"
-                                :title="$t('stickers.picker_tooltip')"
-                                @click.stop="toggleStickerPicker"
-                            >
-                                <MaterialDesignIcon icon-name="emoticon-outline" class="w-5 h-5" />
-                            </button>
-                            <div
-                                v-if="isStickerPickerOpen"
-                                class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden"
-                                :class="{
-                                    'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
-                                        stickerDropActive && emojiStickerTab === 'stickers',
-                                }"
-                                @click.stop
-                            >
-                                <div
-                                    class="flex shrink-0 border-b border-gray-200 dark:border-zinc-700 p-1 gap-0.5"
-                                    role="tablist"
-                                >
-                                    <button
-                                        type="button"
-                                        role="tab"
-                                        :aria-selected="emojiStickerTab === 'emoji'"
-                                        class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
-                                        :class="
-                                            emojiStickerTab === 'emoji'
-                                                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
-                                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
-                                        "
-                                        @click="emojiStickerTab = 'emoji'"
-                                    >
-                                        {{ $t("stickers.tab_emojis") }}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="tab"
-                                        :aria-selected="emojiStickerTab === 'stickers'"
-                                        class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
-                                        :class="
-                                            emojiStickerTab === 'stickers'
-                                                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
-                                                : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
-                                        "
-                                        @click="emojiStickerTab = 'stickers'"
-                                    >
-                                        {{ $t("stickers.tab_stickers") }}
-                                    </button>
-                                </div>
-                                <div
-                                    v-show="emojiStickerTab === 'emoji'"
-                                    class="min-h-0 flex-1 flex flex-col overflow-hidden p-0"
-                                    role="tabpanel"
-                                >
-                                    <emoji-picker
-                                        :data-source="emojiPickerDataUrl"
-                                        :class="emojiPickerThemeClass"
-                                        class="compose-emoji-picker"
-                                        @emoji-click="onEmojiPickerClick"
-                                    />
-                                </div>
-                                <div
-                                    v-show="emojiStickerTab === 'stickers'"
-                                    class="min-h-0 flex-1 overflow-y-auto p-2"
-                                    role="tabpanel"
-                                    @dragover.prevent="onStickerPanelDragOver"
-                                    @dragleave.prevent="onStickerPanelDragLeave"
-                                    @drop.prevent="onStickerPanelDrop"
-                                >
-                                    <input
-                                        ref="sticker-upload-input"
-                                        type="file"
-                                        accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,.png,.jpg,.jpeg,.gif,.webp,.bmp"
-                                        multiple
-                                        class="hidden"
-                                        @change="onStickerUploadInputChange"
-                                    />
-                                    <div v-if="userStickers.length > 0" class="grid grid-cols-4 gap-2 mb-2">
-                                        <button
-                                            v-for="s in userStickers"
-                                            :key="s.id"
-                                            type="button"
-                                            class="aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500/50"
-                                            :title="s.name || 'Sticker'"
-                                            @click="addStickerFromLibrary(s)"
-                                        >
-                                            <img
-                                                :src="stickerImageUrl(s.id)"
-                                                class="w-full h-full object-contain bg-gray-50 dark:bg-zinc-800"
-                                                alt=""
-                                            />
-                                        </button>
-                                    </div>
+                                <div class="w-full space-y-1 px-4 py-2.5 min-w-0">
+                                    <!-- reply snippet -->
                                     <div
-                                        v-if="userStickers.length === 0"
-                                        class="text-center text-sm text-gray-500 dark:text-zinc-400 mb-2 px-1"
+                                        v-if="chatItem.lxmf_message.reply_to_hash"
+                                        class="mb-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 border-l-2 border-blue-500/50 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                                        @click.stop="scrollToMessage(chatItem.lxmf_message.reply_to_hash)"
                                     >
-                                        {{ $t("stickers.empty_library") }}
+                                        <div
+                                            class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight mb-0.5"
+                                            :class="outboundReplySnippetTitleClass(chatItem)"
+                                        >
+                                            <MaterialDesignIcon icon-name="reply" class="size-3" />
+                                            {{ $t("messages.replying_to") }}
+                                        </div>
+                                        <div class="text-xs opacity-70 truncate line-clamp-1 italic">
+                                            {{
+                                                chatItem.lxmf_message.fields?.reply_quoted_content ||
+                                                getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
+                                                (chatItem.lxmf_message.reply_to_hash
+                                                    ? `Message <${chatItem.lxmf_message.reply_to_hash.substring(0, 8)}...>`
+                                                    : "(Message not found)")
+                                            }}
+                                        </div>
                                     </div>
-                                    <button
-                                        type="button"
-                                        class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-3 py-3 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
+
+                                    <!-- spam badge -->
+                                    <div
+                                        v-if="chatItem.lxmf_message.is_spam"
+                                        class="flex items-center gap-1.5 text-xs font-medium mb-1"
                                         :class="
-                                            stickerDropActive ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40' : ''
+                                            chatItem.is_outbound
+                                                ? isThemeOutboundBubble(chatItem)
+                                                    ? 'text-orange-800 dark:text-orange-300'
+                                                    : 'text-orange-200'
+                                                : 'text-orange-700 dark:text-orange-300'
                                         "
-                                        :disabled="isStickerUploading"
-                                        @click="triggerStickerUploadInput"
                                     >
-                                        <div class="flex items-start gap-2">
-                                            <MaterialDesignIcon
-                                                icon-name="upload"
-                                                class="size-5 shrink-0 text-blue-500 mt-0.5"
-                                            />
-                                            <div class="min-w-0">
-                                                <div class="text-xs font-medium text-gray-800 dark:text-zinc-100">
-                                                    {{
-                                                        userStickers.length > 0
-                                                            ? $t("stickers.add_more_hint")
-                                                            : $t("stickers.drop_or_click_hint")
-                                                    }}
+                                        <MaterialDesignIcon icon-name="alert-decagram" class="size-4" />
+                                        <span>Marked as Spam</span>
+                                    </div>
+
+                                    <!-- content -->
+                                    <!-- eslint-disable vue/no-v-html -->
+                                    <div
+                                        v-if="
+                                            chatItem.lxmf_message.content &&
+                                            !getParsedItems(chatItem)?.isOnlyPaperMessage &&
+                                            !shouldHideAutoImageCaption(chatItem)
+                                        "
+                                        class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
+                                        :class="{
+                                            'markdown-content--outbound-theme':
+                                                chatItem.is_outbound && isThemeOutboundBubble(chatItem),
+                                            'markdown-content--outbound-solid':
+                                                chatItem.is_outbound && !isThemeOutboundBubble(chatItem),
+                                            'markdown-content--inbound': !chatItem.is_outbound,
+                                            'markdown-content--single-emoji': messageMarkdownSingleEmoji(chatItem),
+                                        }"
+                                        :style="{
+                                            'font-family': 'inherit',
+                                            'font-size': messageMarkdownFontSizePx(chatItem) + 'px',
+                                        }"
+                                        @click="handleMessageClick"
+                                        v-html="renderMarkdown(chatItem.lxmf_message.content)"
+                                    ></div>
+                                    <!-- eslint-enable vue/no-v-html -->
+
+                                    <!-- telemetry placeholder for empty content messages -->
+                                    <div
+                                        v-if="!chatItem.lxmf_message.content && chatItem.lxmf_message.fields?.telemetry"
+                                        class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                                    >
+                                        <MaterialDesignIcon icon-name="satellite-variant" class="size-4 opacity-60" />
+                                        <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                            {{
+                                                chatItem.is_outbound
+                                                    ? "Telemetry update sent"
+                                                    : "Telemetry update received"
+                                            }}
+                                        </span>
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            !chatItem.lxmf_message.content &&
+                                            chatItem.lxmf_message.fields?.telemetry_stream
+                                        "
+                                        class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                                    >
+                                        <MaterialDesignIcon icon-name="database-sync" class="size-4 opacity-60" />
+                                        <span class="text-[10px] font-bold uppercase tracking-wider opacity-60"
+                                            >Telemetry stream received ({{
+                                                chatItem.lxmf_message.fields.telemetry_stream.length
+                                            }}
+                                            entries)</span
+                                        >
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            !chatItem.lxmf_message.content &&
+                                            chatItem.lxmf_message.fields?.commands?.some(
+                                                (c) => c['0x01'] || c['1'] || c['0x1']
+                                            )
+                                        "
+                                        class="flex items-center gap-2 mb-2 pb-2 border-b border-gray-100/20"
+                                    >
+                                        <MaterialDesignIcon icon-name="crosshairs-question" class="size-4 opacity-60" />
+                                        <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                                            {{
+                                                chatItem.is_outbound
+                                                    ? "Location Request Sent"
+                                                    : "Location Request Received"
+                                            }}
+                                        </span>
+                                    </div>
+
+                                    <!-- parsed items (contacts / paper messages) -->
+                                    <div v-if="getParsedItems(chatItem)" class="mt-2 space-y-2">
+                                        <!-- contact -->
+                                        <div
+                                            v-if="getParsedItems(chatItem).contact && !chatItem.is_outbound"
+                                            class="flex flex-col gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
+                                        >
+                                            <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                                <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
+                                                <span class="text-sm font-bold">Contact Shared</span>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <LxmfUserIcon
+                                                    :custom-image="getParsedItems(chatItem).contact.custom_image"
+                                                    :icon-name="
+                                                        getParsedItems(chatItem).contact.lxmf_user_icon?.icon_name
+                                                    "
+                                                    :icon-foreground-colour="
+                                                        getParsedItems(chatItem).contact.lxmf_user_icon
+                                                            ?.foreground_colour
+                                                    "
+                                                    :icon-background-colour="
+                                                        getParsedItems(chatItem).contact.lxmf_user_icon
+                                                            ?.background_colour
+                                                    "
+                                                    icon-class="size-10"
+                                                />
+                                                <div class="flex-1 min-w-0">
+                                                    <div
+                                                        class="text-sm font-bold text-gray-900 dark:text-white truncate"
+                                                    >
+                                                        {{ getParsedItems(chatItem).contact.name }}
+                                                    </div>
+                                                    <div
+                                                        class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
+                                                    >
+                                                        {{ getParsedItems(chatItem).contact.hash }}
+                                                    </div>
+                                                    <div
+                                                        v-if="getParsedItems(chatItem).contact.lxmf_address"
+                                                        class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                                    >
+                                                        LXMF: {{ getParsedItems(chatItem).contact.lxmf_address }}
+                                                    </div>
+                                                    <div
+                                                        v-if="getParsedItems(chatItem).contact.lxst_address"
+                                                        class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                                    >
+                                                        LXST: {{ getParsedItems(chatItem).contact.lxst_address }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                                @click="
+                                                    addContact(
+                                                        getParsedItems(chatItem).contact.name,
+                                                        getParsedItems(chatItem).contact.hash,
+                                                        getParsedItems(chatItem).contact.lxmf_address,
+                                                        getParsedItems(chatItem).contact.lxst_address
+                                                    )
+                                                "
+                                            >
+                                                Add to Contacts
+                                            </button>
+                                        </div>
+
+                                        <!-- paper message auto-conversion -->
+                                        <div
+                                            v-if="getParsedItems(chatItem).paperMessage && !chatItem.is_outbound"
+                                            class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-black/60 border border-emerald-100 dark:border-zinc-700/50"
+                                        >
+                                            <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                                                <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
+                                                <span class="text-sm font-bold">Paper Message detected</span>
+                                            </div>
+                                            <p class="text-xs text-emerald-600/80 dark:text-zinc-400 leading-relaxed">
+                                                This message contains a signed LXMF URI that can be ingested into your
+                                                conversations.
+                                            </p>
+                                            <button
+                                                type="button"
+                                                class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                                @click="ingestPaperMessage(getParsedItems(chatItem).paperMessage)"
+                                            >
+                                                Ingest Message
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- audio field -->
+                                    <div v-if="chatItem.lxmf_message.fields?.audio" class="pb-1">
+                                        <!-- audio is loaded -->
+                                        <AudioWaveformPlayer
+                                            v-if="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
+                                            :src="lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash]"
+                                            :is-outbound="chatItem.is_outbound"
+                                        />
+
+                                        <!-- audio is not yet loaded -->
+                                        <div
+                                            v-else
+                                            class="flex items-center justify-center p-2 rounded-xl bg-gray-50/50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-800 min-h-[54px]"
+                                        >
+                                            <div class="flex items-center gap-2">
+                                                <div
+                                                    class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                                                ></div>
+                                                <span
+                                                    class="text-[10px] font-bold text-gray-400 uppercase tracking-wider"
+                                                    >{{ $t("messages.downloading") }}</span
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            class="text-[10px] mt-1 text-right opacity-60"
+                                            :class="outboundAttachmentCaptionClass(chatItem)"
+                                        >
+                                            Voice Note •
+                                            {{ formatAttachmentSize(chatItem.lxmf_message.fields.audio, "audio") }}
+                                        </div>
+                                    </div>
+
+                                    <!-- file attachment fields -->
+                                    <div v-if="chatItem.lxmf_message.fields?.file_attachments" class="space-y-2 mt-1">
+                                        <a
+                                            v-for="(file_attachment, index) of chatItem.lxmf_message.fields
+                                                ?.file_attachments ?? []"
+                                            :key="file_attachment.file_name"
+                                            target="_blank"
+                                            :download="file_attachment.file_name"
+                                            :href="`/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/file?file_index=${index}`"
+                                            class="flex items-center gap-3 border rounded-lg px-3 py-2 text-sm font-medium cursor-pointer transition-colors"
+                                            :class="
+                                                chatItem.is_outbound
+                                                    ? outboundEmbeddedCardClass(chatItem)
+                                                    : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300 border-gray-200/60 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                            "
+                                            @click.stop
+                                        >
+                                            <div class="my-auto">
+                                                <MaterialDesignIcon icon-name="paperclip" class="size-5" />
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="truncate text-xs font-bold">
+                                                    {{ file_attachment.file_name }}
                                                 </div>
                                                 <div
-                                                    v-if="isStickerUploading"
-                                                    class="text-[11px] text-blue-600 dark:text-blue-400 mt-1"
+                                                    class="text-[10px] font-normal"
+                                                    :class="
+                                                        chatItem.is_outbound
+                                                            ? outboundEmbeddedSecondaryTextClass(chatItem)
+                                                            : 'text-gray-500 dark:text-zinc-400'
+                                                    "
                                                 >
-                                                    {{ $t("common.loading") }}
+                                                    {{ formatAttachmentSize(file_attachment, "file") }}
+                                                </div>
+                                            </div>
+                                            <div class="my-auto">
+                                                <MaterialDesignIcon icon-name="download" class="size-5" />
+                                            </div>
+                                        </a>
+                                    </div>
+
+                                    <!-- commands -->
+                                    <div v-if="chatItem.lxmf_message.fields?.commands" class="space-y-2 mt-1">
+                                        <div
+                                            v-for="(command, index) in chatItem.lxmf_message.fields.commands"
+                                            :key="index"
+                                        >
+                                            <div
+                                                v-if="command['0x01'] || command['1'] || command['0x1']"
+                                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                                :class="
+                                                    chatItem.is_outbound
+                                                        ? outboundEmbeddedCardClass(chatItem)
+                                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                                "
+                                            >
+                                                <MaterialDesignIcon icon-name="crosshairs-question" class="size-5" />
+                                                <div class="text-left">
+                                                    <div class="font-bold text-xs uppercase tracking-wider opacity-80">
+                                                        {{ $t("messages.location_requested") }}
+                                                    </div>
+                                                    <div v-if="!chatItem.is_outbound" class="text-[10px] opacity-70">
+                                                        Peer is requesting your location
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <!-- telemetry / location field -->
+                                    <div v-if="chatItem.lxmf_message.fields?.telemetry" class="pb-1 mt-1 space-y-2">
+                                        <div class="flex flex-wrap gap-2">
+                                            <button
+                                                v-if="chatItem.lxmf_message.fields.telemetry.location"
+                                                type="button"
+                                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                                :class="
+                                                    chatItem.is_outbound
+                                                        ? outboundEmbeddedCardClass(chatItem)
+                                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300'
+                                                "
+                                                @click="
+                                                    viewLocationOnMap(chatItem.lxmf_message.fields.telemetry.location)
+                                                "
+                                            >
+                                                <MaterialDesignIcon icon-name="map-marker" class="size-5" />
+                                                <div class="text-left">
+                                                    <div
+                                                        class="font-bold text-[10px] uppercase tracking-wider opacity-80"
+                                                    >
+                                                        Location
+                                                    </div>
+                                                    <div class="text-[9px] font-mono opacity-70">
+                                                        {{
+                                                            chatItem.lxmf_message.fields.telemetry.location.latitude.toFixed(
+                                                                6
+                                                            )
+                                                        }},
+                                                        {{
+                                                            chatItem.lxmf_message.fields.telemetry.location.longitude.toFixed(
+                                                                6
+                                                            )
+                                                        }}
+                                                    </div>
+                                                </div>
+                                            </button>
+
+                                            <!-- Live Track Toggle Button (only for incoming) -->
+                                            <button
+                                                v-if="!chatItem.is_outbound"
+                                                type="button"
+                                                class="flex items-center gap-2 border border-gray-200/60 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                                                :class="[
+                                                    selectedPeer?.is_tracking
+                                                        ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-inner'
+                                                        : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                                ]"
+                                                @click="toggleTracking()"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="selectedPeer?.is_tracking ? 'radar' : 'crosshairs'"
+                                                    class="size-5"
+                                                    :class="{
+                                                        'animate-pulse text-blue-500': selectedPeer?.is_tracking,
+                                                    }"
+                                                />
+                                                <div class="text-left">
+                                                    <div
+                                                        class="font-bold text-[10px] uppercase tracking-wider opacity-80"
+                                                    >
+                                                        {{
+                                                            selectedPeer?.is_tracking ? "Tracking Active" : "Live Track"
+                                                        }}
+                                                    </div>
+                                                    <div class="text-[9px] opacity-70">
+                                                        {{
+                                                            selectedPeer?.is_tracking
+                                                                ? "Auto-requesting location"
+                                                                : "Enable live tracking"
+                                                        }}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </div>
+
+                                        <!-- other sensor data if available -->
+                                        <div
+                                            v-if="
+                                                chatItem.lxmf_message.fields.telemetry.battery ||
+                                                chatItem.lxmf_message.fields.telemetry.physical_link
+                                            "
+                                            class="flex gap-3 px-1"
+                                        >
+                                            <div
+                                                v-if="chatItem.lxmf_message.fields.telemetry.battery"
+                                                class="flex items-center gap-1 opacity-60 text-[10px]"
+                                            >
+                                                <MaterialDesignIcon icon-name="battery" class="size-3" />
+                                                <span
+                                                    >{{
+                                                        chatItem.lxmf_message.fields.telemetry.battery.charge_percent
+                                                    }}%</span
+                                                >
+                                            </div>
+                                            <div
+                                                v-if="chatItem.lxmf_message.fields.telemetry.physical_link"
+                                                class="flex items-center gap-1 opacity-60 text-[10px]"
+                                            >
+                                                <MaterialDesignIcon icon-name="antenna" class="size-3" />
+                                                <span
+                                                    >SNR:
+                                                    {{
+                                                        chatItem.lxmf_message.fields.telemetry.physical_link.snr
+                                                    }}dB</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- message footer: timestamp and status icons -->
+                                    <div class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3">
+                                        <span
+                                            class="text-[9px] opacity-80 font-medium"
+                                            :class="outboundBubbleFooterTimeClass(chatItem)"
+                                            :title="
+                                                getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound).join(
+                                                    '\n'
+                                                )
+                                            "
+                                        >
+                                            {{ formatTimeAgo(chatItem.lxmf_message.created_at) }}
+                                        </span>
+
+                                        <!-- outbound status icons -->
+                                        <div v-if="chatItem.is_outbound" class="flex items-center gap-1">
+                                            <span
+                                                v-if="isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
+                                                class="text-[9px] font-bold uppercase tracking-wider"
+                                                :class="
+                                                    isThemeOutboundBubble(chatItem)
+                                                        ? 'text-amber-800 dark:text-amber-300'
+                                                        : 'text-amber-200'
+                                                "
+                                            >
+                                                {{ $t("messages.opportunistic_deferred_label") }}
+                                            </span>
+                                            <span
+                                                v-else-if="
+                                                    ['failed', 'cancelled', 'rejected'].includes(
+                                                        chatItem.lxmf_message.state
+                                                    )
+                                                "
+                                                class="text-[9px] font-bold uppercase tracking-wider text-white"
+                                            >
+                                                {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                                            </span>
+                                            <button
+                                                v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
+                                                type="button"
+                                                class="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
+                                                title="Retry sending"
+                                                @click.stop="retrySendingMessage(chatItem)"
+                                            >
+                                                <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
+                                            </button>
+
+                                            <!-- delivered: double check -->
+                                            <MaterialDesignIcon
+                                                v-if="chatItem.lxmf_message.state === 'delivered'"
+                                                icon-name="check-all"
+                                                class="size-3"
+                                                :class="outboundBubbleDeliveredIconClass(chatItem)"
+                                                title="Delivered"
+                                            />
+                                            <!-- sent: single check (include unknown for initial outbound when server confirmed creation) -->
+                                            <MaterialDesignIcon
+                                                v-else-if="
+                                                    ['sent', 'propagated', 'unknown'].includes(
+                                                        chatItem.lxmf_message.state
+                                                    )
+                                                "
+                                                icon-name="check"
+                                                class="size-3"
+                                                :class="outboundBubbleSentCheckIconClass(chatItem)"
+                                                :title="
+                                                    chatItem.lxmf_message.state === 'propagated'
+                                                        ? 'Sent to propagation node'
+                                                        : 'Sent'
+                                                "
+                                            />
+                                            <svg
+                                                v-else-if="
+                                                    showRichOutboundPendingUi(chatItem) &&
+                                                    isOutboundPendingForUi(chatItem)
+                                                "
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                class="animate-spin size-3.5 shrink-0"
+                                                :class="outboundSendingStatusIconClass(chatItem)"
+                                                :title="outboundBubbleStatusHoverTitle(chatItem.lxmf_message)"
+                                            >
+                                                <title>
+                                                    {{ outboundBubbleStatusHoverTitle(chatItem.lxmf_message) }}
+                                                </title>
+                                                <circle
+                                                    class="opacity-25"
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                    stroke="currentColor"
+                                                    stroke-width="4"
+                                                ></circle>
+                                                <path
+                                                    class="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                ></path>
+                                            </svg>
+                                            <MaterialDesignIcon
+                                                v-else-if="isOutboundPendingForUi(chatItem)"
+                                                icon-name="check"
+                                                class="size-3"
+                                                :class="outboundBubblePendingCheckIconClass(chatItem)"
+                                                :title="$t('messages.sending_ellipsis')"
+                                            />
+                                            <div
+                                                v-else-if="isOpportunisticDeferredDelivery(chatItem.lxmf_message)"
+                                                class="relative flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-amber-200/85"
+                                                :title="$t('messages.opportunistic_deferred_tooltip')"
+                                            >
+                                                <MaterialDesignIcon
+                                                    icon-name="clock-outline"
+                                                    class="size-2.5 text-amber-200/95"
+                                                />
+                                            </div>
+                                            <!-- failed/cancelled/rejected: alert -->
+                                            <MaterialDesignIcon
+                                                v-else-if="
+                                                    ['failed', 'cancelled', 'rejected'].includes(
+                                                        chatItem.lxmf_message.state
+                                                    )
+                                                "
+                                                icon-name="alert-circle-outline"
+                                                class="size-3 text-white"
+                                                :title="outboundBubbleFailedTitle(chatItem.lxmf_message)"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- actions (expanded) -->
+                                <div
+                                    v-if="chatItem.is_actions_expanded"
+                                    class="border-t px-4 py-2.5"
+                                    :class="outboundExpandedActionsShellClass(chatItem)"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors"
+                                            @click.stop="replyToMessage(chatItem)"
+                                        >
+                                            {{ $t("messages.reply") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors"
+                                            @click.stop="deleteChatItem(chatItem)"
+                                        >
+                                            Delete
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors"
+                                            @click.stop="showRawMessage(chatItem)"
+                                        >
+                                            Raw LXM
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="chatItem.lxmf_message.reactions?.length"
+                                class="mt-1 flex w-full flex-wrap justify-end gap-0.5 px-0.5"
+                            >
+                                <span
+                                    v-for="(r, ridx) in chatItem.lxmf_message.reactions"
+                                    :key="r.reactionHash || ridx"
+                                    class="inline-flex min-h-[1.35rem] min-w-[1.35rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1.5 py-0.5 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
+                                    :title="reactionReactorLabel(r.sender)"
+                                    >{{ r.emoji }}</span
+                                >
+                            </div>
+
+                            <!-- expanded message details -->
+                            <div
+                                v-if="expandedMessageInfo === chatItem.lxmf_message.hash"
+                                class="mt-2 px-1 text-xs text-gray-500 dark:text-zinc-400 space-y-0.5"
+                            >
+                                <div
+                                    v-for="(line, index) in getMessageInfoLines(
+                                        chatItem.lxmf_message,
+                                        chatItem.is_outbound
+                                    )"
+                                    :key="index"
+                                    class="break-all"
+                                >
+                                    {{ line }}
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- load previous -->
+                    <button
+                        v-show="!isLoadingPrevious && hasMorePrevious"
+                        id="load-previous"
+                        type="button"
+                        class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                        @click="loadPrevious"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                            class="w-4 h-4"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                            />
+                        </svg>
+                        <span>Load Previous</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- send message -->
+            <div
+                class="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-4 py-2.5"
+            >
+                <div class="w-full">
+                    <!-- banished user notification -->
+                    <div
+                        v-if="isSelectedPeerBlocked"
+                        class="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-2"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                            />
+                        </svg>
+                        <span class="text-sm text-yellow-800 dark:text-yellow-200"
+                            >You have banished this user. They cannot send you messages or establish links.</span
+                        >
+                    </div>
+
+                    <!-- message composer -->
+                    <div>
+                        <div class="space-y-2 mb-2">
+                            <!-- image attachments (mosaic, separate from text field) -->
+                            <div
+                                v-if="newMessageImages.length > 0"
+                                class="w-full max-w-[min(280px,100%)] rounded-xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-sm bg-black/5 dark:bg-white/5"
+                            >
+                                <div v-if="newMessageImages.length === 1" class="relative group">
+                                    <button
+                                        type="button"
+                                        class="block w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                        @click.stop="openImage(newMessageImageUrls[0], newMessageImageUrls)"
+                                    >
+                                        <img
+                                            v-if="newMessageImageUrls[0]"
+                                            :src="newMessageImageUrls[0]"
+                                            class="max-h-52 w-full object-cover object-center"
+                                        />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="absolute -top-1 -right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
+                                        @click.stop="removeImageAttachment(0)"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                                <div v-else-if="newMessageImages.length === 2" class="grid grid-cols-2 gap-0.5">
+                                    <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
+                                        <button
+                                            type="button"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
+                                        >
+                                            <img
+                                                v-if="newMessageImageUrls[index]"
+                                                :src="newMessageImageUrls[index]"
+                                                class="h-full w-full object-cover"
+                                            />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            @click.stop="removeImageAttachment(index)"
+                                        >
+                                            <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-else-if="newMessageImages.length === 3" class="grid grid-cols-2 gap-0.5">
+                                    <div v-for="index in [0, 1]" :key="index" class="relative group">
+                                        <button
+                                            type="button"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
+                                        >
+                                            <img
+                                                v-if="newMessageImageUrls[index]"
+                                                :src="newMessageImageUrls[index]"
+                                                class="h-full w-full object-cover"
+                                            />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            @click.stop="removeImageAttachment(index)"
+                                        >
+                                            <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    <div class="relative group col-span-2">
+                                        <button
+                                            type="button"
+                                            class="relative block aspect-[2/1] max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            @click.stop="openImage(newMessageImageUrls[2], newMessageImageUrls)"
+                                        >
+                                            <img
+                                                v-if="newMessageImageUrls[2]"
+                                                :src="newMessageImageUrls[2]"
+                                                class="h-full w-full object-cover"
+                                            />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            @click.stop="removeImageAttachment(2)"
+                                        >
+                                            <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-else class="grid grid-cols-2 gap-0.5">
+                                    <div
+                                        v-for="slot in Math.min(4, newMessageImages.length)"
+                                        :key="'compose-mosaic-' + slot"
+                                        class="relative group"
+                                    >
+                                        <button
+                                            type="button"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            @click.stop="openImage(newMessageImageUrls[slot - 1], newMessageImageUrls)"
+                                        >
+                                            <img
+                                                v-if="newMessageImageUrls[slot - 1]"
+                                                :src="newMessageImageUrls[slot - 1]"
+                                                class="h-full w-full object-cover"
+                                            />
+                                            <div
+                                                v-if="slot === 4 && newMessageImages.length > 4"
+                                                class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/55 text-2xl font-bold text-white"
+                                            >
+                                                +{{ newMessageImages.length - 4 }}
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            @click.stop="removeImageAttachment(slot - 1)"
+                                        >
+                                            <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- audio attachment -->
+                            <div v-if="newMessageAudio" class="attachment-card">
+                                <div class="attachment-card__body w-full">
+                                    <div class="attachment-card__title">Voice Note</div>
+                                    <div class="attachment-card__meta mb-2">
+                                        {{ formatBytes(newMessageAudio.audio_blob.size) }}
+                                    </div>
+                                    <AudioWaveformPlayer :src="newMessageAudio.audio_preview_url" :is-outbound="true" />
+                                </div>
+                                <button type="button" class="attachment-card__remove" @click="removeAudioAttachment">
+                                    <MaterialDesignIcon icon-name="delete" class="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            <!-- file attachments -->
+                            <div v-if="newMessageFiles.length > 0" class="flex flex-wrap gap-2">
+                                <div
+                                    v-for="file in newMessageFiles"
+                                    :key="file.name + file.size"
+                                    class="attachment-chip"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <MaterialDesignIcon
+                                            icon-name="paperclip"
+                                            class="w-4 h-4 text-gray-500 dark:text-gray-300"
+                                        />
+                                        <div class="text-sm text-gray-800 dark:text-gray-200 truncate max-w-[160px]">
+                                            {{ file.name }}
+                                        </div>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{
+                                            formatBytes(file.size)
+                                        }}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="attachment-chip__remove"
+                                        @click="removeFileAttachment(file)"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="shrink-0 flex items-center">
-                            <SendMessageButton
-                                :is-sending-message="false"
-                                :can-send-message="canSendMessage"
-                                :delivery-method="newMessageDeliveryMethod"
-                                :compact="compactSendLayout"
-                                :sending-tooltip="sendMessagePathfindingTooltip"
-                                @send="sendMessage"
-                                @delivery-method-changed="newMessageDeliveryMethod = $event"
-                            />
-                        </div>
-                    </div>
 
-                    <!-- reply preview -->
-                    <div
-                        v-if="replyingTo"
-                        class="mt-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
-                    >
-                        <div class="flex-1 min-w-0 border-l-2 border-blue-500 pl-3">
+                        <!-- text input + send -->
+                        <div class="flex items-center gap-2 min-w-0">
                             <div
-                                class="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5"
+                                v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
+                                class="relative flex-1 min-w-0"
                             >
-                                <MaterialDesignIcon icon-name="reply" class="size-3" />
-                                {{ $t("messages.replying_to") }}
+                                <textarea
+                                    id="message-input"
+                                    ref="message-input"
+                                    v-model="newMessageText"
+                                    :readonly="isTranslatingMessage"
+                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-11 py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    rows="1"
+                                    spellcheck="true"
+                                    :placeholder="$t('messages.send_placeholder')"
+                                    @keydown.enter.exact.prevent="onEnterPressed"
+                                    @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
+                                    @paste="onMessagePaste"
+                                ></textarea>
+                                <button
+                                    type="button"
+                                    class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100"
+                                    :title="$t('stickers.picker_tooltip')"
+                                    @click.stop="toggleStickerPicker"
+                                >
+                                    <MaterialDesignIcon icon-name="emoticon-outline" class="w-5 h-5" />
+                                </button>
+                                <div
+                                    v-if="isStickerPickerOpen"
+                                    class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden"
+                                    :class="{
+                                        'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
+                                            stickerDropActive && emojiStickerTab === 'stickers',
+                                    }"
+                                    @click.stop
+                                >
+                                    <div
+                                        class="flex shrink-0 border-b border-gray-200 dark:border-zinc-700 p-1 gap-0.5"
+                                        role="tablist"
+                                    >
+                                        <button
+                                            type="button"
+                                            role="tab"
+                                            :aria-selected="emojiStickerTab === 'emoji'"
+                                            class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
+                                            :class="
+                                                emojiStickerTab === 'emoji'
+                                                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
+                                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                            "
+                                            @click="emojiStickerTab = 'emoji'"
+                                        >
+                                            {{ $t("stickers.tab_emojis") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            role="tab"
+                                            :aria-selected="emojiStickerTab === 'stickers'"
+                                            class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
+                                            :class="
+                                                emojiStickerTab === 'stickers'
+                                                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
+                                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                            "
+                                            @click="emojiStickerTab = 'stickers'"
+                                        >
+                                            {{ $t("stickers.tab_stickers") }}
+                                        </button>
+                                    </div>
+                                    <div
+                                        v-show="emojiStickerTab === 'emoji'"
+                                        class="min-h-0 flex-1 flex flex-col overflow-hidden p-0"
+                                        role="tabpanel"
+                                    >
+                                        <emoji-picker
+                                            :data-source="emojiPickerDataUrl"
+                                            :class="emojiPickerThemeClass"
+                                            class="compose-emoji-picker"
+                                            @emoji-click="onEmojiPickerClick"
+                                        />
+                                    </div>
+                                    <div
+                                        v-show="emojiStickerTab === 'stickers'"
+                                        class="min-h-0 flex-1 overflow-y-auto p-2"
+                                        role="tabpanel"
+                                        @dragover.prevent.stop="onStickerPanelDragOver"
+                                        @dragleave.prevent.stop="onStickerPanelDragLeave"
+                                        @drop.prevent.stop="onStickerPanelDrop"
+                                    >
+                                        <input
+                                            ref="sticker-upload-input"
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,.png,.jpg,.jpeg,.gif,.webp,.bmp"
+                                            multiple
+                                            class="hidden"
+                                            @change="onStickerUploadInputChange"
+                                        />
+                                        <div v-if="userStickers.length > 0" class="grid grid-cols-4 gap-2 mb-2">
+                                            <button
+                                                v-for="s in userStickers"
+                                                :key="s.id"
+                                                type="button"
+                                                class="aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500/50"
+                                                :title="s.name || 'Sticker'"
+                                                @click="addStickerFromLibrary(s)"
+                                            >
+                                                <img
+                                                    :src="stickerImageUrl(s.id)"
+                                                    class="w-full h-full object-contain bg-gray-50 dark:bg-zinc-800"
+                                                    alt=""
+                                                />
+                                            </button>
+                                        </div>
+                                        <div
+                                            v-if="userStickers.length === 0"
+                                            class="text-center text-sm text-gray-500 dark:text-zinc-400 mb-2 px-1"
+                                        >
+                                            {{ $t("stickers.empty_library") }}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-3 py-3 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
+                                            :class="
+                                                stickerDropActive
+                                                    ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
+                                                    : ''
+                                            "
+                                            :disabled="isStickerUploading"
+                                            @click="triggerStickerUploadInput"
+                                        >
+                                            <div class="flex items-start gap-2">
+                                                <MaterialDesignIcon
+                                                    icon-name="upload"
+                                                    class="size-5 shrink-0 text-blue-500 mt-0.5"
+                                                />
+                                                <div class="min-w-0">
+                                                    <div class="text-xs font-medium text-gray-800 dark:text-zinc-100">
+                                                        {{
+                                                            userStickers.length > 0
+                                                                ? $t("stickers.add_more_hint")
+                                                                : $t("stickers.drop_or_click_hint")
+                                                        }}
+                                                    </div>
+                                                    <div
+                                                        v-if="isStickerUploading"
+                                                        class="text-[11px] text-blue-600 dark:text-blue-400 mt-1"
+                                                    >
+                                                        {{ $t("common.loading") }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-xs text-gray-600 dark:text-zinc-400 truncate italic">
-                                {{ replyingTo.lxmf_message.content || "(Attachment)" }}
+                            <div class="shrink-0 flex items-center">
+                                <SendMessageButton
+                                    :is-sending-message="false"
+                                    :can-send-message="canSendMessage"
+                                    :delivery-method="newMessageDeliveryMethod"
+                                    :compact="compactSendLayout"
+                                    :sending-tooltip="sendMessagePathfindingTooltip"
+                                    @send="sendMessage"
+                                    @delivery-method-changed="newMessageDeliveryMethod = $event"
+                                />
                             </div>
                         </div>
-                        <button
-                            type="button"
-                            class="p-1.5 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200"
-                            @click="cancelReply"
-                        >
-                            <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
-                        </button>
-                    </div>
 
-                    <!-- action button -->
-                    <div class="flex flex-wrap gap-2 items-center mt-2">
-                        <button type="button" class="attachment-action-button" @click="addFilesToMessage">
-                            <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
-                            <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="attachment-action-button"
-                            :title="$t('messages.paste_from_clipboard')"
-                            @click="pasteFromClipboard"
+                        <!-- reply preview -->
+                        <div
+                            v-if="replyingTo"
+                            class="mt-2 p-2 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200"
                         >
-                            <MaterialDesignIcon icon-name="content-paste" class="w-4 h-4" />
-                            <span class="hidden sm:inline">Paste</span>
-                        </button>
-                        <AddImageButton @add-image="onImageSelected" />
-                        <AddAudioButton
-                            :is-recording-audio-attachment="isRecordingAudioAttachment"
-                            @start-recording="startRecordingAudioAttachment($event)"
-                            @stop-recording="stopRecordingAudioAttachment"
-                        >
-                            <span>{{ $t("messages.recording", { duration: audioAttachmentRecordingDuration }) }}</span>
-                        </AddAudioButton>
-                        <button
-                            type="button"
-                            class="attachment-action-button"
-                            :title="$t('messages.share_location')"
-                            @click="shareLocation"
-                        >
-                            <MaterialDesignIcon icon-name="map-marker" class="w-4 h-4" />
-                            <span class="hidden sm:inline">{{ $t("messages.location") }}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="attachment-action-button"
-                            :title="$t('messages.request_location')"
-                            @click="requestLocation"
-                        >
-                            <MaterialDesignIcon icon-name="crosshairs-question" class="w-4 h-4" />
-                            <span class="hidden sm:inline">{{ $t("messages.request") }}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="attachment-action-button"
-                            :title="$t('messages.generate_paper_message')"
-                            :disabled="!canSendMessage || isGeneratingPaperMessage"
-                            @click="generatePaperMessageFromComposition"
-                        >
-                            <template v-if="isGeneratingPaperMessage">
+                            <div class="flex-1 min-w-0 border-l-2 border-blue-500 pl-3">
                                 <div
-                                    class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
-                                ></div>
-                                <span class="hidden sm:inline">Generating...</span>
-                            </template>
-                            <template v-else>
-                                <MaterialDesignIcon icon-name="qrcode-plus" class="w-4 h-4" />
-                                <span class="hidden sm:inline">LXM</span>
-                            </template>
-                        </button>
-                        <button
-                            v-if="hasTranslator && newMessageText"
-                            type="button"
-                            class="attachment-action-button"
-                            :title="$t('translator.translate')"
-                            @click="translateMessage"
-                        >
-                            <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
-                            <span class="hidden sm:inline">{{ $t("translator.translate") }}</span>
-                        </button>
+                                    class="flex items-center gap-1 text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-0.5"
+                                >
+                                    <MaterialDesignIcon icon-name="reply" class="size-3" />
+                                    {{ $t("messages.replying_to") }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-zinc-400 truncate italic">
+                                    {{ replyingTo.lxmf_message.content || "(Attachment)" }}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                class="p-1.5 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200"
+                                @click="cancelReply"
+                            >
+                                <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <!-- action button -->
+                        <div class="flex flex-wrap gap-2 items-center mt-2">
+                            <button type="button" class="attachment-action-button" @click="addFilesToMessage">
+                                <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
+                                <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="attachment-action-button"
+                                :title="$t('messages.paste_from_clipboard')"
+                                @click="pasteFromClipboard"
+                            >
+                                <MaterialDesignIcon icon-name="content-paste" class="w-4 h-4" />
+                                <span class="hidden sm:inline">Paste</span>
+                            </button>
+                            <AddImageButton @add-image="onImageSelected" />
+                            <AddAudioButton
+                                :is-recording-audio-attachment="isRecordingAudioAttachment"
+                                @start-recording="startRecordingAudioAttachment($event)"
+                                @stop-recording="stopRecordingAudioAttachment"
+                            >
+                                <span>{{
+                                    $t("messages.recording", { duration: audioAttachmentRecordingDuration })
+                                }}</span>
+                            </AddAudioButton>
+                            <button
+                                type="button"
+                                class="attachment-action-button"
+                                :title="$t('messages.share_location')"
+                                @click="shareLocation"
+                            >
+                                <MaterialDesignIcon icon-name="map-marker" class="w-4 h-4" />
+                                <span class="hidden sm:inline">{{ $t("messages.location") }}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="attachment-action-button"
+                                :title="$t('messages.request_location')"
+                                @click="requestLocation"
+                            >
+                                <MaterialDesignIcon icon-name="crosshairs-question" class="w-4 h-4" />
+                                <span class="hidden sm:inline">{{ $t("messages.request") }}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="attachment-action-button"
+                                :title="$t('messages.generate_paper_message')"
+                                :disabled="!canSendMessage || isGeneratingPaperMessage"
+                                @click="generatePaperMessageFromComposition"
+                            >
+                                <template v-if="isGeneratingPaperMessage">
+                                    <div
+                                        class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
+                                    ></div>
+                                    <span class="hidden sm:inline">Generating...</span>
+                                </template>
+                                <template v-else>
+                                    <MaterialDesignIcon icon-name="qrcode-plus" class="w-4 h-4" />
+                                    <span class="hidden sm:inline">LXM</span>
+                                </template>
+                            </button>
+                            <button
+                                v-if="hasTranslator && newMessageText"
+                                type="button"
+                                class="attachment-action-button"
+                                :title="$t('translator.translate')"
+                                @click="translateMessage"
+                            >
+                                <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
+                                <span class="hidden sm:inline">{{ $t("translator.translate") }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
