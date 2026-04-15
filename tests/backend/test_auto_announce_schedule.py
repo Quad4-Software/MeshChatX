@@ -47,9 +47,7 @@ class TestIntervalActionDue:
         interval = 600
         now = 500_000.0
         last = int(now - 601)
-        assert (
-            interval_action_due(interval > 0, last, interval, now) is True
-        )
+        assert interval_action_due(interval > 0, last, interval, now) is True
 
     def test_large_interval_last_at_slightly_in_future_ntp(self):
         """Small positive skew still triggers one correction announce."""

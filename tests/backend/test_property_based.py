@@ -716,6 +716,7 @@ def test_convert_propagation_node_state_to_string_robustness(state):
         "no_identity_received",
         "no_access",
         "failed",
+        "path_timeout",
         "unknown",
     }
     assert result in allowed

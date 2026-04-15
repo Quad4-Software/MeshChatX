@@ -12,6 +12,7 @@ from meshchatx.meshchat import ReticulumMeshChat
 # Store original constants
 PR_IDLE = LXMF.LXMRouter.PR_IDLE
 PR_PATH_REQUESTED = LXMF.LXMRouter.PR_PATH_REQUESTED
+PR_PATH_TIMEOUT = LXMF.LXMRouter.PR_PATH_TIMEOUT
 PR_RECEIVING = LXMF.LXMRouter.PR_RECEIVING
 PR_COMPLETE = LXMF.LXMRouter.PR_COMPLETE
 PR_FAILED = LXMF.LXMRouter.PR_FAILED
@@ -36,6 +37,7 @@ def mock_app(temp_dir):
         # Set up constants on the mock class
         mock_router_class.PR_IDLE = PR_IDLE
         mock_router_class.PR_PATH_REQUESTED = PR_PATH_REQUESTED
+        mock_router_class.PR_PATH_TIMEOUT = PR_PATH_TIMEOUT
         mock_router_class.PR_RECEIVING = PR_RECEIVING
         mock_router_class.PR_COMPLETE = PR_COMPLETE
         mock_router_class.PR_FAILED = PR_FAILED
@@ -43,6 +45,7 @@ def mock_app(temp_dir):
         mock_router = mock_router_class.return_value
         mock_router.PR_IDLE = PR_IDLE
         mock_router.PR_PATH_REQUESTED = PR_PATH_REQUESTED
+        mock_router.PR_PATH_TIMEOUT = PR_PATH_TIMEOUT
         mock_router.PR_RECEIVING = PR_RECEIVING
         mock_router.PR_COMPLETE = PR_COMPLETE
         mock_router.PR_FAILED = PR_FAILED
@@ -64,6 +67,7 @@ def mock_app(temp_dir):
         ) as mock_utils_router:
             mock_utils_router.PR_IDLE = PR_IDLE
             mock_utils_router.PR_PATH_REQUESTED = PR_PATH_REQUESTED
+            mock_utils_router.PR_PATH_TIMEOUT = PR_PATH_TIMEOUT
             mock_utils_router.PR_RECEIVING = PR_RECEIVING
             mock_utils_router.PR_COMPLETE = PR_COMPLETE
             mock_utils_router.PR_FAILED = PR_FAILED
@@ -183,6 +187,7 @@ async def test_propagation_node_status_mapping(mock_app):
     states_to_test = [
         (PR_IDLE, "idle"),
         (PR_PATH_REQUESTED, "path_requested"),
+        (PR_PATH_TIMEOUT, "path_timeout"),
         (PR_RECEIVING, "receiving"),
         (PR_COMPLETE, "complete"),
         (PR_FAILED, "failed"),
@@ -193,6 +198,50 @@ async def test_propagation_node_status_mapping(mock_app):
         response = await status_handler(None)
         data = json.loads(response.body)
         assert data["propagation_node_status"]["state"] == state_str
+        assert "local_propagation_node" in data
+
+
+@pytest.mark.asyncio
+async def test_local_propagation_node_stop_and_restart_routes(mock_app):
+    mock_router = mock_app.current_context.message_router
+    mock_router.propagation_node = True
+    mock_router.compile_stats.return_value = {
+        "uptime": 42,
+        "messagestore": {"count": 3, "bytes": 2048, "limit": 4096},
+        "clients": {
+            "client_propagation_messages_received": 7,
+            "client_propagation_messages_served": 5,
+        },
+        "delivery_limit": 10,
+        "propagation_limit": 20,
+        "sync_limit": 30,
+        "target_stamp_cost": 16,
+        "static_peers": 1,
+        "discovered_peers": 2,
+        "total_peers": 3,
+        "max_peers": 10,
+    }
+
+    stop_handler = next(
+        r.handler
+        for r in mock_app.get_routes()
+        if r.path == "/api/v1/lxmf/propagation-node/stop"
+    )
+    restart_handler = next(
+        r.handler
+        for r in mock_app.get_routes()
+        if r.path == "/api/v1/lxmf/propagation-node/restart"
+    )
+
+    stop_response = await stop_handler(None)
+    stop_data = json.loads(stop_response.body)
+    assert stop_data["message"] == "Local propagation node stopped"
+    mock_router.disable_propagation.assert_called()
+
+    restart_response = await restart_handler(None)
+    restart_data = json.loads(restart_response.body)
+    assert restart_data["message"] == "Local propagation node restarted"
+    mock_router.enable_propagation.assert_called()
 
 
 @pytest.mark.asyncio
@@ -225,3 +274,30 @@ async def test_user_provided_node_hash(mock_app):
     mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_with(
         mock_app.current_context.identity,
     )
+
+
+def test_convert_propagation_node_state_maps_all_lxmf_transfer_states():
+    from meshchatx.src.backend.meshchat_utils import (
+        convert_propagation_node_state_to_string,
+    )
+
+    r = LXMF.LXMRouter
+    expected = {
+        r.PR_IDLE: "idle",
+        r.PR_PATH_REQUESTED: "path_requested",
+        r.PR_LINK_ESTABLISHING: "link_establishing",
+        r.PR_LINK_ESTABLISHED: "link_established",
+        r.PR_REQUEST_SENT: "request_sent",
+        r.PR_RECEIVING: "receiving",
+        r.PR_RESPONSE_RECEIVED: "response_received",
+        r.PR_COMPLETE: "complete",
+        r.PR_NO_PATH: "no_path",
+        r.PR_LINK_FAILED: "link_failed",
+        r.PR_TRANSFER_FAILED: "transfer_failed",
+        r.PR_NO_IDENTITY_RCVD: "no_identity_received",
+        r.PR_NO_ACCESS: "no_access",
+        r.PR_FAILED: "failed",
+        r.PR_PATH_TIMEOUT: "path_timeout",
+    }
+    for state_val, state_str in expected.items():
+        assert convert_propagation_node_state_to_string(state_val) == state_str

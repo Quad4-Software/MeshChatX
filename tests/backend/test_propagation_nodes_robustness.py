@@ -61,6 +61,8 @@ async def test_propagation_nodes_endpoint_robustness(mock_rns_minimal, temp_dir)
     assert response.status == 200
     data = json.loads(response.body)
     assert "lxmf_propagation_nodes" in data
+    for node in data["lxmf_propagation_nodes"]:
+        assert "is_local_node" in node
 
     # Test with invalid limit (should not crash)
     request.query = {"limit": "invalid"}
@@ -68,6 +70,8 @@ async def test_propagation_nodes_endpoint_robustness(mock_rns_minimal, temp_dir)
     assert response.status == 200
     data = json.loads(response.body)
     assert "lxmf_propagation_nodes" in data
+    for node in data["lxmf_propagation_nodes"]:
+        assert "is_local_node" in node
 
     # Test with missing limit (should not crash)
     request.query = {}
@@ -75,3 +79,5 @@ async def test_propagation_nodes_endpoint_robustness(mock_rns_minimal, temp_dir)
     assert response.status == 200
     data = json.loads(response.body)
     assert "lxmf_propagation_nodes" in data
+    for node in data["lxmf_propagation_nodes"]:
+        assert "is_local_node" in node
