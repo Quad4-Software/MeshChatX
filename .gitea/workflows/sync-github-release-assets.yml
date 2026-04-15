@@ -13,9 +13,16 @@
 #   SYNC_PAT                       — GitHub PAT: repo + actions:read (list/download workflow artifacts)
 #
 # Run after the Gitea "Build and Release" job has created the draft (or any release with that tag).
+#
+# Listed in Actions: use at least one push trigger (not workflow_dispatch alone). Tag push runs sync;
+# manual runs use the tag input. Automatic runs skip unless the tagged commit is on origin/dev or
+# origin/master (same idea as tagging releases from those branches).
 name: Sync GitHub Win/mac release assets
 
 on:
+    push:
+        tags:
+            - "*"
     workflow_dispatch:
         inputs:
             tag:
@@ -54,13 +61,29 @@ jobs:
 
             - name: Sync from GitHub Actions
               env:
-                  TAG: ${{ inputs.tag }}
                   GITHUB_REPOSITORY: ${{ env.GITHUB_SYNC_REPOSITORY }}
                   GITHUB_PAT: ${{ secrets.SYNC_PAT }}
                   GITEA_REPOSITORY: ${{ env.GITEA_SYNC_REPOSITORY }}
                   GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
               run: |
                   set -eu
+                  EVENT="${{ github.event_name }}"
+                  if [ "$EVENT" = "workflow_dispatch" ]; then
+                    TAG="${{ inputs.tag || github.event.inputs.tag }}"
+                  else
+                    TAG="${GITHUB_REF#refs/tags/}"
+                  fi
+                  export TAG
+                  if [ -z "${TAG}" ]; then
+                    echo "Could not determine release tag from ref or inputs." >&2
+                    exit 1
+                  fi
+                  if [ "$EVENT" = "push" ]; then
+                    if ! git branch -r --contains HEAD 2>/dev/null | grep -qE 'origin/(dev|master)'; then
+                      echo "Skipping sync: commit is not on origin/dev or origin/master."
+                      exit 0
+                    fi
+                  fi
                   if [ -z "${GITHUB_PAT:-}" ]; then
                     echo "Configure secret SYNC_PAT." >&2
                     exit 1
