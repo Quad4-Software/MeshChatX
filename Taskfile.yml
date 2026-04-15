@@ -186,9 +186,14 @@ tasks:
             - poetry run mutmut run "meshchatx.src.backend.meshchat_utils*"
 
     test:fe:
-        desc: Run frontend tests (vitest)
+        desc: Run frontend tests (vitest; excludes i18n — see test:lang; excludes LoadTimePerformance — use test:fe:loadtime locally)
         cmds:
             - "{{.NPM}} run test -- --exclude tests/frontend/i18n.test.js"
+
+    test:fe:loadtime:
+        desc: Optional frontend load-time / sidebar performance tests (not run in CI)
+        cmds:
+            - "{{.NPM}} run test:loadtime"
 
     test:fe:cov:
         desc: Run frontend tests with line coverage (Vitest v8)
