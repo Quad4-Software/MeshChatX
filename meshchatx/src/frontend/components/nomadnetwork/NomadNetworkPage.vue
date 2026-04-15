@@ -437,7 +437,8 @@ export default {
             GlobalState,
             reloadInterval: null,
             nodesRefreshTimeout: null,
-            abortController: new AbortController(),
+            nodesListAbortController: null,
+            nodeDetailAbortController: null,
 
             nomadNetworkSidebarCollapsed: false,
             nodes: {},
@@ -625,7 +626,8 @@ export default {
         }
         if (this.nodesRefreshTimeout) clearTimeout(this.nodesRefreshTimeout);
         clearInterval(this.reloadInterval);
-        this.abortController.abort();
+        this.nodesListAbortController?.abort();
+        this.nodeDetailAbortController?.abort();
         this.clearPartials();
 
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -1019,6 +1021,14 @@ export default {
         },
         async getNomadnetworkNodeAnnounces(append = false) {
             try {
+                if (!append) {
+                    if (this.nodesListAbortController) {
+                        this.nodesListAbortController.abort();
+                    }
+                    this.nodesListAbortController = new AbortController();
+                } else if (!this.nodesListAbortController) {
+                    this.nodesListAbortController = new AbortController();
+                }
                 const offset = append ? Object.keys(this.nodes).length : 0;
                 const response = await window.api.get(`/api/v1/announces`, {
                     params: {
@@ -1027,7 +1037,7 @@ export default {
                         offset: offset,
                         search: this.nodesSearchTerm,
                     },
-                    signal: this.abortController.signal,
+                    signal: this.nodesListAbortController.signal,
                 });
 
                 const nodeAnnounces = response.data.announces;
@@ -1065,12 +1075,16 @@ export default {
         },
         async getNomadnetworkNodeAnnounce(destinationHash) {
             try {
+                if (this.nodeDetailAbortController) {
+                    this.nodeDetailAbortController.abort();
+                }
+                this.nodeDetailAbortController = new AbortController();
                 const response = await window.api.get(`/api/v1/announces`, {
                     params: {
                         destination_hash: destinationHash,
                         limit: 1,
                     },
-                    signal: this.abortController.signal,
+                    signal: this.nodeDetailAbortController.signal,
                 });
 
                 const nodeAnnounces = response.data.announces;
