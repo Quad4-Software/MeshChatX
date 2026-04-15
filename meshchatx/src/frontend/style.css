@@ -4,7 +4,7 @@
 
 * {
     scrollbar-width: thin;
-    scrollbar-color: #94a3b8 #e2e8f0;
+    scrollbar-color: var(--mc-scrollbar-thumb) var(--mc-scrollbar-track);
 }
 
 *::-webkit-scrollbar {
@@ -13,150 +13,124 @@
 }
 
 *::-webkit-scrollbar-track {
-    background: #e2e8f0;
+    background: var(--mc-scrollbar-track);
 }
 
 *::-webkit-scrollbar-thumb {
-    background-color: #94a3b8;
+    background-color: var(--mc-scrollbar-thumb);
     border-radius: 999px;
-    border: 2px solid #e2e8f0;
-}
-
-.dark * {
-    scrollbar-color: #52525b #18181b;
-}
-
-.dark *::-webkit-scrollbar-track {
-    background: #18181b;
-}
-
-.dark *::-webkit-scrollbar-thumb {
-    background-color: #52525b;
-    border-color: #18181b;
+    border: 2px solid var(--mc-scrollbar-thumb-border);
 }
 
 .glass-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-xl px-4 py-4;
+    @apply bg-sem-glass backdrop-blur border border-sem-border-card rounded-3xl shadow-xl px-4 py-4;
 }
 
 .input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
+    @apply bg-sem-surface-muted border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
 }
 
 select.input-field option {
-    @apply bg-white text-gray-900 dark:bg-zinc-900 dark:text-gray-100;
+    @apply bg-sem-surface text-sem-fg;
 }
 
 .primary-chip {
-    @apply inline-flex items-center justify-center gap-x-2 rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all !important;
+    @apply inline-flex items-center justify-center gap-x-2 rounded-full bg-sem-accent px-4 py-2 text-xs font-bold text-white shadow-sm transition-all !important;
 }
 .primary-chip:hover {
-    @apply bg-blue-500 -translate-y-0.5 !important;
+    @apply bg-sem-accent-hover -translate-y-0.5 !important;
 }
 .primary-chip:active {
     @apply scale-95 translate-y-0 !important;
 }
 
 .secondary-chip {
-    @apply inline-flex items-center justify-center gap-x-2 rounded-full border border-gray-300 px-4 py-2 text-xs font-bold shadow-sm transition-all duration-200 !important;
-    background-color: white !important;
-    color: #374151 !important; /* text-gray-700 */
+    @apply inline-flex items-center justify-center gap-x-2 rounded-full px-4 py-2 text-xs font-bold shadow-sm transition-all duration-200 !important;
+    background-color: var(--mc-secondary-chip-bg) !important;
+    color: var(--mc-secondary-chip-text) !important;
+    border: 1px solid var(--mc-secondary-chip-border) !important;
 }
 .secondary-chip:hover {
-    background-color: #f9fafb !important; /* bg-gray-50 */
-    color: #111827 !important; /* text-gray-900 */
-    border-color: #60a5fa !important; /* border-blue-400 */
+    background-color: var(--mc-secondary-chip-hover-bg) !important;
+    color: var(--mc-secondary-chip-hover-text) !important;
+    border-color: var(--mc-secondary-chip-hover-border) !important;
     @apply -translate-y-0.5 shadow-md !important;
 }
 .secondary-chip:active {
     @apply scale-95 translate-y-0 shadow-sm !important;
 }
 
-.dark .secondary-chip {
-    background-color: #18181b !important; /* bg-zinc-900 */
-    color: #f4f4f5 !important; /* text-zinc-100 */
-    border-color: #3f3f46 !important; /* border-zinc-700 */
-}
 .dark .secondary-chip:hover {
-    background-color: #27272a !important; /* bg-zinc-800 */
-    color: #ffffff !important; /* text-white */
-    border-color: #3b82f6 !important; /* border-blue-500 */
-    @apply shadow-lg shadow-blue-500/10 !important;
+    @apply shadow-lg dark:shadow-blue-500/10 !important;
 }
 
 .danger-chip {
-    @apply inline-flex items-center justify-center gap-x-2 rounded-full border border-red-200 px-4 py-2 text-xs font-bold transition-all duration-200 !important;
-    background-color: #fef2f2 !important; /* bg-red-50 */
-    color: #b91c1c !important; /* text-red-700 */
+    @apply inline-flex items-center justify-center gap-x-2 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 !important;
+    background-color: var(--mc-danger-chip-bg) !important;
+    color: var(--mc-danger-chip-text) !important;
+    border: 1px solid var(--mc-danger-chip-border) !important;
 }
 .danger-chip:hover {
-    background-color: #fee2e2 !important; /* bg-red-100 */
-    color: #991b1b !important; /* text-red-800 */
+    background-color: var(--mc-danger-chip-hover-bg) !important;
+    color: var(--mc-danger-chip-hover-text) !important;
     @apply -translate-y-0.5 shadow-md !important;
 }
 .danger-chip:active {
     @apply scale-95 translate-y-0 !important;
 }
 
-.dark .danger-chip {
-    background-color: rgba(69, 10, 10, 0.2) !important; /* bg-red-950/20 */
-    color: #f87171 !important; /* text-red-400 */
-    border-color: rgba(127, 29, 29, 0.5) !important; /* border-red-900/50 */
-}
 .dark .danger-chip:hover {
-    background-color: rgba(127, 29, 29, 0.4) !important; /* bg-red-900/40 */
-    color: #fca5a5 !important; /* text-red-300 */
-    @apply shadow-lg shadow-red-500/10 !important;
+    @apply shadow-lg dark:shadow-red-500/10 !important;
 }
 
 .glass-label {
-    @apply mb-1 text-sm font-semibold text-gray-800 dark:text-gray-200;
+    @apply mb-1 text-sm font-semibold text-sem-fg-secondary dark:text-sem-fg-label;
 }
 
 .monospace-field {
-    @apply font-mono tracking-tight text-gray-900 dark:text-white;
+    @apply font-mono tracking-tight text-sem-fg dark:text-white;
 }
 
 .metric-row {
-    @apply grid gap-3 sm:grid-cols-2 text-gray-800 dark:text-gray-100;
+    @apply grid gap-3 sm:grid-cols-2 text-sem-fg-secondary dark:text-sem-fg;
 }
 
 .metric-value {
-    @apply text-lg font-semibold text-gray-900 dark:text-white;
+    @apply text-lg font-semibold text-sem-fg dark:text-white;
 }
 
 .address-card {
-    @apply relative border border-gray-200 dark:border-zinc-800 rounded-2xl bg-white/80 dark:bg-zinc-900/70 p-4 space-y-2;
+    @apply relative border border-sem-border-card rounded-2xl bg-sem-surface-raised p-4 space-y-2;
 }
 .address-card__label {
-    @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
+    @apply text-xs uppercase tracking-wide text-sem-fg-muted;
 }
 .address-card__value {
-    @apply text-sm text-gray-900 dark:text-white break-words pr-16;
+    @apply text-sm text-sem-fg dark:text-white break-words pr-16;
 }
 .address-card__action {
-    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1 text-[10px] font-bold text-gray-700 bg-white shadow-sm transition-all !important;
+    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold shadow-sm transition-all !important;
+    background-color: var(--mc-address-action-bg) !important;
+    color: var(--mc-address-action-text) !important;
+    border: 1px solid var(--mc-address-action-border) !important;
 }
 .address-card__action:hover {
-    @apply bg-gray-50 text-gray-900 border-blue-400 !important;
-}
-.dark .address-card__action {
-    @apply border-zinc-700 text-zinc-100 bg-zinc-900 !important;
-}
-.dark .address-card__action:hover {
-    @apply bg-zinc-800 text-white border-blue-500 !important;
+    background-color: var(--mc-address-action-hover-bg) !important;
+    color: var(--mc-address-action-hover-text) !important;
+    border-color: var(--mc-address-action-hover-border) !important;
 }
 
 .file-input {
-    @apply block w-full text-xs cursor-pointer rounded-lg border border-gray-300 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500;
+    @apply block w-full text-xs cursor-pointer rounded-lg border bg-sem-file-input-bg text-sem-file-input-text focus:outline-none focus:ring-2 focus:ring-sem-focus;
+    border-color: var(--mc-file-input-border);
 }
 
 .file-input::file-selector-button {
-    @apply mr-2 border-0 rounded-md bg-blue-600 text-white px-3 py-1 text-xs font-semibold cursor-pointer hover:bg-blue-500 transition;
+    @apply mr-2 border-0 rounded-md bg-sem-accent text-white px-3 py-1 text-xs font-semibold cursor-pointer hover:bg-sem-accent-hover transition;
 }
 
 .dark .file-input::file-selector-button {
-    @apply bg-blue-500 hover:bg-blue-400 text-white;
+    @apply bg-sem-accent hover:bg-sem-accent-hover text-white;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -178,21 +152,13 @@ select.input-field option {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--mc-custom-scroll-thumb);
     border-radius: 10px;
     border: none;
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #3f3f46;
-}
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #52525b;
+    background: var(--mc-custom-scroll-thumb-hover);
 }
 
 @keyframes spin-reverse {
@@ -209,17 +175,24 @@ select.input-field option {
 }
 
 .context-menu-panel {
-    @apply fixed min-w-48 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl;
+    @apply fixed min-w-48 rounded-xl border shadow-xl bg-sem-surface;
+    border-color: var(--mc-border);
 }
 
 .context-item {
-    @apply w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 flex items-center gap-2;
+    @apply w-full text-left px-3 py-2 text-sm flex items-center gap-2;
+    color: var(--mc-context-item-text);
+}
+.context-item:hover {
+    background-color: var(--mc-context-hover);
 }
 
 .context-menu-divider {
-    @apply border-t border-gray-100 dark:border-zinc-800 my-1;
+    border-color: var(--mc-context-divider);
+    @apply border-t my-1;
 }
 
 .context-menu-section-label {
-    @apply px-3 py-1.5 text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest;
+    @apply px-3 py-1.5 text-[10px] font-black uppercase tracking-widest;
+    color: var(--mc-context-section);
 }

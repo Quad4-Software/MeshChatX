@@ -1,4 +1,5 @@
 import formsPlugin from "@tailwindcss/forms";
+import { tailwindSemanticColorExtend } from "./meshchatx/src/frontend/theme/designTokens.js";
 
 const frontendRoot = "./meshchatx/src/frontend";
 
@@ -11,7 +12,11 @@ module.exports = {
         "./meshchatx/src/backend/markdown_renderer.py",
     ],
     theme: {
-        extend: {},
+        extend: {
+            colors: {
+                sem: tailwindSemanticColorExtend(),
+            },
+        },
     },
     plugins: [formsPlugin],
 };

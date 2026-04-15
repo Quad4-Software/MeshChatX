@@ -4,6 +4,9 @@ import { createI18n } from "vue-i18n";
 import vClickOutside from "click-outside-vue3";
 import DOMPurify from "dompurify";
 import "./style.css";
+import { injectMeshchatThemeVariables, vuetifyThemesFromTokens } from "./theme/designTokens.js";
+
+injectMeshchatThemeVariables();
 
 window.DOMPurify = DOMPurify;
 import "@mdi/font/css/materialdesignicons.css";
@@ -35,34 +38,7 @@ import { createVuetify } from "vuetify";
 const vuetify = createVuetify({
     theme: {
         defaultTheme: "light",
-        themes: {
-            light: {
-                dark: false,
-                colors: {
-                    background: "#f8fafc",
-                    surface: "#ffffff",
-                    primary: "#2563eb",
-                    secondary: "#475569",
-                    error: "#dc2626",
-                    info: "#0284c7",
-                    success: "#16a34a",
-                    warning: "#f97316",
-                },
-            },
-            dark: {
-                dark: true,
-                colors: {
-                    background: "#09090b",
-                    surface: "#18181b",
-                    primary: "#60a5fa",
-                    secondary: "#94a3b8",
-                    error: "#f87171",
-                    info: "#38bdf8",
-                    success: "#34d399",
-                    warning: "#fb923c",
-                },
-            },
-        },
+        themes: vuetifyThemesFromTokens(),
     },
 });
 
