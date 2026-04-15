@@ -62,14 +62,21 @@ def test_search_and_filter(handler, db):
 def test_anomaly_flooding(handler, db):
     persistent_handler, logger = handler
     persistent_handler.flooding_threshold = 5
+    # Flooding uses a 1s window from last_reset_time. The handler may be created
+    # well before this loop on slow CI; if the 6th warning falls after that second,
+    # the counter resets and totals never exceed the threshold. Reset state here and
+    # emit enough warnings to survive one mid-burst reset.
+    with persistent_handler.lock:
+        persistent_handler.message_counts.clear()
+        persistent_handler.last_reset_time = time.time()
 
-    for i in range(10):
+    for i in range(15):
         logger.warning(f"Message {i}")
 
-    # Wait for flush
+    time.sleep(0.2)
     logger.debug("Force flush")
 
-    logs = persistent_handler.get_logs(limit=20)
+    logs = persistent_handler.get_logs(limit=30)
     anomalies = [log for log in logs if log["is_anomaly"]]
     assert len(anomalies) > 0
     assert any(log["anomaly_type"] == "flooding" for log in anomalies)
