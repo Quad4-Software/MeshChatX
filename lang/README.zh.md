@@ -233,7 +233,7 @@ task build:all
 
 ## 版本
 
-本仓库当前版本: `4.4.0`。
+本仓库当前版本: `4.5.0`。
 
 - JavaScript/Electron 版本以 `package.json` 为准。
 - `meshchatx/src/version.py` 通过以下命令与 `package.json` 同步:

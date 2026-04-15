@@ -1,6 +1,6 @@
 [project]
 name = "reticulum-meshchatx"
-version = "4.4.0"
+version = "4.5.0"
 description = "A simple mesh network communications app powered by the Reticulum Network Stack"
 authors = [
   {name = "Sudo-Ivan"}
@@ -70,7 +70,7 @@ path = "logo"
 packages = {find = {}}
 
 [tool.setuptools.package-data]
-meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json"]
+meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json", "src/backend/data/THIRD_PARTY_NOTICES.txt"]
 
 [build-system]
 requires = ["setuptools>=65.0", "wheel"]
