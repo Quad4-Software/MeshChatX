@@ -232,3 +232,28 @@ def hex_identifier_to_bytes(value: str | None) -> bytes | None:
         return bytes.fromhex(h)
     except ValueError:
         return None
+
+
+def interval_action_due(
+    enabled: bool,
+    last_at: int | None,
+    interval_seconds: int | None,
+    now: float,
+) -> bool:
+    """Return whether a periodic action should run now.
+
+    Used for auto-announce, propagation sync, and similar timers stored in config.
+    If ``last_at`` is ahead of ``now`` (clock skew, restored DB, or bad values),
+    the action is treated as due so scheduling does not stall until wall clock
+    catches a corrupted future timestamp.
+    """
+    if not enabled:
+        return False
+    iv = interval_seconds if interval_seconds is not None else 0
+    if iv <= 0:
+        return False
+    if last_at is None:
+        return True
+    if last_at > now:
+        return True
+    return now > last_at + iv

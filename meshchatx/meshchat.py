@@ -87,6 +87,7 @@ from meshchatx.src.backend.meshchat_utils import (
     convert_propagation_node_state_to_string,
     has_attachments,
     hex_identifier_to_bytes,
+    interval_action_due,
     message_fields_have_attachments,
     normalize_hex_identifier,
     parse_bool_query_param,
@@ -1604,28 +1605,13 @@ class ReticulumMeshChat:
         gc_counter = 0
 
         while self.running and ctx.running and ctx.session_id == session_id:
-            should_announce = False
-
-            # check if auto announce is enabled
-            if ctx.config.auto_announce_enabled.get():
-                # check if we have announced recently
-                last_announced_at = ctx.config.last_announced_at.get()
-                if last_announced_at is not None:
-                    # determine when next announce should be sent
-                    auto_announce_interval_seconds = (
-                        ctx.config.auto_announce_interval_seconds.get()
-                    )
-                    next_announce_at = (
-                        last_announced_at + auto_announce_interval_seconds
-                    )
-
-                    # we should announce if current time has passed next announce at timestamp
-                    if time.time() > next_announce_at:
-                        should_announce = True
-
-                else:
-                    # last announced at is null, so we have never announced, lets do it now
-                    should_announce = True
+            now = time.time()
+            should_announce = interval_action_due(
+                ctx.config.auto_announce_enabled.get(),
+                ctx.config.last_announced_at.get(),
+                ctx.config.auto_announce_interval_seconds.get(),
+                now,
+            )
 
             # announce
             if should_announce:
@@ -1650,26 +1636,18 @@ class ReticulumMeshChat:
             return
 
         while self.running and ctx.running and ctx.session_id == session_id:
-            should_sync = False
-
-            # check if auto sync is enabled
-            auto_sync_interval_seconds = ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
-            if auto_sync_interval_seconds > 0:
-                # check if we have synced recently
-                last_synced_at = (
-                    ctx.config.lxmf_preferred_propagation_node_last_synced_at.get()
-                )
-                if last_synced_at is not None:
-                    # determine when next sync should happen
-                    next_sync_at = last_synced_at + auto_sync_interval_seconds
-
-                    # we should sync if current time has passed next sync at timestamp
-                    if time.time() > next_sync_at:
-                        should_sync = True
-
-                else:
-                    # last synced at is null, so we have never synced, lets do it now
-                    should_sync = True
+            auto_sync_interval_seconds = (
+                ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
+            )
+            last_synced_at = (
+                ctx.config.lxmf_preferred_propagation_node_last_synced_at.get()
+            )
+            should_sync = interval_action_due(
+                auto_sync_interval_seconds is not None and auto_sync_interval_seconds > 0,
+                last_synced_at,
+                auto_sync_interval_seconds,
+                time.time(),
+            )
 
             # sync
             if should_sync:
