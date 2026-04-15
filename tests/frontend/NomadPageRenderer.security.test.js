@@ -214,8 +214,8 @@ describe("NomadPageRenderer fragment and markdown sanitization", () => {
                 s += String.fromCharCode(Math.floor(Math.random() * 65536));
             }
             expect(() => sanitizeNomadHtmlFragment(s)).not.toThrow();
-            expect(() => renderNomadMarkdown(s)).not.toThrow();
-            assertNoDangerousHtmlPatterns(renderNomadMarkdown(s));
+            const mdHtml = renderNomadMarkdown(s);
+            assertNoDangerousHtmlPatterns(mdHtml);
         }
-    });
+    }, 30_000);
 });

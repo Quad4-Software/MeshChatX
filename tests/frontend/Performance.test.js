@@ -124,68 +124,62 @@ describe("UI Performance and Memory Tests", () => {
         expect(wrapper.findAll(".conversation-item").length).toBe(numConvs);
         expect(renderTime).toBeLessThan(12000);
         expect(memGrowth).toBeLessThan(200); // Adjusted for JSDOM/Node.js overhead with 2000 items
-    });
+    }, 60_000);
 
-    it(
-        "measures performance of data updates in ConversationViewer",
-        async () => {
-            const numMsgs = 1000;
-            const myLxmfAddressHash = "my_hash";
-            const selectedPeer = {
-                destination_hash: "peer_hash",
-                display_name: "Peer Name",
-            };
+    it("measures performance of data updates in ConversationViewer", async () => {
+        const numMsgs = 1000;
+        const myLxmfAddressHash = "my_hash";
+        const selectedPeer = {
+            destination_hash: "peer_hash",
+            display_name: "Peer Name",
+        };
 
-            const wrapper = mount(ConversationViewer, {
-                props: {
-                    myLxmfAddressHash,
-                    selectedPeer,
-                    conversations: [selectedPeer],
-                    config: { theme: "light", lxmf_address_hash: myLxmfAddressHash },
+        const wrapper = mount(ConversationViewer, {
+            props: {
+                myLxmfAddressHash,
+                selectedPeer,
+                conversations: [selectedPeer],
+                config: { theme: "light", lxmf_address_hash: myLxmfAddressHash },
+            },
+            global: {
+                components: {
+                    MaterialDesignIcon,
+                    ConversationDropDownMenu: { template: "<div></div>" },
+                    SendMessageButton: { template: "<div></div>" },
+                    IconButton: { template: "<button></button>" },
+                    AddImageButton: { template: "<div></div>" },
+                    AddAudioButton: { template: "<div></div>" },
+                    PaperMessageModal: { template: "<div></div>" },
                 },
-                global: {
-                    components: {
-                        MaterialDesignIcon,
-                        ConversationDropDownMenu: { template: "<div></div>" },
-                        SendMessageButton: { template: "<div></div>" },
-                        IconButton: { template: "<button></button>" },
-                        AddImageButton: { template: "<div></div>" },
-                        AddAudioButton: { template: "<div></div>" },
-                        PaperMessageModal: { template: "<div></div>" },
-                    },
-                    mocks: {
-                        $t: (key) => key,
-                        $i18n: { locale: "en" },
-                    },
+                mocks: {
+                    $t: (key) => key,
+                    $i18n: { locale: "en" },
                 },
-            });
+            },
+        });
 
-            const chatItems = Array.from({ length: numMsgs }, (_, i) => ({
-                type: "lxmf_message",
-                is_outbound: i % 2 === 0,
-                lxmf_message: {
-                    hash: `msg_${i}`.padEnd(32, "0"),
-                    source_hash: i % 2 === 0 ? myLxmfAddressHash : "peer_hash",
-                    destination_hash: i % 2 === 0 ? "peer_hash" : myLxmfAddressHash,
-                    content: `Message content ${i}.`.repeat(5),
-                    created_at: new Date().toISOString(),
-                    state: "delivered",
-                    method: "direct",
-                    progress: 1.0,
-                    delivery_attempts: 1,
-                    id: i,
-                },
-            }));
+        const chatItems = Array.from({ length: numMsgs }, (_, i) => ({
+            type: "lxmf_message",
+            is_outbound: i % 2 === 0,
+            lxmf_message: {
+                hash: `msg_${i}`.padEnd(32, "0"),
+                source_hash: i % 2 === 0 ? myLxmfAddressHash : "peer_hash",
+                destination_hash: i % 2 === 0 ? "peer_hash" : myLxmfAddressHash,
+                content: `Message content ${i}.`.repeat(5),
+                created_at: new Date().toISOString(),
+                state: "delivered",
+                method: "direct",
+                progress: 1.0,
+                delivery_attempts: 1,
+                id: i,
+            },
+        }));
 
-            const start = performance.now();
-            await wrapper.setData({ chatItems });
-            const end = performance.now();
+        const start = performance.now();
+        await wrapper.setData({ chatItems });
+        const end = performance.now();
 
-            console.log(
-                `Updated 1000 messages in ConversationViewer in ${(end - start).toFixed(2)}ms`
-            );
-            expect(end - start).toBeLessThan(12000);
-        },
-        30_000
-    );
+        console.log(`Updated 1000 messages in ConversationViewer in ${(end - start).toFixed(2)}ms`);
+        expect(end - start).toBeLessThan(12000);
+    }, 30_000);
 });

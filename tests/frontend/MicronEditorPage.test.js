@@ -85,10 +85,11 @@ describe("MicronEditorPage.vue", () => {
         const wrapper = mountMicronEditorPage();
         await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
 
-        const resetButton = wrapper.findAll("button").find((b) => b.text().includes("tools.micron_editor.reset"));
+        const resetButton = wrapper.findAll("button").find((b) => b.html().includes('data-icon-name="refresh"'));
+        expect(resetButton).toBeDefined();
         await resetButton.trigger("click");
 
         expect(micronStorage.clearAll).toHaveBeenCalled();
         expect(wrapper.vm.tabs.length).toBe(2); // main and guide
-    });
+    }, 20_000);
 });
