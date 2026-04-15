@@ -99,11 +99,7 @@
                                         :class="{ 'animate-spin': isSyncingPropagationNode }"
                                     />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
-                                        isSyncingPropagationNode
-                                            ? $t("app.syncing_node", {
-                                                  state: propagationNodeStatus?.state ?? "...",
-                                              })
-                                            : $t("app.sync_messages")
+                                        isSyncingPropagationNode ? $t("app.syncing") : $t("app.sync_messages")
                                     }}</span>
                                 </span>
                             </button>
@@ -737,10 +733,14 @@ export default {
             deep: true,
         },
     },
-    beforeUnmount() {
+        beforeUnmount() {
         if (typeof this._shellAuthWatchStop === "function") {
             this._shellAuthWatchStop();
             this._shellAuthWatchStop = null;
+        }
+        if (this._propagationSyncPollTimer != null) {
+            clearInterval(this._propagationSyncPollTimer);
+            this._propagationSyncPollTimer = null;
         }
         this.stopShell();
         this.clearWsShellUiTimers();
@@ -1320,6 +1320,7 @@ export default {
             GlobalEmitter.emit("compose-new-message");
         },
         async syncPropagationNode() {
+            const propagationSyncToastKey = "propagation-sync-status";
             // ask to stop syncing if already syncing
             if (this.isSyncingPropagationNode) {
                 if (await DialogUtils.confirm(this.$t("app.stop_sync_confirm"))) {
@@ -1337,20 +1338,19 @@ export default {
                 return;
             }
 
-            // update propagation status
             await this.updatePropagationNodeStatus();
 
-            // wait until sync has finished
-            const syncFinishedInterval = setInterval(() => {
-                // do nothing if still syncing
+            const poll = async () => {
+                await this.updatePropagationNodeStatus();
                 if (this.isSyncingPropagationNode) {
+                    ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
                     return;
                 }
-
-                // finished syncing, stop checking
-                clearInterval(syncFinishedInterval);
-
-                // show result
+                if (this._propagationSyncPollTimer != null) {
+                    clearInterval(this._propagationSyncPollTimer);
+                    this._propagationSyncPollTimer = null;
+                }
+                ToastUtils.dismiss(propagationSyncToastKey);
                 const status = this.propagationNodeStatus?.state;
                 const messagesReceived = this.propagationNodeStatus?.messages_received ?? 0;
                 const messagesStored = this.propagationNodeStatus?.messages_stored ?? 0;
@@ -1361,19 +1361,48 @@ export default {
                     const details = `${messagesStored} stored, ${deliveryConfirmations} confirmations, ${messagesHidden} hidden`;
                     ToastUtils.success(`${base} (${details})`);
                 } else {
-                    ToastUtils.error(this.$t("app.sync_error", { status: status }));
+                    ToastUtils.error(
+                        this.$t("app.sync_error", {
+                            status: this.propagationSyncStatusLabel(status),
+                        }),
+                    );
                 }
-            }, 500);
+            };
+
+            if (this.isSyncingPropagationNode) {
+                ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
+                this._propagationSyncPollTimer = setInterval(poll, 500);
+            }
+            await poll();
+        },
+        propagationSyncStatusLabel(state) {
+            if (state == null || state === "") {
+                return this.$t("app.propagation_sync_state.unknown");
+            }
+            const key = `app.propagation_sync_state.${state}`;
+            const translated = this.$t(key);
+            return translated !== key ? translated : this.$t("app.propagation_sync_state.unknown");
+        },
+        propagationSyncLiveToastMessage() {
+            const status = this.propagationNodeStatus?.state ?? "unknown";
+            const progress = Math.round(this.propagationNodeStatus?.progress ?? 0);
+            return this.$t("app.propagation_sync_live", {
+                status: this.propagationSyncStatusLabel(status),
+                progress,
+            });
         },
         async stopSyncingPropagationNode() {
-            // stop sync
+            const propagationSyncToastKey = "propagation-sync-status";
             try {
                 await window.api.get("/api/v1/lxmf/propagation-node/stop-sync");
             } catch {
                 // do nothing on error
             }
-
-            // update propagation status
+            if (this._propagationSyncPollTimer != null) {
+                clearInterval(this._propagationSyncPollTimer);
+                this._propagationSyncPollTimer = null;
+            }
+            ToastUtils.dismiss(propagationSyncToastKey);
             await this.updatePropagationNodeStatus();
         },
         async updatePropagationNodeStatus() {

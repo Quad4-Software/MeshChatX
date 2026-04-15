@@ -1,5 +1,107 @@
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gray-50 dark:bg-zinc-950">
+        <div class="px-4 py-4 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+            <div class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-4">
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="font-semibold text-gray-900 dark:text-zinc-100">Hosted Propagation Node</div>
+                        <span
+                            v-if="localPropagationNode"
+                            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                            :class="
+                                localPropagationNode.is_propagation_enabled
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                    : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300'
+                            "
+                        >
+                            {{ localPropagationNode.is_propagation_enabled ? "Running" : "Stopped" }}
+                        </span>
+                        <span
+                            v-if="
+                                localPropagationNode &&
+                                config.lxmf_preferred_propagation_node_destination_hash ===
+                                    localPropagationNode.destination_hash
+                            "
+                            class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
+                        >
+                            Preferred
+                        </span>
+                    </div>
+                    <div
+                        v-if="config.lxmf_local_propagation_node_address_hash"
+                        class="text-xs font-mono text-gray-600 dark:text-zinc-400 break-all"
+                    >
+                        &lt;{{ config.lxmf_local_propagation_node_address_hash }}&gt;
+                    </div>
+                    <div
+                        v-if="localPropagationNode?.local_node_stats"
+                        class="text-xs text-gray-600 dark:text-zinc-400 flex flex-wrap gap-x-3 gap-y-1"
+                    >
+                        <span>{{ formatSeconds(localPropagationNode.local_node_stats.uptime_seconds) }} uptime</span>
+                        <span>{{ localPropagationNode.local_node_stats.total_peers }} peers</span>
+                        <span>{{ localPropagationNode.local_node_stats.messagestore_count }} messages stored</span>
+                        <span>{{ localPropagationNode.local_node_stats.client_messages_served }} served</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <label class="text-xs text-gray-600 dark:text-zinc-400">
+                            Delivery transfer limit (bytes)
+                            <input
+                                v-model.number="config.lxmf_delivery_transfer_limit_in_bytes"
+                                type="number"
+                                min="1000"
+                                class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                @input="onDeliveryTransferLimitChange"
+                            />
+                        </label>
+                        <label class="text-xs text-gray-600 dark:text-zinc-400">
+                            Propagation transfer limit (bytes)
+                            <input
+                                v-model.number="config.lxmf_propagation_transfer_limit_in_bytes"
+                                type="number"
+                                min="1000"
+                                class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                @input="onPropagationTransferLimitChange"
+                            />
+                        </label>
+                        <label class="text-xs text-gray-600 dark:text-zinc-400">
+                            Propagation sync limit (bytes)
+                            <input
+                                v-model.number="config.lxmf_propagation_sync_limit_in_bytes"
+                                type="number"
+                                min="1000"
+                                class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                @input="onPropagationSyncLimitChange"
+                            />
+                        </label>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+                            :disabled="!localPropagationNode"
+                            @click="useLocalPropagationNode"
+                        >
+                            Use Our Node
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+                            @click="restartLocalPropagationNode"
+                        >
+                            Restart Node
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+                            @click="stopLocalPropagationNode"
+                        >
+                            Stop Node
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- search and sort -->
         <div
             v-if="propagationNodes.length > 0"
@@ -69,12 +171,27 @@
                                 >
                                     Disabled
                                 </span>
+                                <span
+                                    v-if="propagationNode.is_local_node"
+                                    class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                                >
+                                    Our Node
+                                </span>
                             </div>
                             <div class="text-sm text-gray-600 dark:text-zinc-400 font-mono truncate">
                                 &lt;{{ propagationNode.destination_hash }}&gt;
                             </div>
                             <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1">
                                 Announced {{ formatTimeAgo(propagationNode.updated_at) }}
+                            </div>
+                            <div
+                                v-if="propagationNode.local_node_stats"
+                                class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex flex-wrap gap-x-3 gap-y-1"
+                            >
+                                <span>{{ formatSeconds(propagationNode.local_node_stats.uptime_seconds) }} uptime</span>
+                                <span>{{ propagationNode.local_node_stats.total_peers }} peers</span>
+                                <span>{{ propagationNode.local_node_stats.messagestore_count }} stored</span>
+                                <span>{{ propagationNode.local_node_stats.client_messages_served }} served</span>
                             </div>
                         </div>
                         <div class="flex-shrink-0">
@@ -240,12 +357,24 @@ export default {
             propagationNodes: [],
             config: {
                 lxmf_preferred_propagation_node_destination_hash: null,
+                lxmf_local_propagation_node_address_hash: null,
+                lxmf_delivery_transfer_limit_in_bytes: 1000 * 1000 * 10,
+                lxmf_propagation_transfer_limit_in_bytes: 1000 * 256,
+                lxmf_propagation_sync_limit_in_bytes: 1000 * 10240,
             },
             currentPage: 1,
             itemsPerPage: 20,
+            saveTimeouts: {
+                deliveryLimit: null,
+                propagationLimit: null,
+                propagationSyncLimit: null,
+            },
         };
     },
     computed: {
+        localPropagationNode() {
+            return this.propagationNodes.find((node) => node.is_local_node) ?? null;
+        },
         searchedPropagationNodes() {
             return this.propagationNodes.filter((propagationNode) => {
                 const search = this.searchTerm.toLowerCase();
@@ -296,6 +425,8 @@ export default {
                             this.config.lxmf_preferred_propagation_node_destination_hash === b.destination_hash;
                         if (aIsPreferred && !bIsPreferred) return -1;
                         if (!aIsPreferred && bIsPreferred) return 1;
+                        if (a.is_local_node && !b.is_local_node) return -1;
+                        if (!a.is_local_node && b.is_local_node) return 1;
                         const timeA = new Date(a.updated_at).getTime();
                         const timeB = new Date(b.updated_at).getTime();
                         return timeB - timeA;
@@ -342,6 +473,11 @@ export default {
     beforeUnmount() {
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        for (const timeoutKey of Object.keys(this.saveTimeouts)) {
+            if (this.saveTimeouts[timeoutKey]) {
+                clearTimeout(this.saveTimeouts[timeoutKey]);
+            }
+        }
     },
     mounted() {
         // listen for websocket messages
@@ -400,8 +536,66 @@ export default {
                 lxmf_preferred_propagation_node_destination_hash: null,
             });
         },
+        async useLocalPropagationNode() {
+            if (!this.localPropagationNode) return;
+            await this.usePropagationNode(this.localPropagationNode.destination_hash);
+        },
+        async restartLocalPropagationNode() {
+            try {
+                await window.api.post("/api/v1/lxmf/propagation-node/restart");
+                ToastUtils.success("Local propagation node restarted");
+                await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
+            } catch {
+                ToastUtils.error(this.$t("common.save_failed"));
+            }
+        },
+        async stopLocalPropagationNode() {
+            try {
+                await window.api.post("/api/v1/lxmf/propagation-node/stop");
+                ToastUtils.success("Local propagation node stopped");
+                await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
+            } catch {
+                ToastUtils.error(this.$t("common.save_failed"));
+            }
+        },
+        onDeliveryTransferLimitChange() {
+            if (this.saveTimeouts.deliveryLimit) clearTimeout(this.saveTimeouts.deliveryLimit);
+            this.saveTimeouts.deliveryLimit = setTimeout(async () => {
+                await this.updateConfig({
+                    lxmf_delivery_transfer_limit_in_bytes: this.config.lxmf_delivery_transfer_limit_in_bytes,
+                });
+            }, 450);
+        },
+        onPropagationTransferLimitChange() {
+            if (this.saveTimeouts.propagationLimit) clearTimeout(this.saveTimeouts.propagationLimit);
+            this.saveTimeouts.propagationLimit = setTimeout(async () => {
+                await this.updateConfig({
+                    lxmf_propagation_transfer_limit_in_bytes:
+                        this.config.lxmf_propagation_transfer_limit_in_bytes,
+                });
+            }, 450);
+        },
+        onPropagationSyncLimitChange() {
+            if (this.saveTimeouts.propagationSyncLimit) clearTimeout(this.saveTimeouts.propagationSyncLimit);
+            this.saveTimeouts.propagationSyncLimit = setTimeout(async () => {
+                await this.updateConfig({
+                    lxmf_propagation_sync_limit_in_bytes: this.config.lxmf_propagation_sync_limit_in_bytes,
+                });
+            }, 450);
+        },
         formatTimeAgo: function (datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
+        },
+        formatSeconds(seconds) {
+            if (seconds == null || Number.isNaN(Number(seconds))) return "0s";
+            const total = Math.max(0, Number(seconds));
+            if (total < 60) return `${Math.floor(total)}s`;
+            const minutes = Math.floor(total / 60);
+            if (minutes < 60) return `${minutes}m`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h`;
+            const days = Math.floor(hours / 24);
+            return `${days}d`;
         },
     },
 };

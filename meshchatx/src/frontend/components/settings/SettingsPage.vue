@@ -1952,6 +1952,42 @@
                                     <span v-else>{{ $t("app.last_synced_never") }}</span>
                                 </div>
                             </div>
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Delivery transfer limit (bytes)
+                                </div>
+                                <input
+                                    v-model.number="config.lxmf_delivery_transfer_limit_in_bytes"
+                                    type="number"
+                                    min="1000"
+                                    class="input-field"
+                                    @input="onLxmfDeliveryTransferLimitChange"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Propagation transfer limit (bytes)
+                                </div>
+                                <input
+                                    v-model.number="config.lxmf_propagation_transfer_limit_in_bytes"
+                                    type="number"
+                                    min="1000"
+                                    class="input-field"
+                                    @input="onLxmfPropagationTransferLimitChange"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Propagation sync limit (bytes)
+                                </div>
+                                <input
+                                    v-model.number="config.lxmf_propagation_sync_limit_in_bytes"
+                                    type="number"
+                                    min="1000"
+                                    class="input-field"
+                                    @input="onLxmfPropagationSyncLimitChange"
+                                />
+                            </div>
                             <div v-if="config.lxmf_local_propagation_node_enabled" class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {{ $t("app.propagation_stamp_cost") }}
@@ -2088,6 +2124,9 @@ export default {
                 allow_auto_resending_failed_messages_with_attachments: null,
                 auto_send_failed_messages_to_propagation_node: null,
                 show_suggested_community_interfaces: null,
+                lxmf_delivery_transfer_limit_in_bytes: 1000 * 1000 * 10,
+                lxmf_propagation_transfer_limit_in_bytes: 1000 * 256,
+                lxmf_propagation_sync_limit_in_bytes: 1000 * 10240,
                 lxmf_local_propagation_node_enabled: null,
                 lxmf_preferred_propagation_node_destination_hash: null,
                 lxmf_preferred_propagation_node_auto_select: null,
@@ -2743,6 +2782,37 @@ export default {
                 },
                 "auto_sync"
             );
+        },
+        async onLxmfDeliveryTransferLimitChange() {
+            if (this.saveTimeouts.delivery_transfer_limit) {
+                clearTimeout(this.saveTimeouts.delivery_transfer_limit);
+            }
+            this.saveTimeouts.delivery_transfer_limit = setTimeout(async () => {
+                await this.updateConfig({
+                    lxmf_delivery_transfer_limit_in_bytes: this.config.lxmf_delivery_transfer_limit_in_bytes,
+                });
+            }, 1000);
+        },
+        async onLxmfPropagationTransferLimitChange() {
+            if (this.saveTimeouts.propagation_transfer_limit) {
+                clearTimeout(this.saveTimeouts.propagation_transfer_limit);
+            }
+            this.saveTimeouts.propagation_transfer_limit = setTimeout(async () => {
+                await this.updateConfig({
+                    lxmf_propagation_transfer_limit_in_bytes:
+                        this.config.lxmf_propagation_transfer_limit_in_bytes,
+                });
+            }, 1000);
+        },
+        async onLxmfPropagationSyncLimitChange() {
+            if (this.saveTimeouts.propagation_sync_limit) {
+                clearTimeout(this.saveTimeouts.propagation_sync_limit);
+            }
+            this.saveTimeouts.propagation_sync_limit = setTimeout(async () => {
+                await this.updateConfig({
+                    lxmf_propagation_sync_limit_in_bytes: this.config.lxmf_propagation_sync_limit_in_bytes,
+                });
+            }, 1000);
         },
         async onInboundStampsEnabledChange(enabled) {
             if (!enabled) {
