@@ -2,9 +2,9 @@
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <!-- Compact Header -->
         <div
-            class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm shrink-0"
+            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-sm shrink-0 min-w-0"
         >
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 <div class="bg-teal-100 dark:bg-teal-900/30 p-1.5 rounded-xl shrink-0">
                     <MaterialDesignIcon icon-name="code-tags" class="size-5 text-teal-600 dark:text-teal-400" />
                 </div>
@@ -89,7 +89,7 @@
 
         <!-- Tab Bar -->
         <div
-            class="flex items-center px-4 py-1 gap-1 border-b border-gray-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 overflow-x-auto scrollbar-hide shrink-0"
+            class="flex items-center px-3 sm:px-4 py-1 gap-1 border-b border-gray-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 overflow-x-auto no-scrollbar shrink-0"
         >
             <div
                 v-for="(tab, index) in tabs"
@@ -128,7 +128,7 @@
             </button>
         </div>
 
-        <div class="flex-1 flex overflow-hidden">
+        <div class="flex-1 flex overflow-hidden min-w-0 pb-[env(safe-area-inset-bottom)]">
             <!-- Editor Pane -->
             <div
                 v-if="tabs.length > 0"
@@ -891,13 +891,5 @@ ${b}=
 
 :deep(a:hover) {
     text-decoration: underline;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
 }
 </style>

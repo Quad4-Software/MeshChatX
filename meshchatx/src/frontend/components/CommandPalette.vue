@@ -116,6 +116,14 @@ import LxmfUserIcon from "./LxmfUserIcon.vue";
 import GlobalEmitter from "../js/GlobalEmitter";
 import ToastUtils from "../js/ToastUtils";
 
+const VISUALISER_ONLY_ACTIONS = new Set([
+    "toggle-orbit",
+    "toggle-bouncing-balls",
+    "toggle-falling-skies",
+    "toggle-snake",
+    "toggle-pong",
+]);
+
 export default {
     name: "CommandPalette",
     components: { MaterialDesignIcon, LxmfUserIcon },
@@ -304,6 +312,30 @@ export default {
                     action: "toggle-bouncing-balls",
                 },
                 {
+                    id: "action-falling-skies",
+                    title: "action_falling_skies",
+                    description: "action_falling_skies_desc",
+                    icon: "weather-pouring",
+                    type: "action",
+                    action: "toggle-falling-skies",
+                },
+                {
+                    id: "action-snake",
+                    title: "action_snake",
+                    description: "action_snake_desc",
+                    icon: "snake",
+                    type: "action",
+                    action: "toggle-snake",
+                },
+                {
+                    id: "action-pong",
+                    title: "action_pong",
+                    description: "action_pong_desc",
+                    icon: "table-tennis",
+                    type: "action",
+                    action: "toggle-pong",
+                },
+                {
                     id: "action-getting-started",
                     title: "action_getting_started",
                     description: "action_getting_started_desc",
@@ -324,11 +356,19 @@ export default {
     },
     computed: {
         allResults() {
-            const results = this.actions.map((action) => ({
-                ...action,
-                title: this.$t(`command_palette.${action.title}`),
-                description: this.$t(`command_palette.${action.description}`),
-            }));
+            const onVisualiser = this.$route?.name === "network-visualiser";
+            const results = this.actions
+                .filter((action) => {
+                    if (action.type === "action" && VISUALISER_ONLY_ACTIONS.has(action.action)) {
+                        return onVisualiser;
+                    }
+                    return true;
+                })
+                .map((action) => ({
+                    ...action,
+                    title: this.$t(`command_palette.${action.title}`),
+                    description: this.$t(`command_palette.${action.description}`),
+                }));
 
             // add peers
             if (Array.isArray(this.peers)) {
@@ -477,6 +517,12 @@ export default {
                     GlobalEmitter.emit("toggle-orbit");
                 } else if (result.action === "toggle-bouncing-balls") {
                     GlobalEmitter.emit("toggle-bouncing-balls");
+                } else if (result.action === "toggle-falling-skies") {
+                    GlobalEmitter.emit("toggle-falling-skies");
+                } else if (result.action === "toggle-snake") {
+                    GlobalEmitter.emit("toggle-snake");
+                } else if (result.action === "toggle-pong") {
+                    GlobalEmitter.emit("toggle-pong");
                 } else if (result.action === "show-tutorial") {
                     GlobalEmitter.emit("show-tutorial");
                 } else if (result.action === "show-changelog") {

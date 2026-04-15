@@ -1,8 +1,6 @@
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
-        <div class="flex-1 overflow-y-auto w-full">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <div class="flex-1 overflow-y-auto w-full pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <div class="space-y-4 p-4 md:p-6 max-w-5xl mx-auto w-full">
                 <div class="glass-card space-y-3">
                     <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -228,9 +226,3 @@ export default {
     },
 };
 </script>
-
-<style scoped>
-.glass-card {
-    @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-gray-200 dark:border-zinc-800 p-6 rounded-3xl shadow-sm;
-}
-</style>

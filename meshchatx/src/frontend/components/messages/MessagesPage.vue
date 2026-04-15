@@ -155,6 +155,9 @@ export default {
         return {
             reloadInterval: null,
             conversationRefreshTimeout: null,
+            peersRefreshTimeout: null,
+            conversationsAbortController: null,
+            announcesAbortController: null,
 
             config: snapshotGlobalConfig(),
             hasLoadedConversations: false,
@@ -214,16 +217,21 @@ export default {
     beforeUnmount() {
         clearInterval(this.reloadInterval);
         clearTimeout(this.conversationRefreshTimeout);
+        clearTimeout(this.peersRefreshTimeout);
+        this.conversationsAbortController?.abort();
+        this.announcesAbortController?.abort();
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessage);
         GlobalEmitter.off("refresh-conversations", this.requestConversationsRefresh);
+        GlobalEmitter.off("websocket-reconnected", this.requestConversationsRefresh);
     },
     mounted() {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessage);
+        GlobalEmitter.on("websocket-reconnected", this.requestConversationsRefresh);
 
         this.getConfig();
         this.getConversations();
@@ -350,6 +358,14 @@ export default {
         },
         async getLxmfDeliveryAnnounces(append = false) {
             try {
+                if (!append) {
+                    if (this.announcesAbortController) {
+                        this.announcesAbortController.abort();
+                    }
+                    this.announcesAbortController = new AbortController();
+                } else if (!this.announcesAbortController) {
+                    this.announcesAbortController = new AbortController();
+                }
                 const offset = append ? Object.keys(this.peers).length : 0;
                 const response = await window.api.get(`/api/v1/announces`, {
                     params: {
@@ -358,6 +374,7 @@ export default {
                         offset: offset,
                         search: this.peersSearchTerm,
                     },
+                    signal: this.announcesAbortController.signal,
                 });
 
                 const newAnnounces = response.data.announces;
@@ -373,6 +390,7 @@ export default {
 
                 this.hasMoreAnnounces = newAnnounces.length === this.pageSize;
             } catch (e) {
+                if (window.api.isCancel?.(e)) return;
                 console.log(e);
             } finally {
                 this.isLoadingMoreAnnounces = false;
@@ -405,6 +423,14 @@ export default {
         },
         async getConversations(append = false) {
             try {
+                if (!append) {
+                    if (this.conversationsAbortController) {
+                        this.conversationsAbortController.abort();
+                    }
+                    this.conversationsAbortController = new AbortController();
+                } else if (!this.conversationsAbortController) {
+                    this.conversationsAbortController = new AbortController();
+                }
                 const shouldShowInitialLoading =
                     !append && !this.hasLoadedConversations && this.conversations.length === 0;
                 if (shouldShowInitialLoading) {
@@ -418,6 +444,7 @@ export default {
                         limit: this.pageSize,
                         offset: offset,
                     },
+                    signal: this.conversationsAbortController.signal,
                 });
 
                 const newConversations = response.data.conversations;
@@ -453,6 +480,7 @@ export default {
                 this.hasLoadedConversations = true;
                 this.hasMoreConversations = newConversations.length === this.pageSize;
             } catch (e) {
+                if (window.api.isCancel?.(e)) return;
                 console.log(e);
             } finally {
                 this.isLoadingConversations = false;

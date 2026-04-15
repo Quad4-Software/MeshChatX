@@ -14,6 +14,23 @@
             </div>
         </div>
 
+        <div
+            v-if="showWsDisconnectedBanner"
+            class="relative z-[100] bg-red-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-red-800/80"
+            role="status"
+            aria-live="polite"
+        >
+            {{ $t("app.backend_disconnected") }} · {{ wsDisconnectedDurationText }}
+        </div>
+        <div
+            v-if="wsReconnectedBanner"
+            class="relative z-[100] bg-emerald-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-emerald-800/80 transition-opacity duration-300"
+            role="status"
+            aria-live="polite"
+        >
+            {{ $t("app.backend_reconnected") }}
+        </div>
+
         <RouterView v-if="$route.name === 'auth'" />
 
         <template v-else>
@@ -573,6 +590,7 @@ import { useTheme } from "vuetify";
 import SidebarLink from "./SidebarLink.vue";
 import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
+import { formatDisconnectedDuration } from "../js/wsConnectionSupport";
 import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
@@ -657,6 +675,13 @@ export default {
             initiationTargetHash: null,
             initiationTargetName: null,
             isCallWindowOpen: false,
+
+            wsDisconnected: false,
+            wsDisconnectedAt: null,
+            wsDisconnectedDurationText: "",
+            wsReconnectedBanner: false,
+            wsDisconnectTickTimer: null,
+            wsReconnectedHideTimer: null,
         };
     },
     computed: {
@@ -684,6 +709,9 @@ export default {
         },
         activeCallTab() {
             return GlobalState.activeCallTab;
+        },
+        showWsDisconnectedBanner() {
+            return this.shellRunning && this.wsDisconnected && this.$route?.name !== "auth";
         },
     },
     watch: {
@@ -715,6 +743,7 @@ export default {
             this._shellAuthWatchStop = null;
         }
         this.stopShell();
+        this.clearWsShellUiTimers();
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
         this.stopRingtone();
         this.toneGenerator.stop();
@@ -769,6 +798,8 @@ export default {
             this.shellRunning = true;
             WebSocketConnection.connect();
             WebSocketConnection.on("message", this.onWebsocketMessage);
+            WebSocketConnection.on("disconnected", this.onWsShellDisconnected);
+            WebSocketConnection.on("connected", this.onWsShellConnected);
             GlobalEmitter.on("identity-switching-start", this.onIdentitySwitchingStartShell);
             GlobalEmitter.on("sync-propagation-node", this.onSyncPropagationNodeShell);
             GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
@@ -803,6 +834,8 @@ export default {
             clearInterval(this.appInfoInterval);
             this.appInfoInterval = null;
             WebSocketConnection.off("message", this.onWebsocketMessage);
+            WebSocketConnection.off("disconnected", this.onWsShellDisconnected);
+            WebSocketConnection.off("connected", this.onWsShellConnected);
             GlobalEmitter.off("identity-switching-start", this.onIdentitySwitchingStartShell);
             GlobalEmitter.off("sync-propagation-node", this.onSyncPropagationNodeShell);
             GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
@@ -810,7 +843,103 @@ export default {
             GlobalEmitter.off("block-status-changed", this.onBlockStatusChangedShell);
             GlobalEmitter.off("show-changelog", this.onShowChangelogShell);
             GlobalEmitter.off("show-tutorial", this.onShowTutorialShell);
+            this.clearWsShellUiTimers();
+            this.wsDisconnected = false;
+            this.wsDisconnectedAt = null;
+            this.wsDisconnectedDurationText = "";
+            this.wsReconnectedBanner = false;
             WebSocketConnection.destroy();
+        },
+        clearWsShellUiTimers() {
+            if (this.wsDisconnectTickTimer != null) {
+                clearInterval(this.wsDisconnectTickTimer);
+                this.wsDisconnectTickTimer = null;
+            }
+            if (this.wsReconnectedHideTimer != null) {
+                clearTimeout(this.wsReconnectedHideTimer);
+                this.wsReconnectedHideTimer = null;
+            }
+        },
+        onWsShellDisconnected() {
+            if (!this.shellRunning) {
+                return;
+            }
+            this.wsDisconnected = true;
+            this.wsDisconnectedAt = Date.now();
+            this._tickWsDisconnectedLabel();
+            if (this.wsDisconnectTickTimer != null) {
+                clearInterval(this.wsDisconnectTickTimer);
+            }
+            this.wsDisconnectTickTimer = setInterval(() => this._tickWsDisconnectedLabel(), 1000);
+        },
+        _tickWsDisconnectedLabel() {
+            if (!this.wsDisconnectedAt) {
+                this.wsDisconnectedDurationText = "";
+                return;
+            }
+            this.wsDisconnectedDurationText = formatDisconnectedDuration(Date.now() - this.wsDisconnectedAt);
+        },
+        async onWsShellConnected(payload = {}) {
+            if (!this.shellRunning) {
+                return;
+            }
+            this.wsDisconnected = false;
+            this.wsDisconnectedAt = null;
+            this.wsDisconnectedDurationText = "";
+            if (this.wsDisconnectTickTimer != null) {
+                clearInterval(this.wsDisconnectTickTimer);
+                this.wsDisconnectTickTimer = null;
+            }
+            const isReconnect = payload.isReconnect === true;
+            if (isReconnect) {
+                await this.resyncShellAfterWebsocketReconnect();
+                this.wsReconnectedBanner = true;
+                if (this.wsReconnectedHideTimer != null) {
+                    clearTimeout(this.wsReconnectedHideTimer);
+                }
+                this.wsReconnectedHideTimer = setTimeout(() => {
+                    this.wsReconnectedBanner = false;
+                    this.wsReconnectedHideTimer = null;
+                }, 4500);
+            }
+        },
+        async resyncShellAfterWebsocketReconnect() {
+            try {
+                await this.getAppInfo();
+            } catch {
+                // ignore
+            }
+            try {
+                await this.getConfig();
+            } catch {
+                // ignore
+            }
+            try {
+                await this.getBlockedDestinations();
+            } catch {
+                // ignore
+            }
+            try {
+                await this.getKeyboardShortcuts();
+            } catch {
+                // ignore
+            }
+            try {
+                await this.updateRingtonePlayer();
+            } catch {
+                // ignore
+            }
+            try {
+                await this.updateTelephoneStatus();
+            } catch {
+                // ignore
+            }
+            try {
+                await this.updatePropagationNodeStatus();
+            } catch {
+                // ignore
+            }
+            GlobalEmitter.emit("websocket-reconnected");
         },
         onIdentitySwitchingStartShell() {
             this.isSwitchingIdentity = true;

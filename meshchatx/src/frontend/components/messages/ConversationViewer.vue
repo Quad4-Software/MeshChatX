@@ -736,8 +736,40 @@
                                 <span>{{ formatAttachmentSize(chatItem.lxmf_message.fields.image, "image") }}</span>
                             </div>
                         </div>
+                        <!-- image-only: inline timestamp overlay (no bubble) -->
+                        <div
+                            v-if="isImageOnlyMessage(chatItem)"
+                            class="flex items-center gap-1.5 select-none mt-0.5"
+                            :class="chatItem.is_outbound ? 'justify-end' : 'justify-start'"
+                        >
+                            <span class="text-[9px] opacity-50 font-medium">
+                                {{ formatTimeAgo(chatItem.lxmf_message.created_at) }}
+                            </span>
+                            <template v-if="chatItem.is_outbound">
+                                <MaterialDesignIcon
+                                    v-if="chatItem.lxmf_message.state === 'delivered'"
+                                    icon-name="check-all"
+                                    class="size-3 opacity-50"
+                                />
+                                <MaterialDesignIcon
+                                    v-else-if="['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)"
+                                    icon-name="check"
+                                    class="size-3 opacity-50"
+                                />
+                                <span
+                                    v-else-if="
+                                        ['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)
+                                    "
+                                    class="text-[9px] font-bold uppercase tracking-wider text-red-500"
+                                >
+                                    {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                                </span>
+                            </template>
+                        </div>
+
                         <!-- message content -->
                         <div
+                            v-if="!isImageOnlyMessage(chatItem)"
                             class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
                             :class="[
                                 ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
@@ -2590,6 +2622,7 @@ export default {
             void GlobalState.detailedOutboundSendStatus;
             void this.sendStatusUiMs;
             void this.usesThemeOutboundBubbleColor;
+            void GlobalState.config?.theme;
             const useThemeOutbound = this.usesThemeOutboundBubbleColor;
             return (chatItem) => {
                 const styles = {};
@@ -2608,7 +2641,11 @@ export default {
                     styles["color"] = "#ffffff";
                 } else if (chatItem.is_outbound) {
                     if (chatItem.lxmf_message?._pendingPathfinding) {
-                        const hex = cfg?.message_waiting_bubble_color || "#e5e7eb";
+                        const raw = cfg?.message_waiting_bubble_color;
+                        let hex = raw != null && String(raw).trim() !== "" ? String(raw).trim() : "#e5e7eb";
+                        if (cfg?.theme === "dark" && /^#e5e7eb$/i.test(hex)) {
+                            hex = "#3f3f46";
+                        }
                         styles["background-color"] = hex;
                         styles["color"] = this.pickTextColorForBubbleBackground(hex);
                         styles["border"] = this.waitingBubbleBorderForHex(hex);
@@ -2749,6 +2786,10 @@ export default {
                         }
 
                         if (chatItem.lxmf_message.is_reaction) {
+                            return false;
+                        }
+
+                        if (!this.hasRenderableContent(chatItem.lxmf_message)) {
                             return false;
                         }
 
@@ -5035,6 +5076,26 @@ export default {
             const hasCommands = msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"]);
 
             return !hasContent && !hasAttachments && (hasTelemetry || hasCommands);
+        },
+        hasRenderableContent(msg) {
+            if (msg.content && msg.content.trim() !== "") return true;
+            if (msg.fields?.image) return true;
+            if (msg.fields?.audio) return true;
+            if (msg.fields?.file_attachments) return true;
+            if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return true;
+            if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return true;
+            return false;
+        },
+        isImageOnlyMessage(chatItem) {
+            const msg = chatItem.lxmf_message;
+            if (!msg.fields?.image) return false;
+            if (msg.fields?.audio || msg.fields?.file_attachments) return false;
+            const content = (msg.content || "").trim();
+            if (content && !this.shouldHideAutoImageCaption(chatItem)) return false;
+            if (msg.reply_to_hash) return false;
+            if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return false;
+            if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return false;
+            return true;
         },
         async toggleTracking() {
             if (!this.selectedPeer) return;

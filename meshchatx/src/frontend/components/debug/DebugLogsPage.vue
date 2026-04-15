@@ -1,15 +1,15 @@
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
-        <div class="flex flex-col h-full overflow-hidden w-full px-4 md:px-5 lg:px-8 py-6">
-            <div class="flex flex-col mb-4 w-full max-w-6xl mx-auto space-y-4">
-                <div class="flex items-center justify-between">
-                    <div class="space-y-1">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <div
+            class="flex flex-col h-full overflow-hidden w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        >
+            <div class="flex flex-col mb-4 w-full max-w-6xl mx-auto space-y-4 min-w-0">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
+                    <div class="space-y-1 min-w-0">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Diagnostics</div>
-                        <div class="text-3xl font-semibold text-gray-900 dark:text-white">Debug Logs</div>
+                        <div class="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">Debug Logs</div>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2 shrink-0">
                         <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="refreshActive">
                             <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
                             Refresh
@@ -21,10 +21,12 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-zinc-700 pb-2">
+                <div
+                    class="flex flex-nowrap sm:flex-wrap gap-2 border-b border-gray-200 dark:border-zinc-700 pb-2 overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar"
+                >
                     <button
                         type="button"
-                        class="px-4 py-2 text-sm rounded-md transition-colors"
+                        class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
                         :class="
                             activeTab === 'logs'
                                 ? 'bg-blue-600 text-white'
@@ -36,7 +38,7 @@
                     </button>
                     <button
                         type="button"
-                        class="px-4 py-2 text-sm rounded-md transition-colors"
+                        class="shrink-0 px-4 py-2 text-sm rounded-md transition-colors"
                         :class="
                             activeTab === 'access'
                                 ? 'bg-blue-600 text-white'
