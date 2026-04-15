@@ -74,7 +74,10 @@ def test_translate_argos_cli(mock_run):
 
     with patch("shutil.which", return_value="/usr/bin/argos-translate"):
         result = handler.translate_text(
-            "Hello", source_lang="en", target_lang="es", use_argos=True,
+            "Hello",
+            source_lang="en",
+            target_lang="es",
+            use_argos=True,
         )
         assert result["translated_text"] == "Hola"
 

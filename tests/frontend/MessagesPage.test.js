@@ -59,6 +59,48 @@ describe("MessagesPage.vue", () => {
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/lxmf/conversations", expect.any(Object));
     });
 
+    it("debounces conversation search and sends search param to conversations API", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn(() => false);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.get.mockClear();
+
+        wrapper.vm.onConversationSearchChanged("findme");
+        await vi.advanceTimersByTimeAsync(100);
+        expect(axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations")).toHaveLength(0);
+
+        await vi.advanceTimersByTimeAsync(200);
+        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
+        expect(convCalls.length).toBeGreaterThanOrEqual(1);
+        expect(convCalls[convCalls.length - 1][1].params.search).toBe("findme");
+        vi.useRealTimers();
+    });
+
+    it("debounces peers search and sends search param to announces API", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn(() => false);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.get.mockClear();
+
+        wrapper.vm.onPeersSearchChanged("peerq");
+        await vi.advanceTimersByTimeAsync(400);
+        expect(
+            axiosMock.get.mock.calls.filter(
+                (c) => c[0] === "/api/v1/announces" && c[1]?.params?.aspect === "lxmf.delivery"
+            )
+        ).toHaveLength(0);
+
+        await vi.advanceTimersByTimeAsync(200);
+        const ann = axiosMock.get.mock.calls.filter(
+            (c) => c[0] === "/api/v1/announces" && c[1]?.params?.aspect === "lxmf.delivery"
+        );
+        expect(ann.length).toBeGreaterThanOrEqual(1);
+        expect(ann[ann.length - 1][1].params.search).toBe("peerq");
+        vi.useRealTimers();
+    });
+
     it("opens ingest paper message modal", async () => {
         const wrapper = mountMessagesPage();
         await wrapper.vm.$nextTick();

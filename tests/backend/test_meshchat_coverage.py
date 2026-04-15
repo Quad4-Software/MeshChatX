@@ -258,10 +258,13 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
     fake_identity.hash = bytes.fromhex("bb" * 16)
     fake_identity.load_public_key.return_value = True
 
-    with patch(
-        "meshchatx.meshchat.AsyncUtils.run_async",
-        side_effect=lambda coro: asyncio.create_task(coro),
-    ), patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity):
+    with (
+        patch(
+            "meshchatx.meshchat.AsyncUtils.run_async",
+            side_effect=lambda coro: asyncio.create_task(coro),
+        ),
+        patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity),
+    ):
         await mock_app.on_websocket_data_received(
             mock_client,
             {
@@ -359,10 +362,12 @@ async def test_on_lxmf_sending_state_updated(mock_app):
 
     with (
         patch(
-            "meshchatx.meshchat.convert_lxmf_message_to_dict", return_value={"h": "v"},
+            "meshchatx.meshchat.convert_lxmf_message_to_dict",
+            return_value={"h": "v"},
         ),
         patch(
-            "meshchatx.meshchat.convert_lxmf_state_to_string", return_value="delivered",
+            "meshchatx.meshchat.convert_lxmf_state_to_string",
+            return_value="delivered",
         ),
         patch("meshchatx.meshchat.AsyncUtils.run_async") as mock_run_async,
     ):
@@ -414,7 +419,8 @@ def test_on_lxmf_sending_failed_no_propagation(mock_app):
 
     mock_app.on_lxmf_sending_failed(mock_msg)
     mock_app.on_lxmf_sending_state_updated.assert_called_once_with(
-        mock_msg, context=None,
+        mock_msg,
+        context=None,
     )
 
 
@@ -466,9 +472,12 @@ def test_convert_webm_opus_to_ogg_ffmpeg_fails(mock_app):
 def test_convert_webm_opus_to_ogg_exception(mock_app):
     webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
 
-    with patch("shutil.which", return_value="/usr/bin/ffmpeg"), patch(
-        "subprocess.run",
-        side_effect=subprocess.TimeoutExpired(cmd="ffmpeg", timeout=30),
+    with (
+        patch("shutil.which", return_value="/usr/bin/ffmpeg"),
+        patch(
+            "subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd="ffmpeg", timeout=30),
+        ),
     ):
         result = mock_app._convert_webm_opus_to_ogg(webm_data)
 
@@ -512,7 +521,9 @@ async def _run_send(app, destination_hash="aa" * 16, **kwargs):
         patch("meshchatx.meshchat.AsyncUtils.run_async"),
     ):
         await app.send_message(
-            destination_hash=destination_hash, content="hi", **kwargs,
+            destination_hash=destination_hash,
+            content="hi",
+            **kwargs,
         )
 
     return fake_lxm

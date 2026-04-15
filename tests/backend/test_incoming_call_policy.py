@@ -128,7 +128,9 @@ def test_contacts_only_accepts_matching_contact(policy_app):
     policy_app.current_context.database.contacts.get_contact_by_identity_hash.assert_called_once_with(
         CALLER_HASH_HEX,
     )
-    policy_app.current_context.voicemail_manager.handle_incoming_call.assert_called_once_with(caller)
+    policy_app.current_context.voicemail_manager.handle_incoming_call.assert_called_once_with(
+        caller
+    )
     policy_app.current_context.telephone_manager.telephone.hangup.assert_not_called()
     async_utils.run_async.assert_called_once()
 
@@ -175,7 +177,9 @@ def test_when_policy_off_stranger_rings(policy_app):
         _run_incoming(policy_app, caller)
 
     policy_app.current_context.database.contacts.get_contact_by_identity_hash.assert_not_called()
-    policy_app.current_context.voicemail_manager.handle_incoming_call.assert_called_once_with(caller)
+    policy_app.current_context.voicemail_manager.handle_incoming_call.assert_called_once_with(
+        caller
+    )
     async_utils.run_async.assert_called_once()
 
 

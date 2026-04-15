@@ -177,7 +177,8 @@ class PerformanceBenchmarker:
         def run_trim():
             for _ in range(runs):
                 self.db.announces.trim_announces_for_aspect(
-                    aspect, max(1, seed_count // 2)
+                    aspect,
+                    max(1, seed_count // 2),
                 )
 
         self.record_benchmark(

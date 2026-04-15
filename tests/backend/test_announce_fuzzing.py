@@ -54,7 +54,12 @@ def test_announce_max_stored_config_fuzz(max_stored):
     identity.get_public_key.return_value = b"pub_key"
 
     manager.upsert_announce(
-        reticulum, identity, b"new_dest", "lxmf.delivery", b"app_data", b"packet",
+        reticulum,
+        identity,
+        b"new_dest",
+        "lxmf.delivery",
+        b"app_data",
+        b"packet",
     )
 
     mock_db.announces.upsert_announce.assert_called_once()

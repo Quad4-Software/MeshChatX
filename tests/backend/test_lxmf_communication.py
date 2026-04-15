@@ -1,5 +1,4 @@
-"""
-Integration tests for LXMF messaging and Reticulum communication.
+"""Integration tests for LXMF messaging and Reticulum communication.
 
 Covers stamp proof-of-work, message packing/unpacking, signature validation,
 delivery pipelines (direct, opportunistic, propagated), propagation node
@@ -86,8 +85,8 @@ def _cleanup():
 # 1. Stamp proof-of-work (in-process, no Reticulum needed)
 # ────────────────────────────────────────────────────────────────
 
-class TestStampSolving:
 
+class TestStampSolving:
     def test_workblock_deterministic(self):
         material = os.urandom(32)
         wb1 = LXStamper.stamp_workblock(material, expand_rounds=10)
@@ -137,19 +136,22 @@ class TestStampSolving:
     def test_propagation_node_stamp_rounds(self):
         mid = os.urandom(32)
         stamp, value = LXStamper.generate_stamp(
-            mid, stamp_cost=2,
+            mid,
+            stamp_cost=2,
             expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PN,
         )
         assert stamp is not None
         wb = LXStamper.stamp_workblock(
-            mid, expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PN,
+            mid,
+            expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PN,
         )
         assert LXStamper.stamp_valid(stamp, 2, wb)
 
     def test_peering_key_generation_and_validation(self):
         peer_id = os.urandom(32)
         stamp, _ = LXStamper.generate_stamp(
-            peer_id, stamp_cost=2,
+            peer_id,
+            stamp_cost=2,
             expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PEERING,
         )
         assert LXStamper.validate_peering_key(peer_id, stamp, 2)
@@ -158,18 +160,21 @@ class TestStampSolving:
         peer_a = os.urandom(32)
         peer_b = os.urandom(32)
         stamp, _ = LXStamper.generate_stamp(
-            peer_a, stamp_cost=8,
+            peer_a,
+            stamp_cost=8,
             expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PEERING,
         )
         assert not LXStamper.validate_peering_key(peer_b, stamp, 8)
 
     def test_pn_stamp_valid_transient_data(self):
         from LXMF.LXMessage import LXMessage
+
         overhead = LXMessage.LXMF_OVERHEAD + LXStamper.STAMP_SIZE
         fake_lxm = os.urandom(overhead + 64)
         t_id = RNS.Identity.full_hash(fake_lxm)
         stamp, _ = LXStamper.generate_stamp(
-            t_id, stamp_cost=2,
+            t_id,
+            stamp_cost=2,
             expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PN,
         )
         td = fake_lxm + stamp
@@ -181,6 +186,7 @@ class TestStampSolving:
 
     def test_pn_stamp_rejected_bad_stamp(self):
         from LXMF.LXMessage import LXMessage
+
         overhead = LXMessage.LXMF_OVERHEAD + LXStamper.STAMP_SIZE
         fake_lxm = os.urandom(overhead + 64)
         bad_stamp = os.urandom(LXStamper.STAMP_SIZE)
@@ -190,13 +196,15 @@ class TestStampSolving:
 
     def test_pn_stamp_batch_validation(self):
         from LXMF.LXMessage import LXMessage
+
         overhead = LXMessage.LXMF_OVERHEAD + LXStamper.STAMP_SIZE
         items = []
         for _ in range(5):
             fake = os.urandom(overhead + 64)
             t_id = RNS.Identity.full_hash(fake)
             stamp, _ = LXStamper.generate_stamp(
-                t_id, stamp_cost=2,
+                t_id,
+                stamp_cost=2,
                 expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PN,
             )
             items.append(fake + stamp)
@@ -222,8 +230,8 @@ class TestStampSolving:
 # 2. LXMessage protocol (subprocess, real crypto)
 # ────────────────────────────────────────────────────────────────
 
-class TestLXMessageProtocol:
 
+class TestLXMessageProtocol:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_pack_unpack_roundtrip(self):
@@ -514,8 +522,8 @@ class TestLXMessageProtocol:
 # 3. LXMRouter delivery pipeline (subprocess)
 # ────────────────────────────────────────────────────────────────
 
-class TestLXMRouterDelivery:
 
+class TestLXMRouterDelivery:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_direct_delivery_via_lxmf_delivery(self):
@@ -840,8 +848,8 @@ class TestLXMRouterDelivery:
 # 4. Propagation node operations (subprocess)
 # ────────────────────────────────────────────────────────────────
 
-class TestPropagationNode:
 
+class TestPropagationNode:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_enable_disable_propagation(self):
@@ -1031,8 +1039,8 @@ class TestPropagationNode:
 # 5. LXMessage state machine and callbacks (subprocess)
 # ────────────────────────────────────────────────────────────────
 
-class TestMessageStateAndCallbacks:
 
+class TestMessageStateAndCallbacks:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_message_states_enum(self):
@@ -1141,8 +1149,8 @@ class TestMessageStateAndCallbacks:
 # 6. Multi-field message integrity (subprocess)
 # ────────────────────────────────────────────────────────────────
 
-class TestMessageFieldIntegrity:
 
+class TestMessageFieldIntegrity:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_fields_survive_roundtrip(self):
@@ -1232,8 +1240,8 @@ class TestMessageFieldIntegrity:
 # 7. URI ingestion (subprocess)
 # ────────────────────────────────────────────────────────────────
 
-class TestURIIngestion:
 
+class TestURIIngestion:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_paper_uri_roundtrip(self):
@@ -1284,8 +1292,8 @@ class TestURIIngestion:
 # 8. Router configuration and state (subprocess)
 # ────────────────────────────────────────────────────────────────
 
-class TestRouterConfiguration:
 
+class TestRouterConfiguration:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_single_delivery_identity_per_router(self):
@@ -1419,8 +1427,8 @@ class TestRouterConfiguration:
 # 9. End-to-end two-router communication (subprocess)
 # ────────────────────────────────────────────────────────────────
 
-class TestTwoRouterCommunication:
 
+class TestTwoRouterCommunication:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_bidirectional_protocol_delivery(self):
@@ -1556,8 +1564,8 @@ class TestTwoRouterCommunication:
 # 10. Reticulum identity and destination basics (subprocess)
 # ────────────────────────────────────────────────────────────────
 
-class TestReticulumPrimitives:
 
+class TestReticulumPrimitives:
     @pytest.mark.integration
     @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RETICULUM=1")
     def test_identity_creation_and_key_operations(self):

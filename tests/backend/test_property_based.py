@@ -268,7 +268,8 @@ def test_interface_config_parser_no_crash(text):
         st.text(
             min_size=1,
             alphabet=st.characters(
-                blacklist_categories=("Cc", "Cs"), blacklist_characters="[]",
+                blacklist_categories=("Cc", "Cs"),
+                blacklist_characters="[]",
             ),
         ).filter(lambda x: x.strip() == x and x),
         min_size=1,
@@ -279,7 +280,8 @@ def test_interface_config_parser_no_crash(text):
         st.text(
             min_size=1,
             alphabet=st.characters(
-                blacklist_categories=("Cc", "Cs"), blacklist_characters="[]=",
+                blacklist_categories=("Cc", "Cs"),
+                blacklist_characters="[]=",
             ),
         ).filter(lambda x: x.strip() == x and x),
         min_size=1,
@@ -733,7 +735,11 @@ def test_message_fields_have_attachments_robustness(fields_json):
     lxmf_fields=st.dictionaries(
         keys=st.integers(),
         values=st.one_of(
-            st.text(), st.binary(), st.integers(), st.booleans(), st.none(),
+            st.text(),
+            st.binary(),
+            st.integers(),
+            st.booleans(),
+            st.none(),
         ),
     ),
 )
@@ -846,7 +852,12 @@ def test_convert_db_lxmf_message_to_dict_extended_robustness(
     ),
 )
 def test_lxmf_utils_conversions_robustness(
-    state_val, method_val, title, content, timestamp, fields,
+    state_val,
+    method_val,
+    title,
+    content,
+    timestamp,
+    fields,
 ):
     from unittest.mock import MagicMock
 
@@ -980,7 +991,12 @@ class TestCrashRecoveryMathProperties:
         derandomize=True,
     )
     def test_system_entropy_always_finite(
-        self, low_memory, config_missing, config_invalid, db_type, available_mem_mb,
+        self,
+        low_memory,
+        config_missing,
+        config_invalid,
+        db_type,
+        available_mem_mb,
     ):
         """Entropy and divergence must always be finite floats for any diagnosis."""
         import math as m
@@ -1051,7 +1067,9 @@ class TestCrashRecoveryMathProperties:
 
     @given(
         counts=st.lists(
-            st.integers(min_value=0, max_value=50), min_size=1, max_size=10,
+            st.integers(min_value=0, max_value=50),
+            min_size=1,
+            max_size=10,
         ),
     )
     @settings(derandomize=True, deadline=None, max_examples=50)

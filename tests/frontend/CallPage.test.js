@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import CallPage from "@/components/call/CallPage.vue";
 
@@ -26,13 +26,48 @@ describe("CallPage.vue", () => {
                 if (url.includes("/api/v1/telephone/history")) return Promise.resolve({ data: { call_history: [] } });
                 if (url.includes("/api/v1/announces")) return Promise.resolve({ data: { announces: [] } });
                 if (url.includes("/api/v1/telephone/status")) return Promise.resolve({ data: { active_call: null } });
-                if (url.includes("/api/v1/telephone/voicemail/status"))
-                    return Promise.resolve({ data: { has_espeak: false } });
-                if (url.includes("/api/v1/telephone/ringtones/status"))
-                    return Promise.resolve({ data: { enabled: true } });
-                if (url.includes("/api/v1/telephone/ringtones")) return Promise.resolve({ data: { ringtones: [] } });
+                if (url.includes("/api/v1/telephone/voicemail/status")) {
+                    return Promise.resolve({
+                        data: {
+                            has_espeak: false,
+                            has_ffmpeg: false,
+                            is_recording: false,
+                            is_greeting_recording: false,
+                            has_greeting: false,
+                        },
+                    });
+                }
+                if (url.includes("/api/v1/telephone/voicemails")) {
+                    return Promise.resolve({ data: { voicemails: [], unread_count: 0 } });
+                }
+                if (url.includes("/api/v1/telephone/ringtones/status")) {
+                    return Promise.resolve({
+                        data: {
+                            has_custom_ringtone: false,
+                            enabled: true,
+                            filename: null,
+                            id: null,
+                            volume: 0.5,
+                        },
+                    });
+                }
+                if (url.includes("/api/v1/telephone/ringtones/") && url.includes("/audio")) {
+                    return Promise.resolve({ data: new ArrayBuffer(0) });
+                }
+                if (url.includes("/api/v1/telephone/ringtones")) {
+                    return Promise.resolve({ data: [] });
+                }
                 if (url.includes("/api/v1/telephone/audio-profiles"))
                     return Promise.resolve({ data: { audio_profiles: [], default_audio_profile_id: null } });
+                if (url.includes("/api/v1/telephone/contacts/export")) {
+                    return Promise.resolve({ data: { contacts: [] } });
+                }
+                if (url.includes("/api/v1/telephone/contacts/check/")) {
+                    return Promise.resolve({ data: { is_contact: false, contact: null } });
+                }
+                if (url.includes("/api/v1/telephone/contacts")) {
+                    return Promise.resolve({ data: { contacts: [], total_count: 0 } });
+                }
                 if (url.includes("/api/v1/contacts")) return Promise.resolve({ data: { contacts: [] } });
 
                 return Promise.resolve({ data: defaultData });
@@ -225,5 +260,86 @@ describe("CallPage.vue", () => {
         const stop = vi.spyOn(wrapper.vm, "stopWebAudio");
         await wrapper.vm.ensureWebAudio({ enabled: true });
         expect(stop).toHaveBeenCalled();
+    });
+
+    it("getContacts maps telephone contacts list and hydrates visuals", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        const hydrate = vi.spyOn(wrapper.vm, "hydrateContactVisuals");
+        axiosMock.get.mockResolvedValueOnce({
+            data: {
+                contacts: [{ id: 1, name: "Sam", remote_identity_hash: "ab".repeat(16) }],
+                total_count: 2,
+            },
+        });
+        await wrapper.vm.getContacts();
+        expect(wrapper.vm.contacts[0].name).toBe("Sam");
+        expect(hydrate).toHaveBeenCalled();
+    });
+
+    it("getVoicemails maps voicemails and unread_count", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        axiosMock.get.mockResolvedValueOnce({
+            data: {
+                voicemails: [{ id: 9, remote_identity_hash: "cd".repeat(16), is_read: 0 }],
+                unread_count: 1,
+            },
+        });
+        await wrapper.vm.getVoicemails();
+        expect(wrapper.vm.voicemails).toHaveLength(1);
+        expect(wrapper.vm.unreadVoicemailsCount).toBe(1);
+    });
+
+    it("getRingtones stores API array on ringtones", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        axiosMock.get.mockResolvedValueOnce({
+            data: [
+                {
+                    id: 1,
+                    filename: "x.opus",
+                    display_name: "Test",
+                    is_primary: true,
+                    created_at: "2024-01-01",
+                },
+            ],
+        });
+        await wrapper.vm.getRingtones();
+        expect(wrapper.vm.ringtones).toHaveLength(1);
+        expect(wrapper.vm.ringtones[0].filename).toBe("x.opus");
+    });
+
+    it("getVoicemailStatus stores voicemail status payload", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        axiosMock.get.mockResolvedValueOnce({
+            data: {
+                has_espeak: true,
+                has_ffmpeg: false,
+                is_recording: false,
+                is_greeting_recording: false,
+                has_greeting: true,
+            },
+        });
+        await wrapper.vm.getVoicemailStatus();
+        expect(wrapper.vm.voicemailStatus.has_greeting).toBe(true);
+    });
+
+    it("getRingtoneStatus stores ringtone status payload", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        axiosMock.get.mockResolvedValueOnce({
+            data: {
+                has_custom_ringtone: true,
+                enabled: true,
+                filename: "ring.opus",
+                id: 3,
+                volume: 0.8,
+            },
+        });
+        await wrapper.vm.getRingtoneStatus();
+        expect(wrapper.vm.ringtoneStatus.id).toBe(3);
+        expect(wrapper.vm.ringtoneStatus.volume).toBe(0.8);
     });
 });

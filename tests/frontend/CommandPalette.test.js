@@ -24,21 +24,28 @@ describe("CommandPalette.vue", () => {
 
         GlobalEmitter.off("sync-propagation-node");
         GlobalEmitter.off("toggle-orbit");
+        GlobalEmitter.off("toggle-falling-skies");
+        GlobalEmitter.off("toggle-snake");
+        GlobalEmitter.off("toggle-pong");
     });
 
     afterEach(() => {
         delete window.api;
         GlobalEmitter.off("sync-propagation-node");
         GlobalEmitter.off("toggle-orbit");
+        GlobalEmitter.off("toggle-falling-skies");
+        GlobalEmitter.off("toggle-snake");
+        GlobalEmitter.off("toggle-pong");
         vi.clearAllMocks();
     });
 
-    const mountCommandPalette = () => {
+    const mountCommandPalette = (route = { name: "messages" }) => {
         return mount(CommandPalette, {
             global: {
                 mocks: {
                     $t: (key) => key,
                     $router: routerMock,
+                    $route: route,
                 },
                 stubs: {
                     MaterialDesignIcon: { template: '<div class="mdi"></div>' },
@@ -248,7 +255,7 @@ describe("CommandPalette.vue", () => {
     });
 
     it("emits toggle-orbit event when orbit action is executed", async () => {
-        const wrapper = mountCommandPalette();
+        const wrapper = mountCommandPalette({ name: "network-visualiser" });
         const emitSpy = vi.spyOn(GlobalEmitter, "emit");
         wrapper.vm.isOpen = true;
         await wrapper.vm.$nextTick();
@@ -257,6 +264,45 @@ describe("CommandPalette.vue", () => {
         if (orbitResult) {
             wrapper.vm.executeResult(orbitResult);
             expect(emitSpy).toHaveBeenCalledWith("toggle-orbit");
+        }
+    });
+
+    it("emits toggle-falling-skies when falling skies action is executed", async () => {
+        const wrapper = mountCommandPalette({ name: "network-visualiser" });
+        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
+        wrapper.vm.isOpen = true;
+        await wrapper.vm.$nextTick();
+
+        const result = wrapper.vm.filteredResults.find((r) => r.action === "toggle-falling-skies");
+        if (result) {
+            wrapper.vm.executeResult(result);
+            expect(emitSpy).toHaveBeenCalledWith("toggle-falling-skies");
+        }
+    });
+
+    it("emits toggle-snake when mesh snake action is executed", async () => {
+        const wrapper = mountCommandPalette({ name: "network-visualiser" });
+        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
+        wrapper.vm.isOpen = true;
+        await wrapper.vm.$nextTick();
+
+        const result = wrapper.vm.filteredResults.find((r) => r.action === "toggle-snake");
+        if (result) {
+            wrapper.vm.executeResult(result);
+            expect(emitSpy).toHaveBeenCalledWith("toggle-snake");
+        }
+    });
+
+    it("emits toggle-pong when mesh pong action is executed", async () => {
+        const wrapper = mountCommandPalette({ name: "network-visualiser" });
+        const emitSpy = vi.spyOn(GlobalEmitter, "emit");
+        wrapper.vm.isOpen = true;
+        await wrapper.vm.$nextTick();
+
+        const result = wrapper.vm.filteredResults.find((r) => r.action === "toggle-pong");
+        if (result) {
+            wrapper.vm.executeResult(result);
+            expect(emitSpy).toHaveBeenCalledWith("toggle-pong");
         }
     });
 

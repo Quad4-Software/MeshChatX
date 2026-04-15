@@ -50,7 +50,9 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
             f.write(bytes(range(256)))
         # log2(256) = 8
         self.assertAlmostEqual(
-            self.manager._calculate_entropy(max_entropy_file), 8.0, places=5,
+            self.manager._calculate_entropy(max_entropy_file),
+            8.0,
+            places=5,
         )
 
     @settings(suppress_health_check=[HealthCheck.too_slow], deadline=None)
@@ -125,7 +127,8 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
             full_path.parent.mkdir(parents=True, exist_ok=True)
             full_path.touch()
             self.assertTrue(
-                self.manager._should_ignore(str(rel_path)), f"Failed to ignore {v}",
+                self.manager._should_ignore(str(rel_path)),
+                f"Failed to ignore {v}",
             )
 
     def test_critical_file_protection(self):

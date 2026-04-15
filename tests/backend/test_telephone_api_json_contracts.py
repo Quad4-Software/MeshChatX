@@ -71,14 +71,18 @@ class _Query:
 
 
 @pytest.mark.asyncio
-async def test_api_v1_telephone_voicemail_status_json_contract(mock_rns_minimal, temp_dir):
+async def test_api_v1_telephone_voicemail_status_json_contract(
+    mock_rns_minimal, temp_dir
+):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
             identity=mock_rns_minimal,
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
         )
-        handler = _find_handler(app_instance, "/api/v1/telephone/voicemail/status", "GET")
+        handler = _find_handler(
+            app_instance, "/api/v1/telephone/voicemail/status", "GET"
+        )
         assert handler is not None
         request = MagicMock()
         response = await handler(request)
@@ -104,7 +108,9 @@ async def test_api_v1_telephone_voicemails_json_contract(mock_rns_minimal, temp_
 
 
 @pytest.mark.asyncio
-async def test_api_v1_telephone_ringtones_list_json_contract(mock_rns_minimal, temp_dir):
+async def test_api_v1_telephone_ringtones_list_json_contract(
+    mock_rns_minimal, temp_dir
+):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
             identity=mock_rns_minimal,
@@ -120,14 +126,18 @@ async def test_api_v1_telephone_ringtones_list_json_contract(mock_rns_minimal, t
 
 
 @pytest.mark.asyncio
-async def test_api_v1_telephone_ringtones_status_json_contract(mock_rns_minimal, temp_dir):
+async def test_api_v1_telephone_ringtones_status_json_contract(
+    mock_rns_minimal, temp_dir
+):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
             identity=mock_rns_minimal,
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
         )
-        handler = _find_handler(app_instance, "/api/v1/telephone/ringtones/status", "GET")
+        handler = _find_handler(
+            app_instance, "/api/v1/telephone/ringtones/status", "GET"
+        )
         assert handler is not None
         request = MagicMock()
         request.query = _Query({})
@@ -154,7 +164,9 @@ async def test_api_v1_telephone_contacts_list_json_contract(mock_rns_minimal, te
 
 
 @pytest.mark.asyncio
-async def test_api_v1_telephone_contacts_check_json_contract(mock_rns_minimal, temp_dir):
+async def test_api_v1_telephone_contacts_check_json_contract(
+    mock_rns_minimal, temp_dir
+):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
             identity=mock_rns_minimal,

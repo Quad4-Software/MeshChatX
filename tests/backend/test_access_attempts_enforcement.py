@@ -30,7 +30,10 @@ from meshchatx.src.backend.database.access_attempts import (
 
 
 def _make_req(
-    ip: str, ua: str, method: str = "POST", xff: str | None = None,
+    ip: str,
+    ua: str,
+    method: str = "POST",
+    xff: str | None = None,
 ) -> SimpleNamespace:
     h = {"User-Agent": ua}
     if xff is not None:

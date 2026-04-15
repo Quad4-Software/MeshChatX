@@ -17,7 +17,9 @@ class TestDatabaseMigration(unittest.TestCase):
         self.identity_hash = "deadbeef"
         self.legacy_config_dir = os.path.join(self.test_dir, "legacy_config")
         self.legacy_db_subdir = os.path.join(
-            self.legacy_config_dir, "identities", self.identity_hash,
+            self.legacy_config_dir,
+            "identities",
+            self.identity_hash,
         )
         os.makedirs(self.legacy_db_subdir, exist_ok=True)
         self.legacy_db_path = os.path.join(self.legacy_db_subdir, "database.db")
@@ -119,12 +121,15 @@ class TestDatabaseMigration(unittest.TestCase):
 
     def test_migration_evolution(self):
         migrator = LegacyMigrator(
-            self.db.provider, self.legacy_config_dir, self.identity_hash,
+            self.db.provider,
+            self.legacy_config_dir,
+            self.identity_hash,
         )
 
         # Check if should migrate
         self.assertTrue(
-            migrator.should_migrate(), "Should detect legacy database for migration",
+            migrator.should_migrate(),
+            "Should detect legacy database for migration",
         )
 
         # Perform migration
@@ -136,7 +141,8 @@ class TestDatabaseMigration(unittest.TestCase):
         print(f"Config rows: {config_rows}")
 
         config_val = self.db.provider.fetchone(
-            "SELECT value FROM config WHERE key = ?", ("legacy_key",),
+            "SELECT value FROM config WHERE key = ?",
+            ("legacy_key",),
         )
         self.assertIsNotNone(config_val, "legacy_key should have been migrated")
         self.assertEqual(config_val["value"], "legacy_value")
@@ -147,7 +153,8 @@ class TestDatabaseMigration(unittest.TestCase):
         self.assertEqual(ann_count, 1)
 
         msg = self.db.provider.fetchone(
-            "SELECT * FROM lxmf_messages WHERE hash = ?", ("msg1",),
+            "SELECT * FROM lxmf_messages WHERE hash = ?",
+            ("msg1",),
         )
         self.assertIsNotNone(msg)
         self.assertEqual(msg["title"], "Old Title")

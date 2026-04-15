@@ -1,5 +1,6 @@
-"""Move Poetry-built wheels from dist/ to python-dist/ to avoid conflicts
-with Electron build artifacts.
+"""Move Poetry-built wheels from ``dist/`` into ``python-dist/``.
+
+Avoids filename clashes with Electron build outputs.
 """
 
 import shutil

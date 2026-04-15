@@ -202,7 +202,8 @@ def test_transform_tcp_with_backbone_in_config_and_identity():
         st.fixed_dictionaries(
             {
                 "id": st.one_of(
-                    st.none(), st.integers(min_value=-1000, max_value=10000),
+                    st.none(),
+                    st.integers(min_value=-1000, max_value=10000),
                 ),
                 "name": st.text(max_size=40),
                 "type": st.sampled_from(["backbone", "tcp", "i2p", "rnode", ""]),

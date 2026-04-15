@@ -376,4 +376,50 @@ describe("NetworkVisualiser.vue", () => {
         // After unmount, the cache should be empty or the reference should be cleared
         expect(Object.keys(cacheRef).length).toBe(0);
     });
+
+    it("does not add offline interfaces when showDisabledInterfaces is false", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.network = {
+            getPositions: vi.fn().mockReturnValue({}),
+            setOptions: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [
+            { name: "eth_up", status: true, bitrate: 1000, txb: 0, rxb: 0 },
+            { name: "eth_down", status: false, bitrate: 0, txb: 0, rxb: 0 },
+        ];
+        wrapper.vm.showDisabledInterfaces = false;
+        await wrapper.vm.processVisualization();
+        expect(wrapper.vm.nodes.getIds()).toContain("eth_up");
+        expect(wrapper.vm.nodes.getIds()).not.toContain("eth_down");
+    });
+
+    it("keeps node positions from getPositions on subsequent layout passes", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        const getPositions = vi
+            .fn()
+            .mockReturnValueOnce({})
+            .mockReturnValue({
+                me: { x: 0, y: 0 },
+                eth0: { x: 301, y: 404 },
+            });
+        wrapper.vm.network = {
+            getPositions,
+            setOptions: vi.fn(),
+            on: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [{ name: "eth0", status: true, bitrate: 1000, txb: 0, rxb: 0 }];
+        await wrapper.vm.processVisualization();
+        await wrapper.vm.processVisualization();
+        const n = wrapper.vm.nodes.get("eth0");
+        expect(n.x).toBe(301);
+        expect(n.y).toBe(404);
+        expect(getPositions.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
 });

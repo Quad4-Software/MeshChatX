@@ -111,7 +111,9 @@ class TestConcurrencyStress(unittest.TestCase):
             "SELECT COUNT(*) as count FROM lxmf_messages",
         )["count"]
         self.assertEqual(
-            total, 5 * 50, "Total messages inserted doesn't match expected count",
+            total,
+            5 * 50,
+            "Total messages inserted doesn't match expected count",
         )
         print(f"Stress test completed. Total messages inserted: {total}")
 
@@ -132,7 +134,8 @@ class TestConcurrencyStress(unittest.TestCase):
 
         id_thread = threading.Thread(target=identity_worker)
         db_thread = threading.Thread(
-            target=self.db_writer_worker, args=("id_collision",),
+            target=self.db_writer_worker,
+            args=("id_collision",),
         )
 
         id_thread.start()
@@ -152,7 +155,9 @@ class TestConcurrencyStress(unittest.TestCase):
             "SELECT COUNT(*) as count FROM lxmf_messages",
         )["count"]
         self.assertEqual(
-            total_messages, 50, "Should have inserted 50 messages during collision test",
+            total_messages,
+            50,
+            "Should have inserted 50 messages during collision test",
         )
 
 

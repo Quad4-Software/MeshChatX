@@ -63,6 +63,23 @@ describe("NomadNetworkPage.vue", () => {
         expect(wrapper.text()).toContain("nomadnet.no_active_node");
     });
 
+    it("debounces node search and passes search param to announces API", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn(() => false);
+        const wrapper = mountNomadNetworkPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.get.mockClear();
+
+        wrapper.vm.onNodesSearchChanged("nodequery");
+        await vi.advanceTimersByTimeAsync(500);
+        const calls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/announces");
+        expect(calls.length).toBeGreaterThanOrEqual(1);
+        const last = calls[calls.length - 1];
+        expect(last[1].params.aspect).toBe("nomadnetwork.node");
+        expect(last[1].params.search).toBe("nodequery");
+        vi.useRealTimers();
+    });
+
     it("loads node when destinationHash prop is provided", async () => {
         const destHash = "0123456789abcdef0123456789abcdef";
         axiosMock.get.mockImplementation((url) => {

@@ -52,7 +52,8 @@ def test_archive_page_enforce_max_versions(mock_db):
 
     # Should delete the 6th version (index 5)
     mock_db.provider.execute.assert_any_call(
-        "DELETE FROM archived_pages WHERE id = ?", (6,),
+        "DELETE FROM archived_pages WHERE id = ?",
+        (6,),
     )
 
 
@@ -69,5 +70,6 @@ def test_archive_page_enforce_storage_limit(mock_db):
     manager.archive_page("dest", "/path", "content", max_storage_gb=1)
 
     mock_db.provider.execute.assert_any_call(
-        "DELETE FROM archived_pages WHERE id = ?", (10,),
+        "DELETE FROM archived_pages WHERE id = ?",
+        (10,),
     )

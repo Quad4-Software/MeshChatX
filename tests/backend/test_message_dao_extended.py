@@ -31,7 +31,8 @@ def test_upsert_lxmf_message(message_dao, mock_provider):
 def test_get_lxmf_message_by_hash(message_dao, mock_provider):
     message_dao.get_lxmf_message_by_hash("hash1")
     mock_provider.fetchone.assert_called_with(
-        "SELECT * FROM lxmf_messages WHERE hash = ?", ("hash1",),
+        "SELECT * FROM lxmf_messages WHERE hash = ?",
+        ("hash1",),
     )
 
 

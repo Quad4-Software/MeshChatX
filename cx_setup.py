@@ -34,6 +34,8 @@ packages = [
     "RNS.Interfaces",
     "LXMF",
     "LXST",
+    "lxmfy",
+    "websockets",
     "pycparser",
     "cffi",
     "ply",

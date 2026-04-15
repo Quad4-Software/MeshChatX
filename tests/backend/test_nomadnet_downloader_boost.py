@@ -29,7 +29,12 @@ def downloader():
     on_failure = MagicMock()
     on_progress = MagicMock()
     return NomadnetDownloader(
-        b"dest", "/path", "data", on_success, on_failure, on_progress,
+        b"dest",
+        "/path",
+        "data",
+        on_success,
+        on_failure,
+        on_progress,
     )
 
 
@@ -120,7 +125,8 @@ async def test_download_uses_path_wait_cache_hit(downloader):
     ):
         with patch.object(downloader, "link_established") as mock_established:
             await downloader.download(
-                path_lookup_timeout=5, link_establishment_timeout=5,
+                path_lookup_timeout=5,
+                link_establishment_timeout=5,
             )
 
     mock_established.assert_called_once_with(mock_link)

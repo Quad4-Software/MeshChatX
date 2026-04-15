@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ContactsPage from "@/components/contacts/ContactsPage.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
@@ -40,14 +40,17 @@ describe("ContactsPage.vue", () => {
                     },
                 });
             }
-            if (url === "/api/v1/telephone/contacts") {
-                return Promise.resolve({ data: { contacts: [], total_count: 0 } });
-            }
             if (url === "/api/v1/telephone/contacts/export") {
                 return Promise.resolve({ data: { contacts: [] } });
             }
             if (url.startsWith("/api/v1/telephone/contacts/check/")) {
-                return Promise.resolve({ data: {} });
+                return Promise.resolve({ data: { is_contact: false, contact: null } });
+            }
+            if (
+                url === "/api/v1/telephone/contacts" ||
+                (typeof url === "string" && url.startsWith("/api/v1/telephone/contacts?"))
+            ) {
+                return Promise.resolve({ data: { contacts: [], total_count: 0 } });
             }
             return Promise.resolve({ data: {} });
         });
@@ -144,5 +147,43 @@ describe("ContactsPage.vue", () => {
         const html = wrapper.html();
         expect(html).toContain("contacts.export_contacts");
         expect(html).toContain("contacts.import_contacts");
+    });
+
+    it("getContacts maps total_count from telephone contacts API", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config") {
+                return Promise.resolve({
+                    data: {
+                        config: {
+                            lxmf_address_hash: "a".repeat(32),
+                            identity_public_key: "b".repeat(128),
+                        },
+                    },
+                });
+            }
+            if (
+                url === "/api/v1/telephone/contacts" ||
+                (typeof url === "string" && url.startsWith("/api/v1/telephone/contacts?"))
+            ) {
+                return Promise.resolve({
+                    data: {
+                        contacts: [{ id: 1, name: "One", remote_identity_hash: "c".repeat(32) }],
+                        total_count: 42,
+                    },
+                });
+            }
+            if (url === "/api/v1/telephone/contacts/export") {
+                return Promise.resolve({ data: { contacts: [] } });
+            }
+            if (url.startsWith("/api/v1/telephone/contacts/check/")) {
+                return Promise.resolve({ data: { is_contact: false, contact: null } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await flushPromises();
+        expect(wrapper.vm.totalContactsCount).toBe(42);
+        expect(wrapper.vm.contacts).toHaveLength(1);
+        expect(wrapper.vm.contacts[0].name).toBe("One");
     });
 });

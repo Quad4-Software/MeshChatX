@@ -226,7 +226,12 @@ class TestMiscDAOFuzzing:
         max_examples=40,
     )
     def test_add_notification_never_crashes(
-        self, db, ntype, remote_hash, title, content,
+        self,
+        db,
+        ntype,
+        remote_hash,
+        title,
+        content,
     ):
         db.misc.add_notification(ntype, remote_hash, title, content)
         notifications = db.misc.get_notifications()
@@ -463,7 +468,9 @@ class TestMapDrawingsDAOFuzzing:
             st.builds(
                 json.dumps,
                 st.dictionaries(
-                    st.text(max_size=10), st.text(max_size=50), max_size=10,
+                    st.text(max_size=10),
+                    st.text(max_size=50),
+                    max_size=10,
                 ),
             ),
         ),
@@ -572,7 +579,11 @@ class TestMessageHandlerFuzzing:
         max_examples=40,
     )
     def test_get_conversation_messages_never_crashes(
-        self, handler, dest, after_id, before_id,
+        self,
+        handler,
+        dest,
+        after_id,
+        before_id,
     ):
         results = handler.get_conversation_messages(
             "local_hash",
