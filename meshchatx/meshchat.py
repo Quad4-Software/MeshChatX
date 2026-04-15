@@ -179,6 +179,35 @@ def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
     return _parse_rns_loglevel_value(os.environ.get("MESHCHAT_RNS_LOG_LEVEL"))
 
 
+def _python_jit_status_line() -> str:
+    jit_runtime = getattr(sys, "_jit", None)
+    if jit_runtime is None:
+        return "Python JIT: unavailable"
+
+    is_available = getattr(jit_runtime, "is_available", None)
+    if not callable(is_available):
+        return "Python JIT: unavailable"
+
+    try:
+        available = bool(is_available())
+    except Exception:
+        return "Python JIT: unavailable"
+
+    if not available:
+        return "Python JIT: unavailable"
+
+    is_enabled = getattr(jit_runtime, "is_enabled", None)
+    if not callable(is_enabled):
+        return "Python JIT: disabled"
+
+    try:
+        enabled = bool(is_enabled())
+    except Exception:
+        enabled = False
+
+    return "Python JIT: enabled" if enabled else "Python JIT: disabled"
+
+
 class ReticulumMeshChat:
     def __init__(
         self,
@@ -12247,8 +12276,11 @@ class ReticulumMeshChat:
         """Convert WebM/Opus audio to OGG/Opus using ffmpeg.
 
         Browser MediaRecorder outputs Opus in a WebM container, but LXMF
-        AM_OPUS_OGG expects an OGG container. If ffmpeg is unavailable or
-        the input is already OGG, the original bytes are returned as-is.
+        AM_OPUS_OGG expects an OGG container. We first attempt a remux-only
+        conversion to preserve original Opus frames. If remuxing fails, we
+        fall back to re-encoding with voice-friendly Opus settings.
+        If ffmpeg is unavailable or conversion fails, the original bytes are
+        returned as-is.
         """
         if audio_bytes[:4] == b"OggS":
             return audio_bytes
@@ -12258,15 +12290,47 @@ class ReticulumMeshChat:
             return audio_bytes
 
         try:
-            result = subprocess.run(  # noqa: S603
+            remux_result = subprocess.run(  # noqa: S603
                 [
                     ffmpeg_path,
                     "-i",
                     "pipe:0",
+                    "-map",
+                    "0:a:0",
+                    "-c:a",
+                    "copy",
+                    "-f",
+                    "ogg",
+                    "pipe:1",
+                ],
+                input=audio_bytes,
+                capture_output=True,
+                timeout=30,
+            )
+            if (
+                remux_result.returncode == 0
+                and len(remux_result.stdout) > 0
+                and remux_result.stdout[:4] == b"OggS"
+            ):
+                return remux_result.stdout
+
+            reencode_result = subprocess.run(  # noqa: S603
+                [
+                    ffmpeg_path,
+                    "-i",
+                    "pipe:0",
+                    "-map",
+                    "0:a:0",
                     "-c:a",
                     "libopus",
                     "-b:a",
-                    "24k",
+                    "32k",
+                    "-application",
+                    "voip",
+                    "-ac",
+                    "1",
+                    "-ar",
+                    "48000",
                     "-vbr",
                     "on",
                     "-f",
@@ -12277,8 +12341,12 @@ class ReticulumMeshChat:
                 capture_output=True,
                 timeout=30,
             )
-            if result.returncode == 0 and len(result.stdout) > 0:
-                return result.stdout
+            if (
+                reencode_result.returncode == 0
+                and len(reencode_result.stdout) > 0
+                and reencode_result.stdout[:4] == b"OggS"
+            ):
+                return reencode_result.stdout
         except Exception as e:
             print(f"WebM to OGG conversion failed: {e}")
 
@@ -13811,6 +13879,7 @@ def main():
     # Initialize crash recovery system early to catch startup errors
     recovery = CrashRecovery()
     recovery.install()
+    print(_python_jit_status_line())
 
     parser = argparse.ArgumentParser(description="ReticulumMeshChat")
     parser.add_argument(

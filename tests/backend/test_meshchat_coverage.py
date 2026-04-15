@@ -456,6 +456,32 @@ def test_convert_webm_opus_to_ogg_success(mock_app):
     assert "ogg" in call_args[0][0]
 
 
+def test_convert_webm_opus_to_ogg_remux_fallback_reencode_success(mock_app):
+    webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
+    remux_result = MagicMock()
+    remux_result.returncode = 1
+    remux_result.stdout = b""
+    reencode_result = MagicMock()
+    reencode_result.returncode = 0
+    reencode_result.stdout = b"OggS" + b"\x11" * 40
+
+    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
+        with patch(
+            "subprocess.run",
+            side_effect=[remux_result, reencode_result],
+        ) as mock_run:
+            result = mock_app._convert_webm_opus_to_ogg(webm_data)
+
+    assert result == reencode_result.stdout
+    assert mock_run.call_count == 2
+    remux_args = mock_run.call_args_list[0][0][0]
+    reencode_args = mock_run.call_args_list[1][0][0]
+    assert "copy" in remux_args
+    assert "libopus" in reencode_args
+    assert "32k" in reencode_args
+    assert "voip" in reencode_args
+
+
 def test_convert_webm_opus_to_ogg_ffmpeg_fails(mock_app):
     webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
     mock_result = MagicMock()
