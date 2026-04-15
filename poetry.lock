@@ -1314,7 +1314,7 @@ rns = ">=1.1.1"
 
 [[package]]
 name = "lxmfy"
-version = "1.6.1"
+version = "1.6.2"
 description = "LXMF bot framework for creating bots for the Reticulum Network"
 optional = false
 python-versions = ">=3.11"
@@ -1324,13 +1324,13 @@ develop = false
 
 [package.dependencies]
 lxmf = ">=0.9.4"
-rns = ">=1.1.4"
+rns = ">=1.1.5"
 
 [package.source]
 type = "git"
 url = "https://git.quad4.io/LXMFy/LXMFy.git"
 reference = "HEAD"
-resolved_reference = "ccfb41ad519bf9ea93c956f5913979f7947840ce"
+resolved_reference = "c862c8b11d3f9c24d1da7c52946b3a9c37893be7"
 
 [[package]]
 name = "lxst"
