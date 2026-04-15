@@ -177,3 +177,21 @@ class AnnounceManager:
 
         result = self.db.provider.fetchone(sql, params)
         return result["count"] if result else 0
+
+
+def filter_announced_dicts_by_search_query(
+    items: list[dict],
+    search_query: str,
+) -> list[dict]:
+    """Case-insensitive substring match on display name, hashes, and custom display name."""
+    q = search_query.lower()
+    return [
+        a
+        for a in items
+        if (
+            (a.get("display_name") and q in a["display_name"].lower())
+            or (a.get("destination_hash") and q in a["destination_hash"].lower())
+            or (a.get("identity_hash") and q in a["identity_hash"].lower())
+            or (a.get("custom_display_name") and q in a["custom_display_name"].lower())
+        )
+    ]

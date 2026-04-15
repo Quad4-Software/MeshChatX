@@ -44,8 +44,9 @@ class LegacyMigrator:
         return None
 
     def should_migrate(self):
-        """Check if migration should be performed.
-        Only migrates if the current database is empty and a legacy database exists.
+        """Return whether migration should run.
+
+        Only migrates when the current database is empty and a legacy DB exists.
         """
         legacy_path = self.get_legacy_db_path()
         if not legacy_path:
@@ -77,7 +78,7 @@ class LegacyMigrator:
             # We use a randomized alias to avoid collisions
             alias = f"legacy_{os.urandom(4).hex()}"
             safe_path = legacy_path.replace("'", "''")
-            self.provider.execute(f"ATTACH DATABASE '{safe_path}' AS {alias}")  # noqa: S608
+            self.provider.execute(f"ATTACH DATABASE '{safe_path}' AS {alias}")
 
             # Tables that existed in the legacy Peewee version
             tables_to_migrate = [

@@ -81,7 +81,7 @@ class HealthMonitor:
                     "kind": "entropy_climbing",
                     "message": f"Log entropy rising: {entropy:.2f} bits (threshold {self.ENTROPY_WARN_THRESHOLD})",
                     "value": round(entropy, 4),
-                }
+                },
             )
 
         if self._consecutive_above(self._error_rate_history, self.ERROR_RATE_WARN):
@@ -90,7 +90,7 @@ class HealthMonitor:
                     "kind": "error_rate_high",
                     "message": f"Error rate elevated: {error_rate:.0%}",
                     "value": round(error_rate, 4),
-                }
+                },
             )
 
         if self._consecutive_below(self._mem_available_history, self.MEMORY_WARN_MB):
@@ -99,7 +99,7 @@ class HealthMonitor:
                     "kind": "memory_low",
                     "message": f"Available memory low: {available_mb:.0f} MB",
                     "value": round(available_mb, 1),
-                }
+                },
             )
 
         for w in warnings:
@@ -107,8 +107,7 @@ class HealthMonitor:
             self._broadcast(w)
 
     def _detect_entropy_climb(self):
-        """True if 3+ consecutive entropy readings are strictly increasing
-        AND the latest exceeds the warning threshold."""
+        """Return True when entropy climbs in 3+ steps above the warn threshold."""
         h = self._entropy_history
         if len(h) < 3:
             return False
@@ -140,8 +139,8 @@ class HealthMonitor:
 
             AsyncUtils.run_async(
                 self.app.websocket_broadcast(
-                    json.dumps({"type": "health_warning", "data": warning_data})
-                )
+                    json.dumps({"type": "health_warning", "data": warning_data}),
+                ),
             )
         except Exception:
             pass

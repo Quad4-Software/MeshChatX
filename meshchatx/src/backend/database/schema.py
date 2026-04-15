@@ -44,7 +44,7 @@ class DatabaseSchema:
 
         cursor = self.provider.connection.cursor()
         try:
-            cursor.execute(f"PRAGMA table_info({table_name})")  # noqa: S608
+            cursor.execute(f"PRAGMA table_info({table_name})")
             columns = [row[1] for row in cursor.fetchall()]
         finally:
             cursor.close()
@@ -67,7 +67,7 @@ class DatabaseSchema:
                         ).strip()
 
                 res = self._safe_execute(
-                    f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}",  # noqa: S608
+                    f"ALTER TABLE {table_name} ADD COLUMN {column_name} {stmt_type}",
                 )
                 return res is not None
             except Exception as e:
@@ -77,13 +77,14 @@ class DatabaseSchema:
                 )
                 return False
         return True
-        return True
 
     def _sync_table_columns(self, table_name, create_sql):
-        """Parses a CREATE TABLE statement and ensures all columns exist in the actual table.
-        This is a robust way to handle legacy tables that are missing columns.
+        """Parse CREATE TABLE and add any missing columns to match the declaration.
+
+        Finds the column list between the first ``(`` and last ``)``, splits on
+        commas outside nested parentheses (e.g. ``DECIMAL(10,2)``), then ensures
+        each column exists on the actual table.
         """
-        # Find the first '(' and the last ')'
         start_idx = create_sql.find("(")
         end_idx = create_sql.rfind(")")
 
@@ -92,7 +93,6 @@ class DatabaseSchema:
 
         inner_content = create_sql[start_idx + 1 : end_idx]
 
-        # Split by comma but ignore commas inside parentheses (e.g. DECIMAL(10,2))
         definitions = []
         depth = 0
         current = ""

@@ -10,15 +10,15 @@ from LXMF import LXMRouter
 
 
 def create_lxmf_router(identity, storagepath, propagation_cost=None):
-    """Creates an LXMF.LXMRouter instance safely, avoiding signal handler crashes
-    when called from non-main threads.
+    """Construct an ``LXMF.LXMRouter`` without signal-handler crashes off the main thread.
+
+    ``signal.signal`` only works on the main thread; on workers it is temporarily
+    replaced with a no-op while the router is created.
     """
     if propagation_cost is None:
         propagation_cost = 0
 
     if threading.current_thread() != threading.main_thread():
-        # signal.signal can only be called from the main thread in Python
-        # We monkeypatch it temporarily to avoid the ValueError
         original_signal = signal.signal
         try:
             signal.signal = lambda s, h: None

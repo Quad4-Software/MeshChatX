@@ -401,12 +401,11 @@ def convert_db_lxmf_message_to_dict(
 
 
 def compute_lxmf_conversation_unread_from_latest_row(row):
-    """
-    Whether the conversation list should show unread for this latest-message row,
-    using lxmf_conversation_read_state.last_read_at only.
+    """Return whether the conversation row should appear as unread.
 
-    Latest message must be incoming to be unread; if the last message is ours,
-    the thread is not unread (matches filter_unread SQL in MessageHandler.get_conversations).
+    Uses ``lxmf_conversation_read_state.last_read_at`` only. The latest message
+    must be incoming; outbound-only threads are not unread (matches
+    ``filter_unread`` in ``MessageHandler.get_conversations``).
     """
     from datetime import UTC, datetime
 

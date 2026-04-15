@@ -159,11 +159,11 @@ class IntegrityManager:
                             and abs(actual_entropy - saved_entropy) > 1.0
                         ):
                             issues.append(
-                                f"Database structural anomaly (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})"
+                                f"Database structural anomaly (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})",
                             )
                         else:
                             issues.append(
-                                f"Database binary signature mismatch: {db_rel}"
+                                f"Database binary signature mismatch: {db_rel}",
                             )
 
             # Check other critical files in storage_dir
@@ -185,10 +185,11 @@ class IntegrityManager:
                         if actual_hash != manifest_files[rel_path]:
                             actual_entropy = self._calculate_entropy(full_path)
                             saved_entropy = manifest_metadata.get(rel_path, {}).get(
-                                "entropy"
+                                "entropy",
                             )
                             saved_size = manifest_metadata.get(rel_path, {}).get(
-                                "size", 0
+                                "size",
+                                0,
                             )
                             actual_size = full_path.stat().st_size
 
@@ -198,18 +199,18 @@ class IntegrityManager:
 
                             if is_critical:
                                 issues.append(
-                                    f"Critical security component integrity compromised: {rel_path}"
+                                    f"Critical security component integrity compromised: {rel_path}",
                                 )
                             elif (
                                 saved_entropy is not None
                                 and abs(actual_entropy - saved_entropy) > 1.5
                             ):
                                 issues.append(
-                                    f"Non-linear content shift detected in {rel_path} (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})"
+                                    f"Non-linear content shift detected in {rel_path} (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})",
                                 )
                             elif saved_size and actual_size != saved_size:
                                 issues.append(
-                                    f"File size divergence: {rel_path} ({saved_size} -> {actual_size} bytes)"
+                                    f"File size divergence: {rel_path} ({saved_size} -> {actual_size} bytes)",
                                 )
                             else:
                                 issues.append(f"File signature mismatch: {rel_path}")

@@ -249,7 +249,7 @@ class TelephoneManager:
                     announce = self.db.announces.get_announce_by_hash(canonical)
                 if not announce:
                     # 3) By identity_hash field (if user entered identity hash but we missed recall, or other announce types)
-                    id_key = canonical if canonical else th
+                    id_key = canonical or th
                     announces = self.db.announces.get_filtered_announces(
                         identity_hash=id_key,
                     )

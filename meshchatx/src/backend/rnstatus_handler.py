@@ -274,15 +274,15 @@ class RNStatusHandler:
 
             if "incoming_announce_frequency" in ifstat:
                 formatted_if["incoming_announce_frequency"] = fmt_per_second(
-                    ifstat["incoming_announce_frequency"]
+                    ifstat["incoming_announce_frequency"],
                 )
             if "outgoing_announce_frequency" in ifstat:
                 formatted_if["outgoing_announce_frequency"] = fmt_per_second(
-                    ifstat["outgoing_announce_frequency"]
+                    ifstat["outgoing_announce_frequency"],
                 )
             if "held_announces" in ifstat:
                 formatted_if["held_announces"] = fmt_packet_count(
-                    ifstat["held_announces"]
+                    ifstat["held_announces"],
                 )
 
             if "ifac_netname" in ifstat and ifstat["ifac_netname"] is not None:

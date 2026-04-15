@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import hashlib
 import base64
+import hashlib
 
 MAX_STICKER_BYTES = 512 * 1024
 MAX_STICKERS_PER_IDENTITY = 2000
@@ -35,9 +35,9 @@ def content_hash_hex(image_bytes: bytes) -> str:
 
 
 def detect_image_format_from_magic(image_bytes: bytes) -> str | None:
-    """
-    Identify image format from file signature (magic bytes). Returns normalized
-    type key (png, jpeg, gif, webp, bmp) or None if unknown / too short / not allowed.
+    """Detect image format from magic bytes.
+
+    Returns a normalized type key (png, jpeg, gif, webp, bmp), or None.
     """
     if not isinstance(image_bytes, (bytes, bytearray)) or len(image_bytes) < 4:
         return None
@@ -59,8 +59,7 @@ def validate_sticker_payload(
     image_bytes: bytes,
     image_type: str | None,
 ) -> tuple[str, str]:
-    """
-    Returns (normalized_image_type, content_hash_hex).
+    """Returns (normalized_image_type, content_hash_hex).
 
     Declared image_type must match the format detected from magic bytes; stored
     type is the normalized detected format.
@@ -99,10 +98,10 @@ _EXPORT_VERSION = 1
 
 
 def validate_export_document(data: object) -> list[dict]:
-    """
-    Parse and lightly validate an import JSON document.
-    Returns a list of sticker dicts with keys: name, image_type, image_bytes (str base64),
-    source_message_hash (optional).
+    """Parse and validate a sticker export JSON document.
+
+    Each sticker dict has ``name``, ``image_type``, ``image_bytes`` (base64), and
+    optional ``source_message_hash``.
     """
     if not isinstance(data, dict):
         msg = "invalid_document"

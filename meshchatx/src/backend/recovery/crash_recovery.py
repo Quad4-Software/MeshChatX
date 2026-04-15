@@ -1,10 +1,7 @@
-"""CRASH RECOVERY & ADAPTIVE DIAGNOSTIC ENGINE
---------------------------------------------------
-Diagnostic system for MeshChatX.
+"""Crash recovery and adaptive diagnostics for MeshChatX.
 
-Uses Shannon Entropy, KL-Divergence, and Bayesian weight learning
-to diagnose application failures. Crash history is persisted and
-priors are refined over time using a conjugate Beta-Binomial model.
+Uses entropy, KL-divergence, and Bayesian weight learning. Crash history is
+persisted; priors refine over time (conjugate Beta-Binomial model).
 """
 
 import contextlib
@@ -36,9 +33,9 @@ _DEFAULT_PRIORS = {
 
 
 class CrashRecovery:
-    """A diagnostic utility that intercepts application crashes and provides
-    meaningful error reports and system state analysis.  Learns from crash
-    history to refine root-cause probabilities over time.
+    """Intercept crashes and report diagnostics plus environment state.
+
+    Learns from crash history to refine root-cause probabilities over time.
     """
 
     def __init__(
@@ -115,7 +112,13 @@ class CrashRecovery:
         return _DEFAULT_PRIORS.get(cause_key, 0.05)
 
     def _persist_crash(
-        self, error_type, error_msg, causes, symptoms, entropy, divergence
+        self,
+        error_type,
+        error_msg,
+        causes,
+        symptoms,
+        entropy,
+        divergence,
     ):
         """Store crash event in crash_history for future learning."""
         if not self.database:
@@ -271,9 +274,7 @@ class CrashRecovery:
         sys.exit(1)
 
     def _analyze_cause(self, exc_type, exc_value, diagnosis):
-        """Uses heuristic pattern matching and Bayesian priors
-        to determine the likely root cause of the application crash.
-        """
+        """Rank likely root causes using heuristics and Bayesian priors."""
         causes = []
         error_msg = str(exc_value).lower()
         error_type = exc_type.__name__.lower()
@@ -395,7 +396,7 @@ class CrashRecovery:
             or (py_version.major == 3 and py_version.minor < 10),
             "legacy_kernel": "linux" in platform.system().lower()
             and (lambda m: m is not None and float(m.group(1)) < 4.0)(
-                re.search(r"(\d+\.\d+)", platform.release())
+                re.search(r"(\d+\.\d+)", platform.release()),
             ),
             "attribute_error": "attributeerror" in error_type,
         }
@@ -467,9 +468,7 @@ class CrashRecovery:
         return causes
 
     def _calculate_system_entropy(self, diagnosis):
-        """Calculates a heuristic system state entropy and KL-Divergence.
-        Provides a mathematical measure of both disorder and 'surprise' (Information Gain).
-        """
+        """Return heuristic system entropy and KL-divergence (information gain)."""
         import math
 
         def h(p):

@@ -163,9 +163,9 @@ class Database:
         return False
 
     def check_db_health_at_open(self, storage_path):
-        """
-        Run integrity and baseline checks after opening the database.
-        Returns a list of human-readable issue strings; empty if healthy.
+        """Run integrity and baseline checks after opening the database.
+
+        Returns human-readable issue strings; empty if healthy.
         """
         issues = []
         try:
@@ -210,9 +210,9 @@ class Database:
         return issues
 
     def check_db_health_at_close(self, storage_path):
-        """
-        Run health checks before closing the database (for logging only).
-        Returns a list of issue strings; empty if healthy.
+        """Run health checks before closing the database (for logging only).
+
+        Returns issue strings; empty if healthy.
         """
         issues = []
         try:
@@ -234,7 +234,7 @@ class Database:
             baseline = self._read_backup_baseline(storage_path)
             if self._is_backup_suspicious(current, baseline):
                 issues.append(
-                    "Database content anomaly detected at close. Consider restoring from backup."
+                    "Database content anomaly detected at close. Consider restoring from backup.",
                 )
                 _log.warning("DB close health check: content anomaly")
             else:
@@ -392,7 +392,8 @@ class Database:
         if backup_path is None:
             if suspicious:
                 backup_path = os.path.join(
-                    default_dir, f"backup-SUSPICIOUS-{timestamp}.zip"
+                    default_dir,
+                    f"backup-SUSPICIOUS-{timestamp}.zip",
                 )
             else:
                 backup_path = os.path.join(default_dir, f"backup-{timestamp}.zip")
@@ -412,7 +413,7 @@ class Database:
                 "Backup data-loss guard: current database looks wrong "
                 f"(was {baseline.get('message_count')} messages / {baseline.get('total_bytes')} bytes, "
                 f"now {current_stats.get('message_count')} / {current_stats.get('total_bytes')}). "
-                "Wrote backup-SUSPICIOUS-*.zip; skipping rotation and baseline update. Check disk and DB."
+                "Wrote backup-SUSPICIOUS-*.zip; skipping rotation and baseline update. Check disk and DB.",
             )
             result["suspicious"] = True
             result["baseline"] = baseline

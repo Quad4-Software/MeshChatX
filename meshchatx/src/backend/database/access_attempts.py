@@ -114,7 +114,10 @@ class AccessAttemptsDAO:
         )
 
     def count_login_attempts_ip(
-        self, client_ip: str, path: str, since_ts: float
+        self,
+        client_ip: str,
+        path: str,
+        since_ts: float,
     ) -> int:
         row = self.provider.fetchone(
             """
@@ -142,7 +145,10 @@ class AccessAttemptsDAO:
         return int(row["c"]) if row else 0
 
     def count_lockout_failures(
-        self, identity_hash: str, client_ip: str, since_ts: float
+        self,
+        identity_hash: str,
+        client_ip: str,
+        since_ts: float,
     ) -> int:
         row = self.provider.fetchone(
             """
@@ -190,7 +196,9 @@ class AccessAttemptsDAO:
         return [dict(r) for r in rows]
 
     def count_attempts(
-        self, search: str | None = None, outcome: str | None = None
+        self,
+        search: str | None = None,
+        outcome: str | None = None,
     ) -> int:
         sql = "SELECT COUNT(*) AS c FROM access_attempts WHERE 1=1"
         params: list[Any] = []

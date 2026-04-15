@@ -13,9 +13,10 @@ class AsyncUtils:
 
     @staticmethod
     def apply_asyncio_313_patch():
-        """Apply a patch for asyncio on Python 3.13 to avoid a bug in sendfile with SSL.
-        See: https://github.com/python/cpython/issues/124448
-        And: https://github.com/aio-libs/aiohttp/issues/8863
+        """Patch asyncio on Python 3.13 to avoid sendfile + SSL failures.
+
+        See https://github.com/python/cpython/issues/124448 and
+        https://github.com/aio-libs/aiohttp/issues/8863.
         """
         if sys.version_info >= (3, 13):
             import asyncio.base_events

@@ -60,7 +60,7 @@ class VoicemailManager:
             RNS.log("Voicemail: ffmpeg not found", RNS.LOG_ERROR)
 
     def get_name_for_identity_hash(self, identity_hash):
-        """Default implementation, should be patched by ReticulumMeshChat"""
+        """Default implementation, should be patched by ReticulumMeshChat."""
         return
 
     def _find_bundled_binary(self, name):

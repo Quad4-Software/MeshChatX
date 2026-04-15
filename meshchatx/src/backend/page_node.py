@@ -1,5 +1,4 @@
-"""
-PageNode: Serves Micron pages and files over RNS.
+"""PageNode: Serves Micron pages and files over RNS.
 
 Each PageNode owns an RNS Destination (SINGLE, IN) with the aspect
 nomadnetwork.node and registers per-page request handlers at
@@ -18,7 +17,6 @@ import os
 import time
 
 import RNS
-
 
 APP_NAME = "nomadnetwork"
 ASPECT = "node"
@@ -56,6 +54,19 @@ def _safe_mesh_file_basename(name: str) -> str:
     if "/" in base or "\\" in base:
         raise ValueError("invalid file name")
     return base
+
+
+def _reject_name_component_too_long(parent_dir: str, component: str) -> None:
+    """Raise ValueError if basename exceeds this directory's filename length limit."""
+    try:
+        if parent_dir and os.path.isdir(parent_dir):
+            max_bytes = int(os.pathconf(parent_dir, "PC_NAME_MAX"))
+        else:
+            max_bytes = 255
+    except (OSError, ValueError, TypeError, OverflowError):
+        max_bytes = 255
+    if len(os.fsencode(component)) > max_bytes:
+        raise ValueError("name too long")
 
 
 class PageNode:
@@ -163,9 +174,9 @@ class PageNode:
             self.active_links.remove(link)
 
     def _ensure_local_path(self):
-        """
-        Register the destination's identity in RNS.Identity.known_destinations
-        so that Identity.recall() can resolve it for local link establishment.
+        """Register this identity in ``RNS.Identity.known_destinations``.
+
+        Lets ``Identity.recall()`` resolve the destination for local link setup.
         """
         if not self.destination:
             return
@@ -292,6 +303,7 @@ class PageNode:
     def add_page(self, name, content):
         """Write a page file and register its request handler."""
         name = normalize_page_filename(name)
+        _reject_name_component_too_long(self.pages_dir, name)
         page_path = os.path.join(self.pages_dir, name)
         if isinstance(content, str):
             content = content.encode("utf-8")
@@ -305,6 +317,7 @@ class PageNode:
         """Remove a page and deregister its request handler."""
         try:
             name = normalize_page_filename(name)
+            _reject_name_component_too_long(self.pages_dir, name)
         except ValueError:
             return False
         page_path = os.path.join(self.pages_dir, name)
@@ -329,17 +342,19 @@ class PageNode:
         """Read and return a page's content."""
         try:
             name = normalize_page_filename(name)
+            _reject_name_component_too_long(self.pages_dir, name)
         except ValueError:
             return None
         page_path = os.path.join(self.pages_dir, name)
         if not os.path.isfile(page_path):
             return None
-        with open(page_path, "r", encoding="utf-8") as f:
+        with open(page_path, encoding="utf-8") as f:
             return f.read()
 
     def add_file(self, name, data):
         """Write a file and register its request handler."""
         name = _safe_mesh_file_basename(name)
+        _reject_name_component_too_long(self.files_dir, name)
         file_path = os.path.join(self.files_dir, name)
         mode = "wb" if isinstance(data, bytes) else "w"
         with open(file_path, mode) as f:
@@ -352,6 +367,7 @@ class PageNode:
         """Remove a file and deregister its request handler."""
         try:
             name = _safe_mesh_file_basename(name)
+            _reject_name_component_too_long(self.files_dir, name)
         except ValueError:
             return False
         file_path = os.path.join(self.files_dir, name)
@@ -413,5 +429,5 @@ class PageNode:
         config_path = os.path.join(base_dir, "config.json")
         if not os.path.isfile(config_path):
             return None
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             return json.load(f)

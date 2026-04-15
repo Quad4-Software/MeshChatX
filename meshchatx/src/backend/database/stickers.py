@@ -54,7 +54,10 @@ class UserStickersDAO:
         return cur.rowcount
 
     def update_name(
-        self, sticker_id: int, identity_hash: str, name: str | None
+        self,
+        sticker_id: int,
+        identity_hash: str,
+        name: str | None,
     ) -> bool:
         now = time.time()
         cur = self.provider.execute(
@@ -75,9 +78,7 @@ class UserStickersDAO:
         image_bytes: bytes,
         source_message_hash: str | None = None,
     ) -> dict | None:
-        """
-        Insert a sticker. Returns summary dict or None if duplicate (same content_hash).
-        """
+        """Insert a sticker. Returns summary dict or None if duplicate (same content_hash)."""
         if (
             self.count_for_identity(identity_hash)
             >= sticker_utils.MAX_STICKERS_PER_IDENTITY

@@ -250,7 +250,7 @@ class PersistentLogHandler(logging.Handler):
         """Shannon entropy over log-level distribution in the last 60 seconds."""
         cutoff = time.monotonic() - 60.0
         with self.lock:
-            counts = {lv: 0 for lv in _LOG_LEVELS}
+            counts = dict.fromkeys(_LOG_LEVELS, 0)
             total = 0
             for ts, level in self._level_events:
                 if ts >= cutoff:

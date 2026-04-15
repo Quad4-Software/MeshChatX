@@ -1,5 +1,4 @@
-"""
-PageNodeManager: Manages the lifecycle of multiple PageNode instances.
+"""PageNodeManager: Manages the lifecycle of multiple PageNode instances.
 
 Handles creation, deletion, persistence, start/stop, and announce
 scheduling for page nodes. Each node gets its own subdirectory under
