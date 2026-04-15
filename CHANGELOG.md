@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.5.0] - 2026-04-TBD
+
+### TL;DR
+
+- **Propagation node sync**: Tapping **Sync Messages** no longer shows technical state names in the top bar (e.g. `path_requested`). The bar shows a simple **Syncing...** label while a **live toast** explains what is happening in plain language and shows **progress** until the sync finishes or stops. Success and error toasts still summarize how many messages were received, stored, confirmed, or hidden.
+- **Dark theme**: Accent colors in dark mode are adjusted for more consistent look and feel.
+- **Announcements**: Automatic announce and related timers use clearer **due** checks; behaviour should be easier to reason about and test.
+
+### Platform and backend
+
+- **MeshChat utils**: **`convert_propagation_node_state_to_string`** maps **`LXMRouter.PR_PATH_TIMEOUT`** to **`path_timeout`** so the API can report path timeouts distinctly from other failures.
+- **Auto-announce / intervals**: Refactor around **`interval_action_due`** in **`meshchat.py`** to simplify when auto-announce and propagation sync checks run; add tests for auto-announce behaviour.
+
+### Frontend and UX
+
+- **Propagation sync (App header)**: After **`GET /api/v1/lxmf/propagation-node/sync`**, the client **polls** propagation status on an interval while the router is in a transfer state, updates a **keyed loading toast** (`propagation-sync-status`) with translated strings (**`app.propagation_sync_live`**, **`app.propagation_sync_state.*`**), dismisses it when the transfer ends, then shows the existing success or error summary. Stopping sync clears the poll timer and dismisses the live toast; **beforeUnmount** cleans up if you leave the page mid-sync. Removed the old toolbar pattern **`Syncing... ({state})`** in favour of **`app.syncing`** plus the toast.
+- **Theme**: Dark theme accent palette updates for consistency; tests adjusted where they assert colors.
+
+### CI and packaging
+
+- **Gitea**: **`.gitea/workflows/sync-github-release-assets.yml`** updated for GitHub release asset synchronization.
+
+### Testing and docs
+
+- **Frontend**: **`AppPropagationSync.test.js`** covers immediate completion (no stray loading toast), polling with **`path_requested`** and live **`ToastUtils.loading`**, and **`no_path`** end states with translated error text; **`AppModals`** / **`ChangelogModal`** tests updated where changelog content or expectations shifted.
+- **Backend**: **`test_lxmf_propagation_full.py`** adds **`path_timeout`** in status mapping, **`test_convert_propagation_node_state_maps_all_lxmf_transfer_states`** for LXMF propagation transfer constants, and Hypothesis **`path_timeout`** in allowed propagation state strings; **`test_app_status_tracking`** expects **`changelog_seen_version`** **4.5.0** in app status tests.
+
 ## [4.4.0] - 2026-04-15
 
 ### TL;DR
