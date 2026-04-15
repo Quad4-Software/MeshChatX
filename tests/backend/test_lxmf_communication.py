@@ -128,10 +128,15 @@ class TestStampSolving:
 
     def test_stamp_invalid_for_different_message(self):
         mid_a = os.urandom(32)
-        mid_b = os.urandom(32)
         stamp, _ = LXStamper.generate_stamp(mid_a, stamp_cost=4)
-        wb_b = LXStamper.stamp_workblock(mid_b)
-        assert not LXStamper.stamp_valid(stamp, 4, wb_b)
+        wb_a = LXStamper.stamp_workblock(mid_a)
+        assert LXStamper.stamp_valid(stamp, 4, wb_a)
+        for _ in range(512):
+            mid_b = os.urandom(32)
+            wb_b = LXStamper.stamp_workblock(mid_b)
+            if not LXStamper.stamp_valid(stamp, 4, wb_b):
+                return
+        pytest.fail("stamp unexpectedly validated against many random workblocks")
 
     def test_propagation_node_stamp_rounds(self):
         mid = os.urandom(32)
