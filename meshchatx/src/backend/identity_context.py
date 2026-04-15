@@ -210,6 +210,12 @@ class IdentityContext:
         self.message_router.delivery_per_transfer_limit = (
             self.config.lxmf_delivery_transfer_limit_in_bytes.get() / 1000
         )
+        self.message_router.propagation_per_transfer_limit = (
+            self.config.lxmf_propagation_transfer_limit_in_bytes.get() / 1000
+        )
+        self.message_router.propagation_per_sync_limit = (
+            self.config.lxmf_propagation_sync_limit_in_bytes.get() / 1000
+        )
 
         # Register LXMF delivery identity
         inbound_stamp_cost = self.config.lxmf_inbound_stamp_cost.get()

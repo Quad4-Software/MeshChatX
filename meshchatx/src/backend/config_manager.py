@@ -43,6 +43,16 @@ class ConfigManager:
             "lxmf_delivery_transfer_limit_in_bytes",
             1000 * 1000 * 10,
         )  # 10MB
+        self.lxmf_propagation_transfer_limit_in_bytes = self.IntConfig(
+            self,
+            "lxmf_propagation_transfer_limit_in_bytes",
+            1000 * 256,
+        )  # 256KB (LXMF default)
+        self.lxmf_propagation_sync_limit_in_bytes = self.IntConfig(
+            self,
+            "lxmf_propagation_sync_limit_in_bytes",
+            1000 * 10240,
+        )  # 10MB (LXMF default)
         self.lxmf_preferred_propagation_node_destination_hash = self.StringConfig(
             self,
             "lxmf_preferred_propagation_node_destination_hash",

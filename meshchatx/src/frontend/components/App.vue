@@ -733,7 +733,7 @@ export default {
             deep: true,
         },
     },
-        beforeUnmount() {
+    beforeUnmount() {
         if (typeof this._shellAuthWatchStop === "function") {
             this._shellAuthWatchStop();
             this._shellAuthWatchStop = null;
@@ -1364,7 +1364,7 @@ export default {
                     ToastUtils.error(
                         this.$t("app.sync_error", {
                             status: this.propagationSyncStatusLabel(status),
-                        }),
+                        })
                     );
                 }
             };

@@ -2799,8 +2799,7 @@ export default {
             }
             this.saveTimeouts.propagation_transfer_limit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_propagation_transfer_limit_in_bytes:
-                        this.config.lxmf_propagation_transfer_limit_in_bytes,
+                    lxmf_propagation_transfer_limit_in_bytes: this.config.lxmf_propagation_transfer_limit_in_bytes,
                 });
             }, 1000);
         },

@@ -92,6 +92,7 @@ def convert_propagation_node_state_to_string(state):
         LXMRouter.PR_NO_IDENTITY_RCVD: "no_identity_received",
         LXMRouter.PR_NO_ACCESS: "no_access",
         LXMRouter.PR_FAILED: "failed",
+        LXMRouter.PR_PATH_TIMEOUT: "path_timeout",
     }
 
     if state in state_map:

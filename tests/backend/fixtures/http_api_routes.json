@@ -381,6 +381,14 @@
             "path": "/api/v1/lxmf/propagation-node/sync"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/lxmf/propagation-node/stop"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/propagation-node/restart"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/lxmf/propagation-nodes"
         },

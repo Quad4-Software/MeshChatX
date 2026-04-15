@@ -1636,14 +1636,13 @@ class ReticulumMeshChat:
             return
 
         while self.running and ctx.running and ctx.session_id == session_id:
-            auto_sync_interval_seconds = (
-                ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
-            )
+            auto_sync_interval_seconds = ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
             last_synced_at = (
                 ctx.config.lxmf_preferred_propagation_node_last_synced_at.get()
             )
             should_sync = interval_action_due(
-                auto_sync_interval_seconds is not None and auto_sync_interval_seconds > 0,
+                auto_sync_interval_seconds is not None
+                and auto_sync_interval_seconds > 0,
                 last_synced_at,
                 auto_sync_interval_seconds,
                 time.time(),
@@ -1950,6 +1949,108 @@ class ReticulumMeshChat:
             print(
                 f"failed to enable or disable propagation node for {ctx.identity_hash}",
             )
+
+    def stop_local_propagation_node(self, context=None):
+        ctx = context or self.current_context
+        if not ctx:
+            return
+        self.enable_local_propagation_node(False, context=ctx)
+
+    def restart_local_propagation_node(self, context=None):
+        ctx = context or self.current_context
+        if not ctx:
+            return
+        self.stop_local_propagation_node(context=ctx)
+        self.enable_local_propagation_node(True, context=ctx)
+
+    def get_local_propagation_node_stats(self, context=None):
+        ctx = context or self.current_context
+        if not ctx:
+            return None
+
+        router = ctx.message_router
+        is_running = bool(getattr(router, "propagation_node", False))
+        stats = None
+        if is_running:
+            with contextlib.suppress(Exception):
+                stats = router.compile_stats()
+
+        def _numeric(value, default=0):
+            return value if isinstance(value, (int, float)) else default
+
+        destination_hash_raw = getattr(
+            ctx.message_router.propagation_destination,
+            "hexhash",
+            None,
+        )
+        if destination_hash_raw is None:
+            destination_hash_raw = getattr(
+                ctx.message_router.propagation_destination,
+                "hash",
+                None,
+            )
+        if isinstance(destination_hash_raw, bytes):
+            destination_hash = destination_hash_raw.hex()
+        elif isinstance(destination_hash_raw, str):
+            destination_hash = destination_hash_raw
+        else:
+            destination_hash = None
+
+        message_store = stats.get("messagestore", {}) if isinstance(stats, dict) else {}
+        clients = stats.get("clients", {}) if isinstance(stats, dict) else {}
+        uptime = _numeric(stats.get("uptime", 0)) if isinstance(stats, dict) else 0
+        delivery_limit = (
+            _numeric(stats.get("delivery_limit", 0))
+            if isinstance(stats, dict)
+            else _numeric(getattr(router, "delivery_per_transfer_limit", 0))
+        )
+        propagation_limit = (
+            _numeric(stats.get("propagation_limit", 0))
+            if isinstance(stats, dict)
+            else _numeric(getattr(router, "propagation_per_transfer_limit", 0))
+        )
+        sync_limit = (
+            _numeric(stats.get("sync_limit", 0))
+            if isinstance(stats, dict)
+            else _numeric(getattr(router, "propagation_per_sync_limit", 0))
+        )
+        return {
+            "is_running": is_running,
+            "identity_hash": ctx.identity.hash.hex(),
+            "destination_hash": destination_hash,
+            "uptime_seconds": int(uptime) if uptime else 0,
+            "messagestore_count": message_store.get("count", 0),
+            "messagestore_bytes": message_store.get("bytes", 0),
+            "messagestore_limit_bytes": message_store.get("limit"),
+            "client_messages_received": clients.get(
+                "client_propagation_messages_received",
+                0,
+            ),
+            "client_messages_served": clients.get(
+                "client_propagation_messages_served",
+                0,
+            ),
+            "static_peers": stats.get("static_peers", 0)
+            if isinstance(stats, dict)
+            else 0,
+            "discovered_peers": (
+                stats.get("discovered_peers", 0) if isinstance(stats, dict) else 0
+            ),
+            "total_peers": stats.get("total_peers", 0)
+            if isinstance(stats, dict)
+            else 0,
+            "max_peers": stats.get("max_peers") if isinstance(stats, dict) else None,
+            "delivery_limit_bytes": int(delivery_limit * 1000),
+            "propagation_limit_bytes": int(propagation_limit * 1000),
+            "sync_limit_bytes": int(sync_limit * 1000),
+            "target_stamp_cost": _numeric(
+                (
+                    stats.get("target_stamp_cost", 0)
+                    if isinstance(stats, dict)
+                    else getattr(router, "propagation_stamp_cost", 0)
+                ),
+            ),
+        }
 
     def _get_reticulum_section(self):
         try:
@@ -6747,6 +6848,7 @@ class ReticulumMeshChat:
                         ],
                         "messages_hidden": sync_metrics["messages_hidden"],
                     },
+                    "local_propagation_node": self.get_local_propagation_node_stats(),
                 },
             )
 
@@ -6782,9 +6884,34 @@ class ReticulumMeshChat:
                 },
             )
 
+        @routes.post("/api/v1/lxmf/propagation-node/stop")
+        async def propagation_node_stop(request):
+            self.config.lxmf_local_propagation_node_enabled.set(False)
+            self.stop_local_propagation_node()
+            AsyncUtils.run_async(self.send_config_to_websocket_clients())
+            return web.json_response(
+                {
+                    "message": "Local propagation node stopped",
+                    "local_propagation_node": self.get_local_propagation_node_stats(),
+                },
+            )
+
+        @routes.post("/api/v1/lxmf/propagation-node/restart")
+        async def propagation_node_restart(request):
+            self.config.lxmf_local_propagation_node_enabled.set(True)
+            self.restart_local_propagation_node()
+            AsyncUtils.run_async(self.send_config_to_websocket_clients())
+            return web.json_response(
+                {
+                    "message": "Local propagation node restarted",
+                    "local_propagation_node": self.get_local_propagation_node_stats(),
+                },
+            )
+
         # serve propagation nodes
         @routes.get("/api/v1/lxmf/propagation-nodes")
         async def propagation_nodes_get(request):
+            ctx = self.current_context
             # get query params
             limit = request.query.get("limit", None)
 
@@ -6800,6 +6927,27 @@ class ReticulumMeshChat:
 
             # process announces
             lxmf_propagation_nodes = []
+            local_identity_hash = ctx.identity.hash.hex() if ctx else None
+            local_destination_hash_raw = (
+                getattr(ctx.message_router.propagation_destination, "hexhash", None)
+                if ctx
+                else None
+            )
+            if local_destination_hash_raw is None and ctx:
+                local_destination_hash_raw = getattr(
+                    ctx.message_router.propagation_destination,
+                    "hash",
+                    None,
+                )
+            if isinstance(local_destination_hash_raw, bytes):
+                local_destination_hash = local_destination_hash_raw.hex()
+            elif isinstance(local_destination_hash_raw, str):
+                local_destination_hash = local_destination_hash_raw
+            else:
+                local_destination_hash = None
+            local_stats = (
+                self.get_local_propagation_node_stats(context=ctx) if ctx else None
+            )
             for announce in results:
                 # find an lxmf.delivery announce for the same identity hash, so we can use that as an "operater by" name
                 lxmf_delivery_results = self.database.announces.get_filtered_announces(
@@ -6866,8 +7014,46 @@ class ReticulumMeshChat:
                         "operator_display_name": operator_display_name,
                         "is_propagation_enabled": is_propagation_enabled,
                         "per_transfer_limit": per_transfer_limit,
+                        "is_local_node": (
+                            announce["identity_hash"] == local_identity_hash
+                            or announce["destination_hash"] == local_destination_hash
+                        ),
+                        "local_node_stats": (
+                            local_stats
+                            if announce["identity_hash"] == local_identity_hash
+                            or announce["destination_hash"] == local_destination_hash
+                            else None
+                        ),
                         "created_at": created_at,
                         "updated_at": updated_at,
+                    },
+                )
+
+            if (
+                ctx is not None
+                and local_destination_hash is not None
+                and not any(
+                    node["destination_hash"] == local_destination_hash
+                    for node in lxmf_propagation_nodes
+                )
+            ):
+                now_iso = datetime.now(UTC).isoformat()
+                lxmf_propagation_nodes.insert(
+                    0,
+                    {
+                        "destination_hash": local_destination_hash,
+                        "identity_hash": local_identity_hash,
+                        "operator_display_name": ctx.config.display_name.get(),
+                        "is_propagation_enabled": ctx.config.lxmf_local_propagation_node_enabled.get(),
+                        "per_transfer_limit": int(
+                            getattr(
+                                ctx.message_router, "propagation_per_transfer_limit", 0
+                            ),
+                        ),
+                        "is_local_node": True,
+                        "local_node_stats": local_stats,
+                        "created_at": now_iso,
+                        "updated_at": now_iso,
                     },
                 )
 
@@ -10199,6 +10385,26 @@ class ReticulumMeshChat:
             )
             self.config.auto_send_failed_messages_to_propagation_node.set(value)
 
+        if "lxmf_delivery_transfer_limit_in_bytes" in data:
+            value = int(data["lxmf_delivery_transfer_limit_in_bytes"])
+            value = max(1000, min(value, 1000 * 1000 * 100))
+            self.config.lxmf_delivery_transfer_limit_in_bytes.set(value)
+            self.message_router.delivery_per_transfer_limit = value / 1000
+
+        if "lxmf_propagation_transfer_limit_in_bytes" in data:
+            value = int(data["lxmf_propagation_transfer_limit_in_bytes"])
+            value = max(1000, min(value, 1000 * 1000 * 100))
+            self.config.lxmf_propagation_transfer_limit_in_bytes.set(value)
+            self.message_router.propagation_per_transfer_limit = value / 1000
+            if self.config.lxmf_local_propagation_node_enabled.get():
+                self.message_router.announce_propagation_node()
+
+        if "lxmf_propagation_sync_limit_in_bytes" in data:
+            value = int(data["lxmf_propagation_sync_limit_in_bytes"])
+            value = max(1000, min(value, 1000 * 1000 * 500))
+            self.config.lxmf_propagation_sync_limit_in_bytes.set(value)
+            self.message_router.propagation_per_sync_limit = value / 1000
+
         if "show_suggested_community_interfaces" in data:
             value = self._parse_bool(data["show_suggested_community_interfaces"])
             self.config.show_suggested_community_interfaces.set(value)
@@ -11623,6 +11829,9 @@ class ReticulumMeshChat:
             "allow_auto_resending_failed_messages_with_attachments": ctx.config.allow_auto_resending_failed_messages_with_attachments.get(),
             "auto_send_failed_messages_to_propagation_node": ctx.config.auto_send_failed_messages_to_propagation_node.get(),
             "show_suggested_community_interfaces": ctx.config.show_suggested_community_interfaces.get(),
+            "lxmf_delivery_transfer_limit_in_bytes": ctx.config.lxmf_delivery_transfer_limit_in_bytes.get(),
+            "lxmf_propagation_transfer_limit_in_bytes": ctx.config.lxmf_propagation_transfer_limit_in_bytes.get(),
+            "lxmf_propagation_sync_limit_in_bytes": ctx.config.lxmf_propagation_sync_limit_in_bytes.get(),
             "lxmf_local_propagation_node_enabled": ctx.config.lxmf_local_propagation_node_enabled.get(),
             "lxmf_local_propagation_node_address_hash": ctx.message_router.propagation_destination.hexhash,
             "lxmf_preferred_propagation_node_destination_hash": ctx.config.lxmf_preferred_propagation_node_destination_hash.get(),
