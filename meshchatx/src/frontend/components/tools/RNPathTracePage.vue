@@ -1,8 +1,8 @@
 <template>
-    <div class="flex flex-col flex-1 h-full overflow-hidden bg-white dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 h-full min-w-0 overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <!-- header -->
-        <div class="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 shadow-sm z-10">
-            <div class="px-4 py-3 md:px-6 md:py-4 flex items-center justify-between gap-4">
+        <div class="bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800 shadow-sm z-10">
+            <div class="px-4 py-3 md:px-6 md:py-4 flex flex-wrap items-center justify-between gap-3 md:gap-4 min-w-0">
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl shrink-0">
                         <MaterialDesignIcon
@@ -33,8 +33,10 @@
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto">
-            <div class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
+        <div class="flex-1 overflow-y-auto min-w-0">
+            <div
+                class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            >
                 <!-- main input card -->
                 <div
                     class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 md:p-6"

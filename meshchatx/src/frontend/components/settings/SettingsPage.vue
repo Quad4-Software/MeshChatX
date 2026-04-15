@@ -1063,6 +1063,46 @@
                         </div>
                     </section>
 
+                    <!-- Network Visualiser -->
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.visualiser)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
+                            <div>
+                                <div class="settings-section__eyebrow">Visualiser</div>
+                                <h2>{{ $t("visualiser.title") }}</h2>
+                                <p>{{ $t("visualiser.description") }}</p>
+                            </div>
+                        </header>
+                        <div class="settings-section__body space-y-4">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="settings-visualiser-offline"
+                                    v-model="visualiserShowDisabledInterfaces"
+                                    @update:model-value="onVisualiserShowDisabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("visualiser.show_disabled_interfaces")
+                                    }}</span>
+                                </span>
+                            </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="settings-visualiser-discovered"
+                                    v-model="visualiserShowDiscoveredInterfaces"
+                                    @update:model-value="onVisualiserShowDiscoveredChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("visualiser.show_discovered_interfaces")
+                                    }}</span>
+                                </span>
+                            </label>
+                        </div>
+                    </section>
+
                     <!-- Location -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.location)"
@@ -2023,6 +2063,7 @@ import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 
 export default {
     name: "SettingsPage",
@@ -2100,7 +2141,20 @@ export default {
             trustedTelemetryPeers: [],
             stickerCount: 0,
             stickerImportReplaceDuplicates: false,
+            visualiserShowDisabledInterfaces: false,
+            visualiserShowDiscoveredInterfaces: false,
             sectionKeywords: {
+                visualiser: [
+                    "Visualiser",
+                    "Network Visualiser",
+                    "visualiser",
+                    "graph",
+                    "mesh",
+                    "visualiser.show_disabled_interfaces",
+                    "visualiser.show_discovered_interfaces",
+                    "offline",
+                    "discovered",
+                ],
                 banishment: [
                     "Visuals",
                     "app.banishment",
@@ -2331,8 +2385,43 @@ export default {
         this.getConfig();
         this.getTrustedTelemetryPeers();
         this.loadStickerCount();
+        this.loadVisualiserDisplayPrefsFromStorage();
     },
     methods: {
+        loadVisualiserDisplayPrefsFromStorage() {
+            try {
+                if (typeof localStorage !== "undefined") {
+                    this.visualiserShowDisabledInterfaces =
+                        localStorage.getItem("meshchatx.visualiser.showDisabledInterfaces") === "true";
+                    this.visualiserShowDiscoveredInterfaces =
+                        localStorage.getItem("meshchatx.visualiser.showDiscoveredInterfaces") === "true";
+                }
+            } catch {
+                /* localStorage unavailable */
+            }
+        },
+        onVisualiserShowDisabledChange(val) {
+            this.visualiserShowDisabledInterfaces = val;
+            try {
+                if (typeof localStorage !== "undefined") {
+                    localStorage.setItem("meshchatx.visualiser.showDisabledInterfaces", val ? "true" : "false");
+                }
+            } catch {
+                /* localStorage unavailable */
+            }
+            GlobalEmitter.emit("visualiser-display-prefs-changed");
+        },
+        onVisualiserShowDiscoveredChange(val) {
+            this.visualiserShowDiscoveredInterfaces = val;
+            try {
+                if (typeof localStorage !== "undefined") {
+                    localStorage.setItem("meshchatx.visualiser.showDiscoveredInterfaces", val ? "true" : "false");
+                }
+            } catch {
+                /* localStorage unavailable */
+            }
+            GlobalEmitter.emit("visualiser-display-prefs-changed");
+        },
         async getTrustedTelemetryPeers() {
             try {
                 const response = await window.api.get("/api/v1/telemetry/trusted-peers");

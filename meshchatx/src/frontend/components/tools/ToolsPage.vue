@@ -1,6 +1,6 @@
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-zinc-950">
-        <div class="flex-1 overflow-y-auto w-full">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div class="border-b border-gray-200 dark:border-zinc-800 px-4 py-4 md:px-6 md:py-5">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
                     <div class="space-y-2 min-w-0 flex-1">

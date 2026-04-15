@@ -1,8 +1,8 @@
 <template>
-    <div class="flex flex-col h-full w-full bg-white dark:bg-zinc-950 overflow-hidden min-w-0">
+    <div class="flex flex-col h-full w-full bg-slate-50 dark:bg-zinc-950 overflow-hidden min-w-0">
         <!-- header -->
         <div
-            class="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 z-10 relative"
+            class="flex flex-wrap items-center gap-2 px-3 sm:px-4 md:px-6 py-2 sm:py-3 border-b border-gray-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 z-10 relative"
         >
             <div class="flex items-center gap-2 min-w-0 flex-1">
                 <v-icon icon="mdi-chip" color="purple" size="24" class="shrink-0"></v-icon>
@@ -38,7 +38,9 @@
         </div>
 
         <!-- content -->
-        <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div
+            class="flex-1 min-h-0 min-w-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        >
             <!-- setup card: Select device & Firmware -->
             <div
                 class="border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-lg overflow-hidden"

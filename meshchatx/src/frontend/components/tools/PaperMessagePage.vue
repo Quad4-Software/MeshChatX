@@ -1,7 +1,7 @@
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-white dark:bg-zinc-950">
-        <div class="flex-1 overflow-y-auto w-full">
-            <div class="p-3 sm:p-4 max-w-5xl mx-auto w-full space-y-4">
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto w-full space-y-4 min-w-0">
                 <!-- header -->
                 <div class="border-b border-gray-200 dark:border-zinc-800 pb-4">
                     <div class="flex items-start gap-3 min-w-0">

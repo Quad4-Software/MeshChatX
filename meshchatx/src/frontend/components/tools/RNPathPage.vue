@@ -1,8 +1,8 @@
 <template>
-    <div class="flex flex-col flex-1 h-full overflow-hidden bg-white dark:bg-zinc-950">
+    <div class="flex flex-col flex-1 h-full min-w-0 overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <!-- header -->
         <div
-            class="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-3 sm:py-4 bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800"
+            class="flex flex-wrap items-center gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800"
         >
             <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg shrink-0">
@@ -34,7 +34,9 @@
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+        <div
+            class="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        >
             <!-- tabs -->
             <div class="-mx-3 sm:mx-0 overflow-x-auto border-b border-gray-200 dark:border-zinc-800">
                 <div class="flex min-w-0 px-3 sm:px-0">
