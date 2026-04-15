@@ -158,6 +158,88 @@ describe("ConversationViewer.vue", () => {
         expect(wrapper.vm.newMessageImages).toHaveLength(2);
     });
 
+    it("onComposerImageDrop adds images from dataTransfer.files", () => {
+        const wrapper = mountConversationViewer();
+        const file = new File([""], "photo.png", { type: "image/png" });
+        const dataTransfer = {
+            files: [file],
+            items: [],
+        };
+        const event = {
+            dataTransfer,
+        };
+        wrapper.vm.onComposerImageDrop(event);
+        expect(wrapper.vm.newMessageImages).toHaveLength(1);
+        expect(wrapper.vm.composerImageDropActive).toBe(false);
+    });
+
+    it("onComposerImageDrop ignores non-image files", () => {
+        const wrapper = mountConversationViewer();
+        const pdf = new File([""], "doc.pdf", { type: "application/pdf" });
+        const dataTransfer = {
+            files: [pdf],
+            items: [],
+        };
+        const event = { dataTransfer };
+        wrapper.vm.onComposerImageDrop(event);
+        expect(wrapper.vm.newMessageImages).toHaveLength(0);
+    });
+
+    it("collectImageFilesFromDataTransfer uses items when files has no images", () => {
+        const wrapper = mountConversationViewer();
+        const file = new File([""], "x.png", { type: "image/png" });
+        const pdf = new File([""], "only.pdf", { type: "application/pdf" });
+        const dt = {
+            files: [pdf],
+            items: [
+                {
+                    kind: "file",
+                    type: "image/png",
+                    getAsFile: () => file,
+                },
+            ],
+        };
+        const got = wrapper.vm.collectImageFilesFromDataTransfer(dt);
+        expect(got).toHaveLength(1);
+        expect(got[0].name).toBe("x.png");
+    });
+
+    it("onComposerImageDragOver sets highlight when not translating", () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.isTranslatingMessage = false;
+        const event = {
+            preventDefault: vi.fn(),
+            dataTransfer: {},
+        };
+        wrapper.vm.onComposerImageDragOver(event);
+        expect(wrapper.vm.composerImageDropActive).toBe(true);
+    });
+
+    it("onComposerImageDragOver does not highlight while translating", () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.isTranslatingMessage = true;
+        const event = {
+            preventDefault: vi.fn(),
+            dataTransfer: {},
+        };
+        wrapper.vm.onComposerImageDragOver(event);
+        expect(wrapper.vm.composerImageDropActive).toBe(false);
+    });
+
+    it("onComposerImageDragLeave clears highlight when leaving composer", () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.composerImageDropActive = true;
+        const outer = document.createElement("div");
+        const inner = document.createElement("span");
+        outer.appendChild(inner);
+        const event = {
+            currentTarget: outer,
+            relatedTarget: null,
+        };
+        wrapper.vm.onComposerImageDragLeave(event);
+        expect(wrapper.vm.composerImageDropActive).toBe(false);
+    });
+
     it("pasteFromClipboard inserts text at the message input selection", async () => {
         const readText = vi.fn(() => Promise.resolve("pasted-text"));
         vi.stubGlobal("navigator", {

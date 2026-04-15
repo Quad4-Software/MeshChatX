@@ -1603,6 +1603,9 @@
                         <div
                             v-click-outside="{ handler: onStickerPickerClickOutside, capture: true }"
                             class="relative flex-1 min-w-0"
+                            @dragover.prevent="onComposerImageDragOver"
+                            @dragleave="onComposerImageDragLeave"
+                            @drop.prevent="onComposerImageDrop"
                         >
                             <textarea
                                 id="message-input"
@@ -1610,6 +1613,10 @@
                                 v-model="newMessageText"
                                 :readonly="isTranslatingMessage"
                                 class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-11 py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                :class="{
+                                    'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
+                                        composerImageDropActive,
+                                }"
                                 rows="1"
                                 spellcheck="true"
                                 :placeholder="$t('messages.send_placeholder')"
@@ -2590,6 +2597,7 @@ export default {
             emojiStickerTab: "emoji",
             emojiPickerDataUrl: emojiPickerEnDataUrl,
             stickerDropActive: false,
+            composerImageDropActive: false,
             isStickerUploading: false,
             now: Date.now(),
             updateTimer: null,
@@ -5159,6 +5167,53 @@ export default {
                 DialogUtils.alert(message);
             }
         },
+        collectImageFilesFromDataTransfer(dt) {
+            if (!dt) {
+                return [];
+            }
+            const out = [];
+            const seen = new Set();
+            const pushIfImage = (f) => {
+                if (!f?.type?.startsWith("image/")) {
+                    return;
+                }
+                const k = `${f.name}:${f.size}:${f.lastModified}`;
+                if (seen.has(k)) {
+                    return;
+                }
+                seen.add(k);
+                out.push(f);
+            };
+            if (dt.files?.length) {
+                for (let i = 0; i < dt.files.length; i++) {
+                    pushIfImage(dt.files[i]);
+                }
+                if (out.length > 0) {
+                    return out;
+                }
+            }
+            if (dt.items?.length) {
+                for (let i = 0; i < dt.items.length; i++) {
+                    const item = dt.items[i];
+                    if (item.kind === "file" && item.type?.startsWith("image/")) {
+                        const f = item.getAsFile();
+                        pushIfImage(f);
+                    }
+                }
+            }
+            return out;
+        },
+        attachPastedOrDroppedImageFiles(imageBlobs, idPrefix) {
+            const t = Date.now();
+            imageBlobs.forEach((file, idx) => {
+                let f = file;
+                const ext = (file.type.split("/")[1] || "png").replace("jpeg", "jpg");
+                if (!file.name || file.name === "image.png" || file.name === "image.jpeg") {
+                    f = new File([file], `${idPrefix}-${t}-${idx}.${ext}`, { type: file.type });
+                }
+                this.onImageSelected(f);
+            });
+        },
         onMessagePaste(event) {
             const cd = event.clipboardData;
             if (!cd?.items?.length) {
@@ -5178,15 +5233,36 @@ export default {
                 return;
             }
             event.preventDefault();
-            const t = Date.now();
-            imageBlobs.forEach((file, idx) => {
-                let f = file;
-                const ext = (file.type.split("/")[1] || "png").replace("jpeg", "jpg");
-                if (!file.name || file.name === "image.png" || file.name === "image.jpeg") {
-                    f = new File([file], `paste-${t}-${idx}.${ext}`, { type: file.type });
-                }
-                this.onImageSelected(f);
-            });
+            this.attachPastedOrDroppedImageFiles(imageBlobs, "paste");
+        },
+        onComposerImageDragOver(event) {
+            event.preventDefault();
+            if (this.isTranslatingMessage) {
+                return;
+            }
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = "copy";
+            }
+            this.composerImageDropActive = true;
+        },
+        onComposerImageDragLeave(event) {
+            const el = event.currentTarget;
+            if (el && event.relatedTarget && el.contains(event.relatedTarget)) {
+                return;
+            }
+            this.composerImageDropActive = false;
+        },
+        onComposerImageDrop(event) {
+            this.composerImageDropActive = false;
+            if (this.isTranslatingMessage) {
+                return;
+            }
+            const dt = event.dataTransfer;
+            const imageFiles = this.collectImageFilesFromDataTransfer(dt);
+            if (imageFiles.length === 0) {
+                return;
+            }
+            this.attachPastedOrDroppedImageFiles(imageFiles, "drop");
         },
         async pasteFromClipboard() {
             try {
