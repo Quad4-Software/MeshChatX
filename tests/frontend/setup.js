@@ -1,4 +1,8 @@
 import "fake-indexeddb/auto";
+import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme/designTokens.js";
+
+injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
+
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { vi } from "vitest";
