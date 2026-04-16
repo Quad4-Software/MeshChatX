@@ -1,7 +1,80 @@
+const crypto = require("crypto");
 const { expect } = require("@playwright/test");
 
 const E2E_BACKEND_PORT = process.env.E2E_BACKEND_PORT || "18079";
 const E2E_BACKEND_ORIGIN = `http://127.0.0.1:${E2E_BACKEND_PORT}`;
+
+const E2E_SCROLL_PEER_HASH = `e2e0${"0".repeat(28)}`;
+
+function buildE2eLxmfRow({ peerHash, localHash, index, total, inbound }) {
+    const hash = crypto.randomBytes(16).toString("hex");
+    const baseTs = Math.floor(Date.now() / 1000) - total;
+    return {
+        hash,
+        source_hash: inbound ? peerHash : localHash,
+        destination_hash: inbound ? localHash : peerHash,
+        peer_hash: peerHash,
+        state: "delivered",
+        progress: 1.0,
+        is_incoming: inbound ? 1 : 0,
+        method: "direct",
+        delivery_attempts: 1,
+        next_delivery_attempt_at: null,
+        title: "",
+        content: `E2E scroll seed ${String(index).padStart(3, "0")} ${"x".repeat(64)}`,
+        fields: "{}",
+        timestamp: baseTs + index,
+        rssi: null,
+        snr: null,
+        quality: null,
+        is_spam: 0,
+        reply_to_hash: null,
+        attachments_stripped: 0,
+    };
+}
+
+/**
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @returns {Promise<string>}
+ */
+async function getE2eLocalLxmfHash(request) {
+    const cfgRes = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/config`);
+    expect(cfgRes.ok()).toBeTruthy();
+    const cfgBody = await cfgRes.json();
+    const localHash = cfgBody.config?.lxmf_address_hash;
+    expect(localHash && String(localHash).length === 32).toBeTruthy();
+    return localHash;
+}
+
+/**
+ * Inserts LXMF rows via maintenance import so the messages UI has a long thread for scroll tests.
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @param {{ messageCount?: number }} [opts]
+ * @returns {Promise<{ peerHash: string, localHash: string }>}
+ */
+async function seedE2eLongConversationThread(request, opts = {}) {
+    const messageCount = opts.messageCount ?? 45;
+    const localHash = await getE2eLocalLxmfHash(request);
+
+    const peerHash = E2E_SCROLL_PEER_HASH;
+    const messages = [];
+    for (let i = 0; i < messageCount; i++) {
+        messages.push(
+            buildE2eLxmfRow({
+                peerHash,
+                localHash,
+                index: i,
+                total: messageCount,
+                inbound: i % 2 === 0,
+            })
+        );
+    }
+    const imp = await request.post(`${E2E_BACKEND_ORIGIN}/api/v1/maintenance/messages/import`, {
+        data: { messages },
+    });
+    expect(imp.ok()).toBeTruthy();
+    return { peerHash, localHash };
+}
 
 const PALETTE_PLACEHOLDER = /Search commands,\s*(routes|navigate),\s*or peers\.{0,3}/i;
 
@@ -51,8 +124,11 @@ async function dismissMapOnboardingTooltip(page) {
 
 module.exports = {
     E2E_BACKEND_ORIGIN,
+    E2E_SCROLL_PEER_HASH,
     PALETTE_PLACEHOLDER,
     dismissMapOnboardingTooltip,
     openCommandPalette,
     prepareE2eSession,
+    getE2eLocalLxmfHash,
+    seedE2eLongConversationThread,
 };

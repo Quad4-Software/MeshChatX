@@ -1,4 +1,5 @@
 import os
+import json
 import shutil
 import tempfile
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -253,7 +254,7 @@ async def test_reload_reticulum_failure_recovery(mock_rns, temp_dir):
         # or just mock a method inside the try block to raise.
         with patch.object(
             app,
-            "teardown_identity",
+            "_teardown_all_contexts_for_reload",
             side_effect=Exception("Reload failed"),
         ):
             result = await app.reload_reticulum()
@@ -312,3 +313,378 @@ async def test_hotswap_identity(mock_rns, temp_dir):
         broadcast_call = app.websocket_broadcast.call_args[0][0]
         assert "identity_switched" in broadcast_call
         app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_reload_reticulum_restores_same_identity(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+        patch("asyncio.sleep", return_value=None),
+        patch("socket.socket") as mock_socket,
+    ):
+        mock_sock_inst = MagicMock()
+        mock_socket.return_value = mock_sock_inst
+
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        original_identity = app.identity
+        app.setup_identity = MagicMock()
+        app.cleanup_rns_state_for_identity = MagicMock()
+
+        result = await app.reload_reticulum()
+
+        assert result is True
+        app.cleanup_rns_state_for_identity.assert_called_with(original_identity.hash)
+        app.setup_identity.assert_called_with(original_identity)
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_transport_enable_endpoint_reloads_rns(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=True)
+
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/reticulum/enable-transport"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 200
+        assert (
+            payload["message"]
+            == "Transport mode enabled and RNS restarted successfully."
+        )
+        app.reload_reticulum.assert_awaited_once()
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_transport_disable_endpoint_reloads_rns(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=True)
+
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/reticulum/disable-transport"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 200
+        assert (
+            payload["message"]
+            == "Transport mode disabled and RNS restarted successfully."
+        )
+        app.reload_reticulum.assert_awaited_once()
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_transport_enable_endpoint_reload_failure(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=False)
+
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/reticulum/enable-transport"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 500
+        assert (
+            payload["message"]
+            == "Transport mode was enabled in config, but RNS reload failed."
+        )
+        app.reload_reticulum.assert_awaited_once()
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_transport_disable_endpoint_reload_failure(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=False)
+
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/reticulum/disable-transport"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 500
+        assert (
+            payload["message"]
+            == "Transport mode was disabled in config, but RNS reload failed."
+        )
+        app.reload_reticulum.assert_awaited_once()
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_reticulum_reload_endpoint_success(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=True)
+
+        handler = None
+        for route in app.get_routes():
+            if route.path == "/api/v1/reticulum/reload" and route.method == "POST":
+                handler = route.handler
+                break
+
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 200
+        assert payload["message"] == "Reticulum reloaded successfully"
+        app.reload_reticulum.assert_awaited_once()
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_reticulum_reload_endpoint_failure(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.reload_reticulum = AsyncMock(return_value=False)
+
+        handler = None
+        for route in app.get_routes():
+            if route.path == "/api/v1/reticulum/reload" and route.method == "POST":
+                handler = route.handler
+                break
+
+        assert handler is not None
+
+        response = await handler(MagicMock())
+        payload = json.loads(response.body)
+
+        assert response.status == 500
+        assert payload["error"] == "Failed to reload Reticulum"
+        app.reload_reticulum.assert_awaited_once()
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_reload_teardown_stops_all_context_services(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        identity_a = MagicMock()
+        identity_a.hash = b"a" * 16
+        identity_b = MagicMock()
+        identity_b.hash = b"b" * 16
+
+        ctx_a = MagicMock()
+        ctx_a.identity = identity_a
+        ctx_a.bot_handler = MagicMock()
+        ctx_a.identity_hash = identity_a.hash.hex()
+
+        ctx_b = MagicMock()
+        ctx_b.identity = identity_b
+        ctx_b.bot_handler = MagicMock()
+        ctx_b.identity_hash = identity_b.hash.hex()
+
+        app.contexts = {
+            ctx_a.identity_hash: ctx_a,
+            ctx_b.identity_hash: ctx_b,
+        }
+        app.current_context = ctx_a
+        app.stop_local_propagation_node = MagicMock()
+        app.page_node_manager.teardown = MagicMock()
+
+        app._teardown_all_contexts_for_reload()
+
+        ctx_a.bot_handler.stop_all.assert_called_once()
+        ctx_b.bot_handler.stop_all.assert_called_once()
+        assert app.stop_local_propagation_node.call_count == 2
+        app.page_node_manager.teardown.assert_called_once()
+        ctx_a.teardown.assert_called_once()
+        ctx_b.teardown.assert_called_once()
+        assert app.contexts == {}
+        assert app.current_context is None

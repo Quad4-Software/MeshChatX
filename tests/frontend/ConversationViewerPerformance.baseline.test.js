@@ -104,77 +104,65 @@ describe("ConversationViewer performance baselines", () => {
         expect(sig[0]).toMatch(/^single:msg_/);
     });
 
-    it(
-        "bulk chatItems update: baseline ceiling (detect regressions)",
-        async () => {
-            const wrapper = mountViewer();
-            const n = 800;
-            const items = makeChatItems(n, myLxmfAddressHash, peerHash);
+    it("bulk chatItems update: baseline ceiling (detect regressions)", async () => {
+        const wrapper = mountViewer();
+        const n = 800;
+        const items = makeChatItems(n, myLxmfAddressHash, peerHash);
 
-            const t0 = performance.now();
-            await wrapper.setData({ chatItems: items });
-            await wrapper.vm.$nextTick();
-            const ms = performance.now() - t0;
+        const t0 = performance.now();
+        await wrapper.setData({ chatItems: items });
+        await wrapper.vm.$nextTick();
+        const ms = performance.now() - t0;
 
-            expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n);
-            expect(ms).toBeLessThan(15000);
-        },
-        60_000
-    );
+        expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n);
+        expect(ms).toBeLessThan(15000);
+    }, 60_000);
 
-    it(
-        "incremental append: baseline ceiling when thread already large",
-        async () => {
-            const wrapper = mountViewer();
-            const n = 600;
-            await wrapper.setData({ chatItems: makeChatItems(n, myLxmfAddressHash, peerHash) });
-            await wrapper.vm.$nextTick();
+    it("incremental append: baseline ceiling when thread already large", async () => {
+        const wrapper = mountViewer();
+        const n = 600;
+        await wrapper.setData({ chatItems: makeChatItems(n, myLxmfAddressHash, peerHash) });
+        await wrapper.vm.$nextTick();
 
-            const newMsg = {
-                type: "lxmf_message",
-                is_outbound: true,
-                lxmf_message: {
-                    hash: "newmsg".padEnd(32, "0"),
-                    source_hash: myLxmfAddressHash,
-                    destination_hash: peerHash,
-                    content: "New",
-                    created_at: new Date().toISOString(),
-                    state: "delivered",
-                    method: "direct",
-                    progress: 1.0,
-                    delivery_attempts: 1,
-                    id: n,
-                },
-            };
+        const newMsg = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "newmsg".padEnd(32, "0"),
+                source_hash: myLxmfAddressHash,
+                destination_hash: peerHash,
+                content: "New",
+                created_at: new Date().toISOString(),
+                state: "delivered",
+                method: "direct",
+                progress: 1.0,
+                delivery_attempts: 1,
+                id: n,
+            },
+        };
 
-            const t0 = performance.now();
-            wrapper.vm.chatItems.push(newMsg);
-            await wrapper.vm.$nextTick();
-            const ms = performance.now() - t0;
+        const t0 = performance.now();
+        wrapper.vm.chatItems.push(newMsg);
+        await wrapper.vm.$nextTick();
+        const ms = performance.now() - t0;
 
-            expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n + 1);
-            expect(ms).toBeLessThan(8000);
-        },
-        60_000
-    );
+        expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n + 1);
+        expect(ms).toBeLessThan(8000);
+    }, 60_000);
 
-    it(
-        "display groups computation alone stays bounded for large n",
-        async () => {
-            const wrapper = mountViewer();
-            const n = 2000;
-            await wrapper.setData({ chatItems: makeChatItems(n, myLxmfAddressHash, peerHash) });
-            await wrapper.vm.$nextTick();
+    it("display groups computation alone stays bounded for large n", async () => {
+        const wrapper = mountViewer();
+        const n = 2000;
+        await wrapper.setData({ chatItems: makeChatItems(n, myLxmfAddressHash, peerHash) });
+        await wrapper.vm.$nextTick();
 
-            const t0 = performance.now();
-            for (let k = 0; k < 20; k++) {
-                void wrapper.vm.selectedPeerChatDisplayGroups;
-            }
-            const ms = performance.now() - t0;
+        const t0 = performance.now();
+        for (let k = 0; k < 20; k++) {
+            void wrapper.vm.selectedPeerChatDisplayGroups;
+        }
+        const ms = performance.now() - t0;
 
-            expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n);
-            expect(ms).toBeLessThan(2000);
-        },
-        60_000
-    );
+        expect(wrapper.vm.selectedPeerChatDisplayGroups.length).toBe(n);
+        expect(ms).toBeLessThan(2000);
+    }, 60_000);
 });

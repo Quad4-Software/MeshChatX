@@ -133,7 +133,11 @@ def test_lxst_switch_profile_updates_codec_and_frame_time(monkeypatch):
 
     telephone = LXSTTelephony.Telephone(identity)
     telephone.call_status = LXSTTelephony.Signalling.STATUS_ESTABLISHED
-    telephone.active_call = SimpleNamespace(profile=LXSTTelephony.Profiles.QUALITY_MEDIUM, filters=[], packetizer=MagicMock())
+    telephone.active_call = SimpleNamespace(
+        profile=LXSTTelephony.Profiles.QUALITY_MEDIUM,
+        filters=[],
+        packetizer=MagicMock(),
+    )
     telephone.transmit_mixer = _FakeMixer(target_frame_ms=60, gain=0.0)
     telephone.audio_input = _FakeLineSource()
     telephone.transmit_pipeline = _FakePipeline()

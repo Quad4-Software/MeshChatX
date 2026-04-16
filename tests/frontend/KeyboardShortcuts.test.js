@@ -126,7 +126,7 @@ describe("KeyboardShortcuts", () => {
                 type: "keyboard_shortcuts.set",
                 action: "nav_messages",
                 keys: ["alt", "q"],
-            }),
+            })
         );
     });
 
@@ -136,7 +136,7 @@ describe("KeyboardShortcuts", () => {
             JSON.stringify({
                 type: "keyboard_shortcuts.delete",
                 action: "nav_map",
-            }),
+            })
         );
     });
 });

@@ -82,9 +82,18 @@ test.describe("Messages conversation scroll", () => {
     test("starts near bottom with a long thread", async ({ page }) => {
         await page.goto("/#/messages");
         await expect(page.getByText("Conversations", { exact: true }).first()).toBeVisible({ timeout: 25000 });
-        await page.locator(".conversation-item").filter({ hasText: /E2E scroll seed/ }).first().click();
+        await page
+            .locator(".conversation-item")
+            .filter({ hasText: /E2E scroll seed/ })
+            .first()
+            .click();
         await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
-        await expect(page.locator("#messages").getByText(/E2E scroll seed 119/).first()).toBeVisible({
+        await expect(
+            page
+                .locator("#messages")
+                .getByText(/E2E scroll seed 119/)
+                .first()
+        ).toBeVisible({
             timeout: 25000,
         });
 
@@ -98,7 +107,11 @@ test.describe("Messages conversation scroll", () => {
         const localHash = await getE2eLocalLxmfHash(request);
         await page.goto("/#/messages");
         await expect(page.getByText("Conversations", { exact: true }).first()).toBeVisible({ timeout: 25000 });
-        await page.locator(".conversation-item").filter({ hasText: /E2E scroll seed/ }).first().click();
+        await page
+            .locator(".conversation-item")
+            .filter({ hasText: /E2E scroll seed/ })
+            .first()
+            .click();
         await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
         await waitForMessagesOverflow(page);
 
@@ -145,7 +158,11 @@ test.describe("Messages conversation scroll", () => {
         const localHash = await getE2eLocalLxmfHash(request);
         await page.goto("/#/messages");
         await expect(page.getByText("Conversations", { exact: true }).first()).toBeVisible({ timeout: 25000 });
-        await page.locator(".conversation-item").filter({ hasText: /E2E scroll seed/ }).first().click();
+        await page
+            .locator(".conversation-item")
+            .filter({ hasText: /E2E scroll seed/ })
+            .first()
+            .click();
         await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
         await waitForMessagesOverflow(page);
 
@@ -183,7 +200,11 @@ test.describe("Messages conversation scroll", () => {
     test("preserves scroll anchor when loading older messages from the top", async ({ page }) => {
         await page.goto("/#/messages");
         await expect(page.getByText("Conversations", { exact: true }).first()).toBeVisible({ timeout: 25000 });
-        await page.locator(".conversation-item").filter({ hasText: /E2E scroll seed/ }).first().click();
+        await page
+            .locator(".conversation-item")
+            .filter({ hasText: /E2E scroll seed/ })
+            .first()
+            .click();
         await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
         await waitForMessagesOverflow(page);
 

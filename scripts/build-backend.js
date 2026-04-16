@@ -59,6 +59,71 @@ function generateManifest(buildDir, manifestPath) {
     console.log(`Manifest saved to ${manifestPath} (${Object.keys(manifest.files).length} files)`);
 }
 
+function failOnSpawnResult(stepName, result) {
+    if (result.error) {
+        throw result.error;
+    }
+
+    if (result.signal) {
+        console.error(`${stepName} was terminated by signal ${result.signal}.`);
+        if (result.signal === "SIGKILL") {
+            console.error(
+                "Build process was force-killed (often OOM killer). This is likely memory pressure, not a normal script error."
+            );
+        }
+        process.exit(1);
+    }
+
+    if (result.status !== 0) {
+        console.error(`${stepName} exited with status ${result.status}.`);
+        process.exit(result.status || 1);
+    }
+}
+
+function fileMtimeMs(filePath) {
+    if (!fs.existsSync(filePath)) {
+        return null;
+    }
+    return fs.statSync(filePath).mtimeMs;
+}
+
+function shouldRefreshLicenseArtifacts(repoRoot) {
+    const forceRefresh =
+        process.env.MESHCHATX_FORCE_LICENSE_ARTIFACTS === "1" ||
+        process.env.MESHCHATX_FORCE_LICENSE_ARTIFACTS === "true";
+    if (forceRefresh) {
+        return true;
+    }
+
+    const dataDir = path.join(repoRoot, "meshchatx", "src", "backend", "data");
+    const noticesPath = path.join(dataDir, "THIRD_PARTY_NOTICES.txt");
+    const frontendLicensesPath = path.join(dataDir, "licenses_frontend.json");
+
+    const outputTimes = [fileMtimeMs(noticesPath), fileMtimeMs(frontendLicensesPath)];
+    if (outputTimes.some((t) => t == null)) {
+        return true;
+    }
+    const oldestOutput = Math.min(...outputTimes);
+
+    const inputFiles = [
+        path.join(repoRoot, "pyproject.toml"),
+        path.join(repoRoot, "poetry.lock"),
+        path.join(repoRoot, "package.json"),
+        path.join(repoRoot, "pnpm-lock.yaml"),
+        path.join(repoRoot, "meshchatx", "src", "backend", "licenses_collector.py"),
+    ];
+
+    let newestInput = 0;
+    for (const inputFile of inputFiles) {
+        const mtime = fileMtimeMs(inputFile);
+        if (mtime != null && mtime > newestInput) {
+            newestInput = mtime;
+        }
+    }
+
+    return newestInput >= oldestOutput;
+}
+
 try {
     const platform = process.env.PLATFORM || process.platform;
     const arch = process.env.ARCH || process.arch;
@@ -103,17 +168,17 @@ try {
         spawnArgs = ["-x86_64", cmd, ...licensesArgs];
     }
 
-    console.log("Generating embedded third-party license artifacts...");
-    const licensesResult = spawnSync(spawnCmd, spawnArgs, {
-        stdio: "inherit",
-        shell: false,
-        env: env,
-    });
-    if (licensesResult.error) {
-        throw licensesResult.error;
-    }
-    if (licensesResult.status !== 0) {
-        process.exit(licensesResult.status || 1);
+    const repoRoot = path.join(__dirname, "..");
+    if (shouldRefreshLicenseArtifacts(repoRoot)) {
+        console.log("Generating embedded third-party license artifacts...");
+        const licensesResult = spawnSync(spawnCmd, spawnArgs, {
+            stdio: "inherit",
+            shell: false,
+            env: env,
+        });
+        failOnSpawnResult("License artifact generation", licensesResult);
+    } else {
+        console.log("Skipping license artifact generation (artifacts are up to date).");
     }
 
     spawnCmd = cmd;
@@ -123,17 +188,13 @@ try {
         spawnArgs = ["-x86_64", cmd, ...args];
     }
 
+    console.log("Running cx_Freeze backend build...");
     const result = spawnSync(spawnCmd, spawnArgs, {
         stdio: "inherit",
         shell: false,
         env: env,
     });
-    if (result.error) {
-        throw result.error;
-    }
-    if (result.status !== 0) {
-        process.exit(result.status || 1);
-    }
+    failOnSpawnResult("Backend build", result);
 
     if (fs.existsSync(buildDir)) {
         if (isDarwin) {

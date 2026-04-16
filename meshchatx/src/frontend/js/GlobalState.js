@@ -24,6 +24,9 @@ const globalState = reactive({
         nomad_render_html_enabled: true,
         nomad_render_plaintext_enabled: true,
         nomad_default_page_path: "/page/index.mu",
+        ui_transparency: 0,
+        ui_glass_enabled: true,
+        message_list_virtualization: true,
     },
 });
 

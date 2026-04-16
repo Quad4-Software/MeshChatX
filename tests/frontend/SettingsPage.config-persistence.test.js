@@ -300,7 +300,7 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
                 message_inbound_bubble_color: null,
                 message_failed_bubble_color: "#ef4444",
                 message_waiting_bubble_color: "#e5e7eb",
-            }),
+            })
         );
     });
 
@@ -330,7 +330,7 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
             expect.objectContaining({
                 announce_max_stored_lxmf_delivery: 900,
                 discovered_interfaces_max_return: 500,
-            }),
+            })
         );
     });
 
@@ -341,21 +341,21 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
             "/api/v1/config",
             expect.objectContaining({
                 auto_resend_failed_messages_when_announce_received: true,
-            }),
+            })
         );
         await w.vm.onAllowAutoResendingFailedMessagesWithAttachmentsChange();
         expect(api.patch).toHaveBeenCalledWith(
             "/api/v1/config",
             expect.objectContaining({
                 allow_auto_resending_failed_messages_with_attachments: false,
-            }),
+            })
         );
         await w.vm.onAutoSendFailedMessagesToPropagationNodeChange();
         expect(api.patch).toHaveBeenCalledWith(
             "/api/v1/config",
             expect.objectContaining({
                 auto_send_failed_messages_to_propagation_node: false,
-            }),
+            })
         );
     });
 
@@ -507,7 +507,7 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
         await vi.advanceTimersByTimeAsync(1000);
         expect(api.patch).toHaveBeenCalledWith(
             "/api/v1/config",
-            expect.objectContaining({ banished_text: "OUT", banished_color: "#ff0000" }),
+            expect.objectContaining({ banished_text: "OUT", banished_color: "#ff0000" })
         );
     });
 
@@ -574,7 +574,7 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
             expect.objectContaining({
                 gitea_base_url: "https://gitea.example",
                 docs_download_urls: "https://docs.example",
-            }),
+            })
         );
     });
 
@@ -592,7 +592,7 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
             expect.objectContaining({
                 csp_extra_connect_src: "wss://a.example",
                 csp_extra_style_src: "https://css.example",
-            }),
+            })
         );
     });
 
@@ -772,9 +772,7 @@ describe("SettingsPage — maintenance, exports, telemetry trust, RNS reload", (
     it("flushArchivedPages sends websocket flush after confirm", async () => {
         const w = await mountSettingsPage(api);
         await w.vm.flushArchivedPages();
-        expect(WebSocketConnection.send).toHaveBeenCalledWith(
-            JSON.stringify({ type: "nomadnet.page.archive.flush" }),
-        );
+        expect(WebSocketConnection.send).toHaveBeenCalledWith(JSON.stringify({ type: "nomadnet.page.archive.flush" }));
     });
 
     it("revokeTelemetryTrust PATCHes contact telemetry flag", async () => {

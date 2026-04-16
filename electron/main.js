@@ -68,6 +68,10 @@ if (process.argv.includes("--disable-gpu") || process.argv.includes("--disable-s
     app.disableHardwareAcceleration();
 }
 
+if (process.platform === "linux") {
+    app.setName("reticulum-meshchatx");
+}
+
 // Protocol registration
 if (process.defaultApp) {
     if (process.argv.length >= 2) {
@@ -411,7 +415,7 @@ function formatRenderProcessGoneDetails(details) {
             exitCode: details.exitCode,
         },
         null,
-        2,
+        2
     );
 }
 
@@ -441,12 +445,14 @@ function getDefaultReticulumConfigDir() {
     return path.join(app.getPath("home"), ".reticulum");
 }
 
-function createTray() {
+function getAppIconPath() {
     const iconPath = path.join(__dirname, "build", "icon.png");
     const fallbackIconPath = path.join(__dirname, "assets", "images", "logo.png");
-    const trayIcon = fs.existsSync(iconPath) ? iconPath : fallbackIconPath;
+    return fs.existsSync(iconPath) ? iconPath : fallbackIconPath;
+}
 
-    tray = new Tray(trayIcon);
+function createTray() {
+    tray = new Tray(getAppIconPath());
     const contextMenu = Menu.buildFromTemplate([
         {
             label: "Show App",
@@ -523,10 +529,12 @@ app.whenReady().then(async () => {
     const shouldLaunchHeadless = userProvidedArguments.includes("--headless");
 
     if (!shouldLaunchHeadless) {
+        const appIconPath = getAppIconPath();
         // create browser window
         mainWindow = new BrowserWindow({
             width: 1500,
             height: 800,
+            icon: appIconPath,
             webPreferences: {
                 // used to inject logging over ipc
                 preload: path.join(__dirname, "preload.js"),
