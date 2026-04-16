@@ -45,7 +45,10 @@ class BotHandler:
                         entry["bot_config_dir"] = os.path.abspath(
                             os.path.expanduser(entry["bot_config_dir"]),
                         )
-                    if "reticulum_config_dir" in entry and entry["reticulum_config_dir"]:
+                    if (
+                        "reticulum_config_dir" in entry
+                        and entry["reticulum_config_dir"]
+                    ):
                         entry["reticulum_config_dir"] = os.path.abspath(
                             os.path.expanduser(entry["reticulum_config_dir"]),
                         )

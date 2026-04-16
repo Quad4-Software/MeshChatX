@@ -815,22 +815,104 @@ class ReticulumMeshChat:
                 del self.contexts[identity_hash]
             self.current_context = None
 
+    def _teardown_all_contexts_for_reload(self):
+        # Stop per-identity long-running services before tearing down contexts.
+        for identity_hash in list(self.contexts.keys()):
+            ctx = self.contexts.get(identity_hash)
+            if ctx is None:
+                continue
+            bot_handler = getattr(ctx, "bot_handler", None)
+            if bot_handler is not None:
+                with contextlib.suppress(Exception):
+                    bot_handler.stop_all()
+            with contextlib.suppress(Exception):
+                self.stop_local_propagation_node(context=ctx)
+
+        # Stop page node mesh servers before resetting transport state.
+        if hasattr(self, "page_node_manager"):
+            with contextlib.suppress(Exception):
+                self.page_node_manager.teardown()
+
+        for identity_hash in list(self.contexts.keys()):
+            ctx = self.contexts.get(identity_hash)
+            if ctx is None:
+                continue
+            with contextlib.suppress(Exception):
+                ctx.teardown()
+
+        self.contexts.clear()
+        self.current_context = None
+        self.running = False
+
+    async def _send_rns_reload_status(
+        self,
+        stage: str,
+        message: str,
+        *,
+        level: str = "info",
+        in_progress: bool = True,
+    ):
+        with contextlib.suppress(Exception):
+            await self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "reticulum_reload_status",
+                        "stage": stage,
+                        "message": message,
+                        "level": level,
+                        "in_progress": in_progress,
+                    },
+                ),
+            )
+
     async def reload_reticulum(self):
         print("Hot reloading Reticulum stack...")
         # Keep reference to old reticulum instance for cleanup
         old_reticulum = getattr(self, "reticulum", None)
+        identity_to_restore = self.identity
+        identity_hashes = []
+        for ctx in list(self.contexts.values()):
+            with contextlib.suppress(Exception):
+                identity_hashes.append(ctx.identity.hash)
+        if not identity_hashes:
+            identity_hash = getattr(identity_to_restore, "hash", None)
+            if identity_hash:
+                identity_hashes.append(identity_hash)
 
         try:
+            if identity_to_restore is None:
+                raise RuntimeError(
+                    "Cannot reload Reticulum without an active identity context.",
+                )
+            await self._send_rns_reload_status(
+                "starting",
+                "Reloading RNS stack...",
+            )
+
             # Signal background loops to exit
             self._identity_session_id += 1
 
-            # Teardown current identity state and managers
-            self.teardown_identity()
+            await self._send_rns_reload_status(
+                "stopping-services",
+                "Stopping bots and mesh services across identities...",
+            )
+            self._teardown_all_contexts_for_reload()
 
             # Give loops a moment to finish
             await asyncio.sleep(2)
 
+            await self._send_rns_reload_status(
+                "deregistering",
+                "Deregistering destinations and active links...",
+            )
+            for identity_hash in identity_hashes:
+                self.cleanup_rns_state_for_identity(identity_hash)
+
             # Close RNS instance first to let it detach interfaces naturally
+            await self._send_rns_reload_status(
+                "detaching",
+                "Detaching interfaces and shutting down Reticulum...",
+            )
             try:
                 # Use class method to ensure all instances are cleaned up if any
                 RNS.Reticulum.exit_handler()
@@ -925,7 +1007,9 @@ class ReticulumMeshChat:
                 # Reticulum uses private variables for singleton and state control
                 # We need to clear them so we can create a new instance
                 if hasattr(RNS.Reticulum, "_Reticulum__instance"):
-                    RNS.Reticulum._Reticulum__instance = None
+                    # Keep the instance object until we're done waiting for sockets.
+                    # Some Reticulum background workers still consult get_instance().
+                    pass
                 if hasattr(RNS.Reticulum, "_Reticulum__exit_handler_ran"):
                     RNS.Reticulum._Reticulum__exit_handler_ran = False
                 if hasattr(RNS.Reticulum, "_Reticulum__interface_detach_ran"):
@@ -1057,7 +1141,9 @@ class ReticulumMeshChat:
                                 try:
                                     current_process = psutil.Process()
                                     # We use kind='all' to catch both TCP and UNIX sockets
-                                    for conn in current_process.connections(kind="all"):
+                                    for conn in current_process.net_connections(
+                                        kind="all"
+                                    ):
                                         try:
                                             match = False
                                             if conn.laddr:
@@ -1198,20 +1284,40 @@ class ReticulumMeshChat:
             # Final GC to ensure everything is released
             gc.collect()
 
+            # Clear singleton right before spinning up a fresh RNS instance.
+            if hasattr(RNS.Reticulum, "_Reticulum__instance"):
+                RNS.Reticulum._Reticulum__instance = None
+
             # Re-setup identity (this starts background loops again)
             self.running = True
-            self.setup_identity(self.identity)
+            await self._send_rns_reload_status(
+                "starting-services",
+                "Starting identity services again...",
+            )
+            self.setup_identity(identity_to_restore)
+            await self._send_rns_reload_status(
+                "done",
+                "RNS reload complete.",
+                level="success",
+                in_progress=False,
+            )
 
             return True
         except Exception as e:
             print(f"Hot reload failed: {e}")
 
             traceback.print_exc()
+            await self._send_rns_reload_status(
+                "failed",
+                f"RNS reload failed: {e!s}",
+                level="error",
+                in_progress=False,
+            )
 
             # Try to recover if possible
-            if not hasattr(self, "reticulum"):
+            if not hasattr(self, "reticulum") and identity_to_restore is not None:
                 try:
-                    self.setup_identity(self.identity)
+                    self.setup_identity(identity_to_restore)
                 except Exception:  # noqa: S110
                     pass
 
@@ -5313,9 +5419,17 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
+            if not await self.reload_reticulum():
+                return web.json_response(
+                    {
+                        "message": "Transport mode was enabled in config, but RNS reload failed.",
+                    },
+                    status=500,
+                )
+
             return web.json_response(
                 {
-                    "message": "Transport has been enabled. MeshChat must be restarted for this change to take effect.",
+                    "message": "Transport mode enabled and RNS restarted successfully.",
                 },
             )
 
@@ -5333,9 +5447,17 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
+            if not await self.reload_reticulum():
+                return web.json_response(
+                    {
+                        "message": "Transport mode was disabled in config, but RNS reload failed.",
+                    },
+                    status=500,
+                )
+
             return web.json_response(
                 {
-                    "message": "Transport has been disabled. MeshChat must be restarted for this change to take effect.",
+                    "message": "Transport mode disabled and RNS restarted successfully.",
                 },
             )
 
@@ -10726,6 +10848,19 @@ class ReticulumMeshChat:
                 value = max(12, min(value, 96))
                 self.config.message_icon_size.set(value)
 
+        if "ui_transparency" in data:
+            try:
+                value = int(data["ui_transparency"])
+            except (TypeError, ValueError):
+                value = None
+            if value is not None:
+                self.config.ui_transparency.set(max(0, min(value, 100)))
+
+        if "ui_glass_enabled" in data:
+            self.config.ui_glass_enabled.set(
+                self._parse_bool(data["ui_glass_enabled"]),
+            )
+
         if "message_outbound_bubble_color" in data:
             self.config.message_outbound_bubble_color.set(
                 data["message_outbound_bubble_color"],
@@ -11915,6 +12050,8 @@ class ReticulumMeshChat:
             "banished_color": ctx.config.banished_color.get(),
             "message_font_size": ctx.config.message_font_size.get(),
             "message_icon_size": ctx.config.message_icon_size.get(),
+            "ui_transparency": ctx.config.ui_transparency.get(),
+            "ui_glass_enabled": ctx.config.ui_glass_enabled.get(),
             "message_outbound_bubble_color": ctx.config.message_outbound_bubble_color.get(),
             "message_inbound_bubble_color": ctx.config.message_inbound_bubble_color.get(),
             "message_failed_bubble_color": ctx.config.message_failed_bubble_color.get(),

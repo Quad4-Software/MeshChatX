@@ -312,6 +312,8 @@ class ConfigManager:
         )
         self.message_font_size = self.IntConfig(self, "message_font_size", 14)
         self.message_icon_size = self.IntConfig(self, "message_icon_size", 28)
+        self.ui_transparency = self.IntConfig(self, "ui_transparency", 0)
+        self.ui_glass_enabled = self.BoolConfig(self, "ui_glass_enabled", True)
         self.message_outbound_bubble_color = self.StringConfig(
             self,
             "message_outbound_bubble_color",

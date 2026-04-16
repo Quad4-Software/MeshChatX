@@ -38,7 +38,9 @@ def main():
     else:
         config_path = os.path.join(os.path.abspath(args.storage), "config")
     os.makedirs(config_path, exist_ok=True)
-    reticulum_config_dir = os.path.abspath(os.path.expanduser(args.reticulum_config_dir))
+    reticulum_config_dir = os.path.abspath(
+        os.path.expanduser(args.reticulum_config_dir)
+    )
     os.makedirs(reticulum_config_dir, exist_ok=True)
 
     BotCls = TEMPLATE_MAP[args.template]
