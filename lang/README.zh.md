@@ -8,7 +8,7 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 
 - 网站: [meshchatx.com](https://meshchatx.com)
 - 源码: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- 官方镜像: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) — 目前亦用于 Windows 与 macOS 构建。
+- 官方镜像: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) — 目前亦用于 Windows 与 macOS 构建。
 - 发行版: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - 变更日志: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -150,11 +150,11 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 绘文字选择器使用系统字体（Electron/Chromium）渲染标准 Unicode 绘文字。若显示为空白方框（“豆腐块”），请安装彩色绘文字字体包并重启应用。
 
-| 发行版（示例）           | 软件包 |
-| ------------------------ | ------ |
-| Arch Linux、Artix、Manjaro | `noto-fonts-emoji`（`sudo pacman -S noto-fonts-emoji`） |
-| Debian、Ubuntu         | `fonts-noto-color-emoji`（`sudo apt install fonts-noto-color-emoji`） |
-| Fedora                   | `google-noto-emoji-color-fonts` |
+| 发行版（示例）             | 软件包                                                                |
+| -------------------------- | --------------------------------------------------------------------- |
+| Arch Linux、Artix、Manjaro | `noto-fonts-emoji`（`sudo pacman -S noto-fonts-emoji`）               |
+| Debian、Ubuntu             | `fonts-noto-color-emoji`（`sudo apt install fonts-noto-color-emoji`） |
+| Fedora                     | `google-noto-emoji-color-fonts`                                       |
 
 安装后若仍异常，可运行 `fc-cache -fv`。可选：最小安装可再装 `noto-fonts` 以覆盖更多符号。
 
@@ -330,3 +330,9 @@ mv locales.json meshchatx/src/frontend/locales/xx.json
 - [Liam Cottle](https://github.com/liamcottle) - 原始 Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - Micron 解析器（JavaScript）
 - [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
+
+## 许可证
+
+项目自有部分采用 0BSD 许可。
+源自 MeshChat 的原始上游部分继续采用 MIT 许可。
+完整文本与声明请见 [`../LICENSE`](../LICENSE)。

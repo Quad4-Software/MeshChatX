@@ -3,9 +3,9 @@ name = "reticulum-meshchatx"
 version = "4.5.0"
 description = "A simple mesh network communications app powered by the Reticulum Network Stack"
 authors = [
-  {name = "Sudo-Ivan"}
+  {name = "Quad4"}
 ]
-license = "MIT"
+license = "0BSD AND MIT"
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = ["reticulum", "meshchat", "lxmf", "rns"]

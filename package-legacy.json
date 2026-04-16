@@ -42,7 +42,7 @@
     "linux": {
         "artifactName": "ReticulumMeshChatX-v${version}-legacy-${os}.${ext}",
         "target": ["AppImage", "deb"],
-        "maintainer": "Sudo-Ivan",
+        "maintainer": "Quad4",
         "category": "Network",
         "extraResources": [
             {

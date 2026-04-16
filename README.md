@@ -300,6 +300,7 @@ For release consistency, keep version fields aligned where required (`package.js
 Security and integrity details:
 
 - [`SECURITY.md`](SECURITY.md)
+- [`LEGAL.md`](LEGAL.md)
 - Built-in integrity checks and HTTPS/WSS defaults in app runtime
 - CI scanning workflows in `.gitea/workflows/`
 
@@ -334,3 +335,9 @@ No other code changes are required. The app, language selector, and tests all di
 - [Liam Cottle](https://github.com/liamcottle) - Original Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - micron parser JavaScript work
 - [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
+
+## License
+
+Project-owned portions are licensed under 0BSD.
+Original upstream portions from Reticulum MeshChat remain under MIT.
+See [`LICENSE`](LICENSE) for full text and notices.

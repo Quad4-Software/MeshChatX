@@ -50,3 +50,11 @@ This project keeps Android-specific Chaquopy recipes in `android/chaquopy-recipe
 - `bcrypt-5`
   - Purpose: tracks attempted upgrade path to desktop-equivalent bcrypt.
   - Status: currently not enabled in Android app dependencies; `bcrypt==3.1.7` remains pinned for stable APK builds.
+
+## License
+
+This directory is part of the main project licensing split:
+- project-owned portions: 0BSD
+- original upstream MeshChat portions: MIT
+
+See [`../LICENSE`](../LICENSE) for full text and notices.

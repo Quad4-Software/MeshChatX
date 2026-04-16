@@ -5,7 +5,7 @@
     "homepage": "https://git.quad4.io/RNS-Things/MeshChatX",
     "desktopName": "reticulum-meshchatx.desktop",
     "author": {
-        "name": "Sudo-Ivan"
+        "name": "Quad4"
     },
     "main": "electron/main.js",
     "scripts": {
@@ -46,7 +46,7 @@
         "package": "pnpm run build && electron-forge package",
         "make": "pnpm run build && electron-forge make"
     },
-    "license": "MIT",
+    "license": "0BSD AND MIT",
     "engines": {
         "node": ">=24"
     },
@@ -200,8 +200,8 @@
                     ]
                 }
             ],
-            "maintainer": "Sudo-Ivan",
-            "vendor": "Sudo-Ivan",
+            "maintainer": "Quad4",
+            "vendor": "Quad4",
             "category": "Network",
             "synopsis": "Mesh networking chat client",
             "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
@@ -221,15 +221,15 @@
             ]
         },
         "deb": {
-            "maintainer": "Sudo-Ivan",
-            "vendor": "Sudo-Ivan",
+            "maintainer": "Quad4",
+            "vendor": "Quad4",
             "packageCategory": "network",
             "synopsis": "Mesh networking chat client",
             "description": "A simple mesh network communications app powered by the Reticulum Network Stack"
         },
         "rpm": {
-            "maintainer": "Sudo-Ivan",
-            "vendor": "Sudo-Ivan",
+            "maintainer": "Quad4",
+            "vendor": "Quad4",
             "packageCategory": "Network",
             "synopsis": "Mesh networking chat client",
             "description": "A simple mesh network communications app powered by the Reticulum Network Stack"

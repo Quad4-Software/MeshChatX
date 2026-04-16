@@ -36,7 +36,7 @@ module.exports = {
             name: "@electron-forge/maker-deb",
             config: {
                 options: {
-                    maintainer: "Sudo-Ivan",
+                    maintainer: "Quad4",
                     homepage: "https://git.quad4.io/RNS-Things/MeshChatX",
                     categories: ["Network"],
                 },

@@ -5,6 +5,7 @@ pkgbase = reticulum-meshchatx-git
 	url = https://git.quad4.io/RNS-Things/MeshChatX
 	arch = x86_64
 	arch = aarch64
+	license = 0BSD
 	license = MIT
 	makedepends = git
 	makedepends = nodejs

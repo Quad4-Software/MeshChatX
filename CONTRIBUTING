@@ -47,9 +47,21 @@ Lastly, be patient.
 - No need to run linting or formatting.
 - No need to add a test or run the test suite.
 
+## Licensing of contributions
+
+By submitting a patch, you agree that your contribution is licensed under the same terms as the file or files it modifies, as recorded by the per-file SPDX headers and the repository `LICENSE`:
+
+- Contributions to project-owned files (SPDX `0BSD`) are licensed under 0BSD.
+- Contributions to upstream-derived files (SPDX `MIT` or `0BSD AND MIT`) are licensed under MIT, so the upstream license obligations are preserved.
+- New files you author and add to the project are licensed under 0BSD unless you explicitly mark them otherwise in the patch.
+
+You also confirm that you have the right to submit the contribution under these terms (for example, it is your own work, or you have permission from the copyright holder), and that you are not knowingly introducing code under an incompatible license.
+
 ## Generative AI policy
 
 You may use generative AI tools when contributing, on the condition that your setup actually supplies the model with enough context to produce sound work: relevant files, constraints, failing tests, and project conventions. Vague prompts and thin context lead to wrong or generic patches; that burden is on the contributor, not the reviewers.
+
+You must disclose AI usage in the patch message body (or commit message, if you prefer): state which tools or services you used in a material way for that change (for example, model or product name, and whether it was local or cloud). If a change was written without meaningful AI assistance, say so briefly. This is so reviewers can judge scope and provenance; it is not a substitute for your own review and testing.
 
 We prefer models that run locally or offline when that is practical for you.
 

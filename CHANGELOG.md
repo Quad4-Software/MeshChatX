@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - **MeshChat utils**: **`convert_propagation_node_state_to_string`** maps **`LXMRouter.PR_PATH_TIMEOUT`** to **`path_timeout`** so the API can report path timeouts distinctly from other failures.
 - **Auto-announce / intervals**: Refactor around **`interval_action_due`** in **`meshchat.py`** to simplify when auto-announce and propagation sync checks run; add tests for auto-announce behaviour.
 - **Android runtime integration**: Added Android app startup hardening for Chaquopy and WebView, including startup retries, in-app startup errors, runtime permission flow (audio/Bluetooth/notifications), selectable error text, launcher icon integration, and release minification rules for APK builds.
+- **Licensing**: Relicensed Quad4-owned portions under **0BSD** and kept upstream **Reticulum MeshChat** portions under their original **MIT** notice in **`LICENSE`**.
 
 ### Frontend and UX
 

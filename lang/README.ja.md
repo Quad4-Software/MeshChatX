@@ -8,7 +8,7 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 
 - ウェブサイト: [meshchatx.com](https://meshchatx.com)
 - ソースコード: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- 公式ミラー: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) — 現時点では Windows / macOS ビルドにも使用。
+- 公式ミラー: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) — 現時点では Windows / macOS ビルドにも使用。
 - リリース: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - 変更履歴: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -150,11 +150,11 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 絵文字ピッカーはシステムフォント（Electron/Chromium）で標準 Unicode 絵文字を描画します。絵文字が空の四角（「豆腐」）になる場合はカラー絵文字パッケージをインストールし、アプリを再起動してください。
 
-| ディストリビューション（例） | パッケージ |
-| ---------------------------- | ---------- |
-| Arch Linux, Artix, Manjaro | `noto-fonts-emoji`（`sudo pacman -S noto-fonts-emoji`） |
-| Debian, Ubuntu | `fonts-noto-color-emoji`（`sudo apt install fonts-noto-color-emoji`） |
-| Fedora | `google-noto-emoji-color-fonts` |
+| ディストリビューション（例） | パッケージ                                                            |
+| ---------------------------- | --------------------------------------------------------------------- |
+| Arch Linux, Artix, Manjaro   | `noto-fonts-emoji`（`sudo pacman -S noto-fonts-emoji`）               |
+| Debian, Ubuntu               | `fonts-noto-color-emoji`（`sudo apt install fonts-noto-color-emoji`） |
+| Fedora                       | `google-noto-emoji-color-fonts`                                       |
 
 インストール後も表示されない場合は `fc-cache -fv` を実行してください。最小インストールでは記号の網羅用に `noto-fonts` も任意で入れてください。
 
@@ -330,3 +330,9 @@ mv locales.json meshchatx/src/frontend/locales/xx.json
 - [Liam Cottle](https://github.com/liamcottle) - オリジナル Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - Micron パーサー（JavaScript）
 - [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
+
+## ライセンス
+
+プロジェクト独自の部分は 0BSD です。
+MeshChat 由来の元の上流部分は MIT のままです。
+全文と通知は [`../LICENSE`](../LICENSE) を参照してください。

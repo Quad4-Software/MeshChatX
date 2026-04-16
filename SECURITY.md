@@ -6,6 +6,8 @@ If you discover a security vulnerability or have concerns about the security of 
 
 1. **LXMF**: `7cc8d66b4f6a0e0e49d34af7f6077b5a`
 
+For legal inquiries (non-security), contact `legal@quad4.io` or see [`LEGAL.md`](LEGAL.md).
+
 ## Security Overview
 
 Reticulum MeshChatX is designed with a high degree of security and privacy in mind, leveraging multiple layers of protection and modern security practices.

@@ -8,7 +8,7 @@ Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in ke
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Quellcode: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Offizieller Spiegel: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) – derzeit auch fuer Windows- und macOS-Builds genutzt.
+- Offizieller Spiegel: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) – derzeit auch fuer Windows- und macOS-Builds genutzt.
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Aenderungsprotokoll: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -150,11 +150,11 @@ Dieselbe Seite erscheint in der in-app-**Dokumentation** (MeshChatX-Docs), wenn 
 
 Die Emoji-Auswahl rendert Standard-Unicode-Emoji mit den Systemschriften (Electron/Chromium). Wenn Emoji als leere Kaestchen („Tofu“) erscheinen, installieren Sie ein Farb-Emoji-Paket und starten Sie die App neu.
 
-| Distribution (Beispiele)     | Paket                                                                 |
-| ---------------------------- | --------------------------------------------------------------------- |
-| Arch Linux, Artix, Manjaro   | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`)                |
-| Debian, Ubuntu               | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`)  |
-| Fedora                       | `google-noto-emoji-color-fonts`                                       |
+| Distribution (Beispiele)   | Paket                                                                |
+| -------------------------- | -------------------------------------------------------------------- |
+| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`)               |
+| Debian, Ubuntu             | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`) |
+| Fedora                     | `google-noto-emoji-color-fonts`                                      |
 
 Nach der Installation bei Bedarf `fc-cache -fv` ausfuehren. Optional: `noto-fonts` fuer breitere Symbolabdeckung bei minimalen Installationen.
 
@@ -330,3 +330,9 @@ Keine weiteren Code-Aenderungen noetig. App, Sprachwahl und Tests lesen Locales 
 - [Liam Cottle](https://github.com/liamcottle) - Originales Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) - Micron-Parser (JavaScript)
 - [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
+
+## Lizenz
+
+Die projekt-eigenen Anteile stehen unter 0BSD.
+Urspruengliche Upstream-Anteile von MeshChat bleiben unter MIT.
+Vollstaendiger Text und Hinweise in [`../LICENSE`](../LICENSE).

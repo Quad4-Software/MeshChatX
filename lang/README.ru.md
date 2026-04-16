@@ -8,7 +8,7 @@
 
 - Сайт: [meshchatx.com](https://meshchatx.com)
 - Исходный код: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Официальное зеркало: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) — пока также используется для сборок Windows и macOS.
+- Официальное зеркало: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) — пока также используется для сборок Windows и macOS.
 - Релизы: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Журнал изменений: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -150,11 +150,11 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 Выбор эмодзи отображает стандартные Unicode-эмодзи системными шрифтами (Electron/Chromium). Если вместо них пустые квадраты («тофу»), установите пакет цветных эмодзи и перезапустите приложение.
 
-| Семейство (примеры)        | Пакет |
-| -------------------------- | ----- |
-| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`) |
+| Семейство (примеры)        | Пакет                                                                |
+| -------------------------- | -------------------------------------------------------------------- |
+| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`)               |
 | Debian, Ubuntu             | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`) |
-| Fedora                     | `google-noto-emoji-color-fonts` |
+| Fedora                     | `google-noto-emoji-color-fonts`                                      |
 
 После установки при необходимости выполните `fc-cache -fv`. Опционально: `noto-fonts` для лучшего покрытия символов на минимальных установках.
 
@@ -330,3 +330,9 @@ mv locales.json meshchatx/src/frontend/locales/xx.json
 - [Liam Cottle](https://github.com/liamcottle) — оригинальный Reticulum MeshChat
 - [RFnexus](https://github.com/RFnexus) — парсер Micron (JavaScript)
 - [markqvist](https://github.com/markqvist) — Reticulum, LXMF, LXST
+
+## Лицензия
+
+Собственные части проекта лицензированы по 0BSD.
+Оригинальные upstream-части, унаследованные от MeshChat, остаются под MIT.
+Полный текст и уведомления см. в [`../LICENSE`](../LICENSE).
