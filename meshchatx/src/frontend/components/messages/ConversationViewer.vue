@@ -899,7 +899,14 @@
         </div>
 
         <!-- hidden file input for selecting files -->
-        <input ref="file-input" type="file" multiple style="display: none" @change="onFileInputChange" />
+        <input
+            ref="file-input"
+            type="file"
+            multiple
+            accept="*/*,image/*"
+            style="display: none"
+            @change="onFileInputChange"
+        />
 
         <!-- Message Context Menu (Teleport to body to avoid overflow clipping) -->
         <Teleport to="body">
@@ -4432,9 +4439,18 @@ export default {
             }
         },
         onFileInputChange: function (event) {
-            for (const file of event.target.files) {
-                this.newMessageFiles.push(file);
+            const selectedFiles = Array.from(event.target.files || []);
+            for (const file of selectedFiles) {
+                const looksLikeImage =
+                    file?.type?.startsWith("image/") ||
+                    /\.(png|jpe?g|gif|webp|bmp|svg|avif|heic|heif)$/i.test(file?.name || "");
+                if (looksLikeImage) {
+                    this.onImageSelected(file);
+                } else {
+                    this.newMessageFiles.push(file);
+                }
             }
+            this.clearFileInput();
         },
         clearFileInput: function () {
             this.$refs["file-input"].value = null;
