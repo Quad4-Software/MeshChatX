@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
@@ -103,3 +103,31 @@ def test_web_audio_bridge_asyncutils_fallback():
         bridge = WebAudioBridge(mock_tele_mgr, mock_config_mgr)
         assert bridge.loop == mock_loop
         assert bridge._loop == mock_loop
+
+
+def test_attach_client_returns_false_without_active_call():
+    tele_mgr = MagicMock()
+    tele_mgr.telephone = MagicMock()
+    tele_mgr.telephone.active_call = None
+    bridge = WebAudioBridge(tele_mgr, MagicMock())
+
+    attached = bridge.attach_client(MagicMock())
+
+    assert attached is False
+
+
+@pytest.mark.asyncio
+async def test_send_bytes_to_all_detaches_stale_clients():
+    bridge = WebAudioBridge(MagicMock(), MagicMock())
+    healthy_client = MagicMock()
+    healthy_client.send_bytes = AsyncMock(return_value=None)
+
+    stale_client = MagicMock()
+    stale_client.send_bytes = AsyncMock(side_effect=RuntimeError("socket closed"))
+    bridge.clients = {healthy_client, stale_client}
+
+    await bridge._send_bytes_to_all(b"pcm")
+
+    healthy_client.send_bytes.assert_awaited_once_with(b"pcm")
+    stale_client.send_bytes.assert_awaited_once_with(b"pcm")
+    assert stale_client not in bridge.clients

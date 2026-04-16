@@ -27,7 +27,6 @@ def global_mocks():
             return_value=None,
         ),
         patch("meshchatx.meshchat.generate_ssl_certificate", return_value=None),
-        patch("asyncio.sleep", side_effect=lambda *args, **kwargs: asyncio.sleep(0)),
     ):
         # Mock run_async to properly close coroutines
         def mock_run_async(coro):
