@@ -178,7 +178,13 @@ popd >/dev/null
 
 PYPIDIR="${CHAQUOPY_DIR}/server/pypi"
 VENV_DIR="${PYPIDIR}/.venv-local"
+rm -rf "${VENV_DIR}"
 "${PYTHON_BIN}" -m venv "${VENV_DIR}"
+# Some Python images only provide python3/python3.X in venv bin, while the
+# script below invokes `${VENV_DIR}/bin/python`.
+if [[ ! -e "${VENV_DIR}/bin/python" && -e "${VENV_DIR}/bin/python3" ]]; then
+    ln -sf python3 "${VENV_DIR}/bin/python"
+fi
 "${VENV_DIR}/bin/pip" install --upgrade pip
 "${VENV_DIR}/bin/pip" install -r "${PYPIDIR}/requirements.txt"
 "${VENV_DIR}/bin/pip" install "numpy==${NUMPY_VERSION}"
