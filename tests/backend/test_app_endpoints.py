@@ -128,3 +128,50 @@ async def test_app_shutdown_endpoint(mock_rns_minimal, temp_dir):
         # Since it's in a task, we might need to check if it was called
         # but sys.exit might not have been reached yet or was called in a different context
         # For this test, verifying the endpoint exists and returns 200 is sufficient.
+
+
+@pytest.mark.asyncio
+async def test_app_info_tolerates_missing_runtime_objects(mock_rns_minimal, temp_dir):
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("psutil.Process") as mock_process,
+        patch("psutil.net_io_counters", side_effect=PermissionError),
+        patch("importlib.metadata.version", side_effect=Exception),
+        patch("importlib.metadata.distribution", side_effect=Exception),
+        patch("importlib.metadata.packages_distributions", return_value={}),
+        patch("importlib.import_module", side_effect=Exception),
+    ):
+        mock_proc_instance = mock_process.return_value
+        mock_proc_instance.memory_info.side_effect = PermissionError
+        mock_proc_instance.net_connections.side_effect = PermissionError
+
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app_instance.database = None
+        app_instance.config = None
+
+        request = MagicMock()
+        app_info_handler = None
+        for route in app_instance.get_routes():
+            if route.path == "/api/v1/app/info" and route.method == "GET":
+                app_info_handler = route.handler
+                break
+        assert app_info_handler is not None
+
+        response = await app_info_handler(request)
+        assert response.status == 200
+        data = json.loads(response.body)
+        info = data["app_info"]
+
+        assert info["database_file_size"] == 0
+        assert info["database_files"]["total_bytes"] == 0
+        assert info["memory_usage"]["rss"] == 0
+        assert info["memory_usage"]["vms"] == 0
+        assert info["network_stats"]["bytes_sent"] == 0
+        assert info["network_stats"]["bytes_recv"] == 0
+        assert info["sqlite"]["journal_mode"] == "unknown"
+        assert info["tutorial_seen"] is False
+        assert info["changelog_seen_version"] == "0.0.0"

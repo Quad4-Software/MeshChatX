@@ -88,3 +88,21 @@ def test_app_info_dependency_keys_resolve_in_dev_env(package: str):
 def test_audioop_lts_resolves_when_applicable():
     v = ReticulumMeshChat.get_package_version("audioop-lts")
     assert v != "unknown"
+
+
+def test_get_package_version_works_without_packaging_module():
+    real_import = __import__
+
+    def _import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name.startswith("packaging"):
+            raise ModuleNotFoundError("No module named 'packaging'")
+        return real_import(name, globals, locals, fromlist, level)
+
+    with (
+        patch("builtins.__import__", side_effect=_import),
+        patch("importlib.metadata.version", side_effect=importlib.metadata.PackageNotFoundError),
+        patch("importlib.metadata.distribution", side_effect=importlib.metadata.PackageNotFoundError),
+        patch("importlib.metadata.packages_distributions", return_value={}),
+        patch("importlib.import_module", side_effect=Exception),
+    ):
+        assert ReticulumMeshChat.get_package_version("lxst", "fallback") == "fallback"
