@@ -4356,6 +4356,7 @@ class ReticulumMeshChat:
                 try:
                     return process.memory_info()
                 except Exception:
+
                     class _M:
                         rss = 0
                         vms = 0
@@ -4366,6 +4367,7 @@ class ReticulumMeshChat:
                 try:
                     return psutil.net_io_counters()
                 except Exception:
+
                     class _N:
                         bytes_sent = 0
                         bytes_recv = 0
@@ -4562,7 +4564,9 @@ class ReticulumMeshChat:
                         "database_file_size": db_files["main_bytes"],
                         "database_files": db_files,
                         "sqlite": {
-                            "journal_mode": _safe_sqlite_pragma("journal_mode", "unknown"),
+                            "journal_mode": _safe_sqlite_pragma(
+                                "journal_mode", "unknown"
+                            ),
                             "synchronous": _safe_sqlite_pragma("synchronous", None),
                             "wal_autocheckpoint": _safe_sqlite_pragma(
                                 "wal_autocheckpoint",

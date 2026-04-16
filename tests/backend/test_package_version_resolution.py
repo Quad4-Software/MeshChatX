@@ -100,8 +100,14 @@ def test_get_package_version_works_without_packaging_module():
 
     with (
         patch("builtins.__import__", side_effect=_import),
-        patch("importlib.metadata.version", side_effect=importlib.metadata.PackageNotFoundError),
-        patch("importlib.metadata.distribution", side_effect=importlib.metadata.PackageNotFoundError),
+        patch(
+            "importlib.metadata.version",
+            side_effect=importlib.metadata.PackageNotFoundError,
+        ),
+        patch(
+            "importlib.metadata.distribution",
+            side_effect=importlib.metadata.PackageNotFoundError,
+        ),
         patch("importlib.metadata.packages_distributions", return_value={}),
         patch("importlib.import_module", side_effect=Exception),
     ):
