@@ -193,11 +193,46 @@ task dist:fe:rpm
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (build scripts available)
 - macOS: build scripts available (`arm64`, `universal`) for local build environments
-- Android: build workflow and Android project are present in this repository
+- Android: native APKs — ABIs `arm64-v8a`, `x86_64`, plus universal
 
 ## Android
 
-Use the dedicated docs:
+MeshChatX supports native Android APK builds (not only Termux).
+
+### Build APKs from source
+
+From repo root:
+
+```bash
+# 1) Build Chaquopy wheels used by android/app/build.gradle
+bash scripts/build-android-wheels-local.sh
+
+# 2) Build both APK variants
+cd android
+./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+```
+
+APK outputs (ABI splits plus a universal APK; see `splits { abi { ... } }` in `android/app/build.gradle`):
+
+Debug (`android/app/build/outputs/apk/debug/`):
+
+- `app-arm64-v8a-debug.apk` (ARM64 devices)
+- `app-x86_64-debug.apk` (x86_64 emulators)
+- `app-universal-debug.apk` (all bundled ABIs in one package)
+
+Release (`android/app/build/outputs/apk/release/`):
+
+- `app-arm64-v8a-release-unsigned.apk`
+- `app-x86_64-release-unsigned.apk`
+- `app-universal-release-unsigned.apk`
+
+Notes:
+
+- Release outputs are unsigned by default unless you configure signing.
+- If you only need one variant, run `:app:assembleDebug` or `:app:assembleRelease`.
+- Android targets `arm64-v8a` and `x86_64` ABIs as configured in `android/app/build.gradle`.
+
+Additional docs:
 
 - [`docs/meshchatx_on_android_with_termux.md`](docs/meshchatx_on_android_with_termux.md)
 - [`android/README.md`](android/README.md)

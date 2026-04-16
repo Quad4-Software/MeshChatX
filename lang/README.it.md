@@ -1,6 +1,6 @@
 # Reticulum MeshChatX
 
-[English README](../README.md) | [Deutsch](README.de.md) | [Русский](README.ru.md) | [中文](README.zh.md) | [日本語](README.ja.md)
+[English](../README.md) | [Deutsch](README.de.md) | [Русский](README.ru.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
 Un fork ampiamente modificato e ricco di funzionalita di Reticulum MeshChat di Liam Cottle.
 
@@ -146,6 +146,18 @@ Per eseguire il binario nativo `meshchatx` (alias: `meshchat`) con isolamento ag
 
 La stessa pagina compare nell'elenco **Documentazione** in-app (documentazione MeshChatX) quando viene servita dai file `meshchatx-docs` inclusi o sincronizzati.
 
+## Desktop Linux: font emoji
+
+Il selettore emoji mostra gli emoji Unicode standard usando i font di sistema (Electron/Chromium). Se compaiono quadrati vuoti ("tofu"), installate un pacchetto emoji a colori e riavviate l'app.
+
+| Famiglia (esempi)          | Pacchetto                                                                 |
+| -------------------------- | ------------------------------------------------------------------------- |
+| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`)                    |
+| Debian, Ubuntu             | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`)      |
+| Fedora                     | `google-noto-emoji-color-fonts`                                         |
+
+Dopo l'installazione, eseguite `fc-cache -fv` se i glifi non compaiono fino al prossimo accesso. Opzionale: `noto-fonts` per una copertura simboli più ampia su installazioni minime.
+
 ## Compilazione pacchetti desktop da sorgente
 
 Gli script sono definiti in `package.json` e `Taskfile.yml`.
@@ -176,14 +188,51 @@ task dist:fe:rpm
 
 ## Supporto architetture
 
-- Docker: `amd64`, `arm64`
+- Immagine Docker: `amd64`, `arm64`
 - Linux AppImage: `x64`, `arm64`
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (script di build disponibili)
 - macOS: script di build disponibili (`arm64`, `universal`) per ambienti di build locali
-- Android: progetto e workflow CI presenti nel repository
+- Android: APK nativi — `arm64-v8a`, `x86_64`, universale
 
 ## Android
+
+MeshChatX supporta build APK Android native (non solo Termux).
+
+### Build APK da sorgente
+
+Dalla root del repository:
+
+```bash
+# 1) Build delle wheel Chaquopy usate da android/app/build.gradle
+bash scripts/build-android-wheels-local.sh
+
+# 2) Build di entrambe le varianti APK
+cd android
+./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+```
+
+Output APK (split degli ABI e APK universale; vedere `splits { abi { ... } }` in `android/app/build.gradle`):
+
+Debug (`android/app/build/outputs/apk/debug/`):
+
+- `app-arm64-v8a-debug.apk` (dispositivi ARM64)
+- `app-x86_64-debug.apk` (emulatori x86_64)
+- `app-universal-debug.apk` (tutti gli ABI inclusi in un unico pacchetto)
+
+Release (`android/app/build/outputs/apk/release/`):
+
+- `app-arm64-v8a-release-unsigned.apk`
+- `app-x86_64-release-unsigned.apk`
+- `app-universal-release-unsigned.apk`
+
+Note:
+
+- Gli output release sono non firmati di default se non configurate le firme.
+- Se serve una sola variante: `:app:assembleDebug` o `:app:assembleRelease`.
+- Android punta agli ABI `arm64-v8a` e `x86_64` come in `android/app/build.gradle`.
+
+Documentazione aggiuntiva:
 
 - [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
 - [`android/README.md`](../android/README.md)

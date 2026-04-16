@@ -1,6 +1,6 @@
 # Reticulum MeshChatX
 
-[English README](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [中文](README.zh.md) | [日本語](README.ja.md)
+[English](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [中文](README.zh.md) | [日本語](README.ja.md)
 
 Существенно доработанный и функционально расширенный форк Reticulum MeshChat от Liam Cottle.
 
@@ -146,6 +146,18 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 Та же страница отображается во встроенной **Документации** (документация MeshChatX), когда она отдаётся из `meshchatx-docs`.
 
+## Linux на ПК: шрифты эмодзи
+
+Выбор эмодзи отображает стандартные Unicode-эмодзи системными шрифтами (Electron/Chromium). Если вместо них пустые квадраты («тофу»), установите пакет цветных эмодзи и перезапустите приложение.
+
+| Семейство (примеры)        | Пакет |
+| -------------------------- | ----- |
+| Arch Linux, Artix, Manjaro | `noto-fonts-emoji` (`sudo pacman -S noto-fonts-emoji`) |
+| Debian, Ubuntu             | `fonts-noto-color-emoji` (`sudo apt install fonts-noto-color-emoji`) |
+| Fedora                     | `google-noto-emoji-color-fonts` |
+
+После установки при необходимости выполните `fc-cache -fv`. Опционально: `noto-fonts` для лучшего покрытия символов на минимальных установках.
+
 ## Сборка настольных пакетов из исходников
 
 Скрипты заданы в `package.json` и `Taskfile.yml`.
@@ -176,14 +188,51 @@ task dist:fe:rpm
 
 ## Поддержка архитектур
 
-- Docker: `amd64`, `arm64`
+- Образ Docker: `amd64`, `arm64`
 - Linux AppImage: `x64`, `arm64`
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (скрипты сборки есть)
 - macOS: скрипты сборки (`arm64`, `universal`) для локальных сред
-- Android: проект и CI в репозитории
+- Android: нативные APK — ABI `arm64-v8a`, `x86_64`, плюс universal
 
 ## Android
+
+MeshChatX поддерживает нативные Android APK (не только Termux).
+
+### Сборка APK из исходников
+
+Из корня репозитория:
+
+```bash
+# 1) Собрать колёса Chaquopy для android/app/build.gradle
+bash scripts/build-android-wheels-local.sh
+
+# 2) Собрать обе вариации APK
+cd android
+./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+```
+
+Выходные APK (разбиение по ABI и универсальный APK; см. `splits { abi { ... } }` в `android/app/build.gradle`):
+
+Отладка (`android/app/build/outputs/apk/debug/`):
+
+- `app-arm64-v8a-debug.apk` (устройства ARM64)
+- `app-x86_64-debug.apk` (эмуляторы x86_64)
+- `app-universal-debug.apk` (все включённые ABI в одном пакете)
+
+Релиз (`android/app/build/outputs/apk/release/`):
+
+- `app-arm64-v8a-release-unsigned.apk`
+- `app-x86_64-release-unsigned.apk`
+- `app-universal-release-unsigned.apk`
+
+Примечания:
+
+- Релизные артефакты по умолчанию не подписаны, если не настроена подпись.
+- Если нужна одна вариация: `:app:assembleDebug` или `:app:assembleRelease`.
+- Целевые ABI — `arm64-v8a` и `x86_64` согласно `android/app/build.gradle`.
+
+Дополнительная документация:
 
 - [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
 - [`android/README.md`](../android/README.md)

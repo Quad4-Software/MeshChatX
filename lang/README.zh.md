@@ -1,6 +1,6 @@
 # Reticulum MeshChatX
 
-[English README](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [日本語](README.ja.md)
+[English](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [日本語](README.ja.md)
 
 Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分支。
 
@@ -146,6 +146,18 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 在提供已捆绑或已同步的 `meshchatx-docs` 时，应用内 **文档**（MeshChatX 文档）列表亦会显示同一页面。
 
+## Linux 桌面：绘文字字体
+
+绘文字选择器使用系统字体（Electron/Chromium）渲染标准 Unicode 绘文字。若显示为空白方框（“豆腐块”），请安装彩色绘文字字体包并重启应用。
+
+| 发行版（示例）           | 软件包 |
+| ------------------------ | ------ |
+| Arch Linux、Artix、Manjaro | `noto-fonts-emoji`（`sudo pacman -S noto-fonts-emoji`） |
+| Debian、Ubuntu         | `fonts-noto-color-emoji`（`sudo apt install fonts-noto-color-emoji`） |
+| Fedora                   | `google-noto-emoji-color-fonts` |
+
+安装后若仍异常，可运行 `fc-cache -fv`。可选：最小安装可再装 `noto-fonts` 以覆盖更多符号。
+
 ## 从源码构建桌面包
 
 脚本定义于 `package.json` 与 `Taskfile.yml`。
@@ -176,14 +188,51 @@ task dist:fe:rpm
 
 ## 架构支持
 
-- Docker: `amd64`, `arm64`
+- Docker 镜像: `amd64`, `arm64`
 - Linux AppImage: `x64`, `arm64`
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64`（提供构建脚本）
 - macOS: 提供构建脚本（`arm64`、`universal`），适用于本地构建环境
-- Android: 仓库内含项目与 CI 工作流
+- Android: 原生 APK — ABI `arm64-v8a`、`x86_64` 与 universal
 
 ## Android
+
+MeshChatX 支持构建原生 Android APK（不仅限于 Termux）。
+
+### 从源码构建 APK
+
+在仓库根目录执行:
+
+```bash
+# 1) 构建 android/app/build.gradle 所需的 Chaquopy 轮子
+bash scripts/build-android-wheels-local.sh
+
+# 2) 构建两种 APK 变体
+cd android
+./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+```
+
+APK 输出（ABI 分包与 universal APK；见 `android/app/build.gradle` 中的 `splits { abi { ... } }`）:
+
+调试（`android/app/build/outputs/apk/debug/`）:
+
+- `app-arm64-v8a-debug.apk`（ARM64 设备）
+- `app-x86_64-debug.apk`（x86_64 模拟器）
+- `app-universal-debug.apk`（所有已打包 ABI 的单包）
+
+发布（`android/app/build/outputs/apk/release/`）:
+
+- `app-arm64-v8a-release-unsigned.apk`
+- `app-x86_64-release-unsigned.apk`
+- `app-universal-release-unsigned.apk`
+
+说明:
+
+- 若未配置签名，发布构建默认未签名。
+- 若只需一种变体，可运行 `:app:assembleDebug` 或 `:app:assembleRelease`。
+- Android 目标 ABI 为 `android/app/build.gradle` 中配置的 `arm64-v8a` 与 `x86_64`。
+
+更多文档:
 
 - [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
 - [`android/README.md`](../android/README.md)

@@ -1,6 +1,6 @@
 # Reticulum MeshChatX
 
-[English README](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [中文](README.zh.md)
+[English](../README.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [中文](README.zh.md)
 
 Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張したフォークです。
 
@@ -146,6 +146,18 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 同梱または同期された `meshchatx-docs` から配信される場合、アプリ内の **ドキュメント**（MeshChatX ドキュメント）一覧にも同じページが表示されます。
 
+## Linux デスクトップ: 絵文字フォント
+
+絵文字ピッカーはシステムフォント（Electron/Chromium）で標準 Unicode 絵文字を描画します。絵文字が空の四角（「豆腐」）になる場合はカラー絵文字パッケージをインストールし、アプリを再起動してください。
+
+| ディストリビューション（例） | パッケージ |
+| ---------------------------- | ---------- |
+| Arch Linux, Artix, Manjaro | `noto-fonts-emoji`（`sudo pacman -S noto-fonts-emoji`） |
+| Debian, Ubuntu | `fonts-noto-color-emoji`（`sudo apt install fonts-noto-color-emoji`） |
+| Fedora | `google-noto-emoji-color-fonts` |
+
+インストール後も表示されない場合は `fc-cache -fv` を実行してください。最小インストールでは記号の網羅用に `noto-fonts` も任意で入れてください。
+
 ## ソースからのデスクトップパッケージビルド
 
 スクリプトは `package.json` と `Taskfile.yml` に定義されています。
@@ -176,14 +188,51 @@ task dist:fe:rpm
 
 ## アーキテクチャサポート
 
-- Docker: `amd64`, `arm64`
+- Docker イメージ: `amd64`, `arm64`
 - Linux AppImage: `x64`, `arm64`
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64`（ビルドスクリプトあり）
 - macOS: ローカルビルド向けにビルドスクリプトあり（`arm64`, `universal`）
-- Android: リポジトリにプロジェクトと CI ワークフローあり
+- Android: ネイティブ APK — ABI `arm64-v8a`、`x86_64`、および universal
 
 ## Android
+
+MeshChatX はネイティブ Android APK のビルドに対応しています（Termux のみに限りません）。
+
+### ソースから APK をビルド
+
+リポジトリのルートで:
+
+```bash
+# 1) android/app/build.gradle で使う Chaquopy 用ホイールをビルド
+bash scripts/build-android-wheels-local.sh
+
+# 2) 両方の APK バリアントをビルド
+cd android
+./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+```
+
+APK の出力（ABI 分割と universal APK。`android/app/build.gradle` の `splits { abi { ... } }` を参照）:
+
+デバッグ（`android/app/build/outputs/apk/debug/`）:
+
+- `app-arm64-v8a-debug.apk`（ARM64 端末）
+- `app-x86_64-debug.apk`（x86_64 エミュレータ）
+- `app-universal-debug.apk`（同梱 ABI を 1 パッケージに）
+
+リリース（`android/app/build/outputs/apk/release/`）:
+
+- `app-arm64-v8a-release-unsigned.apk`
+- `app-x86_64-release-unsigned.apk`
+- `app-universal-release-unsigned.apk`
+
+備考:
+
+- リリース出力は署名を設定しない限りデフォルトで未署名です。
+- どちらか一方でよい場合は `:app:assembleDebug` または `:app:assembleRelease`。
+- Android の対象 ABI は `android/app/build.gradle` で設定されている `arm64-v8a` と `x86_64` です。
+
+追加ドキュメント:
 
 - [`docs/meshchatx_on_android_with_termux.md`](../docs/meshchatx_on_android_with_termux.md)
 - [`android/README.md`](../android/README.md)
