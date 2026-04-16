@@ -17,9 +17,11 @@ from meshchatx.src.backend.telephone_manager import TelephoneManager
 
 
 class _DummyThread:
-    def __init__(self, target=None, daemon=None):
+    def __init__(self, target=None, daemon=None, args=(), kwargs=None, **_extra):
         self.target = target
         self.daemon = daemon
+        self.args = args
+        self.kwargs = kwargs or {}
 
     def start(self):
         return None
@@ -85,6 +87,7 @@ def test_lxst_telephone_lifecycle_and_timeouts(monkeypatch):
 def test_lxst_switch_profile_updates_codec_and_frame_time(monkeypatch):
     _install_lxst_stubs(monkeypatch)
     identity = _mock_identity()
+    fake_codec = object()
 
     class _FakeMixer:
         def __init__(self, target_frame_ms=None, gain=0.0):
@@ -130,6 +133,11 @@ def test_lxst_switch_profile_updates_codec_and_frame_time(monkeypatch):
     monkeypatch.setattr(LXSTTelephony, "Mixer", _FakeMixer)
     monkeypatch.setattr(LXSTTelephony, "LineSource", _FakeLineSource)
     monkeypatch.setattr(LXSTTelephony, "Pipeline", _FakePipeline)
+    monkeypatch.setattr(
+        LXSTTelephony.Profiles,
+        "get_codec",
+        lambda _profile: fake_codec,
+    )
 
     telephone = LXSTTelephony.Telephone(identity)
     telephone.call_status = LXSTTelephony.Signalling.STATUS_ESTABLISHED
@@ -148,7 +156,7 @@ def test_lxst_switch_profile_updates_codec_and_frame_time(monkeypatch):
     assert telephone.target_frame_time_ms == LXSTTelephony.Profiles.get_frame_time(
         LXSTTelephony.Profiles.QUALITY_HIGH
     )
-    assert telephone.transmit_codec is not None
+    assert telephone.transmit_codec is fake_codec
 
     telephone.active_call = None
     telephone.teardown()

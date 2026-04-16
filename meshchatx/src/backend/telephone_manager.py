@@ -438,26 +438,25 @@ class TelephoneManager:
         finally:
             if self._is_initiation_cancelled():
                 self._update_initiation_status(None, None)
-                return
+            else:
+                # Wait for either establishment, failure, or a timeout
+                # to ensure the UI has something to show (either active_call or initiation_status)
+                for _ in range(40):  # Max 4 seconds of defensive waiting
+                    if self.telephone and (
+                        self.telephone.active_call
+                        or self.telephone.call_status in [0, 1, 3, 6]
+                    ):
+                        break
+                    await asyncio.sleep(self._status_poll_interval_s)
 
-            # Wait for either establishment, failure, or a timeout
-            # to ensure the UI has something to show (either active_call or initiation_status)
-            for _ in range(40):  # Max 4 seconds of defensive waiting
+                # If call was successful, keep status for a moment to prevent UI flicker
+                # while the frontend picks up the new active_call state
                 if self.telephone and (
-                    self.telephone.active_call
-                    or self.telephone.call_status in [0, 1, 3, 6]
+                    (self.telephone.active_call and self.telephone.call_status == 6)
+                    or self.telephone.call_status in [2, 4, 5]
                 ):
-                    break
-                await asyncio.sleep(self._status_poll_interval_s)
-
-            # If call was successful, keep status for a moment to prevent UI flicker
-            # while the frontend picks up the new active_call state
-            if self.telephone and (
-                (self.telephone.active_call and self.telephone.call_status == 6)
-                or self.telephone.call_status in [2, 4, 5]
-            ):
-                await asyncio.sleep(1.0)
-            self._update_initiation_status(None, None)
+                    await asyncio.sleep(1.0)
+                self._update_initiation_status(None, None)
 
     def mute_transmit(self):
         if self.telephone:
