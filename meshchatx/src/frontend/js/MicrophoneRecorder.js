@@ -8,8 +8,30 @@ class MicrophoneRecorder {
         this.mediaRecorder = null;
     }
 
+    cleanupMediaStream() {
+        if (!this.microphoneMediaStream) {
+            return;
+        }
+        this.microphoneMediaStream.getTracks().forEach((track) => {
+            try {
+                track.stop();
+            } catch {
+                // ignore track stop failures
+            }
+        });
+        this.microphoneMediaStream = null;
+    }
+
     async start() {
         try {
+            this.audioChunks = [];
+            if (!navigator?.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+                return false;
+            }
+            if (typeof MediaRecorder !== "function") {
+                return false;
+            }
+
             // request access to the microphone
             this.microphoneMediaStream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
@@ -20,7 +42,9 @@ class MicrophoneRecorder {
 
             // handle received audio from media recorder
             this.mediaRecorder.ondataavailable = (event) => {
-                this.audioChunks.push(event.data);
+                if (event?.data) {
+                    this.audioChunks.push(event.data);
+                }
             };
 
             // start recording
@@ -29,32 +53,42 @@ class MicrophoneRecorder {
             // successfully started recording
             return true;
         } catch {
+            this.cleanupMediaStream();
+            this.mediaRecorder = null;
             return false;
         }
     }
 
     async stop() {
         return new Promise((resolve, reject) => {
+            if (!this.mediaRecorder) {
+                reject(new Error("Cannot stop recording before start()"));
+                return;
+            }
+
+            const recorder = this.mediaRecorder;
+
+            // handle media recording stopped
+            recorder.onstop = () => {
+                const blob = new Blob(this.audioChunks, {
+                    type: recorder.mimeType || "audio/webm;codecs=opus",
+                });
+                this.mediaRecorder = null;
+                this.cleanupMediaStream();
+                resolve(blob);
+            };
+            recorder.onerror = (event) => {
+                this.mediaRecorder = null;
+                this.cleanupMediaStream();
+                reject(event?.error || new Error("MediaRecorder error while stopping"));
+            };
+
             try {
-                // handle media recording stopped
-                this.mediaRecorder.onstop = () => {
-                    // stop using microphone
-                    if (this.microphoneMediaStream) {
-                        this.microphoneMediaStream.getTracks().forEach((track) => track.stop());
-                    }
-
-                    // create blob from audio chunks
-                    const blob = new Blob(this.audioChunks, {
-                        type: this.mediaRecorder.mimeType, // likely to be "audio/webm;codecs=opus" in chromium
-                    });
-
-                    // resolve promise
-                    resolve(blob);
-                };
-
                 // stop recording
-                this.mediaRecorder.stop();
+                recorder.stop();
             } catch (e) {
+                this.mediaRecorder = null;
+                this.cleanupMediaStream();
                 reject(e);
             }
         });

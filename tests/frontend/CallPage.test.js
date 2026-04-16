@@ -262,6 +262,108 @@ describe("CallPage.vue", () => {
         expect(stop).toHaveBeenCalled();
     });
 
+    it("startWebAudio disables bridge when media devices API is missing", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.config = { telephone_web_audio_enabled: true };
+        const updateConfig = vi.spyOn(wrapper.vm, "updateConfig").mockResolvedValue(undefined);
+        const stopWebAudio = vi.spyOn(wrapper.vm, "stopWebAudio");
+        const mediaDevicesDescriptor = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+        Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: undefined,
+        });
+
+        try {
+            await wrapper.vm.startWebAudio();
+            expect(wrapper.vm.config.telephone_web_audio_enabled).toBe(false);
+            expect(updateConfig).toHaveBeenCalledWith({ telephone_web_audio_enabled: false });
+            expect(stopWebAudio).toHaveBeenCalled();
+        } finally {
+            if (mediaDevicesDescriptor) {
+                Object.defineProperty(navigator, "mediaDevices", mediaDevicesDescriptor);
+            } else {
+                Reflect.deleteProperty(navigator, "mediaDevices");
+            }
+        }
+    });
+
+    it("requestAudioPermission returns false when media devices API is missing", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        const mediaDevicesDescriptor = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+        Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: undefined,
+        });
+
+        try {
+            await expect(wrapper.vm.requestAudioPermission()).resolves.toBe(false);
+        } finally {
+            if (mediaDevicesDescriptor) {
+                Object.defineProperty(navigator, "mediaDevices", mediaDevicesDescriptor);
+            } else {
+                Reflect.deleteProperty(navigator, "mediaDevices");
+            }
+        }
+    });
+
+    it("refreshAudioDevices clears stale devices when media devices API is missing", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.audioInputDevices = [{ kind: "audioinput", deviceId: "old-in" }];
+        wrapper.vm.audioOutputDevices = [{ kind: "audiooutput", deviceId: "old-out" }];
+        const mediaDevicesDescriptor = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
+        Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: undefined,
+        });
+
+        try {
+            await wrapper.vm.refreshAudioDevices();
+            expect(wrapper.vm.audioInputDevices).toEqual([]);
+            expect(wrapper.vm.audioOutputDevices).toEqual([]);
+        } finally {
+            if (mediaDevicesDescriptor) {
+                Object.defineProperty(navigator, "mediaDevices", mediaDevicesDescriptor);
+            } else {
+                Reflect.deleteProperty(navigator, "mediaDevices");
+            }
+        }
+    });
+
+    it("ensureWebAudio tears down websocket stream when call is no longer active", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.config = { telephone_web_audio_enabled: true };
+        wrapper.vm.activeCall = null;
+        const wsClose = vi.fn();
+        wrapper.vm.audioWs = {
+            onopen: vi.fn(),
+            onmessage: vi.fn(),
+            onerror: vi.fn(),
+            onclose: vi.fn(),
+            close: wsClose,
+        };
+        const sourceDisconnect = vi.fn();
+        wrapper.vm.audioSourceNode = { disconnect: sourceDisconnect };
+        const processorDisconnect = vi.fn();
+        wrapper.vm.audioProcessor = { disconnect: processorDisconnect };
+        const stopTrack = vi.fn();
+        wrapper.vm.audioStream = { getTracks: () => [{ stop: stopTrack }] };
+        const ctxClose = vi.fn().mockResolvedValue(undefined);
+        wrapper.vm.audioCtx = { state: "running", close: ctxClose };
+
+        await wrapper.vm.ensureWebAudio({ enabled: true });
+
+        expect(wsClose).toHaveBeenCalledTimes(1);
+        expect(sourceDisconnect).toHaveBeenCalledTimes(1);
+        expect(processorDisconnect).toHaveBeenCalledTimes(1);
+        expect(stopTrack).toHaveBeenCalledTimes(1);
+        expect(ctxClose).toHaveBeenCalledTimes(1);
+        expect(wrapper.vm.audioWs).toBeNull();
+    });
+
     it("getContacts maps telephone contacts list and hydrates visuals", async () => {
         const wrapper = mountCallPage();
         await flushPromises();

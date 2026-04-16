@@ -81,6 +81,9 @@ class TelephoneManager:
         self.initiation_status = None
         self.initiation_target_hash = None
         self.on_initiation_status_callback = None
+        self._path_poll_interval_s = 0.05
+        self._path_retry_interval_s = 1.5
+        self._status_poll_interval_s = 0.1
 
     @property
     def is_recording(self):
@@ -212,6 +215,30 @@ class TelephoneManager:
                     RNS.LOG_ERROR,
                 )
 
+    def _is_initiation_cancelled(self):
+        return not bool(self.initiation_status)
+
+    async def _await_path(self, destination_hash: bytes, timeout_seconds: float):
+        timeout_after = time.monotonic() + max(0.0, timeout_seconds)
+        next_request_at = 0.0
+
+        while time.monotonic() < timeout_after:
+            if self._is_initiation_cancelled():
+                return False
+
+            if RNS.Transport.has_path(destination_hash):
+                return True
+
+            now = time.monotonic()
+            if now >= next_request_at:
+                with contextlib.suppress(Exception):
+                    RNS.Transport.request_path(destination_hash)
+                next_request_at = now + self._path_retry_interval_s
+
+            await asyncio.sleep(self._path_poll_interval_s)
+
+        return RNS.Transport.has_path(destination_hash)
+
     async def initiate(self, destination_hash: bytes, timeout_seconds: int = 15):
         if self.telephone is None:
             msg = "Telephone is not initialized"
@@ -282,17 +309,24 @@ class TelephoneManager:
 
             if destination_identity is None:
                 self._update_initiation_status("Discovering path/identity...")
-                RNS.Transport.request_path(destination_hash)
+                timeout_after = time.monotonic() + timeout_seconds
+                next_request_at = 0.0
 
-                # Wait for identity to appear
-                start_wait = time.time()
-                while time.time() - start_wait < timeout_seconds:
-                    if not self.initiation_status:  # Externally cancelled (hangup)
+                # Wait for identity to appear while also nudging path discovery.
+                while time.monotonic() < timeout_after:
+                    if self._is_initiation_cancelled():
                         return None
-                    await asyncio.sleep(0.5)
+
+                    now = time.monotonic()
+                    if now >= next_request_at:
+                        with contextlib.suppress(Exception):
+                            RNS.Transport.request_path(destination_hash)
+                        next_request_at = now + self._path_retry_interval_s
+
                     destination_identity = resolve_identity(destination_hash_hex)
                     if destination_identity:
                         break
+                    await asyncio.sleep(self._path_poll_interval_s)
 
             if destination_identity is None:
                 self._update_initiation_status(None, None)
@@ -301,16 +335,15 @@ class TelephoneManager:
 
             if not RNS.Transport.has_path(destination_hash):
                 self._update_initiation_status("Requesting path...")
-                RNS.Transport.request_path(destination_hash)
-
-                # Wait up to 10s for path discovery
-                path_wait_start = time.time()
-                while time.time() - path_wait_start < min(timeout_seconds, 10):
-                    if not self.initiation_status:  # Externally cancelled
-                        return None
-                    if RNS.Transport.has_path(destination_hash):
-                        break
-                    await asyncio.sleep(0.5)
+                has_path = await self._await_path(
+                    destination_hash,
+                    timeout_seconds=min(timeout_seconds, 10),
+                )
+                if self._is_initiation_cancelled():
+                    return None
+                if not has_path:
+                    msg = "Path not found to destination"
+                    raise RuntimeError(msg)
 
             self._update_initiation_status("Establishing link...", destination_hash_hex)
             self.call_start_time = time.time()
@@ -323,10 +356,12 @@ class TelephoneManager:
             )
 
             start_wait = time.time()
+            cancel_requested = False
             # LXST telephone.call usually returns on establishment or timeout.
             # We wait for it, but if status becomes established or ended, we can stop waiting.
             while not call_task.done():
-                if not self.initiation_status:  # Externally cancelled
+                if self._is_initiation_cancelled():
+                    cancel_requested = True
                     break
 
                 # Update UI status based on current call state
@@ -350,7 +385,12 @@ class TelephoneManager:
                     time.time() - start_wait > 1.0
                 ):  # Available (ended/timeout)
                     break
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(self._status_poll_interval_s)
+
+            if cancel_requested:
+                with contextlib.suppress(Exception):
+                    self.telephone.hangup()
+                return None
 
             # If the task finished but we're still ringing or connecting,
             # wait a bit more for establishment or definitive failure
@@ -387,7 +427,7 @@ class TelephoneManager:
                         3,
                     ]:  # Established, Busy, Rejected, Ended
                         break
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(self._status_poll_interval_s)
 
             return self.telephone.active_call
 
@@ -396,15 +436,19 @@ class TelephoneManager:
             await asyncio.sleep(3)
             raise
         finally:
+            if self._is_initiation_cancelled():
+                self._update_initiation_status(None, None)
+                return
+
             # Wait for either establishment, failure, or a timeout
             # to ensure the UI has something to show (either active_call or initiation_status)
-            for _ in range(20):  # Max 10 seconds of defensive waiting
+            for _ in range(40):  # Max 4 seconds of defensive waiting
                 if self.telephone and (
                     self.telephone.active_call
                     or self.telephone.call_status in [0, 1, 3, 6]
                 ):
                     break
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(self._status_poll_interval_s)
 
             # If call was successful, keep status for a moment to prevent UI flicker
             # while the frontend picks up the new active_call state
@@ -412,7 +456,7 @@ class TelephoneManager:
                 (self.telephone.active_call and self.telephone.call_status == 6)
                 or self.telephone.call_status in [2, 4, 5]
             ):
-                await asyncio.sleep(2.0)
+                await asyncio.sleep(1.0)
             self._update_initiation_status(None, None)
 
     def mute_transmit(self):

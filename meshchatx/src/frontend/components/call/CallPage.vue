@@ -2240,6 +2240,7 @@ export default {
             audioWs: null,
             audioCtx: null,
             audioStream: null,
+            audioSourceNode: null,
             audioProcessor: null,
             audioWorkletNode: null,
             audioSilentGain: null,
@@ -2408,6 +2409,49 @@ export default {
         formatDuration(seconds) {
             return Utils.formatMinutesSeconds(seconds);
         },
+        getMediaDevicesApi() {
+            const mediaDevices = navigator?.mediaDevices;
+            if (
+                !mediaDevices ||
+                typeof mediaDevices.getUserMedia !== "function" ||
+                typeof mediaDevices.enumerateDevices !== "function"
+            ) {
+                return null;
+            }
+            return mediaDevices;
+        },
+        getAudioContextConstructor() {
+            return window.AudioContext || window.webkitAudioContext || null;
+        },
+        logWebAudioFailure(stage, error) {
+            const appImage = Boolean(
+                window.electron &&
+                    typeof navigator?.userAgent === "string" &&
+                    navigator.userAgent.includes("AppImage"),
+            );
+            console.error(
+                `[CallPage:web-audio] ${stage}`,
+                {
+                    isElectron: Boolean(window.electron),
+                    isAppImage: appImage,
+                    userAgent: navigator?.userAgent || "unknown",
+                },
+                error,
+            );
+        },
+        async disableWebAudioBridgeWithError(errorKey, error, stage = "unknown") {
+            this.logWebAudioFailure(stage, error);
+            ToastUtils.error(this.$t(errorKey));
+            if (this.config) {
+                this.config.telephone_web_audio_enabled = false;
+            }
+            try {
+                await this.updateConfig({ telephone_web_audio_enabled: false });
+            } catch (updateError) {
+                this.logWebAudioFailure("disable-config-update", updateError);
+            }
+            this.stopWebAudio();
+        },
         async ensureWebAudio(webAudioStatus) {
             if (!this.config?.telephone_web_audio_enabled) {
                 this.stopWebAudio();
@@ -2449,12 +2493,23 @@ export default {
                 return;
             }
             try {
+                const mediaDevices = this.getMediaDevicesApi();
+                if (!mediaDevices) {
+                    await this.disableWebAudioBridgeWithError(
+                        "call.web_audio_not_available",
+                        new Error("navigator.mediaDevices is unavailable"),
+                        "start-preflight-media-devices",
+                    );
+                    return;
+                }
                 await this.refreshAudioDevices();
                 const hasInputDevices = (this.audioInputDevices || []).length > 0;
                 if (!hasInputDevices) {
-                    ToastUtils.error(this.$t("call.no_audio_input_found"));
-                    this.config.telephone_web_audio_enabled = false;
-                    await this.updateConfig({ telephone_web_audio_enabled: false });
+                    await this.disableWebAudioBridgeWithError(
+                        "call.no_audio_input_found",
+                        new Error("No audio input devices detected"),
+                        "start-no-input-devices",
+                    );
                     return;
                 }
 
@@ -2463,14 +2518,19 @@ export default {
                 const constraints = hasSelectedDevice
                     ? { audio: { deviceId: { exact: this.selectedAudioInputId } } }
                     : { audio: true };
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const stream = await mediaDevices.getUserMedia(constraints);
                 this.audioStream = stream;
 
                 if (!this.audioCtx) {
-                    this.audioCtx = new AudioContext({ sampleRate: 48000 });
+                    const AudioContextCtor = this.getAudioContextConstructor();
+                    if (!AudioContextCtor) {
+                        throw new Error("AudioContext is unavailable");
+                    }
+                    this.audioCtx = new AudioContextCtor({ sampleRate: 48000 });
                 }
 
                 const source = this.audioCtx.createMediaStreamSource(stream);
+                this.audioSourceNode = source;
                 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
                 const url = `${wsProtocol}//${window.location.host}/ws/telephone/audio`;
 
@@ -2510,22 +2570,22 @@ export default {
                 this.audioWs = ws;
                 this.refreshAudioDevices();
             } catch (err) {
-                console.error("Web audio failed", err);
                 const errorKey =
                     err?.name === "NotFoundError" || err?.name === "OverconstrainedError"
                         ? "call.no_audio_input_found"
                         : err?.name === "NotAllowedError"
                           ? "call.microphone_permission_denied"
                           : "call.web_audio_not_available";
-                ToastUtils.error(this.$t(errorKey));
-                this.config.telephone_web_audio_enabled = false;
-                await this.updateConfig({ telephone_web_audio_enabled: false });
-                this.stopWebAudio();
+                await this.disableWebAudioBridgeWithError(errorKey, err, "start-catch");
             }
         },
         async requestAudioPermission() {
             try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
+                const mediaDevices = this.getMediaDevicesApi();
+                if (!mediaDevices) {
+                    throw new Error("navigator.mediaDevices is unavailable");
+                }
+                const devices = await mediaDevices.enumerateDevices();
                 const hasAudioInput = devices.some((d) => d.kind === "audioinput");
                 if (devices.length > 0 && !hasAudioInput) {
                     ToastUtils.error(this.$t("call.no_audio_input_found"));
@@ -2535,12 +2595,12 @@ export default {
                 const constraints = this.selectedAudioInputId
                     ? { audio: { deviceId: { exact: this.selectedAudioInputId } } }
                     : { audio: true };
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const stream = await mediaDevices.getUserMedia(constraints);
                 stream.getTracks().forEach((t) => t.stop());
                 await this.refreshAudioDevices();
                 return true;
             } catch (e) {
-                console.error("Permission or device request failed", e);
+                this.logWebAudioFailure("request-permission", e);
                 const errorKey =
                     e?.name === "NotFoundError" || e?.name === "OverconstrainedError"
                         ? "call.no_audio_input_found"
@@ -2553,7 +2613,13 @@ export default {
         },
         async refreshAudioDevices() {
             try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
+                const mediaDevices = this.getMediaDevicesApi();
+                if (!mediaDevices) {
+                    this.audioInputDevices = [];
+                    this.audioOutputDevices = [];
+                    return;
+                }
+                const devices = await mediaDevices.enumerateDevices();
                 this.audioInputDevices = devices.filter((d) => d.kind === "audioinput");
                 this.audioOutputDevices = devices.filter((d) => d.kind === "audiooutput");
                 if (!this.selectedAudioInputId && this.audioInputDevices.length) {
@@ -2563,11 +2629,13 @@ export default {
                     this.selectedAudioOutputId = this.audioOutputDevices[0].deviceId;
                 }
             } catch (e) {
-                console.error("Failed to enumerate audio devices", e);
+                this.logWebAudioFailure("refresh-devices", e);
+                this.audioInputDevices = [];
+                this.audioOutputDevices = [];
             }
         },
         playRemotePcm(arrayBuffer) {
-            if (!this.audioCtx) {
+            if (!this.audioCtx || !arrayBuffer) {
                 return;
             }
             const pcm = new Int16Array(arrayBuffer);
@@ -2598,6 +2666,27 @@ export default {
             }
         },
         stopWebAudio() {
+            const ws = this.audioWs;
+            this.audioWs = null;
+            if (ws) {
+                try {
+                    ws.onopen = null;
+                    ws.onmessage = null;
+                    ws.onerror = null;
+                    ws.onclose = null;
+                    ws.close();
+                } catch {
+                    // ignore
+                }
+            }
+            if (this.audioSourceNode) {
+                try {
+                    this.audioSourceNode.disconnect();
+                } catch {
+                    // ignore
+                }
+                this.audioSourceNode = null;
+            }
             if (this.audioProcessor) {
                 try {
                     this.audioProcessor.disconnect();
@@ -2609,14 +2698,6 @@ export default {
             if (this.audioStream) {
                 this.audioStream.getTracks().forEach((t) => t.stop());
                 this.audioStream = null;
-            }
-            if (this.audioWs) {
-                try {
-                    this.audioWs.close();
-                } catch {
-                    // ignore
-                }
-                this.audioWs = null;
             }
             if (this.remoteAudioEl) {
                 this.remoteAudioEl.srcObject = null;
@@ -2638,6 +2719,12 @@ export default {
                 }
                 this.audioSilentGain = null;
             }
+            if (this.audioCtx && this.audioCtx.state !== "closed") {
+                this.audioCtx.close().catch(() => {
+                    // ignore
+                });
+            }
+            this.audioCtx = null;
         },
         async getConfig() {
             try {
