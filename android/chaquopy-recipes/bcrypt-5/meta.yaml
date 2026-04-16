@@ -2,5 +2,9 @@ package:
   name: bcrypt
   version: "5.0.0"
 
+requirements:
+  build:
+    - rust
+
 build:
   number: 0
