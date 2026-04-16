@@ -573,5 +573,72 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
 PY
 fi
 
+CUSTOM_RECIPES_DIR="${ROOT_DIR}/android/chaquopy-recipes"
+if [[ -d "${CUSTOM_RECIPES_DIR}" ]]; then
+    echo "Building custom Android recipes from ${CUSTOM_RECIPES_DIR}"
+    for RECIPE_SRC in "${CUSTOM_RECIPES_DIR}"/*; do
+        if [[ ! -d "${RECIPE_SRC}" ]]; then
+            continue
+        fi
+
+        RECIPE_NAME="$(basename "${RECIPE_SRC}")"
+        RECIPE_DST="${PYPIDIR}/packages/${RECIPE_NAME}-local"
+        rm -rf "${RECIPE_DST}"
+        mkdir -p "${RECIPE_DST}"
+        cp -a "${RECIPE_SRC}/." "${RECIPE_DST}/"
+
+        read -r PACKAGE_NAME PACKAGE_VERSION < <("${VENV_DIR}/bin/python" - <<PY
+from pathlib import Path
+import re
+meta = Path("${RECIPE_DST}/meta.yaml").read_text()
+name = re.search(r'(?m)^\\s*name:\\s*"?(.*?)"?\\s*$', meta)
+version = re.search(r'(?m)^\\s*version:\\s*"?(.*?)"?\\s*$', meta)
+if not name or not version:
+    raise SystemExit("Failed parsing name/version from meta.yaml")
+print(name.group(1), version.group(1))
+PY
+)
+
+        echo "Building ${PACKAGE_NAME} ${PACKAGE_VERSION} from recipe ${RECIPE_NAME}"
+        for abi in ${ABI_LIST//,/ }; do
+            abi_tag="${abi//-/_}"
+            echo "Building ${PACKAGE_NAME} ${PACKAGE_VERSION} for ${abi}"
+            "${VENV_DIR}/bin/python" "${PYPIDIR}/build-wheel.py" \
+                --python "${PYTHON_MINOR}" \
+                --api-level "${API_LEVEL}" \
+                --abi "${abi}" \
+                "${RECIPE_DST}"
+
+            WHEEL_GLOB="${PYPIDIR}/dist/${PACKAGE_NAME}"/*android_"${API_LEVEL}"_"${abi_tag}".whl
+            if ! ls ${WHEEL_GLOB} >/dev/null 2>&1; then
+                echo "Missing wheel output for ${PACKAGE_NAME} ${PACKAGE_VERSION} ${abi}" >&2
+                exit 1
+            fi
+            cp -f ${WHEEL_GLOB} "${OUT_DIR}/"
+        done
+
+        if [[ "${PACKAGE_NAME}" == "cryptography" ]]; then
+            "${VENV_DIR}/bin/python" - <<PY
+import zipfile
+from pathlib import Path
+
+version = "${PACKAGE_VERSION}"
+out_dir = Path("${OUT_DIR}")
+for wheel in sorted(out_dir.glob(f"cryptography-{version}-*.whl")):
+    tmp = wheel.with_suffix(".tmp.whl")
+    with zipfile.ZipFile(wheel, "r") as zin, zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename.endswith(".dist-info/METADATA"):
+                text = data.decode("utf-8")
+                text = text.replace("Requires-Dist: cffi>=2.0.0 ;", "Requires-Dist: cffi>=1.15.1 ;")
+                data = text.encode("utf-8")
+            zout.writestr(item, data)
+    tmp.replace(wheel)
+PY
+        fi
+    done
+fi
+
 echo "Done."
 echo "Built wheels in: ${OUT_DIR}"

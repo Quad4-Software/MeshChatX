@@ -63,6 +63,18 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
+            - name: Install Android wheel build dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential cmake pkg-config patchelf
+
+            - name: Install Rust toolchain
+              run: |
+                  curl -sSfL https://sh.rustup.rs -o rustup-init.sh
+                  chmod +x rustup-init.sh
+                  ./rustup-init.sh -y --profile minimal --default-toolchain stable
+                  echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
             - name: Build Android wheels
               run: bash scripts/build-android-wheels-local.sh --python-minor "${PYTHON_VERSION}" --chaquopy-ref "${CHAQUOPY_REF}"
 
