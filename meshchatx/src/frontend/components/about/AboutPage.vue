@@ -1,9 +1,9 @@
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <div
-            class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 text-gray-900 dark:text-zinc-100"
+            class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 text-gray-900 dark:text-zinc-100"
         >
-            <div class="space-y-0 w-full max-w-4xl mx-auto pb-16 sm:pb-24">
+            <div class="space-y-0 w-full max-w-4xl mx-auto pb-16 sm:pb-24 min-w-0">
                 <div v-if="appInfo" class="about-section">
                     <div class="flex flex-col gap-8 lg:flex-row lg:items-center">
                         <!-- Logo & Title -->
@@ -271,13 +271,13 @@
                             <v-icon icon="mdi-server" size="14"></v-icon>
                             Environment Information
                         </div>
-                        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+                        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 text-sm min-w-0">
                             <div>
                                 <div class="glass-label !text-[10px] mb-2 opacity-50">Reticulum Config</div>
                                 <div
                                     class="monospace-field !bg-zinc-50 dark:!bg-zinc-950 break-all text-[11px] !p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"
                                 >
-                                    {{ appInfo.reticulum_config_path }}
+                                    {{ appInfo.reticulum_config_path || "unknown" }}
                                 </div>
                                 <button
                                     v-if="isElectron"
@@ -293,7 +293,7 @@
                                 <div
                                     class="monospace-field !bg-zinc-50 dark:!bg-zinc-950 break-all text-[11px] !p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"
                                 >
-                                    {{ appInfo.database_path }}
+                                    {{ appInfo.database_path || "unknown" }}
                                 </div>
                                 <button
                                     v-if="isElectron"
@@ -390,8 +390,8 @@
                             <v-icon icon="mdi-link-variant" size="14"></v-icon>
                             Dependency Chain
                         </div>
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 relative">
-                            <div class="flex flex-col space-y-8">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 relative min-w-0">
+                            <div class="flex flex-col space-y-8 min-w-0">
                                 <div class="flex items-center gap-5">
                                     <div
                                         class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-sm"
@@ -463,8 +463,8 @@
                                         <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
                                             Reticulum Network Stack
                                         </div>
-                                        <div class="flex items-center gap-2 mt-1">
-                                            <div class="text-xs font-mono font-bold text-gray-400">
+                                        <div class="flex flex-wrap items-center gap-2 mt-1 min-w-0">
+                                            <div class="text-xs font-mono font-bold text-gray-400 shrink-0">
                                                 v{{ appInfo.rns_version }}
                                             </div>
                                             <div
@@ -473,7 +473,7 @@
                                                         ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                                                         : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
                                                 ]"
-                                                class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border"
+                                                class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border max-w-full break-words"
                                             >
                                                 {{
                                                     appInfo.is_connected_to_shared_instance
@@ -486,9 +486,9 @@
                                 </div>
                             </div>
 
-                            <div class="space-y-8">
+                            <div class="space-y-8 min-w-0">
                                 <div
-                                    class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
+                                    class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02] min-w-0"
                                 >
                                     <div
                                         class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
@@ -962,11 +962,36 @@ export default {
             }
         },
         environmentInfo() {
+            const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+            let platform = typeof navigator !== "undefined" && navigator.platform ? navigator.platform : "";
+            if (
+                !platform &&
+                typeof navigator !== "undefined" &&
+                navigator.userAgentData &&
+                navigator.userAgentData.platform
+            ) {
+                platform = navigator.userAgentData.platform;
+            }
+            if (!platform && /Android/i.test(ua)) {
+                platform = "Android";
+            }
+            if (!platform && this.appInfo && this.appInfo.host_platform) {
+                platform = this.appInfo.host_platform;
+            }
+            if (!platform) {
+                platform = "unknown";
+            }
+            const language =
+                typeof navigator !== "undefined" && navigator.language
+                    ? navigator.language
+                    : typeof navigator !== "undefined" && navigator.languages && navigator.languages[0]
+                      ? navigator.languages[0]
+                      : "unknown";
             return {
-                platform: navigator?.platform || "unknown",
-                language: navigator?.language || "unknown",
-                userAgent: navigator?.userAgent || "unknown",
-                backendUrl: window?.location?.origin || "unknown",
+                platform,
+                language,
+                userAgent: ua || "unknown",
+                backendUrl: typeof window !== "undefined" && window.location ? window.location.origin : "unknown",
             };
         },
     },

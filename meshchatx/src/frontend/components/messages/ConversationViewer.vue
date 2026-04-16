@@ -4727,7 +4727,7 @@ export default {
 
                     // alert if failed to start recording
                     if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert(this.$t("messages.failed_start_recording"));
+                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
                     }
 
                     break;
@@ -4749,7 +4749,7 @@ export default {
 
                     // alert if failed to start recording
                     if (!this.isRecordingAudioAttachment) {
-                        DialogUtils.alert(this.$t("messages.failed_start_recording"));
+                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
                     }
 
                     break;
@@ -4842,6 +4842,15 @@ export default {
 
             // remove audio
             this.newMessageAudio = null;
+        },
+        buildAudioRecordingFailureMessage() {
+            if (!navigator?.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+                return `${this.$t("messages.failed_start_recording")} (microphone API unavailable in this webview context)`;
+            }
+            if (typeof MediaRecorder !== "function") {
+                return `${this.$t("messages.failed_start_recording")} (MediaRecorder not supported on this device)`;
+            }
+            return this.$t("messages.failed_start_recording");
         },
         removeFileAttachment: function (file) {
             this.newMessageFiles = this.newMessageFiles.filter((newMessageFile) => {

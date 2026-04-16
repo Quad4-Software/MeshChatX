@@ -3,8 +3,8 @@
         v-if="config"
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
-            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
+            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto min-w-0">
                 <div class="settings-section settings-section--hero">
                     <div class="flex flex-col lg:flex-row lg:items-center gap-4">
                         <div class="flex-1 space-y-1">
@@ -98,9 +98,9 @@
 
                 <!-- search bar -->
                 <div
-                    class="sticky top-0 z-10 py-3 sm:py-4 -mx-3 sm:mx-0 px-3 sm:px-0 mb-2 border-b border-gray-200/50 dark:border-zinc-800/50 bg-transparent"
+                    class="sticky top-0 z-10 py-3 sm:py-4 mb-2 border-b border-gray-200/50 dark:border-zinc-800/50 bg-transparent min-w-0"
                 >
-                    <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto">
+                    <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto min-w-0 px-0">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
                         </div>

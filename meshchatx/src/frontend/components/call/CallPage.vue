@@ -2411,14 +2411,13 @@ export default {
         },
         getMediaDevicesApi() {
             const mediaDevices = navigator?.mediaDevices;
-            if (
-                !mediaDevices ||
-                typeof mediaDevices.getUserMedia !== "function" ||
-                typeof mediaDevices.enumerateDevices !== "function"
-            ) {
+            if (!mediaDevices || typeof mediaDevices.getUserMedia !== "function") {
                 return null;
             }
             return mediaDevices;
+        },
+        hasEnumerateDevicesApi(mediaDevices) {
+            return Boolean(mediaDevices && typeof mediaDevices.enumerateDevices === "function");
         },
         getAudioContextConstructor() {
             return window.AudioContext || window.webkitAudioContext || null;
@@ -2501,17 +2500,10 @@ export default {
                     return;
                 }
                 await this.refreshAudioDevices();
-                const hasInputDevices = (this.audioInputDevices || []).length > 0;
-                if (!hasInputDevices) {
-                    await this.disableWebAudioBridgeWithError(
-                        "call.no_audio_input_found",
-                        new Error("No audio input devices detected"),
-                        "start-no-input-devices"
-                    );
-                    return;
-                }
-
-                const validDeviceIds = new Set((this.audioInputDevices || []).map((d) => d.deviceId));
+                const canEnumerate = this.hasEnumerateDevicesApi(mediaDevices);
+                const validDeviceIds = canEnumerate
+                    ? new Set((this.audioInputDevices || []).map((d) => d.deviceId))
+                    : new Set();
                 const hasSelectedDevice = this.selectedAudioInputId && validDeviceIds.has(this.selectedAudioInputId);
                 const constraints = hasSelectedDevice
                     ? { audio: { deviceId: { exact: this.selectedAudioInputId } } }
@@ -2583,11 +2575,13 @@ export default {
                 if (!mediaDevices) {
                     throw new Error("navigator.mediaDevices is unavailable");
                 }
-                const devices = await mediaDevices.enumerateDevices();
-                const hasAudioInput = devices.some((d) => d.kind === "audioinput");
-                if (devices.length > 0 && !hasAudioInput) {
-                    ToastUtils.error(this.$t("call.no_audio_input_found"));
-                    return false;
+                if (this.hasEnumerateDevicesApi(mediaDevices)) {
+                    const devices = await mediaDevices.enumerateDevices();
+                    const hasAudioInput = devices.some((d) => d.kind === "audioinput");
+                    if (devices.length > 0 && !hasAudioInput) {
+                        ToastUtils.error(this.$t("call.no_audio_input_found"));
+                        return false;
+                    }
                 }
 
                 const constraints = this.selectedAudioInputId
@@ -2613,6 +2607,11 @@ export default {
             try {
                 const mediaDevices = this.getMediaDevicesApi();
                 if (!mediaDevices) {
+                    this.audioInputDevices = [];
+                    this.audioOutputDevices = [];
+                    return;
+                }
+                if (!this.hasEnumerateDevicesApi(mediaDevices)) {
                     this.audioInputDevices = [];
                     this.audioOutputDevices = [];
                     return;

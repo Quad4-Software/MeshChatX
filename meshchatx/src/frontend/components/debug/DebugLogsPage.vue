@@ -1,7 +1,7 @@
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <div
-            class="flex flex-col h-full overflow-hidden w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+            class="flex flex-col h-full overflow-hidden w-full px-3 sm:px-4 md:px-5 lg:px-8 py-3 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="flex flex-col mb-4 w-full max-w-6xl mx-auto space-y-4 min-w-0">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
@@ -131,7 +131,7 @@
             <div class="flex-1 overflow-hidden glass-card max-w-6xl mx-auto w-full p-0 flex flex-col rounded-sm">
                 <div
                     v-if="activeTab === 'logs'"
-                    class="flex-1 overflow-auto p-4 font-mono text-[10px] sm:text-xs leading-relaxed select-text bg-white dark:bg-zinc-950"
+                    class="flex-1 overflow-auto p-3 sm:p-4 font-mono text-xs leading-relaxed select-text bg-white dark:bg-zinc-950"
                 >
                     <div v-if="logs.length === 0" class="text-gray-500 italic text-center py-10">
                         {{ loading ? $t("debug.loading_logs") : $t("debug.no_logs") }}
@@ -139,14 +139,16 @@
                     <div
                         v-for="(log, index) in logs"
                         :key="index"
-                        class="border-b border-gray-100 dark:border-zinc-900 py-1 flex gap-3 hover:bg-gray-50 dark:hover:bg-zinc-900/50"
+                        class="border-b border-gray-100 dark:border-zinc-900 py-1.5 flex gap-2 sm:gap-3 hover:bg-gray-50 dark:hover:bg-zinc-900/50 cursor-copy"
                         :class="{ 'bg-red-50/30 dark:bg-red-900/10': log.is_anomaly }"
+                        title="Tap to copy this log entry"
+                        @click="copyLogLine(log)"
                     >
                         <span class="text-gray-400 shrink-0">{{ formatTime(log.timestamp) }}</span>
                         <span :class="levelClass(log.level)" class="w-12 shrink-0 font-bold uppercase">{{
                             log.level
                         }}</span>
-                        <span class="text-blue-500 shrink-0 w-24 overflow-hidden text-ellipsis italic"
+                        <span class="text-blue-500 shrink-0 w-20 sm:w-24 overflow-hidden text-ellipsis italic"
                             >[{{ log.module }}]</span
                         >
                         <span class="text-gray-800 dark:text-gray-200 break-words flex-1">
@@ -164,7 +166,7 @@
 
                 <div
                     v-else
-                    class="flex-1 overflow-auto p-4 font-mono text-[10px] sm:text-xs leading-relaxed select-text bg-white dark:bg-zinc-950"
+                    class="flex-1 overflow-auto p-3 sm:p-4 font-mono text-xs leading-relaxed select-text bg-white dark:bg-zinc-950"
                 >
                     <div v-if="accessAttempts.length === 0" class="text-gray-500 italic text-center py-10">
                         {{ accessLoading ? $t("debug.loading_access") : $t("debug.no_access") }}
@@ -172,9 +174,11 @@
                     <div
                         v-for="row in accessAttempts"
                         :key="row.id"
-                        class="border-b border-gray-100 dark:border-zinc-900 py-2 flex flex-col gap-1 hover:bg-gray-50 dark:hover:bg-zinc-900/50"
+                        class="border-b border-gray-100 dark:border-zinc-900 py-2 flex flex-col gap-1 hover:bg-gray-50 dark:hover:bg-zinc-900/50 cursor-copy"
+                        title="Tap to copy this access entry"
+                        @click="copyAccessLine(row)"
                     >
-                        <div class="flex flex-wrap gap-x-3 gap-y-1">
+                        <div class="flex flex-wrap gap-x-3 gap-y-1 items-center">
                             <span class="text-gray-400 shrink-0">{{ formatTime(row.created_at) }}</span>
                             <span class="text-amber-600 dark:text-amber-400 font-semibold">{{ row.outcome }}</span>
                             <span class="text-cyan-600 dark:text-cyan-400">{{ row.method }} {{ row.path }}</span>
@@ -439,6 +443,32 @@ export default {
                 } catch {
                     ToastUtils.error(this.$t("debug.failed_copy_access"));
                 }
+            }
+        },
+        async copyLogLine(log) {
+            const line = `${this.formatTime(log.timestamp)} [${log.level}] [${log.module}] ${log.message}${log.is_anomaly ? " [ANOMALY:" + (log.anomaly_type || "unknown") + "]" : ""}`;
+            try {
+                await navigator.clipboard.writeText(line);
+                ToastUtils.success(this.$t("debug.logs_copied"));
+            } catch {
+                ToastUtils.error(this.$t("debug.failed_copy_logs"));
+            }
+        },
+        async copyAccessLine(row) {
+            const line = [
+                this.formatTime(row.created_at),
+                row.outcome,
+                row.method,
+                row.path,
+                row.client_ip,
+                row.user_agent || "",
+                row.detail || "",
+            ].join(" | ");
+            try {
+                await navigator.clipboard.writeText(line);
+                ToastUtils.success(this.$t("debug.access_copied"));
+            } catch {
+                ToastUtils.error(this.$t("debug.failed_copy_access"));
             }
         },
     },

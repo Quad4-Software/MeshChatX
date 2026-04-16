@@ -10,6 +10,11 @@ window.api = {
 describe("DebugLogsPage.vue", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        Object.assign(navigator, {
+            clipboard: {
+                writeText: vi.fn().mockResolvedValue(undefined),
+            },
+        });
     });
 
     it("fetches and displays logs", async () => {
@@ -44,7 +49,7 @@ describe("DebugLogsPage.vue", () => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         await wrapper.vm.$nextTick();
 
-        const container = wrapper.find(".flex-1.overflow-auto.p-4.font-mono");
+        const container = wrapper.find(".flex-1.overflow-auto.font-mono");
         const logRows = container.findAll(".border-b");
         expect(logRows.length).toBe(2);
         expect(wrapper.text()).toContain("Hello");
@@ -159,5 +164,38 @@ describe("DebugLogsPage.vue", () => {
         );
         expect(wrapper.text()).toContain("failed_password");
         expect(wrapper.text()).toContain("10.0.0.1");
+    });
+
+    it("copies a single log line when tapping an entry", async () => {
+        const mockLogs = [
+            { timestamp: Date.now() / 1000, level: "ERROR", module: "web_protocol", message: "Boom", is_anomaly: 0 },
+        ];
+
+        window.api.get.mockResolvedValue({
+            data: {
+                logs: mockLogs,
+                total: 1,
+                limit: 100,
+                offset: 0,
+            },
+        });
+
+        const wrapper = mount(DebugLogsPage, {
+            global: {
+                stubs: ["MaterialDesignIcon"],
+                mocks: { $t: (key) => key },
+            },
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        await wrapper.vm.$nextTick();
+
+        const row = wrapper.findAll(".border-b").find((r) => r.text().includes("Boom"));
+        expect(row).toBeTruthy();
+        await row.trigger("click");
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledTimes(1);
+        expect(navigator.clipboard.writeText.mock.calls[0][0]).toContain("[ERROR]");
+        expect(navigator.clipboard.writeText.mock.calls[0][0]).toContain("Boom");
     });
 });

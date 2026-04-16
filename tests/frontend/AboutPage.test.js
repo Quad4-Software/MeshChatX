@@ -271,4 +271,35 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("Free Space");
         expect(wrapper.text()).toContain("0 Bytes");
     });
+
+    it("shows unknown fallbacks for missing environment paths", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info")
+                return Promise.resolve({
+                    data: {
+                        app_info: {
+                            version: "1.0.0",
+                            python_version: "3.11.0",
+                            lxmf_version: "0.2.0",
+                            rns_version: "0.1.0",
+                            reticulum_config_path: null,
+                            database_path: null,
+                        },
+                    },
+                });
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("Reticulum Config");
+        expect(wrapper.text()).toContain("Database Path");
+        expect(wrapper.text()).toContain("unknown");
+    });
 });
