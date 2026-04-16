@@ -452,30 +452,11 @@ tasks:
         deps: [build:fe, android:init]
         cmds:
             - |
-                echo "Copying meshchatx package and dependencies to Android project..."
+                echo "Preparing Android assets..."
                 mkdir -p "{{.PYTHON_SRC_DIR}}"
                 rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
-                rm -rf "{{.PYTHON_SRC_DIR}}/RNS"
-                rm -rf "{{.PYTHON_SRC_DIR}}/LXMF"
-                rm -rf "{{.PYTHON_SRC_DIR}}/LXST"
-
                 cp -r meshchatx "{{.PYTHON_SRC_DIR}}/"
-                cp -r ./misc/RNS "{{.PYTHON_SRC_DIR}}/"
-                cp -r ./misc/LXMF "{{.PYTHON_SRC_DIR}}/"
-                cp -r ./misc/LXST "{{.PYTHON_SRC_DIR}}/"
-                cp -r ./src/RNS "{{.PYTHON_SRC_DIR}}/" || true
-                cp -r ./src/LXMF "{{.PYTHON_SRC_DIR}}/" || true
-                cp -r ./src/LXST "{{.PYTHON_SRC_DIR}}/" || true
-                cp "./misc/pycodec2-3.0.1-cp311-cp311-linux_aarch64.whl" "{{.PYTHON_SRC_DIR}}/" || true
-
-                mkdir -p "{{.JNI_LIBS_DIR}}/arm64-v8a"
-                mkdir -p "{{.JNI_LIBS_DIR}}/armeabi-v7a"
-                cp "./misc/libcodec2-arm64-v8a.so" "{{.JNI_LIBS_DIR}}/arm64-v8a/" || true
-                cp "./misc/libcodec2-armeabi-v7a.so" "{{.JNI_LIBS_DIR}}/armeabi-v7a/" || true
-
-                rm -rf "{{.PYTHON_SRC_DIR}}/RNS/Utilities/RNS"
-                rm -rf "{{.PYTHON_SRC_DIR}}/LXMF/Utilities/LXMF"
-                rm -rf "{{.PYTHON_SRC_DIR}}/LXST/Utilities/LXST"
+                echo "MeshChatX Python sources staged. Dependency installation is handled by Chaquopy in android/app/build.gradle."
 
     android:build:
         desc: Build Debug APK
