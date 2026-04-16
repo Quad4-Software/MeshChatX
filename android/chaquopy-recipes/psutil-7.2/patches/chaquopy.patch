@@ -1,0 +1,24 @@
+--- src-original/psutil/_common.py
++++ src/psutil/_common.py
+@@ -76,7 +76,7 @@
+ 
+ POSIX = os.name == "posix"
+ WINDOWS = os.name == "nt"
+-LINUX = sys.platform.startswith("linux")
++LINUX = sys.platform.startswith(("linux", "android"))  # Chaquopy: added "android"
+ MACOS = sys.platform.startswith("darwin")
+ OSX = MACOS  # deprecated alias
+ FREEBSD = sys.platform.startswith(("freebsd", "midnightbsd"))
+--- src-original/psutil/_pslinux.py
++++ src/psutil/_pslinux.py
+@@ -1248,6 +1248,10 @@
+     """Return mounted disk partitions as a list of namedtuples."""
+     fstypes = set()
+     procfs_path = get_procfs_path()
++
++    # Chaquopy: /proc/filesystems is blocked by SELinux on API level 28.
++    all = True
++
+     if not all:
+         with open_text(f"{procfs_path}/filesystems") as f:
+             for line in f:

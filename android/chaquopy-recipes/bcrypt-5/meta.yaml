@@ -1,0 +1,6 @@
+package:
+  name: bcrypt
+  version: "5.0.0"
+
+build:
+  number: 0

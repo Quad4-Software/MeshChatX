@@ -111,7 +111,7 @@ chaquopy {
                 throw new org.gradle.api.GradleException("Missing vendor wheel directory at ${vendorWheelDir}")
             }
             options "--find-links", vendorWheelDir.absolutePath
-            install "aiohttp==3.10.10"
+            install "aiohttp==3.13.3"
             install "rns>=1.1.5"
             install "lxmf>=0.9.4"
             install "numpy==1.26.2"
@@ -121,8 +121,8 @@ chaquopy {
                 throw new org.gradle.api.GradleException("Missing patched LXST wheel at ${lxstPatchedWheel}")
             }
             install lxstPatchedWheel.absolutePath
-            install "psutil>=7.1.3"
-            install "websockets>=15.0.1"
+            install "psutil>=7.2.2"
+            install "websockets>=16.0"
             install "bcrypt==3.1.7"
             install "aiohttp-session>=2.12.1,<3.0.0"
             install "cryptography==46.0.7"
