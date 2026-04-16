@@ -182,14 +182,20 @@ VENV_DIR="${PYPIDIR}/.venv-local"
 "${VENV_DIR}/bin/pip" install --upgrade pip
 "${VENV_DIR}/bin/pip" install -r "${PYPIDIR}/requirements.txt"
 "${VENV_DIR}/bin/pip" install "numpy==${NUMPY_VERSION}"
+# Chaquopy build-wheel.py shells out to `wheel pack`, so ensure the venv scripts are first on PATH.
+export PATH="${VENV_DIR}/bin:${PATH}"
+if ! command -v wheel >/dev/null 2>&1; then
+    echo "Missing required wheel CLI in virtualenv at ${VENV_DIR}" >&2
+    exit 1
+fi
 
 NUMPY_DIST_DIR="${PYPIDIR}/dist/numpy"
 mkdir -p "${NUMPY_DIST_DIR}"
 PYTHON_ABI_TAG="cp${PYTHON_MINOR/./}"
 for abi in ${ABI_LIST//,/ }; do
     platform_tag="$(abi_to_platform_tag "${abi}")"
-    echo "Downloading NumPy wheel for ABI ${abi} (${platform_tag})"
-    "${VENV_DIR}/bin/pip" download \
+    echo "Resolving NumPy wheel for ABI ${abi} (${platform_tag})"
+    if ! "${VENV_DIR}/bin/pip" download \
         --only-binary=:all: \
         --no-deps \
         --platform "${platform_tag}" \
@@ -199,7 +205,15 @@ for abi in ${ABI_LIST//,/ }; do
         "numpy==${NUMPY_VERSION}" \
         --index-url https://pypi.org/simple \
         --extra-index-url https://chaquo.com/pypi-13.1 \
-        --dest "${NUMPY_DIST_DIR}"
+        --dest "${NUMPY_DIST_DIR}"; then
+        echo "No prebuilt NumPy wheel for ${abi}; building locally via Chaquopy recipe"
+        "${VENV_DIR}/bin/python" "${PYPIDIR}/build-wheel.py" \
+            --python "${PYTHON_MINOR}" \
+            --api-level "${API_LEVEL}" \
+            --abi "${abi}" \
+            "${PYPIDIR}/packages/numpy"
+        cp -f "${PYPIDIR}/dist/numpy"/numpy-"${NUMPY_VERSION}"-*.whl "${NUMPY_DIST_DIR}/"
+    fi
 done
 
 RECIPE_DIR="${WORK_DIR}/recipes/pycodec2-local"
