@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-04-15T07:29:13.270941Z
+Generated at: 2026-04-16T03:20:09.086044Z
 Frontend source: embedded
 
 Python dependencies
@@ -43,7 +43,7 @@ jaraco.context 6.1.2
 lxmf 0.9.4
   License: Reticulum License
   Author: Mark Qvist
-lxmfy 1.6.1
+lxmfy 1.6.2
   License: BSD-0-Clause
   Author: Quad4
 lxst 0.4.6
