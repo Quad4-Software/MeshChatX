@@ -1522,6 +1522,17 @@ class ReticulumMeshChat:
     def get_app_version() -> str:
         return app_version
 
+    def _api_reticulum_config_path(self) -> str | None:
+        r = getattr(self, "reticulum", None)
+        if r is not None:
+            p = getattr(r, "configpath", None)
+            if p:
+                return str(p)
+        rd = getattr(self, "reticulum_config_dir", None)
+        if rd:
+            return os.path.join(rd, "config")
+        return None
+
     @staticmethod
     def get_package_version(package_name: str, default: str = "unknown") -> str:
         """Resolve an installed distribution version for About /app/info.
@@ -1529,10 +1540,15 @@ class ReticulumMeshChat:
         cx_Freeze and similar bundles often omit .dist-info; fall back to module
         attributes and known submodule layouts (e.g. ``websockets.version``).
         """
-        from packaging.utils import canonicalize_name
+        try:
+            from packaging.utils import canonicalize_name as _canonicalize_name
+        except Exception:
+
+            def _canonicalize_name(name: str) -> str:
+                return str(name).strip().lower().replace("_", "-")
 
         def _from_metadata(dist_name: str) -> str | None:
-            for candidate in dict.fromkeys((dist_name, canonicalize_name(dist_name))):
+            for candidate in dict.fromkeys((dist_name, _canonicalize_name(dist_name))):
                 try:
                     v = importlib.metadata.version(candidate)
                     if v:
@@ -1590,6 +1606,34 @@ class ReticulumMeshChat:
                     return str(ver)
             except Exception:
                 pass
+
+        embedded_specs: dict[str, tuple[str, str]] = {
+            "aiohttp": ("aiohttp", "__version__"),
+            "aiohttp-session": ("aiohttp_session", "__version__"),
+            "cryptography": ("cryptography", "__version__"),
+            "psutil": ("psutil", "__version__"),
+            "websockets": ("websockets", "__version__"),
+            "bcrypt": ("bcrypt", "__version__"),
+            "ply": ("ply", "__version__"),
+            "lxmfy": ("lxmfy", "__version__"),
+        }
+        if package_name in embedded_specs:
+            mod_name, attr = embedded_specs[package_name]
+            try:
+                module = importlib.import_module(mod_name)
+                ver = getattr(module, attr, None)
+                if ver:
+                    return str(ver)
+            except Exception:
+                pass
+            if package_name == "ply":
+                try:
+                    lex = importlib.import_module("ply.lex")
+                    ver = getattr(lex, "VERSION", None)
+                    if ver:
+                        return str(ver)
+                except Exception:
+                    pass
 
         return default
 
@@ -4306,12 +4350,68 @@ class ReticulumMeshChat:
         # get app info
         @routes.get("/api/v1/app/info")
         async def app_info(request):
-            # Get memory usage for current process
             process = psutil.Process()
-            memory_info = process.memory_info()
 
-            # Get network I/O statistics
-            net_io = psutil.net_io_counters()
+            def _safe_memory_info():
+                try:
+                    return process.memory_info()
+                except Exception:
+                    class _M:
+                        rss = 0
+                        vms = 0
+
+                    return _M()
+
+            def _safe_net_io():
+                try:
+                    return psutil.net_io_counters()
+                except Exception:
+                    class _N:
+                        bytes_sent = 0
+                        bytes_recv = 0
+                        packets_sent = 0
+                        packets_recv = 0
+
+                    return _N()
+
+            # psutil often raises on Android (restricted /proc); never fail the whole payload.
+            memory_info = _safe_memory_info()
+            net_io = _safe_net_io()
+
+            def _safe_database_path():
+                if self.database_path:
+                    return self.database_path
+                try:
+                    if self.database is not None and self.database.provider is not None:
+                        return self.database.provider.db_path
+                except Exception:
+                    pass
+                return None
+
+            def _safe_sqlite_pragma(name, default=None):
+                try:
+                    if self.database is not None:
+                        return self.database._get_pragma_value(name, default)
+                except Exception:
+                    pass
+                return default
+
+            def _safe_config_get(name, default):
+                try:
+                    if self.config is not None:
+                        return self.config.get(name, default)
+                except Exception:
+                    pass
+                return default
+
+            def _safe_user_guidance():
+                try:
+                    guidance = self.build_user_guidance_messages()
+                    if isinstance(guidance, list):
+                        return guidance
+                except Exception:
+                    pass
+                return []
 
             # Get total paths
             total_paths = 0
@@ -4413,7 +4513,24 @@ class ReticulumMeshChat:
                 if total_duration > 0:
                     avg_download_speed_bps = total_bytes / total_duration
 
-            db_files = self.database._get_database_file_stats()
+            try:
+                db_files = (
+                    self.database._get_database_file_stats()
+                    if self.database is not None
+                    else {
+                        "main_bytes": 0,
+                        "wal_bytes": 0,
+                        "shm_bytes": 0,
+                        "total_bytes": 0,
+                    }
+                )
+            except Exception:
+                db_files = {
+                    "main_bytes": 0,
+                    "wal_bytes": 0,
+                    "shm_bytes": 0,
+                    "total_bytes": 0,
+                }
 
             return web.json_response(
                 {
@@ -4441,32 +4558,20 @@ class ReticulumMeshChat:
                             "lxmfy": self.get_package_version("lxmfy"),
                         },
                         "storage_path": self.storage_path,
-                        "database_path": self.database_path,
+                        "database_path": _safe_database_path(),
                         "database_file_size": db_files["main_bytes"],
                         "database_files": db_files,
                         "sqlite": {
-                            "journal_mode": self.database._get_pragma_value(
-                                "journal_mode",
-                                "unknown",
-                            ),
-                            "synchronous": self.database._get_pragma_value(
-                                "synchronous",
-                                None,
-                            ),
-                            "wal_autocheckpoint": self.database._get_pragma_value(
+                            "journal_mode": _safe_sqlite_pragma("journal_mode", "unknown"),
+                            "synchronous": _safe_sqlite_pragma("synchronous", None),
+                            "wal_autocheckpoint": _safe_sqlite_pragma(
                                 "wal_autocheckpoint",
                                 None,
                             ),
-                            "busy_timeout": self.database._get_pragma_value(
-                                "busy_timeout",
-                                None,
-                            ),
+                            "busy_timeout": _safe_sqlite_pragma("busy_timeout", None),
                         },
-                        "reticulum_config_path": (
-                            getattr(self.reticulum, "configpath", None)
-                            if hasattr(self, "reticulum") and self.reticulum
-                            else None
-                        ),
+                        "reticulum_config_path": self._api_reticulum_config_path(),
+                        "host_platform": sys.platform,
                         "is_connected_to_shared_instance": is_connected_to_shared_instance,
                         "shared_instance_address": shared_instance_address,
                         "is_transport_enabled": (
@@ -4502,10 +4607,10 @@ class ReticulumMeshChat:
                             "database_health_issues",
                             [],
                         ),
-                        "user_guidance": self.build_user_guidance_messages(),
-                        "tutorial_seen": self.config.get("tutorial_seen", "false")
+                        "user_guidance": _safe_user_guidance(),
+                        "tutorial_seen": _safe_config_get("tutorial_seen", "false")
                         == "true",
-                        "changelog_seen_version": self.config.get(
+                        "changelog_seen_version": _safe_config_get(
                             "changelog_seen_version",
                             "0.0.0",
                         ),
@@ -4529,7 +4634,19 @@ class ReticulumMeshChat:
                 )
 
             if not os.path.exists(changelog_path):
-                return web.json_response({"error": "Changelog not found"}, status=404)
+                fallback_markdown = (
+                    f"# MeshChatX {app_version}\n\n"
+                    "Changelog is unavailable in this build.\n\n"
+                    "Please check the project release page for full notes."
+                )
+                html_content = MarkdownRenderer.render(fallback_markdown)
+                return web.json_response(
+                    {
+                        "changelog": fallback_markdown,
+                        "html": html_content,
+                        "version": app_version,
+                    },
+                )
 
             try:
                 with open(changelog_path) as f:
