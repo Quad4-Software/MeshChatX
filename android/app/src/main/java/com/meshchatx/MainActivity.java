@@ -10,6 +10,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -38,14 +40,21 @@ public class MainActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private TextView loadingText;
     private TextView errorText;
-    private static final String SERVER_URL = "https://127.0.0.1:8000";
+    private static final String SERVER_URL_HTTPS = "https://127.0.0.1:8000";
+    private static final String SERVER_URL_HTTP = "http://127.0.0.1:8000";
     private static final int SERVER_PORT = 8000;
     private static final int RUNTIME_PERMISSIONS_REQUEST_CODE = 1001;
-    private static final int MAX_CONNECTION_ATTEMPTS = 30;
-    private static final long CONNECTION_RETRY_DELAY_MS = 1000;
+    private static final int MICROPHONE_WEB_PERMISSION_REQUEST_CODE = 1002;
+    private static final String PREFS_NAME = "meshchatx";
+    private static final String PREF_BATTERY_OPT_REQUESTED = "battery_opt_requested";
+    private static final int MAX_CONNECTION_ATTEMPTS = 120;
+    private static final long CONNECTION_RETRY_INITIAL_DELAY_MS = 500;
+    private static final long CONNECTION_RETRY_MAX_DELAY_MS = 5000;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private PermissionRequest pendingWebPermissionRequest = null;
     private ValueCallback<Uri[]> filePathCallback = null;
+    private String startupServerUrl = SERVER_URL_HTTPS;
+    private boolean startupRequestHadLoadError = false;
     private boolean startupPageLoaded = false;
     private boolean backendFailed = false;
     private int connectionAttempts = 0;
@@ -88,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
             Python.start(new AndroidPlatform(this));
         }
         requestRuntimePermissionsIfNeeded();
+        requestBatteryOptimizationExemptionIfNeeded();
 
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -101,6 +111,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                if (!isStartupRequest(url)) {
+                    return;
+                }
+                if (startupRequestHadLoadError) {
+                    return;
+                }
                 startupPageLoaded = true;
                 mainHandler.removeCallbacksAndMessages(null);
                 progressBar.setVisibility(android.view.View.GONE);
@@ -111,6 +127,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
+                if (isStartupRequest(url)) {
+                    startupRequestHadLoadError = false;
+                }
                 progressBar.setVisibility(android.view.View.VISIBLE);
             }
 
@@ -118,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
                 if (request != null && request.isForMainFrame() && isStartupRequest(request.getUrl().toString())) {
+                    startupRequestHadLoadError = true;
                     if (backendFailed && !startupPageLoaded) {
                         CharSequence description = (error != null) ? error.getDescription() : "Unknown error";
                         showStartupError("WebView failed to load MeshChatX: " + description);
@@ -129,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                 super.onReceivedError(view, errorCode, description, failingUrl);
                 if (isStartupRequest(failingUrl) && !startupPageLoaded) {
+                    startupRequestHadLoadError = true;
                     if (backendFailed) {
                         showStartupError("WebView failed to load MeshChatX: " + description);
                     }
@@ -170,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     pendingWebPermissionRequest = request;
-                    requestRuntimePermissionsIfNeeded();
+                    requestMicrophonePermissionForWebView();
                 });
             }
 
@@ -239,6 +260,51 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void requestMicrophonePermissionForWebView() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            if (pendingWebPermissionRequest != null) {
+                pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
+                pendingWebPermissionRequest = null;
+            }
+            return;
+        }
+
+        ActivityCompat.requestPermissions(
+            this,
+            new String[] { Manifest.permission.RECORD_AUDIO },
+            MICROPHONE_WEB_PERMISSION_REQUEST_CODE
+        );
+    }
+
+    private void requestBatteryOptimizationExemptionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return;
+        }
+
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        if (powerManager != null && powerManager.isIgnoringBatteryOptimizations(getPackageName())) {
+            return;
+        }
+
+        boolean requestedBefore = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(PREF_BATTERY_OPT_REQUESTED, false);
+        if (requestedBefore) {
+            return;
+        }
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(PREF_BATTERY_OPT_REQUESTED, true).apply();
+
+        Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+        intent.setData(Uri.parse("package:" + getPackageName()));
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            try {
+                startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+            } catch (ActivityNotFoundException ignored) {
+                Toast.makeText(this, "Open battery settings and allow unrestricted background usage for MeshChatX", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
     private void addIfMissing(List<String> missingPermissions, String permission) {
         if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
             missingPermissions.add(permission);
@@ -248,6 +314,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MICROPHONE_WEB_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                if (pendingWebPermissionRequest != null) {
+                    pendingWebPermissionRequest.deny();
+                    pendingWebPermissionRequest = null;
+                }
+                return;
+            }
+            if (pendingWebPermissionRequest != null) {
+                pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
+                pendingWebPermissionRequest = null;
+            }
+            return;
+        }
         if (requestCode != RUNTIME_PERMISSIONS_REQUEST_CODE) {
             return;
         }
@@ -257,10 +337,12 @@ public class MainActivity extends AppCompatActivity {
                     pendingWebPermissionRequest.deny();
                     pendingWebPermissionRequest = null;
                 }
-                return;
             }
         }
-        if (pendingWebPermissionRequest != null) {
+        if (
+            pendingWebPermissionRequest != null &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        ) {
             pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
             pendingWebPermissionRequest = null;
         }
@@ -280,7 +362,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isStartupRequest(String url) {
-        return url != null && url.startsWith(SERVER_URL);
+        return url != null && (url.startsWith(SERVER_URL_HTTPS) || url.startsWith(SERVER_URL_HTTP));
     }
 
     private void scheduleConnectionRetry(String message) {
@@ -288,18 +370,26 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         showLoading(message + " (" + (connectionAttempts + 1) + "/" + MAX_CONNECTION_ATTEMPTS + ")");
+        long retryDelayMs = Math.min(
+            CONNECTION_RETRY_MAX_DELAY_MS,
+            CONNECTION_RETRY_INITIAL_DELAY_MS + (connectionAttempts * 250L)
+        );
         mainHandler.postDelayed(() -> {
             if (startupPageLoaded || backendFailed) {
                 return;
             }
             connectionAttempts += 1;
             if (connectionAttempts > MAX_CONNECTION_ATTEMPTS) {
-                showStartupError("Failed to connect to local MeshChatX server.");
+                showStartupError("Failed to connect to local MeshChatX server after waiting for startup.");
                 return;
             }
-            webView.loadUrl(SERVER_URL);
+            if (connectionAttempts == (MAX_CONNECTION_ATTEMPTS / 2) && SERVER_URL_HTTPS.equals(startupServerUrl)) {
+                startupServerUrl = SERVER_URL_HTTP;
+                showLoading("Retrying with HTTP fallback...");
+            }
+            webView.loadUrl(startupServerUrl);
             scheduleConnectionRetry("Retrying connection...");
-        }, CONNECTION_RETRY_DELAY_MS);
+        }, retryDelayMs);
     }
 
     private String toStackTrace(Throwable error) {
