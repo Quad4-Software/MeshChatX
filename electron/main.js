@@ -401,6 +401,20 @@ function log(message) {
     mainWindow.webContents.send("log", message);
 }
 
+function formatRenderProcessGoneDetails(details) {
+    if (!details) {
+        return "no details";
+    }
+    return JSON.stringify(
+        {
+            reason: details.reason || "unknown",
+            exitCode: details.exitCode,
+        },
+        null,
+        2,
+    );
+}
+
 function getDefaultStorageDir() {
     // if we are running a windows portable exe, we want to use .reticulum-meshchat in the portable exe dir
     // e.g if we launch "E:\Some\Path\MeshChat.exe" we want to use "E:\Some\Path\.reticulum-meshchat"
@@ -525,6 +539,12 @@ app.whenReady().then(async () => {
                 // Security: disable remote module (deprecated but explicit)
                 enableRemoteModule: false,
             },
+        });
+        mainWindow.webContents.on("render-process-gone", (_event, details) => {
+            log(`Renderer process crashed: ${formatRenderProcessGoneDetails(details)}`);
+        });
+        mainWindow.webContents.on("unresponsive", () => {
+            log("Renderer process became unresponsive.");
         });
 
         // minimize to tray behavior
@@ -749,6 +769,11 @@ app.whenReady().then(async () => {
     } catch (e) {
         log(e);
     }
+});
+
+app.on("render-process-gone", (_event, webContents, details) => {
+    const wcId = webContents ? webContents.id : "unknown";
+    log(`render-process-gone for webContents ${wcId}: ${formatRenderProcessGoneDetails(details)}`);
 });
 
 function quit() {
