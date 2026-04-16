@@ -3,7 +3,10 @@
     "version": "4.5.0",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
     "homepage": "https://git.quad4.io/RNS-Things/MeshChatX",
-    "author": "Sudo-Ivan",
+    "desktopName": "reticulum-meshchatx.desktop",
+    "author": {
+        "name": "Sudo-Ivan"
+    },
     "main": "electron/main.js",
     "scripts": {
         "dev": "vite dev",
@@ -197,7 +200,15 @@
                 }
             ],
             "maintainer": "Sudo-Ivan",
+            "vendor": "Sudo-Ivan",
             "category": "Network",
+            "synopsis": "Mesh networking chat client",
+            "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
+            "desktop": {
+                "entry": {
+                    "StartupWMClass": "reticulum-meshchatx"
+                }
+            },
             "extraResources": [
                 {
                     "from": "build/exe/linux-${arch}",
@@ -207,6 +218,20 @@
                     ]
                 }
             ]
+        },
+        "deb": {
+            "maintainer": "Sudo-Ivan",
+            "vendor": "Sudo-Ivan",
+            "packageCategory": "network",
+            "synopsis": "Mesh networking chat client",
+            "description": "A simple mesh network communications app powered by the Reticulum Network Stack"
+        },
+        "rpm": {
+            "maintainer": "Sudo-Ivan",
+            "vendor": "Sudo-Ivan",
+            "packageCategory": "Network",
+            "synopsis": "Mesh networking chat client",
+            "description": "A simple mesh network communications app powered by the Reticulum Network Stack"
         },
         "flatpak": {
             "runtime": "org.freedesktop.Platform",
@@ -241,6 +266,7 @@
         "@mdi/font": "^7.4.47",
         "@mdi/js": "^7.4.47",
         "@tailwindcss/forms": "^0.5.11",
+        "@tanstack/vue-virtual": "^3.13.23",
         "@vitejs/plugin-vue": "^6.0.6",
         "click-outside-vue3": "^4.0.1",
         "compressorjs": "^1.3.0",
