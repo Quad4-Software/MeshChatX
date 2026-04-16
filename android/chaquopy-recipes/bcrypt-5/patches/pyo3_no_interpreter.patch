@@ -1,0 +1,14 @@
+--- src-original/src/_bcrypt/Cargo.toml
++++ src/src/_bcrypt/Cargo.toml
+@@ -8,7 +8,10 @@
+ publish = false
+ 
+ [dependencies]
+-pyo3 = { version = "0.26", features = ["abi3"] }
++
++# Chaquopy: add abi3-py310 for Android cp311 wheels.
++pyo3 = { version = "0.26", features = ["abi3", "abi3-py310"] }
++
+ bcrypt = "0.17"
+ bcrypt-pbkdf = "0.10.0"
+ base64 = "0.22.1"
