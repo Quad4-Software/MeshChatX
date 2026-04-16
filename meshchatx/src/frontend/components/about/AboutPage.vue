@@ -175,9 +175,9 @@
                                 <div class="text-2xl font-black text-gray-900 dark:text-white tabular-nums">
                                     {{
                                         formatBytes(
-                                            appInfo.database_files
+                                            (appInfo.database_files
                                                 ? appInfo.database_files.total_bytes
-                                                : appInfo.database_file_size
+                                                : appInfo.database_file_size) || 0
                                         )
                                     }}
                                 </div>
@@ -188,7 +188,7 @@
 
                 <div class="space-y-6">
                     <!-- Security & Integrity -->
-                    <div v-if="appInfo" class="about-section">
+                    <div v-if="appInfo" class="about-section hidden sm:block">
                         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
@@ -332,19 +332,51 @@
                                     <span class="text-[10px] font-black text-blue-500 uppercase tracking-wider"
                                         >Python</span
                                     >
-                                    <span class="font-mono text-xs font-bold">v{{ appInfo.python_version }}</span>
+                                    <span class="font-mono text-xs font-bold"
+                                        >v{{ appInfo.python_version || "unknown" }}</span
+                                    >
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[10px] font-black text-purple-500 uppercase tracking-wider"
                                         >LXMF</span
                                     >
-                                    <span class="font-mono text-xs font-bold">v{{ appInfo.lxmf_version }}</span>
+                                    <span class="font-mono text-xs font-bold"
+                                        >v{{ appInfo.lxmf_version || "unknown" }}</span
+                                    >
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[10px] font-black text-indigo-500 uppercase tracking-wider"
                                         >RNS</span
                                     >
-                                    <span class="font-mono text-xs font-bold">v{{ appInfo.rns_version }}</span>
+                                    <span class="font-mono text-xs font-bold"
+                                        >v{{ appInfo.rns_version || "unknown" }}</span
+                                    >
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black text-emerald-500 uppercase tracking-wider"
+                                        >Platform</span
+                                    >
+                                    <span class="font-mono text-xs font-bold">{{ environmentInfo.platform }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black text-amber-500 uppercase tracking-wider"
+                                        >Language</span
+                                    >
+                                    <span class="font-mono text-xs font-bold">{{ environmentInfo.language }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black text-fuchsia-500 uppercase tracking-wider"
+                                        >Backend URL</span
+                                    >
+                                    <span class="font-mono text-xs font-bold">{{ environmentInfo.backendUrl }}</span>
+                                </div>
+                                <div class="flex flex-col gap-1 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider"
+                                        >User Agent</span
+                                    >
+                                    <span class="font-mono text-[10px] break-all opacity-70">{{
+                                        environmentInfo.userAgent
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
@@ -867,7 +899,9 @@ export default {
     data() {
         return {
             Utils,
-            appInfo: null,
+            appInfo: {
+                version: "unknown",
+            },
             config: null,
             updateInterval: null,
             healthInterval: null,
@@ -926,6 +960,14 @@ export default {
             } catch {
                 return "";
             }
+        },
+        environmentInfo() {
+            return {
+                platform: navigator?.platform || "unknown",
+                language: navigator?.language || "unknown",
+                userAgent: navigator?.userAgent || "unknown",
+                backendUrl: window?.location?.origin || "unknown",
+            };
         },
     },
     mounted() {
@@ -1096,7 +1138,10 @@ export default {
         async getAppInfo() {
             try {
                 const response = await window.api.get("/api/v1/app/info");
-                this.appInfo = response.data.app_info;
+                this.appInfo = {
+                    ...(this.appInfo || {}),
+                    ...(response?.data?.app_info || {}),
+                };
 
                 if (this.isElectron) {
                     this.electronMemoryUsage = await ElectronUtils.getMemoryUsage();
@@ -1105,7 +1150,6 @@ export default {
                     this.nodeVersion = window.electron.nodeVersion();
                 }
             } catch (e) {
-                // do nothing if failed to load app info
                 console.log(e);
             }
         },
