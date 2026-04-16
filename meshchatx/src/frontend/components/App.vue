@@ -4,33 +4,14 @@
         class="h-screen w-full flex flex-col transition-colors"
         :style="shellCanvasStyle"
     >
-        <!-- emergency banner -->
-        <div
-            v-if="appInfo?.emergency"
-            class="relative z-[100] bg-red-600 text-white px-4 py-2 text-center text-sm font-bold shadow-md animate-pulse"
-        >
-            <div class="flex items-center justify-center gap-2">
-                <MaterialDesignIcon icon-name="alert-decagram" class="size-5" />
-                <span>{{ $t("app.emergency_mode_active") }}</span>
-            </div>
-        </div>
-
-        <div
-            v-if="showWsDisconnectedBanner"
-            class="relative z-[100] bg-red-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-red-800/80"
-            role="status"
-            aria-live="polite"
-        >
-            {{ $t("app.backend_disconnected") }} · {{ wsDisconnectedDurationText }}
-        </div>
-        <div
-            v-if="wsReconnectedBanner"
-            class="relative z-[100] bg-emerald-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-emerald-800/80 transition-opacity duration-300"
-            role="status"
-            aria-live="polite"
-        >
-            {{ $t("app.backend_reconnected") }}
-        </div>
+        <AppShellBanners
+            :show-emergency="Boolean(appInfo?.emergency)"
+            :emergency-label="$t('app.emergency_mode_active')"
+            :show-ws-disconnected="showWsDisconnectedBanner"
+            :ws-disconnected-label="`${$t('app.backend_disconnected')} · ${wsDisconnectedDurationText}`"
+            :show-ws-reconnected="wsReconnectedBanner"
+            :ws-reconnected-label="$t('app.backend_reconnected')"
+        />
 
         <RouterView v-if="$route.name === 'auth'" />
 
@@ -610,6 +591,7 @@ import CommandPalette from "./CommandPalette.vue";
 import IntegrityWarningModal from "./IntegrityWarningModal.vue";
 import ChangelogModal from "./ChangelogModal.vue";
 import TutorialModal from "./TutorialModal.vue";
+import AppShellBanners from "./layout/AppShellBanners.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
 import ToneGenerator from "../js/ToneGenerator";
@@ -630,6 +612,7 @@ export default {
         IntegrityWarningModal,
         ChangelogModal,
         TutorialModal,
+        AppShellBanners,
     },
     setup() {
         const vuetifyTheme = useTheme();

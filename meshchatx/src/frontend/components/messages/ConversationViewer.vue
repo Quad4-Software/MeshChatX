@@ -20,130 +20,28 @@
             >
         </div>
 
-        <!-- header -->
-        <div
+        <ConversationPeerHeader
             ref="conversationPeerHeader"
-            class="relative z-20 flex flex-wrap items-center gap-y-2 px-3 sm:px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
-        >
-            <!-- peer icon -->
-            <div class="flex-shrink-0 mr-3">
-                <LxmfUserIcon
-                    :custom-image="selectedPeer.contact_image"
-                    :icon-name="selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.icon_name : ''"
-                    :icon-foreground-colour="
-                        selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.foreground_colour : ''
-                    "
-                    :icon-background-colour="
-                        selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.background_colour : ''
-                    "
-                    icon-class="shrink-0"
-                    :icon-style="messageIconStyle"
-                />
-            </div>
-
-            <!-- peer info -->
-            <div class="min-w-0 flex-1">
-                <div class="flex items-center cursor-pointer min-w-0 group" @click="updateCustomDisplayName">
-                    <div
-                        v-if="selectedPeer.custom_display_name != null"
-                        class="mr-1.5 text-gray-500 dark:text-zinc-400 group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
-                        :title="$t('messages.custom_display_name')"
-                    >
-                        <MaterialDesignIcon icon-name="tag-outline" class="size-4" />
-                    </div>
-                    <div
-                        class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[120px] sm:max-w-sm text-base"
-                        :title="selectedPeer.custom_display_name ?? selectedPeer.display_name"
-                    >
-                        {{ selectedPeer.custom_display_name ?? selectedPeer.display_name }}
-                    </div>
-                </div>
-                <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2 min-w-0">
-                    <!-- destination hash -->
-                    <div
-                        class="cursor-pointer hover:text-blue-500 transition-colors truncate max-w-[120px] sm:max-w-none shrink-0"
-                        :title="selectedPeer.destination_hash"
-                        @click="copyHash(selectedPeer.destination_hash)"
-                    >
-                        {{ formatDestinationHash(selectedPeer.destination_hash) }}
-                    </div>
-
-                    <div
-                        v-if="
-                            selectedPeerPath ||
-                            selectedPeerSignalMetrics?.snr != null ||
-                            selectedPeerLxmfStampInfo?.stamp_cost
-                        "
-                        class="flex items-center gap-2 min-w-0"
-                    >
-                        <span class="text-gray-300 dark:text-zinc-700 shrink-0">•</span>
-
-                        <div class="flex items-center gap-2 truncate">
-                            <!-- hops away -->
-                            <span
-                                v-if="selectedPeerPath"
-                                class="flex items-center cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200 shrink-0"
-                                title="Path information"
-                                @click="onDestinationPathClick(selectedPeerPath)"
-                            >
-                                <span v-if="selectedPeerPath.hops === 0 || selectedPeerPath.hops === 1">{{
-                                    $t("messages.direct")
-                                }}</span>
-                                <span v-else>{{ $t("messages.hops_away", { count: selectedPeerPath.hops }) }}</span>
-                            </span>
-
-                            <!-- snr -->
-                            <span
-                                v-if="selectedPeerSignalMetrics?.snr != null"
-                                class="flex items-center gap-2 shrink-0"
-                            >
-                                <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
-                                <span
-                                    class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
-                                    title="Signal quality"
-                                    @click="onSignalMetricsClick(selectedPeerSignalMetrics)"
-                                    >{{ $t("messages.snr", { snr: selectedPeerSignalMetrics.snr }) }}</span
-                                >
-                            </span>
-
-                            <!-- stamp cost -->
-                            <span v-if="selectedPeerLxmfStampInfo?.stamp_cost" class="flex items-center gap-2 shrink-0">
-                                <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
-                                <span
-                                    class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
-                                    title="LXMF stamp requirement"
-                                    @click="onStampInfoClick(selectedPeerLxmfStampInfo)"
-                                    >{{
-                                        $t("messages.stamp_cost", { cost: selectedPeerLxmfStampInfo.stamp_cost })
-                                    }}</span
-                                >
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- dropdown menu -->
-            <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5 min-w-0 shrink-0">
-                <ConversationDropDownMenu
-                    v-if="selectedPeer"
-                    :peer="selectedPeer"
-                    :compact="compactPeerActions"
-                    :has-failed-messages="hasFailedOrCancelledMessages"
-                    @conversation-deleted="onConversationDeleted"
-                    @set-custom-display-name="updateCustomDisplayName"
-                    @popout="openConversationPopout"
-                    @retry-failed="retryAllFailedOrCancelledMessages"
-                    @open-telemetry-history="isTelemetryHistoryModalOpen = true"
-                    @start-call="onStartCall"
-                    @share-contact="openShareContactModal"
-                />
-
-                <IconButton title="Close" class="shrink-0" @click="close">
-                    <MaterialDesignIcon icon-name="close" class="size-6 sm:size-7" />
-                </IconButton>
-            </div>
-        </div>
+            :selected-peer="selectedPeer"
+            :compact-peer-actions="compactPeerActions"
+            :has-failed-or-cancelled-messages="hasFailedOrCancelledMessages"
+            :message-icon-style="messageIconStyle"
+            :selected-peer-path="selectedPeerPath"
+            :selected-peer-signal-metrics="selectedPeerSignalMetrics"
+            :selected-peer-lxmf-stamp-info="selectedPeerLxmfStampInfo"
+            @edit-display-name="updateCustomDisplayName"
+            @copy-hash="copyHash"
+            @destination-path-click="onDestinationPathClick"
+            @signal-metrics-click="onSignalMetricsClick"
+            @stamp-info-click="onStampInfoClick"
+            @conversation-deleted="onConversationDeleted"
+            @popout="openConversationPopout"
+            @retry-failed="retryAllFailedOrCancelledMessages"
+            @open-telemetry-history="isTelemetryHistoryModalOpen = true"
+            @start-call="onStartCall"
+            @share-contact="openShareContactModal"
+            @close="close"
+        />
 
         <!-- Telemetry History Modal -->
         <div
@@ -1588,6 +1486,14 @@
 <script>
 import Utils from "../../js/Utils";
 import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "./conversationScroll.js";
+import {
+    isTelemetryOnly as isTelemetryOnlyMessage,
+    hasRenderableContent as messageHasRenderableContent,
+    isImageOnlyMessage as computeIsImageOnlyMessage,
+    collectImageFilesFromDataTransfer as collectImagesFromDataTransfer,
+    extractClipboardImageFiles,
+} from "./conversationMessageHelpers.js";
+import ConversationPeerHeader from "./ConversationPeerHeader.vue";
 import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
 import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
@@ -1604,10 +1510,8 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
-import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import AddImageButton from "./AddImageButton.vue";
 import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
-import IconButton from "../IconButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
@@ -1622,12 +1526,11 @@ import "emoji-picker-element";
 export default {
     name: "ConversationViewer",
     components: {
-        IconButton,
         AddImageButton,
         ContextMenuDivider,
         ContextMenuItem,
         ContextMenuPanel,
-        ConversationDropDownMenu,
+        ConversationPeerHeader,
         MaterialDesignIcon,
         SendMessageButton,
         AddAudioButton,
@@ -2205,7 +2108,8 @@ export default {
     methods: {
         setupPeerHeaderResizeObserver() {
             this.teardownPeerHeaderResizeObserver();
-            const el = this.$refs.conversationPeerHeader;
+            const root = this.$refs.conversationPeerHeader;
+            const el = root && root.$el ? root.$el : root;
             if (!el || typeof ResizeObserver === "undefined") {
                 return;
             }
@@ -4382,32 +4286,13 @@ export default {
             });
         },
         isTelemetryOnly(msg) {
-            const hasContent = msg.content && msg.content.trim() !== "";
-            const hasAttachments = msg.fields?.image || msg.fields?.audio || msg.fields?.file_attachments;
-            const hasTelemetry = msg.fields?.telemetry || msg.fields?.telemetry_stream;
-            const hasCommands = msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"]);
-
-            return !hasContent && !hasAttachments && (hasTelemetry || hasCommands);
+            return isTelemetryOnlyMessage(msg);
         },
         hasRenderableContent(msg) {
-            if (msg.content && msg.content.trim() !== "") return true;
-            if (msg.fields?.image) return true;
-            if (msg.fields?.audio) return true;
-            if (msg.fields?.file_attachments) return true;
-            if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return true;
-            if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return true;
-            return false;
+            return messageHasRenderableContent(msg);
         },
         isImageOnlyMessage(chatItem) {
-            const msg = chatItem.lxmf_message;
-            if (!msg.fields?.image) return false;
-            if (msg.fields?.audio || msg.fields?.file_attachments) return false;
-            const content = (msg.content || "").trim();
-            if (content && !this.shouldHideAutoImageCaption(chatItem)) return false;
-            if (msg.reply_to_hash) return false;
-            if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return false;
-            if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return false;
-            return true;
+            return computeIsImageOnlyMessage(chatItem, (item) => this.shouldHideAutoImageCaption(item));
         },
         async toggleTracking() {
             if (!this.selectedPeer) return;
@@ -4472,40 +4357,7 @@ export default {
             }
         },
         collectImageFilesFromDataTransfer(dt) {
-            if (!dt) {
-                return [];
-            }
-            const out = [];
-            const seen = new Set();
-            const pushIfImage = (f) => {
-                if (!f?.type?.startsWith("image/")) {
-                    return;
-                }
-                const k = `${f.name}:${f.size}:${f.lastModified}`;
-                if (seen.has(k)) {
-                    return;
-                }
-                seen.add(k);
-                out.push(f);
-            };
-            if (dt.files?.length) {
-                for (let i = 0; i < dt.files.length; i++) {
-                    pushIfImage(dt.files[i]);
-                }
-                if (out.length > 0) {
-                    return out;
-                }
-            }
-            if (dt.items?.length) {
-                for (let i = 0; i < dt.items.length; i++) {
-                    const item = dt.items[i];
-                    if (item.kind === "file" && item.type?.startsWith("image/")) {
-                        const f = item.getAsFile();
-                        pushIfImage(f);
-                    }
-                }
-            }
-            return out;
+            return collectImagesFromDataTransfer(dt);
         },
         attachPastedOrDroppedImageFiles(imageBlobs, idPrefix) {
             const t = Date.now();
@@ -4519,20 +4371,7 @@ export default {
             });
         },
         onMessagePaste(event) {
-            const cd = event.clipboardData;
-            if (!cd?.items?.length) {
-                return;
-            }
-            const imageBlobs = [];
-            for (let i = 0; i < cd.items.length; i++) {
-                const item = cd.items[i];
-                if (item.kind === "file" && item.type.startsWith("image/")) {
-                    const f = item.getAsFile();
-                    if (f) {
-                        imageBlobs.push(f);
-                    }
-                }
-            }
+            const imageBlobs = extractClipboardImageFiles(event);
             if (imageBlobs.length === 0) {
                 return;
             }

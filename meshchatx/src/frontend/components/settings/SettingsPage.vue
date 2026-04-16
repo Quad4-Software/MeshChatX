@@ -145,66 +145,55 @@
                     v-show="hasSearchResults"
                     class="columns-1 md:columns-2 xl:columns-2 2xl:columns-3 gap-x-8 gap-y-0"
                 >
-                    <!-- Banishment -->
-                    <section
+                    <SettingsSectionBlock
                         v-show="
                             matchesSearch('stranger', 'attachments', 'trust', 'block', 'banner', 'unknown', 'contact')
                         "
-                        class="settings-section break-inside-avoid"
+                        eyebrow="Security"
+                        :title="$t('app.stranger_protection')"
+                        :description="$t('app.stranger_protection_description')"
+                        body-class="space-y-4"
                     >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Security</div>
-                                <h2>{{ $t("app.stranger_protection") }}</h2>
-                                <p>{{ $t("app.stranger_protection_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="block-attachments-from-strangers"
-                                    v-model="config.block_attachments_from_strangers"
-                                    @update:model-value="onStrangerAttachmentBlockChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.block_stranger_attachments")
-                                    }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.block_stranger_attachments_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="block-all-from-strangers"
-                                    v-model="config.block_all_from_strangers"
-                                    @update:model-value="onBlockAllFromStrangersChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.block_all_from_strangers") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.block_all_from_strangers_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="show-unknown-contact-banner"
-                                    v-model="config.show_unknown_contact_banner"
-                                    @update:model-value="onShowUnknownContactBannerChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.show_unknown_contact_banner")
-                                    }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.show_unknown_contact_banner_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                        </div>
-                    </section>
+                        <label class="setting-toggle">
+                            <Toggle
+                                id="block-attachments-from-strangers"
+                                v-model="config.block_attachments_from_strangers"
+                                @update:model-value="onStrangerAttachmentBlockChange"
+                            />
+                            <span class="setting-toggle__label">
+                                <span class="setting-toggle__title">{{ $t("app.block_stranger_attachments") }}</span>
+                                <span class="setting-toggle__description">{{
+                                    $t("app.block_stranger_attachments_description")
+                                }}</span>
+                            </span>
+                        </label>
+                        <label class="setting-toggle">
+                            <Toggle
+                                id="block-all-from-strangers"
+                                v-model="config.block_all_from_strangers"
+                                @update:model-value="onBlockAllFromStrangersChange"
+                            />
+                            <span class="setting-toggle__label">
+                                <span class="setting-toggle__title">{{ $t("app.block_all_from_strangers") }}</span>
+                                <span class="setting-toggle__description">{{
+                                    $t("app.block_all_from_strangers_description")
+                                }}</span>
+                            </span>
+                        </label>
+                        <label class="setting-toggle">
+                            <Toggle
+                                id="show-unknown-contact-banner"
+                                v-model="config.show_unknown_contact_banner"
+                                @update:model-value="onShowUnknownContactBannerChange"
+                            />
+                            <span class="setting-toggle__label">
+                                <span class="setting-toggle__title">{{ $t("app.show_unknown_contact_banner") }}</span>
+                                <span class="setting-toggle__description">{{
+                                    $t("app.show_unknown_contact_banner_description")
+                                }}</span>
+                            </span>
+                        </label>
+                    </SettingsSectionBlock>
 
                     <section
                         v-show="matchesSearch(...sectionKeywords.banishment)"
@@ -2148,11 +2137,24 @@ import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
+import SettingsSectionBlock from "./SettingsSectionBlock.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalState from "../../js/GlobalState";
-import GlobalEmitter from "../../js/GlobalEmitter";
+import {
+    numOrNull,
+    sanitizeColorConfigFields as normalizeConfigColors,
+    fetchMergedConfig,
+    patchServerConfig,
+} from "../../js/settings/settingsConfigService";
+import { applyTransportMode } from "../../js/settings/settingsTransportService";
+import * as maintenanceClient from "../../js/settings/settingsMaintenanceClient";
+import {
+    loadVisualiserDisplayPrefs,
+    persistVisualiserShowDisabled,
+    persistVisualiserShowDiscovered,
+} from "../../js/settings/settingsVisualiserPrefs";
 
 export default {
     name: "SettingsPage",
@@ -2161,6 +2163,7 @@ export default {
         Toggle,
         ShortcutRecorder,
         LxmfUserIcon,
+        SettingsSectionBlock,
     },
     data() {
         return {
@@ -2487,38 +2490,17 @@ export default {
     },
     methods: {
         loadVisualiserDisplayPrefsFromStorage() {
-            try {
-                if (typeof localStorage !== "undefined") {
-                    this.visualiserShowDisabledInterfaces =
-                        localStorage.getItem("meshchatx.visualiser.showDisabledInterfaces") === "true";
-                    this.visualiserShowDiscoveredInterfaces =
-                        localStorage.getItem("meshchatx.visualiser.showDiscoveredInterfaces") === "true";
-                }
-            } catch {
-                /* localStorage unavailable */
-            }
+            const p = loadVisualiserDisplayPrefs();
+            this.visualiserShowDisabledInterfaces = p.showDisabledInterfaces;
+            this.visualiserShowDiscoveredInterfaces = p.showDiscoveredInterfaces;
         },
         onVisualiserShowDisabledChange(val) {
             this.visualiserShowDisabledInterfaces = val;
-            try {
-                if (typeof localStorage !== "undefined") {
-                    localStorage.setItem("meshchatx.visualiser.showDisabledInterfaces", val ? "true" : "false");
-                }
-            } catch {
-                /* localStorage unavailable */
-            }
-            GlobalEmitter.emit("visualiser-display-prefs-changed");
+            persistVisualiserShowDisabled(val);
         },
         onVisualiserShowDiscoveredChange(val) {
             this.visualiserShowDiscoveredInterfaces = val;
-            try {
-                if (typeof localStorage !== "undefined") {
-                    localStorage.setItem("meshchatx.visualiser.showDiscoveredInterfaces", val ? "true" : "false");
-                }
-            } catch {
-                /* localStorage unavailable */
-            }
-            GlobalEmitter.emit("visualiser-display-prefs-changed");
+            persistVisualiserShowDiscovered(val);
         },
         async getTrustedTelemetryPeers() {
             try {
@@ -2584,10 +2566,10 @@ export default {
         },
         async getConfig() {
             try {
-                const response = await window.api.get("/api/v1/config");
-                if (response?.data?.config) {
-                    this.config = { ...this.config, ...response.data.config };
-                    this.sanitizeColorConfigFields();
+                const merged = await fetchMergedConfig(window.api, this.config);
+                if (merged) {
+                    this.config = merged;
+                    normalizeConfigColors(this.config);
                     const inbound = Number(this.config.lxmf_inbound_stamp_cost);
                     if (inbound > 0) {
                         this.lastRememberedInboundStampCost = Math.min(254, inbound);
@@ -2595,7 +2577,6 @@ export default {
                 }
                 this.getKeyboardShortcuts();
             } catch (e) {
-                // do nothing if failed to load config
                 console.log(e);
             }
         },
@@ -2624,9 +2605,9 @@ export default {
         },
         async updateConfig(config, label = null) {
             try {
-                const response = await window.api.patch("/api/v1/config", config);
-                this.config = response.data.config;
-                this.sanitizeColorConfigFields();
+                const newConfig = await patchServerConfig(config, window.api);
+                this.config = newConfig;
+                normalizeConfigColors(this.config);
                 if (label) {
                     ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
                 }
@@ -2635,49 +2616,22 @@ export default {
                 console.log(e);
             }
         },
-        numOrNull(v) {
-            if (v === null || v === undefined || v === "") {
-                return null;
-            }
-            const n = Number(v);
-            return Number.isFinite(n) ? n : null;
-        },
         sanitizeColorConfigFields() {
             if (!this.config) return;
-            const hex6 = (value, fallback) => {
-                if (value == null || value === "") {
-                    return fallback;
-                }
-                if (typeof value === "string" && /^#[0-9A-Fa-f]{6}$/.test(value.trim())) {
-                    return value.trim();
-                }
-                return fallback;
-            };
-            this.config.banished_color = hex6(this.config.banished_color, "#dc2626");
-            this.config.message_outbound_bubble_color = hex6(this.config.message_outbound_bubble_color, "#4f46e5");
-            this.config.message_failed_bubble_color = hex6(this.config.message_failed_bubble_color, "#ef4444");
-            this.config.message_waiting_bubble_color = hex6(this.config.message_waiting_bubble_color, "#e5e7eb");
-            const inbound = this.config.message_inbound_bubble_color;
-            if (inbound == null || inbound === "") {
-                this.config.message_inbound_bubble_color = null;
-            } else if (typeof inbound === "string" && /^#[0-9A-Fa-f]{6}$/.test(inbound.trim())) {
-                this.config.message_inbound_bubble_color = inbound.trim();
-            } else {
-                this.config.message_inbound_bubble_color = null;
-            }
+            normalizeConfigColors(this.config);
         },
         async onAnnounceLimitsChange() {
             const c = this.config;
             await this.updateConfig(
                 {
-                    announce_max_stored_lxmf_delivery: this.numOrNull(c.announce_max_stored_lxmf_delivery),
-                    announce_max_stored_nomadnetwork_node: this.numOrNull(c.announce_max_stored_nomadnetwork_node),
-                    announce_max_stored_lxmf_propagation: this.numOrNull(c.announce_max_stored_lxmf_propagation),
-                    announce_fetch_limit_lxmf_delivery: this.numOrNull(c.announce_fetch_limit_lxmf_delivery),
-                    announce_fetch_limit_nomadnetwork_node: this.numOrNull(c.announce_fetch_limit_nomadnetwork_node),
-                    announce_fetch_limit_lxmf_propagation: this.numOrNull(c.announce_fetch_limit_lxmf_propagation),
-                    announce_search_max_fetch: this.numOrNull(c.announce_search_max_fetch),
-                    discovered_interfaces_max_return: this.numOrNull(c.discovered_interfaces_max_return),
+                    announce_max_stored_lxmf_delivery: numOrNull(c.announce_max_stored_lxmf_delivery),
+                    announce_max_stored_nomadnetwork_node: numOrNull(c.announce_max_stored_nomadnetwork_node),
+                    announce_max_stored_lxmf_propagation: numOrNull(c.announce_max_stored_lxmf_propagation),
+                    announce_fetch_limit_lxmf_delivery: numOrNull(c.announce_fetch_limit_lxmf_delivery),
+                    announce_fetch_limit_nomadnetwork_node: numOrNull(c.announce_fetch_limit_nomadnetwork_node),
+                    announce_fetch_limit_lxmf_propagation: numOrNull(c.announce_fetch_limit_lxmf_propagation),
+                    announce_search_max_fetch: numOrNull(c.announce_search_max_fetch),
+                    discovered_interfaces_max_return: numOrNull(c.discovered_interfaces_max_return),
                 },
                 "announce_limits"
             );
@@ -3210,24 +3164,17 @@ export default {
             await this.onIsTransportEnabledChange();
         },
         async onIsTransportEnabledChange() {
-            if (this.config.is_transport_enabled) {
-                try {
-                    const response = await window.api.post("/api/v1/reticulum/enable-transport");
-                    if (response?.data?.message) {
-                        ToastUtils.success(response.data.message);
-                    }
-                } catch {
-                    ToastUtils.error(this.$t("settings.failed_enable_transport"));
+            try {
+                const response = await applyTransportMode(this.config.is_transport_enabled, window.api);
+                if (response?.data?.message) {
+                    ToastUtils.success(response.data.message);
                 }
-            } else {
-                try {
-                    const response = await window.api.post("/api/v1/reticulum/disable-transport");
-                    if (response?.data?.message) {
-                        ToastUtils.success(response.data.message);
-                    }
-                } catch {
-                    ToastUtils.error(this.$t("settings.failed_disable_transport"));
-                }
+            } catch {
+                ToastUtils.error(
+                    this.config.is_transport_enabled
+                        ? this.$t("settings.failed_enable_transport")
+                        : this.$t("settings.failed_disable_transport")
+                );
             }
         },
         async reloadRns() {
@@ -3237,7 +3184,7 @@ export default {
                 this.reloadingRns = true;
                 this.reloadRnsStatusMessage = this.$t("app.reloading_rns");
                 ToastUtils.loading(this.$t("app.reloading_rns"), 0, "settings-rns-reload");
-                const response = await window.api.post("/api/v1/reticulum/reload");
+                const response = await maintenanceClient.reloadReticulum(window.api);
                 if (response?.data?.message) {
                     this.reloadRnsStatusMessage = response.data.message;
                 }
@@ -3251,7 +3198,7 @@ export default {
         async clearMessages() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.api.delete("/api/v1/maintenance/messages");
+                await maintenanceClient.clearMessages(window.api);
                 ToastUtils.success(this.$t("maintenance.messages_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -3260,7 +3207,7 @@ export default {
         async clearAnnounces() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.api.delete("/api/v1/maintenance/announces");
+                await maintenanceClient.clearAnnounces(window.api);
                 ToastUtils.success(this.$t("maintenance.announces_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -3269,9 +3216,7 @@ export default {
         async clearNomadnetFavorites() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.api.delete("/api/v1/maintenance/favourites", {
-                    params: { aspect: "nomadnetwork.node" },
-                });
+                await maintenanceClient.clearNomadnetFavorites(window.api);
                 ToastUtils.success(this.$t("maintenance.favourites_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -3280,7 +3225,7 @@ export default {
         async clearLxmfIcons() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.api.delete("/api/v1/maintenance/lxmf-icons");
+                await maintenanceClient.clearLxmfIcons(window.api);
                 ToastUtils.success(this.$t("maintenance.lxmf_icons_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -3289,7 +3234,7 @@ export default {
         async clearStickers() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.api.delete("/api/v1/maintenance/stickers");
+                await maintenanceClient.clearStickers(window.api);
                 ToastUtils.success(this.$t("maintenance.stickers_cleared"));
                 await this.loadStickerCount();
             } catch {
@@ -3297,13 +3242,7 @@ export default {
             }
         },
         async loadStickerCount() {
-            try {
-                const response = await window.api.get("/api/v1/stickers");
-                const list = response.data?.stickers;
-                this.stickerCount = Array.isArray(list) ? list.length : 0;
-            } catch {
-                this.stickerCount = 0;
-            }
+            this.stickerCount = await maintenanceClient.fetchStickerCount(window.api);
         },
         async exportStickers() {
             try {
@@ -3353,7 +3292,7 @@ export default {
         async clearArchives() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.api.delete("/api/v1/maintenance/archives");
+                await maintenanceClient.clearArchives(window.api);
                 ToastUtils.success(this.$t("maintenance.archives_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
@@ -3362,7 +3301,7 @@ export default {
         async clearReticulumDocs() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
-                await window.api.delete("/api/v1/maintenance/docs/reticulum");
+                await maintenanceClient.clearReticulumDocs(window.api);
                 ToastUtils.success(this.$t("maintenance.docs_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));

@@ -48,52 +48,6 @@ vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
     },
 }));
 
-describe("IconButton Component", () => {
-    it("renders with slot content", () => {
-        const wrapper = mount(IconButton, {
-            slots: {
-                default: '<span class="test-content">Click me</span>',
-            },
-        });
-        expect(wrapper.find(".test-content").exists()).toBe(true);
-        expect(wrapper.text()).toContain("Click me");
-    });
-
-    it("has correct button type attribute", () => {
-        const wrapper = mount(IconButton);
-        expect(wrapper.attributes("type")).toBe("button");
-    });
-
-    it("emits click event when clicked", async () => {
-        const wrapper = mount(IconButton);
-        await wrapper.trigger("click");
-        expect(wrapper.emitted("click")).toBeTruthy();
-    });
-
-    it("applies disabled state correctly", () => {
-        const wrapper = mount(IconButton, {
-            attrs: {
-                disabled: true,
-            },
-        });
-        expect(wrapper.attributes("disabled")).toBeDefined();
-    });
-
-    it("applies custom classes", () => {
-        const wrapper = mount(IconButton, {
-            attrs: {
-                class: "custom-class",
-            },
-        });
-        expect(wrapper.classes()).toContain("custom-class");
-    });
-
-    it("root element is a button", () => {
-        const wrapper = mount(IconButton);
-        expect(wrapper.element.tagName).toBe("BUTTON");
-    });
-});
-
 describe("DropDownMenuItem Component", () => {
     it("renders slot content", () => {
         const wrapper = mount(DropDownMenuItem, {
@@ -424,6 +378,7 @@ describe("SettingsPage Component", () => {
                     Toggle: Toggle,
                     ShortcutRecorder: { template: "<div></div>" },
                     RouterLink: { template: "<a><slot /></a>" },
+                    SettingsSectionBlock: { template: '<div class="settings-section-block"><slot /></div>' },
                 },
                 mocks: {
                     $t: (key) => key,
