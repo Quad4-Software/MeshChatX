@@ -32,6 +32,9 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0" poetry setuptools wheel "ja
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Install essential runtime tools in the venv
+RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
+
 COPY pyproject.toml poetry.lock ./
 # poetry will use the active venv
 RUN poetry config virtualenvs.create false && \
@@ -54,7 +57,7 @@ FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 
 RUN apk upgrade --no-cache && \
     apk add --no-cache ffmpeg opusfile libffi espeak-ng su-exec && \
-    python -m pip install --no-cache-dir --upgrade "pip>=26.0" "jaraco.context>=6.1.0" && \
+    python -m pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0" && \
     rm -rf /root/.cache/pip && \
     addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
     mkdir -p /config && chown meshchat:meshchat /config
