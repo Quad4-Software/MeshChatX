@@ -1,7 +1,8 @@
 <template>
     <div
         :class="{ dark: config?.theme === 'dark' }"
-        class="h-screen w-full flex flex-col bg-slate-50 dark:bg-zinc-950 transition-colors"
+        class="h-screen w-full flex flex-col transition-colors"
+        :style="shellCanvasStyle"
     >
         <!-- emergency banner -->
         <div
@@ -34,7 +35,11 @@
         <RouterView v-if="$route.name === 'auth'" />
 
         <template v-else>
-            <div v-if="isPopoutMode" class="flex flex-1 h-full w-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
+            <div
+                v-if="isPopoutMode"
+                class="flex flex-1 h-full w-full overflow-hidden transition-colors"
+                :style="shellCanvasStyle"
+            >
                 <RouterView class="flex-1" />
             </div>
 
@@ -122,7 +127,8 @@
                 <!-- middle -->
                 <div
                     ref="middle"
-                    class="flex flex-1 w-full overflow-hidden bg-slate-50 dark:bg-zinc-950 transition-colors"
+                    class="flex flex-1 w-full overflow-hidden transition-colors"
+                    :style="shellCanvasStyle"
                 >
                     <!-- sidebar backdrop for mobile -->
                     <div
@@ -709,6 +715,17 @@ export default {
         showWsDisconnectedBanner() {
             return this.shellRunning && this.wsDisconnected && this.$route?.name !== "auth";
         },
+        shellCanvasStyle() {
+            const raw = Number(this.config?.ui_transparency ?? 0);
+            const t = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;
+            const factor = t / 100;
+            const alpha = 1 - factor * 0.42;
+            const isDark = this.config?.theme === "dark";
+            if (isDark) {
+                return { backgroundColor: `rgba(9, 9, 11, ${alpha})` };
+            }
+            return { backgroundColor: `rgba(248, 250, 252, ${alpha})` };
+        },
     },
     watch: {
         $route(to, from) {
@@ -729,6 +746,7 @@ export default {
                 if (newConfig && "theme" in newConfig) {
                     this.applyThemePreference(newConfig.theme ?? "light");
                 }
+                this.applyShellAppearance();
             },
             deep: true,
         },
@@ -758,6 +776,7 @@ export default {
             // ignore
         }
         this.startShellAuthWatch();
+        this.applyShellAppearance();
         if (ElectronUtils.isElectron()) {
             window.electron.onProtocolLink((url) => {
                 this.handleProtocolLink(url);
@@ -981,6 +1000,14 @@ export default {
             if (themeName && typeof themeName === "object" && "value" in themeName) {
                 themeName.value = mode;
             }
+            this.applyShellAppearance();
+        },
+        applyShellAppearance() {
+            if (typeof document === "undefined") {
+                return;
+            }
+            const glassOn = this.config?.ui_glass_enabled !== false;
+            document.documentElement.dataset.uiGlass = glassOn ? "1" : "0";
         },
         getHashPopoutValue() {
             const hash = window.location.hash || "";

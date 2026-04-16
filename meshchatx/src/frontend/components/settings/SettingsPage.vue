@@ -887,6 +887,57 @@
                                 </div>
                             </div>
 
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.ui_transparency") }}
+                                    </div>
+                                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                                        {{ Math.max(0, Math.min(100, Number(config.ui_transparency) || 0)) }}%
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-gray-400">0</span>
+                                    <input
+                                        v-model.number="config.ui_transparency"
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                        @input="onUiTransparencyChange"
+                                    />
+                                    <span class="text-xs text-gray-400">100</span>
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.ui_transparency_description") }}
+                                </div>
+                            </div>
+
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="ui-glass-enabled"
+                                    v-model="config.ui_glass_enabled"
+                                    @update:model-value="onUiGlassEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.ui_glass_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.ui_glass_enabled_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <div class="pt-1">
+                                <button
+                                    type="button"
+                                    class="p-0 border-0 bg-transparent text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                                    @click="resetAppearanceDefaults"
+                                >
+                                    {{ $t("app.reset_appearance_defaults") }}
+                                </button>
+                            </div>
+
                             <div
                                 class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-2xl px-3 py-2"
                             >
@@ -1483,7 +1534,6 @@
                                     <span class="setting-toggle__description">{{
                                         $t("app.transport_toggle_description")
                                     }}</span>
-                                    <span class="setting-toggle__hint">{{ $t("app.requires_restart") }}</span>
                                 </span>
                             </label>
                         </div>
@@ -2008,8 +2058,6 @@
                         </div>
                     </section>
 
-                    <!-- System / RNS Reload -->
-                    <!--
                     <section class="settings-section break-inside-avoid">
                         <header class="settings-section__header">
                             <div>
@@ -2021,24 +2069,29 @@
                         <div class="settings-section__body space-y-4">
                             <div class="flex flex-col gap-3">
                                 <button
-                                    class="btn btn--secondary w-full justify-center gap-2 py-3"
+                                    class="btn btn--secondary w-full justify-center py-3"
                                     :disabled="reloadingRns"
                                     @click="reloadRns"
                                 >
-                                    <MaterialDesignIcon
-                                        :icon-name="reloadingRns ? 'refresh' : 'restart'"
-                                        class="w-5 h-5"
-                                        :class="{ 'animate-spin-reverse': reloadingRns }"
-                                    />
-                                    <span>{{ reloadingRns ? $t("app.reloading_rns") : $t("app.reload_rns") }}</span>
+                                    <span>{{ $t("app.reload_rns") }}</span>
                                 </button>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
                                     {{ $t("app.reload_rns_description") }}
                                 </p>
+                                <p
+                                    v-if="reloadRnsStatusMessage"
+                                    class="text-xs"
+                                    :class="
+                                        reloadingRns
+                                            ? 'text-blue-600 dark:text-blue-400'
+                                            : 'text-gray-500 dark:text-gray-400'
+                                    "
+                                >
+                                    {{ reloadRnsStatusMessage }}
+                                </p>
                             </div>
                         </div>
                     </section>
-                    -->
                 </div>
 
                 <!-- Keyboard Shortcuts (Full width at bottom) -->
@@ -2149,6 +2202,8 @@ export default {
                 discovered_interfaces_max_return: 500,
                 message_font_size: 14,
                 message_icon_size: 28,
+                ui_transparency: 0,
+                ui_glass_enabled: true,
                 message_outbound_bubble_color: "#4f46e5",
                 message_inbound_bubble_color: null,
                 message_failed_bubble_color: "#ef4444",
@@ -2176,6 +2231,7 @@ export default {
             lastRememberedInboundStampCost: 8,
             shortcuts: [],
             reloadingRns: false,
+            reloadRnsStatusMessage: "",
             searchQuery: "",
             trustedTelemetryPeers: [],
             stickerCount: 0,
@@ -2280,6 +2336,9 @@ export default {
                     "app.theme",
                     "app.light_theme",
                     "app.dark_theme",
+                    "app.ui_transparency",
+                    "app.ui_glass_enabled",
+                    "app.reset_appearance_defaults",
                     "Message Font Size",
                     "Icon Size",
                     "Message Bubbles",
@@ -2505,6 +2564,22 @@ export default {
                     this.shortcuts = json.shortcuts;
                     break;
                 }
+                case "reticulum_reload_status": {
+                    const message = json.message || this.$t("app.reloading_rns");
+                    this.reloadRnsStatusMessage = message;
+                    this.reloadingRns = json.in_progress !== false;
+                    const toastKey = "settings-rns-reload";
+                    if (json.level === "error") {
+                        ToastUtils.dismiss(toastKey);
+                        ToastUtils.error(message, 7000);
+                    } else if (json.level === "success") {
+                        ToastUtils.dismiss(toastKey);
+                        ToastUtils.success(message, 5000);
+                    } else {
+                        ToastUtils.info(message, 2500, toastKey);
+                    }
+                    break;
+                }
             }
         },
         async getConfig() {
@@ -2659,6 +2734,53 @@ export default {
                     "message_icon_size"
                 );
             }, 1000);
+        },
+        onUiTransparencyChange() {
+            if (this.saveTimeouts.ui_transparency) clearTimeout(this.saveTimeouts.ui_transparency);
+            this.saveTimeouts.ui_transparency = setTimeout(async () => {
+                const n = Number(this.config.ui_transparency);
+                const v = Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0;
+                this.config.ui_transparency = v;
+                await this.updateConfig(
+                    {
+                        ui_transparency: v,
+                    },
+                    "ui_transparency"
+                );
+            }, 400);
+        },
+        async onUiGlassEnabledChange() {
+            await this.updateConfig(
+                {
+                    ui_glass_enabled: this.config.ui_glass_enabled,
+                },
+                "ui_glass_enabled"
+            );
+        },
+        async resetAppearanceDefaults() {
+            this.config.theme = "light";
+            this.config.message_font_size = 14;
+            this.config.message_icon_size = 28;
+            this.config.ui_transparency = 0;
+            this.config.ui_glass_enabled = true;
+            this.config.message_outbound_bubble_color = "#4f46e5";
+            this.config.message_inbound_bubble_color = null;
+            this.config.message_failed_bubble_color = "#ef4444";
+            this.config.message_waiting_bubble_color = "#e5e7eb";
+            await this.updateConfig(
+                {
+                    theme: "light",
+                    message_font_size: 14,
+                    message_icon_size: 28,
+                    ui_transparency: 0,
+                    ui_glass_enabled: true,
+                    message_outbound_bubble_color: "#4f46e5",
+                    message_inbound_bubble_color: null,
+                    message_failed_bubble_color: "#ef4444",
+                    message_waiting_bubble_color: "#e5e7eb",
+                },
+                "appearance"
+            );
         },
         async onMessageBubbleColorChange(type) {
             const timeoutKey = `message_${type}_bubble_color`;
@@ -3090,13 +3212,19 @@ export default {
         async onIsTransportEnabledChange() {
             if (this.config.is_transport_enabled) {
                 try {
-                    await window.api.post("/api/v1/reticulum/enable-transport");
+                    const response = await window.api.post("/api/v1/reticulum/enable-transport");
+                    if (response?.data?.message) {
+                        ToastUtils.success(response.data.message);
+                    }
                 } catch {
                     ToastUtils.error(this.$t("settings.failed_enable_transport"));
                 }
             } else {
                 try {
-                    await window.api.post("/api/v1/reticulum/disable-transport");
+                    const response = await window.api.post("/api/v1/reticulum/disable-transport");
+                    if (response?.data?.message) {
+                        ToastUtils.success(response.data.message);
+                    }
                 } catch {
                     ToastUtils.error(this.$t("settings.failed_disable_transport"));
                 }
@@ -3107,11 +3235,16 @@ export default {
 
             try {
                 this.reloadingRns = true;
+                this.reloadRnsStatusMessage = this.$t("app.reloading_rns");
+                ToastUtils.loading(this.$t("app.reloading_rns"), 0, "settings-rns-reload");
                 const response = await window.api.post("/api/v1/reticulum/reload");
-                ToastUtils.success(response.data.message);
+                if (response?.data?.message) {
+                    this.reloadRnsStatusMessage = response.data.message;
+                }
             } catch {
                 ToastUtils.error(this.$t("settings.failed_reload_reticulum"));
             } finally {
+                ToastUtils.dismiss("settings-rns-reload");
                 this.reloadingRns = false;
             }
         },

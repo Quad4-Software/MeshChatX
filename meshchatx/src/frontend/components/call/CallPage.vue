@@ -2425,9 +2425,7 @@ export default {
         },
         logWebAudioFailure(stage, error) {
             const appImage = Boolean(
-                window.electron &&
-                    typeof navigator?.userAgent === "string" &&
-                    navigator.userAgent.includes("AppImage"),
+                window.electron && typeof navigator?.userAgent === "string" && navigator.userAgent.includes("AppImage")
             );
             console.error(
                 `[CallPage:web-audio] ${stage}`,
@@ -2436,7 +2434,7 @@ export default {
                     isAppImage: appImage,
                     userAgent: navigator?.userAgent || "unknown",
                 },
-                error,
+                error
             );
         },
         async disableWebAudioBridgeWithError(errorKey, error, stage = "unknown") {
@@ -2498,7 +2496,7 @@ export default {
                     await this.disableWebAudioBridgeWithError(
                         "call.web_audio_not_available",
                         new Error("navigator.mediaDevices is unavailable"),
-                        "start-preflight-media-devices",
+                        "start-preflight-media-devices"
                     );
                     return;
                 }
@@ -2508,7 +2506,7 @@ export default {
                     await this.disableWebAudioBridgeWithError(
                         "call.no_audio_input_found",
                         new Error("No audio input devices detected"),
-                        "start-no-input-devices",
+                        "start-no-input-devices"
                     );
                     return;
                 }

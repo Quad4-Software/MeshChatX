@@ -407,11 +407,7 @@
                 ref="messagesScroll"
                 class="flex-1 min-h-0 overflow-y-scroll bg-white dark:bg-zinc-950 transition-none"
                 style="overflow-anchor: none; overscroll-behavior-y: contain"
-                :class="
-                    !messagesViewportReady
-                        ? 'invisible opacity-0 pointer-events-none select-none'
-                        : ''
-                "
+                :class="!messagesViewportReady ? 'invisible opacity-0 pointer-events-none select-none' : ''"
                 :data-message-list-mode="useVirtualMessageList ? 'virtual' : 'reverse'"
                 :aria-busy="!messagesViewportReady ? 'true' : undefined"
                 @scroll="onMessagesScroll"
@@ -427,55 +423,55 @@
                                 <ConversationMessageEntry :entry="entry" :cv="conversationViewerSelf" />
                             </template>
                             <!-- load previous -->
-                    <button
-                        v-show="!isLoadingPrevious && hasMorePrevious"
-                        id="load-previous"
-                        type="button"
-                        class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
-                        @click="loadPrevious"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-4 h-4"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                            />
-                        </svg>
-                        <span>Load Previous</span>
-                    </button>
+                            <button
+                                v-show="!isLoadingPrevious && hasMorePrevious"
+                                id="load-previous"
+                                type="button"
+                                class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                                @click="loadPrevious"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="w-4 h-4"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                                    />
+                                </svg>
+                                <span>Load Previous</span>
+                            </button>
                         </div>
                     </template>
                     <template v-else>
-                    <button
-                        v-show="!isLoadingPrevious && hasMorePrevious"
-                        id="load-previous"
-                        type="button"
-                        class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
-                        @click="loadPrevious"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-4 h-4"
+                        <button
+                            v-show="!isLoadingPrevious && hasMorePrevious"
+                            id="load-previous"
+                            type="button"
+                            class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                            @click="loadPrevious"
                         >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                            />
-                        </svg>
-                        <span>Load Previous</span>
-                    </button>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-4 h-4"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                                />
+                            </svg>
+                            <span>Load Previous</span>
+                        </button>
                         <ConversationMessageListVirtual
                             ref="messageListVirtual"
                             :groups="selectedPeerChatDisplayGroupsOldestFirst"
@@ -487,7 +483,10 @@
             </div>
 
             <Transition name="scroll-fab">
-                <div v-if="!autoScrollOnNewMessage && messagesViewportReady" class="flex justify-center pb-1.5 pt-0.5 shrink-0">
+                <div
+                    v-if="!autoScrollOnNewMessage && messagesViewportReady"
+                    class="flex justify-center pb-1.5 pt-0.5 shrink-0"
+                >
                     <button
                         type="button"
                         class="flex items-center justify-center size-8 rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur border border-gray-200 dark:border-zinc-700 shadow text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
@@ -500,11 +499,7 @@
             </Transition>
 
             <Transition name="scroll-fab">
-                <div
-                    v-if="reactionPickerChatItem"
-                    class="absolute inset-0 z-40"
-                    @click.self="closeReactionPicker"
-                >
+                <div v-if="reactionPickerChatItem" class="absolute inset-0 z-40" @click.self="closeReactionPicker">
                     <div
                         ref="reactionPickerPanel"
                         class="absolute w-[min(24rem,calc(100%-1rem))] rounded-2xl overflow-hidden border border-gray-200 dark:border-zinc-700 shadow-2xl bg-white dark:bg-zinc-900"
@@ -515,7 +510,9 @@
                             @mousedown.prevent="onReactionPickerDragStart"
                             @touchstart.prevent="onReactionPickerDragStart"
                         >
-                            <span class="text-xs font-medium text-gray-500 dark:text-zinc-400">{{ $t("messages.react") }}</span>
+                            <span class="text-xs font-medium text-gray-500 dark:text-zinc-400">{{
+                                $t("messages.react")
+                            }}</span>
                             <button
                                 type="button"
                                 class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"
@@ -1744,7 +1741,7 @@ export default {
             columbaReactionEmojis: COLUMBA_REACTION_EMOJIS,
             reactionPickerChatItem: null,
             reactionPickerPos: null,
-            _reactionDrag: null,
+            reactionDragState: null,
             userStickers: [],
             isStickerPickerOpen: false,
             emojiStickerTab: "emoji",
@@ -1759,9 +1756,9 @@ export default {
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
             peerHeaderCompact: false,
             peerHeaderResizeObserver: null,
-            _scrollBottomGen: 0,
-            _prevScrollWantedLoadPrevious: false,
-            _initialLoadActive: false,
+            scrollBottomGen: 0,
+            prevScrollWantedLoadPrevious: false,
+            initialLoadActive: false,
             messagesViewportReady: true,
         };
     },
@@ -2094,7 +2091,7 @@ export default {
                     this.saveDraft(oldPeer.destination_hash);
                 }
                 this.teardownPeerHeaderResizeObserver();
-                this._scrollBottomGen += 1;
+                this.scrollBottomGen += 1;
                 this.messagesViewportReady = false;
                 if (!newPeer) {
                     this.peerHeaderCompact = false;
@@ -2102,7 +2099,7 @@ export default {
                 this.checkIfSelectedPeerBlocked();
                 this.strangerBannerDismissed = false;
                 this.checkIfStrangerPeer();
-                this._prevScrollWantedLoadPrevious = false;
+                this.prevScrollWantedLoadPrevious = false;
                 this.initialLoad();
                 if (newPeer) {
                     this.loadDraft(newPeer.destination_hash);
@@ -2113,7 +2110,7 @@ export default {
         },
         useVirtualMessageList: {
             handler(value) {
-                if (!value && !this._initialLoadActive) {
+                if (!value && !this.initialLoadActive) {
                     this.messagesViewportReady = true;
                 }
             },
@@ -2182,7 +2179,7 @@ export default {
         window.addEventListener("resize", this._onWindowResize);
     },
     beforeUnmount() {
-        this._scrollBottomGen += 1;
+        this.scrollBottomGen += 1;
         this.teardownPeerHeaderResizeObserver();
         if (this.selectedPeer) {
             this.saveDraft(this.selectedPeer.destination_hash);
@@ -2455,13 +2452,13 @@ export default {
             this.autoScrollOnNewMessage = isNearBottom(element);
 
             const wantLoad = shouldLoadPreviousMessages(element);
-            if (wantLoad && !this._prevScrollWantedLoadPrevious) {
+            if (wantLoad && !this.prevScrollWantedLoadPrevious) {
                 this.loadPrevious();
             }
-            this._prevScrollWantedLoadPrevious = wantLoad;
+            this.prevScrollWantedLoadPrevious = wantLoad;
         },
         async initialLoad() {
-            this._initialLoadActive = true;
+            this.initialLoadActive = true;
             this.messagesViewportReady = false;
             this.chatItems = [];
             this.hasMorePrevious = true;
@@ -2469,7 +2466,7 @@ export default {
             this.selectedPeerLxmfStampInfo = null;
             this.selectedPeerSignalMetrics = null;
             if (!this.selectedPeer) {
-                this._initialLoadActive = false;
+                this.initialLoadActive = false;
                 this.messagesViewportReady = true;
                 return;
             }
@@ -2483,7 +2480,7 @@ export default {
 
             await this.loadPrevious();
 
-            this._initialLoadActive = false;
+            this.initialLoadActive = false;
             this.scrollMessagesToBottom();
 
             this.autoLoadAudioAttachments();
@@ -2964,9 +2961,9 @@ export default {
             );
         },
         scrollMessagesToBottom: function () {
-            this._scrollBottomGen += 1;
-            const gen = this._scrollBottomGen;
-            const stale = () => gen !== this._scrollBottomGen;
+            this.scrollBottomGen += 1;
+            const gen = this.scrollBottomGen;
+            const stale = () => gen !== this.scrollBottomGen;
             this.$nextTick(() => {
                 if (stale()) return;
                 this.$nextTick(() => {
@@ -3006,7 +3003,6 @@ export default {
                 });
             });
         },
-
 
         isLxmfMessageInUi: function (hash) {
             return this.chatItems.findIndex((chatItem) => chatItem.lxmf_message?.hash === hash) !== -1;
@@ -3219,14 +3215,14 @@ export default {
         closeReactionPicker() {
             this.reactionPickerChatItem = null;
             this.reactionPickerPos = null;
-            this._reactionDrag = null;
+            this.reactionDragState = null;
         },
         onReactionPickerDragStart(e) {
             const evt = e.touches ? e.touches[0] : e;
             const panel = this.$refs.reactionPickerPanel;
             if (!panel) return;
             const rect = panel.getBoundingClientRect();
-            this._reactionDrag = {
+            this.reactionDragState = {
                 startX: evt.clientX,
                 startY: evt.clientY,
                 originX: rect.left,
@@ -3234,11 +3230,11 @@ export default {
             };
             const onMove = (me) => {
                 const mv = me.touches ? me.touches[0] : me;
-                const dx = mv.clientX - this._reactionDrag.startX;
-                const dy = mv.clientY - this._reactionDrag.startY;
+                const dx = mv.clientX - this.reactionDragState.startX;
+                const dy = mv.clientY - this.reactionDragState.startY;
                 this.reactionPickerPos = {
-                    x: this._reactionDrag.originX + dx,
-                    y: this._reactionDrag.originY + dy,
+                    x: this.reactionDragState.originX + dx,
+                    y: this.reactionDragState.originY + dy,
                 };
             };
             const onUp = () => {
@@ -5246,7 +5242,9 @@ export default {
 
 .scroll-fab-enter-active,
 .scroll-fab-leave-active {
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
 }
 .scroll-fab-enter-from,
 .scroll-fab-leave-to {

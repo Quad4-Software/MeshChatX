@@ -6,9 +6,20 @@ const {
     E2E_SCROLL_PEER_HASH,
 } = require("./helpers");
 
+async function waitForMessagesViewportReady(page) {
+    await page.waitForFunction(
+        () => {
+            const el = document.getElementById("messages");
+            return el != null && el.getAttribute("aria-busy") !== "true";
+        },
+        null,
+        { timeout: 30000 }
+    );
+}
+
 async function scrollMetrics(page) {
+    await waitForMessagesViewportReady(page);
     const loc = page.locator("#messages");
-    await expect(loc).toBeVisible({ timeout: 30000 });
     return loc.evaluate((el) => ({
         scrollTop: el.scrollTop,
         scrollHeight: el.scrollHeight,
@@ -87,6 +98,7 @@ test.describe("Messages conversation scroll", () => {
             .filter({ hasText: /E2E scroll seed/ })
             .first()
             .click();
+        await waitForMessagesViewportReady(page);
         await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
         await expect(
             page
@@ -112,6 +124,7 @@ test.describe("Messages conversation scroll", () => {
             .filter({ hasText: /E2E scroll seed/ })
             .first()
             .click();
+        await waitForMessagesViewportReady(page);
         await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
         await waitForMessagesOverflow(page);
 
@@ -163,6 +176,7 @@ test.describe("Messages conversation scroll", () => {
             .filter({ hasText: /E2E scroll seed/ })
             .first()
             .click();
+        await waitForMessagesViewportReady(page);
         await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
         await waitForMessagesOverflow(page);
 
@@ -205,6 +219,7 @@ test.describe("Messages conversation scroll", () => {
             .filter({ hasText: /E2E scroll seed/ })
             .first()
             .click();
+        await waitForMessagesViewportReady(page);
         await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
         await waitForMessagesOverflow(page);
 

@@ -26,6 +26,14 @@
     @apply bg-sem-glass backdrop-blur border border-sem-border-card rounded-3xl shadow-xl px-4 py-4;
 }
 
+html[data-ui-glass="0"] .glass-card {
+    background-color: var(--mc-surface) !important;
+    border-color: var(--mc-border-card) !important;
+    @apply shadow-xl px-4 py-4;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
 .input-field {
     @apply bg-sem-surface-muted border border-sem-border text-sm rounded-2xl focus:ring-2 focus:ring-sem-focus focus:border-sem-focus-border block w-full p-2.5 text-sem-fg transition;
 }
@@ -35,10 +43,10 @@ select.input-field option {
 }
 
 .primary-chip {
-    @apply inline-flex items-center justify-center gap-x-2 rounded-full bg-sem-accent px-4 py-2 text-xs font-bold text-white shadow-sm transition-all !important;
+    @apply inline-flex items-center justify-center gap-x-2 rounded-full bg-sem-action-primary px-4 py-2 text-xs font-bold text-white shadow-sm transition-all !important;
 }
 .primary-chip:hover {
-    @apply bg-sem-accent-hover -translate-y-0.5 !important;
+    @apply bg-sem-action-primary-hover -translate-y-0.5 !important;
 }
 .primary-chip:active {
     @apply scale-95 translate-y-0 !important;
@@ -126,11 +134,11 @@ select.input-field option {
 }
 
 .file-input::file-selector-button {
-    @apply mr-2 border-0 rounded-md bg-sem-accent text-white px-3 py-1 text-xs font-semibold cursor-pointer hover:bg-sem-accent-hover transition;
+    @apply mr-2 border-0 rounded-md bg-sem-action-primary text-white px-3 py-1 text-xs font-semibold cursor-pointer hover:bg-sem-action-primary-hover transition;
 }
 
 .dark .file-input::file-selector-button {
-    @apply bg-sem-accent hover:bg-sem-accent-hover text-white;
+    @apply bg-sem-action-primary hover:bg-sem-action-primary-hover text-white;
 }
 
 .no-scrollbar::-webkit-scrollbar {
