@@ -3,6 +3,13 @@ plugins {
     id 'com.chaquo.python'
 }
 
+def repoRoot = rootProject.projectDir.parentFile
+def meshchatSourceDir = new File(repoRoot, "meshchatx")
+def chaquopyBuildPython = System.getenv("CHAQUOPY_BUILD_PYTHON")
+def pythonTempDir = new File(buildDir, "python-tmp")
+def vendorWheelDir = new File(rootProject.projectDir, "vendor")
+def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.4.6-py3-none-any.whl")
+
 android {
     namespace 'com.meshchatx'
     compileSdk 34
@@ -22,7 +29,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -39,21 +47,80 @@ android {
     }
 }
 
+tasks.register("syncMeshchatPython", Sync) {
+    if (!meshchatSourceDir.exists()) {
+        throw new org.gradle.api.GradleException("Missing meshchatx source directory at ${meshchatSourceDir}")
+    }
+    doFirst {
+        // Remove legacy vendored packages so pip-installed dependencies are used.
+        delete(
+            file("$projectDir/src/main/python/LXST"),
+            file("$projectDir/src/main/python/LXMF"),
+            file("$projectDir/src/main/python/RNS")
+        )
+    }
+    from(meshchatSourceDir)
+    includeEmptyDirs = false
+    into(file("$projectDir/src/main/python/meshchatx"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(tasks.named("syncMeshchatPython"))
+}
+
+tasks.configureEach { task ->
+    if (task.name.toLowerCase().contains("merge") && task.name.toLowerCase().contains("pythonsources")) {
+        task.dependsOn(tasks.named("syncMeshchatPython"))
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name.toLowerCase().contains("python")) {
+        task.doFirst {
+            if (!pythonTempDir.exists()) {
+                pythonTempDir.mkdirs()
+            }
+            if (task.metaClass.respondsTo(task, "environment", String, Object)) {
+                task.environment("TMPDIR", pythonTempDir.absolutePath)
+                task.environment("TEMP", pythonTempDir.absolutePath)
+                task.environment("TMP", pythonTempDir.absolutePath)
+            }
+        }
+    }
+}
+
 chaquopy {
     defaultConfig {
-        version = "3.11"
-        buildPython "/usr/bin/python3.11"
-        
+        version "3.11"
+
+        if (chaquopyBuildPython != null && !chaquopyBuildPython.trim().isEmpty()) {
+            buildPython chaquopyBuildPython
+        }
+
         pip {
+            if (!vendorWheelDir.exists()) {
+                throw new org.gradle.api.GradleException("Missing vendor wheel directory at ${vendorWheelDir}")
+            }
+            options "--find-links", vendorWheelDir.absolutePath
             install "aiohttp==3.10.10"
+            install "rns>=1.1.5"
+            install "lxmf>=0.9.4"
+            install "numpy==1.26.2"
+            install "chaquopy-libcodec2==1.2.0"
+            install "pycodec2==4.1.1"
+            if (!lxstPatchedWheel.exists()) {
+                throw new org.gradle.api.GradleException("Missing patched LXST wheel at ${lxstPatchedWheel}")
+            }
+            install lxstPatchedWheel.absolutePath
             install "psutil>=7.1.3"
             install "websockets>=15.0.1"
             install "bcrypt==3.1.7"
             install "aiohttp-session>=2.12.1,<3.0.0"
             install "cryptography==42.0.8"
-            install "numpy==1.26.2"
+            install "pycparser>=3.0"
+            install "pyserial>=3.5"
+            install "jaraco.context>=6.1.1"
             install "ply>=3.11,<4.0"
-            install "pycodec2-3.0.1-cp311-cp311-linux_aarch64.whl"
         }
     }
 }
