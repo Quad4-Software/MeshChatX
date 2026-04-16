@@ -6,8 +6,8 @@
 # ---- Global Build Args ----
 ARG NODE_IMAGE=node:24-alpine
 ARG NODE_HASH=sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf
-ARG PYTHON_IMAGE=python:3.12.12-alpine3.23
-ARG PYTHON_HASH=sha256:036871e8860c254533e1d4c2842568f19a56d1afbaed99653ee6206bf9491f6e
+ARG PYTHON_IMAGE=python:3.14.4-alpine3.23
+ARG PYTHON_HASH=sha256:27ac3ba1699f7a526ad19bf0d35c12369b43d3439e08297a880398d97899c3d8
 
 # ---- STAGE 1: Frontend Build ----
 FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
@@ -25,12 +25,16 @@ WORKDIR /build
 RUN apk upgrade --no-cache && \
     apk add --no-cache gcc musl-dev linux-headers python3-dev libffi-dev openssl-dev git
 
+# Install build tools in the system python
+RUN pip install --no-cache-dir --upgrade "pip>=26.0" poetry setuptools wheel "jaraco.context>=6.1.0"
+
+# Create the clean venv for our application dependencies
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY pyproject.toml poetry.lock ./
-RUN pip install --no-cache-dir --upgrade "pip>=26.0" poetry setuptools wheel "jaraco.context>=6.1.0" && \
-    poetry config virtualenvs.create false && \
+# poetry will use the active venv
+RUN poetry config virtualenvs.create false && \
     poetry install --no-root --only main && \
     rm -rf /root/.cache/pip /root/.cache/pypoetry
 
@@ -39,13 +43,17 @@ COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
 
 RUN pip install --no-cache-dir . && \
     python -c "import LXST.Filters; print('LXST Filters compiled successfully')" && \
-    python -m compileall /opt/venv/lib/python3.12/site-packages
+    # Remove unnecessary files from the venv
+    find /opt/venv -type d -name "tests" -exec rm -rf {} + && \
+    find /opt/venv -type d -name "test" -exec rm -rf {} + && \
+    find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + && \
+    python -m compileall /opt/venv/lib/python3.14/site-packages
 
 # ---- STAGE 3: Final Image ----
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 
 RUN apk upgrade --no-cache && \
-    apk add --no-cache ffmpeg opusfile libffi py3-setuptools espeak-ng su-exec && \
+    apk add --no-cache ffmpeg opusfile libffi espeak-ng su-exec && \
     python -m pip install --no-cache-dir --upgrade "pip>=26.0" "jaraco.context>=6.1.0" && \
     rm -rf /root/.cache/pip && \
     addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
