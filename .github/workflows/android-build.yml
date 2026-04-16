@@ -1,0 +1,119 @@
+name: Android build
+
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+
+on:
+    pull_request:
+        branches:
+            - dev
+    push:
+        branches:
+            - dev
+    workflow_dispatch:
+        inputs:
+            build_release:
+                description: Build signed/optimized release APK artifacts
+                required: true
+                type: boolean
+                default: true
+            run_tests:
+                description: Run Android unit tests
+                required: true
+                type: boolean
+                default: true
+
+permissions:
+    contents: read
+    actions: write
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    PYTHON_VERSION: "3.11"
+    JAVA_VERSION: "17"
+    CHAQUOPY_REF: "9f563f45108a873d7feb363e1f754c0173f1114e"
+
+jobs:
+    android:
+        name: Android test/build
+        runs-on: ubuntu-latest
+        timeout-minutes: 90
+        defaults:
+            run:
+                shell: bash
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Java
+              uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+              with:
+                  distribution: temurin
+                  java-version: ${{ env.JAVA_VERSION }}
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Build Android wheels
+              run: bash scripts/build-android-wheels-local.sh --python-minor "${PYTHON_VERSION}" --chaquopy-ref "${CHAQUOPY_REF}"
+
+            - name: Run unit tests
+              if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
+              working-directory: android
+              run: |
+                  chmod +x gradlew
+                  ./gradlew --no-daemon :app:testDebugUnitTest
+
+            - name: Build debug APK
+              working-directory: android
+              run: |
+                  chmod +x gradlew
+                  ./gradlew --no-daemon :app:assembleDebug
+
+            - name: Build release APK
+              if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_release }}
+              working-directory: android
+              run: |
+                  chmod +x gradlew
+                  ./gradlew --no-daemon :app:assembleRelease
+
+            - name: Upload wheels
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: android-wheels-${{ github.ref_name }}-${{ github.run_id }}
+                  path: android/vendor/*.whl
+                  if-no-files-found: error
+
+            - name: Upload debug APK
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-android-debug-${{ github.ref_name }}-${{ github.run_id }}
+                  path: android/app/build/outputs/apk/debug/*.apk
+                  if-no-files-found: error
+
+            - name: Upload test reports
+              if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-android-tests-${{ github.ref_name }}-${{ github.run_id }}
+                  path: |
+                      android/app/build/reports/tests/
+                      android/app/build/test-results/
+                  if-no-files-found: warn
+
+            - name: Upload release APK
+              if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_release }}
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-android-release-${{ github.ref_name }}-${{ github.run_id }}
+                  path: android/app/build/outputs/apk/release/*.apk
+                  if-no-files-found: error
