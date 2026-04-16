@@ -125,7 +125,7 @@ chaquopy {
             install "websockets>=15.0.1"
             install "bcrypt==3.1.7"
             install "aiohttp-session>=2.12.1,<3.0.0"
-            install "cryptography==42.0.8"
+            install "cryptography==46.0.7"
             install "pycparser>=3.0"
             install "pyserial>=3.5"
             install "jaraco.context>=6.1.1"
