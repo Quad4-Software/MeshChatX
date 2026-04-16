@@ -48,6 +48,15 @@ android/local.properties
 android/build/
 android/app/build/
 android/vendor/
+android/chaquopy-recipes/**/build/
+android/chaquopy-recipes/**/dist/
+android/chaquopy-recipes/**/env/
+android/chaquopy-recipes/**/requirements/
+android/chaquopy-recipes/**/fix_wheel/
+android/chaquopy-recipes/**/wrappers/
+android/chaquopy-recipes/**/target/
+android/chaquopy-recipes/**/*.orig
+android/chaquopy-recipes/**/*.rej
 android/app/src/main/python/meshchatx/
 android/app/src/main/python/RNS/
 android/app/src/main/python/LXMF/
