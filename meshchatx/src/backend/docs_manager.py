@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import asyncio
 import html
 import io

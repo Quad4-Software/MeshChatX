@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <!-- eslint-disable vue/no-v-html -->
     <div class="flex h-full overflow-hidden bg-white dark:bg-zinc-950">

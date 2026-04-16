@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import base64
 import os
 import shutil

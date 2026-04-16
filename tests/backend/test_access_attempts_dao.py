@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Tests and property-based checks for AccessAttemptsDAO."""
 
 from __future__ import annotations

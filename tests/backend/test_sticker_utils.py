@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Unit tests for sticker validation and export/import document parsing."""
 
 import base64

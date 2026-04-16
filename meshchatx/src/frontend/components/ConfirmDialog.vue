@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <Transition name="confirm-dialog">
         <div v-if="pendingConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">

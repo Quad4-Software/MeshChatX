@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Incoming-call policy: blocked list, DND, contacts-only / block-strangers, voicemail + ring."""
 
 from unittest.mock import MagicMock, patch

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Wall-clock database throughput tests (large seeds + strict ms ceilings).
 
 Excluded from default `task test:be` / CI (like test_performance_hotpaths.py and

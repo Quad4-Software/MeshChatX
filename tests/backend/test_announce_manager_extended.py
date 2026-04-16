@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import base64
 from unittest.mock import MagicMock
 

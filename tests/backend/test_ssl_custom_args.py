@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """CLI validation for custom TLS certificate paths."""
 
 import sys

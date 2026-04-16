@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <div
         v-if="activeCall || initiationStatus || isEnded || wasDeclined"

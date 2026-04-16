@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+
 <template>
     <div class="flex flex-1 min-w-0 h-full overflow-hidden">
         <MessagesSidebar

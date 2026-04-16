@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Lightweight predictive health monitor.
 
 Runs as a daemon thread on a 5-minute interval, reading in-memory

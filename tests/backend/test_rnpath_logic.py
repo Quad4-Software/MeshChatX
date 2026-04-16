@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 

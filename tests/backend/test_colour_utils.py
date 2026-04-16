@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import pytest
 
 from meshchatx.src.backend.colour_utils import ColourUtils

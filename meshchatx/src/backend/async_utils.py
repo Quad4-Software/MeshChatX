@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD AND MIT
+
 import asyncio
 import sys
 import threading

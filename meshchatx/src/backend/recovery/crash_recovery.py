@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Crash recovery and adaptive diagnostics for MeshChatX.
 
 Uses entropy, KL-divergence, and Bayesian weight learning. Crash history is

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 from meshchatx.src.backend.interface_editor import InterfaceEditor
 
 

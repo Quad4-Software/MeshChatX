@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import contextlib
 import json
 import logging

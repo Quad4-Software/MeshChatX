@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: 0BSD
+
 """Emit a SLSA v1 provenance predicate JSON on stdout (stdin unused)."""
 
 from __future__ import annotations

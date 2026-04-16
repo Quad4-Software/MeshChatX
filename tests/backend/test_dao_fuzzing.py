@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Property-based and fuzz tests for DAO layers, MessageHandler, and utility functions.
 
 Covers gaps identified in the existing test suite:

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """PageNode: Serves Micron pages and files over RNS.
 
 Each PageNode owns an RNS Destination (SINGLE, IN) with the aspect

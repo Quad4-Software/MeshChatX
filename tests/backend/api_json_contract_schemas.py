@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """JSON Schema definitions for stable /api/v1 JSON bodies (contract tests)."""
 
 from __future__ import annotations

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# SPDX-License-Identifier: 0BSD AND MIT
 
 import argparse
 import asyncio
@@ -226,7 +227,9 @@ class ReticulumMeshChat:
         rns_loglevel: str | None = None,
     ):
         self.running = True
-        self.reticulum_config_dir = reticulum_config_dir
+        self.reticulum_config_dir = self._normalize_reticulum_config_dir(
+            reticulum_config_dir,
+        )
         self.storage_dir = storage_dir or os.path.join("storage")
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
@@ -525,6 +528,30 @@ class ReticulumMeshChat:
             return os.path.join(self.public_dir_override, filename)
         return get_file_path(os.path.join("public", filename))
 
+    @staticmethod
+    def _normalize_reticulum_config_dir(config_candidate: str | None) -> str:
+        """Normalize Reticulum config candidate to a config directory path."""
+        candidate = config_candidate
+        if not candidate:
+            candidate = (
+                getattr(RNS.Reticulum, "configdir", None)
+                or os.path.dirname(getattr(RNS.Reticulum, "configpath", "") or "")
+                or os.path.expanduser("~/.reticulum")
+            )
+
+        candidate = os.path.expanduser(str(candidate))
+        # Reticulum's config file is plaintext named "config" (no extension).
+        # If a file path is provided, convert it to its parent directory.
+        if os.path.basename(candidate) == "config" and not os.path.isdir(candidate):
+            return os.path.dirname(candidate) or os.path.expanduser("~/.reticulum")
+        return candidate
+
+    def _reticulum_config_file_path(self) -> str:
+        return os.path.join(
+            self._normalize_reticulum_config_dir(self.reticulum_config_dir),
+            "config",
+        )
+
     def backup_database(self, backup_path=None):
         if not self.database:
             raise RuntimeError("Database not initialized")
@@ -540,12 +567,9 @@ class ReticulumMeshChat:
 
         If the config is missing or invalid, create a sane default.
         """
-        config_dir = (
-            self.reticulum_config_dir
-            or RNS.Reticulum.configpath
-            or os.path.expanduser("~/.reticulum")
-        )
-        config_file = os.path.join(config_dir, "config")
+        config_dir = self._normalize_reticulum_config_dir(self.reticulum_config_dir)
+        self.reticulum_config_dir = config_dir
+        config_file = self._reticulum_config_file_path()
 
         should_recreate = False
 
@@ -1060,13 +1084,9 @@ class ReticulumMeshChat:
 
             # Also check the config file for ports
             try:
-                config_dir = getattr(self, "reticulum_config_dir", None)
-                if not config_dir:
-                    if hasattr(RNS.Reticulum, "configdir") and RNS.Reticulum.configdir:
-                        config_dir = RNS.Reticulum.configdir
-                    else:
-                        config_dir = os.path.expanduser("~/.reticulum")
-
+                config_dir = self._normalize_reticulum_config_dir(
+                    getattr(self, "reticulum_config_dir", None),
+                )
                 config_path = os.path.join(config_dir, "config")
                 if os.path.isfile(config_path):
                     cp = configparser.ConfigParser()
@@ -1101,8 +1121,6 @@ class ReticulumMeshChat:
                 # Defaults
                 rpc_addrs.append((("127.0.0.1", 37429), "AF_INET"))
                 rpc_addrs.append((("127.0.0.1", 37428), "AF_INET"))
-                if platform.system() == "Linux":
-                    rpc_addrs.append(("\0rns/default/rpc", "AF_UNIX"))
 
             for i in range(15):
                 all_free = True
@@ -1134,6 +1152,19 @@ class ReticulumMeshChat:
                                 f"RPC addr {addr_display} still in use... (attempt {i + 1}/15)",
                             )
                             s.close()
+                            is_abstract_unix_addr = (
+                                family == socket.AF_UNIX
+                                and isinstance(addr, str)
+                                and addr.startswith("\0")
+                            )
+                            if is_abstract_unix_addr:
+                                # Another local shared-instance daemon may own this address.
+                                # Do not block reload on abstract UNIX sockets.
+                                print(
+                                    f"Abstract RPC addr {addr_display} is occupied by another process; continuing reload.",
+                                )
+                                continue
+
                             all_free = False
 
                             # If we are stuck, try to force close the connection manually
@@ -1528,7 +1559,9 @@ class ReticulumMeshChat:
             p = getattr(r, "configpath", None)
             if p:
                 return str(p)
-        rd = getattr(self, "reticulum_config_dir", None)
+        rd = self._normalize_reticulum_config_dir(
+            getattr(self, "reticulum_config_dir", None),
+        )
         if rd:
             return os.path.join(rd, "config")
         return None
@@ -4461,13 +4494,9 @@ class ReticulumMeshChat:
                     # Fallback to reading config if not found via connections
                     if not shared_instance_address:
                         try:
-                            config_dir = getattr(self, "reticulum_config_dir", None)
-                            if not config_dir:
-                                config_dir = getattr(
-                                    RNS.Reticulum,
-                                    "configdir",
-                                    os.path.expanduser("~/.reticulum"),
-                                )
+                            config_dir = self._normalize_reticulum_config_dir(
+                                getattr(self, "reticulum_config_dir", None),
+                            )
 
                             config_path = os.path.join(config_dir, "config")
                             if os.path.isfile(config_path):

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import shutil
 import tempfile
 from contextlib import ExitStack

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Performance regression tests for the critical hot paths.
 
 Excluded from default `task test:be` / CI; run locally with `task test:be:perf`

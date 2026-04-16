@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Integration tests for LXMF messaging and Reticulum communication.
 
 Covers stamp proof-of-work, message packing/unpacking, signature validation,

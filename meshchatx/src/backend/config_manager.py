@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: 0BSD
+
+
 class ConfigManager:
     def __init__(self, db):
         self.db = db

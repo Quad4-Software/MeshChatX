@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 from meshchatx.src.backend.lxmf_message_fields import (
     LxmfAudioField,
     LxmfFileAttachment,

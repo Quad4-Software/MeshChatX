@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Path traversal and fuzz tests for PageNode and ``normalize_page_filename``."""
 
 import os

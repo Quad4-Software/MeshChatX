@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: 0BSD AND MIT
+
+
 class InterfaceEditor:
     @staticmethod
     def update_value(interface_details: dict, data: dict, key: str):

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Validation and hashing for user sticker images stored per identity."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import json
 
 from meshchatx.src.backend.meshchat_utils import message_fields_have_attachments

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Convert directory.rns.recipes listing rows into MeshChat interface preset dicts."""
 
 from __future__ import annotations

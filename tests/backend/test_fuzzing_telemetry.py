@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 from hypothesis import given, settings
 from hypothesis import strategies as st
 

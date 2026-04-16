@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+
 <template>
     <RouterLink v-slot="{ href, navigate, isActive }" :to="to" custom>
         <a

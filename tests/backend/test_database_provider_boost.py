@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import sqlite3
 import threading
 

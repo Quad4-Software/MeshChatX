@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """HTTPS/WSS: local API traffic must be TLS-only (no plain HTTP on the same port)."""
 
 import os

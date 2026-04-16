@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Contacts and announces: display names, custom labels, and announce app_data upserts.
 
 Covers announce upsert semantics when app_data is NULL (COALESCE), contacts DAO

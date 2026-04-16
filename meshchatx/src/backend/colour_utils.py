@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: 0BSD AND MIT
+
+
 class ColourUtils:
     @staticmethod
     def hex_colour_to_byte_array(hex_colour):

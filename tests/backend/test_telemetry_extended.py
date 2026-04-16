@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import time
 
 from meshchatx.src.backend.telemetry_utils import Telemeter

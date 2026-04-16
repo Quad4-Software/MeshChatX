@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <div
         class="audio-waveform-player flex items-center gap-3 p-2 rounded-xl transition-all w-full min-w-0"

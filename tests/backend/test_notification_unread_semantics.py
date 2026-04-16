@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Unread semantics for conversations and the bell (no false positives)."""
 
 from datetime import UTC, datetime

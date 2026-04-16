@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Collect third-party license metadata for Python (backend) and Node (frontend)."""
 
 from __future__ import annotations

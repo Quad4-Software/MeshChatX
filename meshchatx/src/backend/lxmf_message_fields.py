@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 # helper class for passing around an lxmf audio field
 class LxmfAudioField:
     def __init__(self, audio_mode: int, audio_bytes: bytes):

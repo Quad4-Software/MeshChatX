@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Scale and concurrency tests for websocket broadcast fan-out (core architecture)."""
 
 from __future__ import annotations

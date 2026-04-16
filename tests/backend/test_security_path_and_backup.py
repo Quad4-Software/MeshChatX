@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Path safety: backup/snapshot delete must not escape storage directories."""
 
 import os

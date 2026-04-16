@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Contract tests for LXST Telephony Profiles used by /api/v1/telephone/audio-profiles and TelephoneManager.
 
 If lxst changes profile IDs, default profile, or display names, these tests fail so UI and config can be updated.

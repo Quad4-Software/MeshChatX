@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Optional live Reticulum smoke test.
 
 Reticulum is a process-wide singleton; this test runs a short script in a

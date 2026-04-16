@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Helpers for HTTP API route contract checks (meshchat.py vs frontend)."""
 
 from __future__ import annotations

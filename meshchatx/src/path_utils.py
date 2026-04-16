@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Filesystem and HTTP client helpers used at startup and in the web layer."""
 
 import os

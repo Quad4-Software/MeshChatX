@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Tests for UserStickersDAO and schema migration for user_stickers."""
 
 import base64

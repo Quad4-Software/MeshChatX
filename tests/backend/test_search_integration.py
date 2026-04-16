@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Integration tests for conversation list search and announce search filtering."""
 
 import secrets

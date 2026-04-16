@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <div class="card-stack-wrapper flex-1 flex flex-col min-h-0" :class="{ 'is-expanded': isExpanded }">
         <div

@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+
 <template>
     <div class="flex-1 h-full min-w-0 relative dark:bg-zinc-950 overflow-hidden">
         <!-- network -->

@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD AND MIT -->
+
 <template>
     <div class="relative inline-flex items-stretch rounded-xl shadow-sm">
         <template v-if="compact">

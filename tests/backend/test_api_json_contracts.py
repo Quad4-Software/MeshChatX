@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """JSON Schema contract tests for core HTTP API responses."""
 
 from __future__ import annotations

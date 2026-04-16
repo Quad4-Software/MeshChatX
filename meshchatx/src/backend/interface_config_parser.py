@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD AND MIT
+
 import RNS.vendor.configobj
 
 

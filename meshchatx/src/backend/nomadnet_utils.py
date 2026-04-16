@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: 0BSD
+
+
 def convert_nomadnet_string_data_to_map(path_data: str | None):
     data = {}
     if path_data is not None:

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import os
 import sys
 from pathlib import Path

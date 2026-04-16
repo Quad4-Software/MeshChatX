@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import socket
 import unittest
 from unittest.mock import MagicMock, patch

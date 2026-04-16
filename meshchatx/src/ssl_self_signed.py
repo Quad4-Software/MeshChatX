@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Self-signed TLS certificate generation for local HTTPS."""
 
 import ipaddress

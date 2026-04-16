@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <div class="h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
         <div class="w-full max-w-md p-8">

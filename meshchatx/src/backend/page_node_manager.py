@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """PageNodeManager: Manages the lifecycle of multiple PageNode instances.
 
 Handles creation, deletion, persistence, start/stop, and announce

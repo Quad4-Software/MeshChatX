@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import shutil
 import tempfile
 from unittest.mock import MagicMock, patch

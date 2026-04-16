@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import os
 import random
 from contextlib import ExitStack

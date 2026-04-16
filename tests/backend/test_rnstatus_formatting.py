@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 from meshchatx.src.backend.rnstatus_handler import (
     fmt_packet_count,
     fmt_per_second,

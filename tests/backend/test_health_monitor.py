@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import math
 import time
 import unittest

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Tests for ForwardingManager lifecycle."""
 
 from unittest.mock import MagicMock, patch

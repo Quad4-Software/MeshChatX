@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 import sys
 
 # NOTE: this class is required to be able to use print/log commands and have them flush to stdout and stderr immediately

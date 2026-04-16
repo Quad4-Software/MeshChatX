@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """JSON Schema contract tests for telephone phonebook, ringtones, and voicemail APIs."""
 
 from __future__ import annotations

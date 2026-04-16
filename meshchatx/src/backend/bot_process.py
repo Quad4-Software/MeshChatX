@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import argparse
 import contextlib
 import os

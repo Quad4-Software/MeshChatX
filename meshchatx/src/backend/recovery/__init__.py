@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 from .crash_recovery import CrashRecovery
 from .health_monitor import HealthMonitor
 

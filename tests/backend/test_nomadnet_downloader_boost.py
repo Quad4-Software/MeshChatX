@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import threading
 from unittest.mock import MagicMock, patch
 

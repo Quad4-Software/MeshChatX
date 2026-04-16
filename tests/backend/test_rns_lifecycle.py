@@ -1,6 +1,9 @@
+# SPDX-License-Identifier: 0BSD
+
 import os
 import json
 import shutil
+import socket
 import tempfile
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -214,6 +217,55 @@ async def test_reload_reticulum(mock_rns, temp_dir):
         assert mock_rns["Reticulum"]._Reticulum__instance is None
         # Verify setup_identity was called again
         app.setup_identity.assert_called()
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_reload_reticulum_does_not_probe_unix_fallback_by_default(
+    mock_rns,
+    temp_dir,
+):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+        patch("asyncio.sleep", return_value=None),
+        patch("socket.socket") as mock_socket,
+    ):
+        mock_sock_inst = MagicMock()
+        mock_socket.return_value = mock_sock_inst
+
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.setup_identity = MagicMock()
+
+        old_reticulum = getattr(app, "reticulum", None)
+        if old_reticulum is not None:
+            old_reticulum.rpc_addr = None
+
+        result = await app.reload_reticulum()
+
+        assert result is True
+        # The fallback pre-check should only probe AF_INET defaults.
+        assert not any(
+            call.args and call.args[0] == socket.AF_UNIX
+            for call in mock_socket.call_args_list
+            if len(call.args) >= 1
+        )
         app.teardown_identity()
 
 

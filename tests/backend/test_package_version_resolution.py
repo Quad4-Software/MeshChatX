@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Tests for ReticulumMeshChat.get_package_version (About page / frozen bundles)."""
 
 from __future__ import annotations

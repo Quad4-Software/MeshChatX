@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Tests for login/setup rate limiting, lockout, and HTTP smoke paths."""
 
 from __future__ import annotations

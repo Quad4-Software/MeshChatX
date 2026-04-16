@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Legacy migration and schema: safe ATTACH paths, identifiers, and raw SQL helpers.
 
 Covers ATTACH DATABASE path escaping in LegacyMigrator, column identifier filtering,

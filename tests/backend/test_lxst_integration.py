@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Integration-oriented tests for real LXST telephony classes.
 
 These tests intentionally use LXST's real ``Telephone`` implementation while stubbing

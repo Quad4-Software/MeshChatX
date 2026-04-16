@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <section class="settings-section break-inside-avoid" :class="sectionClass">
         <header v-if="hasHeader" class="settings-section__header">

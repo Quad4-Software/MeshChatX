@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 import os
 import shutil
 import tempfile
@@ -85,3 +87,23 @@ def test_rns_config_repair_if_invalid(mock_rns, temp_dir):
             # Should have been repaired
             assert "[reticulum]" in content
             assert "[interfaces]" in content
+
+
+def test_rns_config_file_path_is_normalized_to_directory(mock_rns, temp_dir):
+    """A config file path should be normalized to its parent directory."""
+    config_dir = os.path.join(temp_dir, ".reticulum")
+    config_file = os.path.join(config_dir, "config")
+
+    with (
+        patch("meshchatx.meshchat.IdentityContext"),
+        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.memory_log_handler"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=config_file,
+        )
+
+        assert app.reticulum_config_dir == config_dir
+        assert os.path.exists(config_file)

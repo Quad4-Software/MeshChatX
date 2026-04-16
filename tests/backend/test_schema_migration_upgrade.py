@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Upgrade path: simulate database at version N-1 and assert migration to LATEST_VERSION."""
 
 import pytest

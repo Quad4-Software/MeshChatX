@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 """Regression tests for auto-announce and periodic interval scheduling (config / DB time)."""
 
 import pytest

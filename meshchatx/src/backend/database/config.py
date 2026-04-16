@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
 from datetime import UTC, datetime
 
 from .provider import DatabaseProvider

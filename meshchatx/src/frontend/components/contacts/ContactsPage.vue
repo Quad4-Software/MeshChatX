@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <div class="flex flex-1 min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <div class="flex-1 overflow-y-auto p-4 md:p-6">

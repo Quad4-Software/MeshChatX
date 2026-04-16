@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+
 <template>
     <v-dialog v-model="visible" persistent max-width="500">
         <v-card color="warning" class="pa-4">
