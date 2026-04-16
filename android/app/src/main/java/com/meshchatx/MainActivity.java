@@ -20,6 +20,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,10 +39,10 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ProgressBar progressBar;
+    private ImageView loadingLogo;
     private TextView loadingText;
     private TextView errorText;
-    private static final String SERVER_URL_HTTPS = "https://127.0.0.1:8000";
-    private static final String SERVER_URL_HTTP = "http://127.0.0.1:8000";
+    private static final String SERVER_URL = "https://127.0.0.1:8000";
     private static final int SERVER_PORT = 8000;
     private static final int RUNTIME_PERMISSIONS_REQUEST_CODE = 1001;
     private static final int MICROPHONE_WEB_PERMISSION_REQUEST_CODE = 1002;
@@ -53,11 +54,17 @@ public class MainActivity extends AppCompatActivity {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private PermissionRequest pendingWebPermissionRequest = null;
     private ValueCallback<Uri[]> filePathCallback = null;
-    private String startupServerUrl = SERVER_URL_HTTPS;
     private boolean startupRequestHadLoadError = false;
     private boolean startupPageLoaded = false;
     private boolean backendFailed = false;
     private int connectionAttempts = 0;
+    private static final String[] STARTUP_PHASES = new String[] {
+        "Starting MeshChatX...",
+        "Initializing Reticulum network stack...",
+        "Loading MeshChatX frontend...",
+        "Establishing secure local connection...",
+        "Finalizing startup..."
+    };
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
         new ActivityResultContracts.StartActivityForResult(),
         result -> {
@@ -89,8 +96,10 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.webView);
         progressBar = findViewById(R.id.progressBar);
+        loadingLogo = findViewById(R.id.loadingLogo);
         loadingText = findViewById(R.id.loadingText);
         errorText = findViewById(R.id.errorText);
+        webView.setVisibility(android.view.View.INVISIBLE);
         showLoading("Starting MeshChatX backend...");
 
         if (!Python.isStarted()) {
@@ -119,6 +128,8 @@ public class MainActivity extends AppCompatActivity {
                 }
                 startupPageLoaded = true;
                 mainHandler.removeCallbacksAndMessages(null);
+                webView.setVisibility(android.view.View.VISIBLE);
+                loadingLogo.setVisibility(android.view.View.GONE);
                 progressBar.setVisibility(android.view.View.GONE);
                 loadingText.setVisibility(android.view.View.GONE);
                 errorText.setVisibility(android.view.View.GONE);
@@ -129,6 +140,9 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageStarted(view, url, favicon);
                 if (isStartupRequest(url)) {
                     startupRequestHadLoadError = false;
+                    if (!startupPageLoaded) {
+                        webView.setVisibility(android.view.View.INVISIBLE);
+                    }
                 }
                 progressBar.setVisibility(android.view.View.VISIBLE);
             }
@@ -138,6 +152,8 @@ public class MainActivity extends AppCompatActivity {
                 super.onReceivedError(view, request, error);
                 if (request != null && request.isForMainFrame() && isStartupRequest(request.getUrl().toString())) {
                     startupRequestHadLoadError = true;
+                    view.stopLoading();
+                    view.loadUrl("about:blank");
                     if (backendFailed && !startupPageLoaded) {
                         CharSequence description = (error != null) ? error.getDescription() : "Unknown error";
                         showStartupError("WebView failed to load MeshChatX: " + description);
@@ -150,6 +166,8 @@ public class MainActivity extends AppCompatActivity {
                 super.onReceivedError(view, errorCode, description, failingUrl);
                 if (isStartupRequest(failingUrl) && !startupPageLoaded) {
                     startupRequestHadLoadError = true;
+                    view.stopLoading();
+                    view.loadUrl("about:blank");
                     if (backendFailed) {
                         showStartupError("WebView failed to load MeshChatX: " + description);
                     }
@@ -362,7 +380,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isStartupRequest(String url) {
-        return url != null && (url.startsWith(SERVER_URL_HTTPS) || url.startsWith(SERVER_URL_HTTP));
+        return url != null && url.startsWith(SERVER_URL);
     }
 
     private void scheduleConnectionRetry(String message) {
@@ -383,11 +401,7 @@ public class MainActivity extends AppCompatActivity {
                 showStartupError("Failed to connect to local MeshChatX server after waiting for startup.");
                 return;
             }
-            if (connectionAttempts == (MAX_CONNECTION_ATTEMPTS / 2) && SERVER_URL_HTTPS.equals(startupServerUrl)) {
-                startupServerUrl = SERVER_URL_HTTP;
-                showLoading("Retrying with HTTP fallback...");
-            }
-            webView.loadUrl(startupServerUrl);
+            webView.loadUrl(SERVER_URL);
             scheduleConnectionRetry("Retrying connection...");
         }, retryDelayMs);
     }
@@ -403,6 +417,8 @@ public class MainActivity extends AppCompatActivity {
     private void showStartupError(String message) {
         runOnUiThread(() -> {
             mainHandler.removeCallbacksAndMessages(null);
+            webView.setVisibility(android.view.View.INVISIBLE);
+            loadingLogo.setVisibility(android.view.View.GONE);
             progressBar.setVisibility(android.view.View.GONE);
             loadingText.setVisibility(android.view.View.GONE);
             if (errorText != null) {
@@ -417,13 +433,29 @@ public class MainActivity extends AppCompatActivity {
             if (startupPageLoaded) {
                 return;
             }
+            webView.setVisibility(android.view.View.INVISIBLE);
+            if (loadingLogo != null) {
+                loadingLogo.setVisibility(android.view.View.VISIBLE);
+            }
             progressBar.setVisibility(android.view.View.VISIBLE);
             errorText.setVisibility(android.view.View.GONE);
             if (loadingText != null) {
-                loadingText.setText(message);
+                loadingText.setText(formatLoadingMessage(message));
                 loadingText.setVisibility(android.view.View.VISIBLE);
             }
         });
+    }
+
+    private String formatLoadingMessage(String fallbackMessage) {
+        int phaseIndex = Math.min(
+            STARTUP_PHASES.length - 1,
+            (connectionAttempts * STARTUP_PHASES.length) / Math.max(1, MAX_CONNECTION_ATTEMPTS)
+        );
+        String phase = STARTUP_PHASES[phaseIndex];
+        if (connectionAttempts == 0) {
+            return phase;
+        }
+        return phase + " (" + connectionAttempts + "/" + MAX_CONNECTION_ATTEMPTS + ")";
     }
 
     @Override
