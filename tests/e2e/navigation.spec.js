@@ -1,5 +1,10 @@
 const { test, expect } = require("@playwright/test");
-const { PALETTE_PLACEHOLDER, dismissMapOnboardingTooltip, openCommandPalette, prepareE2eSession } = require("./helpers");
+const {
+    PALETTE_PLACEHOLDER,
+    dismissMapOnboardingTooltip,
+    openCommandPalette,
+    prepareE2eSession,
+} = require("./helpers");
 
 test.describe("Getting started (tutorial page)", () => {
     test("tutorial route shows welcome copy", async ({ page }) => {
@@ -102,15 +107,20 @@ test.describe("Sidebar and keyboard navigation", () => {
         await expect(page.getByText("MeshChatX", { exact: true }).first()).toBeVisible({ timeout: 20000 });
     });
 
-    test("Alt+1 jumps to Messages from another route", async ({ page }) => {
+    test("Alt+1 jumps to Messages from another route", async ({ page, request }) => {
+        await prepareE2eSession(request);
         await page.goto("/#/contacts");
         await expect(page).toHaveURL(/#\/contacts/);
         await page.keyboard.press("Alt+1");
         await expect(page).toHaveURL(/#\/messages/, { timeout: 15000 });
     });
 
-    test("Alt+S opens Settings", async ({ page }) => {
+    test("Alt+S opens Settings", async ({ page, request }) => {
+        await prepareE2eSession(request);
         await page.goto("/#/map");
+        await page.evaluate(() => {
+            localStorage.setItem("map_onboarding_seen", "true");
+        });
         await expect(page).toHaveURL(/#\/map/);
         await page.keyboard.press("Alt+s");
         await expect(page).toHaveURL(/#\/settings/, { timeout: 15000 });

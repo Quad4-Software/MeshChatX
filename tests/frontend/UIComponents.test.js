@@ -8,6 +8,7 @@ import FormSubLabel from "../../meshchatx/src/frontend/components/forms/FormSubL
 import DropDownMenu from "../../meshchatx/src/frontend/components/DropDownMenu.vue";
 import DropDownMenuItem from "../../meshchatx/src/frontend/components/DropDownMenuItem.vue";
 import SettingsPage from "../../meshchatx/src/frontend/components/settings/SettingsPage.vue";
+import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
@@ -22,6 +23,9 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
         success: vi.fn(),
         error: vi.fn(),
+        info: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
     },
 }));
 
@@ -537,6 +541,24 @@ describe("SettingsPage Component", () => {
         }
     });
 
+    it("updates reload status from websocket events", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "reticulum_reload_status",
+                message: "Stopping services...",
+                level: "info",
+                in_progress: true,
+            }),
+        });
+
+        expect(wrapper.vm.reloadingRns).toBe(true);
+        expect(wrapper.vm.reloadRnsStatusMessage).toBe("Stopping services...");
+        expect(ToastUtils.info).toHaveBeenCalledWith("Stopping services...", 2500, "settings-rns-reload");
+    });
+
     it("displays theme information correctly", async () => {
         const wrapper = mountSettingsPage();
         await wrapper.vm.$nextTick();
@@ -553,6 +575,60 @@ describe("SettingsPage Component", () => {
         await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain("app.transport");
+    });
+
+    it("shows RNS reload controls in settings", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("app.reload_rns");
+    });
+
+    it("enabling transport shows success toast after reload", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
+        await wrapper.vm.$nextTick();
+
+        axiosMock.post.mockResolvedValueOnce({
+            data: { message: "Transport mode enabled and RNS restarted successfully." },
+        });
+        wrapper.vm.config.is_transport_enabled = true;
+        await wrapper.vm.onIsTransportEnabledChange();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/enable-transport");
+        expect(ToastUtils.success).toHaveBeenCalledWith("Transport mode enabled and RNS restarted successfully.");
+    });
+
+    it("disabling transport shows success toast after reload", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
+        await wrapper.vm.$nextTick();
+
+        axiosMock.post.mockResolvedValueOnce({
+            data: { message: "Transport mode disabled and RNS restarted successfully." },
+        });
+        wrapper.vm.config.is_transport_enabled = false;
+        await wrapper.vm.onIsTransportEnabledChange();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/disable-transport");
+        expect(ToastUtils.success).toHaveBeenCalledWith("Transport mode disabled and RNS restarted successfully.");
+    });
+
+    it("shows error toast when enabling transport fails", async () => {
+        const wrapper = mountSettingsPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
+        await wrapper.vm.$nextTick();
+
+        axiosMock.post.mockRejectedValueOnce(new Error("boom"));
+        wrapper.vm.config.is_transport_enabled = true;
+        await wrapper.vm.onIsTransportEnabledChange();
+
+        expect(ToastUtils.error).toHaveBeenCalledWith("settings.failed_enable_transport");
     });
 
     it("handles multiple toggle changes without errors", async () => {
