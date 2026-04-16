@@ -90,7 +90,7 @@ class DocsManager:
             if os.path.islink(self.docs_dir):
                 os.unlink(self.docs_dir)
             else:
-                shutil.rmtree(self.docs_dir)
+                self._remove_tree_force_writable(self.docs_dir)
 
         try:
             # Try symlink first as it's efficient
@@ -152,9 +152,9 @@ class DocsManager:
                     if os.path.islink(self.docs_dir):
                         os.unlink(self.docs_dir)
                     else:
-                        shutil.rmtree(self.docs_dir)
+                        self._remove_tree_force_writable(self.docs_dir)
 
-            shutil.rmtree(version_path)
+            self._remove_tree_force_writable(version_path)
 
             # If we just deleted the current version, try to pick another one as current
             if current_version == version:
@@ -177,7 +177,7 @@ class DocsManager:
                     if os.path.islink(item_path):
                         os.unlink(item_path)
                     elif os.path.isdir(item_path):
-                        shutil.rmtree(item_path)
+                        self._remove_tree_force_writable(item_path)
                     else:
                         os.remove(item_path)
 
@@ -614,13 +614,14 @@ class DocsManager:
             raise ValueError(f"Invalid version name: {version}")
 
         if os.path.exists(version_dir):
-            shutil.rmtree(version_dir)
-        os.makedirs(version_dir)
+            self._remove_tree_force_writable(version_dir)
+        os.makedirs(version_dir, exist_ok=True)
+        self._ensure_dir_writable(version_dir)
 
         # Temp dir for extraction
         temp_extract = os.path.join(self.docs_base_dir, "temp_extract")
         if os.path.exists(temp_extract):
-            shutil.rmtree(temp_extract)
+            self._remove_tree_force_writable(temp_extract)
 
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             # Gitea/GitHub zips have a root folder
@@ -647,9 +648,9 @@ class DocsManager:
                     s = os.path.join(src_path, item)
                     d = os.path.join(version_dir, item)
                     if os.path.isdir(s):
-                        shutil.copytree(s, d)
+                        self._copy_tree_no_metadata(s, d)
                     else:
-                        shutil.copy2(s, d)
+                        self._copy_file_no_metadata(s, d)
             else:
                 safe_members = [m for m in namelist if ".." not in m.split("/")]
                 zip_ref.extractall(temp_extract, members=safe_members)
@@ -659,18 +660,18 @@ class DocsManager:
                         s = os.path.join(src_path, item)
                         d = os.path.join(version_dir, item)
                         if os.path.isdir(s):
-                            shutil.copytree(s, d)
+                            self._copy_tree_no_metadata(s, d)
                         else:
-                            shutil.copy2(s, d)
+                            self._copy_file_no_metadata(s, d)
                 else:
                     # Fallback if no root folder
                     for item in os.listdir(temp_extract):
                         s = os.path.join(temp_extract, item)
                         d = os.path.join(version_dir, item)
                         if os.path.isdir(s):
-                            shutil.copytree(s, d)
+                            self._copy_tree_no_metadata(s, d)
                         else:
-                            shutil.copy2(s, d)
+                            self._copy_file_no_metadata(s, d)
 
         # Create a metadata file with the version name
         with open(os.path.join(version_dir, ".version"), "w") as f:
@@ -678,4 +679,57 @@ class DocsManager:
 
         # Cleanup temp
         if os.path.exists(temp_extract):
-            shutil.rmtree(temp_extract)
+            self._remove_tree_force_writable(temp_extract)
+
+    def _ensure_dir_writable(self, path):
+        if not os.path.isdir(path):
+            return
+        try:
+            os.chmod(path, 0o755)
+        except OSError:
+            pass
+
+    def _remove_tree_force_writable(self, path):
+        if not os.path.exists(path):
+            return
+        for root, dirs, files in os.walk(path, topdown=False):
+            for name in files:
+                file_path = os.path.join(root, name)
+                try:
+                    os.chmod(file_path, 0o644)
+                except OSError:
+                    pass
+            for name in dirs:
+                dir_path = os.path.join(root, name)
+                self._ensure_dir_writable(dir_path)
+        self._ensure_dir_writable(path)
+        shutil.rmtree(path)
+
+    def _copy_file_no_metadata(self, src, dst):
+        parent = os.path.dirname(dst)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+            self._ensure_dir_writable(parent)
+        shutil.copyfile(src, dst)
+        try:
+            os.chmod(dst, 0o644)
+        except OSError:
+            pass
+
+    def _copy_tree_no_metadata(self, src, dst):
+        os.makedirs(dst, exist_ok=True)
+        self._ensure_dir_writable(dst)
+        for root, dirs, files in os.walk(src):
+            rel_root = os.path.relpath(root, src)
+            target_root = dst if rel_root == "." else os.path.join(dst, rel_root)
+            os.makedirs(target_root, exist_ok=True)
+            self._ensure_dir_writable(target_root)
+            for dirname in dirs:
+                target_dir = os.path.join(target_root, dirname)
+                os.makedirs(target_dir, exist_ok=True)
+                self._ensure_dir_writable(target_dir)
+            for filename in files:
+                self._copy_file_no_metadata(
+                    os.path.join(root, filename),
+                    os.path.join(target_root, filename),
+                )
