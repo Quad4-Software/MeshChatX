@@ -29,3 +29,24 @@ Use this workflow when a dependency (for example `cryptography`) requires custom
 Notes:
 - For Rust-backed wheels (such as modern `cryptography`), build inside the container with Rust toolchain available.
 - Keep recipe files and patches versioned; keep generated build artifacts untracked.
+
+## Custom Recipes and Patches
+
+This project keeps Android-specific Chaquopy recipes in `android/chaquopy-recipes/` to bridge gaps between desktop Python dependencies and Android wheel availability.
+
+- `cryptography-46`
+  - Purpose: provide Android ABI wheels for `cryptography 46.0.7` (`arm64-v8a`, `x86_64`) because upstream Chaquopy index only provided older builds.
+  - `patches/openssl_no_legacy.patch`: disables OpenSSL legacy provider loading, which is unavailable in the bundled Android OpenSSL runtime.
+  - `patches/pyo3_no_interpreter.patch`: enables compatible `pyo3` ABI settings for Chaquopy Python 3.11 Android builds.
+
+- `aiohttp-3.13`
+  - Purpose: align Android with desktop dependency line (`aiohttp 3.13.3`) by building fresh ABI wheels with Chaquopy.
+  - No source patch is required; recipe pins the newer upstream version for Android wheel generation.
+
+- `psutil-7.2`
+  - Purpose: align Android with desktop dependency line (`psutil 7.2.2`) while preserving Android runtime behavior.
+  - `patches/chaquopy.patch`: treats `android` platform as Linux in psutil internals and forces a safe partition enumeration path because `/proc/filesystems` can be restricted by SELinux on some Android API levels.
+
+- `bcrypt-5`
+  - Purpose: tracks attempted upgrade path to desktop-equivalent bcrypt.
+  - Status: currently not enabled in Android app dependencies; `bcrypt==3.1.7` remains pinned for stable APK builds.
