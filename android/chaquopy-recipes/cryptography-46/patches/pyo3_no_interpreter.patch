@@ -1,0 +1,14 @@
+--- src-original/Cargo.toml
++++ src/Cargo.toml
+@@ -22,7 +22,10 @@
+ 
+ [workspace.dependencies]
+ asn1 = { version = "0.22.0", default-features = false }
+-pyo3 = { version = "0.26", features = ["abi3"] }
++
++# Chaquopy: add abi3-py310 for Android cp311 wheels.
++pyo3 = { version = "0.26", features = ["abi3", "abi3-py310"] }
++
+ pyo3-build-config = { version = "0.26" }
+ openssl = "0.10.74"
+ openssl-sys = "0.9.110"
