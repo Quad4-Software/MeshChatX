@@ -34,8 +34,8 @@ jobs:
                     TOKEN="${GITEA_TOKEN:-$GITHUB_TOKEN}"
                     git config --global credential.helper "!f() { echo username=x-access-token; echo password=${TOKEN}; }; f"
                   fi
-                  git clone "${SERVER}/${REPO}.git" .
-                  git checkout "${GITHUB_SHA}"
+                  git init -q && git remote add origin "${SERVER}/${REPO}.git"
+                  git fetch -q --depth=1 origin "${GITHUB_SHA}" && git checkout -q FETCH_HEAD
 
             - name: Set up Docker (QEMU + Buildx + Login)
               run: sh scripts/ci/setup-docker.sh "${{ env.REGISTRY }}" "${{ secrets.REGISTRY_USERNAME }}" "${{ secrets.REGISTRY_PASSWORD }}"
