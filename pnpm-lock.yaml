@@ -63,7 +63,7 @@ importers:
         version: 18.0.0
       micron-parser:
         specifier: github:RFnexus/micron-parser-js
-        version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9
+        version: git+https://github.com/RFnexus/micron-parser-js.git#aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9
       mitt:
         specifier: ^3.0.1
         version: 3.0.1
@@ -407,8 +407,8 @@ packages:
     resolution: {integrity: sha512-F+nKc0xW+kVbBRhFzaMgPy3KwmuNTYX1fx6+FxxoSnNgwYX6LD7AKBTWkU0MQ6IBoe7dz069CNkR673sPAgkCQ==}
     engines: {node: '>=14'}
 
-  '@electron/node-gyp@https://codeload.github.com/electron/node-gyp/tar.gz/06b29aafb7708acef8b3669835c8a7857ebc92d2':
-    resolution: {tarball: https://codeload.github.com/electron/node-gyp/tar.gz/06b29aafb7708acef8b3669835c8a7857ebc92d2}
+  '@electron/node-gyp@git+https://github.com/electron/node-gyp.git#06b29aafb7708acef8b3669835c8a7857ebc92d2':
+    resolution: {commit: 06b29aafb7708acef8b3669835c8a7857ebc92d2, repo: https://github.com/electron/node-gyp.git, type: git}
     version: 10.2.0-electron.1
     engines: {node: '>=12.13.0'}
     hasBin: true
@@ -2622,8 +2622,8 @@ packages:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
     engines: {node: '>=8.6'}
 
-  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9:
-    resolution: {tarball: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9}
+  micron-parser@git+https://github.com/RFnexus/micron-parser-js.git#aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9:
+    resolution: {commit: aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9, repo: https://github.com/RFnexus/micron-parser-js.git, type: git}
     version: 0.0.0
 
   mime-db@1.52.0:
@@ -4403,7 +4403,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@electron/node-gyp@https://codeload.github.com/electron/node-gyp/tar.gz/06b29aafb7708acef8b3669835c8a7857ebc92d2':
+  '@electron/node-gyp@git+https://github.com/electron/node-gyp.git#06b29aafb7708acef8b3669835c8a7857ebc92d2':
     dependencies:
       env-paths: 2.2.1
       exponential-backoff: 3.1.3
@@ -4466,7 +4466,7 @@ snapshots:
 
   '@electron/rebuild@3.7.2':
     dependencies:
-      '@electron/node-gyp': https://codeload.github.com/electron/node-gyp/tar.gz/06b29aafb7708acef8b3669835c8a7857ebc92d2
+      '@electron/node-gyp': git+https://github.com/electron/node-gyp.git#06b29aafb7708acef8b3669835c8a7857ebc92d2
       '@malept/cross-spawn-promise': 2.0.0
       chalk: 4.1.2
       debug: 4.4.3
@@ -6959,7 +6959,7 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.2
 
-  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9: {}
+  micron-parser@git+https://github.com/RFnexus/micron-parser-js.git#aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9: {}
 
   mime-db@1.52.0: {}
 
