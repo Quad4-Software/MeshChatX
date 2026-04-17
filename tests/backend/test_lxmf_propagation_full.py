@@ -3,6 +3,7 @@
 import json
 import shutil
 import tempfile
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import LXMF
@@ -138,6 +139,46 @@ async def test_lxmf_sync_flow(mock_app):
 
 
 @pytest.mark.asyncio
+async def test_lxmf_sync_requests_path_before_sync(mock_app):
+    mock_router = mock_app.current_context.message_router
+    outbound = b"somehash"
+    mock_router.get_outbound_propagation_node.return_value = outbound
+    sync_handler = next(
+        r.handler
+        for r in mock_app.get_routes()
+        if r.path == "/api/v1/lxmf/propagation-node/sync"
+    )
+
+    with patch("meshchatx.meshchat.RNS.Transport.has_path", return_value=False):
+        with patch("meshchatx.meshchat.RNS.Transport.request_path") as mock_request:
+            await sync_handler(None)
+            mock_request.assert_called_with(outbound)
+            mock_router.request_messages_from_propagation_node.assert_called_with(
+                mock_app.current_context.identity
+            )
+
+
+@pytest.mark.asyncio
+async def test_lxmf_sync_completes_immediately_for_local_preferred_node(mock_app):
+    mock_router = mock_app.current_context.message_router
+    local_hash = b"local-prop-node-1"
+    mock_router.propagation_destination = SimpleNamespace(hash=local_hash)
+    mock_router.get_outbound_propagation_node.return_value = local_hash
+    sync_handler = next(
+        r.handler
+        for r in mock_app.get_routes()
+        if r.path == "/api/v1/lxmf/propagation-node/sync"
+    )
+
+    await sync_handler(None)
+
+    assert mock_router.propagation_transfer_state == PR_COMPLETE
+    assert mock_router.propagation_transfer_progress == 1.0
+    assert mock_router.propagation_transfer_last_result == 0
+    mock_router.request_messages_from_propagation_node.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_hosting_prop_node(mock_app):
     mock_router = mock_app.current_context.message_router
 
@@ -214,6 +255,11 @@ async def test_local_propagation_node_stop_and_restart_routes(mock_app):
             "client_propagation_messages_received": 7,
             "client_propagation_messages_served": 5,
         },
+        "peers": {
+            "peer-a": {"rx_bytes": 1000, "tx_bytes": 600},
+            "peer-b": {"rx_bytes": 300, "tx_bytes": 400},
+        },
+        "unpeered_propagation_rx_bytes": 200,
         "delivery_limit": 10,
         "propagation_limit": 20,
         "sync_limit": 30,
@@ -238,11 +284,19 @@ async def test_local_propagation_node_stop_and_restart_routes(mock_app):
     stop_response = await stop_handler(None)
     stop_data = json.loads(stop_response.body)
     assert stop_data["message"] == "Local propagation node stopped"
+    local_stop = stop_data["local_propagation_node"]
+    assert local_stop["rx_bytes"] == 1500
+    assert local_stop["tx_bytes"] == 1000
+    assert local_stop["messagestore_limit_bytes"] == 4096
+    assert local_stop["client_messages_received"] == 7
     mock_router.disable_propagation.assert_called()
 
     restart_response = await restart_handler(None)
     restart_data = json.loads(restart_response.body)
     assert restart_data["message"] == "Local propagation node restarted"
+    local_restart = restart_data["local_propagation_node"]
+    assert local_restart["rx_bytes"] == 1500
+    assert local_restart["tx_bytes"] == 1000
     mock_router.enable_propagation.assert_called()
 
 
@@ -252,9 +306,11 @@ async def test_user_provided_node_hash(mock_app):
     node_hash_hex = "d81255ae2ff367d4883b16c9cc8c6178"
 
     # Set this node as preferred
-    await mock_app.update_config(
-        {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex},
-    )
+    with patch("meshchatx.meshchat.RNS.Transport.request_path") as mock_request_path:
+        await mock_app.update_config(
+            {"lxmf_preferred_propagation_node_destination_hash": node_hash_hex},
+        )
+        mock_request_path.assert_called_with(bytes.fromhex(node_hash_hex))
 
     # Check if the router was updated with the correct bytes
     mock_app.current_context.message_router.set_outbound_propagation_node.assert_called_with(
@@ -276,6 +332,26 @@ async def test_user_provided_node_hash(mock_app):
     mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_with(
         mock_app.current_context.identity,
     )
+
+
+@pytest.mark.asyncio
+async def test_destination_path_returns_local_hop_zero_for_local_destinations(mock_app):
+    local_hash = mock_app.current_context.identity.hash.hex()
+    path_handler = next(
+        r.handler
+        for r in mock_app.get_routes()
+        if r.path == "/api/v1/destination/{destination_hash}/path"
+    )
+    request = SimpleNamespace(
+        match_info={"destination_hash": local_hash},
+        query={},
+    )
+
+    response = await path_handler(request)
+    data = json.loads(response.body)
+    assert data["path"]["hops"] == 0
+    assert data["path"]["next_hop"] == local_hash
+    assert data["path"]["next_hop_interface"] == "Local"
 
 
 def test_convert_propagation_node_state_maps_all_lxmf_transfer_states():

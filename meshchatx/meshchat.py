@@ -2222,9 +2222,12 @@ class ReticulumMeshChat:
         # set outbound propagation node
         if destination_hash is not None and destination_hash != "":
             try:
+                destination_hash_bytes = bytes.fromhex(destination_hash)
                 ctx.message_router.set_outbound_propagation_node(
-                    bytes.fromhex(destination_hash),
+                    destination_hash_bytes,
                 )
+                with contextlib.suppress(Exception):
+                    RNS.Transport.request_path(destination_hash_bytes)
             except Exception:
                 # failed to set propagation node, clear it to ensure we don't use an old one by mistake
                 self.remove_active_propagation_node(context=ctx)
@@ -2402,7 +2405,21 @@ class ReticulumMeshChat:
 
         message_store = stats.get("messagestore", {}) if isinstance(stats, dict) else {}
         clients = stats.get("clients", {}) if isinstance(stats, dict) else {}
+        peers = stats.get("peers", {}) if isinstance(stats, dict) else {}
         uptime = _numeric(stats.get("uptime", 0)) if isinstance(stats, dict) else 0
+        peer_rx_bytes = 0
+        peer_tx_bytes = 0
+        if isinstance(peers, dict):
+            for peer_stats in peers.values():
+                if not isinstance(peer_stats, dict):
+                    continue
+                peer_rx_bytes += int(_numeric(peer_stats.get("rx_bytes", 0)))
+                peer_tx_bytes += int(_numeric(peer_stats.get("tx_bytes", 0)))
+        unpeered_rx_bytes = (
+            int(_numeric(stats.get("unpeered_propagation_rx_bytes", 0)))
+            if isinstance(stats, dict)
+            else 0
+        )
         delivery_limit = (
             _numeric(stats.get("delivery_limit", 0))
             if isinstance(stats, dict)
@@ -2434,6 +2451,9 @@ class ReticulumMeshChat:
                 "client_propagation_messages_served",
                 0,
             ),
+            "rx_bytes": peer_rx_bytes + unpeered_rx_bytes,
+            "tx_bytes": peer_tx_bytes,
+            "unpeered_rx_bytes": unpeered_rx_bytes,
             "static_peers": stats.get("static_peers", 0)
             if isinstance(stats, dict)
             else 0,
@@ -7349,13 +7369,20 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/lxmf/propagation-node/sync")
         async def propagation_node_sync(request):
             # ensure propagation node is configured before attempting to sync
-            if self.message_router.get_outbound_propagation_node() is None:
+            outbound_node = self.message_router.get_outbound_propagation_node()
+            if outbound_node is None:
                 return web.json_response(
                     {
                         "message": "A propagation node must be configured to sync messages.",
                     },
                     status=400,
                 )
+
+            # proactively request path, but do not block/fail here.
+            # LXMF internally manages PR_PATH_REQUESTED and retries.
+            if not RNS.Transport.has_path(outbound_node):
+                with contextlib.suppress(Exception):
+                    RNS.Transport.request_path(outbound_node)
 
             # request messages from propagation node
             await self.sync_propagation_nodes()
@@ -7500,6 +7527,15 @@ class ReticulumMeshChat:
                 if updated_at and "+" not in updated_at and "Z" not in updated_at:
                     updated_at += "Z"
 
+                is_local_node = (
+                    announce["identity_hash"] == local_identity_hash
+                    or announce["destination_hash"] == local_destination_hash
+                )
+                if is_local_node and isinstance(local_stats, dict):
+                    local_running = local_stats.get("is_running")
+                    if isinstance(local_running, bool):
+                        is_propagation_enabled = local_running
+
                 lxmf_propagation_nodes.append(
                     {
                         "destination_hash": announce["destination_hash"],
@@ -7507,16 +7543,8 @@ class ReticulumMeshChat:
                         "operator_display_name": operator_display_name,
                         "is_propagation_enabled": is_propagation_enabled,
                         "per_transfer_limit": per_transfer_limit,
-                        "is_local_node": (
-                            announce["identity_hash"] == local_identity_hash
-                            or announce["destination_hash"] == local_destination_hash
-                        ),
-                        "local_node_stats": (
-                            local_stats
-                            if announce["identity_hash"] == local_identity_hash
-                            or announce["destination_hash"] == local_destination_hash
-                            else None
-                        ),
+                        "is_local_node": is_local_node,
+                        "local_node_stats": (local_stats if is_local_node else None),
                         "created_at": created_at,
                         "updated_at": updated_at,
                     },
@@ -7537,7 +7565,12 @@ class ReticulumMeshChat:
                         "destination_hash": local_destination_hash,
                         "identity_hash": local_identity_hash,
                         "operator_display_name": ctx.config.display_name.get(),
-                        "is_propagation_enabled": ctx.config.lxmf_local_propagation_node_enabled.get(),
+                        "is_propagation_enabled": (
+                            local_stats.get("is_running")
+                            if isinstance(local_stats, dict)
+                            and isinstance(local_stats.get("is_running"), bool)
+                            else ctx.config.lxmf_local_propagation_node_enabled.get()
+                        ),
                         "per_transfer_limit": int(
                             getattr(
                                 ctx.message_router, "propagation_per_transfer_limit", 0
@@ -7564,6 +7597,30 @@ class ReticulumMeshChat:
 
             # convert destination hash to bytes
             destination_hash = bytes.fromhex(destination_hash)
+            destination_hash_hex = destination_hash.hex()
+            local_hashes: set[str] = set()
+            with contextlib.suppress(Exception):
+                if self.current_context and self.current_context.identity:
+                    local_hashes.add(self.current_context.identity.hash.hex())
+            with contextlib.suppress(Exception):
+                if self.local_lxmf_destination is not None:
+                    local_hashes.add(self.local_lxmf_destination.hash.hex())
+            with contextlib.suppress(Exception):
+                if self.current_context and self.current_context.message_router:
+                    pdest = self.current_context.message_router.propagation_destination
+                    if pdest is not None and getattr(pdest, "hash", None):
+                        local_hashes.add(pdest.hash.hex())
+
+            if destination_hash_hex in local_hashes:
+                return web.json_response(
+                    {
+                        "path": {
+                            "hops": 0,
+                            "next_hop": destination_hash_hex,
+                            "next_hop_interface": "Local",
+                        },
+                    },
+                )
 
             # check if user wants to request the path from the network right now
             request_query_param = request.query.get("request", "false")
@@ -8442,6 +8499,25 @@ class ReticulumMeshChat:
             try:
                 status = self.bot_handler.get_status()
                 templates = self.bot_handler.get_available_templates()
+                if self.database:
+                    for bot in status.get("bots") or []:
+                        lxmf_addr = bot.get("lxmf_address") or bot.get("full_address")
+                        if not lxmf_addr:
+                            bot["last_announce_at"] = None
+                            continue
+                        lxmf_addr = str(lxmf_addr).strip().lower()
+                        ann = self.database.announces.get_announce_by_hash(lxmf_addr)
+                        if not ann:
+                            bot["last_announce_at"] = None
+                            continue
+                        arow = dict(ann) if not isinstance(ann, dict) else ann
+                        ts = arow.get("updated_at")
+                        if ts is not None and hasattr(ts, "isoformat"):
+                            bot["last_announce_at"] = ts.isoformat()
+                        else:
+                            bot["last_announce_at"] = (
+                                str(ts) if ts is not None else None
+                            )
                 return web.json_response(
                     {
                         "status": status,
@@ -8535,6 +8611,62 @@ class ReticulumMeshChat:
             try:
                 success = self.bot_handler.delete_bot(bot_id)
                 return web.json_response({"success": success})
+            except Exception as e:
+                return web.json_response(
+                    {"message": str(e)},
+                    status=500,
+                )
+
+        @routes.patch("/api/v1/bots/update")
+        async def bots_update(request):
+            data = await request.json()
+            bot_id = data.get("bot_id")
+            name = data.get("name")
+
+            if not bot_id:
+                return web.json_response(
+                    {"message": "bot_id is required"},
+                    status=400,
+                )
+
+            try:
+                self.bot_handler.update_bot_name(bot_id, name)
+                return web.json_response({"success": True})
+            except ValueError as e:
+                return web.json_response(
+                    {"message": str(e)},
+                    status=400,
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"message": str(e)},
+                    status=500,
+                )
+
+        @routes.post("/api/v1/bots/announce")
+        async def bots_announce(request):
+            data = await request.json()
+            bot_id = data.get("bot_id")
+
+            if not bot_id:
+                return web.json_response(
+                    {"message": "bot_id is required"},
+                    status=400,
+                )
+
+            try:
+                self.bot_handler.request_announce(bot_id)
+                return web.json_response({"success": True})
+            except ValueError as e:
+                return web.json_response(
+                    {"message": str(e)},
+                    status=400,
+                )
+            except RuntimeError as e:
+                return web.json_response(
+                    {"message": str(e)},
+                    status=409,
+                )
             except Exception as e:
                 return web.json_response(
                     {"message": str(e)},
@@ -10815,6 +10947,29 @@ class ReticulumMeshChat:
 
         # update last synced at timestamp
         ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(int(time.time()))
+
+        outbound_node = ctx.message_router.get_outbound_propagation_node()
+        local_propagation_destination = getattr(
+            ctx.message_router,
+            "propagation_destination",
+            None,
+        )
+        local_propagation_hash = getattr(local_propagation_destination, "hash", None)
+        if (
+            isinstance(outbound_node, (bytes, bytearray))
+            and isinstance(local_propagation_hash, (bytes, bytearray))
+            and bytes(outbound_node) == bytes(local_propagation_hash)
+        ):
+            # Local node selected as preferred: no transport path lookup is needed.
+            # Mark sync as complete immediately to avoid getting stuck in PR_PATH_REQUESTED.
+            with contextlib.suppress(Exception):
+                ctx.message_router.propagation_transfer_state = (
+                    ctx.message_router.PR_COMPLETE
+                )
+                ctx.message_router.propagation_transfer_progress = 1.0
+                ctx.message_router.propagation_transfer_last_result = 0
+            await self.send_config_to_websocket_clients(context=ctx)
+            return
 
         # request messages from propagation node
         ctx.message_router.request_messages_from_propagation_node(ctx.identity)
