@@ -296,6 +296,11 @@ class ConfigManager:
             "show_unknown_contact_banner",
             True,
         )
+        self.warn_on_stranger_links = self.BoolConfig(
+            self,
+            "warn_on_stranger_links",
+            True,
+        )
 
         # banishment config
         self.banished_effect_enabled = self.BoolConfig(
@@ -314,6 +319,11 @@ class ConfigManager:
             "#dc2626",
         )
         self.message_font_size = self.IntConfig(self, "message_font_size", 14)
+        self.messages_sidebar_position = self.StringConfig(
+            self,
+            "messages_sidebar_position",
+            "left",
+        )
         self.message_icon_size = self.IntConfig(self, "message_icon_size", 28)
         self.ui_transparency = self.IntConfig(self, "ui_transparency", 0)
         self.ui_glass_enabled = self.BoolConfig(self, "ui_glass_enabled", True)

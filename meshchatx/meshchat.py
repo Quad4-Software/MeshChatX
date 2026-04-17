@@ -11316,6 +11316,11 @@ class ReticulumMeshChat:
                 self._parse_bool(data["show_unknown_contact_banner"]),
             )
 
+        if "warn_on_stranger_links" in data:
+            self.config.warn_on_stranger_links.set(
+                self._parse_bool(data["warn_on_stranger_links"]),
+            )
+
         # update banishment settings
         if "banished_effect_enabled" in data:
             self.config.banished_effect_enabled.set(
@@ -11335,6 +11340,13 @@ class ReticulumMeshChat:
                 value = None
             if value is not None:
                 self.config.message_font_size.set(value)
+
+        if "messages_sidebar_position" in data:
+            raw = data["messages_sidebar_position"]
+            if raw is not None:
+                s = str(raw).strip().lower()
+                if s in ("left", "right"):
+                    self.config.messages_sidebar_position.set(s)
 
         if "message_icon_size" in data:
             try:
@@ -12542,10 +12554,12 @@ class ReticulumMeshChat:
             "block_attachments_from_strangers": ctx.config.block_attachments_from_strangers.get(),
             "block_all_from_strangers": ctx.config.block_all_from_strangers.get(),
             "show_unknown_contact_banner": ctx.config.show_unknown_contact_banner.get(),
+            "warn_on_stranger_links": ctx.config.warn_on_stranger_links.get(),
             "banished_effect_enabled": ctx.config.banished_effect_enabled.get(),
             "banished_text": ctx.config.banished_text.get(),
             "banished_color": ctx.config.banished_color.get(),
             "message_font_size": ctx.config.message_font_size.get(),
+            "messages_sidebar_position": ctx.config.messages_sidebar_position.get(),
             "message_icon_size": ctx.config.message_icon_size.get(),
             "ui_transparency": ctx.config.ui_transparency.get(),
             "ui_glass_enabled": ctx.config.ui_glass_enabled.get(),

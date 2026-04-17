@@ -7,6 +7,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
+pytestmark = pytest.mark.usefixtures("require_loopback_tcp")
+
 
 def _build_aio_app(app):
     routes = web.RouteTableDef()

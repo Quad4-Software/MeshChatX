@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: 0BSD
-
 """Version string synced from package.json.
 
 Do not edit by hand. Run: pnpm run version:sync.
