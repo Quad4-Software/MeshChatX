@@ -1783,6 +1783,9 @@ export default {
         showUnknownContactBanner() {
             return GlobalState.config?.show_unknown_contact_banner !== false;
         },
+        warnOnStrangerLinksEnabled() {
+            return GlobalState.config?.warn_on_stranger_links !== false;
+        },
         filteredContacts() {
             if (!this.contactsSearch) return this.contacts;
             const s = this.contactsSearch.toLowerCase();
@@ -2162,7 +2165,7 @@ export default {
             }
             return base;
         },
-        handleMessageClick(event) {
+        async handleMessageClick(event) {
             const nomadnetLink = event.target.closest(".nomadnet-link");
             if (nomadnetLink) {
                 event.preventDefault();
@@ -2177,6 +2180,7 @@ export default {
                         query: { path: path },
                     });
                 }
+                return;
             }
 
             const lxmfLink = event.target.closest(".lxmf-link");
@@ -2189,7 +2193,31 @@ export default {
                         params: { destinationHash: address },
                     });
                 }
+                return;
             }
+
+            const standardLink = event.target.closest("a[href]");
+            if (!standardLink) {
+                return;
+            }
+
+            const href = String(standardLink.getAttribute("href") || "").trim();
+            if (!/^https?:\/\//i.test(href)) {
+                event.preventDefault();
+                return;
+            }
+
+            event.preventDefault();
+            if (this.isStrangerPeer && this.warnOnStrangerLinksEnabled) {
+                const proceed = await DialogUtils.confirm(
+                    this.$t("messages.stranger_link_open_confirm", { url: href })
+                );
+                if (!proceed) {
+                    return;
+                }
+            }
+
+            window.open(href, "_blank", "noopener");
         },
         async updatePropagationNodeStatus() {
             try {

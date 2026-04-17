@@ -1,10 +1,11 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-1 min-w-0 h-full overflow-hidden">
+    <div class="flex flex-1 min-w-0 h-full overflow-hidden" :class="{ 'flex-row-reverse': messagesSidebarOnRight }">
         <MessagesSidebar
             v-if="!isPopoutMode"
             :class="{ 'hidden sm:flex': destinationHash }"
+            :sidebar-position="messagesSidebarPosition"
             :collapsed="messagesListSidebarCollapsed"
             :conversations="conversations"
             :peers="peers"
@@ -201,6 +202,13 @@ export default {
         },
         isPopoutMode() {
             return this.popoutRouteType === "conversation";
+        },
+        messagesSidebarPosition() {
+            const p = this.config?.messages_sidebar_position;
+            return p === "right" ? "right" : "left";
+        },
+        messagesSidebarOnRight() {
+            return this.messagesSidebarPosition === "right";
         },
     },
     watch: {

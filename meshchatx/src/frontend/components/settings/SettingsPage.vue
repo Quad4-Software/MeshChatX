@@ -195,6 +195,19 @@
                                 }}</span>
                             </span>
                         </label>
+                        <label class="setting-toggle">
+                            <Toggle
+                                id="warn-on-stranger-links"
+                                v-model="config.warn_on_stranger_links"
+                                @update:model-value="onWarnOnStrangerLinksChange"
+                            />
+                            <span class="setting-toggle__label">
+                                <span class="setting-toggle__title">{{ $t("app.warn_on_stranger_links") }}</span>
+                                <span class="setting-toggle__description">{{
+                                    $t("app.warn_on_stranger_links_description")
+                                }}</span>
+                            </span>
+                        </label>
                     </SettingsSectionBlock>
 
                     <section
@@ -829,6 +842,20 @@
                                 <select v-model="config.theme" class="input-field" @change="onThemeChange">
                                     <option value="light">{{ $t("app.light_theme") }}</option>
                                     <option value="dark">{{ $t("app.dark_theme") }}</option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.messages_sidebar_position") }}
+                                </div>
+                                <select
+                                    v-model="config.messages_sidebar_position"
+                                    class="input-field"
+                                    @change="onMessagesSidebarPositionChange"
+                                >
+                                    <option value="left">{{ $t("app.messages_sidebar_position_left") }}</option>
+                                    <option value="right">{{ $t("app.messages_sidebar_position_right") }}</option>
                                 </select>
                             </div>
 
@@ -2208,6 +2235,7 @@ export default {
                 block_attachments_from_strangers: true,
                 block_all_from_strangers: false,
                 show_unknown_contact_banner: true,
+                warn_on_stranger_links: true,
                 banished_effect_enabled: true,
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
@@ -2221,6 +2249,7 @@ export default {
                 announce_search_max_fetch: 2000,
                 discovered_interfaces_max_return: 500,
                 message_font_size: 14,
+                messages_sidebar_position: "left",
                 message_icon_size: 28,
                 ui_transparency: 0,
                 ui_glass_enabled: true,
@@ -2359,6 +2388,9 @@ export default {
                     "app.theme",
                     "app.light_theme",
                     "app.dark_theme",
+                    "app.messages_sidebar_position",
+                    "app.messages_sidebar_position_left",
+                    "app.messages_sidebar_position_right",
                     "app.ui_transparency",
                     "app.ui_glass_enabled",
                     "app.reset_appearance_defaults",
@@ -2708,6 +2740,16 @@ export default {
                 "theme"
             );
         },
+        async onMessagesSidebarPositionChange() {
+            const v = this.config.messages_sidebar_position === "right" ? "right" : "left";
+            this.config.messages_sidebar_position = v;
+            await this.updateConfig(
+                {
+                    messages_sidebar_position: v,
+                },
+                "messages_sidebar_position"
+            );
+        },
         async onMessageFontSizeChange() {
             if (this.saveTimeouts.message_font_size) clearTimeout(this.saveTimeouts.message_font_size);
             this.saveTimeouts.message_font_size = setTimeout(async () => {
@@ -2765,6 +2807,7 @@ export default {
         },
         async resetAppearanceDefaults() {
             this.config.theme = "light";
+            this.config.messages_sidebar_position = "left";
             this.config.message_font_size = 14;
             this.config.message_icon_size = 28;
             this.config.ui_transparency = 0;
@@ -2776,6 +2819,7 @@ export default {
             await this.updateConfig(
                 {
                     theme: "light",
+                    messages_sidebar_position: "left",
                     message_font_size: 14,
                     message_icon_size: 28,
                     ui_transparency: 0,
@@ -3063,6 +3107,10 @@ export default {
         async onShowUnknownContactBannerChange(value) {
             this.config.show_unknown_contact_banner = value;
             await this.updateConfig({ show_unknown_contact_banner: value }, "stranger_protection");
+        },
+        async onWarnOnStrangerLinksChange(value) {
+            this.config.warn_on_stranger_links = value;
+            await this.updateConfig({ warn_on_stranger_links: value }, "stranger_protection");
         },
         async onBanishedEffectEnabledChange(value) {
             this.config.banished_effect_enabled = value;

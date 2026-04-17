@@ -4,17 +4,21 @@
     <div :class="sidebarRootClass">
         <div
             v-if="effectiveCollapsed"
-            class="flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800"
+            :class="[
+                'flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800',
+                edgeBorderClass,
+            ]"
         >
             <div
-                class="hidden sm:flex h-12 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
+                class="hidden sm:flex h-12 shrink-0 items-center border-b border-gray-200 dark:border-zinc-800 px-2"
+                :class="collapsedHeaderJustifyClass"
             >
                 <button
                     type="button"
                     class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
                     @click="$emit('toggle-collapse')"
                 >
-                    <MaterialDesignIcon icon-name="chevron-right" class="size-5" />
+                    <MaterialDesignIcon :icon-name="collapsedStripChevronIcon" class="size-5" />
                 </button>
             </div>
             <div class="flex flex-col items-center gap-1 py-2 px-1 border-b border-gray-200 dark:border-zinc-800">
@@ -73,8 +77,8 @@
         </div>
         <template v-else>
             <!-- tabs (h-12 matches App.vue main sidebar collapse row) -->
-            <div class="bg-white dark:bg-zinc-950 border-b border-r border-gray-200 dark:border-zinc-800">
-                <div class="-mb-px flex h-12 min-w-0 items-stretch">
+            <div :class="['bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800', edgeBorderClass]">
+                <div class="-mb-px flex h-12 min-w-0 items-stretch" :class="{ 'flex-row-reverse': isRightSidebar }">
                     <div class="flex min-w-0 flex-1">
                         <div
                             class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-semibold uppercase tracking-wide transition"
@@ -104,7 +108,7 @@
                         class="hidden sm:flex shrink-0 items-center border-b-2 border-transparent px-1.5 text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
                         @click="$emit('toggle-collapse')"
                     >
-                        <MaterialDesignIcon icon-name="chevron-left" class="size-5" />
+                        <MaterialDesignIcon :icon-name="expandedTabBarChevronIcon" class="size-5" />
                     </button>
                 </div>
             </div>
@@ -112,7 +116,10 @@
             <!-- conversations -->
             <div
                 v-if="tab === 'conversations'"
-                class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 overflow-hidden min-h-0"
+                :class="[
+                    'flex-1 flex flex-col bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 overflow-hidden min-h-0',
+                    edgeBorderClass,
+                ]"
             >
                 <!-- Folders Section -->
                 <div class="border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -394,9 +401,11 @@
                                 selectedHashes.has(conversation.destination_hash),
                                 pinnedSet.has(conversation.destination_hash),
                                 timeAgoTick,
+                                isRightSidebar,
                             ]"
-                            class="flex cursor-pointer p-2 border-l-2 relative group conversation-item"
                             :class="[
+                                'flex cursor-pointer p-2 relative group conversation-item',
+                                selectionEdgeBorderClass,
                                 conversation.destination_hash === selectedDestinationHash
                                     ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
                                     : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600',
@@ -640,7 +649,10 @@
             <!-- discover -->
             <div
                 v-if="tab === 'announces'"
-                class="flex-1 flex flex-col bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 overflow-hidden min-h-0"
+                :class="[
+                    'flex-1 flex flex-col bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 overflow-hidden min-h-0',
+                    edgeBorderClass,
+                ]"
             >
                 <!-- search -->
                 <div class="p-1 border-b border-gray-200 dark:border-zinc-800">
@@ -667,9 +679,11 @@
                                 selectedDestinationHash === peer.destination_hash,
                                 GlobalState.config.banished_effect_enabled && isBlocked(peer.destination_hash),
                                 timeAgoTick,
+                                isRightSidebar,
                             ]"
-                            class="flex cursor-pointer p-2 border-l-2 relative"
                             :class="[
+                                'flex cursor-pointer p-2 relative',
+                                selectionEdgeBorderClass,
                                 peer.destination_hash === selectedDestinationHash
                                     ? 'bg-gray-100 dark:bg-zinc-700 border-blue-500 dark:border-blue-400'
                                     : 'bg-white dark:bg-zinc-950 border-transparent hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-gray-200 dark:hover:border-zinc-600',
@@ -862,6 +876,11 @@ export default {
             type: Boolean,
             default: false,
         },
+        sidebarPosition: {
+            type: String,
+            default: "left",
+            validator: (v) => v === "left" || v === "right",
+        },
     },
     emits: [
         "conversation-click",
@@ -924,6 +943,24 @@ export default {
         },
         collapsedSidebarConversations() {
             return this.displayedConversations.slice(0, 5);
+        },
+        isRightSidebar() {
+            return this.sidebarPosition === "right";
+        },
+        edgeBorderClass() {
+            return this.isRightSidebar ? "border-l" : "border-r";
+        },
+        selectionEdgeBorderClass() {
+            return this.isRightSidebar ? "border-r-2" : "border-l-2";
+        },
+        collapsedHeaderJustifyClass() {
+            return this.isRightSidebar ? "justify-start" : "justify-end";
+        },
+        collapsedStripChevronIcon() {
+            return this.isRightSidebar ? "chevron-left" : "chevron-right";
+        },
+        expandedTabBarChevronIcon() {
+            return this.isRightSidebar ? "chevron-right" : "chevron-left";
         },
         collapsedConversationIconStyle() {
             return { width: "36px", height: "36px" };

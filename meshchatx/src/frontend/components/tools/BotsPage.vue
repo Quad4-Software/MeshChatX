@@ -70,9 +70,7 @@
                                 :key="bot.id"
                                 :class="[
                                     'relative rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4',
-                                    editingBotId === bot.id
-                                        ? 'pr-28 sm:pr-40'
-                                        : 'pr-10 sm:pr-12',
+                                    editingBotId === bot.id ? 'pr-28 sm:pr-40' : 'pr-10 sm:pr-12',
                                 ]"
                             >
                                 <div
@@ -151,7 +149,11 @@
                                     <div class="min-w-0 flex-1 space-y-1.5 sm:pr-2">
                                         <div
                                             class="flex items-center gap-1 min-w-0"
-                                            :class="editingBotId === bot.id ? 'max-w-[min(100%,14rem)] sm:max-w-[16rem]' : ''"
+                                            :class="
+                                                editingBotId === bot.id
+                                                    ? 'max-w-[min(100%,14rem)] sm:max-w-[16rem]'
+                                                    : ''
+                                            "
                                         >
                                             <template v-if="editingBotId === bot.id">
                                                 <input
@@ -193,7 +195,9 @@
                                                 </button>
                                             </template>
                                         </div>
-                                        <div class="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300">
+                                        <div
+                                            class="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300"
+                                        >
                                             <span
                                                 class="inline-block size-2 rounded-full shrink-0"
                                                 :class="bot.running ? 'bg-emerald-500' : 'bg-gray-400 dark:bg-gray-500'"
