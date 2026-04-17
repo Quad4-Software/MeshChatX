@@ -14,7 +14,7 @@ FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 COPY package.json pnpm-lock.yaml vite.config.js tailwind.config.js postcss.config.js ./
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate && \
+RUN npm install -g pnpm@10.32.1 && \
     pnpm install --frozen-lockfile && \
     pnpm run build-frontend
 
