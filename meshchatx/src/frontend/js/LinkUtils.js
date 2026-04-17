@@ -6,6 +6,50 @@ function defaultNomadPagePath() {
 }
 
 export default class LinkUtils {
+    static protectAnchors(text) {
+        const anchors = [];
+        const protectedText = text.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, (anchor) => {
+            const token = `[[ANCHOR_${anchors.length}]]`;
+            anchors.push(anchor);
+            return token;
+        });
+        return { protectedText, anchors };
+    }
+
+    static restoreAnchors(text, anchors) {
+        return text.replace(/\[\[ANCHOR_(\d+)\]\]/g, (match, idx) => {
+            const i = Number(idx);
+            return Number.isInteger(i) && i >= 0 && i < anchors.length ? anchors[i] : match;
+        });
+    }
+
+    static splitTrailingPunctuation(url) {
+        let core = url;
+        let suffix = "";
+        const alwaysTrim = new Set([".", ",", "!", "?", ":", ";"]);
+        while (core.length > 0) {
+            const ch = core.at(-1);
+            if (alwaysTrim.has(ch)) {
+                suffix = ch + suffix;
+                core = core.slice(0, -1);
+                continue;
+            }
+            if (ch === ")" || ch === "]") {
+                const open = ch === ")" ? "(" : "[";
+                const close = ch;
+                const opens = [...core].filter((c) => c === open).length;
+                const closes = [...core].filter((c) => c === close).length;
+                if (closes > opens) {
+                    suffix = ch + suffix;
+                    core = core.slice(0, -1);
+                    continue;
+                }
+            }
+            break;
+        }
+        return { core, suffix };
+    }
+
     /**
      * Detects and wraps Reticulum (NomadNet and LXMF) links in HTML.
      * Supports nomadnet://<hash>, nomadnet@<hash>, lxmf://<hash>, lxmf@<hash> and bare <hash>
@@ -45,10 +89,13 @@ export default class LinkUtils {
     static renderStandardLinks(text) {
         if (!text) return "";
 
-        // Simple regex for URLs
-        const urlRegex = /(https?:\/\/[^\s<]+)/g;
-        return text.replace(urlRegex, (url) => {
-            return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${url}</a>`;
+        const urlRegex = /(^|[^\w"'=])(https?:\/\/[^\s<]+)/g;
+        return text.replace(urlRegex, (match, prefix, url) => {
+            const { core, suffix } = this.splitTrailingPunctuation(url);
+            if (!core) {
+                return match;
+            }
+            return `${prefix}<a href="${core}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${core}</a>${suffix}`;
         });
     }
 
@@ -56,8 +103,9 @@ export default class LinkUtils {
      * Applies all link rendering.
      */
     static renderAllLinks(text) {
-        text = this.renderStandardLinks(text);
-        text = this.renderReticulumLinks(text);
-        return text;
+        const { protectedText, anchors } = this.protectAnchors(text);
+        let rendered = this.renderStandardLinks(protectedText);
+        rendered = this.renderReticulumLinks(rendered);
+        return this.restoreAnchors(rendered, anchors);
     }
 }

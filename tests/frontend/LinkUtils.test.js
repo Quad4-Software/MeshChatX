@@ -58,6 +58,27 @@ describe("LinkUtils.js", () => {
             const result = LinkUtils.renderStandardLinks(text);
             expect(result).toContain('<a href="https://example.com/path?query=1"');
         });
+
+        it("trims trailing punctuation from detected urls", () => {
+            const result = LinkUtils.renderStandardLinks("visit https://example.com/path?x=1, now");
+            expect(result).toContain('href="https://example.com/path?x=1"');
+            expect(result).toContain("</a>, now");
+        });
+
+        it("keeps balanced parenthesis in url but trims unmatched trailing one", () => {
+            const withBalanced = LinkUtils.renderStandardLinks("see https://example.com/path_(v1)");
+            expect(withBalanced).toContain('href="https://example.com/path_(v1)"');
+
+            const withTrailing = LinkUtils.renderStandardLinks("see (https://example.com/path_(v1))");
+            expect(withTrailing).toContain('href="https://example.com/path_(v1)"');
+            expect(withTrailing).toContain("</a>)");
+        });
+
+        it("keeps escaped entity query content in href", () => {
+            const text = "visit https://example.com/search?q=a&amp;lang=en";
+            const result = LinkUtils.renderStandardLinks(text);
+            expect(result).toContain('href="https://example.com/search?q=a&amp;lang=en"');
+        });
     });
 
     describe("renderAllLinks", () => {
@@ -76,6 +97,19 @@ describe("LinkUtils.js", () => {
             const result = LinkUtils.renderAllLinks("Just some words.");
             expect(result).toContain("Just some words.");
             expect(result).not.toContain("<a ");
+        });
+
+        it("does not double-wrap urls inside existing anchors", () => {
+            const original = 'already linked <a href="https://example.com">https://example.com</a>';
+            const result = LinkUtils.renderAllLinks(original);
+            expect(result).toBe(original);
+            expect((result.match(/<a /g) || []).length).toBe(1);
+        });
+
+        it("keeps reticulum path underscores", () => {
+            const text = "1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu";
+            const result = LinkUtils.renderAllLinks(text);
+            expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu"');
         });
     });
 

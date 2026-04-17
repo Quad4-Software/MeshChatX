@@ -88,6 +88,58 @@ describe("MarkdownRenderer.js", () => {
             expect(result).not.toContain("<em>on</em>");
             expect(result).not.toContain("<em>raspberry</em>");
         });
+
+        it("renders multiple urls in one line without corruption", () => {
+            const a = "https://example.com/docs/meshchatx_on_pi.md";
+            const b = "https://example.com/plain";
+            const result = MarkdownRenderer.render(`links: ${a} and ${b}`);
+            expect(result).toContain(`href="${a}"`);
+            expect(result).toContain(`href="${b}"`);
+            expect((result.match(/<a href=/g) || []).length).toBe(2);
+        });
+
+        it("trims trailing punctuation around links while keeping display punctuation", () => {
+            const result = MarkdownRenderer.render("Check (https://example.com/path_(v1)), and continue.");
+            expect(result).toContain('href="https://example.com/path_(v1)"');
+            expect(result).toContain("</a>), and continue.");
+        });
+
+        it("supports encoded chars and balanced parentheses in link path", () => {
+            const url = "https://example.com/docs/file%5Fname_(v1).md";
+            const result = MarkdownRenderer.render(`open ${url}`);
+            expect(result).toContain(`href="${url}"`);
+        });
+
+        it("keeps escaped entities in query string links", () => {
+            const url = "https://example.com/search?q=a&amp;lang=en";
+            const result = MarkdownRenderer.render(`lookup ${url}`);
+            expect(result).toContain('href="https://example.com/search?q=a&amp;amp;lang=en"');
+            expect(result).toContain("https://example.com/search?q=a&amp;amp;lang=en");
+        });
+
+        it("handles links at line boundaries with newline conversion", () => {
+            const url = "https://example.com/meshchatx_on_pi.md";
+            const result = MarkdownRenderer.render(`${url}\nnext line`);
+            expect(result).toContain(`href="${url}"`);
+            expect(result).toContain("<br>next line");
+        });
+
+        it("mixes underscore markdown with underscore urls safely", () => {
+            const url = "https://example.com/meshchatx_on_raspberry_pi.md";
+            const result = MarkdownRenderer.render(`_label_ ${url} _tail_`);
+            expect(result).toContain("<em>label</em>");
+            expect(result).toContain("<em>tail</em>");
+            expect(result).toContain(`href="${url}"`);
+            expect(result).not.toContain("<em>on</em>");
+        });
+
+        it("escapes pre-rendered html input safely instead of nesting raw anchors", () => {
+            const preRendered = '<p><a href="https://example.com/path_(v1)">https://example.com/path_(v1)</a></p>';
+            const result = MarkdownRenderer.render(preRendered);
+            expect(result).toContain("&lt;p&gt;");
+            expect(result).toContain("&lt;a href=&quot;");
+            expect(result).not.toContain("<script");
+        });
     });
 
     describe("security: XSS prevention", () => {
@@ -255,6 +307,35 @@ describe("MarkdownRenderer.js", () => {
                 expect(() => MarkdownRenderer.render(text)).not.toThrow();
             });
         });
+
+        it("underscore-heavy fuzz input does not create unbalanced emphasis tags", () => {
+            const randomUnderscoreText = () => {
+                const parts = [
+                    "_",
+                    "__",
+                    "___",
+                    "snake_case",
+                    "meshchatx_on_pi",
+                    " ",
+                    "text",
+                    "https://example.com/meshchatx_on_pi.md",
+                ];
+                let out = "";
+                for (let i = 0; i < 200; i++) {
+                    out += parts[Math.floor(Math.random() * parts.length)];
+                }
+                return out;
+            };
+            for (let i = 0; i < 50; i++) {
+                const rendered = MarkdownRenderer.render(randomUnderscoreText());
+                const opensEm = (rendered.match(/<em>/g) || []).length;
+                const closesEm = (rendered.match(/<\/em>/g) || []).length;
+                const opensStrong = (rendered.match(/<strong>/g) || []).length;
+                const closesStrong = (rendered.match(/<\/strong>/g) || []).length;
+                expect(opensEm).toBe(closesEm);
+                expect(opensStrong).toBe(closesStrong);
+            }
+        });
     });
 
     describe("isSingleEmojiMessage", () => {
@@ -396,6 +477,30 @@ describe("MarkdownRenderer.js", () => {
             expect(() => MarkdownRenderer.render(msg)).not.toThrow();
             const r = MarkdownRenderer.render(msg);
             expect(typeof r).toBe("string");
+        });
+
+        it("renders a real-world mixed message body safely", () => {
+            const msg = [
+                "# Deploy notes",
+                "",
+                "Read https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md, then ping",
+                "nomadnet://1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu",
+                "",
+                "`inline_code` and _italic_ and snake_case stay sane.",
+                "",
+                "```txt",
+                "https://example.com/not_linked_inside_code",
+                "```",
+            ].join("\n");
+            const result = MarkdownRenderer.render(msg);
+            expect(result).toContain("<h1");
+            expect(result).toContain(
+                'href="https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md"'
+            );
+            expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu"');
+            expect(result).toContain("<code");
+            expect(result).toContain("<pre");
+            expect(result).not.toContain("<em>case</em>");
         });
     });
 });
