@@ -36,9 +36,9 @@ export default class MarkdownRenderer {
         text = text.replace(/\*\*\*(.*?)\*\*\*/g, "<strong><em>$1</em></strong>");
         text = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
         text = text.replace(/\*(.*?)\*/g, "<em>$1</em>");
-        text = text.replace(/___(.*?)___/g, "<strong><em>$1</em></strong>");
-        text = text.replace(/__(.*?)__/g, "<strong>$1</strong>");
-        text = text.replace(/_(.*?)_/g, "<em>$1</em>");
+        text = text.replace(/(^|[^\w])___(.*?)___(?=[^\w]|$)/g, "$1<strong><em>$2</em></strong>");
+        text = text.replace(/(^|[^\w])__(.*?)__(?=[^\w]|$)/g, "$1<strong>$2</strong>");
+        text = text.replace(/(^|[^\w])_(.*?)_(?=[^\w]|$)/g, "$1<em>$2</em>");
 
         // Blockquotes
         text = text.replace(
@@ -126,9 +126,9 @@ export default class MarkdownRenderer {
         text = text.replace(/\*\*\*(.*?)\*\*\*/g, "$1");
         text = text.replace(/\*\*(.*?)\*\*/g, "$1");
         text = text.replace(/\*(.*?)\*/g, "$1");
-        text = text.replace(/___(.*?)___/g, "$1");
-        text = text.replace(/__(.*?)__/g, "$1");
-        text = text.replace(/_(.*?)_/g, "$1");
+        text = text.replace(/(^|[^\w])___(.*?)___(?=[^\w]|$)/g, "$1$2");
+        text = text.replace(/(^|[^\w])__(.*?)__(?=[^\w]|$)/g, "$1$2");
+        text = text.replace(/(^|[^\w])_(.*?)_(?=[^\w]|$)/g, "$1$2");
 
         // Strip inline code
         text = text.replace(/`([^`]+)`/g, "$1");

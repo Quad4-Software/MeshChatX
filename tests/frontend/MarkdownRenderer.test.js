@@ -26,6 +26,11 @@ describe("MarkdownRenderer.js", () => {
             expect(result).toContain("<em>Italic</em>");
         });
 
+        it("renders underscore italic when delimiters are word boundaries", () => {
+            const result = MarkdownRenderer.render("this is _italic_ text");
+            expect(result).toContain("this is <em>italic</em> text");
+        });
+
         it("renders bold and italic text correctly", () => {
             const result = MarkdownRenderer.render("***Bold and Italic***");
             expect(result).toContain("<strong><em>Bold and Italic</em></strong>");
@@ -43,6 +48,16 @@ describe("MarkdownRenderer.js", () => {
             expect(result).toContain("code");
         });
 
+        it("keeps underscores intact in long https links", () => {
+            const url =
+                "https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
+            const result = MarkdownRenderer.render(`visit ${url}`);
+            expect(result).toContain(`href="${url}"`);
+            expect(result).toContain(url);
+            expect(result).not.toContain("<em>on</em>");
+            expect(result).not.toContain("<em>raspberry</em>");
+        });
+
         it("renders fenced code blocks correctly", () => {
             const result = MarkdownRenderer.render("```python\nprint('hello')\n```");
             expect(result).toContain("<pre");
@@ -56,6 +71,22 @@ describe("MarkdownRenderer.js", () => {
             expect(result).toContain("<p");
             expect(result).toContain("Para 1");
             expect(result).toContain("Para 2");
+        });
+
+        it("does not treat intraword underscores as italic markdown", () => {
+            const result = MarkdownRenderer.render("snake_case_identifier should remain plain");
+            expect(result).toContain("snake_case_identifier should remain plain");
+            expect(result).not.toContain("<em>case</em>");
+        });
+
+        it("keeps underscore-heavy urls intact while still rendering links", () => {
+            const url =
+                "https://example.com/docs/meshchatx_on_raspberry_pi.md?file=meshchatx_on_raspberry_pi.md#meshchatx_on_raspberry_pi";
+            const result = MarkdownRenderer.render(`see ${url} now`);
+            expect(result).toContain(`href="${url}"`);
+            expect(result).toContain(url);
+            expect(result).not.toContain("<em>on</em>");
+            expect(result).not.toContain("<em>raspberry</em>");
         });
     });
 
@@ -256,6 +287,14 @@ describe("MarkdownRenderer.js", () => {
             expect(stripped).not.toContain("` ");
         });
 
+        it("strip removes underscore italics but keeps intraword underscores", () => {
+            const input = "before _italic_ after and snake_case_word";
+            const stripped = MarkdownRenderer.strip(input);
+            expect(stripped).toContain("before italic after");
+            expect(stripped).toContain("snake_case_word");
+            expect(stripped).not.toContain("_italic_");
+        });
+
         it("strip handles null and undefined without throwing", () => {
             expect(MarkdownRenderer.strip(null)).toBe("");
             expect(MarkdownRenderer.strip(undefined)).toBe("");
@@ -267,6 +306,12 @@ describe("MarkdownRenderer.js", () => {
             MarkdownRenderer.strip("`".repeat(5000));
             MarkdownRenderer.strip("# ".repeat(2000));
             expect(Date.now() - start).toBeLessThan(200);
+        });
+
+        it("strip keeps intraword underscores intact", () => {
+            const url =
+                "https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
+            expect(MarkdownRenderer.strip(url)).toBe(url);
         });
 
         it("strip returns string for malformed and edge input", () => {
