@@ -47,7 +47,9 @@ def loopback_available():
 @pytest.fixture
 def require_loopback_tcp(loopback_available):
     if not loopback_available:
-        pytest.skip("Loopback TCP is blocked by local firewall/policy; skipping localhost integration test.")
+        pytest.skip(
+            "Loopback TCP is blocked by local firewall/policy; skipping localhost integration test."
+        )
 
 
 @pytest.fixture(autouse=True)
