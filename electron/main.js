@@ -44,6 +44,14 @@ var isQuiting = false;
 
 // remember child process for exe so we can kill it when app exits
 var exeChildProcess = null;
+var backendRuntimeState = {
+    started: false,
+    running: false,
+    pid: null,
+    lastExitCode: null,
+    lastError: "",
+    lastEventAt: null,
+};
 
 // store integrity status
 var integrityStatus = {
@@ -218,6 +226,18 @@ ipcMain.handle("backend-http-only", () => {
     return getUserProvidedArguments().includes("--no-https");
 });
 
+ipcMain.handle("backend-runtime-state", () => {
+    const isRunning =
+        !!exeChildProcess &&
+        exeChildProcess.exitCode === null &&
+        exeChildProcess.signalCode === null &&
+        backendRuntimeState.started;
+    return {
+        ...backendRuntimeState,
+        running: isRunning,
+    };
+});
+
 // add support for showing an alert window via ipc
 ipcMain.handle("alert", async (event, message) => {
     return await dialog.showMessageBox(mainWindow, {
@@ -259,13 +279,25 @@ ipcMain.handle("prompt", async (event, message) => {
 
 // allow relaunching app via ipc
 ipcMain.handle("relaunch", () => {
-    app.relaunch();
-    app.exit();
+    const relaunchOptions = {};
+    if (!process.defaultApp && process.platform === "linux" && process.env.APPIMAGE) {
+        relaunchOptions.execPath = process.env.APPIMAGE;
+    }
+    app.relaunch(relaunchOptions);
+    isQuiting = true;
+    quit();
 });
 
 ipcMain.handle("relaunch-emergency", () => {
-    app.relaunch({ args: process.argv.slice(1).concat(["--emergency"]) });
-    app.exit();
+    const relaunchOptions = {
+        args: process.argv.slice(1).concat(["--emergency"]),
+    };
+    if (!process.defaultApp && process.platform === "linux" && process.env.APPIMAGE) {
+        relaunchOptions.execPath = process.env.APPIMAGE;
+    }
+    app.relaunch(relaunchOptions);
+    isQuiting = true;
+    quit();
 });
 
 ipcMain.handle("shutdown", () => {
@@ -451,6 +483,18 @@ function getAppIconPath() {
     return fs.existsSync(iconPath) ? iconPath : fallbackIconPath;
 }
 
+function isLocalBackendUrl(url) {
+    if (!url || typeof url !== "string") {
+        return false;
+    }
+    return (
+        url.startsWith("http://127.0.0.1:9337") ||
+        url.startsWith("https://127.0.0.1:9337") ||
+        url.startsWith("http://localhost:9337") ||
+        url.startsWith("https://localhost:9337")
+    );
+}
+
 function createTray() {
     tray = new Tray(getAppIconPath());
     const contextMenu = Menu.buildFromTemplate([
@@ -554,6 +598,29 @@ app.whenReady().then(async () => {
         mainWindow.webContents.on("unresponsive", () => {
             log("Renderer process became unresponsive.");
         });
+        mainWindow.webContents.on(
+            "did-fail-load",
+            async (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+                if (!isMainFrame || !isLocalBackendUrl(validatedURL)) {
+                    return;
+                }
+                log(`Failed to load backend URL (${errorCode}): ${errorDescription} - ${validatedURL}`);
+                if (!mainWindow || mainWindow.isDestroyed()) {
+                    return;
+                }
+                const currentUrl = mainWindow.webContents.getURL();
+                if (currentUrl.includes("loading.html")) {
+                    return;
+                }
+                try {
+                    await mainWindow.loadFile(path.join(__dirname, "loading.html"), {
+                        query: { startup_error: "backend_unreachable" },
+                    });
+                } catch (error) {
+                    log(`Failed to restore loading screen after backend load failure: ${error.message}`);
+                }
+            }
+        );
 
         // minimize to tray behavior
         mainWindow.on("close", (event) => {
@@ -704,6 +771,14 @@ app.whenReady().then(async () => {
         if (!exeChildProcess || !exeChildProcess.pid) {
             throw new Error("Failed to start backend process (no PID).");
         }
+        backendRuntimeState = {
+            started: true,
+            running: true,
+            pid: exeChildProcess.pid,
+            lastExitCode: null,
+            lastError: "",
+            lastEventAt: Date.now(),
+        };
 
         // log stdout
         var stdoutLines = [];
@@ -736,10 +811,15 @@ app.whenReady().then(async () => {
         // log errors
         exeChildProcess.on("error", function (error) {
             log(error);
+            backendRuntimeState.lastError = error && error.message ? error.message : String(error);
+            backendRuntimeState.lastEventAt = Date.now();
         });
 
         // quit electron app if exe dies
         exeChildProcess.on("exit", async function (code) {
+            backendRuntimeState.running = false;
+            backendRuntimeState.lastExitCode = code;
+            backendRuntimeState.lastEventAt = Date.now();
             // if no exit code provided, we wanted exit to happen, so do nothing
             if (code == null) {
                 return;
@@ -790,6 +870,7 @@ function quit() {
         return;
     }
     if (exeChildProcess.exitCode !== null || exeChildProcess.signalCode !== null) {
+        app.quit();
         return;
     }
     try {

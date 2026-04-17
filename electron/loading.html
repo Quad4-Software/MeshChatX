@@ -55,6 +55,10 @@
                             id="attempt-hint"
                             class="mt-3 min-h-[1.25rem] text-center text-xs text-slate-500 dark:text-zinc-500"
                         ></p>
+                        <p
+                            id="connection-notice"
+                            class="mt-2 min-h-[2rem] text-center text-xs leading-relaxed text-amber-700 dark:text-amber-300"
+                        ></p>
                         <p class="mt-4 text-center text-[11px] text-slate-400 dark:text-zinc-600" id="app-version">
                             v0.0.0
                         </p>
@@ -63,13 +67,20 @@
             </div>
         </main>
 
+        <script src="./loadingStatusNotice.js"></script>
         <script>
             const statusLine = document.getElementById("status-line");
             const attemptHint = document.getElementById("attempt-hint");
+            const connectionNotice = document.getElementById("connection-notice");
 
             const API_HOST = "127.0.0.1";
             const API_PORT = "9337";
             const base = (protocol) => `${protocol}://${API_HOST}:${API_PORT}`;
+            const startupParams = new URLSearchParams(window.location.search);
+            const NOTICE_AFTER_ATTEMPTS = 10;
+            const NETWORK_WARNING_AFTER_ATTEMPTS = 24;
+            const RUNTIME_RECHECK_INTERVAL = 4;
+            const MAX_FAILURE_HISTORY = 8;
 
             let protocolOrder = ["https", "http"];
 
@@ -78,6 +89,7 @@
             listenForSystemThemeChanges();
 
             (async function bootstrap() {
+                applyStartupErrorHint();
                 try {
                     if (window.electron && typeof window.electron.backendHttpOnly === "function") {
                         const httpOnly = await window.electron.backendHttpOnly();
@@ -88,6 +100,16 @@
                 } catch (e) {}
                 check();
             })();
+
+            function applyStartupErrorHint() {
+                const startupError = startupParams.get("startup_error");
+                if (startupError !== "backend_unreachable") {
+                    return;
+                }
+                statusLine.textContent = "Lost connection to local backend.";
+                connectionNotice.textContent =
+                    "Still retrying. If this continues, firewall or localhost filtering may be blocking access.";
+            }
 
             async function showAppVersion() {
                 try {
@@ -127,6 +149,9 @@
 
             let detectedProtocol = "http";
             let attemptCount = 0;
+            let runtimeProbeAttempt = 0;
+            let cachedRuntimeState = null;
+            const recentFailures = [];
 
             function parseStatusJson(text) {
                 try {
@@ -136,44 +161,120 @@
                 }
             }
 
+            function rememberFailure(failure) {
+                if (!failure || typeof failure !== "object") {
+                    return;
+                }
+                recentFailures.push(failure);
+                if (recentFailures.length > MAX_FAILURE_HISTORY) {
+                    recentFailures.shift();
+                }
+            }
+
+            async function refreshBackendRuntimeStateIfNeeded() {
+                if (!window.electron || typeof window.electron.backendRuntimeState !== "function") {
+                    return;
+                }
+                if (attemptCount - runtimeProbeAttempt < RUNTIME_RECHECK_INTERVAL && cachedRuntimeState) {
+                    return;
+                }
+                runtimeProbeAttempt = attemptCount;
+                try {
+                    cachedRuntimeState = await window.electron.backendRuntimeState();
+                } catch (e) {}
+            }
+
+            function resolveFetchFailureKind(error) {
+                const helper = window.MeshchatLoadingStatusNotice;
+                if (helper && typeof helper.classifyFetchError === "function") {
+                    return helper.classifyFetchError(error);
+                }
+                return "network-error";
+            }
+
             async function tryOnce(protocol) {
                 const url = `${base(protocol)}/api/v1/status`;
-                const result = await fetch(url, { cache: "no-store" });
-                const text = await result.text();
-                if (result.status !== 200) {
-                    return null;
+                try {
+                    const result = await fetch(url, { cache: "no-store" });
+                    const text = await result.text();
+                    if (result.status !== 200) {
+                        return {
+                            ok: false,
+                            failure: { kind: "http-error", status: result.status, protocol: protocol },
+                        };
+                    }
+                    const data = parseStatusJson(text);
+                    if (data && data.status === "ok") {
+                        return { ok: true, protocol: protocol };
+                    }
+                    return {
+                        ok: false,
+                        failure: { kind: "invalid-payload", protocol: protocol },
+                    };
+                } catch (error) {
+                    return {
+                        ok: false,
+                        failure: {
+                            kind: resolveFetchFailureKind(error),
+                            protocol: protocol,
+                            message: String((error && error.message) || ""),
+                        },
+                    };
                 }
-                const data = parseStatusJson(text);
-                if (data && data.status === "ok") {
-                    return protocol;
+            }
+
+            function classifyConnectionIssue() {
+                const helper = window.MeshchatLoadingStatusNotice;
+                if (helper && typeof helper.classifyConnectionIssue === "function") {
+                    return helper.classifyConnectionIssue(recentFailures, cachedRuntimeState, {
+                        attemptCount: attemptCount,
+                        networkWarnAfterAttempts: NETWORK_WARNING_AFTER_ATTEMPTS,
+                    });
                 }
-                return null;
+                return {
+                    reason: "starting",
+                    headline: "Waiting for backend startup.",
+                    detail: "MeshChatX is still initializing services.",
+                };
+            }
+
+            async function updateStartupNotice() {
+                if (attemptCount < NOTICE_AFTER_ATTEMPTS) {
+                    connectionNotice.textContent = "";
+                    return;
+                }
+                await refreshBackendRuntimeStateIfNeeded();
+                const issue = classifyConnectionIssue();
+                statusLine.textContent = issue.headline;
+                connectionNotice.textContent = issue.detail;
             }
 
             async function check() {
                 attemptCount += 1;
                 if (attemptCount === 1) {
                     attemptHint.textContent = "";
+                    connectionNotice.textContent = "";
                 } else {
                     attemptHint.textContent = "Still starting…";
                 }
 
                 // Prefer HTTPS unless the backend was started with --no-https (then HTTP first).
                 for (const protocol of protocolOrder) {
-                    try {
-                        const ok = await tryOnce(protocol);
-                        if (ok) {
-                            detectedProtocol = ok;
-                            statusLine.textContent = "Opening the app…";
-                            attemptHint.textContent = "";
-                            syncThemeFromConfig();
-                            setTimeout(onReady, 200);
-                            return;
-                        }
-                    } catch (e) {
-                        continue;
+                    const result = await tryOnce(protocol);
+                    if (result.ok) {
+                        detectedProtocol = result.protocol;
+                        statusLine.textContent = "Opening the app…";
+                        attemptHint.textContent = "";
+                        connectionNotice.textContent = "";
+                        syncThemeFromConfig();
+                        setTimeout(onReady, 200);
+                        return;
+                    }
+                    if (result.failure) {
+                        rememberFailure(result.failure);
                     }
                 }
+                await updateStartupNotice();
                 setTimeout(check, 350);
             }
 

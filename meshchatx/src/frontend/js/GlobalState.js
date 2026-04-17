@@ -27,6 +27,8 @@ const globalState = reactive({
         ui_transparency: 0,
         ui_glass_enabled: true,
         message_list_virtualization: true,
+        warn_on_stranger_links: true,
+        messages_sidebar_position: "left",
     },
 });
 

@@ -1687,13 +1687,13 @@
     },
     {
         "name": "cli-cursor",
-        "version": "4.0.0",
+        "version": "3.1.0",
         "author": "Sindre Sorhus <sindresorhus@gmail.com>",
         "license": "MIT"
     },
     {
         "name": "cli-cursor",
-        "version": "3.1.0",
+        "version": "4.0.0",
         "author": "Sindre Sorhus <sindresorhus@gmail.com>",
         "license": "MIT"
     },
@@ -4351,13 +4351,13 @@
     },
     {
         "name": "restore-cursor",
-        "version": "3.1.0",
+        "version": "4.0.0",
         "author": "Sindre Sorhus <sindresorhus@gmail.com>",
         "license": "MIT"
     },
     {
         "name": "restore-cursor",
-        "version": "4.0.0",
+        "version": "3.1.0",
         "author": "Sindre Sorhus <sindresorhus@gmail.com>",
         "license": "MIT"
     },
@@ -4921,13 +4921,13 @@
     },
     {
         "name": "type-fest",
-        "version": "0.13.1",
+        "version": "1.4.0",
         "author": "Sindre Sorhus <sindresorhus@gmail.com>",
         "license": "(MIT OR CC0-1.0)"
     },
     {
         "name": "type-fest",
-        "version": "1.4.0",
+        "version": "0.13.1",
         "author": "Sindre Sorhus <sindresorhus@gmail.com>",
         "license": "(MIT OR CC0-1.0)"
     },

@@ -96,4 +96,7 @@ contextBridge.exposeInMainWorld("electron", {
     backendHttpOnly: async function () {
         return await ipcRenderer.invoke("backend-http-only");
     },
+    backendRuntimeState: async function () {
+        return await ipcRenderer.invoke("backend-runtime-state");
+    },
 });
