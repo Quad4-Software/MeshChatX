@@ -4,8 +4,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from meshchatx.src.backend.licenses_collector import (
+    _filter_out_workspace_root_package,
     _flatten_pnpm_licenses_json,
     build_licenses_payload,
+    collect_frontend_from_node_modules,
     render_third_party_notices,
     write_embedded_license_artifacts,
 )
@@ -34,6 +36,39 @@ def test_flatten_pnpm_licenses_json_maps_and_sorts():
     assert alpha["license"] == "Apache-2.0"
     nov = next(r for r in rows if r["name"] == "no-version")
     assert nov["version"] == "?"
+
+
+def test_filter_out_workspace_root_package_drops_app_not_deps(tmp_path):
+    (tmp_path / "package.json").write_text(
+        '{"name":"my-app","version":"1.0.0"}\n',
+        encoding="utf-8",
+    )
+    rows = [
+        {"name": "my-app", "version": "1.0.0", "author": "X", "license": "MIT"},
+        {"name": "left-pad", "version": "1.0.0", "author": "Y", "license": "MIT"},
+    ]
+    out = _filter_out_workspace_root_package(rows, tmp_path)
+    assert len(out) == 1
+    assert out[0]["name"] == "left-pad"
+
+
+def test_collect_frontend_from_node_modules_dedupes_and_reads_license(tmp_path):
+    nm = tmp_path / "node_modules"
+    (nm / "alpha").mkdir(parents=True)
+    (nm / "alpha" / "package.json").write_text(
+        '{"name":"alpha","version":"1.0.0","license":"MIT","author":"A"}',
+        encoding="utf-8",
+    )
+    (nm / "nested" / "beta").mkdir(parents=True)
+    (nm / "nested" / "beta" / "package.json").write_text(
+        '{"name":"beta","version":"2.0.0","license":{"type":"Apache-2.0"}}',
+        encoding="utf-8",
+    )
+    rows = collect_frontend_from_node_modules(tmp_path)
+    names = [r["name"] for r in rows]
+    assert "alpha" in names and "beta" in names
+    beta = next(r for r in rows if r["name"] == "beta")
+    assert beta["license"] == "Apache-2.0"
 
 
 def test_flatten_pnpm_licenses_json_non_dict_package_skipped():

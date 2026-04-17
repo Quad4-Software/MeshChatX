@@ -1025,7 +1025,7 @@
     "licenses": {
         "section_label": "Legal",
         "title": "Third-party licenses",
-        "description": "Runtime dependency versions, authors, and SPDX or declared license strings. Data is collected from the installed Python environment and from pnpm when available.",
+        "description": "Runtime dependency versions, authors, and SPDX or declared license strings. Data is collected from the installed Python environment. Frontend data uses pnpm when it works; otherwise packages are read from node_modules (e.g. when pnpm licenses fails on the lockfile).",
         "short_description": "Dependency versions, authors, and licenses for backend and frontend.",
         "search_placeholder": "Search packages, versions, authors, licenses...",
         "generated_at": "Generated at {time}",

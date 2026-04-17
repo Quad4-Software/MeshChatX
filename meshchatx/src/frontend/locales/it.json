@@ -1075,7 +1075,7 @@
     "licenses": {
         "section_label": "Note legali",
         "title": "Licenze di terze parti",
-        "description": "Versioni, autori e licenze SPDX o dichiarate delle dipendenze a runtime. I dati provengono dall'ambiente Python installato e da pnpm se disponibile.",
+        "description": "Versioni, autori e licenze SPDX o dichiarate delle dipendenze a runtime. I dati provengono dall'ambiente Python installato. Per il frontend si usa pnpm se funziona; altrimenti i pacchetti si leggono da node_modules (ad es. se pnpm licenses fallisce sul lockfile).",
         "short_description": "Versioni, autori e licenze per backend e frontend.",
         "search_placeholder": "Cerca pacchetti, versioni, autori, licenze...",
         "generated_at": "Generato alle {time}",

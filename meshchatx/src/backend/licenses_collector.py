@@ -449,9 +449,14 @@ def write_embedded_license_artifacts(repo_root: Path | None = None) -> dict[str,
     frontend_path = data_dir / _FRONTEND_LICENSES_FILENAME
     notices_path = data_dir / _THIRD_PARTY_NOTICES_FILENAME
     frontend_rows = frontend if isinstance(frontend, list) else []
-    should_write_frontend = bool(frontend_rows) or not frontend_path.exists() or frontend_source in (
-        "pnpm",
-        "node_modules",
+    should_write_frontend = (
+        bool(frontend_rows)
+        or not frontend_path.exists()
+        or frontend_source
+        in (
+            "pnpm",
+            "node_modules",
+        )
     )
     if should_write_frontend:
         frontend_path.write_text(

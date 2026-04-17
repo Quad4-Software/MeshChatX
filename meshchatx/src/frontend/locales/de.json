@@ -963,7 +963,7 @@
     "licenses": {
         "section_label": "Rechtliches",
         "title": "Lizenzen Dritter",
-        "description": "Versionen, Autoren und SPDX- oder deklarierte Lizenzangaben zur Laufzeit. Daten stammen aus der installierten Python-Umgebung und von pnpm, falls verfügbar.",
+        "description": "Versionen, Autoren und SPDX- oder deklarierte Lizenzangaben zur Laufzeit. Daten stammen aus der installierten Python-Umgebung. Frontend-Daten nutzen pnpm, falls es funktioniert; sonst werden Pakete aus node_modules gelesen (z. B. wenn pnpm licenses an der Lockfile scheitert).",
         "short_description": "Versionen, Autoren und Lizenzen für Backend und Frontend.",
         "search_placeholder": "Pakete, Versionen, Autoren, Lizenzen suchen...",
         "generated_at": "Erstellt um {time}",
