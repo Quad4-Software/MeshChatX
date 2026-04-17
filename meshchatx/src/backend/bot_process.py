@@ -3,6 +3,8 @@
 import argparse
 import contextlib
 import os
+import threading
+import time
 
 from meshchatx.src.backend.bot_templates import (
     EchoBotTemplate,
@@ -15,6 +17,24 @@ TEMPLATE_MAP = {
     "note": NoteBotTemplate,
     "reminder": ReminderBotTemplate,
 }
+
+
+def _control_watcher(bot_instance, storage_dir):
+    """MeshChatX trigger file for on-demand announces (LXMFy reads bot_display_name.txt in config)."""
+    announce_req = os.path.join(storage_dir, "meshchatx_request_announce")
+    while True:
+        time.sleep(0.6)
+        try:
+            if os.path.isfile(announce_req):
+                os.unlink(announce_req)
+                if hasattr(bot_instance.bot, "announce_now"):
+                    bot_instance.bot.announce_now(force=True)
+                elif hasattr(bot_instance.bot, "_announce"):
+                    bot_instance.bot._announce()
+        except OSError:
+            pass
+        except Exception:
+            pass
 
 
 def main():
@@ -54,11 +74,42 @@ def main():
         reticulum_config_dir=reticulum_config_dir,
     )
 
+    storage_abs = os.path.abspath(args.storage)
+    with contextlib.suppress(OSError):
+        with open(
+            os.path.join(config_path, "bot_display_name.txt"),
+            "w",
+            encoding="utf-8",
+        ) as f:
+            f.write(args.name.strip())
+
+    watcher = threading.Thread(
+        target=_control_watcher,
+        args=(bot_instance, storage_abs),
+        daemon=True,
+        name="meshchatx-bot-control",
+    )
+    watcher.start()
+
+    with contextlib.suppress(Exception):
+        local = getattr(bot_instance.bot, "local", None)
+        if local is not None:
+            raw = getattr(local, "hash", None)
+            if raw is not None:
+                hx = raw.hex() if isinstance(raw, (bytes, bytearray)) else str(raw)
+                hx = hx.strip().lower()
+                if len(hx) == 32:
+                    sidecar = os.path.join(storage_abs, "meshchatx_lxmf_address.txt")
+                    with open(sidecar, "w", encoding="utf-8") as f:
+                        f.write(hx)
+
     # Optional immediate announce for reachability
     with contextlib.suppress(Exception):
         if hasattr(bot_instance.bot, "announce_enabled"):
             bot_instance.bot.announce_enabled = True
-        if hasattr(bot_instance.bot, "_announce"):
+        if hasattr(bot_instance.bot, "announce_now"):
+            bot_instance.bot.announce_now(force=True)
+        elif hasattr(bot_instance.bot, "_announce"):
             bot_instance.bot._announce()
 
     bot_instance.run()

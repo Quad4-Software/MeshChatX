@@ -4,11 +4,14 @@ import BotsPage from "@/components/tools/BotsPage.vue";
 
 describe("BotsPage.vue", () => {
     let axiosMock;
+    let routerPush;
 
     beforeEach(() => {
+        routerPush = vi.fn();
         axiosMock = {
             get: vi.fn(),
             post: vi.fn(),
+            patch: vi.fn(),
         };
         window.api = axiosMock;
 
@@ -17,8 +20,16 @@ describe("BotsPage.vue", () => {
                 return Promise.resolve({
                     data: {
                         status: {
-                            bots: [{ id: "bot1", name: "Test Bot", address: "addr1", template_id: "echo" }],
-                            running_bots: [{ id: "bot1", address: "addr1" }],
+                            bots: [
+                                {
+                                    id: "bot1",
+                                    name: "Test Bot",
+                                    address: "<addr1>",
+                                    lxmf_address: "a".repeat(32),
+                                    running: true,
+                                    template_id: "echo",
+                                },
+                            ],
                         },
                         templates: [{ id: "echo", name: "Echo Bot", description: "Echos messages" }],
                     },
@@ -38,6 +49,8 @@ describe("BotsPage.vue", () => {
             global: {
                 mocks: {
                     $t: (key) => key,
+                    $router: { push: routerPush },
+                    $route: { meta: {} },
                 },
                 stubs: {
                     MaterialDesignIcon: {
@@ -62,8 +75,11 @@ describe("BotsPage.vue", () => {
         const wrapper = mountBotsPage();
         await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
 
-        const selectBtn = wrapper.findAll("button").find((b) => b.text().includes("bots.select"));
-        await selectBtn.trigger("click");
+        const cards = wrapper.findAll("div.cursor-pointer");
+        const templateCard = cards.filter(
+            (d) => d.text().includes("Echo Bot") && d.text().includes("Echos messages"),
+        )[0];
+        await templateCard.trigger("click");
 
         expect(wrapper.vm.selectedTemplate).not.toBeNull();
         expect(wrapper.text()).toContain("bots.start_bot: Echo Bot");
@@ -78,8 +94,7 @@ describe("BotsPage.vue", () => {
             newBotName: "My New Bot",
         });
 
-        const startButton = wrapper.findAll("button").find((b) => b.text().includes("bots.start_bot"));
-        await startButton.trigger("click");
+        await wrapper.vm.startBot();
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/bots/start", {
             template_id: "echo",
@@ -96,6 +111,19 @@ describe("BotsPage.vue", () => {
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/bots/stop", {
             bot_id: "bot1",
+        });
+    });
+
+    it("navigates to messages when chat is clicked", async () => {
+        const wrapper = mountBotsPage();
+        await vi.waitFor(() => expect(wrapper.vm.loading).toBe(false));
+
+        const chatButton = wrapper.find("button[title='bots.chat_with_bot']");
+        await chatButton.trigger("click");
+
+        expect(routerPush).toHaveBeenCalledWith({
+            name: "messages",
+            params: { destinationHash: "a".repeat(32) },
         });
     });
 });

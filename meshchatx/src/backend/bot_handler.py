@@ -4,6 +4,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,6 +14,8 @@ import uuid
 import RNS
 
 logger = logging.getLogger("meshchatx.bots")
+
+_LXMF_HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 
 
 class BotHandler:
@@ -98,13 +101,42 @@ class BotHandler:
                 except Exception as exc:
                     logger.warning("Failed to restore bot %s: %s", entry.get("id"), exc)
 
+    @staticmethod
+    def _normalize_lxmf_hash_hex(value):
+        if not value:
+            return None
+        if isinstance(value, memoryview):
+            value = value.tobytes()
+        if isinstance(value, bytes):
+            h = value.hex()
+        else:
+            h = str(value).strip().lower()
+            h = h.replace(" ", "").replace("<", "").replace(">", "")
+        if len(h) != 32 or not _LXMF_HASH_RE.match(h):
+            return None
+        return h
+
+    @staticmethod
+    def _read_lxmf_address_sidecar(storage_dir):
+        if not storage_dir:
+            return None
+        path = os.path.join(storage_dir, "meshchatx_lxmf_address.txt")
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw = f.read().strip()
+        except OSError:
+            return None
+        return BotHandler._normalize_lxmf_hash_hex(raw)
+
     def get_status(self):
         bots: list[dict] = []
 
         for entry in self.bots_state:
             bot_id = entry.get("id")
             template = entry.get("template_id") or entry.get("template")
-            name = entry.get("name") or "Unknown"
+            name = entry.get("name")
+            if not name:
+                name = f"{template.title()} Bot" if template else "Bot"
             pid = entry.get("pid")
 
             running = False
@@ -124,8 +156,12 @@ class BotHandler:
                 and getattr(instance.bot, "local", None)
             ):
                 with contextlib.suppress(Exception):
-                    address_pretty = RNS.prettyhexrep(instance.bot.local.hash)
-                    address_full = RNS.hexrep(instance.bot.local.hash, delimit=False)
+                    lh = instance.bot.local.hash
+                    address_full = lh.hex() if isinstance(lh, (bytes, bytearray)) else None
+                    if address_full:
+                        address_full = self._normalize_lxmf_hash_hex(address_full)
+                    if address_full:
+                        address_pretty = RNS.prettyhexrep(bytes.fromhex(address_full))
 
             # Fallback to identity file on disk
             if address_full is None:
@@ -133,8 +169,15 @@ class BotHandler:
                 if identity:
                     with contextlib.suppress(Exception):
                         destination = RNS.Destination(identity, "lxmf", "delivery")
-                        address_full = destination.hash.hex()
-                        address_pretty = RNS.prettyhexrep(destination.hash)
+                        address_full = self._normalize_lxmf_hash_hex(destination.hash)
+                        if address_full:
+                            address_pretty = RNS.prettyhexrep(bytes.fromhex(address_full))
+
+            if address_full is None:
+                address_full = self._read_lxmf_address_sidecar(entry.get("storage_dir"))
+                if address_full:
+                    with contextlib.suppress(Exception):
+                        address_pretty = RNS.prettyhexrep(bytes.fromhex(address_full))
 
             bots.append(
                 {
@@ -142,7 +185,8 @@ class BotHandler:
                     "template": template,
                     "template_id": template,
                     "name": name,
-                    "address": address_pretty or "Unknown",
+                    "address": address_pretty,
+                    "lxmf_address": address_full,
                     "full_address": address_full,
                     "running": running,
                     "pid": pid,
@@ -283,6 +327,57 @@ class BotHandler:
             storage_dir=entry["storage_dir"],
         )
 
+    def update_bot_name(self, bot_id, name):
+        raw = (name or "").strip()
+        raw = re.sub(r"[\r\n]+", "", raw)
+        if not raw:
+            raise ValueError("name is required")
+        if len(raw) > 256:
+            raise ValueError("name too long")
+        entry = None
+        for e in self.bots_state:
+            if e.get("id") == bot_id:
+                entry = e
+                break
+        if entry is None:
+            raise ValueError(f"Unknown bot: {bot_id}")
+        entry["name"] = raw
+        self._save_state()
+        sd = entry.get("storage_dir")
+        if sd:
+            try:
+                cfg_dir = entry.get("bot_config_dir") or os.path.join(sd, "config")
+                os.makedirs(cfg_dir, exist_ok=True)
+                path = os.path.join(cfg_dir, "bot_display_name.txt")
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(raw)
+            except OSError as exc:
+                logger.warning("Failed to write bot display name file: %s", exc)
+        return True
+
+    def request_announce(self, bot_id):
+        entry = None
+        for e in self.bots_state:
+            if e.get("id") == bot_id:
+                entry = e
+                break
+        if entry is None:
+            raise ValueError(f"Unknown bot: {bot_id}")
+        pid = entry.get("pid")
+        if not pid or not self._is_pid_alive(pid):
+            raise RuntimeError("bot is not running")
+        sd = entry.get("storage_dir")
+        if not sd:
+            raise RuntimeError("bot has no storage directory")
+        req = os.path.join(sd, "meshchatx_request_announce")
+        try:
+            with open(req, "w", encoding="utf-8") as f:
+                f.write("1")
+        except OSError as exc:
+            logger.warning("Failed to write announce request: %s", exc)
+            raise RuntimeError("failed to write announce request") from exc
+        return True
+
     def delete_bot(self, bot_id):
         # Stop it first
         self.stop_bot(bot_id)
@@ -332,6 +427,9 @@ class BotHandler:
             id_path_bot_cfg = os.path.join(bot_config_dir, "identity")
             if os.path.exists(id_path_bot_cfg):
                 return id_path_bot_cfg
+            id_path_lxmf_cfg = os.path.join(bot_config_dir, "lxmf", "identity")
+            if os.path.exists(id_path_lxmf_cfg):
+                return id_path_lxmf_cfg
 
         reticulum_config_dir = entry.get("reticulum_config_dir")
         if reticulum_config_dir:
@@ -353,6 +451,10 @@ class BotHandler:
         id_path_lxmf = os.path.join(storage_dir, "config", "lxmf", "identity")
         if os.path.exists(id_path_lxmf):
             return id_path_lxmf
+
+        id_path_lxmf_root = os.path.join(storage_dir, "lxmf", "identity")
+        if os.path.exists(id_path_lxmf_root):
+            return id_path_lxmf_root
 
         return None
 
