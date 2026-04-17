@@ -54,6 +54,41 @@ import NetworkVisualiserLoadingOverlay from "./internal/NetworkVisualiserLoading
 import NetworkVisualiserToolbar from "./internal/NetworkVisualiserToolbar.vue";
 import NetworkVisualiserLegend from "./internal/NetworkVisualiserLegend.vue";
 
+/*
+ * Yields control back to the browser so it can paint, dispatch input events,
+ * and run other tasks. Prefers the prioritized task scheduler when available
+ * (Chromium 94+ / Electron) and falls back to a zero-delay timer everywhere
+ * else. setTimeout(0) is intentionally used over Promise.resolve() because
+ * microtasks do not give the renderer a chance to repaint.
+ */
+function yieldToMain() {
+    if (typeof window !== "undefined" && window.scheduler) {
+        if (typeof window.scheduler.yield === "function") {
+            return window.scheduler.yield();
+        }
+        if (typeof window.scheduler.postTask === "function") {
+            return new Promise((resolve) => {
+                window.scheduler.postTask(resolve, { priority: "user-blocking" });
+            });
+        }
+    }
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/*
+ * Pick a visualisation chunk size that scales down on weak hardware. ARM SBCs
+ * commonly report 4 logical cores; phones/SoCs frequently report 2. We keep
+ * desktop throughput (larger chunks => fewer yields) but drop hard for low
+ * core-count devices so the main thread is not pinned for tens of ms per chunk.
+ */
+function pickAdaptiveChunkSize() {
+    const cores = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) || 4;
+    if (cores <= 2) return 40;
+    if (cores <= 4) return 80;
+    if (cores <= 6) return 150;
+    return 250;
+}
+
 export default {
     name: "NetworkVisualiser",
     components: {
@@ -110,6 +145,10 @@ export default {
             lastVizKeys: [],
             vizHadOneLayout: false,
             didDisableStabilization: false,
+            vizChunkSize: pickAdaptiveChunkSize(),
+            iconQueue: [],
+            iconQueueRunning: false,
+            iconQueueGeneration: 0,
         };
     },
     computed: {
@@ -234,6 +273,8 @@ export default {
         if (this.abortController) {
             this.abortController.abort();
         }
+        this.iconQueue = [];
+        this.iconQueueGeneration += 1;
         if (this._toggleOrbitHandler) {
             GlobalEmitter.off("toggle-orbit", this._toggleOrbitHandler);
         }
@@ -1438,19 +1479,17 @@ export default {
                             strokeWidth: 4,
                             strokeColor: isDarkMode ? "rgba(9, 9, 11, 0.95)" : "rgba(255, 255, 255, 0.95)",
                         },
-                        shadow: {
-                            enabled: true,
-                            color: "rgba(0,0,0,0.24)",
-                            size: 10,
-                            x: 0,
-                            y: 4,
-                        },
+                        // Canvas shadows are by far the most expensive per-node
+                        // operation in vis-network. Disable globally; the borders
+                        // and circular-image rendering remain visually distinct.
+                        shadow: false,
                     },
                     edges: {
-                        smooth: {
-                            type: "continuous",
-                            roundness: 0.5,
-                        },
+                        // "continuous" computes bezier curves on every frame and
+                        // is noticeably heavier than straight edges on slow ARM
+                        // CPUs once you have a few hundred edges. Straight edges
+                        // still look clean against the dotted background.
+                        smooth: false,
                         selectionWidth: 3,
                         hoverWidth: 2,
                         color: {
@@ -1637,6 +1676,27 @@ export default {
             if (this.abortController.signal.aborted) return;
 
             this.loadingStatus = "Processing visualization...";
+
+            /*
+             * Invalidate any in-flight icon-generation work. Each call to
+             * processVisualization gets a new generation token; queued items
+             * carrying an older token are dropped when consumed so we do not
+             * paint canvases for nodes that no longer exist.
+             */
+            this.iconQueueGeneration += 1;
+            this.iconQueue = [];
+
+            /*
+             * Pause physics for the duration of the bulk update. Running the
+             * force-directed solver between chunks just churns the layout for
+             * a partial graph and pegs the main thread on slow CPUs. We
+             * restore the user's physics preference at the end so the final
+             * layout still settles naturally.
+             */
+            const physicsWasOn = this.network && this.enablePhysics;
+            if (physicsWasOn) {
+                this.network.setOptions({ physics: { enabled: false } });
+            }
 
             const processedNodeIds = new Set();
             const processedEdgeIds = new Set();
@@ -1850,8 +1910,15 @@ export default {
 
             const aspectsToShow = ["lxmf.delivery", "nomadnetwork.node"];
 
-            // Process in larger chunks for speed, but keep UI responsive
-            const chunkSize = 250;
+            /*
+             * Chunk size is adaptive to hardwareConcurrency. Smaller chunks
+             * on weak hardware mean more frequent yields, which keeps the
+             * loading overlay animating and keeps input responsive at the
+             * cost of slightly higher total work due to extra event-loop
+             * round-trips. The trade-off massively favours smoothness on
+             * ARM SBCs.
+             */
+            const chunkSize = this.vizChunkSize;
             this.totalBatches = Math.ceil(this.pathTable.length / chunkSize);
             this.currentBatch = 0;
 
@@ -1946,14 +2013,30 @@ export default {
                             if (this.iconCache[cacheKey]) {
                                 node.image = this.iconCache[cacheKey];
                             } else {
-                                node.image = await this.createIconImage(
-                                    conversation.lxmf_user_icon.icon_name,
-                                    conversation.lxmf_user_icon.foreground_colour,
-                                    conversation.lxmf_user_icon.background_colour,
-                                    64
-                                );
+                                /*
+                                 * Defer custom-icon generation. Painting the
+                                 * canvas + decoding the SVG inline used to
+                                 * serialise every chunk and was the dominant
+                                 * cause of the visualiser freezing on slow ARM
+                                 * CPUs. Use a sensible placeholder (the same
+                                 * default user image we use for icon-less lxmf
+                                 * nodes) and queue the real icon for async
+                                 * generation once all chunks are processed.
+                                 */
+                                node.image =
+                                    entry.hops === 1
+                                        ? "/assets/images/network-visualiser/user_1hop.png"
+                                        : "/assets/images/network-visualiser/user.png";
+                                this.iconQueue.push({
+                                    nodeId: node.id,
+                                    cacheKey,
+                                    iconName: conversation.lxmf_user_icon.icon_name,
+                                    fg: conversation.lxmf_user_icon.foreground_colour,
+                                    bg: conversation.lxmf_user_icon.background_colour,
+                                    size: 64,
+                                    generation: this.iconQueueGeneration,
+                                });
                             }
-                            if (this.abortController.signal.aborted) return;
                             node.size = 30;
                             node._originalSize = 30;
                         } else {
@@ -2007,15 +2090,18 @@ export default {
                     processedEdgeIds.add(edgeId);
                 }
 
-                // Update DataSet incrementally
                 if (batchNodes.length > 0) this.nodes.update(batchNodes);
                 if (batchEdges.length > 0) this.edges.update(batchEdges);
 
-                // Allow UI to breathe and show progress
                 this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
 
-                // Use nextTick for responsiveness
-                await this.$nextTick();
+                /*
+                 * Yield to the event loop using the prioritized scheduler
+                 * (or setTimeout fallback). $nextTick is a microtask and does
+                 * not let the renderer paint or process input between chunks,
+                 * which is what was making the app feel frozen.
+                 */
+                await yieldToMain();
 
                 if (this.abortController.signal.aborted) return;
             }
@@ -2056,6 +2142,57 @@ export default {
 
             if (this.enableOrbit) {
                 this.startOrbit();
+            }
+
+            /*
+             * Re-enable physics now that all nodes/edges are in place. The
+             * solver runs once on the final graph instead of repeatedly on
+             * partial states, which is dramatically cheaper.
+             */
+            if (physicsWasOn && this.network) {
+                this.network.setOptions({ physics: { enabled: this.enablePhysics } });
+            }
+
+            this.runIconQueue();
+        },
+        /*
+         * Drains the deferred lxmf custom-icon queue. Runs sequentially with
+         * a yield between each icon so painting many icons cannot pin the
+         * main thread the way the old inline-await version did. Items tagged
+         * with a stale generation (a newer processVisualization started while
+         * we were running) are skipped, as are nodes that no longer exist.
+         */
+        async runIconQueue() {
+            if (this.iconQueueRunning) return;
+            this.iconQueueRunning = true;
+            try {
+                while (this.iconQueue.length > 0) {
+                    if (this.abortController.signal.aborted) return;
+                    const item = this.iconQueue.shift();
+                    if (item.generation !== this.iconQueueGeneration) {
+                        continue;
+                    }
+                    if (!this.nodes.get(item.nodeId)) {
+                        continue;
+                    }
+                    /*
+                     * Queue items can collapse onto a single cached icon: if
+                     * a previous iteration already painted this cacheKey we
+                     * can short-circuit instead of re-invoking createIconImage
+                     * (which would also redo the canvas+SVG decode work).
+                     */
+                    let url = this.iconCache[item.cacheKey];
+                    if (!url) {
+                        url = await this.createIconImage(item.iconName, item.fg, item.bg, item.size);
+                        if (this.abortController.signal.aborted) return;
+                    }
+                    if (url && this.nodes.get(item.nodeId)) {
+                        this.nodes.update({ id: item.nodeId, image: url });
+                    }
+                    await yieldToMain();
+                }
+            } finally {
+                this.iconQueueRunning = false;
             }
         },
     },

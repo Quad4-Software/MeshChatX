@@ -106,49 +106,38 @@ describe("NetworkVisualiser Optimization and Abort", () => {
         expect(signal.aborted).toBe(true);
     });
 
-    it("stops processing visualization batches when aborted", async () => {
+    it("stops the deferred icon queue when aborted", async () => {
         vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
         const wrapper = mountVisualiser();
 
-        // Prepare large data
-        wrapper.vm.pathTable = Array.from({ length: 1000 }, (_, i) => ({ hash: `h${i}`, interface: "eth0", hops: 1 }));
+        wrapper.vm.pathTable = Array.from({ length: 200 }, (_, i) => ({ hash: `h${i}`, interface: "eth0", hops: 1 }));
+        const iconInfo = { icon_name: "test", foreground_colour: "#000", background_colour: "#fff" };
         wrapper.vm.announces = wrapper.vm.pathTable.reduce((acc, cur) => {
             acc[cur.hash] = {
                 destination_hash: cur.hash,
                 aspect: "lxmf.delivery",
                 display_name: "node",
+                lxmf_user_icon: { ...iconInfo, icon_name: `t${cur.hash}` },
             };
             return acc;
         }, {});
+        wrapper.vm.conversations = wrapper.vm.pathTable.reduce((acc, cur) => {
+            acc[cur.hash] = { lxmf_user_icon: { ...iconInfo, icon_name: `t${cur.hash}` } };
+            return acc;
+        }, {});
 
-        // Add lxmf_user_icon to trigger await in createIconImage and slow it down
-        const firstHash = wrapper.vm.pathTable[0].hash;
-        wrapper.vm.announces[firstHash].lxmf_user_icon = {
-            icon_name: "test",
-            foreground_colour: "#000",
-            background_colour: "#fff",
-        };
-        wrapper.vm.conversations[firstHash] = { lxmf_user_icon: wrapper.vm.announces[firstHash].lxmf_user_icon };
+        wrapper.vm.createIconImage = vi.fn().mockImplementation(() => new Promise((r) => setTimeout(() => r("blob:icon"), 50)));
 
-        // Mock createIconImage to be slow
-        wrapper.vm.createIconImage = vi.fn().mockImplementation(() => new Promise((r) => setTimeout(r, 100)));
+        await wrapper.vm.processVisualization();
 
-        const processPromise = wrapper.vm.processVisualization();
+        const callsBeforeAbort = wrapper.vm.createIconImage.mock.calls.length;
+        expect(wrapper.vm.iconQueue.length + callsBeforeAbort).toBeGreaterThan(0);
 
-        // Give it some time to start first batch and hit the await
-        await new Promise((r) => setTimeout(r, 50));
-
-        // It should be in batch 1 and stuck on createIconImage
-        expect(wrapper.vm.currentBatch).toBe(1);
-
-        // Abort
         wrapper.vm.abortController.abort();
+        await new Promise((r) => setTimeout(r, 200));
 
-        await processPromise;
-
-        // Should have aborted and not reached the end where it resets currentBatch to 0
-        // (Wait, actually if it returns early it stays 1)
-        expect(wrapper.vm.currentBatch).toBe(1);
+        const callsAfterAbort = wrapper.vm.createIconImage.mock.calls.length;
+        expect(callsAfterAbort - callsBeforeAbort).toBeLessThanOrEqual(1);
     });
 
     it("parallelizes batch fetching", async () => {
@@ -278,9 +267,15 @@ describe("NetworkVisualiser Optimization and Abort", () => {
         });
 
         await wrapper.vm.processVisualization();
+        while (wrapper.vm.iconQueueRunning || wrapper.vm.iconQueue.length > 0) {
+            await new Promise((r) => setTimeout(r, 5));
+        }
         expect(wrapper.vm.createIconImage).toHaveBeenCalledTimes(1);
 
         await wrapper.vm.processVisualization();
+        while (wrapper.vm.iconQueueRunning || wrapper.vm.iconQueue.length > 0) {
+            await new Promise((r) => setTimeout(r, 5));
+        }
         expect(wrapper.vm.createIconImage).toHaveBeenCalledTimes(1);
     });
 });
