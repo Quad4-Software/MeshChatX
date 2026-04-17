@@ -268,12 +268,14 @@ tasks:
     # --- Electron Distribution ---
 
     dist:linux:appimage:
-        desc: Build Linux AppImage
+        desc: Build Linux AppImage (x64 + arm64 only)
         deps: [build:fe]
         cmds:
             - "{{.NPM}} run electron-postinstall"
-            - "PLATFORM=linux {{.NPM}} run build-backend"
-            - "{{.NPM}} run dist -- --linux AppImage"
+            - "PLATFORM=linux ARCH=x64 {{.NPM}} run build-backend"
+            - "pnpm exec electron-builder --linux AppImage --x64 --publish=never"
+            - "PLATFORM=linux ARCH=arm64 {{.NPM}} run build-backend"
+            - "pnpm exec electron-builder --linux AppImage --arm64 --publish=never"
 
     dist:linux:arm64:
         desc: Build Linux arm64 AppImage
