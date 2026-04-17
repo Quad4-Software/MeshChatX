@@ -57,6 +57,15 @@
                                 <MaterialDesignIcon icon-name="export" class="w-4 h-4" />
                                 {{ $t("interfaces.export_all") }}
                             </button>
+                            <button
+                                type="button"
+                                class="secondary-chip text-sm"
+                                :disabled="reloadingRns"
+                                @click="reloadRns"
+                            >
+                                <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
+                                <span>{{ reloadingRns ? $t("app.reloading_rns") : "Restart RNS" }}</span>
+                            </button>
                         </div>
                     </div>
 

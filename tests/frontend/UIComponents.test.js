@@ -539,6 +539,7 @@ describe("SettingsPage Component", () => {
         await wrapper.vm.$nextTick();
 
         expect(wrapper.text()).toContain("app.reload_rns");
+        expect(wrapper.text()).not.toContain("app.reload_rns_description");
     });
 
     it("enabling transport shows success toast after reload", async () => {

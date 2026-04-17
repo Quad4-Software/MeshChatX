@@ -74,6 +74,15 @@
                             </button>
                             <button
                                 type="button"
+                                class="secondary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
+                                :disabled="reloadingRns"
+                                @click="restartRns"
+                            >
+                                <v-icon icon="mdi-restart-alert" size="20" class="mr-2"></v-icon>
+                                {{ reloadingRns ? $t("app.reloading_rns") : "Restart RNS" }}
+                            </button>
+                            <button
+                                type="button"
                                 class="danger-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
                                 @click="shutdown"
                             >
@@ -922,6 +931,7 @@ export default {
             restoreError: "",
             restoreFileName: "",
             restoreFile: null,
+            reloadingRns: false,
             snapshotName: "",
             snapshots: [],
             snapshotsTotal: 0,
@@ -1330,6 +1340,19 @@ export default {
         },
         relaunch() {
             ElectronUtils.relaunch();
+        },
+        async restartRns() {
+            if (this.reloadingRns) return;
+            try {
+                this.reloadingRns = true;
+                const response = await window.api.post("/api/v1/reticulum/reload");
+                ToastUtils.success(response?.data?.message || this.$t("app.reloaded_rns"));
+                await this.getAppInfo();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.error || this.$t("settings.failed_reload_reticulum"));
+            } finally {
+                this.reloadingRns = false;
+            }
         },
         async shutdown() {
             if (

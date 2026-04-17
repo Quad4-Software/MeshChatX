@@ -2058,17 +2058,20 @@
                             </div>
                         </header>
                         <div class="settings-section__body space-y-4">
-                            <div class="flex flex-col gap-3">
+                            <div class="grid grid-cols-1 gap-3">
                                 <button
-                                    class="btn btn--secondary w-full justify-center py-3"
+                                    type="button"
+                                    class="btn-maintenance border-violet-200 dark:border-violet-900/30 text-violet-800 dark:text-violet-200 bg-violet-50 dark:bg-violet-900/10 hover:bg-violet-100 dark:hover:bg-violet-900/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-violet-50 dark:disabled:hover:bg-violet-900/10"
                                     :disabled="reloadingRns"
                                     @click="reloadRns"
                                 >
-                                    <span>{{ $t("app.reload_rns") }}</span>
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="restart" class="size-4" />
+                                            {{ $t("app.reload_rns") }}
+                                        </div>
+                                    </div>
                                 </button>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $t("app.reload_rns_description") }}
-                                </p>
                                 <p
                                     v-if="reloadRnsStatusMessage"
                                     class="text-xs"

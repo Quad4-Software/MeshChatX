@@ -269,6 +269,100 @@ async def test_reload_reticulum_does_not_probe_unix_fallback_by_default(
         app.teardown_identity()
 
 
+def test_reticulum_instance_name_helpers(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        config_path = os.path.join(temp_dir, "config")
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write("[reticulum]\n")
+            f.write("instance_name = default\n")
+
+        assert app._read_reticulum_instance_name() == "default"
+        app._write_reticulum_instance_name("reload-test")
+        assert app._read_reticulum_instance_name() == "reload-test"
+        app.teardown_identity()
+
+
+@pytest.mark.asyncio
+async def test_reload_reticulum_switches_instance_name_when_unix_addr_stuck(
+    mock_rns,
+    temp_dir,
+):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+        patch("asyncio.sleep", return_value=None),
+        patch("socket.socket") as mock_socket,
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.setup_identity = MagicMock()
+
+        old_reticulum = getattr(app, "reticulum", None)
+        assert old_reticulum is not None
+        old_reticulum.rpc_addr = "\0rns/default/rpc"
+        old_reticulum.rpc_type = "AF_UNIX"
+
+        def socket_factory(family, *args, **kwargs):
+            sock_instance = MagicMock()
+            if family == socket.AF_UNIX:
+                sock_instance.bind.side_effect = OSError(98, "Address already in use")
+            else:
+                sock_instance.bind.return_value = None
+            return sock_instance
+
+        mock_socket.side_effect = socket_factory
+
+        with (
+            patch.object(app, "_force_close_abstract_unix_addr", return_value=False),
+            patch.object(app, "_read_reticulum_instance_name", return_value="default"),
+            patch.object(app, "_write_reticulum_instance_name") as mock_write_name,
+        ):
+            result = await app.reload_reticulum()
+
+        assert result is True
+        assert mock_write_name.call_count == 2
+        first_name = mock_write_name.call_args_list[0].args[0]
+        assert first_name.startswith("default-reload-")
+        assert mock_write_name.call_args_list[1].args[0] == "default"
+        app.teardown_identity()
+
+
 @pytest.mark.asyncio
 async def test_reload_reticulum_failure_recovery(mock_rns, temp_dir):
     with (

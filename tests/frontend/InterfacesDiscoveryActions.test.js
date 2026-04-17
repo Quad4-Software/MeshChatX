@@ -169,4 +169,26 @@ describe("InterfacesPage discovery actions", () => {
             interface_discovery_blacklist: "10.0.0.8:4242",
         });
     });
+
+    it("reloadRns posts reticulum restart endpoint", async () => {
+        const wrapper = mount(InterfacesPage, {
+            global: {
+                stubs: {
+                    RouterLink: true,
+                    MaterialDesignIcon: true,
+                    Toggle: true,
+                    ImportInterfacesModal: true,
+                    Interface: true,
+                },
+                mocks: {
+                    $t: (key) => key,
+                    $router: { push: vi.fn() },
+                },
+            },
+        });
+
+        await wrapper.vm.reloadRns();
+
+        expect(mockAxios.post).toHaveBeenCalledWith("/api/v1/reticulum/reload");
+    });
 });

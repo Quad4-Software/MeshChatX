@@ -165,6 +165,17 @@ describe("AboutPage.vue", () => {
         expect(shutdownSpy).toHaveBeenCalled();
     });
 
+    it("restartRns posts reticulum reload endpoint", async () => {
+        const wrapper = mountAboutPage();
+        wrapper.vm.appInfo = { version: "1.0.0" };
+        await wrapper.vm.$nextTick();
+
+        axiosMock.post.mockResolvedValueOnce({ data: { message: "RNS restarted" } });
+        await wrapper.vm.restartRns();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/reload");
+    });
+
     it("updates app info periodically", async () => {
         axiosMock.get.mockResolvedValue({
             data: {
