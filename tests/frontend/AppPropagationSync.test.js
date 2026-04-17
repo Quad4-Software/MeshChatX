@@ -22,6 +22,9 @@ const syncingStates = [
 
 function makeSyncContext(axiosMock, tOverrides = {}) {
     return {
+        config: {
+            lxmf_preferred_propagation_node_destination_hash: "deadbeef",
+        },
         propagationNodeStatus: null,
         _propagationSyncPollTimer: null,
         propagationSyncLiveToastMessage: App.methods.propagationSyncLiveToastMessage,
@@ -77,6 +80,7 @@ function makeSyncContext(axiosMock, tOverrides = {}) {
 describe("App propagation sync", () => {
     const axiosMock = {
         get: vi.fn(),
+        post: vi.fn(),
     };
 
     beforeEach(() => {
@@ -91,6 +95,7 @@ describe("App propagation sync", () => {
     });
 
     it("shows detailed success toast with stored, confirmations and hidden counts", async () => {
+        axiosMock.post.mockResolvedValue({ data: { message: "ok" } });
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/sync") {
                 return Promise.resolve({ data: { message: "Sync is starting" } });
@@ -122,10 +127,12 @@ describe("App propagation sync", () => {
         expect(ToastUtils.success).toHaveBeenCalledWith(
             "Sync complete. 8 messages received. (3 stored, 2 confirmations, 3 hidden)"
         );
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/destination/deadbeef/request-path");
         expect(ToastUtils.error).not.toHaveBeenCalled();
     });
 
     it("polls status while syncing and updates live loading toast", async () => {
+        axiosMock.post.mockResolvedValue({ data: { message: "ok" } });
         let statusCalls = 0;
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/sync") {
@@ -178,6 +185,7 @@ describe("App propagation sync", () => {
     });
 
     it("uses translated status in error toast when sync ends in a failure state", async () => {
+        axiosMock.post.mockResolvedValue({ data: { message: "ok" } });
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/lxmf/propagation-node/sync") {
                 return Promise.resolve({ data: { message: "Sync is starting" } });

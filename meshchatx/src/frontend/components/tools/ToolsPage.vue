@@ -194,6 +194,14 @@ export default {
                     descriptionKey: "tools.bots.description",
                 },
                 {
+                    name: "propagation-nodes",
+                    route: { name: "propagation-nodes" },
+                    icon: "mailbox",
+                    iconBg: "tool-card__icon bg-cyan-50 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-200",
+                    title: "Propagation Nodes",
+                    description: "Manage preferred and local propagation nodes with live stats and path checks.",
+                },
+                {
                     name: "forwarder",
                     route: { name: "forwarder" },
                     icon: "email-send-outline",

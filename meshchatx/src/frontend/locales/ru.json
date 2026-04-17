@@ -25,7 +25,21 @@
         "export_identity": "Экспорт личности",
         "bot_deleted": "Бот успешно удален",
         "failed_to_delete": "Не удалось удалить бота",
-        "more_bots_coming": "Скоро появятся новые боты!"
+        "more_bots_coming": "Скоро появятся новые боты!",
+        "chat_with_bot": "Чат",
+        "lxmf_address": "Адрес LXMF",
+        "last_announce": "Последний announce",
+        "never_announced": "На этом узле ещё не виден",
+        "address_pending": "Появится после первого запуска бота",
+        "status_running": "Запущен",
+        "status_stopped": "Остановлен",
+        "force_announce": "Объявить сейчас",
+        "edit_name": "Изменить имя",
+        "bot_renamed": "Имя бота сохранено",
+        "rename_failed": "Не удалось сохранить имя",
+        "name_required": "Введите имя",
+        "announce_triggered": "Запрос announce отправлен",
+        "announce_failed": "Не удалось запросить announce"
     },
     "app": {
         "name": "Reticulum MeshChatX",

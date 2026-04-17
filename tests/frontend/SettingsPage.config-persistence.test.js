@@ -258,21 +258,21 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
 
     it("LXMF transfer/sync limits PATCH after debounce", async () => {
         const w = await mountSettingsPage(api);
-        w.vm.config.lxmf_delivery_transfer_limit_in_bytes = 9_000_000;
+        w.vm.lxmfDeliveryTransferLimitInputMb = 9;
         await w.vm.onLxmfDeliveryTransferLimitChange();
         await vi.advanceTimersByTimeAsync(1000);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
             lxmf_delivery_transfer_limit_in_bytes: 9_000_000,
         });
 
-        w.vm.config.lxmf_propagation_transfer_limit_in_bytes = 300_000;
+        w.vm.lxmfPropagationTransferLimitInputMb = 0.3;
         await w.vm.onLxmfPropagationTransferLimitChange();
         await vi.advanceTimersByTimeAsync(1000);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
             lxmf_propagation_transfer_limit_in_bytes: 300_000,
         });
 
-        w.vm.config.lxmf_propagation_sync_limit_in_bytes = 9_000_000;
+        w.vm.lxmfPropagationSyncLimitInputMb = 9;
         await w.vm.onLxmfPropagationSyncLimitChange();
         await vi.advanceTimersByTimeAsync(1000);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {

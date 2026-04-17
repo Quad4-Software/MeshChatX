@@ -66,6 +66,10 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/bots/announce"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/bots/delete"
         },
         {
@@ -83,6 +87,10 @@
         {
             "method": "GET",
             "path": "/api/v1/bots/status"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/bots/update"
         },
         {
             "method": "POST",

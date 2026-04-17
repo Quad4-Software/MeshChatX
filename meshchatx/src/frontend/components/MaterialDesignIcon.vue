@@ -19,6 +19,11 @@
 <script>
 import * as mdi from "@mdi/js";
 
+const MDI_ICON_ALIASES = {
+    mdiRoute: "mdiRoutes",
+    mdiEmailSendOutline: "mdiSendOutline",
+};
+
 export default {
     name: "MaterialDesignIcon",
     props: {
@@ -58,7 +63,8 @@ export default {
             }
 
             const name = this.mdiIconName;
-            const path = mdi[name];
+            const aliasName = MDI_ICON_ALIASES[name] || name;
+            const path = mdi[aliasName];
 
             if (path) return path;
 

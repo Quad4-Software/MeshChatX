@@ -1995,39 +1995,51 @@
                             </div>
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Delivery transfer limit (bytes)
+                                    Delivery transfer limit (MB)
                                 </div>
                                 <input
-                                    v-model.number="config.lxmf_delivery_transfer_limit_in_bytes"
+                                    v-model.number="lxmfDeliveryTransferLimitInputMb"
                                     type="number"
-                                    min="1000"
+                                    min="0.001"
+                                    step="0.01"
                                     class="input-field"
                                     @input="onLxmfDeliveryTransferLimitChange"
                                 />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
+                                </div>
                             </div>
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Propagation transfer limit (bytes)
+                                    Propagation transfer limit (MB)
                                 </div>
                                 <input
-                                    v-model.number="config.lxmf_propagation_transfer_limit_in_bytes"
+                                    v-model.number="lxmfPropagationTransferLimitInputMb"
                                     type="number"
-                                    min="1000"
+                                    min="0.001"
+                                    step="0.01"
                                     class="input-field"
                                     @input="onLxmfPropagationTransferLimitChange"
                                 />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ formatByteSize(config.lxmf_propagation_transfer_limit_in_bytes) }}
+                                </div>
                             </div>
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Propagation sync limit (bytes)
+                                    Propagation sync limit (MB)
                                 </div>
                                 <input
-                                    v-model.number="config.lxmf_propagation_sync_limit_in_bytes"
+                                    v-model.number="lxmfPropagationSyncLimitInputMb"
                                     type="number"
-                                    min="1000"
+                                    min="0.001"
+                                    step="0.01"
                                     class="input-field"
                                     @input="onLxmfPropagationSyncLimitChange"
                                 />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ formatByteSize(config.lxmf_propagation_sync_limit_in_bytes) }}
+                                </div>
                             </div>
                             <div v-if="config.lxmf_local_propagation_node_enabled" class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -2236,6 +2248,9 @@ export default {
                 nomad_default_page_path: "/page/index.mu",
             },
             saveTimeouts: {},
+            lxmfDeliveryTransferLimitInputMb: 10,
+            lxmfPropagationTransferLimitInputMb: 0.256,
+            lxmfPropagationSyncLimitInputMb: 10.24,
             lastRememberedInboundStampCost: 8,
             shortcuts: [],
             reloadingRns: false,
@@ -2544,6 +2559,7 @@ export default {
                     if (json.config) {
                         this.config = { ...this.config, ...json.config };
                         this.sanitizeColorConfigFields();
+                        this.syncLxmfTransferLimitInputs();
                     }
                     break;
                 }
@@ -2575,6 +2591,7 @@ export default {
                 if (merged) {
                     this.config = merged;
                     normalizeConfigColors(this.config);
+                    this.syncLxmfTransferLimitInputs();
                     const inbound = Number(this.config.lxmf_inbound_stamp_cost);
                     if (inbound > 0) {
                         this.lastRememberedInboundStampCost = Math.min(254, inbound);
@@ -2613,6 +2630,7 @@ export default {
                 const newConfig = await patchServerConfig(config, window.api);
                 this.config = newConfig;
                 normalizeConfigColors(this.config);
+                this.syncLxmfTransferLimitInputs();
                 if (label) {
                     ToastUtils.success(this.$t("app.setting_auto_saved", { label: this.$t(`app.${label}`) }));
                 }
@@ -2620,6 +2638,35 @@ export default {
                 ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
             }
+        },
+        syncLxmfTransferLimitInputs() {
+            this.lxmfDeliveryTransferLimitInputMb = this.bytesToMb(this.config.lxmf_delivery_transfer_limit_in_bytes);
+            this.lxmfPropagationTransferLimitInputMb = this.bytesToMb(
+                this.config.lxmf_propagation_transfer_limit_in_bytes
+            );
+            this.lxmfPropagationSyncLimitInputMb = this.bytesToMb(this.config.lxmf_propagation_sync_limit_in_bytes);
+        },
+        bytesToMb(value) {
+            const n = Number(value);
+            if (!Number.isFinite(n) || n <= 0) {
+                return 0;
+            }
+            return Math.max(0.001, Math.round((n / 1000000) * 1000) / 1000);
+        },
+        mbToBytes(value) {
+            const n = Number(value);
+            if (!Number.isFinite(n) || n <= 0) {
+                return 1000;
+            }
+            return Math.max(1000, Math.round(n * 1000000));
+        },
+        formatByteSize(bytes) {
+            const value = Number(bytes);
+            if (!Number.isFinite(value) || value < 0) return "0 B";
+            if (value < 1000) return `${Math.round(value)} B`;
+            if (value < 1000 * 1000) return `${(value / 1000).toFixed(1)} KB`;
+            if (value < 1000 * 1000 * 1000) return `${(value / (1000 * 1000)).toFixed(2)} MB`;
+            return `${(value / (1000 * 1000 * 1000)).toFixed(2)} GB`;
         },
         sanitizeColorConfigFields() {
             if (!this.config) return;
@@ -2870,7 +2917,7 @@ export default {
             }
             this.saveTimeouts.delivery_transfer_limit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_delivery_transfer_limit_in_bytes: this.config.lxmf_delivery_transfer_limit_in_bytes,
+                    lxmf_delivery_transfer_limit_in_bytes: this.mbToBytes(this.lxmfDeliveryTransferLimitInputMb),
                 });
             }, 1000);
         },
@@ -2880,7 +2927,7 @@ export default {
             }
             this.saveTimeouts.propagation_transfer_limit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_propagation_transfer_limit_in_bytes: this.config.lxmf_propagation_transfer_limit_in_bytes,
+                    lxmf_propagation_transfer_limit_in_bytes: this.mbToBytes(this.lxmfPropagationTransferLimitInputMb),
                 });
             }, 1000);
         },
@@ -2890,7 +2937,7 @@ export default {
             }
             this.saveTimeouts.propagation_sync_limit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_propagation_sync_limit_in_bytes: this.config.lxmf_propagation_sync_limit_in_bytes,
+                    lxmf_propagation_sync_limit_in_bytes: this.mbToBytes(this.lxmfPropagationSyncLimitInputMb),
                 });
             }, 1000);
         },

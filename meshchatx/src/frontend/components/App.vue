@@ -1343,6 +1343,10 @@ export default {
 
             // request sync
             try {
+                const preferredHash = this.config?.lxmf_preferred_propagation_node_destination_hash;
+                if (preferredHash) {
+                    await window.api.post(`/api/v1/destination/${preferredHash}/request-path`);
+                }
                 await window.api.get("/api/v1/lxmf/propagation-node/sync");
             } catch (e) {
                 const errorMessage = e.response?.data?.message ?? this.$t("app.sync_error_generic");

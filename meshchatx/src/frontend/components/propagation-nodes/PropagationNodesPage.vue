@@ -4,100 +4,216 @@
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gray-50 dark:bg-zinc-950">
         <div class="px-4 py-4 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
             <div class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-4">
-                <div class="flex flex-col gap-3">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <div class="font-semibold text-gray-900 dark:text-zinc-100">Hosted Propagation Node</div>
-                        <span
-                            v-if="localPropagationNode"
-                            class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-                            :class="
-                                localPropagationNode.is_propagation_enabled
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                    : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300'
-                            "
+                <div class="flex items-start justify-between gap-3">
+                    <button
+                        type="button"
+                        class="min-w-0 text-left"
+                        @click="isLocalManagerCollapsed = !isLocalManagerCollapsed"
+                    >
+                        <div class="flex items-center gap-2 min-w-0">
+                            <MaterialDesignIcon
+                                :icon-name="isLocalManagerCollapsed ? 'chevron-right' : 'chevron-down'"
+                                class="size-5 text-gray-500 dark:text-zinc-400 shrink-0"
+                            />
+                            <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                                Hosted Propagation Node
+                            </div>
+                            <span
+                                v-if="localPropagationNode"
+                                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                                :class="
+                                    localNodeIsRunning
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                        : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                "
+                            >
+                                {{ localNodeIsRunning ? "Running" : "Stopped" }}
+                            </span>
+                            <span
+                                v-if="
+                                    localPropagationNode &&
+                                    config.lxmf_preferred_propagation_node_destination_hash ===
+                                        localPropagationNode.destination_hash
+                                "
+                                class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
+                            >
+                                Preferred
+                            </span>
+                        </div>
+                    </button>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button
+                            type="button"
+                            class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
+                            title="Announce now"
+                            :disabled="!localPropagationNode"
+                            @click="announceNow"
                         >
-                            {{ localPropagationNode.is_propagation_enabled ? "Running" : "Stopped" }}
-                        </span>
-                        <span
-                            v-if="
-                                localPropagationNode &&
-                                config.lxmf_preferred_propagation_node_destination_hash ===
-                                    localPropagationNode.destination_hash
-                            "
-                            class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
+                            <MaterialDesignIcon icon-name="bullhorn" class="size-5" />
+                        </button>
+                        <button
+                            v-if="!localNodeIsRunning"
+                            type="button"
+                            class="text-gray-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-40"
+                            title="Start node"
+                            :disabled="!localPropagationNode"
+                            @click="startLocalPropagationNode"
                         >
-                            Preferred
-                        </span>
+                            <MaterialDesignIcon icon-name="play" class="size-5" />
+                        </button>
+                        <button
+                            v-if="localNodeIsRunning"
+                            type="button"
+                            class="text-gray-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400"
+                            title="Restart node"
+                            @click="restartLocalPropagationNode"
+                        >
+                            <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                        </button>
+                        <button
+                            v-if="localNodeIsRunning"
+                            type="button"
+                            class="text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+                            title="Stop node"
+                            @click="stopLocalPropagationNode"
+                        >
+                            <MaterialDesignIcon icon-name="stop" class="size-5" />
+                        </button>
                     </div>
+                </div>
+
+                <div v-if="!isLocalManagerCollapsed" class="mt-3 space-y-3">
                     <div
                         v-if="config.lxmf_local_propagation_node_address_hash"
                         class="text-xs font-mono text-gray-600 dark:text-zinc-400 break-all"
                     >
                         &lt;{{ config.lxmf_local_propagation_node_address_hash }}&gt;
                     </div>
+                    <div class="text-xs text-gray-600 dark:text-zinc-400 flex items-center gap-2">
+                        <template v-if="nodePathFor(config.lxmf_local_propagation_node_address_hash)">
+                            <span>{{
+                                formatPathLabel(nodePathFor(config.lxmf_local_propagation_node_address_hash))
+                            }}</span>
+                        </template>
+                        <template v-else>
+                            <span>No path yet</span>
+                        </template>
+                        <button
+                            type="button"
+                            class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
+                            title="Find path now"
+                            :disabled="!config.lxmf_local_propagation_node_address_hash"
+                            @click="requestPathForNode(config.lxmf_local_propagation_node_address_hash)"
+                        >
+                            <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                        </button>
+                    </div>
+                    <label class="block text-xs text-gray-600 dark:text-zinc-400">
+                        Display name
+                        <div class="mt-1 flex items-center gap-2">
+                            <input
+                                v-model.trim="localNodeDisplayNameDraft"
+                                type="text"
+                                maxlength="64"
+                                class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                placeholder="Anonymous Peer"
+                                @keydown.enter.prevent="saveLocalNodeDisplayName"
+                            />
+                            <button
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+                                title="Save name"
+                                @click="saveLocalNodeDisplayName"
+                            >
+                                <MaterialDesignIcon icon-name="check" class="size-5" />
+                            </button>
+                            <button
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
+                                title="Reset to Anonymous"
+                                @click="resetLocalNodeDisplayName"
+                            >
+                                <MaterialDesignIcon icon-name="restore" class="size-5" />
+                            </button>
+                        </div>
+                    </label>
                     <div
-                        v-if="localPropagationNode?.local_node_stats"
+                        v-if="localNodeStatsVisible"
                         class="text-xs text-gray-600 dark:text-zinc-400 flex flex-wrap gap-x-3 gap-y-1"
                     >
                         <span>{{ formatSeconds(localPropagationNode.local_node_stats.uptime_seconds) }} uptime</span>
                         <span>{{ localPropagationNode.local_node_stats.total_peers }} peers</span>
                         <span>{{ localPropagationNode.local_node_stats.messagestore_count }} messages stored</span>
+                        <span>{{ localPropagationNode.local_node_stats.client_messages_received }} received</span>
                         <span>{{ localPropagationNode.local_node_stats.client_messages_served }} served</span>
+                        <span>{{ formatStorageUsage(localPropagationNode.local_node_stats) }} storage</span>
+                        <span>RX {{ formatByteSize(localPropagationNode.local_node_stats.rx_bytes) }}</span>
+                        <span>TX {{ formatByteSize(localPropagationNode.local_node_stats.tx_bytes) }}</span>
                     </div>
+                    <div v-else class="text-xs text-gray-500 dark:text-zinc-500">Node stats appear when running.</div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <label class="text-xs text-gray-600 dark:text-zinc-400">
-                            Delivery transfer limit (bytes)
+                            Delivery transfer limit (MB)
                             <input
-                                v-model.number="config.lxmf_delivery_transfer_limit_in_bytes"
+                                v-model.number="deliveryLimitInputMb"
                                 type="number"
-                                min="1000"
+                                min="0.001"
+                                step="0.01"
                                 class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
                                 @input="onDeliveryTransferLimitChange"
                             />
+                            <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
+                                {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
+                            </div>
                         </label>
                         <label class="text-xs text-gray-600 dark:text-zinc-400">
-                            Propagation transfer limit (bytes)
+                            Propagation transfer limit (MB)
                             <input
-                                v-model.number="config.lxmf_propagation_transfer_limit_in_bytes"
+                                v-model.number="propagationLimitInputMb"
                                 type="number"
-                                min="1000"
+                                min="0.001"
+                                step="0.01"
                                 class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
                                 @input="onPropagationTransferLimitChange"
                             />
+                            <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
+                                {{ formatByteSize(config.lxmf_propagation_transfer_limit_in_bytes) }}
+                            </div>
                         </label>
                         <label class="text-xs text-gray-600 dark:text-zinc-400">
-                            Propagation sync limit (bytes)
+                            Propagation sync limit (MB)
                             <input
-                                v-model.number="config.lxmf_propagation_sync_limit_in_bytes"
+                                v-model.number="propagationSyncLimitInputMb"
                                 type="number"
-                                min="1000"
+                                min="0.001"
+                                step="0.01"
                                 class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
                                 @input="onPropagationSyncLimitChange"
                             />
+                            <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
+                                {{ formatByteSize(config.lxmf_propagation_sync_limit_in_bytes) }}
+                            </div>
                         </label>
                     </div>
+                    <label class="block text-xs text-gray-600 dark:text-zinc-400">
+                        Propagation stamp cost
+                        <input
+                            v-model.number="config.lxmf_propagation_node_stamp_cost"
+                            type="number"
+                            min="13"
+                            max="254"
+                            class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                            @input="onPropagationStampCostChange"
+                        />
+                    </label>
                     <div class="flex flex-wrap gap-2">
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
+                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors disabled:opacity-40"
                             :disabled="!localPropagationNode"
                             @click="useLocalPropagationNode"
                         >
                             Use Our Node
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
-                            @click="restartLocalPropagationNode"
-                        >
-                            Restart Node
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors"
-                            @click="stopLocalPropagationNode"
-                        >
-                            Stop Node
                         </button>
                     </div>
                 </div>
@@ -186,6 +302,22 @@
                             <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1">
                                 Announced {{ formatTimeAgo(propagationNode.updated_at) }}
                             </div>
+                            <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex items-center gap-2">
+                                <template v-if="nodePathFor(propagationNode.destination_hash)">
+                                    <span>{{ formatPathLabel(nodePathFor(propagationNode.destination_hash)) }}</span>
+                                </template>
+                                <template v-else>
+                                    <span>No path</span>
+                                </template>
+                                <button
+                                    type="button"
+                                    class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                    title="Find path now"
+                                    @click="requestPathForNode(propagationNode.destination_hash)"
+                                >
+                                    <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                                </button>
+                            </div>
                             <div
                                 v-if="propagationNode.local_node_stats"
                                 class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex flex-wrap gap-x-3 gap-y-1"
@@ -193,7 +325,11 @@
                                 <span>{{ formatSeconds(propagationNode.local_node_stats.uptime_seconds) }} uptime</span>
                                 <span>{{ propagationNode.local_node_stats.total_peers }} peers</span>
                                 <span>{{ propagationNode.local_node_stats.messagestore_count }} stored</span>
+                                <span>{{ propagationNode.local_node_stats.client_messages_received }} received</span>
                                 <span>{{ propagationNode.local_node_stats.client_messages_served }} served</span>
+                                <span>{{ formatStorageUsage(propagationNode.local_node_stats) }} storage</span>
+                                <span>RX {{ formatByteSize(propagationNode.local_node_stats.rx_bytes) }}</span>
+                                <span>TX {{ formatByteSize(propagationNode.local_node_stats.tx_bytes) }}</span>
                             </div>
                         </div>
                         <div class="flex-shrink-0">
@@ -349,9 +485,13 @@
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
     name: "PropagationNodesPage",
+    components: {
+        MaterialDesignIcon,
+    },
     data() {
         return {
             searchTerm: "",
@@ -363,6 +503,7 @@ export default {
                 lxmf_delivery_transfer_limit_in_bytes: 1000 * 1000 * 10,
                 lxmf_propagation_transfer_limit_in_bytes: 1000 * 256,
                 lxmf_propagation_sync_limit_in_bytes: 1000 * 10240,
+                lxmf_propagation_node_stamp_cost: 16,
             },
             currentPage: 1,
             itemsPerPage: 20,
@@ -370,12 +511,29 @@ export default {
                 deliveryLimit: null,
                 propagationLimit: null,
                 propagationSyncLimit: null,
+                propagationStampCost: null,
             },
+            isLocalManagerCollapsed: false,
+            localNodeDisplayNameDraft: "",
+            deliveryLimitInputMb: 0,
+            propagationLimitInputMb: 0,
+            propagationSyncLimitInputMb: 0,
+            nodePathsByHash: {},
         };
     },
     computed: {
         localPropagationNode() {
             return this.propagationNodes.find((node) => node.is_local_node) ?? null;
+        },
+        localNodeIsRunning() {
+            const running = this.localPropagationNode?.local_node_stats?.is_running;
+            if (typeof running === "boolean") {
+                return running;
+            }
+            return Boolean(this.localPropagationNode?.is_propagation_enabled);
+        },
+        localNodeStatsVisible() {
+            return Boolean(this.localPropagationNode?.local_node_stats && this.localNodeIsRunning);
         },
         searchedPropagationNodes() {
             return this.propagationNodes.filter((propagationNode) => {
@@ -485,6 +643,9 @@ export default {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
+        if (window.matchMedia && window.matchMedia("(max-width: 640px)").matches) {
+            this.isLocalManagerCollapsed = true;
+        }
         this.getConfig();
         this.loadPropagationNodes();
     },
@@ -494,6 +655,7 @@ export default {
             switch (json.type) {
                 case "config": {
                     this.config = json.config;
+                    this.syncManagerInputsFromConfig();
                     break;
                 }
             }
@@ -502,6 +664,7 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
+                this.syncManagerInputsFromConfig();
             } catch (e) {
                 // do nothing if failed to load config
                 console.log(e);
@@ -511,9 +674,12 @@ export default {
             try {
                 const response = await window.api.patch("/api/v1/config", config);
                 this.config = response.data.config;
+                this.syncManagerInputsFromConfig();
+                return true;
             } catch (e) {
                 ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
+                return false;
             }
         },
         async loadPropagationNodes() {
@@ -524,6 +690,7 @@ export default {
                     },
                 });
                 this.propagationNodes = response.data.lxmf_propagation_nodes;
+                await this.refreshPriorityNodePaths();
             } catch {
                 // do nothing if failed to load
             }
@@ -532,6 +699,7 @@ export default {
             await this.updateConfig({
                 lxmf_preferred_propagation_node_destination_hash: destination_hash,
             });
+            await this.requestPathForNode(destination_hash);
         },
         async stopUsingPropagationNode() {
             await this.updateConfig({
@@ -541,12 +709,14 @@ export default {
         async useLocalPropagationNode() {
             if (!this.localPropagationNode) return;
             await this.usePropagationNode(this.localPropagationNode.destination_hash);
+            await this.requestPathForNode(this.localPropagationNode.destination_hash);
         },
         async restartLocalPropagationNode() {
             try {
                 await window.api.post("/api/v1/lxmf/propagation-node/restart");
                 ToastUtils.success("Local propagation node restarted");
                 await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
+                await this.refreshPriorityNodePaths();
             } catch {
                 ToastUtils.error(this.$t("common.save_failed"));
             }
@@ -556,15 +726,132 @@ export default {
                 await window.api.post("/api/v1/lxmf/propagation-node/stop");
                 ToastUtils.success("Local propagation node stopped");
                 await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
+                await this.refreshPriorityNodePaths();
             } catch {
                 ToastUtils.error(this.$t("common.save_failed"));
             }
+        },
+        async startLocalPropagationNode() {
+            try {
+                const didUpdate = await this.updateConfig({ lxmf_local_propagation_node_enabled: true });
+                if (!didUpdate) {
+                    return;
+                }
+                ToastUtils.success("Local propagation node started");
+                await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
+                await this.refreshPriorityNodePaths();
+            } catch {
+                ToastUtils.error(this.$t("common.save_failed"));
+            }
+        },
+        async announceNow(showSuccessToast = true) {
+            try {
+                await window.api.get("/api/v1/announce");
+                if (showSuccessToast) {
+                    ToastUtils.success("Announce triggered");
+                }
+                await this.loadPropagationNodes();
+                await this.refreshPriorityNodePaths();
+            } catch {
+                ToastUtils.error(this.$t("common.save_failed"));
+            }
+        },
+        async saveLocalNodeDisplayName() {
+            const nextName = (this.localNodeDisplayNameDraft || "").trim() || "Anonymous Peer";
+            try {
+                const didUpdate = await this.updateConfig({ display_name: nextName });
+                if (!didUpdate) {
+                    return;
+                }
+                this.localNodeDisplayNameDraft = nextName;
+                await this.announceNow(false);
+                ToastUtils.success("Name saved and announced");
+                await this.loadPropagationNodes();
+                await this.refreshPriorityNodePaths();
+            } catch {
+                ToastUtils.error(this.$t("common.save_failed"));
+            }
+        },
+        async resetLocalNodeDisplayName() {
+            this.localNodeDisplayNameDraft = "Anonymous Peer";
+            await this.saveLocalNodeDisplayName();
+        },
+        syncManagerInputsFromConfig() {
+            const displayName = (this.config.display_name || "").trim();
+            this.localNodeDisplayNameDraft = displayName || "Anonymous Peer";
+            this.deliveryLimitInputMb = this.bytesToMb(this.config.lxmf_delivery_transfer_limit_in_bytes);
+            this.propagationLimitInputMb = this.bytesToMb(this.config.lxmf_propagation_transfer_limit_in_bytes);
+            this.propagationSyncLimitInputMb = this.bytesToMb(this.config.lxmf_propagation_sync_limit_in_bytes);
+        },
+        bytesToMb(value) {
+            const n = Number(value);
+            if (!Number.isFinite(n) || n <= 0) {
+                return 0;
+            }
+            return Math.max(0.001, Math.round((n / 1000000) * 1000) / 1000);
+        },
+        mbToBytes(value) {
+            const n = Number(value);
+            if (!Number.isFinite(n) || n <= 0) {
+                return 1000;
+            }
+            return Math.max(1000, Math.round(n * 1000000));
+        },
+        async refreshPriorityNodePaths() {
+            const hashes = new Set();
+            const localHash = this.config.lxmf_local_propagation_node_address_hash;
+            if (localHash) {
+                hashes.add(localHash);
+            }
+            const preferredHash = this.config.lxmf_preferred_propagation_node_destination_hash;
+            if (preferredHash) {
+                hashes.add(preferredHash);
+            }
+            for (const hash of hashes) {
+                await this.requestPathForNode(hash);
+            }
+        },
+        async requestPathForNode(destinationHash) {
+            const hash = (destinationHash || "").trim();
+            if (!hash) {
+                return;
+            }
+            try {
+                const response = await window.api.get(`/api/v1/destination/${hash}/path`, {
+                    params: { request: "1", timeout: 4 },
+                });
+                this.nodePathsByHash = {
+                    ...this.nodePathsByHash,
+                    [hash]: response.data.path || null,
+                };
+            } catch {
+                this.nodePathsByHash = {
+                    ...this.nodePathsByHash,
+                    [hash]: null,
+                };
+            }
+        },
+        nodePathFor(destinationHash) {
+            const hash = (destinationHash || "").trim();
+            if (!hash) {
+                return null;
+            }
+            return this.nodePathsByHash[hash] || null;
+        },
+        formatPathLabel(path) {
+            if (!path) {
+                return "No path";
+            }
+            const hops = Number(path.hops);
+            const hopsText = Number.isFinite(hops) ? `${hops} ${hops === 1 ? "hop" : "hops"}` : "Unknown hops";
+            const iface = path.next_hop_interface || "unknown interface";
+            return `${hopsText} via ${iface}`;
         },
         onDeliveryTransferLimitChange() {
             if (this.saveTimeouts.deliveryLimit) clearTimeout(this.saveTimeouts.deliveryLimit);
             this.saveTimeouts.deliveryLimit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_delivery_transfer_limit_in_bytes: this.config.lxmf_delivery_transfer_limit_in_bytes,
+                    lxmf_delivery_transfer_limit_in_bytes: this.mbToBytes(this.deliveryLimitInputMb),
                 });
             }, 450);
         },
@@ -572,7 +859,7 @@ export default {
             if (this.saveTimeouts.propagationLimit) clearTimeout(this.saveTimeouts.propagationLimit);
             this.saveTimeouts.propagationLimit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_propagation_transfer_limit_in_bytes: this.config.lxmf_propagation_transfer_limit_in_bytes,
+                    lxmf_propagation_transfer_limit_in_bytes: this.mbToBytes(this.propagationLimitInputMb),
                 });
             }, 450);
         },
@@ -580,7 +867,22 @@ export default {
             if (this.saveTimeouts.propagationSyncLimit) clearTimeout(this.saveTimeouts.propagationSyncLimit);
             this.saveTimeouts.propagationSyncLimit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_propagation_sync_limit_in_bytes: this.config.lxmf_propagation_sync_limit_in_bytes,
+                    lxmf_propagation_sync_limit_in_bytes: this.mbToBytes(this.propagationSyncLimitInputMb),
+                });
+            }, 450);
+        },
+        onPropagationStampCostChange() {
+            if (this.saveTimeouts.propagationStampCost) clearTimeout(this.saveTimeouts.propagationStampCost);
+            this.saveTimeouts.propagationStampCost = setTimeout(async () => {
+                let cost = Number(this.config.lxmf_propagation_node_stamp_cost);
+                if (!Number.isFinite(cost) || cost < 13) {
+                    cost = 13;
+                } else if (cost > 254) {
+                    cost = 254;
+                }
+                this.config.lxmf_propagation_node_stamp_cost = cost;
+                await this.updateConfig({
+                    lxmf_propagation_node_stamp_cost: cost,
                 });
             }, 450);
         },
@@ -597,6 +899,25 @@ export default {
             if (hours < 24) return `${hours}h`;
             const days = Math.floor(hours / 24);
             return `${days}d`;
+        },
+        formatByteSize(bytes) {
+            const value = Number(bytes);
+            if (!Number.isFinite(value) || value < 0) return "0 B";
+            if (value < 1000) return `${Math.round(value)} B`;
+            if (value < 1000 * 1000) return `${(value / 1000).toFixed(1)} KB`;
+            if (value < 1000 * 1000 * 1000) return `${(value / (1000 * 1000)).toFixed(2)} MB`;
+            return `${(value / (1000 * 1000 * 1000)).toFixed(2)} GB`;
+        },
+        formatStorageUsage(stats) {
+            if (!stats || typeof stats !== "object") {
+                return "0 B";
+            }
+            const used = this.formatByteSize(stats.messagestore_bytes);
+            const limitValue = Number(stats.messagestore_limit_bytes);
+            if (!Number.isFinite(limitValue) || limitValue <= 0) {
+                return used;
+            }
+            return `${used} / ${this.formatByteSize(limitValue)}`;
         },
     },
 };

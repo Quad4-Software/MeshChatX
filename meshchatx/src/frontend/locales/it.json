@@ -25,7 +25,21 @@
         "export_identity": "Esporta Identità",
         "bot_deleted": "Bot eliminato con successo",
         "failed_to_delete": "Impossibile eliminare il bot",
-        "more_bots_coming": "Altri bot in arrivo!"
+        "more_bots_coming": "Altri bot in arrivo!",
+        "chat_with_bot": "Chat",
+        "lxmf_address": "Indirizzo LXMF",
+        "last_announce": "Ultimo announce",
+        "never_announced": "Non ancora visto su questo nodo",
+        "address_pending": "Disponibile dopo il primo avvio del bot",
+        "status_running": "In esecuzione",
+        "status_stopped": "Fermato",
+        "force_announce": "Annuncia ora",
+        "edit_name": "Modifica nome",
+        "bot_renamed": "Nome salvato",
+        "rename_failed": "Impossibile salvare il nome",
+        "name_required": "Inserisci un nome",
+        "announce_triggered": "Annuncio richiesto",
+        "announce_failed": "Impossibile richiedere l'annuncio"
     },
     "app": {
         "name": "Reticulum MeshChatX",
