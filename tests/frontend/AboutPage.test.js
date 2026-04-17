@@ -3,6 +3,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AboutPage from "@/components/about/AboutPage.vue";
 import ElectronUtils from "@/js/ElectronUtils";
 import DialogUtils from "@/js/DialogUtils";
+import ToastUtils from "@/js/ToastUtils";
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
+    },
+}));
 
 describe("AboutPage.vue", () => {
     let axiosMock;
@@ -173,7 +183,9 @@ describe("AboutPage.vue", () => {
         axiosMock.post.mockResolvedValueOnce({ data: { message: "RNS restarted" } });
         await wrapper.vm.restartRns();
 
+        expect(ToastUtils.loading).toHaveBeenCalledWith("app.reloading_rns", 0, "about-rns-reload");
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/reload");
+        expect(ToastUtils.dismiss).toHaveBeenCalledWith("about-rns-reload");
     });
 
     it("updates app info periodically", async () => {

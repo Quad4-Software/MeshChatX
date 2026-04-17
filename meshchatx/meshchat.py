@@ -1263,7 +1263,8 @@ class ReticulumMeshChat:
                 rpc_addrs.append((("127.0.0.1", 37428), "AF_INET"))
 
             abstract_unix_addr_in_use_after_wait = False
-            for i in range(15):
+            reload_probe_attempts = 3
+            for i in range(reload_probe_attempts):
                 all_free = True
                 for addr, family_str in rpc_addrs:
                     try:
@@ -1290,7 +1291,7 @@ class ReticulumMeshChat:
                                 addr_display = addr[1:] + " (abstract)"
 
                             print(
-                                f"RPC addr {addr_display} still in use... (attempt {i + 1}/15)",
+                                f"RPC addr {addr_display} still in use... (attempt {i + 1}/{reload_probe_attempts})",
                             )
                             s.close()
                             is_abstract_unix_addr = (

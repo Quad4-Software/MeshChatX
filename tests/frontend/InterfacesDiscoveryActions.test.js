@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import InterfacesPage from "../../meshchatx/src/frontend/components/interfaces/InterfacesPage.vue";
+import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
 vi.mock("../../meshchatx/src/frontend/js/GlobalState", () => ({
     default: {
@@ -21,6 +22,8 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
     default: {
         success: vi.fn(),
         error: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
     },
 }));
 
@@ -189,6 +192,8 @@ describe("InterfacesPage discovery actions", () => {
 
         await wrapper.vm.reloadRns();
 
+        expect(ToastUtils.loading).toHaveBeenCalledWith("app.reloading_rns", 0, "interfaces-rns-reload");
         expect(mockAxios.post).toHaveBeenCalledWith("/api/v1/reticulum/reload");
+        expect(ToastUtils.dismiss).toHaveBeenCalledWith("interfaces-rns-reload");
     });
 });

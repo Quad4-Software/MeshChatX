@@ -1277,6 +1277,7 @@ export default {
 
             try {
                 this.reloadingRns = true;
+                ToastUtils.loading(this.$t("app.reloading_rns"), 0, "interfaces-rns-reload");
                 const response = await window.api.post("/api/v1/reticulum/reload");
                 ToastUtils.success(response.data.message);
                 GlobalState.hasPendingInterfaceChanges = false;
@@ -1286,6 +1287,7 @@ export default {
                 ToastUtils.error(e.response?.data?.error || this.$t("interfaces.failed_reload"));
                 console.error(e);
             } finally {
+                ToastUtils.dismiss("interfaces-rns-reload");
                 this.reloadingRns = false;
             }
         },

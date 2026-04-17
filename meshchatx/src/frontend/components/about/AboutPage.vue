@@ -1345,12 +1345,14 @@ export default {
             if (this.reloadingRns) return;
             try {
                 this.reloadingRns = true;
+                ToastUtils.loading(this.$t("app.reloading_rns"), 0, "about-rns-reload");
                 const response = await window.api.post("/api/v1/reticulum/reload");
                 ToastUtils.success(response?.data?.message || this.$t("app.reloaded_rns"));
                 await this.getAppInfo();
             } catch (e) {
                 ToastUtils.error(e.response?.data?.error || this.$t("settings.failed_reload_reticulum"));
             } finally {
+                ToastUtils.dismiss("about-rns-reload");
                 this.reloadingRns = false;
             }
         },
