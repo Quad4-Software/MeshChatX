@@ -240,6 +240,7 @@ def _make_aio_app(mock_app, use_https: bool):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_login_records_access_attempt_and_debug_list(mock_app):
     mock_app.config.auth_enabled.set(True)
     pw = b"smoke-access-attempt-pw-ok"
@@ -267,6 +268,7 @@ async def test_login_records_access_attempt_and_debug_list(mock_app):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_lockout_login_returns_429_smoke(mock_app):
     mock_app.config.auth_enabled.set(True)
     pw = b"lockout-smoke-pw"
@@ -297,6 +299,7 @@ async def test_lockout_login_returns_429_smoke(mock_app):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_rate_limited_login_returns_429_smoke(mock_app):
     mock_app.config.auth_enabled.set(True)
     pw = b"rl-smoke-pw"
@@ -346,6 +349,7 @@ async def test_rate_limited_login_returns_429_smoke(mock_app):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_debug_access_attempts_endpoint_returns_shape(mock_app):
     mock_app.config.auth_enabled.set(False)
     aio_app = _make_aio_app(mock_app, use_https=False)

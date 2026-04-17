@@ -49,8 +49,7 @@ describe("MarkdownRenderer.js", () => {
         });
 
         it("keeps underscores intact in long https links", () => {
-            const url =
-                "https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
+            const url = "https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
             const result = MarkdownRenderer.render(`visit ${url}`);
             expect(result).toContain(`href="${url}"`);
             expect(result).toContain(url);
@@ -390,8 +389,7 @@ describe("MarkdownRenderer.js", () => {
         });
 
         it("strip keeps intraword underscores intact", () => {
-            const url =
-                "https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
+            const url = "https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
             expect(MarkdownRenderer.strip(url)).toBe(url);
         });
 

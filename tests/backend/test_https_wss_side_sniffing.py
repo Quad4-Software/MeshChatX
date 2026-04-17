@@ -17,6 +17,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
+pytestmark = pytest.mark.usefixtures("require_loopback_tcp")
+
 
 def _make_self_signed_cert_and_key(cert_path: str, key_path: str) -> None:
     private_key = rsa.generate_private_key(

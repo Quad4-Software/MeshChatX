@@ -171,6 +171,16 @@ describe("MessagesSidebar UI", () => {
         expect(conversationsPanel.exists()).toBe(true);
     });
 
+    it("uses right-edge collapse icons when sidebar position is right", () => {
+        const left = mountSidebar({ sidebarPosition: "left" });
+        expect(left.vm.expandedTabBarChevronIcon).toBe("chevron-left");
+        expect(left.vm.collapsedStripChevronIcon).toBe("chevron-right");
+
+        const right = mountSidebar({ sidebarPosition: "right" });
+        expect(right.vm.expandedTabBarChevronIcon).toBe("chevron-right");
+        expect(right.vm.collapsedStripChevronIcon).toBe("chevron-left");
+    });
+
     it("emits conversation-click when a conversation row is clicked", async () => {
         const conversations = [
             {

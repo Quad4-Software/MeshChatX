@@ -126,6 +126,13 @@ describe("LinkUtils.js", () => {
             expect(result).not.toMatch(/\bhref\s*=\s*["']?\s*data\s*:/i);
         });
 
+        it("does not produce data: href for data image payload text", () => {
+            const text = "inline image data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA";
+            const result = LinkUtils.renderStandardLinks(text);
+            expect(result).not.toMatch(/\bhref\s*=\s*["']?\s*data\s*:/i);
+            expect(result).not.toContain("<a ");
+        });
+
         it("stops URL at space so no script in same line", () => {
             const text = "https://example.com javascript:alert(1)";
             const result = LinkUtils.renderStandardLinks(text);

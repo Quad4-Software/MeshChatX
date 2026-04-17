@@ -77,7 +77,7 @@ describe("BotsPage.vue", () => {
 
         const cards = wrapper.findAll("div.cursor-pointer");
         const templateCard = cards.filter(
-            (d) => d.text().includes("Echo Bot") && d.text().includes("Echos messages"),
+            (d) => d.text().includes("Echo Bot") && d.text().includes("Echos messages")
         )[0];
         await templateCard.trigger("click");
 

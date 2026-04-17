@@ -52,6 +52,7 @@ def test_encrypted_cookie_storage_http_flags(mock_app):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_login_sets_cookie_and_allows_protected_api(mock_app):
     mock_app.config.auth_enabled.set(True)
     pw = b"integration-test-password-ok"
@@ -79,6 +80,7 @@ async def test_login_sets_cookie_and_allows_protected_api(mock_app):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_ws_returns_401_without_session_when_auth_enabled(mock_app):
     mock_app.config.auth_enabled.set(True)
     mock_app.config.auth_password_hash.set(
@@ -92,6 +94,7 @@ async def test_ws_returns_401_without_session_when_auth_enabled(mock_app):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_logout_clears_session_for_protected_api(mock_app):
     mock_app.config.auth_enabled.set(True)
     pw = b"logout-test-password-ok"
@@ -111,6 +114,7 @@ async def test_logout_clears_session_for_protected_api(mock_app):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_auth_login_invalid_json_returns_400(mock_app):
     mock_app.config.auth_enabled.set(True)
     mock_app.config.auth_password_hash.set(
@@ -135,6 +139,7 @@ async def test_auth_login_invalid_json_returns_400(mock_app):
     deadline=None,
 )
 @given(body=st.binary(min_size=0, max_size=12000))
+@pytest.mark.usefixtures("require_loopback_tcp")
 def test_auth_login_fuzz_never_500(mock_app, body):
     mock_app.config.auth_enabled.set(True)
     mock_app.config.auth_password_hash.set(

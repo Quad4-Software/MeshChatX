@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import GlobalState from "@/js/GlobalState";
+import DialogUtils from "@/js/DialogUtils";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -17,6 +18,7 @@ describe("ConversationViewer.vue", () => {
         GlobalState.config.theme = "light";
         GlobalState.config.message_outbound_bubble_color = "#4f46e5";
         GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
+        GlobalState.config.warn_on_stranger_links = true;
         WebSocketConnection.connect();
         axiosMock = {
             get: vi.fn().mockImplementation((url) => {
@@ -39,6 +41,7 @@ describe("ConversationViewer.vue", () => {
 
         // Mock URL.createObjectURL
         window.URL.createObjectURL = vi.fn(() => "mock-url");
+        vi.spyOn(window, "open").mockImplementation(() => null);
 
         // Mock FileReader
         const mockFileReader = {
@@ -57,6 +60,9 @@ describe("ConversationViewer.vue", () => {
 
     afterEach(() => {
         delete window.api;
+        if (window.open?.mockRestore) {
+            window.open.mockRestore();
+        }
         vi.unstubAllGlobals();
         WebSocketConnection.destroy();
     });
@@ -171,6 +177,80 @@ describe("ConversationViewer.vue", () => {
         wrapper.vm.onComposerImageDrop(event);
         expect(wrapper.vm.newMessageImages).toHaveLength(1);
         expect(wrapper.vm.composerImageDropActive).toBe(false);
+    });
+
+    it("warns before opening http links from strangers when enabled", async () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.isStrangerPeer = true;
+        GlobalState.config.warn_on_stranger_links = true;
+        DialogUtils.confirm.mockClear();
+        window.open.mockClear();
+        DialogUtils.confirm.mockResolvedValueOnce(true);
+
+        const anchor = document.createElement("a");
+        anchor.setAttribute("href", "https://example.com/path");
+        const event = { target: anchor, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(DialogUtils.confirm).toHaveBeenCalledWith("messages.stranger_link_open_confirm");
+        expect(window.open).toHaveBeenCalledWith("https://example.com/path", "_blank", "noopener");
+    });
+
+    it("does not open stranger http link when warning confirm is rejected", async () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.isStrangerPeer = true;
+        GlobalState.config.warn_on_stranger_links = true;
+        DialogUtils.confirm.mockClear();
+        window.open.mockClear();
+        DialogUtils.confirm.mockResolvedValueOnce(false);
+
+        const anchor = document.createElement("a");
+        anchor.setAttribute("href", "https://example.com/path");
+        const event = { target: anchor, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(DialogUtils.confirm).toHaveBeenCalled();
+        expect(window.open).not.toHaveBeenCalled();
+    });
+
+    it("opens stranger http link without prompt when warning is disabled", async () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.isStrangerPeer = true;
+        GlobalState.config.warn_on_stranger_links = false;
+        DialogUtils.confirm.mockClear();
+        window.open.mockClear();
+
+        const anchor = document.createElement("a");
+        anchor.setAttribute("href", "https://example.com/path");
+        const event = { target: anchor, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(DialogUtils.confirm).not.toHaveBeenCalled();
+        expect(window.open).toHaveBeenCalledWith("https://example.com/path", "_blank", "noopener");
+    });
+
+    it("blocks non-http href payloads like data urls in message anchors", async () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.isStrangerPeer = true;
+        GlobalState.config.warn_on_stranger_links = true;
+        DialogUtils.confirm.mockClear();
+        window.open.mockClear();
+
+        const anchor = document.createElement("a");
+        anchor.setAttribute("href", "data:image/png;base64,AAAA");
+        const event = { target: anchor, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(DialogUtils.confirm).not.toHaveBeenCalled();
+        expect(window.open).not.toHaveBeenCalled();
     });
 
     it("onComposerImageDrop ignores non-image files", () => {

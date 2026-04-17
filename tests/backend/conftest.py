@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import socket
 import tempfile
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
@@ -18,6 +19,35 @@ from meshchatx.src.backend.database.schema import DatabaseSchema
 # Set log dir to a temporary directory for tests to avoid permission issues
 # in restricted environments like sandboxes.
 os.environ["MESHCHAT_LOG_DIR"] = tempfile.mkdtemp()
+
+
+@pytest.fixture(scope="session")
+def loopback_available():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    accepted = None
+    try:
+        server.settimeout(0.5)
+        client.settimeout(0.5)
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        port = server.getsockname()[1]
+        client.connect(("127.0.0.1", port))
+        accepted, _ = server.accept()
+        return True
+    except OSError:
+        return False
+    finally:
+        if accepted is not None:
+            accepted.close()
+        client.close()
+        server.close()
+
+
+@pytest.fixture
+def require_loopback_tcp(loopback_available):
+    if not loopback_available:
+        pytest.skip("Loopback TCP is blocked by local firewall/policy; skipping localhost integration test.")
 
 
 @pytest.fixture(autouse=True)

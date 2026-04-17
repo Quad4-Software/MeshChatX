@@ -104,12 +104,16 @@ def integration_app(temp_dir):
 
 
 def _route_handler(app, path, method="GET"):
-    return next(r.handler for r in app.get_routes() if r.path == path and r.method == method)
+    return next(
+        r.handler for r in app.get_routes() if r.path == path and r.method == method
+    )
 
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_remote_propagation_sync_transitions_path_requested_to_complete(integration_app):
+async def test_remote_propagation_sync_transitions_path_requested_to_complete(
+    integration_app,
+):
     app, fake_router = integration_app
     remote_hash = b"\x22" * 16
     fake_router.set_outbound_propagation_node(remote_hash)
@@ -131,18 +135,24 @@ async def test_remote_propagation_sync_transitions_path_requested_to_complete(in
 
     with (
         patch("meshchatx.meshchat.RNS.Transport.has_path", side_effect=has_path),
-        patch("meshchatx.meshchat.RNS.Transport.request_path", side_effect=request_path),
+        patch(
+            "meshchatx.meshchat.RNS.Transport.request_path", side_effect=request_path
+        ),
     ):
         first_sync = await sync_handler(None)
         assert first_sync.status == 200
 
-        first_status = json.loads((await status_handler(None)).body)["propagation_node_status"]
+        first_status = json.loads((await status_handler(None)).body)[
+            "propagation_node_status"
+        ]
         assert first_status["state"] == "path_requested"
 
         second_sync = await sync_handler(None)
         assert second_sync.status == 200
 
-        second_status = json.loads((await status_handler(None)).body)["propagation_node_status"]
+        second_status = json.loads((await status_handler(None)).body)[
+            "propagation_node_status"
+        ]
         assert second_status["state"] == "complete"
         assert second_status["progress"] == 100.0
         assert fake_router.request_messages_calls >= 2
@@ -150,7 +160,9 @@ async def test_remote_propagation_sync_transitions_path_requested_to_complete(in
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_local_preferred_propagation_sync_completes_without_remote_lookup(integration_app):
+async def test_local_preferred_propagation_sync_completes_without_remote_lookup(
+    integration_app,
+):
     app, fake_router = integration_app
     local_hash = fake_router.propagation_destination.hash
     fake_router.set_outbound_propagation_node(local_hash)
@@ -165,7 +177,9 @@ async def test_local_preferred_propagation_sync_completes_without_remote_lookup(
         response = await sync_handler(None)
         assert response.status == 200
 
-        status_data = json.loads((await status_handler(None)).body)["propagation_node_status"]
+        status_data = json.loads((await status_handler(None)).body)[
+            "propagation_node_status"
+        ]
         assert status_data["state"] == "complete"
         assert status_data["progress"] == 100.0
         assert fake_router.request_messages_calls == 0

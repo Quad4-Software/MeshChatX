@@ -137,6 +137,13 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { ui_glass_enabled: false });
     });
 
+    it("onMessagesSidebarPositionChange PATCHes messages_sidebar_position", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.messages_sidebar_position = "right";
+        await w.vm.onMessagesSidebarPositionChange();
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { messages_sidebar_position: "right" });
+    });
+
     it("resetAppearanceDefaults PATCHes full appearance payload", async () => {
         const w = await mountSettingsPage(api);
         await w.vm.resetAppearanceDefaults();
@@ -144,6 +151,7 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
             "/api/v1/config",
             expect.objectContaining({
                 theme: "light",
+                messages_sidebar_position: "left",
                 message_font_size: 14,
                 message_icon_size: 28,
                 ui_transparency: 0,
@@ -347,6 +355,8 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { block_all_from_strangers: true });
         await w.vm.onShowUnknownContactBannerChange(false);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { show_unknown_contact_banner: false });
+        await w.vm.onWarnOnStrangerLinksChange(false);
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { warn_on_stranger_links: false });
     });
 
     it("banishment PATCHes toggle and debounced text/color", async () => {

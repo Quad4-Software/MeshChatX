@@ -445,6 +445,7 @@ def test_random_notification_operations(db, operations):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
 async def test_auth_middleware_returns_401_for_api_without_session_when_auth_enabled(
     mock_app,
 ):
