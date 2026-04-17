@@ -1,0 +1,152 @@
+# Linux CI moved from Gitea for faster/free runners.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
+name: CI
+
+on:
+    push:
+        branches:
+            - "**"
+    pull_request:
+        branches:
+            - master
+            - dev
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    NODE_OPTIONS: --max-old-space-size=8192
+    PYTHON_VERSION: "3.14"
+    NODE_VERSION: "24"
+    POETRY_VERSION: "2.1.1"
+    PNPM_VERSION: "10.32.1"
+
+jobs:
+    verify:
+        name: ${{ matrix.task.name }}
+        runs-on: ubuntu-latest
+        timeout-minutes: ${{ matrix.task.timeout }}
+        strategy:
+            fail-fast: false
+            matrix:
+                task:
+                    - name: Lint
+                      id: lint
+                      timeout: 35
+                    - name: Frontend tests
+                      id: frontend-tests
+                      timeout: 45
+                    - name: Backend tests
+                      id: backend-tests
+                      timeout: 55
+                    - name: Localization tests
+                      id: lang-tests
+                      timeout: 20
+                    - name: Linux build check
+                      id: build-check
+                      timeout: 60
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install Poetry (PyPI pin)
+              env:
+                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
+              run: bash scripts/ci/github-install-poetry.sh
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+                  cache-dependency-path: pnpm-lock.yaml
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: Run matrix task
+              run: |
+                  set -euo pipefail
+                  case "${{ matrix.task.id }}" in
+                    lint)
+                      pnpm run lint
+                      poetry run ruff check .
+                      poetry run ruff format --check .
+                      ;;
+                    frontend-tests)
+                      pnpm run test -- --exclude tests/frontend/i18n.test.js
+                      ;;
+                    backend-tests)
+                      poetry run python -m pytest tests/backend -n auto \
+                        --ignore=tests/backend/test_performance_hotpaths.py \
+                        --ignore=tests/backend/test_memory_profiling.py \
+                        --ignore=tests/backend/test_performance_bottlenecks.py \
+                        --cov=meshchatx/src/backend
+                      ;;
+                    lang-tests)
+                      pnpm run test tests/frontend/i18n.test.js
+                      poetry run python -m pytest tests/backend/test_translator_handler.py
+                      ;;
+                    build-check)
+                      pnpm run build-frontend
+                      poetry run python -m compileall meshchatx/
+                      pnpm run build-backend
+                      ;;
+                    *)
+                      echo "Unknown matrix task: ${{ matrix.task.id }}" >&2
+                      exit 1
+                      ;;
+                  esac
+
+            - name: Upload Linux build-check artifacts
+              if: matrix.task.id == 'build-check'
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-linux-build-check-${{ github.ref_name }}-${{ github.run_id }}
+                  path: |
+                      meshchatx/public/
+                      build/exe/
+                  if-no-files-found: warn
+
+    validate-build-artifact:
+        name: Validate Linux build artifact
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        needs: verify
+        steps:
+            - name: Download Linux build-check artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  pattern: meshchatx-linux-build-check-*-${{ github.run_id }}
+                  path: .artifacts/linux-build-check
+                  merge-multiple: true
+
+            - name: Validate artifact contents
+              run: |
+                  set -euo pipefail
+                  test -d ".artifacts/linux-build-check/meshchatx/public"
+                  test -d ".artifacts/linux-build-check/build/exe"
+                  test -n "$(ls -A .artifacts/linux-build-check/meshchatx/public)"
+                  test -n "$(ls -A .artifacts/linux-build-check/build/exe)"
+                  echo "Linux build artifact download + content validation passed."

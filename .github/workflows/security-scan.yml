@@ -1,0 +1,75 @@
+# Security scans migrated from .gitea/workflows/scan.yml.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
+name: Security scans
+
+on:
+    schedule:
+        - cron: "30 12 * * 1"
+    push:
+        branches:
+            - master
+            - dev
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    PYTHON_VERSION: "3.14"
+    NODE_VERSION: "24"
+    POETRY_VERSION: "2.1.1"
+    PNPM_VERSION: "10.32.1"
+
+jobs:
+    scan:
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install Poetry (PyPI pin)
+              env:
+                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
+              run: bash scripts/ci/github-install-poetry.sh
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: "pnpm"
+                  cache-dependency-path: pnpm-lock.yaml
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: pip-audit
+              run: |
+                  poetry run pip install --upgrade "pip>=26.0" pip-audit
+                  poetry run pip-audit
+
+            - name: Setup Trivy
+              run: sh scripts/ci/setup-trivy.sh
+
+            - name: Trivy filesystem scan (dependencies)
+              run: sh scripts/ci/trivy-fs-scan.sh
+
+            - name: Trivy Dockerfile misconfiguration
+              run: trivy config --exit-code 1 Dockerfile

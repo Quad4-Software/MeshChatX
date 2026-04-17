@@ -1,10 +1,7 @@
 name: Security Scans
 
 on:
-    schedule:
-        - cron: "30 12 * * 1"
-    push:
-        branches: [master, dev]
+    # Migrated to GitHub Actions; keep manual fallback only on Gitea.
     workflow_dispatch:
 
 permissions:

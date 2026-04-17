@@ -1,13 +1,8 @@
 name: CI
 
 on:
-    push:
-        branches:
-            - "*"
-    pull_request:
-        branches:
-            - master
-            - dev
+    # Migrated to GitHub Actions (.github/workflows/ci.yml).
+    # Keep this workflow manual for fallback troubleshooting on Gitea runner.
     workflow_dispatch:
 
 permissions:
