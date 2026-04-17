@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import glob
 import importlib.metadata
 import json
 import shutil
@@ -141,6 +142,164 @@ def collect_backend_licenses() -> list[dict[str, Any]]:
     return _collect_python_transitive(roots)
 
 
+def _license_from_package_json(data: dict[str, Any]) -> str:
+    lic = data.get("license")
+    if isinstance(lic, str) and lic.strip():
+        return lic.strip()
+    if isinstance(lic, dict):
+        t = lic.get("type")
+        if isinstance(t, str) and t.strip():
+            return t.strip()
+    licenses = data.get("licenses")
+    if isinstance(licenses, list) and licenses:
+        first = licenses[0]
+        if isinstance(first, dict):
+            t = first.get("type")
+            if isinstance(t, str) and t.strip():
+                return t.strip()
+    return "—"
+
+
+def _author_from_package_json(data: dict[str, Any]) -> str:
+    author = data.get("author")
+    if isinstance(author, str) and author.strip():
+        return author.strip()
+    if isinstance(author, dict):
+        name = (author.get("name") or "").strip()
+        email = (author.get("email") or "").strip()
+        if name and email:
+            return f"{name} <{email}>"
+        if name or email:
+            return name or email
+    contributors = data.get("contributors")
+    if isinstance(contributors, list) and contributors:
+        first = contributors[0]
+        if isinstance(first, str) and first.strip():
+            return first.strip()
+        if isinstance(first, dict):
+            name = (first.get("name") or "").strip()
+            email = (first.get("email") or "").strip()
+            if name and email:
+                return f"{name} <{email}>"
+            if name or email:
+                return name or email
+    return "—"
+
+
+def _workspace_root_npm_identity(repo_root: Path) -> tuple[str | None, str | None]:
+    """Return ``(name_lower, version)`` from the repository root ``package.json``."""
+    pj = repo_root / "package.json"
+    if not pj.is_file():
+        return None, None
+    try:
+        data = json.loads(pj.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None, None
+    if not isinstance(data, dict):
+        return None, None
+    name = data.get("name")
+    ver = data.get("version")
+    if not isinstance(name, str) or not name.strip():
+        return None, None
+    vn = name.strip().lower()
+    vv = ver.strip() if isinstance(ver, str) and ver.strip() else None
+    return vn, vv
+
+
+def _filter_out_workspace_root_package(
+    rows: list[dict[str, Any]],
+    repo_root: Path,
+) -> list[dict[str, Any]]:
+    """Drop the workspace app itself so it is not listed as a third-party Node dep."""
+    root_name, root_ver = _workspace_root_npm_identity(repo_root)
+    if not root_name:
+        return rows
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        n = str(r.get("name", "")).strip().lower()
+        v = str(r.get("version", "")).strip()
+        if n == root_name and (root_ver is None or v == root_ver):
+            continue
+        out.append(r)
+    return out
+
+
+def collect_frontend_from_node_modules(repo_root: Path) -> list[dict[str, Any]]:
+    """Collect license rows by scanning node_modules/**/package.json.
+
+    Used when ``pnpm licenses list`` is unavailable or fails (e.g. pnpm lockfile
+    bugs). Recursive glob follows symlinks so pnpm-linked layouts are included.
+    """
+    nm = repo_root / "node_modules"
+    if not nm.is_dir():
+        return []
+    pattern = str(nm / "**" / "package.json")
+    paths = sorted(glob.glob(pattern, recursive=True))
+    seen: set[tuple[str, str]] = set()
+    rows: list[dict[str, Any]] = []
+    for pkg_path_str in paths:
+        pkg_path = Path(pkg_path_str)
+        try:
+            raw = pkg_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(data, dict):
+            continue
+        name = data.get("name")
+        if not isinstance(name, str) or not name.strip():
+            continue
+        version = data.get("version")
+        if not isinstance(version, str) or not version.strip():
+            version = "?"
+        key = (name.lower(), version)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(
+            {
+                "name": name.strip(),
+                "version": version,
+                "author": _author_from_package_json(data),
+                "license": _license_from_package_json(data),
+            },
+        )
+    rows.sort(key=lambda r: r["name"].lower())
+    return rows
+
+
+def _try_pnpm_licenses(repo_root: Path) -> list[dict[str, Any]] | None:
+    pnpm = shutil.which("pnpm")
+    if not pnpm:
+        return None
+    try:
+        proc = subprocess.run(
+            [pnpm, "licenses", "list", "--json"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+    if proc.returncode != 0 or not (proc.stdout or "").strip():
+        return None
+    try:
+        parsed = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return None
+    if isinstance(parsed, dict) and parsed.get("error"):
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    rows = _flatten_pnpm_licenses_json(parsed)
+    return rows if rows else None
+
+
 def _flatten_pnpm_licenses_json(data: dict[str, Any]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for _license_key, packages in data.items():
@@ -202,31 +361,26 @@ def _load_embedded_frontend_licenses() -> list[dict[str, Any]] | None:
 def collect_frontend_licenses() -> tuple[list[dict[str, Any]], str]:
     embedded = _load_embedded_frontend_licenses()
     repo = _repo_root()
-    if not (repo / "package.json").is_file():
-        if embedded is not None:
-            return embedded, "embedded"
+    pj = repo / "package.json"
+
+    def _apply_root_filter(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return _filter_out_workspace_root_package(rows, repo) if pj.is_file() else rows
+
+    if not pj.is_file():
+        if embedded:
+            return _apply_root_filter(embedded), "embedded"
         return [], "none"
 
-    pnpm = shutil.which("pnpm")
-    if pnpm:
-        try:
-            proc = subprocess.run(
-                [pnpm, "licenses", "list", "--json"],
-                cwd=repo,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                check=False,
-            )
-            if proc.returncode == 0 and proc.stdout.strip():
-                parsed = json.loads(proc.stdout)
-                if isinstance(parsed, dict):
-                    return _flatten_pnpm_licenses_json(parsed), "pnpm"
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
-            pass
+    pnpm_rows = _try_pnpm_licenses(repo)
+    if pnpm_rows:
+        return _apply_root_filter(pnpm_rows), "pnpm"
 
-    if embedded is not None:
-        return embedded, "embedded"
+    nm_rows = collect_frontend_from_node_modules(repo)
+    if nm_rows:
+        return _apply_root_filter(nm_rows), "node_modules"
+
+    if embedded:
+        return _apply_root_filter(embedded), "embedded"
 
     return [], "none"
 
@@ -295,8 +449,9 @@ def write_embedded_license_artifacts(repo_root: Path | None = None) -> dict[str,
     frontend_path = data_dir / _FRONTEND_LICENSES_FILENAME
     notices_path = data_dir / _THIRD_PARTY_NOTICES_FILENAME
     frontend_rows = frontend if isinstance(frontend, list) else []
-    should_write_frontend = (
-        bool(frontend_rows) or not frontend_path.exists() or frontend_source == "pnpm"
+    should_write_frontend = bool(frontend_rows) or not frontend_path.exists() or frontend_source in (
+        "pnpm",
+        "node_modules",
     )
     if should_write_frontend:
         frontend_path.write_text(
