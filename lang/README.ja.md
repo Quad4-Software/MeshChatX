@@ -27,12 +27,12 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 > MeshChatX は旧バージョンの Reticulum MeshChat とのデータ互換性を保証しません。マイグレーションやテスト前にデータをバックアップしてください。
 
 > [!WARNING]
-> レガシーシステムはまだ完全にはサポートされていません。現在の最低要件: Python `>=3.11`、Node `>=24`。
+> レガシーシステムはまだ完全にはサポートされていません。現在の最低要件: Python `>=3.11`、Node `>=22`（Electron は Node 22、CI はそれ以上でも可）。
 
 ## 必要条件
 
 - Python `>=3.11`（`pyproject.toml` より）
-- Node.js `>=24`（`package.json` より）
+- Node.js `>=22`（`package.json` より）
 - pnpm `10.32.1`（`package.json` より）
 - Poetry（`Taskfile.yml` および CI ワークフローで使用）
 

@@ -27,12 +27,12 @@ Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in ke
 > MeshChatX garantiert keine Datenkompatibilitaet mit aelteren Reticulum-MeshChat-Versionen. Erstellen Sie vor Migration oder Tests eine Datensicherung.
 
 > [!WARNING]
-> Aeltere Systeme werden noch nicht vollstaendig unterstuetzt. Aktuelle Mindestanforderungen: Python `>=3.11` und Node `>=24`.
+> Aeltere Systeme werden noch nicht vollstaendig unterstuetzt. Aktuelle Mindestanforderungen: Python `>=3.11` und Node `>=22` (Electron nutzt Node 22; CI kann neuer sein).
 
 ## Voraussetzungen
 
 - Python `>=3.11` (aus `pyproject.toml`)
-- Node.js `>=24` (aus `package.json`)
+- Node.js `>=22` (aus `package.json`)
 - pnpm `10.32.1` (aus `package.json`)
 - Poetry (verwendet in `Taskfile.yml` und CI-Workflows)
 

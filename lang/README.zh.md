@@ -27,12 +27,12 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 > MeshChatX 不保证与旧版 Reticulum MeshChat 的数据兼容。迁移或测试前请备份数据。
 
 > [!WARNING]
-> 旧系统尚未完全支持。当前最低要求：Python `>=3.11`，Node `>=24`。
+> 旧系统尚未完全支持。当前最低要求：Python `>=3.11`，Node `>=22`（Electron 使用 Node 22；CI 可使用更高版本）。
 
 ## 系统要求
 
 - Python `>=3.11`（来自 `pyproject.toml`）
-- Node.js `>=24`（来自 `package.json`）
+- Node.js `>=22`（来自 `package.json`）
 - pnpm `10.32.1`（来自 `package.json`）
 - Poetry（用于 `Taskfile.yml` 与 CI 工作流）
 

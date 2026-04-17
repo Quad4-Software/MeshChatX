@@ -27,12 +27,12 @@ This project is independent from the original Reticulum MeshChat project and is 
 > MeshChatX is not guaranteed to be wire/data compatible with older Reticulum MeshChat releases. Back up data before migration/testing.
 
 > [!WARNING]
-> Legacy systems are not fully supported yet. Current baseline is Python `>=3.11` and Node `>=24`.
+> Legacy systems are not fully supported yet. Current baseline is Python `>=3.11` and Node `>=22` (Electron uses Node 22; CI may use newer).
 
 ## Requirements
 
 - Python `>=3.11` (from `pyproject.toml`)
-- Node.js `>=24` (from `package.json`)
+- Node.js `>=22` (from `package.json`)
 - pnpm `10.32.1` (from `package.json`)
 - Poetry (used by `Taskfile.yml` and CI workflows)
 
