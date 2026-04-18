@@ -195,6 +195,22 @@ tasks:
         cmds:
             - "{{.NPM}} run test:loadtime"
 
+    test:be:media-fuzz:
+        desc: Hypothesis fuzz tests for stickers, TGS/Lottie JSON, WebM, GIFs, pack exports
+        cmds:
+            - poetry run pytest tests/backend/test_media_fuzzing.py -q
+
+    test:be:media-http:
+        desc: aiohttp integration tests for /api/v1/stickers, sticker-packs, and /api/v1/gifs
+        cmds:
+            - poetry run pytest tests/backend/test_media_http_api.py -q
+
+    test:fuzz:all:
+        desc: Vitest fuzzing tag plus backend media Hypothesis fuzz
+        deps: [test:be:media-fuzz]
+        cmds:
+            - "{{.NPM}} run test:fuzz"
+
     test:fe:cov:
         desc: Run frontend tests with line coverage (Vitest v8)
         cmds:
