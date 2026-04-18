@@ -13521,18 +13521,109 @@ class ReticulumMeshChat:
         except Exception:
             return False
 
-    def _convert_webm_opus_to_ogg(self, audio_bytes: bytes) -> bytes:
-        """Convert WebM/Opus audio to OGG/Opus using ffmpeg.
+    def _encode_pcm_wav_to_ogg_opus(self, wav_bytes: bytes) -> bytes | None:
+        """Encode a WAV/PCM payload into an OGG/Opus byte string using LXST.
 
-        Browser MediaRecorder outputs Opus in a WebM container, but LXMF
-        AM_OPUS_OGG expects an OGG container. We first attempt a remux-only
-        conversion to preserve original Opus frames. If remuxing fails, we
-        fall back to re-encoding with voice-friendly Opus settings.
-        If ffmpeg is unavailable or conversion fails, the original bytes are
-        returned as-is.
+        Decodes the supplied WAV container (8-bit unsigned, 16-bit signed, or
+        32-bit signed integer PCM) into ``float32`` frames in ``[-1, 1]`` and
+        feeds them through ``LXST.Sinks.OpusFileSink`` configured for a
+        voice-friendly Opus profile. Returns the resulting OGG/Opus bytes,
+        or ``None`` if the payload could not be decoded or encoded.
+        """
+        try:
+            import wave
+
+            import numpy as np
+
+            from LXST.Codecs import Opus
+            from LXST.Sinks import OpusFileSink
+
+            with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
+                channels = wf.getnchannels()
+                sample_width = wf.getsampwidth()
+                framerate = wf.getframerate()
+                raw = wf.readframes(wf.getnframes())
+
+            if channels < 1 or framerate <= 0 or len(raw) == 0:
+                return None
+
+            if sample_width == 2:
+                samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+            elif sample_width == 1:
+                samples = (
+                    np.frombuffer(raw, dtype=np.uint8).astype(np.float32) - 128.0
+                ) / 128.0
+            elif sample_width == 4:
+                samples = (
+                    np.frombuffer(raw, dtype=np.int32).astype(np.float32) / 2147483648.0
+                )
+            else:
+                return None
+
+            samples = samples.reshape(-1, channels)
+
+            tmp = tempfile.NamedTemporaryFile(suffix=".opus", delete=False)
+            tmp.close()
+            output_path = tmp.name
+
+            try:
+                sink = OpusFileSink(path=output_path, profile=Opus.PROFILE_VOICE_HIGH)
+
+                class _PcmFrameSource:
+                    pass
+
+                source = _PcmFrameSource()
+                source.samplerate = framerate
+
+                frame_ms = 60
+                samples_per_frame = max(1, int(framerate * frame_ms / 1000))
+                total = samples.shape[0]
+                for offset in range(0, total, samples_per_frame):
+                    chunk = samples[offset : offset + samples_per_frame]
+                    if chunk.size == 0:
+                        break
+                    sink.handle_frame(chunk, source)
+
+                sink.stop()
+
+                with open(output_path, "rb") as f:
+                    data = f.read()
+            finally:
+                with contextlib.suppress(OSError):
+                    os.unlink(output_path)
+
+            if len(data) > 0 and data[:4] == b"OggS":
+                return data
+            return None
+        except Exception as e:
+            print(f"PCM->OGG/Opus encoding via LXST failed: {e}")
+            return None
+
+    def _convert_webm_opus_to_ogg(self, audio_bytes: bytes) -> bytes:
+        """Convert browser-recorded audio into LXMF-compatible OGG/Opus.
+
+        Detects the supplied container and produces an OGG/Opus payload:
+
+        - ``OggS`` prefix: returned unchanged (already OGG/Opus).
+        - ``RIFF``/``WAVE`` prefix: decoded as PCM and encoded to OGG/Opus
+          via ``LXST.Sinks.OpusFileSink`` (no external dependencies).
+        - Any other container (e.g. legacy WebM/Opus from older clients):
+          falls back to an ffmpeg remux, then an ffmpeg re-encode with
+          voice-friendly Opus settings. If ffmpeg is unavailable or all
+          conversions fail, the original bytes are returned unchanged so
+          the caller can still send the message.
         """
         if audio_bytes[:4] == b"OggS":
             return audio_bytes
+
+        if (
+            len(audio_bytes) >= 12
+            and audio_bytes[:4] == b"RIFF"
+            and audio_bytes[8:12] == b"WAVE"
+        ):
+            encoded = self._encode_pcm_wav_to_ogg_opus(audio_bytes)
+            if encoded is not None:
+                return encoded
 
         ffmpeg_path = shutil.which("ffmpeg")
         if ffmpeg_path is None:

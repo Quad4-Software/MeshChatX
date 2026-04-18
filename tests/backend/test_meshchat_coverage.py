@@ -439,6 +439,65 @@ def test_convert_webm_opus_to_ogg_no_ffmpeg(mock_app):
     assert result is webm_data
 
 
+def _build_wav_pcm16(samplerate=48000, duration_seconds=0.5, frequency=440.0):
+    import io
+    import math
+    import struct
+    import wave
+
+    n_samples = int(samplerate * duration_seconds)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(samplerate)
+        frames = bytearray()
+        for i in range(n_samples):
+            sample = int(0.3 * 32767 * math.sin(2 * math.pi * frequency * (i / samplerate)))
+            frames.extend(struct.pack("<h", sample))
+        wf.writeframes(bytes(frames))
+    return buf.getvalue()
+
+
+def test_convert_webm_opus_to_ogg_wav_uses_lxst(mock_app):
+    wav_bytes = _build_wav_pcm16()
+    fake_ogg = b"OggS" + b"\x42" * 64
+
+    with (
+        patch.object(mock_app, "_encode_pcm_wav_to_ogg_opus", return_value=fake_ogg) as mock_encode,
+        patch("subprocess.run") as mock_run,
+        patch("shutil.which", return_value=None),
+    ):
+        result = mock_app._convert_webm_opus_to_ogg(wav_bytes)
+
+    assert result == fake_ogg
+    mock_encode.assert_called_once_with(wav_bytes)
+    mock_run.assert_not_called()
+
+
+def test_convert_webm_opus_to_ogg_wav_falls_through_when_lxst_fails(mock_app):
+    wav_bytes = _build_wav_pcm16()
+    with (
+        patch.object(mock_app, "_encode_pcm_wav_to_ogg_opus", return_value=None),
+        patch("shutil.which", return_value=None),
+    ):
+        result = mock_app._convert_webm_opus_to_ogg(wav_bytes)
+    assert result is wav_bytes
+
+
+def test_encode_pcm_wav_to_ogg_opus_produces_ogg(mock_app):
+    wav_bytes = _build_wav_pcm16()
+    encoded = mock_app._encode_pcm_wav_to_ogg_opus(wav_bytes)
+    assert encoded is not None
+    assert encoded[:4] == b"OggS"
+    assert len(encoded) > 0
+    assert len(encoded) < len(wav_bytes)
+
+
+def test_encode_pcm_wav_to_ogg_opus_invalid_returns_none(mock_app):
+    assert mock_app._encode_pcm_wav_to_ogg_opus(b"not a wav file at all") is None
+
+
 def test_convert_webm_opus_to_ogg_success(mock_app):
     webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
     fake_ogg = b"OggS" + b"\xff" * 50
