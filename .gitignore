@@ -43,6 +43,9 @@ maven/
 *.dylib
 
 # Android
+android/keystore/
+*.jks
+*.keystore
 android/.gradle/
 android/local.properties
 android/build/

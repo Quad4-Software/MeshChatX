@@ -7,6 +7,9 @@ docs/
 
 # Development files
 android/
+android/keystore/
+*.jks
+*.keystore
 Makefile
 *.apk
 *.aab
