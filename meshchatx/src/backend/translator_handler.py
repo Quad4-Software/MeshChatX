@@ -22,8 +22,17 @@ try:
 except ImportError:
     HAS_ARGOS_LIB = False
 
-HAS_ARGOS_CLI = shutil.which("argos-translate") is not None
-HAS_ARGOS = HAS_ARGOS_LIB or HAS_ARGOS_CLI
+ARGOS_CLI_EXECUTABLE_NAMES = ("argos-translate", "argostranslate")
+
+
+def _find_argos_cli_executable() -> str | None:
+    """Resolve the Argos CLI on PATH (checked at call time, not import time)."""
+    for name in ARGOS_CLI_EXECUTABLE_NAMES:
+        path = shutil.which(name)
+        if path:
+            return path
+    return None
+
 
 LANGUAGE_CODE_TO_NAME = {
     "en": "English",
@@ -83,9 +92,10 @@ class TranslatorHandler:
             "LIBRETRANSLATE_URL",
             "http://localhost:5000",
         )
-        self.has_argos = HAS_ARGOS
         self.has_argos_lib = HAS_ARGOS_LIB
-        self.has_argos_cli = HAS_ARGOS_CLI
+        self._argos_cli_executable = _find_argos_cli_executable()
+        self.has_argos_cli = self._argos_cli_executable is not None
+        self.has_argos = self.has_argos_lib or self.has_argos_cli
         self.has_requests = HAS_AIOHTTP
 
     async def _fetch_languages_async(self, url: str):
@@ -322,9 +332,12 @@ class TranslatorHandler:
             msg = f"Invalid language codes: {source_lang} -> {target_lang}"
             raise ValueError(msg)
 
-        executable = shutil.which("argos-translate")
+        executable = self._argos_cli_executable or _find_argos_cli_executable()
         if not executable:
-            msg = "argos-translate executable not found in PATH"
+            msg = (
+                "Argos Translate CLI not found in PATH "
+                f"(tried: {', '.join(ARGOS_CLI_EXECUTABLE_NAMES)})"
+            )
             raise RuntimeError(msg)
 
         try:

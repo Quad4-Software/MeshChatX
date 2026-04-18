@@ -73,6 +73,7 @@ def test_translate_argos_cli(mock_run):
     handler.has_argos_cli = True
     handler.has_argos = True
     handler.has_requests = False  # Force CLI
+    handler._argos_cli_executable = "/usr/bin/argos-translate"
 
     with patch("shutil.which", return_value="/usr/bin/argos-translate"):
         result = handler.translate_text(
