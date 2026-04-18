@@ -9,6 +9,21 @@ def chaquopyBuildPython = System.getenv("CHAQUOPY_BUILD_PYTHON")
 def pythonTempDir = new File(buildDir, "python-tmp")
 def vendorWheelDir = new File(rootProject.projectDir, "vendor")
 def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.4.6-py3-none-any.whl")
+def allAndroidAbis = ["arm64-v8a", "x86_64", "armeabi-v7a"]
+def selectedAndroidAbis = (
+    project.findProperty("meshchatxAbis")
+        ?: System.getenv("MESHCHATX_ABIS")
+        ?: allAndroidAbis.join(",")
+).split(",").collect { it.trim() }.findAll { it }
+
+if (selectedAndroidAbis.isEmpty()) {
+    throw new org.gradle.api.GradleException("No Android ABIs selected. Use -PmeshchatxAbis or MESHCHATX_ABIS.")
+}
+def invalidAndroidAbis = selectedAndroidAbis.findAll { !allAndroidAbis.contains(it) }
+if (!invalidAndroidAbis.isEmpty()) {
+    throw new org.gradle.api.GradleException("Unsupported ABIs: ${invalidAndroidAbis}. Supported: ${allAndroidAbis}")
+}
+def enableAbiSplits = selectedAndroidAbis.size() > 1
 
 android {
     namespace 'com.meshchatx'
@@ -23,16 +38,18 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
-            abiFilters "arm64-v8a", "x86_64"
+            abiFilters(*selectedAndroidAbis as String[])
         }
     }
 
     splits {
         abi {
-            enable true
+            enable enableAbiSplits
             reset()
-            include "arm64-v8a", "x86_64"
-            universalApk true
+            if (enableAbiSplits) {
+                include(*selectedAndroidAbis as String[])
+            }
+            universalApk enableAbiSplits
         }
     }
 

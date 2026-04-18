@@ -93,8 +93,26 @@ jobs:
                   ./rustup-init.sh -y --profile minimal --default-toolchain stable
                   echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
+            - name: Set up Android SDK for Chaquopy native wheels
+              run: |
+                  set -euo pipefail
+                  SDK_ROOT="${RUNNER_TEMP}/android-sdk"
+                  mkdir -p "${SDK_ROOT}/cmdline-tools"
+                  curl -fsSL -o /tmp/android-cmdline-tools.zip \
+                      "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+                  unzip -q /tmp/android-cmdline-tools.zip -d /tmp
+                  rm -f /tmp/android-cmdline-tools.zip
+                  mv /tmp/cmdline-tools "${SDK_ROOT}/cmdline-tools/latest"
+                  yes | "${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${SDK_ROOT}" --licenses >/dev/null
+                  yes | "${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${SDK_ROOT}" \
+                      "ndk;27.3.13750724" "platform-tools" >/dev/null
+                  {
+                      echo "ANDROID_HOME=${SDK_ROOT}"
+                      echo "ANDROID_SDK_ROOT=${SDK_ROOT}"
+                  } >> "${GITHUB_ENV}"
+
             - name: Build Android wheels
-              run: bash scripts/build-android-wheels-local.sh --python-minor "${PYTHON_VERSION}" --chaquopy-ref "${CHAQUOPY_REF}"
+              run: bash scripts/build-android-wheels-local.sh --python-minor "${PYTHON_VERSION}" --chaquopy-ref "${CHAQUOPY_REF}" --abis arm64-v8a,x86_64,armeabi-v7a
 
             - name: Run unit tests
               if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
