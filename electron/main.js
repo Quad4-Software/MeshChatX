@@ -17,7 +17,8 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("node:path");
 
-const crypto = require("crypto");
+const { verifyBackendIntegrity } = require("./backendIntegrity");
+const { getUserProvidedArguments, formatRenderProcessGoneDetails, isLocalBackendUrl } = require("./mainHelpers");
 
 // remember main window
 var mainWindow = null;
@@ -121,50 +122,6 @@ app.on("open-url", (event, url) => {
     }
 });
 
-function verifyBackendIntegrity(exeDir) {
-    const manifestPath = path.join(exeDir, "backend-manifest.json");
-    if (!fs.existsSync(manifestPath)) {
-        log("Backend integrity manifest missing, skipping check.");
-        return { ok: true, issues: ["Manifest missing"] };
-    }
-
-    try {
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-        const issues = [];
-
-        const filesToVerify = manifest.files || manifest;
-        const metadata = manifest._metadata || {};
-
-        // The exeDir is build/exe when running or unpacked
-        // we only care about files in the manifest
-        for (const [relPath, expectedHash] of Object.entries(filesToVerify)) {
-            const fullPath = path.join(exeDir, relPath);
-            if (!fs.existsSync(fullPath)) {
-                issues.push(`Missing: ${relPath}`);
-                continue;
-            }
-
-            const fileBuffer = fs.readFileSync(fullPath);
-            const actualHash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
-            if (actualHash !== expectedHash) {
-                issues.push(`Modified: ${relPath}`);
-            }
-        }
-
-        if (issues.length > 0 && metadata.date && metadata.time) {
-            issues.unshift(`Backend build timestamp: ${metadata.date} ${metadata.time}`);
-        }
-
-        return {
-            ok: issues.length === 0,
-            issues: issues,
-        };
-    } catch (error) {
-        log(`Backend integrity check failed: ${error.message}`);
-        return { ok: false, issues: [error.message] };
-    }
-}
-
 // allow fetching app version via ipc
 ipcMain.handle("app-version", () => {
     return app.getVersion();
@@ -217,13 +174,8 @@ ipcMain.handle("set-power-save-blocker", (event, enabled) => {
 // ignore ssl errors
 app.commandLine.appendSwitch("ignore-certificate-errors");
 
-function getUserProvidedArguments() {
-    const ignoredArguments = ["--no-sandbox", "--ozone-platform-hint=auto"];
-    return process.argv.slice(1).filter((arg) => !ignoredArguments.includes(arg));
-}
-
 ipcMain.handle("backend-http-only", () => {
-    return getUserProvidedArguments().includes("--no-https");
+    return getUserProvidedArguments(process.argv).includes("--no-https");
 });
 
 ipcMain.handle("backend-runtime-state", () => {
@@ -437,20 +389,6 @@ function log(message) {
     mainWindow.webContents.send("log", message);
 }
 
-function formatRenderProcessGoneDetails(details) {
-    if (!details) {
-        return "no details";
-    }
-    return JSON.stringify(
-        {
-            reason: details.reason || "unknown",
-            exitCode: details.exitCode,
-        },
-        null,
-        2
-    );
-}
-
 function getDefaultStorageDir() {
     // if we are running a windows portable exe, we want to use .reticulum-meshchat in the portable exe dir
     // e.g if we launch "E:\Some\Path\MeshChat.exe" we want to use "E:\Some\Path\.reticulum-meshchat"
@@ -481,18 +419,6 @@ function getAppIconPath() {
     const iconPath = path.join(__dirname, "build", "icon.png");
     const fallbackIconPath = path.join(__dirname, "assets", "images", "logo.png");
     return fs.existsSync(iconPath) ? iconPath : fallbackIconPath;
-}
-
-function isLocalBackendUrl(url) {
-    if (!url || typeof url !== "string") {
-        return false;
-    }
-    return (
-        url.startsWith("http://127.0.0.1:9337") ||
-        url.startsWith("https://127.0.0.1:9337") ||
-        url.startsWith("http://localhost:9337") ||
-        url.startsWith("https://localhost:9337")
-    );
 }
 
 function createTray() {
@@ -569,7 +495,7 @@ app.whenReady().then(async () => {
     createTray();
 
     // get arguments passed to application, and remove the provided application path
-    const userProvidedArguments = getUserProvidedArguments();
+    const userProvidedArguments = getUserProvidedArguments(process.argv);
     const shouldLaunchHeadless = userProvidedArguments.includes("--headless");
 
     if (!shouldLaunchHeadless) {
@@ -739,6 +665,13 @@ app.whenReady().then(async () => {
     // Verify backend integrity before spawning
     const exeDir = path.dirname(exe);
     integrityStatus.backend = verifyBackendIntegrity(exeDir);
+    if (
+        integrityStatus.backend.ok &&
+        integrityStatus.backend.issues.length === 1 &&
+        integrityStatus.backend.issues[0] === "Manifest missing"
+    ) {
+        log("Backend integrity manifest missing, skipping check.");
+    }
     if (!integrityStatus.backend.ok) {
         log(`INTEGRITY WARNING: Backend tampering detected! Issues: ${integrityStatus.backend.issues.join(", ")}`);
     }

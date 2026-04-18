@@ -161,22 +161,22 @@ tasks:
             - "{{.NPM}} run test:e2e"
 
     test:be:
-        desc: Run Python tests (pytest; excludes timing-sensitive perf and memory profiling — use test:be:perf / profile:mem locally)
+        desc: Run Python tests (pytest; includes perf/memory profiling — same as GitHub CI)
         cmds:
-            - poetry run pytest tests/backend -n auto --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --ignore=tests/backend/test_performance_bottlenecks.py --cov=meshchatx/src/backend
+            - poetry run pytest tests/backend -n auto --cov=meshchatx/src/backend
 
     test:be:cov:
-        desc: Run Python tests with detailed coverage (excludes performance hot-path, bottleneck timing, and memory profiling tests)
+        desc: Run Python tests with detailed coverage (includes performance and memory profiling tests)
         cmds:
-            - poetry run pytest tests/backend -n auto --ignore=tests/backend/test_performance_hotpaths.py --ignore=tests/backend/test_memory_profiling.py --ignore=tests/backend/test_performance_bottlenecks.py --cov=meshchatx/src/backend --cov-report=term-missing
+            - poetry run pytest tests/backend -n auto --cov=meshchatx/src/backend --cov-report=term-missing
 
     test:be:perf:
-        desc: Backend performance regression tests (not run in CI; run locally when needed)
+        desc: Backend performance regression tests only (hot paths + bottlenecks)
         cmds:
             - poetry run pytest tests/backend/test_performance_hotpaths.py tests/backend/test_performance_bottlenecks.py
 
     test:be:full:
-        desc: All backend tests including performance hot paths (local)
+        desc: Same as test:be (full backend suite)
         cmds:
             - poetry run pytest tests/backend -n auto --cov=meshchatx/src/backend
 
@@ -186,9 +186,10 @@ tasks:
             - poetry run mutmut run "meshchatx.src.backend.meshchat_utils*"
 
     test:fe:
-        desc: Run frontend tests (vitest; excludes i18n — see test:lang; excludes LoadTimePerformance — use test:fe:loadtime locally)
+        desc: Run frontend + Electron shell unit tests (vitest; excludes i18n — see test:lang; excludes LoadTimePerformance — use test:fe:loadtime locally)
         cmds:
-            - "{{.NPM}} run test -- --exclude tests/frontend/i18n.test.js"
+            - "{{.NPM}} exec vitest run --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
+            - "{{.NPM}} exec vitest run --config vitest.electron.config.js"
 
     test:fe:loadtime:
         desc: Optional frontend load-time / sidebar performance tests (not run in CI)

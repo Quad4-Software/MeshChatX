@@ -2,9 +2,8 @@
 
 """Wall-clock database throughput tests (large seeds + strict ms ceilings).
 
-Excluded from default `task test:be` / CI (like test_performance_hotpaths.py and
-test_memory_profiling.py). Run locally: `task test:be:perf` or
-`pytest tests/backend/test_performance_bottlenecks.py`.
+Included in the full backend suite (`task test:be`, GitHub CI). For perf-only:
+`task test:be:perf` or `pytest tests/backend/test_performance_bottlenecks.py`.
 """
 
 import os

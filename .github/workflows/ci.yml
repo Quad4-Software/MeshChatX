@@ -50,7 +50,7 @@ jobs:
                       timeout: 45
                     - name: Backend tests
                       id: backend-tests
-                      timeout: 55
+                      timeout: 120
                     - name: Localization tests
                       id: lang-tests
                       timeout: 20
@@ -93,13 +93,11 @@ jobs:
                       poetry run ruff format --check .
                       ;;
                     frontend-tests)
-                      pnpm run test -- --exclude tests/frontend/i18n.test.js
+                      pnpm exec vitest run --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js
+                      pnpm exec vitest run --config vitest.electron.config.js
                       ;;
                     backend-tests)
                       poetry run python -m pytest tests/backend -n auto \
-                        --ignore=tests/backend/test_performance_hotpaths.py \
-                        --ignore=tests/backend/test_memory_profiling.py \
-                        --ignore=tests/backend/test_performance_bottlenecks.py \
                         --cov=meshchatx/src/backend
                       ;;
                     lang-tests)
