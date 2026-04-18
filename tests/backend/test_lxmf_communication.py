@@ -164,14 +164,25 @@ class TestStampSolving:
         assert LXStamper.validate_peering_key(peer_id, stamp, 2)
 
     def test_peering_key_rejected_for_wrong_id(self):
+        """Pick a peer_b for which the stamp does not accidentally satisfy the
+        target cost. With cost=8 there is a 1/256 chance of a random workblock
+        producing a hash that already meets the threshold, so retry until we
+        get a peer_b that genuinely fails validation. This avoids CI flakes
+        without inflating stamp_cost (and therefore generation time).
+        """
         peer_a = os.urandom(32)
-        peer_b = os.urandom(32)
         stamp, _ = LXStamper.generate_stamp(
             peer_a,
             stamp_cost=8,
             expand_rounds=LXStamper.WORKBLOCK_EXPAND_ROUNDS_PEERING,
         )
-        assert not LXStamper.validate_peering_key(peer_b, stamp, 8)
+        for _ in range(64):
+            peer_b = os.urandom(32)
+            if peer_b == peer_a:
+                continue
+            if not LXStamper.validate_peering_key(peer_b, stamp, 8):
+                return
+        pytest.fail("could not find a peer_b that rejects peer_a's stamp")
 
     def test_pn_stamp_valid_transient_data(self):
         from LXMF.LXMessage import LXMessage
