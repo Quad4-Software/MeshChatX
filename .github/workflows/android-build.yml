@@ -93,19 +93,22 @@ jobs:
                   ./rustup-init.sh -y --profile minimal --default-toolchain stable
                   echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-            - name: Set up Android SDK for Chaquopy native wheels
+            - name: Install Android NDK for Chaquopy native wheels
               run: |
                   set -euo pipefail
-                  SDK_ROOT="${RUNNER_TEMP}/android-sdk"
-                  mkdir -p "${SDK_ROOT}/cmdline-tools"
-                  curl -fsSL -o /tmp/android-cmdline-tools.zip \
-                      "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-                  unzip -q /tmp/android-cmdline-tools.zip -d /tmp
-                  rm -f /tmp/android-cmdline-tools.zip
-                  mv /tmp/cmdline-tools "${SDK_ROOT}/cmdline-tools/latest"
-                  yes | "${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${SDK_ROOT}" --licenses >/dev/null
-                  yes | "${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --sdk_root="${SDK_ROOT}" \
-                      "ndk;27.3.13750724" "platform-tools" >/dev/null
+                  SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+                  SDKMANAGER="${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+                  if [[ ! -x "${SDKMANAGER}" ]]; then
+                      echo "Expected preinstalled sdkmanager at ${SDKMANAGER}" >&2
+                      exit 1
+                  fi
+                  NDK_VERSION="27.3.13750724"
+                  # Feed a bounded stream of 'y' so the producer cannot SIGPIPE under set -o pipefail.
+                  yes_n() { for _ in $(seq 1 "$1"); do echo y; done; }
+                  if [[ ! -d "${SDK_ROOT}/ndk/${NDK_VERSION}" ]]; then
+                      yes_n 200 | "${SDKMANAGER}" --sdk_root="${SDK_ROOT}" --licenses >/dev/null
+                      yes_n 50 | "${SDKMANAGER}" --sdk_root="${SDK_ROOT}" "ndk;${NDK_VERSION}" >/dev/null
+                  fi
                   {
                       echo "ANDROID_HOME=${SDK_ROOT}"
                       echo "ANDROID_SDK_ROOT=${SDK_ROOT}"
