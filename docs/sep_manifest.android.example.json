@@ -1,0 +1,45 @@
+{
+    "schemaVersion": "1.0.0",
+    "id": "io.meshchatx.extensions.sample-android-tool",
+    "name": "Sample Android Tool Extension",
+    "description": "Reference Android profile manifest draft for SEP v1 planning",
+    "version": "0.1.0",
+    "apiVersion": "1.0.0",
+    "trustLevel": "first_party",
+    "platformProfile": "android",
+    "entrypoint": {
+        "command": "meshchatx-android-extension-runtime",
+        "args": ["sample_android_tool"],
+        "workingDirectory": ".",
+        "environment": {}
+    },
+    "permissions": ["events.subscribe", "messages.read", "notifications.create", "tools.register"],
+    "events": {
+        "subscribe": ["message.received", "peer.online"]
+    },
+    "health": {
+        "startupTimeoutMs": 12000,
+        "heartbeatIntervalMs": 20000,
+        "unhealthyAfterMissedHeartbeats": 2
+    },
+    "limits": {
+        "maxRequestBytes": 32768,
+        "maxRequestsPerSecond": 30,
+        "maxConcurrentRequests": 8
+    },
+    "android": {
+        "runtimeMode": "packaged_module",
+        "allowBackgroundExecution": false,
+        "maxStartupTimeMs": 12000,
+        "maxMemoryMb": 256
+    },
+    "compatibility": {
+        "meshchatx": ">=4.5.0",
+        "platforms": ["android-arm64"]
+    },
+    "signing": {
+        "required": true,
+        "keyId": "meshchatx-release-key",
+        "signature": ""
+    }
+}

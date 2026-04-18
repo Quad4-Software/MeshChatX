@@ -1,0 +1,50 @@
+{
+    "schemaVersion": "1.0.0",
+    "id": "io.meshchatx.extensions.sample-tool",
+    "name": "Sample Tool Extension",
+    "description": "Reference manifest draft for SEP v1 planning",
+    "version": "0.1.0",
+    "apiVersion": "1.0.0",
+    "trustLevel": "trusted_third_party",
+    "platformProfile": "desktop",
+    "entrypoint": {
+        "command": "python3",
+        "args": ["main.py"],
+        "workingDirectory": ".",
+        "environment": {
+            "PYTHONUNBUFFERED": "1"
+        }
+    },
+    "permissions": ["events.subscribe", "messages.read", "messages.send", "notifications.create", "tools.register"],
+    "events": {
+        "subscribe": ["message.received", "message.sent", "peer.online"]
+    },
+    "health": {
+        "startupTimeoutMs": 10000,
+        "heartbeatIntervalMs": 15000,
+        "unhealthyAfterMissedHeartbeats": 3
+    },
+    "limits": {
+        "maxRequestBytes": 65536,
+        "maxRequestsPerSecond": 50,
+        "maxConcurrentRequests": 16
+    },
+    "ui": {
+        "toolPanels": [
+            {
+                "id": "sample-tool-panel",
+                "title": "Sample Tool",
+                "slot": "tools.page.primary"
+            }
+        ]
+    },
+    "compatibility": {
+        "meshchatx": ">=4.5.0",
+        "platforms": ["linux-x64", "linux-arm64", "windows-x64"]
+    },
+    "signing": {
+        "required": false,
+        "keyId": "",
+        "signature": ""
+    }
+}
