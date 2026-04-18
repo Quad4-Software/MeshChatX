@@ -3438,6 +3438,12 @@
         "license": "MIT"
     },
     {
+        "name": "micron-parser",
+        "version": "0.0.0",
+        "author": "—",
+        "license": "—"
+    },
+    {
         "name": "mime",
         "version": "2.6.0",
         "author": "Robert Kieffer <robert@broofa.com>",

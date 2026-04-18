@@ -3,9 +3,37 @@
     "_source": "https://directory.rns.recipes/api/directory/submitted?search=&type=&status=online",
     "interfaces": [
         {
+            "name": "Backbone Shadow Chelyabinsk",
+            "type": "TCPClientInterface",
+            "target_host": "78.29.39.97",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "Beleth Clearnet TCP",
+            "type": "TCPClientInterface",
+            "target_host": "rns.beleth.net",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "Beleth RNS Hub",
+            "type": "TCPClientInterface",
+            "target_host": "rns.beleth.net",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
             "name": "CRN IPv4 / IPv6",
             "type": "TCPClientInterface",
             "target_host": "rns.noderage.org",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "Catz Node (TCP)",
+            "type": "TCPClientInterface",
+            "target_host": "77.37.146.243",
             "target_port": 4242,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
@@ -24,17 +52,31 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "GhostMesh TX",
+            "name": "Helsinki_IP_RNS_Node",
             "type": "TCPClientInterface",
-            "target_host": "rns.ghostmesh.net",
+            "target_host": "rns.artdaw.com",
             "target_port": 4242,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "MichMesh",
+            "name": "Inertia.Chat",
             "type": "TCPClientInterface",
-            "target_host": "rns.michmesh.net",
-            "target_port": 7822,
+            "target_host": "use.inertia.chat",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "QuikStop",
+            "type": "TCPClientInterface",
+            "target_host": "167.114.185.21",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "Quortal TCP Node",
+            "type": "TCPClientInterface",
+            "target_host": "reticulum.qortal.link",
+            "target_port": 4242,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
@@ -45,13 +87,6 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "RETICULUM WORLD",
-            "type": "TCPClientInterface",
-            "target_host": "world.reticulum.is",
-            "target_port": 3400,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
             "name": "RMAP",
             "type": "TCPClientInterface",
             "target_host": "rmap.world",
@@ -59,17 +94,24 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "RNS TCP Node Germany 002",
+            "name": "RNS Budapest(HU)",
             "type": "TCPClientInterface",
-            "target_host": "193.26.158.230",
+            "target_host": "vjs.hu",
+            "target_port": 5858,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "RNS TCP Node Germany 001",
+            "type": "TCPClientInterface",
+            "target_host": "202.61.243.41",
             "target_port": 4965,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "RNS Testnet BetweenTheBorders",
+            "name": "RNS TCP Node Germany 002",
             "type": "TCPClientInterface",
-            "target_host": "reticulum.betweentheborders.com",
-            "target_port": 4242,
+            "target_host": "193.26.158.230",
+            "target_port": 4965,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
@@ -108,6 +150,20 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
+            "name": "Simply Equipped (US Cloud)",
+            "type": "TCPClientInterface",
+            "target_host": "rns.simplyequipped.com",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "Slivovica",
+            "type": "TCPClientInterface",
+            "target_host": "213.235.65.180",
+            "target_port": 4440,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
             "name": "SparkN0de",
             "type": "TCPClientInterface",
             "target_host": "aspark.uber.space",
@@ -115,10 +171,10 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "Sydney RNS",
+            "name": "TCP Shadow Chelyabinsk",
             "type": "TCPClientInterface",
-            "target_host": "sydney.reticulum.au",
-            "target_port": 4242,
+            "target_host": "78.29.39.97",
+            "target_port": 4243,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
@@ -129,9 +185,9 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "bnZ-RET01 (Gothenburg SE)",
+            "name": "carlos.node",
             "type": "TCPClientInterface",
-            "target_host": "213.89.12.80",
+            "target_host": "66.42.101.86",
             "target_port": 4242,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
@@ -140,6 +196,13 @@
             "type": "TCPClientInterface",
             "target_host": "rns.dismail.de",
             "target_port": 7822,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "feather",
+            "type": "TCPClientInterface",
+            "target_host": "rns.feather.onl",
+            "target_port": 4242,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
@@ -154,6 +217,13 @@
             "type": "TCPClientInterface",
             "target_host": "phantom.mobilefabrik.com",
             "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "noDNS1",
+            "type": "TCPClientInterface",
+            "target_host": "202.61.243.41",
+            "target_port": 4965,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
@@ -185,6 +255,13 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
+            "name": "Beleth Yggdrasil",
+            "type": "TCPClientInterface",
+            "target_host": "200:3953:999b:282e:e526:bcd2:c329:31a",
+            "target_port": 4343,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
             "name": "Spaceman-ygg",
             "type": "TCPClientInterface",
             "target_host": "201:e73a:61ee:ca68:4bc5:99d5:fd70:ded1",
@@ -199,6 +276,20 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
+            "name": "cea yggdrasil",
+            "type": "TCPClientInterface",
+            "target_host": "200:cea:10:1b1:3c23:3bc:34c1:8c82",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "kemerovo ygg",
+            "type": "TCPClientInterface",
+            "target_host": "203:f54a:ffa2:650d:df9d:1473:5228:94dc",
+            "target_port": 43434,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
             "name": "rothbard_RNS_transport_ZA_ygg",
             "type": "TCPClientInterface",
             "target_host": "200:73eb:2e4:14be:aac7:90b3:784b:71a3",
@@ -209,6 +300,18 @@
             "name": "Casbah I2P Relay",
             "type": "I2PInterface",
             "i2p_peers": ["nckymqd5qchedbvjqsrlovgwc5iupasu3jjnt7fwws5vd4l552yq.b32.i2p"],
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "Catz Node",
+            "type": "I2PInterface",
+            "i2p_peers": ["namcoiawqes3rdrvazab6war2dui2isuuh5alfdds6xtb3febmca.b32.i2p"],
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "Kor's Node",
+            "type": "I2PInterface",
+            "i2p_peers": ["cknv7n3fnwlpq3uxb466c55d3onfj3wl6yfaqfcalbu5zefxizkq.b32.i2p"],
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {

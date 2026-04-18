@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-04-17T03:19:30.687503Z
+Generated at: 2026-04-17T04:34:38.714950Z
 Frontend source: node_modules
 
 Python dependencies
@@ -74,8 +74,8 @@ pyserial 3.5
   License: BSD
   Author: Chris Liechti
 reticulum-meshchatx 4.5.0
-  License: MIT
-  Author: Sudo-Ivan
+  License: 0BSD AND MIT
+  Author: Quad4
 rns 1.1.5
   License: Reticulum License
   Author: Mark Qvist
@@ -1807,6 +1807,9 @@ merge2 1.4.1
 micromatch 4.0.8
   License: MIT
   Author: Jon Schlinkert (https://github.com/jonschlinkert)
+micron-parser 0.0.0
+  License: —
+  Author: —
 mime 2.6.0
   License: MIT
   Author: Robert Kieffer <robert@broofa.com>
