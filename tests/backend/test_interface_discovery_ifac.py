@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""
-Tests for encrypted IFAC values surfaced via interface discovery announces.
+"""Tests for encrypted IFAC values surfaced via interface discovery announces.
 
 When an upstream interface is configured with publish_ifac = yes, RNS embeds
 the network_name (ifac_netname) and passphrase (ifac_netkey) into the
