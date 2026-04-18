@@ -4,37 +4,89 @@ All notable changes to this project will be documented in this file.
 
 ## [4.5.0] - 2026-04-TBD
 
-### TL;DR
+### TL;DR 
 
-- **Propagation node sync**: Tapping **Sync Messages** no longer shows technical state names in the top bar (e.g. `path_requested`). The bar shows a simple **Syncing...** label while a **live toast** explains what is happening in plain language and shows **progress** until the sync finishes or stops. Success and error toasts still summarize how many messages were received, stored, confirmed, or hidden.
-- **Dark theme**: Accent colors in dark mode are adjusted for more consistent look and feel.
-- **Announcements**: Automatic announce and related timers use clearer **due** checks; behaviour should be easier to reason about and test.
-- **Frontend structure**: Settings and conversation logic are split into reusable JS modules and smaller Vue pieces (banners, peer header, settings sections) to make the UI easier to maintain and test.
-- **Android APK support**: MeshChatX now builds and runs as a native Android APK (embedded Python backend via Chaquopy + WebView), so Android support is no longer limited to Termux workflows.
+- **Sync Messages**: When you tap **Sync Messages**, you’ll just see a simple "Syncing..." label instead of weird technical terms. An on-screen message (toast) will keep you updated in plain language about what’s happening and how much is done, until the sync is finished. Once complete, you'll get a summary telling you how many messages were transferred or if there were any issues. Limits on how much can be transferred are now clearer, and the interface is simpler.
+- **Dark Mode Improvements**: The dark theme’s accent colors now look more consistent and easier on the eyes.
+- **Announcements**: The app now handles timed announcements and reminders in a way that's more predictable and easy to understand.
+- **Restart Reticulum from the App**: You can now restart the Reticulum network system directly from MeshChatX if there’s a problem. There’s also a tool for editing its configuration, with safeguards and easy reset.
+- **GIFs and Stickers**: Easily manage GIFs and sticker packs for each identity—including adding, importing, exporting, and animated stickers (like Telegram’s). Sticker and GIF pickers are easier to use, and animations only play when visible to save resources.
+- **Messages and Links**: The app can warn you before you open links from people you don’t know. You can also move the messages sidebar to your preferred side. Scrolling through long message lists is much smoother, images are grouped smarter, and links/markdown are handled more reliably. If a message can’t be sent, the error will be clearer.
+- **Looks and Effects**: You can make parts of the UI transparent or enable a "glass effect" look, with clear settings to control these options.
+- **Simpler Internals**: The app’s settings and chat features were reorganized behind the scenes, making it easier to maintain and more stable.
+- **Network Map Upgrades**: The network visualiser (the map showing connections) now handles really big or complex networks much more smoothly.
+- **Easier Device Connections**: Advanced users can now see special codes (IFAC) that help with connecting certain types of interfaces here and via the API.
+- **Better Reliability**: The desktop (Electron) app recovers better from connection problems and crashes, making it more robust.
+- **Android App!**: MeshChatX now has a native Android app you can install (not just for Termux users).
+- **More Languages**: Spanish, French, Dutch, and Chinese options were added to the app’s language selector.
+- **Extension Support (Early Preview)**: There are new documents and tools for developers who want to create plug-ins or external integrations with MeshChatX.
+- **Message Size Limits**: You can now set how big incoming messages can be (from 1MB up to 1GB) with easy presets or custom values. The server will now accept transfers up to 1GB in size.
 
 ### Platform and backend
 
 - **MeshChat utils**: **`convert_propagation_node_state_to_string`** maps **`LXMRouter.PR_PATH_TIMEOUT`** to **`path_timeout`** so the API can report path timeouts distinctly from other failures.
+- **Propagation nodes / sync**: Local propagation node lifecycle (start/stop/restart), stats and sync APIs; sync path logic for **outbound propagation nodes**, **immediate completion** for **local** nodes, and peer/unpeered statistics; settings expose **transfer limits in MB** and related UI/API wiring.
+- **LXMF incoming delivery limit**: **`PATCH /api/v1/config`** clamps **`lxmf_delivery_transfer_limit_in_bytes`** to at most **1 GiB** (was 100 MB); **`LXMRouter.delivery_per_transfer_limit`** updates live when the value changes.
 - **Auto-announce / intervals**: Refactor around **`interval_action_due`** in **`meshchat.py`** to simplify when auto-announce and propagation sync checks run; add tests for auto-announce behaviour.
-- **Android runtime integration**: Added Android app startup hardening for Chaquopy and WebView, including startup retries, in-app startup errors, runtime permission flow (audio/Bluetooth/notifications), selectable error text, launcher icon integration, and release minification rules for APK builds.
-- **Licensing**: Relicensed Quad4-owned portions under **0BSD** and kept upstream **Reticulum MeshChat** portions under their original **MIT** notice in **`LICENSE`**.
+- **Reticulum**: User-triggered **RNS restart** with UI feedback; **reload** streamlines teardown, loading indicators, and cleanup of identity state during Reticulum reload.
+- **Bots**: **`bot_handler`** updates for LXMF address normalization, reading addresses from sidecar files, improved bot names and on-demand announce requests, and tests.
+- **Telephony**: **`TelephoneManager`** improvements for path discovery, initiation, polling, and cancellation; integration tests for LXST classes and WebAudioBridge mocks.
+- **App info / diagnostics**: **`/api/v1/app/info`** (and related handlers) with safer memory, network, and database stats; tests for missing runtime objects and version resolution without the packaging module.
+- **Media conversion**: WebM-to-OGG voice path gains a **remux fallback**; Python **JIT** status surfaced where applicable; related tests updated.
+- **Docs manager**: Safer forced directory removal (**`_remove_tree_force_writable`**) and writable-directory helpers when replacing tree content.
+- **Python / tooling**: **Poetry** lock updated (e.g. **2.3.4**); **lxmfy** pinned to a compatible commit; **Node** engine requirement relaxed to **>=22** (from >=24) with lockfile/git-URL dependency style updates; **`package.json`** metadata adds desktop entry, vendor, and synopsis where applicable.
+- **Build / unify**: Script to align **per-architecture cx_Freeze** outputs so unified bundles stay consistent across arches.
+- **Android runtime integration**: Added Android app startup hardening for Chaquopy and WebView, including startup retries, in-app startup errors, runtime permission flow (audio/Bluetooth/notifications/microphone), battery optimization exemption, ABI splits, optional local wheel builds (bcrypt/psutil recipes, Rust for bcrypt, PyO3/OpenSSL-related patches), cryptography and WebView media tweaks, and release minification rules for APK builds.
+- **Licensing**: Relicensed Quad4-owned portions under **0BSD** and kept upstream **Reticulum MeshChat** portions under their original **MIT** notice in **`LICENSE`**. **SPDX** identifiers added across the tree; **`license_scope_mapper`** assists SPDX recommendations; **`licenses_collector`** enriches frontend dependency notices (**package.json** parsing, workspace-root filtering, detailed **`THIRD_PARTY_NOTICES`** / **`licenses_frontend.json`** generation).
+- **GIFs**: Schema and **`database.gifs`** DAO; **`gif_utils`** validation and naming; HTTP **`/api/v1/gifs`** CRUD, **`…/image`**, import/export, use-from-message, and **`DELETE /api/v1/maintenance/gifs`**; configurable limits via **`config_manager`** where applicable.
+- **Sticker packs**: **`database.sticker_packs`** and **`sticker_pack_utils`**; **`/api/v1/sticker-packs`** (list, create, install, reorder, delete, export) complementing per-sticker routes; stickers DAO/schema updates for pack association and animated assets.
+- **Reticulum config file**: **`GET`/`PUT /api/v1/reticulum/config/raw`**, **`POST …/reset`**, with editor-focused tests and safe merge behaviour against **`config_manager`**.
+- **Media hardening**: Backend and frontend tests for **GIF**, sticker, and Lottie paths (**fuzzing**, HTTP media routes, size/type checks).
+- **LXMF send path**: Clearer handling and diagnostics when **message sending** fails (timeouts, path errors); tests cover failure modes.
+- **Interfaces API**: Discovery responses include **IFAC** fields where the stack provides them; tests for discovery behaviour.
 
 ### Frontend and UX
 
 - **Propagation sync (App header)**: After **`GET /api/v1/lxmf/propagation-node/sync`**, the client **polls** propagation status on an interval while the router is in a transfer state, updates a **keyed loading toast** (`propagation-sync-status`) with translated strings (**`app.propagation_sync_live`**, **`app.propagation_sync_state.*`**), dismisses it when the transfer ends, then shows the existing success or error summary. Stopping sync clears the poll timer and dismisses the live toast; **beforeUnmount** cleans up if you leave the page mid-sync. Removed the old toolbar pattern **`Syncing... ({state})`** in favour of **`app.syncing`** plus the toast.
+- **Propagation nodes UI**: Settings and tools surface propagation node controls, transfer limits (MB), sync, and Material icons for node state; locales updated.
+- **Incoming message size (Settings / Propagation Nodes)**: Preset selector (**1 MB**, **10 MB**, **25 MB**, **50 MB**, **1 GB**) and **custom** amount with **MB** or **GB** unit; shared helpers in **`meshchatx/src/frontend/js/settings/incomingDeliveryLimit.js`**; **en** / **de** / **it** / **ru** strings (**`app.incoming_message_size*`**).
+- **Stranger links and sidebar**: Config options for **warning on stranger-originated links** and **Messages sidebar position**; UI and **en** / **de** / **it** / **ru** strings.
 - **Theme**: Dark theme accent palette updates for consistency; tests adjusted where they assert colors.
+- **Appearance**: **UI transparency** and **glass effect** settings (with i18n) and related layout tweaks in **`ConversationViewer`** and scrolling behaviour.
+- **Message list performance**: **`@tanstack/vue-virtual`**-based virtualization, image group display, and shared scroll utilities for long threads.
+- **Links and Markdown**: **`link-utils`** hardening (anchor protection, trailing punctuation); **Markdown** fixes for underscores in links vs italics with expanded tests.
 - **Modularity (settings and messages)**: Config fetch/merge, **`PATCH /api/v1/config`**, color normalization, transport enable/disable, maintenance HTTP calls, and visualiser **`localStorage`** prefs live in **`meshchatx/src/frontend/js/settings/`** (`settingsConfigService`, `settingsTransportService`, `settingsMaintenanceClient`, `settingsVisualiserPrefs`); **`SettingsPage`** delegates to those modules. Message renderability, telemetry-only detection, image-only detection, and drag/paste image extraction are in **`conversationMessageHelpers.js`** with thin **`ConversationViewer`** wrappers.
 - **Shell and settings UI**: Emergency and WebSocket status banners extracted to **`AppShellBanners.vue`**; conversation peer chrome to **`ConversationPeerHeader.vue`**; reusable **`SettingsSectionBlock.vue`** (used for the stranger-protection section). **`frontendModuleMap.js`** summarizes main frontend layers and hotspots for contributors.
+- **Pages polish**: **About**, **Call**, **Debug logs**, and **Settings** pages with clearer layout, app info, environment paths, log copy-to-clipboard, and error handling; related tests.
+- **ConversationViewer**: File input clears after selection and improves image-type detection for uploads; **GIF** picker and drag/drop upload to the GIF library; animated stickers and GIFs can use **`InViewAnimatedImg`** so heavy animations run only when visible.
+- **Stickers UI**: **`StickerPacksManager`**, **`StickerEditor`**, **`StickerView`**, and **`tgsDecode`** (`.tgs` / Lottie JSON) integrate with the composer and identities settings.
+- **Tools**: **`ReticulumConfigEditorPage`** for editing Reticulum configuration from the app with validation feedback.
+- **Network visualiser**: Chunk and icon rendering tuned for large node sets (see TL;DR).
 
 ### CI and packaging
 
-- **Gitea**: **`.gitea/workflows/sync-github-release-assets.yml`** updated for GitHub release asset synchronization.
+- **CI hygiene**: **pnpm** store caching removed from CI and security-scan workflows.
+- **Docker**: **Git** installed for frontend build steps; **corepack** replaced with **npm**-based **pnpm** install; Python base image refresh (e.g. **3.14**-series Alpine), venv runtime tools, pip/setuptools updates; **`.dockerignore`** / **`.gitignore`** tweaks; workflow git clone/fetch handling for reproducible image builds.
+- **Electron / Linux**: AppImage pipeline builds **x64** and **arm64** artifacts.
+- **Android CI**: Workflow runs **Node.js** setup and **frontend build** before APK packaging so Web assets stay in sync with the app bundle.
+- **Docs**: Raspberry Pi install guide expanded with automated setup scripts and service-oriented instructions.
+- **Container / compose**: **`docker-compose.yml`** and related Docker notes updated; optional **`Dockerfile.extra`** for layered builds where documented.
 
 ### Testing and docs
 
 - **Frontend**: **`AppPropagationSync.test.js`** covers immediate completion (no stray loading toast), polling with **`path_requested`** and live **`ToastUtils.loading`**, and **`no_path`** end states with translated error text; **`AppModals`** / **`ChangelogModal`** tests updated where changelog content or expectations shifted.
+- **Frontend (incoming delivery limit)**: **`tests/frontend/incomingDeliveryLimit.test.js`** for clamp and preset/custom byte mapping; **`SettingsPage.config-persistence.test.js`** covers preset **`PATCH`** and debounced custom save.
+- **Backend (config API)**: **`test_auto_propagation_api.py`** asserts delivery limit **`PATCH`** clamps above **1 GiB** to **1 GiB** and applies **`delivery_per_transfer_limit`** on the router.
 - **Frontend (modularization)**: Shared **`tests/frontend/fixtures/settingsPageTestApi.js`** for **`buildFullServerConfig`** / **`window.api`** mocks; unit tests for **`settingsConfigService`** and **`conversationMessageHelpers`**; **`SettingsSectionBlock`** stubbed in settings-related tests; overlapping **IconButton** cases removed from **`UIComponents.test.js`** (covered by **`IconButton.test.js`**).
-- **Backend**: **`test_lxmf_propagation_full.py`** adds **`path_timeout`** in status mapping, **`test_convert_propagation_node_state_maps_all_lxmf_transfer_states`** for LXMF propagation transfer constants, and Hypothesis **`path_timeout`** in allowed propagation state strings; **`test_app_status_tracking`** expects **`changelog_seen_version`** **4.5.0** in app status tests.
+- **E2E**: Keyboard shortcut and conversation **scrolling** coverage; navigation assertions aligned with current marketing copy; onboarding tooltip dismissal hooks where applicable.
+- **Integration**: **Loopback TCP** test fixture used by relevant integration tests.
+- **Backend**: **`test_lxmf_propagation_full.py`** adds **`path_timeout`** in status mapping, **`test_convert_propagation_node_state_maps_all_lxmf_transfer_states`** for LXMF propagation transfer constants, and Hypothesis **`path_timeout`** in allowed propagation state strings; **`test_app_status_tracking`** expects **`changelog_seen_version`** **4.5.0** in app status tests; stamp validation test hardened against flaky random workblocks.
+- **Bots / propagation / licenses**: Expanded tests for bot sidecar behaviour, propagation node UI/state, and license rendering collectors.
+- **GIFs and stickers**: Backend tests **`test_gif_utils`**, **`test_gifs_dao`**, **`test_sticker_pack_utils`**, **`test_sticker_packs_dao`**; frontend **`Gifs.test.js`**, **`StickerView.test.js`**, **`InViewAnimatedImg.test.js`**, **`tgsDecode.test.js`**, **`inViewObserver.test.js`**, **`mediaLottieStickerGifs.fuzzing.test.js`**.
+- **Reticulum config editor**: **`test_reticulum_config_editor.py`** (backend), **`ReticulumConfigEditorPage.test.js`** (frontend).
+- **Interfaces**: **`test_interface_discovery_ifac.py`**, **`InterfacesDiscoveryIfac.test.js`**.
+- **Messaging**: **`test_message_sending_failures.py`**, **`MessageSendingFailures.test.js`**; **`CJKTextOverflow.test.js`** for composer/thread overflow.
+- **Media API**: **`test_media_http_api.py`**, **`test_media_fuzzing.py`**, shared **`media_test_assets.py`** fixtures.
 
 ## [4.4.0] - 2026-04-15
 
