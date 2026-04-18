@@ -47,7 +47,10 @@ function mountBell(options = {}) {
 function simulateWsMessage(type, extra = {}) {
     const payload = { type, ...extra };
     if (type === "lxmf.delivery" && payload.lxmf_message === undefined) {
-        payload.lxmf_message = { is_incoming: true };
+        // Default to a user-facing inbound text message so the bell will
+        // reload. Tests that want to exercise the false-trigger path pass an
+        // explicit lxmf_message override (reaction, telemetry, empty, etc.).
+        payload.lxmf_message = { is_incoming: true, content: "hello", title: "", fields: {} };
     }
     const data = JSON.stringify(payload);
     (wsHandlers["message"] || []).forEach((h) => h({ data }));
@@ -253,7 +256,9 @@ describe("NotificationBell websocket reliability", () => {
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
         const callsAfterMount = global.api.get.mock.calls.length;
-        simulateWsMessage("lxmf.delivery", { lxmf_message: { is_incoming: true } });
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: { is_incoming: true, content: "hi", title: "", fields: {} },
+        });
         await new Promise((r) => setTimeout(r, 50));
         expect(global.api.get.mock.calls.length).toBeGreaterThan(callsAfterMount);
         const notifCalls = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications");
@@ -271,6 +276,252 @@ describe("NotificationBell websocket reliability", () => {
         await new Promise((r) => setTimeout(r, 100));
 
         expect(global.api.get.mock.calls.length).toBeGreaterThan(initialCalls);
+    });
+
+    it("ignores malformed websocket payload without crashing", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const initialCalls = global.api.get.mock.calls.length;
+        (wsHandlers["message"] || []).forEach((h) => h({ data: "not-json{" }));
+        await new Promise((r) => setTimeout(r, 30));
+        expect(global.api.get.mock.calls.length).toBe(initialCalls);
+    });
+});
+
+describe("NotificationBell false-trigger suppression", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        wsHandlers = {};
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        global.api.post = vi.fn().mockResolvedValue({ data: {} });
+    });
+
+    afterEach(() => {
+        wsHandlers = {};
+    });
+
+    function expectNoNotificationsReload(callsBefore) {
+        const notifGets = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications");
+        expect(notifGets.length).toBe(callsBefore);
+    }
+
+    it("does NOT reload on inbound reaction (is_reaction flag)", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: {
+                is_incoming: true,
+                is_reaction: true,
+                content: "",
+                fields: { app_extensions: { reaction_to: "abc", emoji: "fire" } },
+            },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        expectNoNotificationsReload(before);
+    });
+
+    it("does NOT reload on inbound reaction signaled only via app_extensions", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: {
+                is_incoming: true,
+                content: "",
+                fields: { app_extensions: { reaction_to: "abc" } },
+            },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        expectNoNotificationsReload(before);
+    });
+
+    it("does NOT reload on inbound telemetry-only message", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: {
+                is_incoming: true,
+                content: "",
+                title: "",
+                fields: { telemetry: { something: 1 } },
+            },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        expectNoNotificationsReload(before);
+    });
+
+    it("does NOT reload on inbound icon-only / empty payload message", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: { is_incoming: true, content: "", title: "", fields: {} },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        expectNoNotificationsReload(before);
+    });
+
+    it("does NOT reload when content is whitespace only", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: { is_incoming: true, content: "   \n\t ", title: "", fields: {} },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        expectNoNotificationsReload(before);
+    });
+
+    it("does NOT reload on lxmf.delivery without lxmf_message field", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+        (wsHandlers["message"] || []).forEach((h) => h({ data: JSON.stringify({ type: "lxmf.delivery" }) }));
+        await new Promise((r) => setTimeout(r, 30));
+        expectNoNotificationsReload(before);
+    });
+
+    it("does NOT reload on lxmf_message_state_updated (delivery status)", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf_message_state_updated", {
+            lxmf_message: { is_incoming: false, state: "delivered" },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        expectNoNotificationsReload(before);
+    });
+
+    it("DOES reload on real inbound text message", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: { is_incoming: true, content: "hello", title: "", fields: {} },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        const after = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+        expect(after).toBeGreaterThan(before);
+    });
+
+    it("DOES reload on inbound title-only message", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: { is_incoming: true, content: "", title: "Subject", fields: {} },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        const after = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+        expect(after).toBeGreaterThan(before);
+    });
+
+    it("DOES reload on inbound image attachment", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: {
+                is_incoming: true,
+                content: "",
+                fields: { image: { image_size: 1024, image_type: "png" } },
+            },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        const after = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+        expect(after).toBeGreaterThan(before);
+    });
+
+    it("DOES reload on inbound audio attachment", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: {
+                is_incoming: true,
+                content: "",
+                fields: { audio: { audio_size: 4242, audio_mode: 1 } },
+            },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        const after = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+        expect(after).toBeGreaterThan(before);
+    });
+
+    it("DOES reload on inbound file attachment", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+
+        simulateWsMessage("lxmf.delivery", {
+            lxmf_message: {
+                is_incoming: true,
+                content: "",
+                fields: { file_attachments: [{ file_name: "x.txt", file_size: 5 }] },
+            },
+        });
+        await new Promise((r) => setTimeout(r, 30));
+        const after = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
+        expect(after).toBeGreaterThan(before);
+    });
+
+    it("isUserFacingLxmfDelivery method directly classifies common payloads", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        const fn = wrapper.vm.isUserFacingLxmfDelivery;
+        expect(fn(null)).toBe(false);
+        expect(fn(undefined)).toBe(false);
+        expect(fn({ is_incoming: false, content: "hello" })).toBe(false);
+        expect(fn({ is_incoming: true, content: "hello" })).toBe(true);
+        expect(fn({ is_incoming: true, content: "", title: "" })).toBe(false);
+        expect(fn({ is_incoming: true, content: "", title: "Subject" })).toBe(true);
+        expect(fn({ is_incoming: true, is_reaction: true, content: "still ignored" })).toBe(false);
+        expect(
+            fn({
+                is_incoming: true,
+                content: "",
+                fields: { app_extensions: { reaction_to: "x" } },
+            })
+        ).toBe(false);
+        expect(fn({ is_incoming: true, content: "", fields: { telemetry: { x: 1 } } })).toBe(false);
+        expect(fn({ is_incoming: true, content: "", fields: { image: { image_size: 1 } } })).toBe(true);
+        expect(fn({ is_incoming: true, content: "", fields: { audio: { audio_size: 1 } } })).toBe(true);
+        expect(
+            fn({
+                is_incoming: true,
+                content: "",
+                fields: { file_attachments: [{ file_name: "a", file_size: 1 }] },
+            })
+        ).toBe(true);
+        expect(fn({ is_incoming: true, content: "", fields: { file_attachments: [] } })).toBe(false);
+    });
+
+    it("badge stays at zero through a flood of reaction events", async () => {
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        for (let i = 0; i < 25; i++) {
+            simulateWsMessage("lxmf.delivery", {
+                lxmf_message: {
+                    is_incoming: true,
+                    content: "",
+                    fields: { app_extensions: { reaction_to: `m${i}` } },
+                },
+            });
+        }
+        await new Promise((r) => setTimeout(r, 80));
+        expect(wrapper.vm.unreadCount).toBe(0);
     });
 });
 

@@ -79,6 +79,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_state_to_string,
+    is_user_facing_lxmf_payload,
     lxmf_fields_are_columba_reaction,
 )
 from meshchatx.src.backend.map_manager import TRANSPARENT_TILE
@@ -9797,6 +9798,7 @@ class ReticulumMeshChat:
 
                 # 2. Fetch unread LXMF conversations if requested
                 conversations = []
+                user_facing_peer_hashes = set()
                 if filter_unread:
                     local_hash = self.local_lxmf_destination.hexhash
                     db_conversations = self.message_handler.get_conversations(
@@ -9814,12 +9816,49 @@ class ReticulumMeshChat:
                         else:
                             other_user_hash = db_message["source_hash"]
 
+                        # If the latest incoming message is not user-facing
+                        # (reaction, telemetry, icon update, empty payload)
+                        # fall back to the most recent user-facing incoming
+                        # message so silent activity never raises the bell.
+                        latest_for_preview = db_message
+                        if not is_user_facing_lxmf_payload(
+                            db_message.get("fields"),
+                            db_message.get("content"),
+                            db_message.get("title"),
+                        ):
+                            latest_user_facing = self.database.messages.get_latest_user_facing_incoming_message(
+                                other_user_hash,
+                            )
+                            if latest_user_facing is None:
+                                continue
+                            # Compare against last_read_at on the original row
+                            last_read_at_raw = db_message.get("last_read_at")
+                            if last_read_at_raw:
+                                try:
+                                    last_read_dt = datetime.fromisoformat(
+                                        last_read_at_raw,
+                                    )
+                                    if last_read_dt.tzinfo is None:
+                                        last_read_dt = last_read_dt.replace(
+                                            tzinfo=UTC,
+                                        )
+                                    if (
+                                        latest_user_facing["timestamp"]
+                                        <= last_read_dt.timestamp()
+                                    ):
+                                        continue
+                                except (ValueError, TypeError):
+                                    pass
+                            latest_for_preview = latest_user_facing
+
                         # Check if notification has been viewed
                         if self.database.messages.is_notification_viewed(
                             other_user_hash,
-                            db_message["timestamp"],
+                            latest_for_preview["timestamp"],
                         ):
                             continue
+
+                        user_facing_peer_hashes.add(other_user_hash)
 
                         # Determine display name
                         display_name = self.get_lxmf_conversation_name(
@@ -9833,9 +9872,9 @@ class ReticulumMeshChat:
 
                         # Determine latest message data
                         latest_message_data = {
-                            "content": db_message.get("content", ""),
-                            "timestamp": db_message.get("timestamp", 0),
-                            "is_incoming": db_message.get("is_incoming") == 1,
+                            "content": latest_for_preview.get("content", ""),
+                            "timestamp": latest_for_preview.get("timestamp", 0),
+                            "is_incoming": latest_for_preview.get("is_incoming") == 1,
                         }
 
                         icon = self.database.misc.get_user_icon(other_user_hash)
@@ -9847,9 +9886,9 @@ class ReticulumMeshChat:
                                 "display_name": display_name,
                                 "custom_display_name": custom_display_name,
                                 "lxmf_user_icon": dict(icon) if icon else None,
-                                "latest_message_preview": latest_message_data[
-                                    "content"
-                                ][:100],
+                                "latest_message_preview": (
+                                    latest_message_data["content"] or ""
+                                )[:100],
                                 "updated_at": datetime.fromtimestamp(
                                     latest_message_data["timestamp"] or 0,
                                     UTC,
@@ -9910,25 +9949,62 @@ class ReticulumMeshChat:
                 # Calculate actual unread count
                 unread_count = self.database.misc.get_unread_notification_count()
 
-                # Add LXMF unread count
+                # Add LXMF unread count using the same user-facing filter as
+                # the listing above so the badge can never disagree with the
+                # dropdown contents (no false bell triggers from reactions,
+                # telemetry, icon updates, or empty payloads).
                 lxmf_unread_count = 0
                 local_hash = self.local_lxmf_destination.hexhash
-                unread_conversations = self.message_handler.get_conversations(
-                    local_hash,
-                    filter_unread=True,
-                )
-                if unread_conversations:
-                    for conv in unread_conversations:
-                        # Determine other user hash
+                if filter_unread:
+                    # Already computed during the listing pass.
+                    lxmf_unread_count = len(user_facing_peer_hashes)
+                else:
+                    unread_conversations = self.message_handler.get_conversations(
+                        local_hash,
+                        filter_unread=True,
+                    )
+                    for conv in unread_conversations or []:
+                        if not isinstance(conv, dict):
+                            conv = dict(conv)
+
                         if conv["source_hash"] == local_hash:
                             other_user_hash = conv["destination_hash"]
                         else:
                             other_user_hash = conv["source_hash"]
 
-                        # Check if notification has NOT been viewed
+                        latest_for_check = conv
+                        if not is_user_facing_lxmf_payload(
+                            conv.get("fields"),
+                            conv.get("content"),
+                            conv.get("title"),
+                        ):
+                            latest_user_facing = self.database.messages.get_latest_user_facing_incoming_message(
+                                other_user_hash,
+                            )
+                            if latest_user_facing is None:
+                                continue
+                            last_read_at_raw = conv.get("last_read_at")
+                            if last_read_at_raw:
+                                try:
+                                    last_read_dt = datetime.fromisoformat(
+                                        last_read_at_raw,
+                                    )
+                                    if last_read_dt.tzinfo is None:
+                                        last_read_dt = last_read_dt.replace(
+                                            tzinfo=UTC,
+                                        )
+                                    if (
+                                        latest_user_facing["timestamp"]
+                                        <= last_read_dt.timestamp()
+                                    ):
+                                        continue
+                                except (ValueError, TypeError):
+                                    pass
+                            latest_for_check = latest_user_facing
+
                         if not self.database.messages.is_notification_viewed(
                             other_user_hash,
-                            conv["timestamp"],
+                            latest_for_check["timestamp"],
                         ):
                             lxmf_unread_count += 1
 

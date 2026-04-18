@@ -188,6 +188,36 @@ class MessageDAO:
             (destination_hash, limit, offset),
         )
 
+    def get_latest_user_facing_incoming_message(self, peer_hash, *, scan_limit=50):
+        """Return the most recent incoming user-facing message for ``peer_hash``.
+
+        Walks recent incoming messages in timestamp-descending order and applies
+        :func:`is_user_facing_lxmf_payload` in Python (the SQLite layer cannot
+        cheaply parse the JSON ``fields`` blob). ``scan_limit`` bounds the walk
+        so a long chain of reactions/telemetry won't degrade the bell endpoint.
+
+        Returns ``None`` if no user-facing incoming message exists in the
+        scanned window.
+        """
+        from meshchatx.src.backend.lxmf_utils import is_user_facing_lxmf_payload
+
+        rows = self.provider.fetchall(
+            "SELECT id, hash, peer_hash, source_hash, destination_hash, "
+            "is_incoming, title, content, fields, timestamp "
+            "FROM lxmf_messages WHERE peer_hash = ? AND is_incoming = 1 "
+            "ORDER BY timestamp DESC LIMIT ?",
+            (peer_hash, scan_limit),
+        )
+        for row in rows:
+            row_dict = dict(row) if not isinstance(row, dict) else row
+            if is_user_facing_lxmf_payload(
+                row_dict.get("fields"),
+                row_dict.get("content"),
+                row_dict.get("title"),
+            ):
+                return row_dict
+        return None
+
     CONVERSATION_LIST_COLUMNS = (
         "m1.id, m1.hash, m1.source_hash, m1.destination_hash, m1.peer_hash, "
         "m1.state, m1.is_incoming, m1.title, m1.timestamp, m1.created_at, m1.updated_at"

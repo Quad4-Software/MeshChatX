@@ -10,12 +10,89 @@ from meshchatx.src.backend.telemetry_utils import Telemeter
 # Columba-compatible app extensions (emoji reactions, reply metadata, etc.)
 LXMF_APP_EXTENSIONS_FIELD = 16
 
+# Raw LXMF integer field identifiers used when classifying "user-facing" payloads
+LXMF_FILE_ATTACHMENTS_FIELD = LXMF.FIELD_FILE_ATTACHMENTS
+LXMF_IMAGE_FIELD = LXMF.FIELD_IMAGE
+LXMF_AUDIO_FIELD = LXMF.FIELD_AUDIO
+
 
 def lxmf_fields_are_columba_reaction(lxmf_fields: dict) -> bool:
     if not isinstance(lxmf_fields, dict):
         return False
     val = lxmf_fields.get(LXMF_APP_EXTENSIONS_FIELD)
     return isinstance(val, dict) and "reaction_to" in val
+
+
+def is_user_facing_lxmf_payload(fields, content, title) -> bool:
+    """Determine whether an LXMF message represents a user-visible item.
+
+    Messages that should NOT raise the notification bell:
+      - reactions (Columba app_extensions.reaction_to with no other payload)
+      - telemetry-only messages (FIELD_TELEMETRY / fields["telemetry"] with no body)
+      - icon-only / appearance-only updates (no body, no attachment)
+      - empty pings (no content, no title, no attachment)
+
+    The helper is intentionally tolerant: ``fields`` may be the rich dict
+    produced by :func:`convert_lxmf_message_to_dict` (string keys), the raw
+    LXMF integer-keyed dict, or a JSON-string from the database.
+    """
+    import json as _json
+
+    if isinstance(fields, str):
+        try:
+            fields = _json.loads(fields) if fields else {}
+        except (ValueError, TypeError):
+            fields = {}
+    if not isinstance(fields, dict):
+        fields = {}
+
+    app_ext = fields.get("app_extensions")
+    if not isinstance(app_ext, dict):
+        raw_app_ext = fields.get(LXMF_APP_EXTENSIONS_FIELD)
+        if isinstance(raw_app_ext, dict):
+            app_ext = raw_app_ext
+    if isinstance(app_ext, dict) and "reaction_to" in app_ext:
+        return False
+
+    def _has_text(value):
+        if value is None:
+            return False
+        if isinstance(value, bytes):
+            try:
+                value = value.decode("utf-8", errors="replace")
+            except Exception:
+                return False
+        return bool(str(value).strip())
+
+    if _has_text(content):
+        return True
+    if _has_text(title):
+        return True
+
+    image = fields.get("image")
+    if isinstance(image, dict) and (
+        image.get("image_size") or image.get("image_bytes")
+    ):
+        return True
+    if image is None and fields.get(LXMF_IMAGE_FIELD) is not None:
+        return True
+
+    audio = fields.get("audio")
+    if isinstance(audio, dict) and (
+        audio.get("audio_size") or audio.get("audio_bytes")
+    ):
+        return True
+    if audio is None and fields.get(LXMF_AUDIO_FIELD) is not None:
+        return True
+
+    file_attachments = fields.get("file_attachments")
+    if isinstance(file_attachments, list) and len(file_attachments) > 0:
+        return True
+    raw_files = fields.get(LXMF_FILE_ATTACHMENTS_FIELD)
+    if isinstance(raw_files, list) and len(raw_files) > 0:
+        return True
+
+    return False
 
 
 def convert_lxmf_message_to_dict(
@@ -402,16 +479,27 @@ def convert_db_lxmf_message_to_dict(
     return out
 
 
-def compute_lxmf_conversation_unread_from_latest_row(row):
+def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing=False):
     """Return whether the conversation row should appear as unread.
 
     Uses ``lxmf_conversation_read_state.last_read_at`` only. The latest message
     must be incoming; outbound-only threads are not unread (matches
     ``filter_unread`` in ``MessageHandler.get_conversations``).
+
+    When ``require_user_facing`` is True, the row's latest message must also be
+    user-facing (i.e. not a bare reaction / telemetry / icon-only payload).
+    Used by the notification bell so silent system messages do not raise the
+    unread badge.
     """
     from datetime import UTC, datetime
 
     if not row.get("is_incoming"):
+        return False
+    if require_user_facing and not is_user_facing_lxmf_payload(
+        row.get("fields"),
+        row.get("content"),
+        row.get("title"),
+    ):
         return False
     last_read_at_raw = row.get("last_read_at")
     if not last_read_at_raw:

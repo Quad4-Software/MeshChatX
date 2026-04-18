@@ -384,13 +384,50 @@ export default {
         formatTimeAgo(datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
         },
+        isUserFacingLxmfDelivery(lxmfMessage) {
+            if (!lxmfMessage || lxmfMessage.is_incoming !== true) {
+                return false;
+            }
+            // Reactions never count as a notification.
+            if (lxmfMessage.is_reaction === true) {
+                return false;
+            }
+            const fields = lxmfMessage.fields || {};
+            const appExt = fields.app_extensions;
+            if (appExt && typeof appExt === "object" && Object.prototype.hasOwnProperty.call(appExt, "reaction_to")) {
+                return false;
+            }
+            const content = (lxmfMessage.content || "").toString().trim();
+            const title = (lxmfMessage.title || "").toString().trim();
+            if (content.length > 0 || title.length > 0) {
+                return true;
+            }
+            const image = fields.image;
+            if (image && (image.image_size || image.image_bytes)) {
+                return true;
+            }
+            const audio = fields.audio;
+            if (audio && (audio.audio_size || audio.audio_bytes)) {
+                return true;
+            }
+            const fileAttachments = fields.file_attachments;
+            if (Array.isArray(fileAttachments) && fileAttachments.length > 0) {
+                return true;
+            }
+            return false;
+        },
         async onWebsocketMessage(message) {
             if (!this.shouldFetchNotifications()) {
                 return;
             }
-            const json = JSON.parse(message.data);
+            let json;
+            try {
+                json = JSON.parse(message.data);
+            } catch {
+                return;
+            }
             if (json.type === "lxmf.delivery") {
-                if (json.lxmf_message?.is_incoming !== true) {
+                if (!this.isUserFacingLxmfDelivery(json.lxmf_message)) {
                     return;
                 }
                 await this.loadNotifications();
