@@ -18,6 +18,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageView;
@@ -35,6 +36,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
@@ -45,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String SERVER_URL = "https://127.0.0.1:8000";
     private static final int SERVER_PORT = 8000;
     private static final int RUNTIME_PERMISSIONS_REQUEST_CODE = 1001;
-    private static final int MICROPHONE_WEB_PERMISSION_REQUEST_CODE = 1002;
+    private static final int WEB_MEDIA_PERMISSION_REQUEST_CODE = 1003;
     private static final String PREFS_NAME = "meshchatx";
     private static final String PREF_BATTERY_OPT_REQUESTED = "battery_opt_requested";
     private static final int MAX_CONNECTION_ATTEMPTS = 120;
@@ -58,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean startupPageLoaded = false;
     private boolean backendFailed = false;
     private int connectionAttempts = 0;
+    private String pendingIntentUri = null;
     private static final String[] STARTUP_PHASES = new String[] {
         "Starting MeshChatX...",
         "Initializing Reticulum network stack...",
@@ -134,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
                 progressBar.setVisibility(android.view.View.GONE);
                 loadingText.setVisibility(android.view.View.GONE);
                 errorText.setVisibility(android.view.View.GONE);
+                dispatchPendingIntentUri();
             }
 
             @Override
@@ -182,6 +186,8 @@ public class MainActivity extends AppCompatActivity {
                 handler.proceed();
             }
         });
+        webView.addJavascriptInterface(new MeshChatXAndroidBridge(this), "MeshChatXAndroid");
+
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
@@ -191,26 +197,46 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     boolean needsAudioCapture = false;
+                    boolean needsVideoCapture = false;
                     for (String resource : request.getResources()) {
                         if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) {
                             needsAudioCapture = true;
-                            break;
+                        } else if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
+                            needsVideoCapture = true;
                         }
                     }
 
-                    if (!needsAudioCapture) {
+                    if (!needsAudioCapture && !needsVideoCapture) {
                         request.grant(request.getResources());
                         return;
                     }
 
-                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
-                        == PackageManager.PERMISSION_GRANTED) {
+                    List<String> missingPermissions = new ArrayList<>();
+                    if (
+                        needsAudioCapture &&
+                        ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
+                            != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        missingPermissions.add(Manifest.permission.RECORD_AUDIO);
+                    }
+                    if (
+                        needsVideoCapture &&
+                        ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
+                            != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        missingPermissions.add(Manifest.permission.CAMERA);
+                    }
+                    if (missingPermissions.isEmpty()) {
                         request.grant(request.getResources());
                         return;
                     }
 
                     pendingWebPermissionRequest = request;
-                    requestMicrophonePermissionForWebView();
+                    ActivityCompat.requestPermissions(
+                        MainActivity.this,
+                        missingPermissions.toArray(new String[0]),
+                        WEB_MEDIA_PERMISSION_REQUEST_CODE
+                    );
                 });
             }
 
@@ -255,9 +281,20 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
+        handleIncomingIntent(getIntent());
 
         startMeshChatServer();
         scheduleConnectionRetry("Connecting to local server...");
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIncomingIntent(intent);
+        if (startupPageLoaded) {
+            dispatchPendingIntentUri();
+        }
     }
 
     private void requestRuntimePermissionsIfNeeded() {
@@ -277,22 +314,6 @@ public class MainActivity extends AppCompatActivity {
                 RUNTIME_PERMISSIONS_REQUEST_CODE
             );
         }
-    }
-
-    private void requestMicrophonePermissionForWebView() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            if (pendingWebPermissionRequest != null) {
-                pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
-                pendingWebPermissionRequest = null;
-            }
-            return;
-        }
-
-        ActivityCompat.requestPermissions(
-            this,
-            new String[] { Manifest.permission.RECORD_AUDIO },
-            MICROPHONE_WEB_PERMISSION_REQUEST_CODE
-        );
     }
 
     private void requestBatteryOptimizationExemptionIfNeeded() {
@@ -333,18 +354,23 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == MICROPHONE_WEB_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                if (pendingWebPermissionRequest != null) {
-                    pendingWebPermissionRequest.deny();
-                    pendingWebPermissionRequest = null;
-                }
+        if (requestCode == WEB_MEDIA_PERMISSION_REQUEST_CODE) {
+            if (pendingWebPermissionRequest == null) {
                 return;
             }
-            if (pendingWebPermissionRequest != null) {
-                pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
-                pendingWebPermissionRequest = null;
+            boolean granted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    granted = false;
+                    break;
+                }
             }
+            if (granted) {
+                pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
+            } else {
+                pendingWebPermissionRequest.deny();
+            }
+            pendingWebPermissionRequest = null;
             return;
         }
         if (requestCode != RUNTIME_PERMISSIONS_REQUEST_CODE) {
@@ -382,6 +408,34 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isStartupRequest(String url) {
         return url != null && url.startsWith(SERVER_URL);
+    }
+
+    private void handleIncomingIntent(Intent intent) {
+        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction())) {
+            return;
+        }
+        Uri data = intent.getData();
+        if (data == null || data.getScheme() == null) {
+            return;
+        }
+        String scheme = data.getScheme().toLowerCase();
+        if (!"lxma".equals(scheme) && !"lxmf".equals(scheme) && !"lxm".equals(scheme)) {
+            return;
+        }
+        pendingIntentUri = data.toString();
+    }
+
+    private void dispatchPendingIntentUri() {
+        if (webView == null || pendingIntentUri == null || pendingIntentUri.isEmpty()) {
+            return;
+        }
+        String uri = pendingIntentUri;
+        pendingIntentUri = null;
+        String js =
+            "window.dispatchEvent(new CustomEvent('meshchatx-intent-uri',{detail:" +
+            JSONObject.quote(uri) +
+            "}));";
+        webView.evaluateJavascript(js, null);
     }
 
     private void scheduleConnectionRetry(String message) {
@@ -482,6 +536,22 @@ public class MainActivity extends AppCompatActivity {
         }
         if (webView != null) {
             webView.destroy();
+        }
+    }
+
+    private static class MeshChatXAndroidBridge {
+        private final MainActivity activity;
+
+        MeshChatXAndroidBridge(MainActivity activity) {
+            this.activity = activity;
+        }
+
+        @JavascriptInterface
+        public void exitApp() {
+            activity.runOnUiThread(() -> {
+                activity.finishAffinity();
+                android.os.Process.killProcess(android.os.Process.myPid());
+            });
         }
     }
 }
