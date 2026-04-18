@@ -12,6 +12,7 @@ Prerequisites:
 
 - **JDK 17 or newer** (required by the Android Gradle Plugin used in this project). On distributions with multiple JDKs, point the build at JDK 17+ (for example `JAVA_HOME` for the Gradle invocation).
 - **Android SDK** with API **34** platform and **Build-Tools 34** installed. Set `ANDROID_HOME` and `ANDROID_SDK_ROOT` to the SDK root (the same directory for both is fine).
+- **Host build tools for wheel patching**: `patchelf`, `cmake`, `pkg-config`, `unzip`, and build essentials (`gcc`, `make`, headers). On Arch-based systems, install `patchelf cmake pkgconf base-devel rustup unzip`.
 - **`android/vendor/`** must contain the Chaquopy vendor wheels (see [Updating Android Python ABI Wheels](#updating-android-python-abi-wheels-python-311)). The build fails fast if this directory is missing or incomplete.
 - **MeshChatX Python sources** at the repository root (`meshchatx/`). The build syncs them into the app before compiling.
 
@@ -21,19 +22,19 @@ SDK licenses:
 - Install Command-line Tools if needed: download the package for your OS from [Android Studio command-line tools](https://developer.android.com/studio#command-tools), extract it so you have `cmdline-tools/latest/bin/sdkmanager` under `ANDROID_HOME` (the inner folder is often named `latest`; see Google’s layout for that zip).
 - Accept licenses (writes under the SDK; use sudo if the SDK is root-owned):
 
-```text
+```bash
 yes | path/to/cmdline-tools/latest/bin/sdkmanager --licenses
 ```
 
 - Install missing packages if the build still complains (platform 34, build-tools 34, etc.):
 
-```text
+```bash
 path/to/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 ```
 
 Build from the `android/` directory:
 
-```text
+```bash
 ./gradlew assembleDebug
 ```
 
@@ -41,11 +42,83 @@ Debug APK outputs (ABI splits plus universal) are written under `app/build/outpu
 
 - `app-arm64-v8a-debug.apk`
 - `app-x86_64-debug.apk`
+- `app-armeabi-v7a-debug.apk`
 - `app-universal-debug.apk`
+
+By default all ABIs are included. To build only specific ABIs, pass a property:
+
+```bash
+./gradlew assembleDebug -PmeshchatxAbis=armeabi-v7a
+./gradlew assembleDebug -PmeshchatxAbis=arm64-v8a,x86_64
+```
+
+`app-universal-*.apk` is produced only when more than one ABI is selected.
+
+## Signing Release APKs (optional SourceStamp)
+
+Build release APKs first:
+
+```bash
+./gradlew --no-daemon :app:assembleRelease
+```
+
+Create a release signing key (one time):
+
+```bash
+mkdir -p android/keystore
+keytool -genkeypair -v \
+  -keystore android/keystore/meshchatx-release.jks \
+  -alias meshchatx-release \
+  -keyalg RSA \
+  -keysize 4096 \
+  -validity 9125
+```
+
+Optional: create a separate SourceStamp key (recommended if you use SourceStamp):
+
+```bash
+keytool -genkeypair -v \
+  -keystore android/keystore/meshchatx-stamp.jks \
+  -alias meshchatx-stamp \
+  -keyalg RSA \
+  -keysize 4096 \
+  -validity 9125
+```
+
+Sign all `*-unsigned.apk` release artifacts:
+
+```bash
+ANDROID_HOME="$HOME/Android/sdk" \
+SIGNING_KEYSTORE_PATH=android/keystore/meshchatx-release.jks \
+SIGNING_KEY_ALIAS=meshchatx-release \
+SIGNING_KEYSTORE_PASSWORD='<release-keystore-password>' \
+SIGNING_KEY_PASSWORD='<release-key-password>' \
+bash scripts/sign-android-apks.sh
+```
+
+Sign with SourceStamp enabled:
+
+```bash
+ANDROID_HOME="$HOME/Android/sdk" \
+SIGNING_KEYSTORE_PATH=android/keystore/meshchatx-release.jks \
+SIGNING_KEY_ALIAS=meshchatx-release \
+SIGNING_KEYSTORE_PASSWORD='<release-keystore-password>' \
+SIGNING_KEY_PASSWORD='<release-key-password>' \
+ENABLE_SOURCESTAMP=true \
+SOURCESTAMP_KEYSTORE_PATH=android/keystore/meshchatx-stamp.jks \
+SOURCESTAMP_KEY_ALIAS=meshchatx-stamp \
+SOURCESTAMP_KEYSTORE_PASSWORD='<stamp-keystore-password>' \
+SOURCESTAMP_KEY_PASSWORD='<stamp-key-password>' \
+bash scripts/sign-android-apks.sh
+```
+
+The helper script auto-detects the newest Android Build-Tools, runs `zipalign`, signs with `apksigner`, and verifies each output certificate/signature block.
 
 ## Updating Android Python ABI Wheels (Python 3.11)
 
-Use this workflow when a dependency (for example `cryptography`) requires custom Android wheels for `arm64-v8a` and `x86_64`.
+Use this workflow when a dependency (for example `cryptography`) requires custom Android wheels for the ABIs listed in `app/build.gradle` (`ndk.abiFilters`).
+
+For **`armeabi-v7a`**, Chaquopy usually has no prebuilt NumPy wheel; `scripts/build-android-wheels-local.sh` builds NumPy from source and must cache the official `chaquopy-openblas` wheel (handled in the script) and run with **`ANDROID_HOME`** pointing at an SDK that includes **Command-line Tools** and NDK **27.3.13750724** (Chaquopy’s `target/android-env.sh` installs the NDK via `sdkmanager` if missing).
 
 1. Build wheels in a Podman Python 3.11 container to avoid host Python mismatches:
    - Use `docker.io/library/python:3.11-bookworm`.
@@ -56,12 +129,27 @@ Use this workflow when a dependency (for example `cryptography`) requires custom
 2. Keep custom Chaquopy recipes in `android/chaquopy-recipes/<package>-<major>/`:
    - Define package/version in `meta.yaml`.
    - Store source patches in `patches/`.
-3. Build both ABIs with Chaquopy `build-wheel.py` and place final wheels in `android/vendor/`.
+3. Build the configured ABIs with Chaquopy `build-wheel.py` (via `scripts/build-android-wheels-local.sh`) and place final wheels in `android/vendor/`.
 4. Update `android/app/build.gradle` `pip` installs to the new pinned version.
-5. Rebuild with `./gradlew assembleDebug` and verify split outputs:
-   - `app-arm64-v8a-debug.apk`
-   - `app-x86_64-debug.apk`
-   - `app-universal-debug.apk`
+5. Rebuild with `./gradlew assembleDebug` and verify split outputs (per enabled ABIs), including `app-universal-debug.apk`.
+
+Local host build example (no shell startup files required):
+
+```bash
+cd /path/to/reticulum-meshchatX
+ANDROID_HOME="$HOME/Android/sdk" \
+ANDROID_SDK_ROOT="$HOME/Android/sdk" \
+PYTHON_BIN="$(uv python find 3.11)" \
+bash scripts/build-android-wheels-local.sh --abis armeabi-v7a
+```
+
+If `uv` does not have Python 3.11 yet, install it first:
+
+```bash
+uv python install 3.11
+```
+
+If the wheel build fails with `No such file or directory: 'patchelf'`, install `patchelf` and re-run the same command.
 
 Notes:
 - For Rust-backed wheels (such as modern `cryptography`), build inside the container with Rust toolchain available.
@@ -72,7 +160,7 @@ Notes:
 This project keeps Android-specific Chaquopy recipes in `android/chaquopy-recipes/` to bridge gaps between desktop Python dependencies and Android wheel availability.
 
 - `cryptography-46`
-  - Purpose: provide Android ABI wheels for `cryptography 46.0.7` (`arm64-v8a`, `x86_64`) because upstream Chaquopy index only provided older builds.
+  - Purpose: provide Android ABI wheels for `cryptography 46.0.7` for each ABI in the wheel script (for example `arm64-v8a`, `x86_64`, `armeabi-v7a`) because upstream Chaquopy index only provided older builds.
   - `patches/openssl_no_legacy.patch`: disables OpenSSL legacy provider loading, which is unavailable in the bundled Android OpenSSL runtime.
   - `patches/pyo3_no_interpreter.patch`: enables compatible `pyo3` ABI settings for Chaquopy Python 3.11 Android builds.
 

@@ -301,29 +301,25 @@ pnpm run version:sync
 
 ## 添加语言
 
-语言由目录自动发现。添加新语言只需一个 JSON 文件:
+语言检测是自动的。在 `meshchatx/src/frontend/locales/` 下新增 JSON 文件（例如 `xx.json`），键与 `en.json` 一致，并在顶层设置 `_languageName` 作为语言选择器中的显示名称。可以复制 `en.json` 后完全人工翻译；**使用 Argos 等机器辅助生成是可选的**，并非必需。
 
-1. 从 `en.json` 生成空白模板:
+**欢迎提交纠错与人工翻译。** 若修正现有语言文件或提交完整人工翻译，请通过合并请求或议题提交至[项目源码仓库](https://git.quad4.io/RNS-Things/MeshChatX)或 [GitHub 镜像](https://github.com/Sudo-Ivan/MeshChatX)。
 
-```bash
-python scripts/generate_locale_template.py
-```
-
-将写入 `locales.json`，所有键值为空字符串。
-
-2. 重命名并移入语言目录:
+**可选：Argos Translate 初稿** -- 若需要从 `en.json` 生成机器翻译初稿，可使用 `scripts/argos_translate.py`。它会处理格式并有助于保护插值变量（如 `{count}`）。
 
 ```bash
-mv locales.json meshchatx/src/frontend/locales/xx.json
+# 如果尚未安装，请安装 argostranslate
+pip install argostranslate
+
+# 运行翻译脚本
+python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "您的语言名称"
 ```
 
-3. 在文件顶部设置 `_languageName` 为该语言的母语名称（例如 `"Espanol"`、`"Francais"`）。将显示在语言选择器中。
+机器初稿之后，建议由 LLM 或人工审校语法、语境与语气（如正式与非正式）。
 
-4. 翻译其余全部值。
+运行 `pnpm test -- tests/frontend/i18n.test.js --run` 验证与 `en.json` 的键一致性。
 
-5. 校验键一致性: `pnpm test -- tests/frontend/i18n.test.js --run`
-
-无需其他代码更改。应用、语言选择与测试在构建时从 `meshchatx/src/frontend/locales/` 发现语言文件。
+不需要其他代码更改。应用程序、语言选择器和测试在构建时从 `meshchatx/src/frontend/locales/` 目录发现所有语言环境。
 
 ## 致谢
 

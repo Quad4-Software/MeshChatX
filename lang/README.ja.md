@@ -301,29 +301,25 @@ pnpm run version:sync
 
 ## 言語の追加
 
-ロケールは自動検出されます。新しい言語には JSON ファイル 1 つで足ります:
+ロケールの検出は自動で行われます。`meshchatx/src/frontend/locales/` に新しい JSON（例: `xx.json`）を追加し、`en.json` と同じキーに加え、言語選択に表示する名前を `_languageName` で指定します。`en.json` をコピーしてすべて手翻訳しても構いません。**機械翻訳による生成は任意**で、必須ではありません。
 
-1. `en.json` から空のテンプレートを生成:
+**修正や人間による翻訳の提供を歓迎します。** 既存ロケールの改善や完全な手翻訳ファイルは、[ソースリポジトリ](https://git.quad4.io/RNS-Things/MeshChatX)または [GitHub ミラー](https://github.com/Sudo-Ivan/MeshChatX) にプルリクエストまたは issue で送ってください。
 
-```bash
-python scripts/generate_locale_template.py
-```
-
-全キーを空文字にした `locales.json` が書き出されます。
-
-2. 名前を変更してロケールディレクトリへ移動:
+**任意: Argos Translate による下書き** -- `en.json` から機械翻訳のたたき台が欲しい場合は `scripts/argos_translate.py` を使えます。フォーマット処理や補間変数（`{count}` など）の保護に役立ちます。
 
 ```bash
-mv locales.json meshchatx/src/frontend/locales/xx.json
+# argostranslate をまだインストールしていない場合はインストールします
+pip install argostranslate
+
+# 翻訳スクリプトを実行します
+python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "言語名"
 ```
 
-3. ファイル先頭の `_languageName` にその言語の母語名を設定（例: `"Espanol"`, `"Francais"`）。言語選択に表示されます。
+機械下書きのあとは、LLM または人間が文法・文脈・トーン（フォーマル／カジュアルなど）を確認するとよいでしょう。
 
-4. 残りの値をすべて翻訳。
+`pnpm test -- tests/frontend/i18n.test.js --run` を実行して、`en.json` とのキーの一致を確認します。
 
-5. キーの整合性を確認: `pnpm test -- tests/frontend/i18n.test.js --run`
-
-他のコード変更は不要です。アプリ・言語選択・テストはビルド時に `meshchatx/src/frontend/locales/` からロケールを読み込みます。
+その他のコードの変更は必要ありません。アプリ、言語セレクター、およびテストは、ビルド時に `meshchatx/src/frontend/locales/` ディレクトリからロケールを検出します。
 
 ## クレジット
 

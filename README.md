@@ -193,7 +193,7 @@ task dist:fe:rpm
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (build scripts available)
 - macOS: build scripts available (`arm64`, `universal`) for local build environments
-- Android: native APKs — ABIs `arm64-v8a`, `x86_64`, plus universal
+- Android: native APKs — ABIs `arm64-v8a`, `x86_64`, `armeabi-v7a` (32-bit ARM), plus universal
 
 ## Android
 
@@ -218,19 +218,22 @@ Debug (`android/app/build/outputs/apk/debug/`):
 
 - `app-arm64-v8a-debug.apk` (ARM64 devices)
 - `app-x86_64-debug.apk` (x86_64 emulators)
+- `app-armeabi-v7a-debug.apk` (32-bit ARM devices)
 - `app-universal-debug.apk` (all bundled ABIs in one package)
 
 Release (`android/app/build/outputs/apk/release/`):
 
 - `app-arm64-v8a-release-unsigned.apk`
 - `app-x86_64-release-unsigned.apk`
+- `app-armeabi-v7a-release-unsigned.apk`
 - `app-universal-release-unsigned.apk`
 
 Notes:
 
 - Release outputs are unsigned by default unless you configure signing.
 - If you only need one variant, run `:app:assembleDebug` or `:app:assembleRelease`.
-- Android targets `arm64-v8a` and `x86_64` ABIs as configured in `android/app/build.gradle`.
+- Android targets the ABIs listed in `android/app/build.gradle` (including `armeabi-v7a` when enabled). Building wheels for `armeabi-v7a` needs an Android SDK on `ANDROID_HOME` (see `android/README.md`).
+- You can override ABI selection per build with `-PmeshchatxAbis=<comma-separated list>`, for example `-PmeshchatxAbis=armeabi-v7a`. Universal APKs are emitted only when multiple ABIs are selected.
 
 Additional docs:
 
@@ -306,27 +309,21 @@ Security and integrity details:
 
 ## Adding a Language
 
-Locale discovery is automatic. To add a new language, create a single JSON file:
+Locale discovery is automatic. Add a new file under `meshchatx/src/frontend/locales/` (for example `xx.json`) with the same keys as `en.json` and a top-level `_languageName` string for the label shown in the language selector. You can copy `en.json` and translate every value by hand; **machine-assisted generation is optional** and never required.
 
-1. Generate a blank template from `en.json`:
-
-```bash
-python scripts/generate_locale_template.py
-```
-
-This writes `locales.json` with every key set to an empty string.
-
-2. Rename it to your language code and move it into the locales directory:
+**Optional: Argos Translate bootstrap** -- If you want a machine-generated first draft from `en.json`, you can use `scripts/argos_translate.py`. It handles formatting, color output, and helps protect interpolation variables (like `{count}`) from accidental edits.
 
 ```bash
-mv locales.json meshchatx/src/frontend/locales/xx.json
+# Install argostranslate if you haven't already
+pipx install argostranslate
+
+# Run the translation script
+python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Your Language Name"
 ```
 
-3. Set `_languageName` at the top of the file to the native name of the language (e.g. `"Espanol"`, `"Francais"`). This is displayed in the language selector.
+After any machine-assisted pass, have an LLM or a human reviewer verify grammar, context, and tone (for example formal vs informal).
 
-4. Translate all remaining values.
-
-5. Run `pnpm test -- tests/frontend/i18n.test.js --run` to verify key parity with `en.json`.
+Run `pnpm test -- tests/frontend/i18n.test.js --run` to verify key parity with `en.json`.
 
 No other code changes are required. The app, language selector, and tests all discover locales from the `meshchatx/src/frontend/locales/` directory at build time.
 

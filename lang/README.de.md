@@ -301,27 +301,23 @@ Fuer konsistente Releases die Versionsfelder dort abgleichen, wo noetig (`packag
 
 ## Sprache hinzufuegen
 
-Die Spracherkennung erfolgt automatisch. Um eine neue Sprache hinzuzufuegen, genuegt eine einzige JSON-Datei:
+Die Locale-Erkennung erfolgt automatisch. Legen Sie eine neue Datei unter `meshchatx/src/frontend/locales/` an (z. B. `xx.json`) mit denselben Schluesseln wie `en.json` und einem obersten Feld `_languageName` fuer die Anzeige in der Sprachauswahl. Sie koennen `en.json` kopieren und alles von Hand uebersetzen; **maschinelle Erzeugung ist optional** und nie verpflichtend.
 
-1. Leere Vorlage aus `en.json` erzeugen:
+**Korrekturen und menschliche Uebersetzungen sind willkommen.** Verbesserungen an bestehenden Locale-Dateien oder vollstaendig manuell uebersetzte Dateien koennen Sie per Pull Request oder Issue im [Quellcode-Repository](https://git.quad4.io/RNS-Things/MeshChatX) oder beim [GitHub-Spiegel](https://github.com/Sudo-Ivan/MeshChatX) einreichen.
 
-```bash
-python scripts/generate_locale_template.py
-```
-
-Damit wird `locales.json` mit leeren Strings fuer alle Schluessel geschrieben.
-
-2. Umbenennen und in das Locale-Verzeichnis verschieben:
+**Optional: Argos-Translate-Bootstrap** -- Wenn Sie einen maschinellen Erstentwurf aus `en.json` wollen, koennen Sie `scripts/argos_translate.py` nutzen. Es kuemmert sich um Formatierung und schuetzt Interpolationsvariablen (wie `{count}`) vor versehentlichen Aenderungen.
 
 ```bash
-mv locales.json meshchatx/src/frontend/locales/xx.json
+# Installieren Sie argostranslate, falls noch nicht geschehen
+pip install argostranslate
+
+# Fuehren Sie das Uebersetzungsskript aus
+python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Ihr Sprachname"
 ```
 
-3. `_languageName` am Anfang der Datei auf den nativen Sprachnamen setzen (z.B. `"Espanol"`, `"Francais"`). Wird im Sprachwahlmenue angezeigt.
+Nach einem maschinellen Entwurf sollten ein LLM oder ein Mensch Grammatik, Kontext und Ton pruefen (z. B. formell vs. informell).
 
-4. Alle uebrigen Werte uebersetzen.
-
-5. Schluesselparitaet pruefen: `pnpm test -- tests/frontend/i18n.test.js --run`
+Schluesselparitaet pruefen: `pnpm test -- tests/frontend/i18n.test.js --run`
 
 Keine weiteren Code-Aenderungen noetig. App, Sprachwahl und Tests lesen Locales zur Build-Zeit aus `meshchatx/src/frontend/locales/`.
 

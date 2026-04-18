@@ -301,29 +301,25 @@ Per release coerenti, allineare i campi di versione dove richiesto (`package.jso
 
 ## Aggiungere una lingua
 
-Il rilevamento delle lingue e automatico. Per aggiungere una nuova lingua basta un singolo file JSON:
+Il rilevamento della lingua locale è automatico. Aggiungi un nuovo file in `meshchatx/src/frontend/locales/` (ad esempio `xx.json`) con le stesse chiavi di `en.json` e un campo in cima `_languageName` per l'etichetta nel selettore lingue. Puoi copiare `en.json` e tradurre tutto a mano; **la generazione automatica è opzionale** e non è mai obbligatoria.
 
-1. Generare un modello vuoto da `en.json`:
+**Correzioni e traduzioni umane sono benvenute.** Miglioramenti a un file esistente o un file interamente tradotto a mano possono essere inviati con una pull request o una segnalazione sul [repository sorgente](https://git.quad4.io/RNS-Things/MeshChatX) o sul [mirror GitHub](https://github.com/Sudo-Ivan/MeshChatX).
 
-```bash
-python scripts/generate_locale_template.py
-```
-
-Scrive `locales.json` con ogni chiave impostata a stringa vuota.
-
-2. Rinominare e spostare nella cartella delle lingue:
+**Opzionale: bozza con Argos Translate** -- Se vuoi una prima bozza generata da `en.json`, puoi usare `scripts/argos_translate.py`. Gestisce la formattazione e aiuta a proteggere le variabili di interpolazione (come `{count}`).
 
 ```bash
-mv locales.json meshchatx/src/frontend/locales/xx.json
+# Installa argostranslate se non l'hai già fatto
+pip install argostranslate
+
+# Esegui lo script di traduzione
+python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Nome della tua lingua"
 ```
 
-3. Impostare `_languageName` all'inizio del file con il nome nativo della lingua (es. `"Espanol"`, `"Francais"`). Viene mostrato nel selettore lingua.
+Dopo una passata automatica, fai verificare grammatica, contesto e tono a un LLM o a un revisore umano (es. formale vs informale).
 
-4. Tradurre tutti i valori rimanenti.
+Verifica la parità delle chiavi con: `pnpm test -- tests/frontend/i18n.test.js --run`
 
-5. Verificare la corrispondenza delle chiavi: `pnpm test -- tests/frontend/i18n.test.js --run`
-
-Nessun altra modifica al codice e necessaria. App, selettore lingua e test scoprono le lingue in `meshchatx/src/frontend/locales/` al momento della build.
+Non sono necessarie altre modifiche al codice. L'app, il selettore della lingua e i test scoprono le lingue dalla cartella `meshchatx/src/frontend/locales/` durante la compilazione.
 
 ## Crediti
 

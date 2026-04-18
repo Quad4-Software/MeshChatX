@@ -301,29 +301,25 @@ pnpm run version:sync
 
 ## Добавление языка
 
-Локали обнаруживаются автоматически. Достаточно одного JSON-файла:
+Обнаружение локали происходит автоматически. Добавьте новый файл в `meshchatx/src/frontend/locales/` (например `xx.json`) с теми же ключами, что и в `en.json`, и полем `_languageName` в начале для подписи в селекторе языка. Можно скопировать `en.json` и перевести всё вручную; **автоматическая генерация (Argos и т. п.) необязательна** и не требуется.
 
-1. Сгенерировать пустой шаблон из `en.json`:
+**Исправления и переводы от людей приветствуются.** Улучшения существующих файлов локали или полностью ручной перевод можно прислать через pull request или issue в [исходном репозитории](https://git.quad4.io/RNS-Things/MeshChatX) или на [зеркале GitHub](https://github.com/Sudo-Ivan/MeshChatX).
 
-```bash
-python scripts/generate_locale_template.py
-```
-
-Создаётся `locales.json` со всеми ключами и пустыми строками.
-
-2. Переименовать и переместить:
+**По желанию: черновик через Argos Translate** -- если нужен машинный первый проход из `en.json`, можно использовать `scripts/argos_translate.py`. Он обрабатывает форматирование и помогает защитить переменные интерполяции (например `{count}`).
 
 ```bash
-mv locales.json meshchatx/src/frontend/locales/xx.json
+# Установите argostranslate, если вы еще этого не сделали
+pip install argostranslate
+
+# Запустите скрипт перевода
+python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Название вашего языка"
 ```
 
-3. В начале файла задать `_languageName` — нативное имя языка (например `"Espanol"`, `"Francais"`). Отображается в выборе языка.
+После машинного черновика имеет смысл проверить грамматику, контекст и тон с помощью LLM или человека (формальный или неформальный стиль).
 
-4. Перевести остальные значения.
+Проверьте совпадение ключей с помощью: `pnpm test -- tests/frontend/i18n.test.js --run`
 
-5. Проверить ключи: `pnpm test -- tests/frontend/i18n.test.js --run`
-
-Других изменений кода не требуется. Приложение, селектор языка и тесты используют `meshchatx/src/frontend/locales/` на этапе сборки.
+Никаких других изменений в коде не требуется. Приложение, селектор языка и тесты обнаруживают локали из каталога `meshchatx/src/frontend/locales/` во время сборки.
 
 ## Авторы
 
