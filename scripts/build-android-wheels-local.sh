@@ -19,7 +19,7 @@ Options:
   --python-minor X.Y         Python minor for target wheels (default: 3.11)
   --target-version V         Explicit Chaquopy target version (default: auto latest for python minor)
   --chaquopy-ref REF         Chaquopy git ref/commit to checkout (default: master)
-  --abis LIST                Comma-separated ABIs (default: arm64-v8a,x86_64)
+  --abis LIST                Comma-separated ABIs (default: arm64-v8a,x86_64,armeabi-v7a)
   --api-level N              Android API level for wheel tag (default: 24)
   --pycodec2-version V       pycodec2 version to build (default: 4.1.1)
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
@@ -36,7 +36,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_MINOR="3.11"
 TARGET_VERSION=""
 CHAQUOPY_REF="${CHAQUOPY_REF:-master}"
-ABI_LIST="arm64-v8a,x86_64"
+ABI_LIST="arm64-v8a,x86_64,armeabi-v7a"
 API_LEVEL="24"
 PYCODEC2_VERSION="4.1.1"
 LIBCODEC2_VERSION="1.2.0"
@@ -145,10 +145,26 @@ require_cmd sed
 require_cmd awk
 require_cmd sort
 
-PYTHON_BIN="python${PYTHON_MINOR}"
+case ",${ABI_LIST}," in
+    *,armeabi-v7a,*)
+        if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
+            echo "armeabi-v7a: NumPy is built from source and needs the Android SDK/NDK (Chaquopy android-env.sh)." >&2
+            echo "Set ANDROID_HOME or ANDROID_SDK_ROOT to your SDK root (with cmdline-tools/latest/bin/sdkmanager)." >&2
+            exit 1
+        fi
+        export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}"
+        export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+        if [[ ! -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]]; then
+            echo "armeabi-v7a: expected sdkmanager at ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" >&2
+            exit 1
+        fi
+        ;;
+esac
+
+PYTHON_BIN="${PYTHON_BIN:-python${PYTHON_MINOR}}"
 if ! command -v "${PYTHON_BIN}" >/dev/null 2>&1; then
-    echo "Required interpreter not found on PATH: ${PYTHON_BIN}" >&2
-    echo "Install Python ${PYTHON_MINOR} locally before running this script." >&2
+    echo "Required interpreter not found: ${PYTHON_BIN}" >&2
+    echo "Install Python ${PYTHON_MINOR} (e.g. uv python install ${PYTHON_MINOR}) or set PYTHON_BIN." >&2
     exit 1
 fi
 
@@ -198,6 +214,28 @@ fi
 NUMPY_DIST_DIR="${PYPIDIR}/dist/numpy"
 mkdir -p "${NUMPY_DIST_DIR}"
 PYTHON_ABI_TAG="cp${PYTHON_MINOR/./}"
+
+# Chaquopy's numpy recipe lists chaquopy-openblas as a host requirement. build-wheel.py
+# only loads it from ${PYPIDIR}/dist/chaquopy-openblas/ (it does not fetch from the index).
+# Official wheels: https://chaquo.com/pypi-13.1/chaquopy-openblas/
+cache_chaquopy_openblas_for_abi() {
+    local abi="$1"
+    local name url
+    mkdir -p "${PYPIDIR}/dist/chaquopy-openblas"
+    case "${abi}" in
+        armeabi-v7a) name="chaquopy_openblas-0.2.20-5-py3-none-android_16_armeabi_v7a.whl" ;;
+        arm64-v8a)   name="chaquopy_openblas-0.2.20-5-py3-none-android_21_arm64_v8a.whl" ;;
+        x86_64)      name="chaquopy_openblas-0.2.20-5-py3-none-android_21_x86_64.whl" ;;
+        *) return 0 ;;
+    esac
+    url="https://chaquo.com/pypi-13.1/chaquopy-openblas/${name}"
+    if [[ -f "${PYPIDIR}/dist/chaquopy-openblas/${name}" ]]; then
+        return 0
+    fi
+    echo "Caching Chaquopy OpenBLAS wheel for ${abi}"
+    curl -fsSL -o "${PYPIDIR}/dist/chaquopy-openblas/${name}" "${url}"
+}
+
 for abi in ${ABI_LIST//,/ }; do
     platform_tag="$(abi_to_platform_tag "${abi}")"
     echo "Resolving NumPy wheel for ABI ${abi} (${platform_tag})"
@@ -213,12 +251,12 @@ for abi in ${ABI_LIST//,/ }; do
         --extra-index-url https://chaquo.com/pypi-13.1 \
         --dest "${NUMPY_DIST_DIR}"; then
         echo "No prebuilt NumPy wheel for ${abi}; building locally via Chaquopy recipe"
+        cache_chaquopy_openblas_for_abi "${abi}"
         "${VENV_DIR}/bin/python" "${PYPIDIR}/build-wheel.py" \
             --python "${PYTHON_MINOR}" \
             --api-level "${API_LEVEL}" \
             --abi "${abi}" \
             "${PYPIDIR}/packages/numpy"
-        cp -f "${PYPIDIR}/dist/numpy"/numpy-"${NUMPY_VERSION}"-*.whl "${NUMPY_DIST_DIR}/"
     fi
 done
 
