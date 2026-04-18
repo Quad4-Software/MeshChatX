@@ -3,6 +3,19 @@ import { injectMeshchatThemeVariables } from "../../meshchatx/src/frontend/theme
 
 injectMeshchatThemeVariables(typeof document !== "undefined" ? document : undefined);
 
+if (typeof Blob !== "undefined" && typeof Blob.prototype.stream !== "function") {
+    Blob.prototype.stream = function streamPolyfill() {
+        const blob = this;
+        return new ReadableStream({
+            async start(controller) {
+                const u8 = new Uint8Array(await blob.arrayBuffer());
+                controller.enqueue(u8);
+                controller.close();
+            },
+        });
+    };
+}
+
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { vi } from "vitest";

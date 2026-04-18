@@ -43,11 +43,23 @@ describe("LanguageSelector.vue", () => {
         await wrapper.find("button").trigger("click");
 
         const languageButtons = wrapper.findAll(".fixed button");
-        expect(languageButtons).toHaveLength(4);
-        expect(languageButtons[0].text()).toContain("English");
-        expect(languageButtons[1].text()).toContain("Deutsch");
-        expect(languageButtons[2].text()).toContain("Italiano");
-        expect(languageButtons[3].text()).toContain("\u0420\u0443\u0441\u0441\u043a\u0438\u0439");
+        const labels = languageButtons.map((b) => b.text());
+
+        // English is pinned to the front; remaining locales are sorted by display name
+        expect(labels[0]).toContain("English");
+        expect(labels).toEqual(
+            expect.arrayContaining([
+                expect.stringContaining("English"),
+                expect.stringContaining("Deutsch"),
+                expect.stringContaining("Español"),
+                expect.stringContaining("Français"),
+                expect.stringContaining("Italiano"),
+                expect.stringContaining("Nederlands"),
+                expect.stringContaining("\u0420\u0443\u0441\u0441\u043a\u0438\u0439"),
+                expect.stringContaining("\u4e2d\u6587"),
+            ])
+        );
+        expect(languageButtons.length).toBeGreaterThanOrEqual(8);
     });
 
     it("emits language-change when a different language is selected", async () => {

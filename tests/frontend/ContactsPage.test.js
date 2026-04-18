@@ -149,6 +149,13 @@ describe("ContactsPage.vue", () => {
         expect(html).toContain("contacts.import_contacts");
     });
 
+    it("renders floating add-contact action for mobile layout", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        const mobileFab = wrapper.find('button[title="contacts.add_contact"]');
+        expect(mobileFab.exists()).toBe(true);
+    });
+
     it("getContacts maps total_count from telephone contacts API", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {

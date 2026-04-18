@@ -342,7 +342,7 @@ describe("SettingsPage Component", () => {
                         is_transport_enabled: true,
                         lxmf_local_propagation_node_enabled: false,
                         auto_resend_failed_messages_when_announce_received: true,
-                        allow_auto_resending_failed_messages_with_attachments: false,
+                        allow_auto_resending_failed_messages_with_attachments: true,
                         auto_send_failed_messages_to_propagation_node: false,
                         show_suggested_community_interfaces: true,
                         lxmf_local_propagation_node_enabled: false,

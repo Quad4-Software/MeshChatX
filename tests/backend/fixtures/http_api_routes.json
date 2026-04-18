@@ -89,12 +89,12 @@
             "path": "/api/v1/bots/status"
         },
         {
-            "method": "PATCH",
-            "path": "/api/v1/bots/update"
-        },
-        {
             "method": "POST",
             "path": "/api/v1/bots/stop"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/bots/update"
         },
         {
             "method": "GET",
@@ -250,6 +250,38 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/gifs"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/gifs"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/gifs/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/gifs/import"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/gifs/{gif_id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/gifs/{gif_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/gifs/{gif_id}/image"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/gifs/{gif_id}/use"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/identities"
         },
         {
@@ -377,8 +409,16 @@
             "path": "/api/v1/lxmf/folders/{id}"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/lxmf/propagation-node/restart"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/lxmf/propagation-node/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/propagation-node/stop"
         },
         {
             "method": "GET",
@@ -387,14 +427,6 @@
         {
             "method": "GET",
             "path": "/api/v1/lxmf/propagation-node/sync"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/lxmf/propagation-node/stop"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/lxmf/propagation-node/restart"
         },
         {
             "method": "GET",
@@ -415,6 +447,10 @@
         {
             "method": "DELETE",
             "path": "/api/v1/maintenance/favourites"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/gifs"
         },
         {
             "method": "DELETE",
@@ -597,6 +633,18 @@
             "path": "/api/v1/reticulum/blackhole"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/reticulum/config/raw"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/reticulum/config/raw"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/config/reset"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/reticulum/disable-transport"
         },
@@ -727,6 +775,38 @@
         {
             "method": "GET",
             "path": "/api/v1/status"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/sticker-packs"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/sticker-packs"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/sticker-packs/install"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/sticker-packs/reorder"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/sticker-packs/{pack_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/sticker-packs/{pack_id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/sticker-packs/{pack_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/sticker-packs/{pack_id}/export"
         },
         {
             "method": "GET",

@@ -123,3 +123,17 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     assert data["config"]["lxmf_propagation_sync_limit_in_bytes"] == 9_000_000
     assert app_instance.config.lxmf_propagation_transfer_limit_in_bytes.get() == 250_000
     assert app_instance.config.lxmf_propagation_sync_limit_in_bytes.get() == 9_000_000
+
+    mock_request = MagicMock()
+    mock_request.json = MagicMock(return_value=asyncio.Future())
+    mock_request.json.return_value.set_result(
+        {"lxmf_delivery_transfer_limit_in_bytes": 2_000_000_000},
+    )
+
+    response = await patch_handler(mock_request)
+    data = json.loads(response.body)
+    assert data["config"]["lxmf_delivery_transfer_limit_in_bytes"] == 1_000_000_000
+    assert (
+        app_instance.config.lxmf_delivery_transfer_limit_in_bytes.get() == 1_000_000_000
+    )
+    assert app_instance.message_router.delivery_per_transfer_limit == 1_000_000

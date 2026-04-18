@@ -126,7 +126,9 @@ describe("NetworkVisualiser Optimization and Abort", () => {
             return acc;
         }, {});
 
-        wrapper.vm.createIconImage = vi.fn().mockImplementation(() => new Promise((r) => setTimeout(() => r("blob:icon"), 50)));
+        wrapper.vm.createIconImage = vi
+            .fn()
+            .mockImplementation(() => new Promise((r) => setTimeout(() => r("blob:icon"), 50)));
 
         await wrapper.vm.processVisualization();
 

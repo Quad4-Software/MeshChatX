@@ -207,7 +207,7 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith(
             "/api/v1/config",
             expect.objectContaining({
-                allow_auto_resending_failed_messages_with_attachments: false,
+                allow_auto_resending_failed_messages_with_attachments: true,
             })
         );
         await w.vm.onAutoSendFailedMessagesToPropagationNodeChange();
@@ -264,10 +264,21 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
         });
     });
 
+    it("onLxmfIncomingDeliveryPresetChange PATCHes preset size", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.lxmfIncomingDeliveryPreset = "1gb";
+        await w.vm.onLxmfIncomingDeliveryPresetChange();
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
+            lxmf_delivery_transfer_limit_in_bytes: 1_000_000_000,
+        });
+    });
+
     it("LXMF transfer/sync limits PATCH after debounce", async () => {
         const w = await mountSettingsPage(api);
-        w.vm.lxmfDeliveryTransferLimitInputMb = 9;
-        await w.vm.onLxmfDeliveryTransferLimitChange();
+        w.vm.lxmfIncomingDeliveryPreset = "custom";
+        w.vm.lxmfIncomingDeliveryCustomAmount = 9;
+        w.vm.lxmfIncomingDeliveryCustomUnit = "mb";
+        await w.vm.onLxmfIncomingDeliveryCustomChange();
         await vi.advanceTimersByTimeAsync(1000);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
             lxmf_delivery_transfer_limit_in_bytes: 9_000_000,

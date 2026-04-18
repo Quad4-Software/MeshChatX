@@ -224,4 +224,58 @@ describe("AddInterfacePage.vue discovery", () => {
         expect(wrapper.vm.discovery.discovery_encrypt).toBe(true);
         expect(wrapper.vm.discovery.publish_ifac).toBe(false);
     });
+
+    it("quickAddInterfaceFromConfig posts add endpoint and routes back", async () => {
+        const routerPush = vi.fn();
+        const wrapper = mount(AddInterfacePage, {
+            global: {
+                mocks: {
+                    $route: { query: {} },
+                    $router: { push: routerPush },
+                    $t: (msg) => msg,
+                },
+                stubs: ["RouterLink", "MaterialDesignIcon", "Toggle", "ExpandingSection", "FormLabel", "FormSubLabel"],
+            },
+        });
+
+        await wrapper.vm.quickAddInterfaceFromConfig({
+            name: "Quick Node",
+            type: "TCPClientInterface",
+            target_host: "node.example",
+            target_port: "4242",
+            discoverable: "yes",
+        });
+
+        expect(mockAxios.post).toHaveBeenCalledWith(
+            "/api/v1/reticulum/interfaces/add",
+            expect.objectContaining({
+                name: "Quick Node",
+                type: "TCPClientInterface",
+                target_host: "node.example",
+                target_port: 4242,
+                discoverable: "yes",
+            })
+        );
+        expect(routerPush).toHaveBeenCalledWith({ name: "interfaces" });
+    });
+
+    it("handleRawConfigInput auto-imports a single detected config", async () => {
+        const wrapper = mountPage();
+        const quickAddSpy = vi.spyOn(wrapper.vm, "quickAddInterfaceFromConfig").mockResolvedValue();
+
+        wrapper.vm.rawConfigInput = `[[Auto Node]]
+type = TCPClientInterface
+target_host = auto.example
+target_port = 4242`;
+        wrapper.vm.handleRawConfigInput();
+
+        expect(quickAddSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: "Auto Node",
+                type: "TCPClientInterface",
+                target_host: "auto.example",
+                target_port: "4242",
+            })
+        );
+    });
 });
