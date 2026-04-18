@@ -2,7 +2,7 @@
 
 [Русский](lang/README.ru.md) | [Deutsch](lang/README.de.md) | [Italiano](lang/README.it.md) | [中文](lang/README.zh.md) | [日本語](lang/README.ja.md)
 
-A extensively modified and feature-rich fork of Reticulum MeshChat by Liam Cottle.
+A extensively modified and feature-rich fork of [Reticulum MeshChat](https://github.com/liamcottle/reticulum-meshchat) by Liam Cottle.
 
 This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
 
