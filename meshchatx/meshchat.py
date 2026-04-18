@@ -112,9 +112,12 @@ from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
+from meshchatx.src.backend import gif_utils
+from meshchatx.src.backend import sticker_pack_utils
 from meshchatx.src.backend.sticker_utils import (
     build_export_document,
     mime_for_image_type,
+    sanitize_sticker_emoji,
     sanitize_sticker_name,
     validate_export_document,
 )
@@ -552,53 +555,14 @@ class ReticulumMeshChat:
             "config",
         )
 
-    def backup_database(self, backup_path=None):
-        if not self.database:
-            raise RuntimeError("Database not initialized")
-        return self.database.backup_database(self.storage_dir, backup_path)
+    @staticmethod
+    def _default_reticulum_config_text() -> str:
+        """Return the default Reticulum config file contents.
 
-    def restore_database(self, backup_path):
-        if not self.database:
-            raise RuntimeError("Database not initialized")
-        return self.database.restore_database(backup_path)
-
-    def _ensure_reticulum_config(self):
-        """Ensure a valid Reticulum config exists at the expected location.
-
-        If the config is missing or invalid, create a sane default.
+        Used when creating a fresh config or restoring defaults via the
+        Reticulum Config Editor utility.
         """
-        config_dir = self._normalize_reticulum_config_dir(self.reticulum_config_dir)
-        self.reticulum_config_dir = config_dir
-        config_file = self._reticulum_config_file_path()
-
-        should_recreate = False
-
-        if not os.path.exists(config_file):
-            should_recreate = True
-            print(
-                f"Reticulum config file not found at {config_file}, creating a default one...",
-            )
-        else:
-            try:
-                with open(config_file) as f:
-                    content = f.read()
-                    if "[reticulum]" not in content or "[interfaces]" not in content:
-                        print(
-                            f"Reticulum config file at {config_file} is invalid (missing essential sections), recreating...",
-                        )
-                        should_recreate = True
-            except Exception as e:
-                print(
-                    f"Failed to read Reticulum config at {config_file} ({e}), recreating...",
-                )
-                should_recreate = True
-
-        if should_recreate:
-            try:
-                if not os.path.exists(config_dir):
-                    os.makedirs(config_dir, exist_ok=True)
-
-                default_config = """# This is the default Reticulum config file.
+        return """# This is the default Reticulum config file.
 # You should probably edit it to include any additional,
 # interfaces and settings you might need.
 
@@ -702,8 +666,55 @@ class ReticulumMeshChat:
     name = Default Interface
     selected_interface_mode = 1
 """
+
+    def backup_database(self, backup_path=None):
+        if not self.database:
+            raise RuntimeError("Database not initialized")
+        return self.database.backup_database(self.storage_dir, backup_path)
+
+    def restore_database(self, backup_path):
+        if not self.database:
+            raise RuntimeError("Database not initialized")
+        return self.database.restore_database(backup_path)
+
+    def _ensure_reticulum_config(self):
+        """Ensure a valid Reticulum config exists at the expected location.
+
+        If the config is missing or invalid, create a sane default.
+        """
+        config_dir = self._normalize_reticulum_config_dir(self.reticulum_config_dir)
+        self.reticulum_config_dir = config_dir
+        config_file = self._reticulum_config_file_path()
+
+        should_recreate = False
+
+        if not os.path.exists(config_file):
+            should_recreate = True
+            print(
+                f"Reticulum config file not found at {config_file}, creating a default one...",
+            )
+        else:
+            try:
+                with open(config_file) as f:
+                    content = f.read()
+                    if "[reticulum]" not in content or "[interfaces]" not in content:
+                        print(
+                            f"Reticulum config file at {config_file} is invalid (missing essential sections), recreating...",
+                        )
+                        should_recreate = True
+            except Exception as e:
+                print(
+                    f"Failed to read Reticulum config at {config_file} ({e}), recreating...",
+                )
+                should_recreate = True
+
+        if should_recreate:
+            try:
+                if not os.path.exists(config_dir):
+                    os.makedirs(config_dir, exist_ok=True)
+
                 with open(config_file, "w") as f:
-                    f.write(default_config)
+                    f.write(self._default_reticulum_config_text())
                 print(f"Default Reticulum config created at {config_file}")
             except Exception as e:
                 print(
@@ -1920,6 +1931,8 @@ class ReticulumMeshChat:
             "discovery_hash",
             "transport_id",
             "network_id",
+            "network_name",
+            "ifac_netname",
         ):
             value = interface.get(key)
             if value is not None and value != "":
@@ -1954,6 +1967,61 @@ class ReticulumMeshChat:
                 if fnmatch.fnmatchcase(candidate, normalized_pattern):
                     return True
         return False
+
+    @staticmethod
+    def normalize_discovered_ifac_fields(interfaces):
+        """Surface IFAC fields from discovery announces in a frontend-friendly shape.
+
+        RNS publishes IFAC values in discovered interface dicts as
+        ``ifac_netname`` and ``ifac_netkey`` (when the publishing interface
+        sets ``publish_ifac = yes``). The Reticulum config file uses
+        ``network_name`` / ``passphrase`` instead. This helper keeps the raw
+        RNS keys for backwards compatibility but also exposes the canonical
+        config-style aliases (``network_name`` and ``passphrase``) and ensures
+        the optional ``config_entry`` blob is always a string when present.
+
+        Returns the list with new keys added; missing values become ``None``
+        so the frontend can render placeholders consistently.
+        """
+        if not isinstance(interfaces, list):
+            return interfaces
+        normalized = []
+        for entry in interfaces:
+            if not isinstance(entry, dict):
+                normalized.append(entry)
+                continue
+            updated = dict(entry)
+
+            netname = updated.get("ifac_netname")
+            netkey = updated.get("ifac_netkey")
+            config_entry = updated.get("config_entry")
+
+            if isinstance(netname, bytes):
+                try:
+                    netname = netname.decode("utf-8")
+                except Exception:
+                    netname = netname.hex()
+            if isinstance(netkey, bytes):
+                try:
+                    netkey = netkey.decode("utf-8")
+                except Exception:
+                    netkey = netkey.hex()
+            if isinstance(config_entry, bytes):
+                try:
+                    config_entry = config_entry.decode("utf-8")
+                except Exception:
+                    config_entry = None
+
+            updated["ifac_netname"] = netname if netname else None
+            updated["ifac_netkey"] = netkey if netkey else None
+            updated["config_entry"] = config_entry if config_entry else None
+            updated["network_name"] = updated["ifac_netname"]
+            updated["passphrase"] = updated["ifac_netkey"]
+            updated["publish_ifac"] = bool(
+                updated["ifac_netname"] or updated["ifac_netkey"],
+            )
+            normalized.append(updated)
+        return normalized
 
     @staticmethod
     def filter_discovered_interfaces(
@@ -5501,6 +5569,12 @@ class ReticulumMeshChat:
             n = self.database.stickers.delete_all_for_identity(identity_hash)
             return web.json_response({"message": "Stickers cleared", "deleted": n})
 
+        @routes.delete("/api/v1/maintenance/gifs")
+        async def maintenance_clear_gifs(request):
+            identity_hash = self.identity.hash.hex()
+            n = self.database.gifs.delete_all_for_identity(identity_hash)
+            return web.json_response({"message": "GIFs cleared", "deleted": n})
+
         # maintenance - export messages
         @routes.get("/api/v1/maintenance/messages/export")
         async def maintenance_export_messages(request):
@@ -5755,9 +5829,15 @@ class ReticulumMeshChat:
                         return [to_jsonable(v) for v in obj]
                     return obj
 
+                normalized_interfaces = (
+                    ReticulumMeshChat.normalize_discovered_ifac_fields(
+                        to_jsonable(interfaces),
+                    )
+                )
+
                 return web.json_response(
                     {
-                        "interfaces": to_jsonable(interfaces),
+                        "interfaces": normalized_interfaces,
                         "active": to_jsonable(active),
                     },
                 )
@@ -5832,6 +5912,106 @@ class ReticulumMeshChat:
                 {"error": "Failed to reload Reticulum"},
                 status=500,
             )
+
+        @routes.get("/api/v1/reticulum/config/raw")
+        async def reticulum_config_raw_get(request):
+            """Return the raw text of the Reticulum config file.
+
+            Used by the Reticulum Config Editor utility (mostly for mobile
+            clients where the file is stored inside private app storage and
+            cannot easily be opened with an external editor).
+            """
+            try:
+                self._ensure_reticulum_config()
+                config_path = self._reticulum_config_file_path()
+                if not os.path.exists(config_path):
+                    return web.json_response(
+                        {"error": f"Reticulum config not found at {config_path}"},
+                        status=404,
+                    )
+                with open(config_path) as f:
+                    content = f.read()
+                return web.json_response(
+                    {
+                        "content": content,
+                        "path": config_path,
+                    },
+                )
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        @routes.put("/api/v1/reticulum/config/raw")
+        async def reticulum_config_raw_put(request):
+            """Persist new raw text to the Reticulum config file.
+
+            The body must be JSON with a ``content`` string. Basic validation
+            requires the ``[reticulum]`` and ``[interfaces]`` sections so we
+            do not write a config that would prevent RNS from starting on the
+            next reload.
+            """
+            try:
+                data = await request.json()
+            except Exception:
+                return web.json_response(
+                    {"error": "Invalid JSON body"},
+                    status=400,
+                )
+
+            content = data.get("content")
+            if not isinstance(content, str):
+                return web.json_response(
+                    {"error": "Missing or invalid 'content' field"},
+                    status=400,
+                )
+
+            if "[reticulum]" not in content or "[interfaces]" not in content:
+                return web.json_response(
+                    {
+                        "error": "Config must include [reticulum] and [interfaces] sections",
+                    },
+                    status=400,
+                )
+
+            try:
+                config_dir = self._normalize_reticulum_config_dir(
+                    self.reticulum_config_dir,
+                )
+                if not os.path.exists(config_dir):
+                    os.makedirs(config_dir, exist_ok=True)
+                config_path = self._reticulum_config_file_path()
+                with open(config_path, "w") as f:
+                    f.write(content)
+                return web.json_response(
+                    {
+                        "message": "Reticulum config saved",
+                        "path": config_path,
+                    },
+                )
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        @routes.post("/api/v1/reticulum/config/reset")
+        async def reticulum_config_reset(request):
+            """Restore the Reticulum config file to the bundled defaults."""
+            try:
+                config_dir = self._normalize_reticulum_config_dir(
+                    self.reticulum_config_dir,
+                )
+                if not os.path.exists(config_dir):
+                    os.makedirs(config_dir, exist_ok=True)
+                config_path = self._reticulum_config_file_path()
+                default_text = self._default_reticulum_config_text()
+                with open(config_path, "w") as f:
+                    f.write(default_text)
+                return web.json_response(
+                    {
+                        "message": "Reticulum config restored to defaults",
+                        "content": default_text,
+                        "path": config_path,
+                    },
+                )
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
 
         # serve telephone status
         @routes.get("/api/v1/telephone/status")
@@ -10104,6 +10284,18 @@ class ReticulumMeshChat:
             image_type = data.get("image_type")
             src = data.get("source_message_hash")
             src = src if isinstance(src, str) else None
+            emoji = sanitize_sticker_emoji(data.get("emoji"))
+            strict = bool(data.get("strict", False))
+            pack_id_raw = data.get("pack_id")
+            pack_id = None
+            if pack_id_raw is not None:
+                try:
+                    pack_id = int(pack_id_raw)
+                except (TypeError, ValueError):
+                    return web.json_response({"error": "invalid_pack_id"}, status=400)
+                pack_row = self.database.sticker_packs.get_row(pack_id, identity_hash)
+                if pack_row is None:
+                    return web.json_response({"error": "pack_not_found"}, status=404)
             try:
                 row = self.database.stickers.insert(
                     identity_hash,
@@ -10111,6 +10303,9 @@ class ReticulumMeshChat:
                     image_type,
                     raw,
                     src,
+                    pack_id=pack_id,
+                    emoji=emoji,
+                    strict=strict,
                 )
             except ValueError as e:
                 return web.json_response({"error": str(e)}, status=400)
@@ -10135,12 +10330,50 @@ class ReticulumMeshChat:
                 data = await request.json()
             except (json.JSONDecodeError, ValueError):
                 return web.json_response({"error": "invalid_json"}, status=400)
-            if "name" not in data:
-                return web.json_response({"error": "missing_name"}, status=400)
-            name = sanitize_sticker_name(data.get("name"))
-            ok = self.database.stickers.update_name(sticker_id, identity_hash, name)
-            if not ok:
-                return web.json_response({"error": "not_found"}, status=404)
+            applied = False
+            if "name" in data:
+                name = sanitize_sticker_name(data.get("name"))
+                if not self.database.stickers.update_name(
+                    sticker_id,
+                    identity_hash,
+                    name,
+                ):
+                    return web.json_response({"error": "not_found"}, status=404)
+                applied = True
+            if "emoji" in data:
+                emoji = sanitize_sticker_emoji(data.get("emoji"))
+                if not self.database.stickers.update_emoji(
+                    sticker_id,
+                    identity_hash,
+                    emoji,
+                ):
+                    return web.json_response({"error": "not_found"}, status=404)
+                applied = True
+            if "pack_id" in data:
+                pid_raw = data.get("pack_id")
+                pid = None
+                if pid_raw is not None:
+                    try:
+                        pid = int(pid_raw)
+                    except (TypeError, ValueError):
+                        return web.json_response(
+                            {"error": "invalid_pack_id"},
+                            status=400,
+                        )
+                    if self.database.sticker_packs.get_row(pid, identity_hash) is None:
+                        return web.json_response(
+                            {"error": "pack_not_found"},
+                            status=404,
+                        )
+                if not self.database.stickers.assign_to_pack(
+                    sticker_id,
+                    identity_hash,
+                    pid,
+                ):
+                    return web.json_response({"error": "not_found"}, status=404)
+                applied = True
+            if not applied:
+                return web.json_response({"error": "nothing_to_update"}, status=400)
             return web.json_response({"message": "updated"})
 
         @routes.get("/api/v1/stickers/{sticker_id}/image")
@@ -10178,6 +10411,298 @@ class ReticulumMeshChat:
             except ValueError as e:
                 return web.json_response({"error": str(e)}, status=400)
             result = self.database.stickers.import_payloads(
+                identity_hash,
+                items,
+                replace_duplicates=replace,
+            )
+            return web.json_response(result)
+
+        @routes.get("/api/v1/sticker-packs")
+        async def sticker_packs_list(request):
+            identity_hash = self.identity.hash.hex()
+            packs = [
+                dict(p)
+                for p in self.database.sticker_packs.list_for_identity(
+                    identity_hash,
+                )
+            ]
+            for p in packs:
+                p["sticker_count"] = self.database.stickers.count_for_pack(
+                    p["id"],
+                    identity_hash,
+                )
+                stickers = self.database.stickers.list_for_pack(
+                    p["id"],
+                    identity_hash,
+                )
+                p["stickers"] = [dict(s) for s in stickers]
+            return web.json_response({"packs": packs})
+
+        @routes.post("/api/v1/sticker-packs")
+        async def sticker_packs_create(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            try:
+                pack = self.database.sticker_packs.insert(
+                    identity_hash,
+                    data.get("title"),
+                    short_name=data.get("short_name"),
+                    description=data.get("description"),
+                    pack_type=data.get("pack_type"),
+                    author=data.get("author"),
+                    is_strict=bool(data.get("is_strict", True)),
+                )
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=400)
+            return web.json_response({"pack": pack})
+
+        @routes.get("/api/v1/sticker-packs/{pack_id}")
+        async def sticker_packs_get(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                pack_id = int(request.match_info.get("pack_id", "0"))
+            except ValueError:
+                return web.json_response({"error": "invalid_pack_id"}, status=400)
+            row = self.database.sticker_packs.get_row(pack_id, identity_hash)
+            if row is None:
+                return web.json_response({"error": "not_found"}, status=404)
+            stickers = self.database.stickers.list_for_pack(pack_id, identity_hash)
+            return web.json_response(
+                {
+                    "pack": dict(row),
+                    "stickers": [dict(s) for s in stickers],
+                },
+            )
+
+        @routes.patch("/api/v1/sticker-packs/{pack_id}")
+        async def sticker_packs_patch(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                pack_id = int(request.match_info.get("pack_id", "0"))
+            except ValueError:
+                return web.json_response({"error": "invalid_pack_id"}, status=400)
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            kwargs = {}
+            for key in ("title", "description", "pack_type"):
+                if key in data:
+                    kwargs[key] = data.get(key)
+            if "cover_sticker_id" in data:
+                v = data.get("cover_sticker_id")
+                kwargs["cover_sticker_id"] = int(v) if v is not None else None
+            if not kwargs:
+                return web.json_response({"error": "nothing_to_update"}, status=400)
+            ok = self.database.sticker_packs.update(
+                pack_id,
+                identity_hash,
+                **kwargs,
+            )
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"message": "updated"})
+
+        @routes.post("/api/v1/sticker-packs/reorder")
+        async def sticker_packs_reorder(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            ids = data.get("pack_ids")
+            if not isinstance(ids, list):
+                return web.json_response({"error": "missing_pack_ids"}, status=400)
+            try:
+                ids_int = [int(x) for x in ids]
+            except (TypeError, ValueError):
+                return web.json_response({"error": "invalid_pack_ids"}, status=400)
+            updated = self.database.sticker_packs.reorder(identity_hash, ids_int)
+            return web.json_response({"updated": updated})
+
+        @routes.delete("/api/v1/sticker-packs/{pack_id}")
+        async def sticker_packs_delete(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                pack_id = int(request.match_info.get("pack_id", "0"))
+            except ValueError:
+                return web.json_response({"error": "invalid_pack_id"}, status=400)
+            with_stickers = (
+                request.query.get("with_stickers", "false").lower() == "true"
+            )
+            if with_stickers:
+                ok = self.database.sticker_packs.delete_with_stickers(
+                    pack_id,
+                    identity_hash,
+                )
+            else:
+                ok = self.database.sticker_packs.delete(pack_id, identity_hash)
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"message": "deleted"})
+
+        @routes.get("/api/v1/sticker-packs/{pack_id}/export")
+        async def sticker_packs_export(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                pack_id = int(request.match_info.get("pack_id", "0"))
+            except ValueError:
+                return web.json_response({"error": "invalid_pack_id"}, status=400)
+            row = self.database.sticker_packs.get_row(pack_id, identity_hash)
+            if row is None:
+                return web.json_response({"error": "not_found"}, status=404)
+            stickers = self.database.stickers.export_payloads_for_pack(
+                pack_id,
+                identity_hash,
+            )
+            doc = sticker_pack_utils.build_pack_document(
+                dict(row),
+                stickers,
+                datetime.now(UTC).isoformat(),
+            )
+            return web.json_response(doc)
+
+        @routes.post("/api/v1/sticker-packs/install")
+        async def sticker_packs_install(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            replace = bool(data.get("replace_duplicates", False))
+            try:
+                parsed = sticker_pack_utils.validate_pack_document(data)
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=400)
+            try:
+                pack_row = self.database.sticker_packs.insert(
+                    identity_hash,
+                    parsed["pack"]["title"],
+                    short_name=parsed["pack"]["short_name"],
+                    description=parsed["pack"]["description"],
+                    pack_type=parsed["pack"]["pack_type"],
+                    author=parsed["pack"]["author"],
+                    is_strict=parsed["pack"]["is_strict"],
+                )
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=400)
+            result = self.database.stickers.import_payloads(
+                identity_hash,
+                parsed["stickers"],
+                replace_duplicates=replace,
+                pack_id=pack_row["id"],
+                strict=parsed["pack"]["is_strict"],
+            )
+            return web.json_response({"pack": pack_row, **result})
+
+        @routes.get("/api/v1/gifs")
+        async def gifs_list(request):
+            identity_hash = self.identity.hash.hex()
+            rows = self.database.gifs.list_for_identity(identity_hash)
+            return web.json_response({"gifs": [dict(r) for r in rows]})
+
+        @routes.post("/api/v1/gifs")
+        async def gifs_create(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            image_b64 = data.get("image_bytes")
+            if not isinstance(image_b64, str) or not image_b64.strip():
+                return web.json_response({"error": "missing_image_bytes"}, status=400)
+            try:
+                raw = base64.b64decode(image_b64.strip(), validate=True)
+            except (ValueError, TypeError):
+                return web.json_response({"error": "invalid_base64"}, status=400)
+            name = gif_utils.sanitize_gif_name(data.get("name"))
+            image_type = data.get("image_type")
+            src = data.get("source_message_hash")
+            src = src if isinstance(src, str) else None
+            try:
+                row = self.database.gifs.insert(
+                    identity_hash,
+                    name,
+                    image_type,
+                    raw,
+                    src,
+                )
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=400)
+            if row is None:
+                return web.json_response({"error": "duplicate_gif"}, status=409)
+            return web.json_response({"gif": row})
+
+        @routes.delete("/api/v1/gifs/{gif_id}")
+        async def gifs_delete(request):
+            identity_hash = self.identity.hash.hex()
+            gif_id = int(request.match_info.get("gif_id", "0"))
+            ok = self.database.gifs.delete(gif_id, identity_hash)
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"message": "deleted"})
+
+        @routes.patch("/api/v1/gifs/{gif_id}")
+        async def gifs_patch(request):
+            identity_hash = self.identity.hash.hex()
+            gif_id = int(request.match_info.get("gif_id", "0"))
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            if "name" not in data:
+                return web.json_response({"error": "missing_name"}, status=400)
+            name = gif_utils.sanitize_gif_name(data.get("name"))
+            ok = self.database.gifs.update_name(gif_id, identity_hash, name)
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"message": "updated"})
+
+        @routes.get("/api/v1/gifs/{gif_id}/image")
+        async def gifs_get_image(request):
+            identity_hash = self.identity.hash.hex()
+            gif_id = int(request.match_info.get("gif_id", "0"))
+            row = self.database.gifs.get_row(gif_id, identity_hash)
+            if row is None:
+                return web.json_response({"error": "not_found"}, status=404)
+            ct = gif_utils.mime_for_image_type(row["image_type"])
+            return web.Response(body=row["image_blob"], content_type=ct)
+
+        @routes.post("/api/v1/gifs/{gif_id}/use")
+        async def gifs_record_usage(request):
+            identity_hash = self.identity.hash.hex()
+            gif_id = int(request.match_info.get("gif_id", "0"))
+            ok = self.database.gifs.record_usage(gif_id, identity_hash)
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"message": "recorded"})
+
+        @routes.get("/api/v1/gifs/export")
+        async def gifs_export(request):
+            identity_hash = self.identity.hash.hex()
+            payloads = self.database.gifs.export_payloads_for_identity(identity_hash)
+            doc = gif_utils.build_export_document(
+                payloads,
+                datetime.now(UTC).isoformat(),
+            )
+            return web.json_response(doc)
+
+        @routes.post("/api/v1/gifs/import")
+        async def gifs_import(request):
+            identity_hash = self.identity.hash.hex()
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            replace = bool(data.get("replace_duplicates", False))
+            try:
+                items = gif_utils.validate_export_document(data)
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=400)
+            result = self.database.gifs.import_payloads(
                 identity_hash,
                 items,
                 replace_duplicates=replace,
@@ -11035,7 +11560,7 @@ class ReticulumMeshChat:
 
         if "lxmf_delivery_transfer_limit_in_bytes" in data:
             value = int(data["lxmf_delivery_transfer_limit_in_bytes"])
-            value = max(1000, min(value, 1000 * 1000 * 100))
+            value = max(1000, min(value, 1000 * 1000 * 1000))
             self.config.lxmf_delivery_transfer_limit_in_bytes.set(value)
             self.message_router.delivery_per_transfer_limit = value / 1000
 
@@ -13490,16 +14015,17 @@ class ReticulumMeshChat:
 
     # handle delivery failed for an outbound lxmf message
     def on_lxmf_sending_failed(self, lxmf_message, context=None):
+        ctx = context if context is not None else self.current_context
         # check if this failed message should fall back to sending via a propagation node
         if (
             lxmf_message.state == LXMF.LXMessage.FAILED
             and hasattr(lxmf_message, "try_propagation_on_fail")
             and lxmf_message.try_propagation_on_fail
         ):
-            self.send_failed_message_via_propagation_node(lxmf_message, context=context)
+            self.send_failed_message_via_propagation_node(lxmf_message, context=ctx)
 
         # update state
-        self.on_lxmf_sending_state_updated(lxmf_message, context=context)
+        self.on_lxmf_sending_state_updated(lxmf_message, context=ctx)
 
     # sends a previously failed message via a propagation node
     def send_failed_message_via_propagation_node(

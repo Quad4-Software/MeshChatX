@@ -29,7 +29,7 @@ class ConfigManager:
         self.allow_auto_resending_failed_messages_with_attachments = self.BoolConfig(
             self,
             "allow_auto_resending_failed_messages_with_attachments",
-            False,
+            True,
         )
         self.auto_send_failed_messages_to_propagation_node = self.BoolConfig(
             self,

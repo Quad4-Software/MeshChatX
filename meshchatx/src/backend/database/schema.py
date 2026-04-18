@@ -15,7 +15,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 44
+    LATEST_VERSION = 46
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -428,6 +428,22 @@ class DatabaseSchema:
                     image_blob BLOB NOT NULL,
                     content_hash TEXT NOT NULL,
                     source_message_hash TEXT,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    UNIQUE(identity_hash, content_hash)
+                )
+            """,
+            "user_gifs": """
+                CREATE TABLE IF NOT EXISTS user_gifs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    name TEXT,
+                    image_type TEXT NOT NULL,
+                    image_blob BLOB NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    source_message_hash TEXT,
+                    usage_count INTEGER NOT NULL DEFAULT 0,
+                    last_used_at REAL,
                     created_at REAL NOT NULL,
                     updated_at REAL NOT NULL,
                     UNIQUE(identity_hash, content_hash)
@@ -1155,6 +1171,83 @@ class DatabaseSchema:
             )
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_user_stickers_identity_updated ON user_stickers(identity_hash, updated_at)",
+            )
+
+        if current_version < 45:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS user_gifs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    name TEXT,
+                    image_type TEXT NOT NULL,
+                    image_blob BLOB NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    source_message_hash TEXT,
+                    usage_count INTEGER NOT NULL DEFAULT 0,
+                    last_used_at REAL,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    UNIQUE(identity_hash, content_hash)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_gifs_identity ON user_gifs(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_gifs_identity_usage ON user_gifs(identity_hash, usage_count, last_used_at)",
+            )
+
+        if current_version < 46:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS user_sticker_packs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    short_name TEXT,
+                    description TEXT,
+                    pack_type TEXT NOT NULL DEFAULT 'mixed',
+                    author TEXT,
+                    is_strict INTEGER NOT NULL DEFAULT 1,
+                    cover_sticker_id INTEGER,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_sticker_packs_identity ON user_sticker_packs(identity_hash, sort_order)",
+            )
+            self._safe_execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_user_sticker_packs_short_name ON user_sticker_packs(identity_hash, short_name) WHERE short_name IS NOT NULL",
+            )
+            self._ensure_column("user_stickers", "pack_id", "INTEGER")
+            self._ensure_column("user_stickers", "emoji", "TEXT")
+            self._ensure_column("user_stickers", "width", "INTEGER")
+            self._ensure_column("user_stickers", "height", "INTEGER")
+            self._ensure_column("user_stickers", "duration_ms", "INTEGER")
+            self._ensure_column("user_stickers", "fps", "REAL")
+            self._ensure_column(
+                "user_stickers",
+                "is_animated",
+                "INTEGER NOT NULL DEFAULT 0",
+            )
+            self._ensure_column(
+                "user_stickers",
+                "is_video",
+                "INTEGER NOT NULL DEFAULT 0",
+            )
+            self._ensure_column(
+                "user_stickers",
+                "is_strict",
+                "INTEGER NOT NULL DEFAULT 0",
+            )
+            self._ensure_column(
+                "user_stickers",
+                "sort_order",
+                "INTEGER NOT NULL DEFAULT 0",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_stickers_pack ON user_stickers(pack_id, sort_order)",
             )
 
         # Update version in config

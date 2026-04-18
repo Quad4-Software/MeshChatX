@@ -13,6 +13,7 @@ from .config import ConfigDAO
 from .contacts import ContactsDAO
 from .crash_history import CrashHistoryDAO
 from .debug_logs import DebugLogsDAO
+from .gifs import UserGifsDAO
 from .legacy_migrator import LegacyMigrator
 from .map_drawings import MapDrawingsDAO
 from .messages import MessageDAO
@@ -20,6 +21,7 @@ from .misc import MiscDAO
 from .provider import DatabaseProvider
 from .ringtones import RingtoneDAO
 from .schema import DatabaseSchema
+from .sticker_packs import UserStickerPacksDAO
 from .stickers import UserStickersDAO
 from .telemetry import TelemetryDAO
 from .telephone import TelephoneDAO
@@ -46,6 +48,8 @@ class Database:
         self.contacts = ContactsDAO(self.provider)
         self.map_drawings = MapDrawingsDAO(self.provider)
         self.stickers = UserStickersDAO(self.provider)
+        self.sticker_packs = UserStickerPacksDAO(self.provider)
+        self.gifs = UserGifsDAO(self.provider)
         self.debug_logs = DebugLogsDAO(self.provider)
         self.access_attempts = AccessAttemptsDAO(self.provider)
         self.crash_history = CrashHistoryDAO(self.provider)
