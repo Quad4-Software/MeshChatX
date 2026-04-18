@@ -7,7 +7,7 @@
             class="flex flex-col h-full min-h-0 bg-white dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800"
         >
             <div
-                class="hidden sm:flex h-12 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
+                class="hidden sm:flex h-10 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
             >
                 <button
                     type="button"
@@ -86,7 +86,7 @@
         </div>
         <template v-else>
             <div
-                class="flex h-12 min-w-0 items-stretch border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
+                class="-mb-px flex h-10 min-w-0 items-stretch border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
             >
                 <div class="flex min-w-0 flex-1">
                     <button
@@ -172,31 +172,43 @@
                                 @drop.prevent="onSectionDrop(section.id)"
                                 @dragend="onSectionDragEnd"
                             >
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 flex-1 min-w-0">
                                     <MaterialDesignIcon
                                         :icon-name="section.collapsed ? 'chevron-right' : 'chevron-down'"
-                                        class="size-4 text-gray-400"
+                                        class="size-4 text-gray-400 shrink-0"
                                     />
+                                    <template v-if="editingSectionId === section.id">
+                                        <input
+                                            :ref="`sectionInput-${section.id}`"
+                                            v-model="editingSectionName"
+                                            type="text"
+                                            class="flex-1 bg-transparent border-b border-blue-500 text-xs font-semibold uppercase tracking-wide text-gray-900 dark:text-white focus:outline-none min-w-0"
+                                            @click.stop
+                                            @keydown.enter="saveSectionName"
+                                            @keydown.esc="cancelEditingSection"
+                                            @blur="saveSectionName"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="p-1 text-green-500 hover:text-green-600 shrink-0"
+                                            @click.stop="saveSectionName"
+                                        >
+                                            <MaterialDesignIcon icon-name="check" class="size-4" />
+                                        </button>
+                                    </template>
                                     <span
-                                        class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300"
+                                        v-else
+                                        class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 truncate"
+                                        @click.stop="startEditingSection(section)"
                                     >
                                         {{ section.name }}
                                     </span>
                                     <span
                                         v-if="section.collapsed"
-                                        class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full"
+                                        class="text-[10px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full shrink-0"
                                     >
                                         {{ section.favourites.length }}
                                     </span>
-                                </div>
-                                <div class="flex items-center gap-1" @click.stop>
-                                    <button
-                                        type="button"
-                                        class="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition"
-                                        @click="openSectionContextMenu($event, section)"
-                                    >
-                                        <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
-                                    </button>
                                 </div>
                             </div>
                             <div class="h-px bg-gray-200 dark:bg-zinc-800 mx-1"></div>
@@ -614,6 +626,8 @@ export default {
                 justOpened: false,
             },
             smUp: typeof window !== "undefined" ? window.innerWidth >= 640 : true,
+            editingSectionId: null,
+            editingSectionName: "",
         };
     },
     computed: {
@@ -723,6 +737,28 @@ export default {
         }
     },
     methods: {
+        startEditingSection(section) {
+            this.editingSectionId = section.id;
+            this.editingSectionName = section.name;
+            this.$nextTick(() => {
+                const el = this.$refs[`sectionInput-${section.id}`];
+                if (el && el[0]) el[0].focus();
+            });
+        },
+        saveSectionName() {
+            if (!this.editingSectionId) return;
+            const sectionId = this.editingSectionId;
+            const name = this.editingSectionName.trim();
+            if (name) {
+                this.sections = this.sections.map((sec) => (sec.id === sectionId ? { ...sec, name } : sec));
+                this.persistFavouriteLayout();
+            }
+            this.cancelEditingSection();
+        },
+        cancelEditingSection() {
+            this.editingSectionId = null;
+            this.editingSectionName = "";
+        },
         matchesFavouriteSearch(favourite, searchTerm = this.favouritesSearchTerm.toLowerCase()) {
             const matchesDisplayName = favourite.display_name.toLowerCase().includes(searchTerm);
             const matchesCustomDisplayName =

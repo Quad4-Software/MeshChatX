@@ -63,6 +63,84 @@
             />
         </div>
 
+        <button
+            v-if="!isPopoutMode && !destinationHash"
+            type="button"
+            class="sm:hidden fixed bottom-5 right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg ring-1 ring-white/10 transition active:scale-95 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-zinc-800"
+            :title="$t('app.compose')"
+            @click="openMobileCompose"
+        >
+            <MaterialDesignIcon icon-name="plus" class="size-7" />
+        </button>
+
+        <div
+            v-if="isMobileComposeModalOpen"
+            class="fixed inset-0 z-[95] flex items-end justify-center sm:items-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm sm:bg-black/50"
+            @click.self="isMobileComposeModalOpen = false"
+        >
+            <div
+                class="w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                @click.stop
+            >
+                <div
+                    class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between shrink-0"
+                >
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        {{ $t("messages.mobile_compose_title") }}
+                    </h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
+                        @click="isMobileComposeModalOpen = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-6" />
+                    </button>
+                </div>
+                <div class="p-5 overflow-y-auto space-y-4">
+                    <p class="text-sm text-gray-600 dark:text-zinc-400">
+                        {{ $t("messages.select_peer_or_enter_address") }}
+                    </p>
+                    <div>
+                        <label
+                            class="block text-xs font-medium text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
+                            for="mobile-compose-destination"
+                        >
+                            {{ $t("app.lxmf_address_hash") }}
+                        </label>
+                        <input
+                            id="mobile-compose-destination"
+                            v-model="mobileComposeAddress"
+                            type="text"
+                            autocomplete="off"
+                            autocorrect="off"
+                            spellcheck="false"
+                            :placeholder="$t('messages.mobile_compose_destination_placeholder')"
+                            class="block w-full rounded-xl border-0 py-2.5 px-3 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            @keydown.enter="submitMobileCompose"
+                        />
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button
+                            type="button"
+                            class="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                            :disabled="!mobileComposeAddress.trim()"
+                            @click="submitMobileCompose"
+                        >
+                            {{ $t("app.compose") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-800 dark:text-zinc-200 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                            @click="openIngestFromMobileCompose"
+                        >
+                            <MaterialDesignIcon icon-name="qrcode" class="size-5 shrink-0" />
+                            {{ $t("messages.ingest_paper_message") }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Ingest Paper Message Modal -->
         <div
             v-if="isIngestModalOpen"
@@ -109,6 +187,15 @@
                                 >
                                     <MaterialDesignIcon icon-name="clipboard-text-outline" class="size-5" />
                                 </button>
+                                <button
+                                    v-if="cameraSupported"
+                                    type="button"
+                                    class="px-3 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                    :title="$t('messages.scan_qr')"
+                                    @click="openIngestScannerModal"
+                                >
+                                    <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
+                                </button>
                             </div>
                         </div>
                         <button
@@ -119,6 +206,40 @@
                         >
                             Read LXM
                         </button>
+                        <p v-if="!cameraSupported" class="text-xs text-gray-500 dark:text-zinc-400">
+                            {{ $t("messages.camera_not_supported") }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="isIngestScannerModalOpen"
+            class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            @click.self="closeIngestScannerModal"
+        >
+            <div class="w-full max-w-xl rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">{{ $t("messages.scan_qr") }}</h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                        @click="closeIngestScannerModal"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+                <div class="p-5 space-y-3">
+                    <video
+                        ref="ingestScannerVideo"
+                        class="w-full rounded-xl bg-black max-h-[60vh]"
+                        autoplay
+                        playsinline
+                        muted
+                    ></video>
+                    <div class="text-sm text-gray-500 dark:text-zinc-400">
+                        {{ ingestScannerError || $t("messages.scanner_hint") }}
                     </div>
                 </div>
             </div>
@@ -191,6 +312,12 @@ export default {
 
             isIngestModalOpen: false,
             ingestUri: "",
+            isIngestScannerModalOpen: false,
+            ingestScannerError: null,
+            ingestScannerStream: null,
+            ingestScannerAnimationFrame: null,
+            isMobileComposeModalOpen: false,
+            mobileComposeAddress: "",
         };
     },
     computed: {
@@ -210,6 +337,13 @@ export default {
         messagesSidebarOnRight() {
             return this.messagesSidebarPosition === "right";
         },
+        cameraSupported() {
+            return (
+                typeof window !== "undefined" &&
+                typeof window.BarcodeDetector !== "undefined" &&
+                navigator?.mediaDevices?.getUserMedia
+            );
+        },
     },
     watch: {
         conversations() {
@@ -220,6 +354,7 @@ export default {
         },
         destinationHash(newHash) {
             if (newHash) {
+                this.isMobileComposeModalOpen = false;
                 this.onComposeNewMessage(newHash);
             }
         },
@@ -230,6 +365,7 @@ export default {
         clearTimeout(this.peersRefreshTimeout);
         this.conversationsAbortController?.abort();
         this.announcesAbortController?.abort();
+        this.stopIngestScanner();
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -847,6 +983,89 @@ export default {
             this.ingestUri = "";
             this.isIngestModalOpen = true;
         },
+        async openIngestScannerModal() {
+            this.ingestScannerError = null;
+            this.isIngestScannerModalOpen = true;
+            await this.$nextTick();
+            await this.startIngestScanner();
+        },
+        closeIngestScannerModal() {
+            this.isIngestScannerModalOpen = false;
+            this.stopIngestScanner();
+        },
+        async startIngestScanner() {
+            if (!this.cameraSupported) {
+                this.ingestScannerError = this.$t("messages.camera_not_supported");
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" },
+                    audio: false,
+                });
+                this.ingestScannerStream = stream;
+                const video = this.$refs.ingestScannerVideo;
+                if (!video) {
+                    this.ingestScannerError = this.$t("messages.camera_failed");
+                    this.stopIngestScanner();
+                    return;
+                }
+                video.srcObject = stream;
+                await video.play();
+                this.detectIngestQrLoop();
+            } catch (e) {
+                this.ingestScannerError = this.describeCameraError(e);
+            }
+        },
+        detectIngestQrLoop() {
+            if (!this.isIngestScannerModalOpen) return;
+            const video = this.$refs.ingestScannerVideo;
+            if (!video || video.readyState < 2) {
+                this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                return;
+            }
+            const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+            detector
+                .detect(video)
+                .then((barcodes) => {
+                    const qr = barcodes?.[0]?.rawValue?.trim();
+                    if (!qr) {
+                        this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                        return;
+                    }
+                    if (!/^lxm(a|f)?:\/\//i.test(qr)) {
+                        ToastUtils.error(this.$t("messages.invalid_qr_uri"));
+                        this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                        return;
+                    }
+                    this.ingestUri = qr;
+                    this.closeIngestScannerModal();
+                    this.ingestPaperMessage();
+                })
+                .catch(() => {
+                    this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                });
+        },
+        stopIngestScanner() {
+            if (this.ingestScannerAnimationFrame) {
+                cancelAnimationFrame(this.ingestScannerAnimationFrame);
+                this.ingestScannerAnimationFrame = null;
+            }
+            if (this.ingestScannerStream) {
+                this.ingestScannerStream.getTracks().forEach((track) => track.stop());
+                this.ingestScannerStream = null;
+            }
+        },
+        describeCameraError(error) {
+            const name = error?.name || "";
+            if (name === "NotAllowedError" || name === "SecurityError") {
+                return this.$t("messages.camera_permission_denied");
+            }
+            if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+                return this.$t("messages.camera_not_found");
+            }
+            return this.$t("messages.camera_failed");
+        },
         async pasteFromClipboard() {
             try {
                 this.ingestUri = await navigator.clipboard.readText();
@@ -873,6 +1092,23 @@ export default {
             const hash = window.location.hash || "";
             const match = hash.match(/popout=([^&]+)/);
             return match ? decodeURIComponent(match[1]) : null;
+        },
+        openMobileCompose() {
+            this.mobileComposeAddress = "";
+            this.isMobileComposeModalOpen = true;
+        },
+        openIngestFromMobileCompose() {
+            this.isMobileComposeModalOpen = false;
+            this.openIngestPaperMessageModal();
+        },
+        async submitMobileCompose() {
+            const raw = this.mobileComposeAddress.trim();
+            if (!raw) {
+                return;
+            }
+            this.isMobileComposeModalOpen = false;
+            this.mobileComposeAddress = "";
+            await this.onComposeNewMessage(raw.replace(/^lxmf@/, ""));
         },
     },
 };

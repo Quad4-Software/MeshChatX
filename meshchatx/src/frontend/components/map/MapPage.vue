@@ -6,7 +6,7 @@
         <div
             class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0 px-3 py-2 sm:px-4 border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur z-10 relative"
         >
-            <div class="flex items-center min-w-0 gap-2">
+            <div class="hidden sm:flex items-center min-w-0 gap-2">
                 <v-icon icon="mdi-map" class="text-blue-500 dark:text-blue-400 shrink-0" size="24"></v-icon>
                 <h1 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">
                     {{ $t("map.title") }}
@@ -65,11 +65,21 @@
                 <button
                     v-if="!isPopoutMode"
                     type="button"
-                    class="flex p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    class="hidden sm:flex p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
                     :title="$t('map.pop_out')"
                     @click="openMapPopout"
                 >
                     <MaterialDesignIcon icon-name="open-in-new" class="size-[18px] sm:size-5" />
+                </button>
+                <!-- search toggle (mobile only) -->
+                <button
+                    v-if="!offlineEnabled"
+                    type="button"
+                    class="sm:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors shrink-0"
+                    :title="$t('map.search_placeholder')"
+                    @click="toggleMobileSearch"
+                >
+                    <MaterialDesignIcon :icon-name="isMobileSearchOpen ? 'close' : 'magnify'" class="size-[18px]" />
                 </button>
                 <!-- settings button -->
                 <button
@@ -84,9 +94,9 @@
 
         <!-- map container -->
         <div class="relative flex-1 min-h-0">
-            <!-- drawing toolbar -->
+            <!-- drawing toolbar (mobile: top center with small gap; desktop unchanged) -->
             <div
-                class="absolute top-14 left-1/2 -translate-x-1/2 sm:top-2 z-20 flex flex-col gap-2 transform-gpu w-max max-w-[98vw]"
+                class="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col gap-2 transform-gpu w-max max-w-[98vw] sm:top-2"
             >
                 <div
                     class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-row p-0.5 sm:p-1 gap-0 sm:gap-0.5 border-0"
@@ -168,11 +178,12 @@
                 </div>
             </div>
 
-            <!-- search bar -->
+            <!-- search bar (mobile: below drawing toolbar when open; desktop: top-right) -->
             <div
                 v-if="!offlineEnabled"
+                v-show="!isMobileScreen || isMobileSearchOpen"
                 ref="searchContainer"
-                class="absolute top-2 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 md:max-lg:w-72 lg:w-80 z-30"
+                class="absolute left-4 right-4 top-[calc(0.5rem+2.75rem+0.5rem)] z-30 sm:top-2 sm:left-auto sm:right-4 sm:w-80 md:max-lg:w-72 lg:w-80"
             >
                 <div class="relative">
                     <div class="flex items-center bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border-0 ring-0">
@@ -1100,15 +1111,6 @@
                     </defs>
                 </svg>
             </div>
-
-            <!-- floating upload button (mobile only) -->
-            <button
-                class="sm:hidden fixed bottom-4 right-4 z-30 p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg transition-colors"
-                :title="$t('map.upload_mbtiles')"
-                @click="$refs.fileInput.click()"
-            >
-                <MaterialDesignIcon icon-name="upload" class="size-6" />
-            </button>
         </div>
 
         <!-- save drawing modal -->
@@ -1391,6 +1393,7 @@ export default {
             arrowSvgWidth: 200,
             arrowSvgHeight: 200,
             isMobileScreen: false,
+            isMobileSearchOpen: false,
 
             // MBTiles management
             mbtilesList: [],
@@ -2657,6 +2660,22 @@ export default {
         },
         checkScreenSize() {
             this.isMobileScreen = window.innerWidth < 640;
+            if (!this.isMobileScreen) {
+                this.isMobileSearchOpen = false;
+            }
+        },
+        toggleMobileSearch() {
+            this.isMobileSearchOpen = !this.isMobileSearchOpen;
+            if (this.isMobileSearchOpen) {
+                this.$nextTick(() => {
+                    const input = this.$refs.searchContainer?.querySelector("input");
+                    if (input) {
+                        input.focus();
+                    }
+                });
+            } else {
+                this.isSearchFocused = false;
+            }
         },
         async fetchPeers() {
             if (!window.api) return;
@@ -3805,5 +3824,15 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+@media (max-width: 639px) {
+    :deep(.ol-zoom) {
+        left: auto;
+        right: 0.75rem;
+        top: auto;
+        bottom: 0.75rem;
+        z-index: 12;
+    }
 }
 </style>

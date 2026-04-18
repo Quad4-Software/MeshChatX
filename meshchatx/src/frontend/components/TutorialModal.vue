@@ -176,8 +176,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Add Interface -->
-                    <div v-else-if="currentStep === 2" key="step2" class="space-y-6">
+                    <!-- Step 2: Choose Connection Mode -->
+                    <div v-else-if="currentStep === 2" key="step2-mode" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.connect") }}
@@ -187,231 +187,242 @@
                             </p>
                         </div>
 
-                        <div v-if="discoveryOption === null" class="flex flex-col items-center gap-6 py-4">
-                            <div
-                                class="bg-blue-500/10 dark:bg-blue-500/20 p-6 rounded-[2rem] text-center space-y-4 border border-blue-500/20 max-w-md"
+                        <div class="grid grid-cols-1 gap-4">
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all"
+                                :class="[
+                                    connectionMode === 'discovery'
+                                        ? 'border-blue-500 ring-2 ring-blue-500/30'
+                                        : 'border-blue-500/20 hover:border-blue-500',
+                                ]"
+                                :disabled="savingDiscovery"
+                                @click="useDiscoveryMode"
                             >
-                                <v-icon icon="mdi-account-search" color="blue" size="48"></v-icon>
-                                <div class="text-lg font-bold text-gray-900 dark:text-white">
-                                    {{
-                                        $t("tutorial.discovery_question") ||
-                                        "Do you want to use community interface discovering and auto-connect?"
-                                    }}
+                                <v-icon icon="mdi-radar" color="blue" size="40"></v-icon>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-lg text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.mode_discovery_title") }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
+                                        {{ $t("tutorial.mode_discovery_desc") }}
+                                    </div>
                                 </div>
-                                <p class="text-sm text-gray-600 dark:text-zinc-400">
-                                    {{
-                                        $t("tutorial.discovery_desc") ||
-                                        "This allows MeshChatX to automatically find and connect to public community nodes near you or on the internet."
-                                    }}
-                                </p>
-                                <div class="flex gap-3 justify-center pt-2">
-                                    <button
-                                        type="button"
-                                        class="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg transition-all"
-                                        :disabled="savingDiscovery"
-                                        @click="useDiscovery"
-                                    >
-                                        <v-progress-circular
-                                            v-if="savingDiscovery"
-                                            indeterminate
-                                            size="16"
-                                            width="2"
-                                            class="mr-2"
-                                        ></v-progress-circular>
-                                        {{ $t("tutorial.yes") || "Yes, use discovery" }}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="px-6 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold shadow-sm transition-all"
-                                        @click="discoveryOption = 'no'"
-                                    >
-                                        {{ $t("tutorial.no") || "No, manual setup" }}
-                                    </button>
+                                <v-progress-circular
+                                    v-if="savingDiscovery"
+                                    indeterminate
+                                    size="20"
+                                    width="2"
+                                ></v-progress-circular>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all"
+                                :class="[
+                                    connectionMode === 'local'
+                                        ? 'border-emerald-500 ring-2 ring-emerald-500/30'
+                                        : 'border-emerald-500/20 hover:border-emerald-500',
+                                ]"
+                                :disabled="addingLocal || reloadingReticulum"
+                                @click="useLocalMode"
+                            >
+                                <v-icon icon="mdi-lan" color="emerald" size="40"></v-icon>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-lg text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.mode_local_title") }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
+                                        {{ $t("tutorial.mode_local_desc") }}
+                                    </div>
                                 </div>
-                            </div>
+                                <v-progress-circular
+                                    v-if="addingLocal || reloadingReticulum"
+                                    indeterminate
+                                    size="20"
+                                    width="2"
+                                ></v-progress-circular>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-gray-100/50 dark:bg-zinc-800/40 border-2 transition-all"
+                                :class="[
+                                    connectionMode === 'manual'
+                                        ? 'border-gray-500 ring-2 ring-gray-500/30'
+                                        : 'border-gray-300 dark:border-zinc-700 hover:border-gray-500',
+                                ]"
+                                @click="useManualMode"
+                            >
+                                <v-icon icon="mdi-cog-outline" color="gray" size="40"></v-icon>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-lg text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.mode_manual_title") }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
+                                        {{ $t("tutorial.mode_manual_desc") }}
+                                    </div>
+                                </div>
+                            </button>
                         </div>
 
-                        <div v-else class="space-y-4">
-                            <!-- Discovered Interfaces (if any) -->
+                        <p class="text-xs text-center text-gray-400 dark:text-zinc-500">
+                            {{ $t("tutorial.mode_change_later") }}
+                        </p>
+                    </div>
+
+                    <!-- Step 3: Bootstrap Selection -->
+                    <div v-else-if="currentStep === 3" key="step3-bootstrap" class="space-y-6">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                {{ $t("tutorial.bootstrap_title") }}
+                            </h2>
+                            <p class="text-gray-600 dark:text-zinc-400 text-sm">
+                                {{ $t("tutorial.bootstrap_desc") }}
+                            </p>
+                        </div>
+
+                        <div class="space-y-4">
                             <div
                                 v-if="sortedDiscoveredInterfaces.length > 0"
                                 class="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl p-4 border border-emerald-500/20"
                             >
                                 <div class="flex items-center gap-2 mb-3 px-1 text-sm">
                                     <v-icon icon="mdi-radar" color="emerald"></v-icon>
-                                    <span class="font-bold text-gray-900 dark:text-white">Discovered Interfaces</span>
+                                    <span class="font-bold text-gray-900 dark:text-white">{{
+                                        $t("tutorial.bootstrap_discovered")
+                                    }}</span>
                                 </div>
-                                <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                    <div
+                                <div class="space-y-2 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <label
                                         v-for="iface in sortedDiscoveredInterfaces"
                                         :key="iface.discovery_hash || iface.name"
-                                        class="interface-card group !p-3 transition-all duration-300"
+                                        class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-xl border cursor-pointer transition-all"
+                                        :class="[
+                                            isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                                : 'border-gray-100 dark:border-zinc-700 hover:border-emerald-400',
+                                        ]"
                                     >
-                                        <div class="flex gap-3 items-start relative">
-                                            <div class="interface-card__icon !w-10 !h-10 !rounded-xl shrink-0">
-                                                <MaterialDesignIcon
-                                                    :icon-name="getDiscoveryIcon(iface)"
-                                                    class="w-5 h-5"
-                                                />
+                                        <input
+                                            type="checkbox"
+                                            class="w-4 h-4 accent-emerald-500"
+                                            :checked="isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)"
+                                            @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
+                                        />
+                                        <MaterialDesignIcon
+                                            :icon-name="getDiscoveryIcon(iface)"
+                                            class="w-5 h-5 text-emerald-500 shrink-0"
+                                        />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                {{ iface.name }}
                                             </div>
-
-                                            <div class="flex-1 min-w-0 space-y-1">
-                                                <div class="flex items-center gap-2 flex-nowrap min-w-0">
-                                                    <div
-                                                        class="text-sm font-bold text-gray-900 dark:text-white truncate min-w-0"
-                                                    >
-                                                        {{ iface.name }}
-                                                    </div>
-                                                    <span class="type-chip !text-[9px] !px-1.5 shrink-0">{{
-                                                        iface.type
-                                                    }}</span>
-                                                </div>
-
-                                                <div class="flex items-center gap-2 flex-wrap">
-                                                    <span
-                                                        v-if="iface.value"
-                                                        class="text-[9px] font-bold text-blue-600 dark:text-blue-400 shrink-0"
-                                                    >
-                                                        Stamps: {{ iface.value }}
-                                                    </span>
-                                                </div>
-
-                                                <div class="flex flex-wrap gap-1.5 text-[10px] text-gray-500">
-                                                    <span>Hops: {{ iface.hops }}</span>
-                                                    <span class="capitalize shrink-0">{{ iface.status }}</span>
-                                                    <span v-if="iface.last_heard" class="shrink-0">
-                                                        {{ formatLastHeard(iface.last_heard) }}
-                                                    </span>
-                                                </div>
-
-                                                <div
-                                                    class="flex flex-col gap-0.5 pt-1 text-[9px] text-gray-400 dark:text-zinc-500 min-w-0"
+                                            <div
+                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
+                                            >
+                                                <span v-if="iface.reachable_on"
+                                                    >{{ iface.reachable_on
+                                                    }}<span v-if="iface.port">:{{ iface.port }}</span></span
                                                 >
-                                                    <div
-                                                        v-if="iface.reachable_on"
-                                                        class="flex items-center gap-1.5 hover:text-blue-500 cursor-pointer min-w-0"
-                                                        @click="
-                                                            copyToClipboard(
-                                                                `${iface.reachable_on}:${iface.port}`,
-                                                                'Address'
-                                                            )
-                                                        "
-                                                    >
-                                                        <MaterialDesignIcon
-                                                            icon-name="link-variant"
-                                                            class="w-3 h-3 shrink-0"
-                                                        />
-                                                        <span class="truncate"
-                                                            >Address: {{ iface.reachable_on }}:{{ iface.port }}</span
-                                                        >
-                                                    </div>
-                                                    <div
-                                                        v-if="iface.transport_id"
-                                                        class="flex items-center gap-1.5 hover:text-blue-500 cursor-pointer min-w-0"
-                                                        @click="copyToClipboard(iface.transport_id, 'Transport ID')"
-                                                    >
-                                                        <MaterialDesignIcon
-                                                            icon-name="identifier"
-                                                            class="w-3 h-3 shrink-0"
-                                                        />
-                                                        <span class="truncate font-mono"
-                                                            >Transport ID: {{ iface.transport_id }}</span
-                                                        >
-                                                    </div>
-                                                    <div
-                                                        v-if="iface.network_id"
-                                                        class="flex items-center gap-1.5 hover:text-blue-500 cursor-pointer min-w-0"
-                                                        @click="copyToClipboard(iface.network_id, 'Network ID')"
-                                                    >
-                                                        <MaterialDesignIcon icon-name="lan" class="w-3 h-3 shrink-0" />
-                                                        <span class="truncate font-mono"
-                                                            >Network ID: {{ iface.network_id }}</span
-                                                        >
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="flex items-center gap-1 shrink-0">
-                                                <span
-                                                    class="text-[8px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
-                                                    >Heard</span
-                                                >
+                                                <span v-else>{{ iface.type }}</span>
+                                                <span class="ml-2 capitalize">{{ iface.status }}</span>
                                             </div>
                                         </div>
-                                    </div>
+                                    </label>
                                 </div>
                             </div>
 
-                            <!-- Community Interfaces -->
                             <div
-                                class="bg-gray-50 dark:bg-zinc-900 rounded-3xl p-3 border border-gray-100 dark:border-zinc-800"
+                                class="bg-gray-50 dark:bg-zinc-900 rounded-3xl p-4 border border-gray-100 dark:border-zinc-800"
                             >
-                                <div class="flex items-center gap-2 mb-3 px-2 text-sm">
+                                <div class="flex items-center gap-2 mb-3 px-1 text-sm">
                                     <v-icon icon="mdi-web" color="blue"></v-icon>
                                     <span class="font-bold text-gray-900 dark:text-white">{{
-                                        $t("tutorial.suggested_networks")
+                                        $t("tutorial.bootstrap_community")
                                     }}</span>
                                 </div>
-                                <div class="space-y-2 max-h-[260px] overflow-y-auto pr-2">
-                                    <div
+                                <div class="space-y-2 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <label
                                         v-for="iface in communityInterfaces"
                                         :key="iface.name"
-                                        class="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-zinc-700 hover:border-blue-400 transition-colors cursor-pointer"
-                                        @click="selectCommunityInterface(iface)"
+                                        class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-xl border cursor-pointer transition-all"
+                                        :class="[
+                                            isBootstrapSelected(`comm:${iface.name}`)
+                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                : 'border-gray-100 dark:border-zinc-700 hover:border-blue-400',
+                                        ]"
                                     >
-                                        <div class="flex flex-col">
-                                            <span class="font-bold text-gray-900 dark:text-white text-sm">{{
-                                                iface.name
-                                            }}</span>
-                                            <span class="text-[11px] text-gray-500 dark:text-zinc-400"
-                                                >{{ iface.target_host }}:{{ iface.target_port }}</span
+                                        <input
+                                            type="checkbox"
+                                            class="w-4 h-4 accent-blue-500"
+                                            :checked="isBootstrapSelected(`comm:${iface.name}`)"
+                                            @change="toggleBootstrap(`comm:${iface.name}`)"
+                                        />
+                                        <v-icon icon="mdi-server-network" color="blue" size="20"></v-icon>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                {{ iface.name }}
+                                            </div>
+                                            <div
+                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
                                             >
+                                                {{ iface.target_host
+                                                }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
+                                            </div>
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <span
-                                                v-if="iface.online"
-                                                class="flex items-center gap-1 text-[9px] font-bold text-green-500 uppercase tracking-[0.2em]"
-                                            >
-                                                <span
-                                                    class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
-                                                ></span>
-                                                {{ $t("tutorial.online") }}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                class="px-3 py-1 text-[11px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all"
-                                                @click.stop="selectCommunityInterface(iface)"
-                                            >
-                                                {{ $t("tutorial.use") }}
-                                            </button>
-                                        </div>
-                                    </div>
+                                        <span
+                                            v-if="iface.online"
+                                            class="text-[9px] font-bold text-green-500 uppercase tracking-widest shrink-0"
+                                            >{{ $t("tutorial.online") }}</span
+                                        >
+                                    </label>
                                     <div v-if="loadingInterfaces" class="flex justify-center py-3">
                                         <v-progress-circular indeterminate color="blue" size="24"></v-progress-circular>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div
-                            v-if="discoveryOption !== null"
-                            class="flex flex-col items-center gap-3 text-sm text-gray-900 dark:text-white"
-                        >
-                            <p class="max-w-sm text-center">
-                                {{ $t("tutorial.custom_interfaces_desc") }}
-                            </p>
-                            <button
-                                type="button"
-                                class="px-5 py-2 text-[11px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
-                                @click="gotoAddInterface"
-                            >
-                                {{ $t("tutorial.open_interfaces") }}
-                            </button>
+                            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                                <p class="text-xs text-gray-500 dark:text-zinc-500">
+                                    {{
+                                        $t("tutorial.bootstrap_selected", {
+                                            count: selectedBootstrapCount,
+                                        })
+                                    }}
+                                </p>
+                                <div class="flex gap-2">
+                                    <button
+                                        type="button"
+                                        class="px-4 py-2 text-xs rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold transition-all hover:bg-gray-50 dark:hover:bg-zinc-700"
+                                        @click="skipBootstraps"
+                                    >
+                                        {{ $t("tutorial.bootstrap_skip") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="px-5 py-2 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow transition-all"
+                                        :disabled="
+                                            addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0
+                                        "
+                                        @click="confirmBootstraps"
+                                    >
+                                        <v-progress-circular
+                                            v-if="addingBootstraps || reloadingReticulum"
+                                            indeterminate
+                                            size="14"
+                                            width="2"
+                                            class="mr-1"
+                                        ></v-progress-circular>
+                                        {{ $t("tutorial.bootstrap_confirm") }}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Step 3: Propagation Mode -->
-                    <div v-else-if="currentStep === 3" key="step3" class="space-y-6">
+                    <!-- Step 4: Propagation Mode -->
+                    <div v-else-if="currentStep === 4" key="step4-prop" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.propagation") }}
@@ -468,8 +479,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Documentation & Tools -->
-                    <div v-else-if="currentStep === 4" key="step4" class="space-y-6">
+                    <!-- Step 5: Documentation & Tools -->
+                    <div v-else-if="currentStep === 5" key="step5-tools" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.learn_create") }}
@@ -595,10 +606,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 5: Finish -->
+                    <!-- Step 6: Finish -->
                     <div
-                        v-else-if="currentStep === 5"
-                        key="step5"
+                        v-else-if="currentStep === 6"
+                        key="step6-finish"
                         class="flex flex-col items-center text-center space-y-8 py-10"
                     >
                         <div class="w-32 h-32 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -633,7 +644,7 @@
                     v-if="currentStep > 1 && currentStep < totalSteps"
                     type="button"
                     class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
-                    @click="currentStep--"
+                    @click="previousStep"
                 >
                     {{ $t("tutorial.back") }}
                 </button>
@@ -839,8 +850,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Add Interface -->
-                    <div v-else-if="currentStep === 2" key="page-step2" class="space-y-6 py-8">
+                    <!-- Step 2: Choose Connection Mode -->
+                    <div v-else-if="currentStep === 2" key="page-step2-mode" class="space-y-8 py-8">
                         <div class="text-center space-y-2">
                             <h2 class="text-3xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.connect") }}
@@ -850,294 +861,237 @@
                             </p>
                         </div>
 
-                        <div v-if="discoveryOption === null" class="flex flex-col items-center gap-8 py-12">
-                            <div
-                                class="bg-blue-500/10 dark:bg-blue-500/20 p-12 rounded-[3rem] text-center space-y-6 border border-blue-500/20 max-w-2xl shadow-2xl"
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                            <button
+                                type="button"
+                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all hover:scale-[1.02]"
+                                :class="[
+                                    connectionMode === 'discovery'
+                                        ? 'border-blue-500 ring-2 ring-blue-500/30'
+                                        : 'border-blue-500/20 hover:border-blue-500',
+                                ]"
+                                :disabled="savingDiscovery"
+                                @click="useDiscoveryMode"
                             >
-                                <v-icon icon="mdi-account-search" color="blue" size="80"></v-icon>
-                                <div class="text-3xl font-black text-gray-900 dark:text-white">
-                                    {{
-                                        $t("tutorial.discovery_question") ||
-                                        "Do you want to use community interface discovering and auto-connect?"
-                                    }}
+                                <v-icon icon="mdi-radar" color="blue" size="56"></v-icon>
+                                <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                    {{ $t("tutorial.mode_discovery_title") }}
                                 </div>
-                                <p class="text-xl text-gray-600 dark:text-zinc-400">
-                                    {{
-                                        $t("tutorial.discovery_desc") ||
-                                        "This allows MeshChatX to automatically find and connect to public community nodes near you or on the internet."
-                                    }}
-                                </p>
-                                <div class="flex gap-6 justify-center pt-4">
-                                    <button
-                                        type="button"
-                                        class="px-10 py-4 text-xl rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-xl transition-all transform hover:scale-105"
-                                        :disabled="savingDiscovery"
-                                        @click="useDiscovery"
+                                <div class="text-sm text-gray-600 dark:text-zinc-400">
+                                    {{ $t("tutorial.mode_discovery_desc") }}
+                                </div>
+                                <v-progress-circular
+                                    v-if="savingDiscovery"
+                                    indeterminate
+                                    size="20"
+                                    width="2"
+                                ></v-progress-circular>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all hover:scale-[1.02]"
+                                :class="[
+                                    connectionMode === 'local'
+                                        ? 'border-emerald-500 ring-2 ring-emerald-500/30'
+                                        : 'border-emerald-500/20 hover:border-emerald-500',
+                                ]"
+                                :disabled="addingLocal || reloadingReticulum"
+                                @click="useLocalMode"
+                            >
+                                <v-icon icon="mdi-lan" color="emerald" size="56"></v-icon>
+                                <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                    {{ $t("tutorial.mode_local_title") }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-zinc-400">
+                                    {{ $t("tutorial.mode_local_desc") }}
+                                </div>
+                                <v-progress-circular
+                                    v-if="addingLocal || reloadingReticulum"
+                                    indeterminate
+                                    size="20"
+                                    width="2"
+                                ></v-progress-circular>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-gray-100/50 dark:bg-zinc-800/40 border-2 transition-all hover:scale-[1.02]"
+                                :class="[
+                                    connectionMode === 'manual'
+                                        ? 'border-gray-500 ring-2 ring-gray-500/30'
+                                        : 'border-gray-300 dark:border-zinc-700 hover:border-gray-500',
+                                ]"
+                                @click="useManualMode"
+                            >
+                                <v-icon icon="mdi-cog-outline" color="gray" size="56"></v-icon>
+                                <div class="font-bold text-xl text-gray-900 dark:text-white">
+                                    {{ $t("tutorial.mode_manual_title") }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-zinc-400">
+                                    {{ $t("tutorial.mode_manual_desc") }}
+                                </div>
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-center text-gray-400 dark:text-zinc-500">
+                            {{ $t("tutorial.mode_change_later") }}
+                        </p>
+                    </div>
+
+                    <!-- Step 3: Bootstrap Selection -->
+                    <div v-else-if="currentStep === 3" key="page-step3-bootstrap" class="space-y-6 py-8">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-3xl font-black text-gray-900 dark:text-white">
+                                {{ $t("tutorial.bootstrap_title") }}
+                            </h2>
+                            <p class="text-lg text-gray-600 dark:text-zinc-400 max-w-3xl mx-auto">
+                                {{ $t("tutorial.bootstrap_desc_page") }}
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                            <div
+                                v-if="sortedDiscoveredInterfaces.length > 0"
+                                class="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-[1.5rem] p-5 border border-emerald-500/20"
+                            >
+                                <div class="flex items-center gap-2 mb-4">
+                                    <v-icon icon="mdi-radar" color="emerald" size="22"></v-icon>
+                                    <span class="text-base font-bold text-gray-900 dark:text-white">{{
+                                        $t("tutorial.bootstrap_discovered")
+                                    }}</span>
+                                </div>
+                                <div class="space-y-2 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <label
+                                        v-for="iface in sortedDiscoveredInterfaces"
+                                        :key="iface.discovery_hash || iface.name"
+                                        class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-xl border cursor-pointer transition-all"
+                                        :class="[
+                                            isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                                : 'border-gray-100 dark:border-zinc-700 hover:border-emerald-400',
+                                        ]"
                                     >
-                                        <v-progress-circular
-                                            v-if="savingDiscovery"
-                                            indeterminate
-                                            size="24"
-                                            width="3"
-                                            class="mr-3"
-                                        ></v-progress-circular>
-                                        {{ $t("tutorial.yes") || "Yes, use discovery" }}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="px-10 py-4 text-xl rounded-2xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-black shadow-lg transition-all transform hover:scale-105"
-                                        @click="discoveryOption = 'no'"
+                                        <input
+                                            type="checkbox"
+                                            class="w-4 h-4 accent-emerald-500"
+                                            :checked="isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)"
+                                            @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
+                                        />
+                                        <MaterialDesignIcon
+                                            :icon-name="getDiscoveryIcon(iface)"
+                                            class="w-5 h-5 text-emerald-500 shrink-0"
+                                        />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                {{ iface.name }}
+                                            </div>
+                                            <div
+                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
+                                            >
+                                                <span v-if="iface.reachable_on"
+                                                    >{{ iface.reachable_on
+                                                    }}<span v-if="iface.port">:{{ iface.port }}</span></span
+                                                >
+                                                <span v-else>{{ iface.type }}</span>
+                                                <span class="ml-2 capitalize">{{ iface.status }}</span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div
+                                class="bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-5 border border-gray-100 dark:border-zinc-800"
+                                :class="[sortedDiscoveredInterfaces.length === 0 ? 'lg:col-span-2' : '']"
+                            >
+                                <div class="flex items-center gap-2 mb-4">
+                                    <v-icon icon="mdi-web" color="blue" size="22"></v-icon>
+                                    <span class="text-base font-bold text-gray-900 dark:text-white">{{
+                                        $t("tutorial.bootstrap_community")
+                                    }}</span>
+                                </div>
+                                <div class="space-y-2 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <label
+                                        v-for="iface in communityInterfaces"
+                                        :key="iface.name"
+                                        class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-xl border cursor-pointer transition-all"
+                                        :class="[
+                                            isBootstrapSelected(`comm:${iface.name}`)
+                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                : 'border-gray-100 dark:border-zinc-700 hover:border-blue-400',
+                                        ]"
                                     >
-                                        {{ $t("tutorial.no") || "No, manual setup" }}
-                                    </button>
+                                        <input
+                                            type="checkbox"
+                                            class="w-4 h-4 accent-blue-500"
+                                            :checked="isBootstrapSelected(`comm:${iface.name}`)"
+                                            @change="toggleBootstrap(`comm:${iface.name}`)"
+                                        />
+                                        <v-icon icon="mdi-server-network" color="blue" size="22"></v-icon>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                {{ iface.name }}
+                                            </div>
+                                            <div
+                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
+                                            >
+                                                {{ iface.target_host
+                                                }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
+                                            </div>
+                                        </div>
+                                        <span
+                                            v-if="iface.online"
+                                            class="text-[9px] font-bold text-green-500 uppercase tracking-widest shrink-0"
+                                            >{{ $t("tutorial.online") }}</span
+                                        >
+                                    </label>
+                                    <div v-if="loadingInterfaces" class="flex justify-center py-3">
+                                        <v-progress-circular indeterminate color="blue" size="24"></v-progress-circular>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                            <!-- Left/Middle Columns: Discovered & Community -->
-                            <div class="lg:col-span-1 xl:col-span-2 space-y-6">
-                                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                                    <!-- Discovered Interfaces -->
-                                    <div
-                                        v-if="sortedDiscoveredInterfaces.length > 0"
-                                        class="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-[1.5rem] p-5 border border-emerald-500/20 h-fit"
-                                    >
-                                        <div class="flex items-center justify-between mb-5">
-                                            <div class="flex items-center gap-2">
-                                                <v-icon icon="mdi-radar" color="emerald" size="26"></v-icon>
-                                                <span class="text-lg font-bold text-gray-900 dark:text-white"
-                                                    >Discovered</span
-                                                >
-                                            </div>
-                                            <button
-                                                v-if="interfacesWithLocation.length > 0"
-                                                type="button"
-                                                class="px-2 py-1 text-[9px] rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
-                                                @click="mapAllDiscovered"
-                                            >
-                                                Map All ({{ interfacesWithLocation.length }})
-                                            </button>
-                                        </div>
-                                        <div class="space-y-3 max-h-[600px] overflow-y-auto pr-3 custom-scrollbar">
-                                            <div
-                                                v-for="iface in sortedDiscoveredInterfaces"
-                                                :key="iface.discovery_hash || iface.name"
-                                                class="interface-card group !p-4 transition-all duration-300"
-                                            >
-                                                <div class="flex gap-4 items-start relative">
-                                                    <div class="interface-card__icon !w-12 !h-12 !rounded-2xl shrink-0">
-                                                        <MaterialDesignIcon
-                                                            :icon-name="getDiscoveryIcon(iface)"
-                                                            class="w-6 h-6"
-                                                        />
-                                                    </div>
-
-                                                    <div class="flex-1 min-w-0 space-y-2">
-                                                        <div class="flex items-center gap-2 flex-nowrap min-w-0">
-                                                            <div
-                                                                class="text-lg font-bold text-gray-900 dark:text-white truncate min-w-0"
-                                                            >
-                                                                {{ iface.name }}
-                                                            </div>
-                                                            <span class="type-chip shrink-0">{{ iface.type }}</span>
-                                                        </div>
-
-                                                        <div class="flex items-center gap-2 flex-wrap">
-                                                            <span
-                                                                v-if="iface.value"
-                                                                class="text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0"
-                                                            >
-                                                                Stamps: {{ iface.value }}
-                                                            </span>
-                                                        </div>
-
-                                                        <div class="flex flex-wrap gap-2 text-xs text-gray-500">
-                                                            <span class="stat-chip !px-2 !py-0.5"
-                                                                >Hops: {{ iface.hops }}</span
-                                                            >
-                                                            <span class="stat-chip !px-2 !py-0.5 capitalize shrink-0">{{
-                                                                iface.status
-                                                            }}</span>
-                                                            <span
-                                                                v-if="iface.last_heard"
-                                                                class="stat-chip !px-2 !py-0.5 shrink-0"
-                                                            >
-                                                                {{ formatLastHeard(iface.last_heard) }}
-                                                            </span>
-                                                        </div>
-
-                                                        <div
-                                                            class="grid gap-1.5 pt-1 text-[11px] text-gray-500 dark:text-zinc-400 min-w-0"
-                                                        >
-                                                            <div
-                                                                v-if="iface.reachable_on"
-                                                                class="flex items-center gap-2 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
-                                                                @click="
-                                                                    copyToClipboard(
-                                                                        `${iface.reachable_on}:${iface.port}`,
-                                                                        'Address'
-                                                                    )
-                                                                "
-                                                            >
-                                                                <MaterialDesignIcon
-                                                                    icon-name="link-variant"
-                                                                    class="w-4 h-4 shrink-0"
-                                                                />
-                                                                <span class="truncate"
-                                                                    >Address: {{ iface.reachable_on }}:{{
-                                                                        iface.port
-                                                                    }}</span
-                                                                >
-                                                            </div>
-
-                                                            <div
-                                                                v-if="iface.transport_id"
-                                                                class="flex items-center gap-2 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
-                                                                @click="
-                                                                    copyToClipboard(iface.transport_id, 'Transport ID')
-                                                                "
-                                                            >
-                                                                <MaterialDesignIcon
-                                                                    icon-name="identifier"
-                                                                    class="w-4 h-4 shrink-0"
-                                                                />
-                                                                <span class="truncate font-mono"
-                                                                    >Transport ID: {{ iface.transport_id }}</span
-                                                                >
-                                                            </div>
-
-                                                            <div
-                                                                v-if="iface.network_id"
-                                                                class="flex items-center gap-2 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
-                                                                @click="copyToClipboard(iface.network_id, 'Network ID')"
-                                                            >
-                                                                <MaterialDesignIcon
-                                                                    icon-name="lan"
-                                                                    class="w-4 h-4 shrink-0"
-                                                                />
-                                                                <span class="truncate font-mono"
-                                                                    >Network ID: {{ iface.network_id }}</span
-                                                                >
-                                                            </div>
-
-                                                            <div
-                                                                v-if="iface.latitude != null && iface.longitude != null"
-                                                                class="flex items-center gap-2 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
-                                                                @click="
-                                                                    copyToClipboard(
-                                                                        `${iface.latitude}, ${iface.longitude}`,
-                                                                        'Location'
-                                                                    )
-                                                                "
-                                                            >
-                                                                <MaterialDesignIcon
-                                                                    icon-name="map-marker"
-                                                                    class="w-4 h-4 shrink-0"
-                                                                />
-                                                                <span class="truncate"
-                                                                    >Loc: {{ iface.latitude }},
-                                                                    {{ iface.longitude }}</span
-                                                                >
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="flex items-center gap-2 shrink-0">
-                                                        <span
-                                                            class="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider"
-                                                            >Heard</span
-                                                        >
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Community Interfaces -->
-                                    <div
-                                        class="bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-5 border border-gray-100 dark:border-zinc-800 h-fit"
-                                    >
-                                        <div class="flex items-center gap-2 mb-5">
-                                            <v-icon icon="mdi-web" color="blue" size="26"></v-icon>
-                                            <span class="text-lg font-bold text-gray-900 dark:text-white">{{
-                                                $t("tutorial.suggested_relays")
-                                            }}</span>
-                                        </div>
-                                        <div class="space-y-3 max-h-[600px] overflow-y-auto pr-3 custom-scrollbar">
-                                            <div
-                                                v-for="iface in communityInterfaces"
-                                                :key="iface.name"
-                                                class="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-zinc-700 hover:border-blue-400 transition-all cursor-pointer"
-                                                @click="selectCommunityInterface(iface)"
-                                            >
-                                                <div class="flex flex-col min-w-0">
-                                                    <span
-                                                        class="font-bold text-gray-900 dark:text-white text-base truncate"
-                                                    >
-                                                        {{ iface.name }}
-                                                    </span>
-                                                    <span class="text-xs text-gray-500 font-mono truncate"
-                                                        >{{ iface.target_host }}:{{ iface.target_port }}</span
-                                                    >
-                                                </div>
-                                                <div class="flex items-center gap-2 shrink-0">
-                                                    <span
-                                                        v-if="iface.online"
-                                                        class="flex items-center gap-1.5 text-[9px] font-bold text-green-500 uppercase tracking-[0.2em]"
-                                                    >
-                                                        <span
-                                                            class="w-2 h-2 rounded-full bg-green-500 animate-pulse"
-                                                        ></span>
-                                                        {{ $t("tutorial.online") }}
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        class="px-4 py-1 text-[11px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all"
-                                                        @click.stop="selectCommunityInterface(iface)"
-                                                    >
-                                                        {{ $t("tutorial.use") }}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div v-if="loadingInterfaces" class="flex justify-center py-4">
-                                                <v-progress-circular
-                                                    indeterminate
-                                                    color="blue"
-                                                    size="32"
-                                                ></v-progress-circular>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Right Column: Manual Setup -->
-                            <div
-                                class="flex flex-col justify-center gap-4 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-8 border border-gray-100 dark:border-zinc-800 h-fit my-auto"
-                            >
-                                <div class="text-center space-y-4">
-                                    <v-icon icon="mdi-plus-circle-outline" size="48" color="blue"></v-icon>
-                                    <p class="text-xl font-bold text-gray-900 dark:text-white">
-                                        {{ $t("tutorial.custom_interfaces") }}
-                                    </p>
-                                    <p class="text-gray-600 dark:text-zinc-400">
-                                        {{ $t("tutorial.custom_interfaces_desc_page") }}
-                                    </p>
-                                </div>
+                        <div
+                            class="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-6xl mx-auto pt-4"
+                        >
+                            <p class="text-sm text-gray-500 dark:text-zinc-500">
+                                {{
+                                    $t("tutorial.bootstrap_selected", {
+                                        count: selectedBootstrapCount,
+                                    })
+                                }}
+                            </p>
+                            <div class="flex gap-3">
                                 <button
                                     type="button"
-                                    class="mt-4 px-6 py-3 text-sm rounded-xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
-                                    @click="gotoAddInterface"
+                                    class="px-6 py-3 text-sm rounded-xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold transition-all hover:bg-gray-50 dark:hover:bg-zinc-700"
+                                    @click="skipBootstraps"
                                 >
-                                    {{ $t("tutorial.open_interfaces") }}
+                                    {{ $t("tutorial.bootstrap_skip") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="px-8 py-3 text-sm rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg transition-all"
+                                    :disabled="addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0"
+                                    @click="confirmBootstraps"
+                                >
+                                    <v-progress-circular
+                                        v-if="addingBootstraps || reloadingReticulum"
+                                        indeterminate
+                                        size="16"
+                                        width="2"
+                                        class="mr-2"
+                                    ></v-progress-circular>
+                                    {{ $t("tutorial.bootstrap_confirm") }}
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Step 3: Propagation Mode -->
-                    <div v-else-if="currentStep === 3" key="page-step3" class="space-y-8 py-12">
+                    <!-- Step 4: Propagation Mode -->
+                    <div v-else-if="currentStep === 4" key="page-step4-prop" class="space-y-8 py-12">
                         <div class="text-center space-y-4">
                             <h2 class="text-4xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.propagation") }}
@@ -1194,8 +1148,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Documentation & Tools -->
-                    <div v-else-if="currentStep === 4" key="page-step4" class="space-y-8 py-10">
+                    <!-- Step 5: Documentation & Tools -->
+                    <div v-else-if="currentStep === 5" key="page-step5-tools" class="space-y-8 py-10">
                         <div class="text-center space-y-4">
                             <h2 class="text-4xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.learn_create") }}
@@ -1321,10 +1275,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 5: Finish -->
+                    <!-- Step 6: Finish -->
                     <div
-                        v-else-if="currentStep === 5"
-                        key="page-step5"
+                        v-else-if="currentStep === 6"
+                        key="page-step6-finish"
                         class="flex flex-col items-center text-center space-y-10 py-20"
                     >
                         <div class="w-48 h-48 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -1359,7 +1313,7 @@
                         v-if="currentStep > 1 && currentStep < totalSteps"
                         type="button"
                         class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
-                        @click="currentStep--"
+                        @click="previousStep"
                     >
                         {{ $t("tutorial.back") }}
                     </button>
@@ -1417,12 +1371,17 @@ export default {
         return {
             visible: false,
             currentStep: 1,
-            totalSteps: 5,
+            totalSteps: 6,
             logoUrl,
             communityInterfaces: [],
             loadingInterfaces: false,
             interfaceAddedViaTutorial: false,
-            discoveryOption: null,
+            connectionMode: null,
+            selectedBootstrapKeys: [],
+            addedBootstrapKeys: [],
+            addingBootstraps: false,
+            addingLocal: false,
+            reloadingReticulum: false,
             discoveredInterfaces: [],
             discoveredActive: [],
             loadingDiscovered: false,
@@ -1448,6 +1407,18 @@ export default {
         },
         interfacesWithLocation() {
             return this.discoveredInterfaces.filter((iface) => iface.latitude != null && iface.longitude != null);
+        },
+        bootstrapCommunityKey() {
+            return (iface) => `comm:${iface.name}`;
+        },
+        bootstrapDiscoveredKey() {
+            return (iface) => `disc:${iface.discovery_hash || iface.name}`;
+        },
+        hasAnyBootstrapsToShow() {
+            return this.communityInterfaces.length > 0 || this.sortedDiscoveredInterfaces.length > 0;
+        },
+        selectedBootstrapCount() {
+            return this.selectedBootstrapKeys.length;
         },
     },
     beforeUnmount() {
@@ -1498,7 +1469,9 @@ export default {
             this.visible = true;
             this.currentStep = 1;
             this.interfaceAddedViaTutorial = false;
-            this.discoveryOption = null;
+            this.connectionMode = null;
+            this.selectedBootstrapKeys = [];
+            this.addedBootstrapKeys = [];
             await this.loadCommunityInterfaces();
             await this.loadDiscoveredInterfaces();
 
@@ -1532,23 +1505,147 @@ export default {
                 this.loadingDiscovered = false;
             }
         },
-        async useDiscovery() {
+        async reloadReticulum() {
+            this.reloadingReticulum = true;
+            try {
+                await window.api.post("/api/v1/reticulum/reload");
+                GlobalState.hasPendingInterfaceChanges = false;
+                if (GlobalState.modifiedInterfaceNames && GlobalState.modifiedInterfaceNames.clear) {
+                    GlobalState.modifiedInterfaceNames.clear();
+                }
+                return true;
+            } catch (e) {
+                console.error("Failed to reload Reticulum:", e);
+                ToastUtils.error(this.$t("tutorial.failed_reload_rns"));
+                return false;
+            } finally {
+                this.reloadingReticulum = false;
+            }
+        },
+        async useDiscoveryMode() {
             this.savingDiscovery = true;
             try {
                 const payload = {
                     discover_interfaces: true,
-                    autoconnect_discovered_interfaces: 3, // default to 3 slots
+                    autoconnect_discovered_interfaces: 3,
                 };
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
-                this.discoveryOption = "yes";
-                this.nextStep();
+                this.connectionMode = "discovery";
+                this.currentStep = 3;
             } catch (e) {
                 console.error("Failed to enable discovery:", e);
                 ToastUtils.error(this.$t("tutorial.failed_enable_discovery"));
             } finally {
                 this.savingDiscovery = false;
             }
+        },
+        async useLocalMode() {
+            if (this.addingLocal) return;
+            this.addingLocal = true;
+            try {
+                await window.api.post("/api/v1/reticulum/interfaces/add", {
+                    name: "Local Network",
+                    type: "AutoInterface",
+                    enabled: true,
+                });
+                this.interfaceAddedViaTutorial = true;
+                GlobalState.hasPendingInterfaceChanges = true;
+                GlobalState.modifiedInterfaceNames.add("Local Network");
+                ToastUtils.success(this.$t("tutorial.local_added"));
+                await this.reloadReticulum();
+                this.connectionMode = "local";
+                this.currentStep = 4;
+            } catch (e) {
+                console.error("Failed to add AutoInterface:", e);
+                ToastUtils.error(e.response?.data?.message || this.$t("tutorial.failed_add_local"));
+            } finally {
+                this.addingLocal = false;
+            }
+        },
+        useManualMode() {
+            this.connectionMode = "manual";
+            this.currentStep = 4;
+        },
+        isBootstrapSelected(key) {
+            return this.selectedBootstrapKeys.includes(key);
+        },
+        toggleBootstrap(key) {
+            const idx = this.selectedBootstrapKeys.indexOf(key);
+            if (idx >= 0) {
+                this.selectedBootstrapKeys.splice(idx, 1);
+            } else {
+                this.selectedBootstrapKeys.push(key);
+            }
+        },
+        buildBootstrapPayload(item) {
+            if (item.kind === "discovered") {
+                const iface = item.iface;
+                const payload = {
+                    name: iface.name || `Discovered ${iface.discovery_hash || ""}`.trim(),
+                    type: iface.type === "BackboneInterface" ? "TCPClientInterface" : iface.type,
+                    enabled: true,
+                };
+                if (iface.reachable_on) {
+                    payload.target_host = iface.reachable_on;
+                }
+                if (iface.port) {
+                    payload.target_port = iface.port;
+                }
+                return payload;
+            }
+            const iface = item.iface;
+            return {
+                name: iface.name,
+                type: iface.type,
+                target_host: iface.target_host,
+                target_port: iface.target_port,
+                enabled: true,
+            };
+        },
+        async confirmBootstraps() {
+            if (this.addingBootstraps) return;
+            if (this.selectedBootstrapKeys.length === 0) {
+                ToastUtils.warning(this.$t("tutorial.bootstrap_pick_at_least_one"));
+                return;
+            }
+            this.addingBootstraps = true;
+            const items = [];
+            for (const key of this.selectedBootstrapKeys) {
+                if (this.addedBootstrapKeys.includes(key)) continue;
+                if (key.startsWith("comm:")) {
+                    const iface = this.communityInterfaces.find((c) => `comm:${c.name}` === key);
+                    if (iface) items.push({ key, kind: "community", iface });
+                } else if (key.startsWith("disc:")) {
+                    const iface = this.discoveredInterfaces.find((d) => `disc:${d.discovery_hash || d.name}` === key);
+                    if (iface) items.push({ key, kind: "discovered", iface });
+                }
+            }
+            let added = 0;
+            for (const item of items) {
+                try {
+                    const payload = this.buildBootstrapPayload(item);
+                    if (!payload.target_host) continue;
+                    await window.api.post("/api/v1/reticulum/interfaces/add", payload);
+                    this.addedBootstrapKeys.push(item.key);
+                    GlobalState.hasPendingInterfaceChanges = true;
+                    GlobalState.modifiedInterfaceNames.add(payload.name);
+                    added += 1;
+                } catch (e) {
+                    console.error("Failed to add bootstrap interface:", e);
+                    ToastUtils.error(e.response?.data?.message || this.$t("tutorial.failed_add_bootstrap"));
+                }
+            }
+            if (added > 0) {
+                this.interfaceAddedViaTutorial = true;
+                ToastUtils.success(this.$t("tutorial.bootstrap_added", { count: added }));
+                await this.reloadReticulum();
+            }
+            this.addingBootstraps = false;
+            this.currentStep = 4;
+        },
+        skipBootstraps() {
+            this.currentStep = 4;
         },
         async enableAutoPropagation() {
             this.savingPropagation = true;
@@ -1654,9 +1751,20 @@ export default {
             }
         },
         nextStep() {
-            if (this.currentStep < this.totalSteps) {
-                this.currentStep++;
+            if (this.currentStep >= this.totalSteps) return;
+            if (this.currentStep === 2 && this.connectionMode !== "discovery") {
+                this.currentStep = 4;
+                return;
             }
+            this.currentStep++;
+        },
+        previousStep() {
+            if (this.currentStep <= 1) return;
+            if (this.currentStep === 4 && this.connectionMode !== "discovery") {
+                this.currentStep = 2;
+                return;
+            }
+            this.currentStep--;
         },
         async skipTutorial() {
             if (await DialogUtils.confirm(this.$t("tutorial.skip_confirm"))) {
@@ -1676,10 +1784,13 @@ export default {
             }
         },
         async finishTutorial() {
+            if (GlobalState.hasPendingInterfaceChanges) {
+                await this.reloadReticulum();
+            }
             this.visible = false;
             this.markSeen();
             if (this.interfaceAddedViaTutorial) {
-                ToastUtils.info(this.$t("tutorial.ready_desc"));
+                ToastUtils.success(this.$t("tutorial.ready_finished"));
             }
         },
         async onVisibleUpdate(val) {

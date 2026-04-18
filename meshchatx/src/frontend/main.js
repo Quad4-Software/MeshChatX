@@ -185,6 +185,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/micron-editor/MicronEditorPage.vue")),
         },
         {
+            name: "reticulum-config-editor",
+            path: "/tools/reticulum-config-editor",
+            component: defineAsyncComponent(() => import("./components/tools/ReticulumConfigEditorPage.vue")),
+        },
+        {
             name: "mesh-server",
             path: "/mesh-server",
             component: defineAsyncComponent(() => import("./components/page-nodes/PageNodesPage.vue")),

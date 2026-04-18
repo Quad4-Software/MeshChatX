@@ -38,56 +38,46 @@
                         </div>
 
                         <div
-                            class="flex w-full flex-1 flex-wrap justify-stretch gap-2 sm:justify-end sm:gap-3 md:w-auto"
+                            class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-1 sm:flex-wrap sm:justify-end sm:gap-3"
                         >
-                            <button
-                                type="button"
-                                class="secondary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
-                                @click="showTutorial"
-                            >
-                                <v-icon icon="mdi-help-circle" size="20" class="mr-2"></v-icon>
-                                {{ $t("app.tutorial_title") }}
+                            <button type="button" class="about-action-btn secondary-chip" @click="showTutorial">
+                                <v-icon icon="mdi-help-circle" size="20" class="mr-2 shrink-0"></v-icon>
+                                <span class="truncate">{{ $t("app.tutorial_title") }}</span>
                             </button>
-                            <button
-                                type="button"
-                                class="secondary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
-                                @click="showChangelog"
-                            >
-                                <v-icon icon="mdi-history" size="20" class="mr-2"></v-icon>
-                                {{ $t("app.changelog_title") }}
+                            <button type="button" class="about-action-btn secondary-chip" @click="showChangelog">
+                                <v-icon icon="mdi-history" size="20" class="mr-2 shrink-0"></v-icon>
+                                <span class="truncate">{{ $t("app.changelog_title") }}</span>
                             </button>
                             <router-link
                                 :to="{ name: 'licenses' }"
-                                class="secondary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center inline-flex items-center no-underline"
+                                class="about-action-btn secondary-chip inline-flex items-center no-underline"
                             >
-                                <v-icon icon="mdi-license" size="20" class="mr-2"></v-icon>
-                                {{ $t("about.third_party_licenses") }}
+                                <v-icon icon="mdi-license" size="20" class="mr-2 shrink-0"></v-icon>
+                                <span class="truncate">{{ $t("about.third_party_licenses") }}</span>
                             </router-link>
                             <button
                                 v-if="isElectron"
                                 type="button"
-                                class="primary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
+                                class="about-action-btn primary-chip"
                                 @click="relaunch"
                             >
-                                <v-icon icon="mdi-restart" size="20" class="mr-2"></v-icon>
-                                {{ $t("common.restart_app") }}
+                                <v-icon icon="mdi-restart" size="20" class="mr-2 shrink-0"></v-icon>
+                                <span class="truncate">{{ $t("common.restart_app") }}</span>
                             </button>
                             <button
                                 type="button"
-                                class="secondary-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
+                                class="about-action-btn secondary-chip"
                                 :disabled="reloadingRns"
                                 @click="restartRns"
                             >
-                                <v-icon icon="mdi-restart-alert" size="20" class="mr-2"></v-icon>
-                                {{ reloadingRns ? $t("app.reloading_rns") : "Restart RNS" }}
+                                <v-icon icon="mdi-restart-alert" size="20" class="mr-2 shrink-0"></v-icon>
+                                <span class="truncate">{{
+                                    reloadingRns ? $t("app.reloading_rns") : "Restart RNS"
+                                }}</span>
                             </button>
-                            <button
-                                type="button"
-                                class="danger-chip flex-1 min-[480px]:flex-none min-h-[44px] sm:min-h-0 justify-center"
-                                @click="shutdown"
-                            >
-                                <v-icon icon="mdi-power" size="20" class="mr-2"></v-icon>
-                                {{ $t("common.shutdown", "Shutdown") }}
+                            <button type="button" class="about-action-btn danger-chip" @click="shutdown">
+                                <v-icon icon="mdi-power" size="20" class="mr-2 shrink-0"></v-icon>
+                                <span class="truncate">{{ $t("common.shutdown", "Shutdown") }}</span>
                             </button>
                         </div>
                     </div>
@@ -1371,6 +1361,12 @@ export default {
 
                 if (this.isElectron) {
                     ElectronUtils.shutdown();
+                } else if (typeof window !== "undefined" && window.MeshChatXAndroid?.exitApp) {
+                    try {
+                        window.MeshChatXAndroid.exitApp();
+                    } catch {
+                        ToastUtils.success(this.$t("about.shutdown_sent"));
+                    }
                 } else {
                     ToastUtils.success(this.$t("about.shutdown_sent"));
                 }
@@ -1449,5 +1445,8 @@ export default {
 :deep(.about-btn:focus-visible) {
     outline: 2px solid rgba(59, 130, 246, 0.35);
     outline-offset: 2px;
+}
+.about-action-btn {
+    @apply min-w-0 min-h-[40px] justify-center whitespace-nowrap;
 }
 </style>

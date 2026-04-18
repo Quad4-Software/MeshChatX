@@ -6,9 +6,6 @@
             <div class="border-b border-gray-200 dark:border-zinc-800 px-4 py-4 md:px-6 md:py-5">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
                     <div class="space-y-2 min-w-0 flex-1">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            {{ $t("tools.utilities") }}
-                        </div>
                         <div class="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
                             {{ $t("tools.power_tools") }}
                         </div>
@@ -224,6 +221,14 @@ export default {
                     iconBg: "tool-card__icon bg-teal-50 text-teal-500 dark:bg-teal-900/30 dark:text-teal-200",
                     titleKey: "tools.micron_editor.title",
                     descriptionKey: "tools.micron_editor.description",
+                },
+                {
+                    name: "reticulum-config-editor",
+                    route: { name: "reticulum-config-editor" },
+                    icon: "file-cog",
+                    iconBg: "tool-card__icon bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-200",
+                    titleKey: "tools.reticulum_config_editor.title",
+                    descriptionKey: "tools.reticulum_config_editor.description",
                 },
                 {
                     name: "paper-message",

@@ -20,7 +20,7 @@
                     <button
                         v-if="isElectron"
                         type="button"
-                        class="ml-auto inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-1.5 text-sm font-semibold text-white hover:bg-white/10 transition"
+                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-sm"
                         @click="relaunch"
                     >
                         <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
@@ -44,7 +44,7 @@
                         <div class="flex flex-wrap gap-2 pt-2">
                             <RouterLink
                                 :to="{ name: 'interfaces.add' }"
-                                class="primary-chip px-4 py-2 text-sm min-h-[44px] sm:min-h-0 items-center justify-center inline-flex"
+                                class="primary-chip px-4 py-2 text-sm min-h-[44px] sm:min-h-0 items-center justify-center hidden sm:inline-flex"
                             >
                                 <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
                                 {{ $t("interfaces.add_interface") }}
@@ -59,7 +59,12 @@
                             </button>
                             <button
                                 type="button"
-                                class="secondary-chip text-sm"
+                                class="secondary-chip text-sm transition-shadow"
+                                :class="
+                                    showRestartReminder
+                                        ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-500/40 animate-pulse motion-reduce:animate-none'
+                                        : ''
+                                "
                                 :disabled="reloadingRns"
                                 @click="reloadRns"
                             >
@@ -259,7 +264,9 @@
                                     v-for="iface in sortedDiscoveredInterfaces"
                                     :key="iface.discovery_hash || iface.name"
                                     class="interface-card group transition-all duration-300 min-w-0"
-                                    :class="{ 'opacity-70 grayscale-[0.3]': !isDiscoveredConnected(iface) }"
+                                    :class="{
+                                        'opacity-85 md:opacity-70 md:grayscale-[0.3]': !isDiscoveredConnected(iface),
+                                    }"
                                 >
                                     <div
                                         class="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-start relative min-w-0"
@@ -267,7 +274,7 @@
                                         <!-- Disconnected Overlay -->
                                         <div
                                             v-if="!isDiscoveredConnected(iface)"
-                                            class="absolute inset-0 z-10 flex items-center justify-center bg-white/20 dark:bg-zinc-900/20 backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
+                                            class="absolute inset-0 z-10 flex items-center justify-center bg-white/25 dark:bg-zinc-900/25 md:backdrop-blur-[0.5px] rounded-3xl pointer-events-none"
                                         >
                                             <div
                                                 class="bg-red-500/90 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
@@ -374,6 +381,50 @@
                                                 </div>
 
                                                 <div
+                                                    v-if="discoveredNetworkName(iface)"
+                                                    class="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-500 cursor-pointer transition-colors min-w-0"
+                                                    :title="$t('interfaces.discovered_copy_network_name')"
+                                                    data-testid="discovered-network-name"
+                                                    @click="
+                                                        copyToClipboard(
+                                                            discoveredNetworkName(iface),
+                                                            $t('interfaces.discovered_network_name')
+                                                        )
+                                                    "
+                                                >
+                                                    <MaterialDesignIcon
+                                                        icon-name="shield-key"
+                                                        class="w-3.5 h-3.5 shrink-0"
+                                                    />
+                                                    <span class="truncate font-mono"
+                                                        >{{ $t("interfaces.discovered_network_name") }}:
+                                                        {{ discoveredNetworkName(iface) }}</span
+                                                    >
+                                                </div>
+
+                                                <div
+                                                    v-if="discoveredPassphrase(iface)"
+                                                    class="flex items-center gap-2 text-amber-700 dark:text-amber-300 hover:text-amber-500 cursor-pointer transition-colors min-w-0"
+                                                    :title="$t('interfaces.discovered_copy_passphrase')"
+                                                    data-testid="discovered-passphrase"
+                                                    @click="
+                                                        copyToClipboard(
+                                                            discoveredPassphrase(iface),
+                                                            $t('interfaces.discovered_passphrase')
+                                                        )
+                                                    "
+                                                >
+                                                    <MaterialDesignIcon
+                                                        icon-name="shield-lock"
+                                                        class="w-3.5 h-3.5 shrink-0"
+                                                    />
+                                                    <span class="truncate font-mono"
+                                                        >{{ $t("interfaces.discovered_passphrase") }}:
+                                                        {{ maskPassphrase(discoveredPassphrase(iface)) }}</span
+                                                    >
+                                                </div>
+
+                                                <div
                                                     v-if="iface.latitude != null && iface.longitude != null"
                                                     class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-blue-500 cursor-pointer transition-colors min-w-0"
                                                     @click="
@@ -424,6 +475,23 @@
                                                     v-if="openDiscoveryActionKey === discoveryKey(iface)"
                                                     class="absolute right-0 mt-1 z-20 min-w-44 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-lg p-1"
                                                 >
+                                                    <button
+                                                        type="button"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                                                        data-testid="use-discovered-interface"
+                                                        @click="useDiscoveredInterface(iface)"
+                                                    >
+                                                        {{ $t("interfaces.discovered_use_this") }}
+                                                    </button>
+                                                    <button
+                                                        v-if="iface.config_entry"
+                                                        type="button"
+                                                        class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-200"
+                                                        data-testid="copy-discovered-config"
+                                                        @click="copyDiscoveredConfigEntry(iface)"
+                                                    >
+                                                        {{ $t("interfaces.discovered_copy_config") }}
+                                                    </button>
                                                     <button
                                                         type="button"
                                                         class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300"
@@ -600,6 +668,14 @@
             </div>
         </div>
     </div>
+
+    <RouterLink
+        :to="{ name: 'interfaces.add' }"
+        class="sm:hidden fixed bottom-5 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+        :title="$t('interfaces.add_interface')"
+    >
+        <MaterialDesignIcon icon-name="plus" class="w-7 h-7" />
+    </RouterLink>
 
     <ImportInterfacesModal ref="import-interfaces-modal" @dismissed="onImportInterfacesModalDismissed" />
 </template>
@@ -1265,6 +1341,62 @@ export default {
             if (!text) return;
             navigator.clipboard.writeText(text);
             ToastUtils.success(`${label} copied to clipboard`);
+        },
+        discoveredNetworkName(iface) {
+            if (!iface) return null;
+            return iface.network_name || iface.ifac_netname || null;
+        },
+        discoveredPassphrase(iface) {
+            if (!iface) return null;
+            return iface.passphrase || iface.ifac_netkey || null;
+        },
+        maskPassphrase(value) {
+            if (!value) return "";
+            const str = String(value);
+            if (str.length <= 4) return "*".repeat(str.length);
+            return `${str.slice(0, 2)}${"*".repeat(Math.max(4, str.length - 4))}${str.slice(-2)}`;
+        },
+        copyDiscoveredConfigEntry(iface) {
+            this.openDiscoveryActionKey = null;
+            const entry = iface?.config_entry;
+            if (!entry) {
+                ToastUtils.error(this.$t("interfaces.discovered_no_config"));
+                return;
+            }
+            this.copyToClipboard(entry, this.$t("interfaces.discovered_config_block"));
+        },
+        useDiscoveredInterface(iface) {
+            this.openDiscoveryActionKey = null;
+            if (!iface) return;
+            const prefill = {
+                name: iface.name || "",
+                type: iface.type || null,
+                target_host: iface.reachable_on || iface.target_host || iface.remote || null,
+                target_port: iface.port || iface.target_port || null,
+                transport_identity: iface.transport_id || iface.transport_identity || null,
+                network_name: this.discoveredNetworkName(iface),
+                passphrase: this.discoveredPassphrase(iface),
+                discoverable: iface.discoverable || null,
+                config_entry: iface.config_entry || null,
+                frequency: iface.frequency ?? null,
+                bandwidth: iface.bandwidth ?? null,
+                spreadingfactor: iface.sf ?? iface.spreadingfactor ?? null,
+                codingrate: iface.cr ?? iface.codingrate ?? null,
+                latitude: iface.latitude ?? null,
+                longitude: iface.longitude ?? null,
+                height: iface.height ?? null,
+            };
+            try {
+                if (typeof sessionStorage !== "undefined") {
+                    sessionStorage.setItem("meshchatx.discoveredInterfacePrefill", JSON.stringify(prefill));
+                }
+            } catch (e) {
+                console.log(e);
+            }
+            this.$router.push({
+                name: "interfaces.add",
+                query: { from_discovered: "1" },
+            });
         },
         setStatusFilter(value) {
             this.statusFilter = value;

@@ -16,33 +16,34 @@
                             {{ $t("identities.manage") }}
                         </p>
                     </div>
-                    <div
-                        class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end"
-                    >
+                    <div class="flex flex-row gap-2 sm:flex-wrap sm:items-stretch sm:justify-end">
                         <button
                             type="button"
-                            class="inline-flex w-full items-center justify-center gap-x-2 min-h-[44px] rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-all active:scale-[0.98] sm:w-auto sm:min-h-0 sm:rounded-2xl"
+                            class="inline-flex items-center justify-center gap-x-2 rounded-xl bg-blue-600 p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-all active:scale-[0.98] sm:rounded-2xl"
+                            :title="$t('identities.new_identity')"
                             @click="showCreateModal = true"
                         >
                             <MaterialDesignIcon icon-name="plus" class="w-5 h-5 shrink-0" />
-                            <span class="truncate">{{ $t("identities.new_identity") }}</span>
+                            <span class="hidden sm:inline truncate">{{ $t("identities.new_identity") }}</span>
                         </button>
                         <button
                             type="button"
-                            class="inline-flex w-full items-center justify-center gap-x-2 min-h-[44px] rounded-xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] sm:w-auto sm:min-h-0 sm:rounded-2xl"
+                            class="inline-flex items-center justify-center gap-x-2 rounded-xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] sm:rounded-2xl"
+                            :title="$t('identities.import')"
                             @click="showImportModal = true"
                         >
                             <MaterialDesignIcon icon-name="upload" class="w-5 h-5 shrink-0" />
-                            <span class="truncate">{{ $t("identities.import") }}</span>
+                            <span class="hidden sm:inline truncate">{{ $t("identities.import") }}</span>
                         </button>
                         <button
                             type="button"
-                            class="inline-flex w-full items-center justify-center gap-x-2 min-h-[44px] rounded-xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] disabled:opacity-50 sm:w-auto sm:min-h-0 sm:rounded-2xl"
+                            class="inline-flex items-center justify-center gap-x-2 rounded-xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] disabled:opacity-50 sm:rounded-2xl"
                             :disabled="identities.length === 0"
+                            :title="$t('identities.export_all')"
                             @click="downloadAllIdentities"
                         >
                             <MaterialDesignIcon icon-name="file-export" class="w-5 h-5 shrink-0" />
-                            <span class="truncate">{{ $t("identities.export_all") }}</span>
+                            <span class="hidden sm:inline truncate">{{ $t("identities.export_all") }}</span>
                         </button>
                     </div>
                 </div>
@@ -90,97 +91,101 @@
                                 identity.is_current,
                         }"
                     >
-                        <div class="p-5 flex items-center gap-4">
-                            <!-- icon -->
-                            <div class="relative">
-                                <div
-                                    class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner overflow-hidden transition-all duration-500"
-                                    :class="
-                                        identity.is_current && !identity.icon_background_colour
-                                            ? 'bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50'
-                                            : !identity.icon_background_colour
-                                              ? 'bg-gradient-to-br from-gray-100 to-slate-100 dark:from-zinc-800 dark:to-zinc-800/50'
-                                              : ''
-                                    "
-                                    :style="
-                                        identity.icon_background_colour
-                                            ? { 'background-color': identity.icon_background_colour }
-                                            : {}
-                                    "
-                                >
-                                    <MaterialDesignIcon
-                                        v-if="identity.icon_name"
-                                        :icon-name="identity.icon_name"
-                                        class="w-8 h-8"
-                                        :style="{ color: identity.icon_foreground_colour || 'inherit' }"
-                                    />
-                                    <MaterialDesignIcon
-                                        v-else
-                                        :icon-name="identity.is_current ? 'account-check' : 'account'"
-                                        class="w-8 h-8"
+                        <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                            <div class="flex items-start gap-3 sm:gap-4 sm:flex-1 sm:min-w-0">
+                                <!-- icon -->
+                                <div class="relative shrink-0">
+                                    <div
+                                        class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-inner overflow-hidden transition-all duration-500"
                                         :class="
-                                            identity.is_current
-                                                ? 'text-blue-600 dark:text-blue-400'
-                                                : 'text-gray-500 dark:text-gray-400'
+                                            identity.is_current && !identity.icon_background_colour
+                                                ? 'bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50'
+                                                : !identity.icon_background_colour
+                                                  ? 'bg-gradient-to-br from-gray-100 to-slate-100 dark:from-zinc-800 dark:to-zinc-800/50'
+                                                  : ''
                                         "
-                                    />
-                                </div>
-                                <div
-                                    v-if="identity.is_current"
-                                    class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm"
-                                ></div>
-                            </div>
-
-                            <!-- info -->
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <h3 class="font-bold text-gray-900 dark:text-white truncate">
-                                        {{ identity.display_name }}
-                                    </h3>
-                                    <span
-                                        v-if="identity.is_current"
-                                        class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider"
+                                        :style="
+                                            identity.icon_background_colour
+                                                ? { 'background-color': identity.icon_background_colour }
+                                                : {}
+                                        "
                                     >
-                                        {{ $t("identities.current") }}
-                                    </span>
+                                        <MaterialDesignIcon
+                                            v-if="identity.icon_name"
+                                            :icon-name="identity.icon_name"
+                                            class="w-7 h-7 sm:w-8 sm:h-8"
+                                            :style="{ color: identity.icon_foreground_colour || 'inherit' }"
+                                        />
+                                        <MaterialDesignIcon
+                                            v-else
+                                            :icon-name="identity.is_current ? 'account-check' : 'account'"
+                                            class="w-7 h-7 sm:w-8 sm:h-8"
+                                            :class="
+                                                identity.is_current
+                                                    ? 'text-blue-600 dark:text-blue-400'
+                                                    : 'text-gray-500 dark:text-gray-400'
+                                            "
+                                        />
+                                    </div>
+                                    <div
+                                        v-if="identity.is_current"
+                                        class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm"
+                                    ></div>
                                 </div>
-                                <div
-                                    class="text-xs font-mono text-gray-500 dark:text-zinc-500 mt-0.5 tracking-tight break-all sm:truncate"
-                                    :title="'RNS: ' + identity.hash"
-                                >
-                                    ID: {{ identity.hash }}
-                                </div>
-                                <div
-                                    v-if="identity.lxmf_address"
-                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mt-0.5 tracking-tighter break-all sm:truncate"
-                                    :title="'LXMF: ' + identity.lxmf_address"
-                                >
-                                    LXMF: {{ identity.lxmf_address }}
-                                </div>
-                                <div
-                                    v-if="identity.lxst_address"
-                                    class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mt-0.5 tracking-tighter break-all sm:truncate"
-                                    :title="'LXST: ' + identity.lxst_address"
-                                >
-                                    LXST: {{ identity.lxst_address }}
-                                </div>
-                                <div
-                                    v-if="identity.message_count != null"
-                                    class="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5"
-                                >
-                                    {{ $t("identities.message_count", { count: identity.message_count }) }}
+
+                                <!-- info -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="font-bold text-gray-900 dark:text-white break-words sm:truncate">
+                                            {{ identity.display_name }}
+                                        </h3>
+                                        <span
+                                            v-if="identity.is_current"
+                                            class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider"
+                                        >
+                                            {{ $t("identities.current") }}
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="text-xs font-mono text-gray-500 dark:text-zinc-500 mt-0.5 tracking-tight break-all sm:truncate"
+                                        :title="'RNS: ' + identity.hash"
+                                    >
+                                        ID: {{ identity.hash }}
+                                    </div>
+                                    <div
+                                        v-if="identity.lxmf_address"
+                                        class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mt-0.5 tracking-tighter break-all sm:truncate"
+                                        :title="'LXMF: ' + identity.lxmf_address"
+                                    >
+                                        LXMF: {{ identity.lxmf_address }}
+                                    </div>
+                                    <div
+                                        v-if="identity.lxst_address"
+                                        class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mt-0.5 tracking-tighter break-all sm:truncate"
+                                        :title="'LXST: ' + identity.lxst_address"
+                                    >
+                                        LXST: {{ identity.lxst_address }}
+                                    </div>
+                                    <div
+                                        v-if="identity.message_count != null"
+                                        class="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5"
+                                    >
+                                        {{ $t("identities.message_count", { count: identity.message_count }) }}
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- actions: key export on hover for current identity only -->
-                            <div class="flex items-center gap-2">
+                            <!-- actions -->
+                            <div
+                                class="flex items-center justify-end gap-2 border-t border-gray-100 dark:border-zinc-800 pt-3 sm:border-0 sm:pt-0 sm:shrink-0"
+                            >
                                 <template v-if="identity.is_current">
                                     <div
-                                        class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        class="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                                     >
                                         <button
                                             type="button"
-                                            class="p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-all active:scale-90"
+                                            class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-all active:scale-90"
                                             :title="$t('identities.export_key_file')"
                                             @click="downloadIdentityFile"
                                         >
@@ -188,7 +193,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-all active:scale-90"
+                                            class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-all active:scale-90"
                                             :title="$t('identities.copy_base32')"
                                             @click="copyIdentityBase32"
                                         >
@@ -199,7 +204,7 @@
                                 <button
                                     v-if="!identity.is_current"
                                     type="button"
-                                    class="p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition-all active:scale-90"
+                                    class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition-all active:scale-90"
                                     :title="$t('identities.switch')"
                                     @click="switchIdentity(identity)"
                                 >
@@ -208,7 +213,7 @@
                                 <button
                                     v-if="!identity.is_current"
                                     type="button"
-                                    class="p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-red-500 hover:text-white dark:hover:bg-red-600 transition-all active:scale-90"
+                                    class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-red-500 hover:text-white dark:hover:bg-red-600 transition-all active:scale-90"
                                     :title="$t('identities.delete')"
                                     @click="deleteIdentity(identity)"
                                 >

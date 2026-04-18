@@ -10,7 +10,7 @@
             ]"
         >
             <div
-                class="hidden sm:flex h-12 shrink-0 items-center border-b border-gray-200 dark:border-zinc-800 px-2"
+                class="hidden sm:flex h-10 shrink-0 items-center border-b border-gray-200 dark:border-zinc-800 px-2"
                 :class="collapsedHeaderJustifyClass"
             >
                 <button
@@ -76,9 +76,9 @@
             </div>
         </div>
         <template v-else>
-            <!-- tabs (h-12 matches App.vue main sidebar collapse row) -->
+            <!-- tabs (h-10 matches sidebar collapse row height) -->
             <div :class="['bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800', edgeBorderClass]">
-                <div class="-mb-px flex h-12 min-w-0 items-stretch" :class="{ 'flex-row-reverse': isRightSidebar }">
+                <div class="-mb-px flex h-10 min-w-0 items-stretch" :class="{ 'flex-row-reverse': isRightSidebar }">
                     <div class="flex min-w-0 flex-1">
                         <div
                             class="flex w-full cursor-pointer items-center justify-center border-b-2 px-1 text-center text-sm font-semibold uppercase tracking-wide transition"
@@ -274,15 +274,36 @@
                             @input="onConversationSearchInput"
                         />
                     </div>
-                    <div class="flex items-center justify-end gap-1 px-1 text-gray-500 dark:text-gray-400">
+                    <div class="flex flex-wrap items-center gap-1">
                         <button
                             type="button"
-                            class="p-1 rounded-lg hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                            class="p-1 mr-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                             title="Selection Mode"
                             :class="{ 'text-blue-500 dark:text-blue-400': selectionMode }"
                             @click="toggleSelectionMode"
                         >
                             <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" class="size-5" />
+                        </button>
+                        <button
+                            type="button"
+                            :class="filterChipClasses(filterUnreadOnly)"
+                            @click="toggleFilter('unread')"
+                        >
+                            {{ $t("messages.unread") }}
+                        </button>
+                        <button
+                            type="button"
+                            :class="filterChipClasses(filterFailedOnly)"
+                            @click="toggleFilter('failed')"
+                        >
+                            {{ $t("messages.failed") }}
+                        </button>
+                        <button
+                            type="button"
+                            :class="filterChipClasses(filterHasAttachmentsOnly)"
+                            @click="toggleFilter('attachments')"
+                        >
+                            {{ $t("messages.attachments") }}
                         </button>
                     </div>
                     <div
@@ -348,29 +369,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex flex-wrap gap-1">
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterUnreadOnly)"
-                            @click="toggleFilter('unread')"
-                        >
-                            {{ $t("messages.unread") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterFailedOnly)"
-                            @click="toggleFilter('failed')"
-                        >
-                            {{ $t("messages.failed") }}
-                        </button>
-                        <button
-                            type="button"
-                            :class="filterChipClasses(filterHasAttachmentsOnly)"
-                            @click="toggleFilter('attachments')"
-                        >
-                            {{ $t("messages.attachments") }}
-                        </button>
-                    </div>
                 </div>
 
                 <!-- conversations -->
@@ -414,11 +412,11 @@
                                     : '',
                             ]"
                             draggable="true"
-                            @click="
-                                selectionMode
-                                    ? toggleSelectConversation(conversation.destination_hash)
-                                    : onConversationClick(conversation)
-                            "
+                            @click="onConversationRowActivate(conversation)"
+                            @touchstart.passive="onConversationTouchStart($event, conversation)"
+                            @touchmove="onConversationTouchMove"
+                            @touchend="onConversationTouchEnd"
+                            @touchcancel="onConversationTouchEnd"
                             @contextmenu="onRightClick($event, conversation.destination_hash)"
                             @dragstart="onDragStart($event, conversation.destination_hash)"
                         >
@@ -935,6 +933,8 @@ export default {
             draggedHash: null,
             dragOverFolderId: null,
             smUp: typeof window !== "undefined" ? window.innerWidth >= 640 : true,
+            conversationLongPressTimer: null,
+            conversationLongPressFired: false,
         };
     },
     computed: {
@@ -1068,6 +1068,7 @@ export default {
             this._smUpMql.removeEventListener("change", this._smUpResize);
         }
         if (this._timeAgoInterval) clearInterval(this._timeAgoInterval);
+        this.clearConversationLongPressTimer();
     },
     methods: {
         onContactUpdated(data) {
@@ -1267,6 +1268,46 @@ export default {
                 console.error(e);
             }
             this.contextMenu.show = false;
+        },
+        onConversationRowActivate(conversation) {
+            if (this.conversationLongPressFired) {
+                this.conversationLongPressFired = false;
+                return;
+            }
+            if (this.selectionMode) {
+                this.toggleSelectConversation(conversation.destination_hash);
+                return;
+            }
+            this.onConversationClick(conversation);
+        },
+        onConversationTouchStart(_event, conversation) {
+            if (this.smUp || this.selectionMode || this.isBlocked(conversation.destination_hash)) {
+                return;
+            }
+            this.clearConversationLongPressTimer();
+            this.conversationLongPressTimer = setTimeout(() => {
+                this.conversationLongPressTimer = null;
+                this.conversationLongPressFired = true;
+                if (!this.selectionMode) {
+                    this.selectionMode = true;
+                    this.selectedHashes.add(conversation.destination_hash);
+                }
+                if (typeof navigator !== "undefined" && navigator.vibrate) {
+                    navigator.vibrate(25);
+                }
+            }, 500);
+        },
+        onConversationTouchMove() {
+            this.clearConversationLongPressTimer();
+        },
+        onConversationTouchEnd() {
+            this.clearConversationLongPressTimer();
+        },
+        clearConversationLongPressTimer() {
+            if (this.conversationLongPressTimer != null) {
+                clearTimeout(this.conversationLongPressTimer);
+                this.conversationLongPressTimer = null;
+            }
         },
         onConversationClick(conversation) {
             if (this.isBlocked(conversation.destination_hash)) {

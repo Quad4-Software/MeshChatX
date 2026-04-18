@@ -330,6 +330,70 @@
                                     @change="importStickers"
                                 />
                             </div>
+                            <div class="border-t border-gray-200 dark:border-zinc-700 pt-4">
+                                <h3 class="text-sm font-semibold mb-2 text-gray-800 dark:text-zinc-100">
+                                    {{ $t("sticker_packs.section_title") }}
+                                </h3>
+                                <p class="text-xs text-gray-500 dark:text-zinc-400 mb-3">
+                                    {{ $t("sticker_packs.section_description") }}
+                                </p>
+                                <StickerPacksManager />
+                            </div>
+                        </div>
+                    </section>
+
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.gifs)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
+                            <div>
+                                <div class="settings-section__eyebrow">Messages</div>
+                                <h2>{{ $t("gifs.settings_title") }}</h2>
+                                <p>{{ $t("gifs.settings_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="settings-section__body space-y-4">
+                            <div class="text-sm text-gray-600 dark:text-gray-400">
+                                {{ $t("gifs.count", { count: gifCount }) }}
+                            </div>
+                            <label
+                                class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
+                            >
+                                <input v-model="gifImportReplaceDuplicates" type="checkbox" class="rounded" />
+                                {{ $t("gifs.replace_duplicates") }}
+                            </label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
+                                    @click="exportGifs"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="export"
+                                        class="size-6 text-amber-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">{{ $t("gifs.export") }}</div>
+                                </button>
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
+                                    @click="triggerGifImport"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="import"
+                                        class="size-6 text-teal-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">{{ $t("gifs.import") }}</div>
+                                </button>
+                                <input
+                                    ref="gifImportFile"
+                                    type="file"
+                                    accept=".json,application/json"
+                                    class="hidden"
+                                    @change="importGifs"
+                                />
+                            </div>
                         </div>
                     </section>
 
@@ -423,6 +487,22 @@
                                         </div>
                                         <div class="text-xs opacity-80">
                                             {{ $t("maintenance.clear_stickers_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-pink-200 dark:border-pink-900/30 text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-900/10 hover:bg-pink-100 dark:hover:bg-pink-900/20"
+                                    @click="clearGifs"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="file-gif-box" class="size-4" />
+                                            {{ $t("maintenance.clear_gifs") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_gifs_desc") }}
                                         </div>
                                     </div>
                                 </button>
@@ -2022,16 +2102,44 @@
                             </div>
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Delivery transfer limit (MB)
+                                    {{ $t("app.incoming_message_size") }}
                                 </div>
-                                <input
-                                    v-model.number="lxmfDeliveryTransferLimitInputMb"
-                                    type="number"
-                                    min="0.001"
-                                    step="0.01"
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.incoming_message_size_description") }}
+                                </div>
+                                <select
+                                    v-model="lxmfIncomingDeliveryPreset"
                                     class="input-field"
-                                    @input="onLxmfDeliveryTransferLimitChange"
-                                />
+                                    @change="onLxmfIncomingDeliveryPresetChange"
+                                >
+                                    <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
+                                    <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
+                                    <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
+                                    <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
+                                    <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
+                                    <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
+                                </select>
+                                <div
+                                    v-if="lxmfIncomingDeliveryPreset === 'custom'"
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <input
+                                        v-model.number="lxmfIncomingDeliveryCustomAmount"
+                                        type="number"
+                                        min="0.001"
+                                        step="any"
+                                        class="input-field max-w-[10rem]"
+                                        @input="onLxmfIncomingDeliveryCustomChange"
+                                    />
+                                    <select
+                                        v-model="lxmfIncomingDeliveryCustomUnit"
+                                        class="input-field max-w-[8rem]"
+                                        @change="onLxmfIncomingDeliveryCustomChange"
+                                    >
+                                        <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
+                                        <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
+                                    </select>
+                                </div>
                                 <div class="text-xs text-gray-600 dark:text-gray-400">
                                     {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
                                 </div>
@@ -2185,6 +2293,7 @@ import SettingsSectionBlock from "./SettingsSectionBlock.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
+import StickerPacksManager from "../stickers/StickerPacksManager.vue";
 import GlobalState from "../../js/GlobalState";
 import {
     numOrNull,
@@ -2199,6 +2308,11 @@ import {
     persistVisualiserShowDisabled,
     persistVisualiserShowDiscovered,
 } from "../../js/settings/settingsVisualiserPrefs";
+import {
+    incomingDeliveryBytesFromCustom,
+    incomingDeliveryBytesFromPresetKey,
+    syncIncomingDeliveryFieldsFromBytes,
+} from "../../js/settings/incomingDeliveryLimit";
 
 export default {
     name: "SettingsPage",
@@ -2208,6 +2322,7 @@ export default {
         ShortcutRecorder,
         LxmfUserIcon,
         SettingsSectionBlock,
+        StickerPacksManager,
     },
     data() {
         return {
@@ -2277,7 +2392,9 @@ export default {
                 nomad_default_page_path: "/page/index.mu",
             },
             saveTimeouts: {},
-            lxmfDeliveryTransferLimitInputMb: 10,
+            lxmfIncomingDeliveryPreset: "10mb",
+            lxmfIncomingDeliveryCustomAmount: 10,
+            lxmfIncomingDeliveryCustomUnit: "mb",
             lxmfPropagationTransferLimitInputMb: 0.256,
             lxmfPropagationSyncLimitInputMb: 10.24,
             lastRememberedInboundStampCost: 8,
@@ -2288,6 +2405,8 @@ export default {
             trustedTelemetryPeers: [],
             stickerCount: 0,
             stickerImportReplaceDuplicates: false,
+            gifCount: 0,
+            gifImportReplaceDuplicates: false,
             visualiserShowDisabledInterfaces: false,
             visualiserShowDiscoveredInterfaces: false,
             sectionKeywords: {
@@ -2320,6 +2439,18 @@ export default {
                     "stickers.export",
                     "stickers.import",
                     "stickers.replace_duplicates",
+                    "sticker_packs.section_title",
+                    "sticker_packs.create",
+                    "sticker_packs.install_from_file",
+                    "sticker_packs.open_editor",
+                ],
+                gifs: [
+                    "GIFs",
+                    "gifs.settings_title",
+                    "gifs.settings_description",
+                    "gifs.export",
+                    "gifs.import",
+                    "gifs.replace_duplicates",
                 ],
                 maintenance: [
                     "Maintenance",
@@ -2335,6 +2466,8 @@ export default {
                     "maintenance.clear_lxmf_icons_desc",
                     "maintenance.clear_stickers",
                     "maintenance.clear_stickers_desc",
+                    "maintenance.clear_gifs",
+                    "maintenance.clear_gifs_desc",
                     "maintenance.clear_archives",
                     "maintenance.clear_archives_desc",
                     "maintenance.clear_reticulum_docs",
@@ -2401,7 +2534,19 @@ export default {
                     "app.live_preview",
                     "app.realtime",
                 ],
-                language: ["i18n", "app.language", "app.select_language", "English", "Deutsch", "Русский"],
+                language: [
+                    "i18n",
+                    "app.language",
+                    "app.select_language",
+                    "English",
+                    "Deutsch",
+                    "Italiano",
+                    "Русский",
+                    "Nederlands",
+                    "Français",
+                    "Español",
+                    "中文",
+                ],
                 networkSecurity: [
                     "RNS Security",
                     "Network Security",
@@ -2458,6 +2603,8 @@ export default {
                 ],
                 propagation: [
                     "LXMF",
+                    "app.incoming_message_size",
+                    "app.incoming_message_size_description",
                     "app.propagation_nodes",
                     "app.propagation_nodes_description",
                     "app.browse_nodes",
@@ -2538,6 +2685,7 @@ export default {
         this.getConfig();
         this.getTrustedTelemetryPeers();
         this.loadStickerCount();
+        this.loadGifCount();
         this.loadVisualiserDisplayPrefsFromStorage();
     },
     methods: {
@@ -2672,7 +2820,10 @@ export default {
             }
         },
         syncLxmfTransferLimitInputs() {
-            this.lxmfDeliveryTransferLimitInputMb = this.bytesToMb(this.config.lxmf_delivery_transfer_limit_in_bytes);
+            const incoming = syncIncomingDeliveryFieldsFromBytes(this.config.lxmf_delivery_transfer_limit_in_bytes);
+            this.lxmfIncomingDeliveryPreset = incoming.preset;
+            this.lxmfIncomingDeliveryCustomAmount = incoming.customAmount;
+            this.lxmfIncomingDeliveryCustomUnit = incoming.customUnit;
             this.lxmfPropagationTransferLimitInputMb = this.bytesToMb(
                 this.config.lxmf_propagation_transfer_limit_in_bytes
             );
@@ -2955,13 +3106,37 @@ export default {
                 "auto_sync"
             );
         },
-        async onLxmfDeliveryTransferLimitChange() {
+        async onLxmfIncomingDeliveryPresetChange() {
+            if (this.lxmfIncomingDeliveryPreset === "custom") {
+                const incoming = syncIncomingDeliveryFieldsFromBytes(this.config.lxmf_delivery_transfer_limit_in_bytes);
+                this.lxmfIncomingDeliveryCustomAmount = incoming.customAmount;
+                this.lxmfIncomingDeliveryCustomUnit = incoming.customUnit;
+                return;
+            }
+            const bytes = incomingDeliveryBytesFromPresetKey(this.lxmfIncomingDeliveryPreset);
+            if (bytes == null) {
+                return;
+            }
+            await this.updateConfig(
+                {
+                    lxmf_delivery_transfer_limit_in_bytes: bytes,
+                },
+                "incoming_message_size"
+            );
+        },
+        async onLxmfIncomingDeliveryCustomChange() {
+            if (this.lxmfIncomingDeliveryPreset !== "custom") {
+                return;
+            }
             if (this.saveTimeouts.delivery_transfer_limit) {
                 clearTimeout(this.saveTimeouts.delivery_transfer_limit);
             }
             this.saveTimeouts.delivery_transfer_limit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_delivery_transfer_limit_in_bytes: this.mbToBytes(this.lxmfDeliveryTransferLimitInputMb),
+                    lxmf_delivery_transfer_limit_in_bytes: incomingDeliveryBytesFromCustom(
+                        this.lxmfIncomingDeliveryCustomAmount,
+                        this.lxmfIncomingDeliveryCustomUnit
+                    ),
                 });
             }, 1000);
         },
@@ -3389,6 +3564,64 @@ export default {
             reader.readAsText(file);
             event.target.value = "";
         },
+        async clearGifs() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await maintenanceClient.clearGifs(window.api);
+                ToastUtils.success(this.$t("maintenance.gifs_cleared"));
+                await this.loadGifCount();
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async loadGifCount() {
+            this.gifCount = await maintenanceClient.fetchGifCount(window.api);
+        },
+        async exportGifs() {
+            try {
+                const response = await window.api.get("/api/v1/gifs/export");
+                const dataStr = JSON.stringify(response.data, null, 2);
+                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+                const exportFileDefaultName = `meshchat_gifs_${new Date().toISOString().slice(0, 10)}.json`;
+                const linkElement = document.createElement("a");
+                linkElement.setAttribute("href", dataUri);
+                linkElement.setAttribute("download", exportFileDefaultName);
+                linkElement.click();
+                ToastUtils.success(this.$t("gifs.export_done"));
+            } catch {
+                ToastUtils.error(this.$t("gifs.import_failed"));
+            }
+        },
+        triggerGifImport() {
+            this.$refs.gifImportFile.click();
+        },
+        async importGifs(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const response = await window.api.post("/api/v1/gifs/import", {
+                        ...data,
+                        replace_duplicates: this.gifImportReplaceDuplicates,
+                    });
+                    const r = response.data;
+                    ToastUtils.success(
+                        this.$t("gifs.import_success", {
+                            imported: r.imported ?? 0,
+                            skipped_duplicates: r.skipped_duplicates ?? 0,
+                            skipped_invalid: r.skipped_invalid ?? 0,
+                        })
+                    );
+                    await this.loadGifCount();
+                } catch {
+                    ToastUtils.error(this.$t("gifs.import_failed"));
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = "";
+        },
         async clearArchives() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
@@ -3523,22 +3756,25 @@ export default {
     @apply w-full px-4 py-3 rounded-2xl border transition flex items-center justify-between;
 }
 .setting-toggle {
-    @apply flex items-start gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
+    @apply relative flex flex-row-reverse items-center gap-3 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3;
+}
+.setting-toggle > :deep(label) {
+    @apply shrink-0 self-center;
 }
 .setting-toggle :deep(.sr-only) {
     @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
 }
 .setting-toggle__label {
-    @apply flex-1 flex flex-col gap-0.5;
+    @apply flex-1 min-w-0 flex flex-col gap-0.5;
 }
 .setting-toggle__title {
-    @apply text-sm font-semibold text-gray-900 dark:text-white;
+    @apply text-sm font-semibold text-gray-900 dark:text-white break-words;
 }
 .setting-toggle__description {
-    @apply text-sm text-gray-600 dark:text-gray-300;
+    @apply text-sm text-gray-600 dark:text-gray-300 break-words;
 }
 .setting-toggle__hint {
-    @apply text-xs text-gray-500 dark:text-gray-400;
+    @apply text-xs text-gray-500 dark:text-gray-400 break-words;
 }
 .info-callout {
     @apply rounded-2xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-blue-900 dark:text-blue-100;

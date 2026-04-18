@@ -3,7 +3,7 @@
 <template>
     <div class="flex flex-1 min-w-0 h-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <div class="flex-1 overflow-y-auto p-4 md:p-6">
-            <div class="max-w-5xl mx-auto space-y-4">
+            <div class="max-w-5xl mx-auto space-y-0 border-b border-gray-200 dark:border-zinc-800 pb-6">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h1 class="text-2xl font-bold text-gray-900 dark:text-zinc-100">{{ $t("contacts.title") }}</h1>
@@ -11,50 +11,61 @@
                             {{ $t("contacts.description") }}
                         </p>
                     </div>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button type="button" class="secondary-chip" @click="openMyIdentityDialog">
                             <MaterialDesignIcon icon-name="qrcode" class="size-4" />
                             {{ $t("contacts.share_my_identity") }}
                         </button>
                         <button
                             type="button"
-                            class="secondary-chip"
+                            class="secondary-chip justify-center px-3 sm:px-4"
                             :disabled="totalContactsCount === 0"
+                            :title="$t('contacts.export_contacts')"
                             @click="exportContacts"
                         >
                             <MaterialDesignIcon icon-name="file-export" class="size-4" />
-                            {{ $t("contacts.export_contacts") }}
+                            <span class="hidden sm:inline">{{ $t("contacts.export_contacts") }}</span>
                         </button>
-                        <button type="button" class="secondary-chip" @click="openImportDialog">
+                        <button
+                            type="button"
+                            class="secondary-chip justify-center px-3 sm:px-4"
+                            :title="$t('contacts.import_contacts')"
+                            @click="openImportDialog"
+                        >
                             <MaterialDesignIcon icon-name="file-import" class="size-4" />
-                            {{ $t("contacts.import_contacts") }}
+                            <span class="hidden sm:inline">{{ $t("contacts.import_contacts") }}</span>
                         </button>
-                        <button type="button" class="primary-chip" @click="openAddDialog">
+                        <button type="button" class="primary-chip hidden sm:inline-flex" @click="openAddDialog">
                             <MaterialDesignIcon icon-name="plus" class="size-4" />
                             {{ $t("contacts.add_contact") }}
                         </button>
                     </div>
                 </div>
+            </div>
 
-                <div class="glass-card space-y-3">
-                    <div class="flex items-center gap-2">
-                        <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
+            <div class="max-w-5xl mx-auto space-y-0 pt-4">
+                <div class="border-b border-gray-200 dark:border-zinc-800 pb-3">
+                    <div class="relative group">
+                        <MaterialDesignIcon
+                            icon-name="magnify"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 size-5 shrink-0 text-gray-400 group-focus-within:text-blue-500 transition-colors pointer-events-none z-10"
+                        />
                         <input
                             v-model="contactsSearch"
                             type="text"
                             :placeholder="$t('contacts.search_placeholder')"
-                            class="input-field"
+                            class="input-field !pl-11"
                             @input="onContactsSearchInput"
                         />
                     </div>
                 </div>
 
-                <div class="glass-card">
+                <div class="min-w-0">
                     <template v-if="isLoading && contacts.length === 0">
                         <div
                             v-for="i in 8"
                             :key="'skeleton-' + i"
-                            class="rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/50 px-4 py-3 flex items-center gap-3"
+                            class="flex items-center gap-3 border-b border-gray-100 px-1 py-3 dark:border-zinc-800"
                         >
                             <div
                                 class="size-10 sm:size-12 rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0"
@@ -71,11 +82,11 @@
                     >
                         {{ $t("contacts.no_contacts") }}
                     </div>
-                    <div v-else class="space-y-2">
+                    <div v-else class="divide-y divide-gray-100 dark:divide-zinc-800">
                         <div
                             v-for="contact in contacts"
                             :key="contact.id"
-                            class="group rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/50 px-4 py-3 flex items-center gap-3 hover:border-blue-300 dark:hover:border-blue-700 transition-colors cursor-default"
+                            class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
                             @contextmenu.prevent="openContextMenu($event, contact)"
                         >
                             <div class="flex-shrink-0">
@@ -141,6 +152,15 @@
             </div>
         </div>
 
+        <button
+            type="button"
+            class="sm:hidden fixed bottom-5 right-4 z-[180] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+            :title="$t('contacts.add_contact')"
+            @click="openAddDialog"
+        >
+            <MaterialDesignIcon icon-name="plus" class="size-7" />
+        </button>
+
         <!-- Contact context menu -->
         <ContextMenuPanel :show="contextMenu.visible" :x="contextMenu.x" :y="contextMenu.y" panel-class="z-[210]">
             <ContextMenuItem @click="openConversation(contextMenu.contact)">
@@ -204,13 +224,25 @@
                         <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">
                             {{ $t("contacts.hash_or_uri") }}
                         </label>
-                        <input
-                            v-model="newContactInput"
-                            type="text"
-                            class="input-field font-mono"
-                            :placeholder="$t('contacts.hash_or_uri_placeholder')"
-                            @keydown.enter.prevent="submitAddContact"
-                        />
+                        <div class="relative">
+                            <input
+                                v-model="newContactInput"
+                                type="text"
+                                class="input-field font-mono"
+                                :class="cameraSupported ? '!pr-12' : ''"
+                                :placeholder="$t('contacts.hash_or_uri_placeholder')"
+                                @keydown.enter.prevent="submitAddContact"
+                            />
+                            <button
+                                v-if="cameraSupported"
+                                type="button"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 transition"
+                                :title="$t('contacts.scan_qr')"
+                                @click="openScannerDialog"
+                            >
+                                <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
+                            </button>
+                        </div>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <button type="button" class="secondary-chip" @click="pasteFromClipboard">
@@ -823,6 +855,11 @@ export default {
                     video: { facingMode: "environment" },
                     audio: false,
                 });
+                if (!stream.getVideoTracks().length) {
+                    this.scannerError = this.$t("contacts.camera_not_found");
+                    stream.getTracks().forEach((track) => track.stop());
+                    return;
+                }
                 this.scannerStream = stream;
                 const video = this.$refs.scannerVideo;
                 if (!video) return;
@@ -830,7 +867,7 @@ export default {
                 await video.play();
                 this.detectQrLoop();
             } catch (e) {
-                this.scannerError = e.message || this.$t("contacts.camera_failed");
+                this.scannerError = this.describeCameraError(e);
             }
         },
         detectQrLoop() {
@@ -870,6 +907,16 @@ export default {
         closeScannerDialog() {
             this.isScannerDialogOpen = false;
             this.stopScanner();
+        },
+        describeCameraError(error) {
+            const name = error?.name || "";
+            if (name === "NotAllowedError" || name === "SecurityError") {
+                return this.$t("contacts.camera_permission_denied");
+            }
+            if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+                return this.$t("contacts.camera_not_found");
+            }
+            return this.$t("contacts.camera_failed");
         },
     },
 };

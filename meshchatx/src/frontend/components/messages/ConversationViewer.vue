@@ -477,12 +477,12 @@
                                         <img
                                             v-if="newMessageImageUrls[0]"
                                             :src="newMessageImageUrls[0]"
-                                            class="max-h-52 w-full object-cover object-center"
+                                            class="max-h-52 w-full object-contain object-center bg-black/5 dark:bg-white/5"
                                         />
                                     </button>
                                     <button
                                         type="button"
-                                        class="absolute -top-1 -right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
+                                        class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-200 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/40 shadow-md"
                                         @click.stop="removeImageAttachment(0)"
                                     >
                                         <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -503,7 +503,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
                                             @click.stop="removeImageAttachment(index)"
                                         >
                                             <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -525,7 +525,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
                                             @click.stop="removeImageAttachment(index)"
                                         >
                                             <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -545,7 +545,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
                                             @click.stop="removeImageAttachment(2)"
                                         >
                                             <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -577,7 +577,7 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="absolute top-1 right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
                                             @click.stop="removeImageAttachment(slot - 1)"
                                         >
                                             <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
@@ -641,7 +641,7 @@
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-11 py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-[76px] py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="$t('messages.send_placeholder')"
@@ -649,20 +649,36 @@
                                     @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
                                     @paste="onMessagePaste"
                                 ></textarea>
-                                <button
-                                    type="button"
-                                    class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100"
-                                    :title="$t('stickers.picker_tooltip')"
-                                    @click.stop="toggleStickerPicker"
-                                >
-                                    <MaterialDesignIcon icon-name="emoticon-outline" class="w-5 h-5" />
-                                </button>
+                                <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                                    <AddAudioButton
+                                        :is-recording-audio-attachment="isRecordingAudioAttachment"
+                                        @start-recording="startRecordingAudioAttachment($event)"
+                                        @stop-recording="stopRecordingAudioAttachment"
+                                    >
+                                        <span class="text-[10px] whitespace-nowrap">
+                                            {{
+                                                $t("messages.recording", {
+                                                    duration: audioAttachmentRecordingDuration,
+                                                })
+                                            }}
+                                        </span>
+                                    </AddAudioButton>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
+                                        :title="$t('stickers.picker_tooltip')"
+                                        @click.stop="toggleStickerPicker"
+                                    >
+                                        <MaterialDesignIcon icon-name="emoticon-outline" class="w-5 h-5" />
+                                    </button>
+                                </div>
                                 <div
                                     v-if="isStickerPickerOpen"
                                     class="absolute bottom-full right-0 mb-2 z-50 w-[min(320px,85vw)] max-h-[min(420px,70vh)] flex flex-col rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden"
                                     :class="{
                                         'ring-2 ring-blue-500/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900':
-                                            stickerDropActive && emojiStickerTab === 'stickers',
+                                            (stickerDropActive && emojiStickerTab === 'stickers') ||
+                                            (gifDropActive && emojiStickerTab === 'gifs'),
                                     }"
                                     @click.stop
                                 >
@@ -698,6 +714,20 @@
                                         >
                                             {{ $t("stickers.tab_stickers") }}
                                         </button>
+                                        <button
+                                            type="button"
+                                            role="tab"
+                                            :aria-selected="emojiStickerTab === 'gifs'"
+                                            class="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
+                                            :class="
+                                                emojiStickerTab === 'gifs'
+                                                    ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200'
+                                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                            "
+                                            @click="onGifsTabSelected"
+                                        >
+                                            {{ $t("gifs.tab_gifs") }}
+                                        </button>
                                     </div>
                                     <div
                                         v-show="emojiStickerTab === 'emoji'"
@@ -722,43 +752,143 @@
                                         <input
                                             ref="sticker-upload-input"
                                             type="file"
-                                            accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,.png,.jpg,.jpeg,.gif,.webp,.bmp"
+                                            accept="image/png,image/jpeg,image/gif,image/webp,image/bmp,video/webm,application/x-tgsticker,.png,.jpg,.jpeg,.gif,.webp,.bmp,.webm,.tgs"
                                             multiple
                                             class="hidden"
                                             @change="onStickerUploadInputChange"
                                         />
-                                        <div v-if="userStickers.length > 0" class="grid grid-cols-4 gap-2 mb-2">
+                                        <div
+                                            v-if="userStickerPacks.length > 0"
+                                            class="flex shrink-0 gap-1 overflow-x-auto pb-2 mb-2 border-b border-gray-200 dark:border-zinc-800"
+                                        >
                                             <button
-                                                v-for="s in userStickers"
+                                                type="button"
+                                                class="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium border"
+                                                :class="
+                                                    activeStickerPackId === null
+                                                        ? 'bg-blue-100 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+                                                        : 'border-transparent text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                                "
+                                                @click="activeStickerPackId = null"
+                                            >
+                                                {{ $t("sticker_packs.all") }}
+                                            </button>
+                                            <button
+                                                v-for="pack in userStickerPacks"
+                                                :key="pack.id"
+                                                type="button"
+                                                class="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium border max-w-[120px] truncate"
+                                                :class="
+                                                    activeStickerPackId === pack.id
+                                                        ? 'bg-blue-100 dark:bg-blue-950/60 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+                                                        : 'border-transparent text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                                                "
+                                                :title="pack.title"
+                                                @click="activeStickerPackId = pack.id"
+                                            >
+                                                {{ pack.title }}
+                                            </button>
+                                        </div>
+                                        <div v-if="visibleStickers.length > 0" class="grid grid-cols-4 gap-2 mb-2">
+                                            <button
+                                                v-for="s in visibleStickers"
                                                 :key="s.id"
                                                 type="button"
-                                                class="aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500/50"
-                                                :title="s.name || 'Sticker'"
+                                                class="aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500/50 bg-gray-50 dark:bg-zinc-800"
+                                                :title="s.name || s.emoji || 'Sticker'"
                                                 @click="addStickerFromLibrary(s)"
                                             >
-                                                <img
-                                                    :src="stickerImageUrl(s.id)"
-                                                    class="w-full h-full object-contain bg-gray-50 dark:bg-zinc-800"
-                                                    alt=""
-                                                />
+                                                <StickerView :src="stickerImageUrl(s.id)" :image-type="s.image_type" />
                                             </button>
                                         </div>
                                         <div
-                                            v-if="userStickers.length === 0"
+                                            v-if="visibleStickers.length === 0"
                                             class="text-center text-sm text-gray-500 dark:text-zinc-400 mb-2 px-1"
                                         >
                                             {{ $t("stickers.empty_library") }}
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                class="rounded-xl border border-gray-300 dark:border-zinc-600 px-2 py-2 text-xs flex items-center justify-center gap-1 hover:border-emerald-500"
+                                                @click="openStickerEditor()"
+                                            >
+                                                <MaterialDesignIcon icon-name="image-edit-outline" class="size-4" />
+                                                {{ $t("sticker_editor.create_button") }}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-2 py-2 text-xs hover:border-blue-400"
+                                                :class="
+                                                    stickerDropActive
+                                                        ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
+                                                        : ''
+                                                "
+                                                :disabled="isStickerUploading"
+                                                @click="triggerStickerUploadInput"
+                                            >
+                                                <div class="flex items-center justify-center gap-1">
+                                                    <MaterialDesignIcon
+                                                        icon-name="upload"
+                                                        class="size-4 text-blue-500"
+                                                    />
+                                                    {{ $t("stickers.upload_short") }}
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div
+                                        v-show="emojiStickerTab === 'gifs'"
+                                        class="min-h-0 flex-1 overflow-y-auto p-2"
+                                        role="tabpanel"
+                                        @dragover.prevent.stop="onGifPanelDragOver"
+                                        @dragleave.prevent.stop="onGifPanelDragLeave"
+                                        @drop.prevent.stop="onGifPanelDrop"
+                                    >
+                                        <input
+                                            ref="gif-upload-input"
+                                            type="file"
+                                            accept="image/gif,image/webp,.gif,.webp"
+                                            multiple
+                                            class="hidden"
+                                            @change="onGifUploadInputChange"
+                                        />
+                                        <div v-if="userGifs.length > 0" class="grid grid-cols-2 gap-2 mb-2">
+                                            <button
+                                                v-for="g in userGifs"
+                                                :key="g.id"
+                                                type="button"
+                                                class="relative aspect-video rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500/50 group"
+                                                :title="g.name || 'GIF'"
+                                                @click="addGifFromLibrary(g)"
+                                            >
+                                                <InViewAnimatedImg
+                                                    :src="gifImageUrl(g.id)"
+                                                    fit-parent
+                                                    img-class="w-full h-full object-contain bg-gray-50 dark:bg-zinc-800"
+                                                />
+                                                <span
+                                                    v-if="g.usage_count > 0"
+                                                    class="pointer-events-none absolute bottom-1 right-1 rounded-full bg-black/60 text-white text-[10px] px-1.5 py-0.5"
+                                                >
+                                                    {{ g.usage_count }}
+                                                </span>
+                                            </button>
+                                        </div>
+                                        <div
+                                            v-if="userGifs.length === 0"
+                                            class="text-center text-sm text-gray-500 dark:text-zinc-400 mb-2 px-1"
+                                        >
+                                            {{ $t("gifs.empty_library") }}
                                         </div>
                                         <button
                                             type="button"
                                             class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-3 py-3 text-left transition-colors hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30"
                                             :class="
-                                                stickerDropActive
-                                                    ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
-                                                    : ''
+                                                gifDropActive ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40' : ''
                                             "
-                                            :disabled="isStickerUploading"
-                                            @click="triggerStickerUploadInput"
+                                            :disabled="isGifUploading"
+                                            @click="triggerGifUploadInput"
                                         >
                                             <div class="flex items-start gap-2">
                                                 <MaterialDesignIcon
@@ -768,13 +898,13 @@
                                                 <div class="min-w-0">
                                                     <div class="text-xs font-medium text-gray-800 dark:text-zinc-100">
                                                         {{
-                                                            userStickers.length > 0
-                                                                ? $t("stickers.add_more_hint")
-                                                                : $t("stickers.drop_or_click_hint")
+                                                            userGifs.length > 0
+                                                                ? $t("gifs.add_more_hint")
+                                                                : $t("gifs.drop_or_click_hint")
                                                         }}
                                                     </div>
                                                     <div
-                                                        v-if="isStickerUploading"
+                                                        v-if="isGifUploading"
                                                         class="text-[11px] text-blue-600 dark:text-blue-400 mt-1"
                                                     >
                                                         {{ $t("common.loading") }}
@@ -839,15 +969,6 @@
                                 <span class="hidden sm:inline">Paste</span>
                             </button>
                             <AddImageButton @add-image="onImageSelected" />
-                            <AddAudioButton
-                                :is-recording-audio-attachment="isRecordingAudioAttachment"
-                                @start-recording="startRecordingAudioAttachment($event)"
-                                @stop-recording="stopRecordingAudioAttachment"
-                            >
-                                <span>{{
-                                    $t("messages.recording", { duration: audioAttachmentRecordingDuration })
-                                }}</span>
-                            </AddAudioButton>
                             <button
                                 type="button"
                                 class="attachment-action-button"
@@ -976,6 +1097,13 @@
                 >
                     <MaterialDesignIcon icon-name="bookmark-plus-outline" class="size-4 text-teal-500" />
                     {{ $t("stickers.save_to_library") }}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    v-if="canSaveMessageImageAsGif(messageContextMenu.chatItem)"
+                    @click="saveMessageImageToGifs(messageContextMenu.chatItem)"
+                >
+                    <MaterialDesignIcon icon-name="file-gif-box" class="size-4 text-pink-500" />
+                    {{ $t("gifs.save_to_library") }}
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="
@@ -1287,6 +1415,13 @@
         @close="isPaperMessageModalOpen = false"
     />
 
+    <StickerEditor
+        :visible="isStickerEditorOpen"
+        :default-pack-id="activeStickerPackId"
+        @close="closeStickerEditor"
+        @saved="onStickerEditorSaved"
+    />
+
     <PaperMessageModal
         v-if="isPaperMessageResultModalOpen"
         :initial-uri="generatedPaperMessageUri"
@@ -1531,6 +1666,9 @@ import { COLUMBA_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../.
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
 import "emoji-picker-element";
+import StickerView from "../stickers/StickerView.vue";
+import StickerEditor from "../stickers/StickerEditor.vue";
+import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 
 export default {
     name: "ConversationViewer",
@@ -1548,6 +1686,9 @@ export default {
         LxmfUserIcon,
         ConversationMessageEntry,
         ConversationMessageListVirtual,
+        StickerView,
+        StickerEditor,
+        InViewAnimatedImg,
     },
     props: {
         config: {
@@ -1655,12 +1796,18 @@ export default {
             reactionPickerPos: null,
             reactionDragState: null,
             userStickers: [],
+            userStickerPacks: [],
+            activeStickerPackId: null,
+            isStickerEditorOpen: false,
             isStickerPickerOpen: false,
             emojiStickerTab: "emoji",
             emojiPickerDataUrl: emojiPickerEnDataUrl,
             stickerDropActive: false,
             composerImageDropActive: false,
             isStickerUploading: false,
+            userGifs: [],
+            gifDropActive: false,
+            isGifUploading: false,
             now: Date.now(),
             updateTimer: null,
             sendStatusUiMs: Date.now(),
@@ -1675,6 +1822,12 @@ export default {
         };
     },
     computed: {
+        visibleStickers() {
+            if (this.activeStickerPackId === null) {
+                return this.userStickers;
+            }
+            return this.userStickers.filter((s) => s.pack_id === this.activeStickerPackId);
+        },
         compactPeerActions() {
             return this.windowWidth < 640 || this.peerHeaderCompact;
         },
@@ -4486,11 +4639,6 @@ export default {
             this.$refs["file-input"].value = null;
         },
         async removeImageAttachment(index) {
-            // ask user to confirm removing image attachment
-            if (!(await DialogUtils.confirm(this.$t("messages.remove_image_confirm")))) {
-                return;
-            }
-
             // remove image
             this.newMessageImages.splice(index, 1);
             this.newMessageImageUrls.splice(index, 1);
@@ -4512,6 +4660,7 @@ export default {
         onStickerPickerClickOutside() {
             this.isStickerPickerOpen = false;
             this.stickerDropActive = false;
+            this.gifDropActive = false;
         },
         toggleStickerPicker() {
             if (!this.isStickerPickerOpen) {
@@ -4553,9 +4702,25 @@ export default {
             } catch {
                 this.userStickers = [];
             }
+            try {
+                const r = await window.api.get("/api/v1/sticker-packs");
+                this.userStickerPacks = r.data?.packs ?? [];
+            } catch {
+                this.userStickerPacks = [];
+            }
         },
         stickerImageUrl(stickerId) {
             return `/api/v1/stickers/${stickerId}/image`;
+        },
+        openStickerEditor() {
+            this.isStickerEditorOpen = true;
+            this.isStickerPickerOpen = false;
+        },
+        closeStickerEditor() {
+            this.isStickerEditorOpen = false;
+        },
+        async onStickerEditorSaved() {
+            await this.loadUserStickers();
         },
         onStickerPanelDragOver(event) {
             event.preventDefault();
@@ -4600,16 +4765,31 @@ export default {
                 "image/webp": "webp",
                 "image/bmp": "bmp",
                 "image/x-ms-bmp": "bmp",
+                "video/webm": "webm",
+                "application/x-tgsticker": "tgs",
             };
             if (map[m]) {
                 return map[m];
             }
             const ext = (name.split(".").pop() || "").toLowerCase();
-            const extMap = { png: "png", jpg: "jpeg", jpeg: "jpeg", gif: "gif", webp: "webp", bmp: "bmp" };
+            const extMap = {
+                png: "png",
+                jpg: "jpeg",
+                jpeg: "jpeg",
+                gif: "gif",
+                webp: "webp",
+                bmp: "bmp",
+                webm: "webm",
+                tgs: "tgs",
+            };
             return extMap[ext] || null;
         },
+        stickerTypeMaxBytes(type) {
+            if (type === "tgs") return 64 * 1024;
+            if (type === "webm") return 256 * 1024;
+            return 512 * 1024;
+        },
         async uploadStickerImageFiles(fileList) {
-            const maxBytes = 512 * 1024;
             const files = Array.from(fileList || []).filter((f) => f && f.size > 0);
             if (files.length === 0) {
                 return;
@@ -4620,25 +4800,32 @@ export default {
             let failed = 0;
             try {
                 for (const file of files) {
-                    if (file.size > maxBytes) {
-                        ToastUtils.error(this.$t("stickers.file_too_large"));
-                        failed++;
-                        continue;
-                    }
                     const imageType = this.mimeToStickerType(file.type, file.name);
                     if (!imageType) {
                         ToastUtils.error(this.$t("stickers.unsupported_type"));
                         failed++;
                         continue;
                     }
+                    if (file.size > this.stickerTypeMaxBytes(imageType)) {
+                        ToastUtils.error(this.$t("stickers.file_too_large"));
+                        failed++;
+                        continue;
+                    }
                     try {
                         const buf = await file.arrayBuffer();
                         const imageBytes = Utils.arrayBufferToBase64(buf);
-                        await window.api.post("/api/v1/stickers", {
+                        const payload = {
                             image_bytes: imageBytes,
                             image_type: imageType,
                             name: null,
-                        });
+                        };
+                        if (imageType === "tgs" || imageType === "webm") {
+                            payload.strict = true;
+                        }
+                        if (this.activeStickerPackId !== null) {
+                            payload.pack_id = this.activeStickerPackId;
+                        }
+                        await window.api.post("/api/v1/stickers", payload);
                         added++;
                     } catch (e) {
                         const err = e?.response?.data?.error;
@@ -4718,6 +4905,203 @@ export default {
                     ToastUtils.info(this.$t("stickers.duplicate"));
                 } else {
                     ToastUtils.error(this.$t("stickers.save_failed"));
+                }
+            }
+        },
+        onGifsTabSelected() {
+            this.emojiStickerTab = "gifs";
+            this.loadUserGifs();
+        },
+        async loadUserGifs() {
+            try {
+                const r = await window.api.get("/api/v1/gifs");
+                this.userGifs = r.data?.gifs ?? [];
+            } catch {
+                this.userGifs = [];
+            }
+        },
+        gifImageUrl(gifId) {
+            return `/api/v1/gifs/${gifId}/image`;
+        },
+        onGifPanelDragOver(event) {
+            event.preventDefault();
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = "copy";
+            }
+            this.gifDropActive = true;
+        },
+        onGifPanelDragLeave(event) {
+            const el = event.currentTarget;
+            if (el && event.relatedTarget && el.contains(event.relatedTarget)) {
+                return;
+            }
+            this.gifDropActive = false;
+        },
+        onGifPanelDrop(event) {
+            event.preventDefault();
+            this.gifDropActive = false;
+            const files = event.dataTransfer?.files;
+            if (files?.length) {
+                this.uploadGifFiles(files);
+            }
+        },
+        triggerGifUploadInput() {
+            const input = this.$refs["gif-upload-input"];
+            if (input) input.click();
+        },
+        onGifUploadInputChange(event) {
+            const files = event.target.files;
+            if (files?.length) {
+                this.uploadGifFiles(files);
+            }
+            event.target.value = "";
+        },
+        mimeToGifType(mime, name = "") {
+            const m = (mime || "").toLowerCase().split(";")[0].trim();
+            const map = {
+                "image/gif": "gif",
+                "image/webp": "webp",
+            };
+            if (map[m]) {
+                return map[m];
+            }
+            const ext = (name.split(".").pop() || "").toLowerCase();
+            const extMap = { gif: "gif", webp: "webp" };
+            return extMap[ext] || null;
+        },
+        async uploadGifFiles(fileList) {
+            const maxBytes = 5 * 1024 * 1024;
+            const files = Array.from(fileList || []).filter((f) => f && f.size > 0);
+            if (files.length === 0) {
+                return;
+            }
+            this.isGifUploading = true;
+            let added = 0;
+            let dup = 0;
+            let failed = 0;
+            try {
+                for (const file of files) {
+                    if (file.size > maxBytes) {
+                        ToastUtils.error(this.$t("gifs.file_too_large"));
+                        failed++;
+                        continue;
+                    }
+                    const imageType = this.mimeToGifType(file.type, file.name);
+                    if (!imageType) {
+                        ToastUtils.error(this.$t("gifs.unsupported_type"));
+                        failed++;
+                        continue;
+                    }
+                    try {
+                        const buf = await file.arrayBuffer();
+                        const imageBytes = Utils.arrayBufferToBase64(buf);
+                        await window.api.post("/api/v1/gifs", {
+                            image_bytes: imageBytes,
+                            image_type: imageType,
+                            name: null,
+                        });
+                        added++;
+                    } catch (e) {
+                        const err = e?.response?.data?.error;
+                        if (err === "duplicate_gif") {
+                            dup++;
+                        } else {
+                            failed++;
+                            console.error(e);
+                        }
+                    }
+                }
+                await this.loadUserGifs();
+                if (added > 0) {
+                    ToastUtils.success(this.$t("gifs.uploaded_count", { count: added }));
+                }
+                if (dup > 0 && added === 0 && failed === 0) {
+                    ToastUtils.info(this.$t("gifs.duplicate"));
+                } else if (dup > 0 && added > 0) {
+                    ToastUtils.info(this.$t("gifs.duplicate"));
+                }
+                if (failed > 0 && added === 0 && dup === 0) {
+                    ToastUtils.error(this.$t("gifs.save_failed"));
+                }
+            } finally {
+                this.isGifUploading = false;
+            }
+        },
+        async addGifFromLibrary(gif) {
+            try {
+                const res = await window.api.get(`/api/v1/gifs/${gif.id}/image`, {
+                    responseType: "blob",
+                });
+                const blob = res.data;
+                const ext = gif.image_type;
+                const mime = blob.type || `image/${gif.image_type}`;
+                const file = new File([blob], `gif-${gif.id}.${ext}`, { type: mime });
+                this.onImageSelected(file);
+                this.isStickerPickerOpen = false;
+                window.api.post(`/api/v1/gifs/${gif.id}/use`).catch(() => {});
+                const idx = this.userGifs.findIndex((g) => g.id === gif.id);
+                if (idx >= 0) {
+                    const updated = { ...this.userGifs[idx], usage_count: (this.userGifs[idx].usage_count || 0) + 1 };
+                    this.userGifs.splice(idx, 1);
+                    let inserted = false;
+                    for (let i = 0; i < this.userGifs.length; i++) {
+                        if ((this.userGifs[i].usage_count || 0) <= updated.usage_count) {
+                            this.userGifs.splice(i, 0, updated);
+                            inserted = true;
+                            break;
+                        }
+                    }
+                    if (!inserted) this.userGifs.push(updated);
+                }
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("gifs.save_failed"));
+            }
+        },
+        canSaveMessageImageAsGif(chatItem) {
+            const img = chatItem?.lxmf_message?.fields?.image;
+            if (!img) return false;
+            const t = String(img.image_type || "")
+                .toLowerCase()
+                .replace(/^image\//, "");
+            return t === "gif" || t === "webp";
+        },
+        async saveMessageImageToGifs(chatItem) {
+            this.messageContextMenu.show = false;
+            const msg = chatItem.lxmf_message;
+            const img = msg.fields?.image;
+            if (!img) {
+                return;
+            }
+            let b64 = img.image_bytes;
+            if (!b64) {
+                try {
+                    const res = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+                        responseType: "arraybuffer",
+                    });
+                    b64 = Utils.arrayBufferToBase64(res.data);
+                } catch (e) {
+                    console.error(e);
+                    ToastUtils.error(this.$t("gifs.save_failed"));
+                    return;
+                }
+            }
+            const imageType = String(img.image_type || "gif").replace(/^image\//, "");
+            try {
+                await window.api.post("/api/v1/gifs", {
+                    image_bytes: b64,
+                    image_type: imageType,
+                    source_message_hash: msg.hash,
+                    name: null,
+                });
+                ToastUtils.success(this.$t("gifs.saved"));
+                await this.loadUserGifs();
+            } catch (e) {
+                const err = e?.response?.data?.error;
+                if (err === "duplicate_gif") {
+                    ToastUtils.info(this.$t("gifs.duplicate"));
+                } else {
+                    ToastUtils.error(this.$t("gifs.save_failed"));
                 }
             }
         },
@@ -4865,11 +5249,6 @@ export default {
             }
         },
         async removeAudioAttachment() {
-            // ask user to confirm removing audio attachment
-            if (!(await DialogUtils.confirm(this.$t("messages.remove_audio_confirm")))) {
-                return;
-            }
-
             // remove audio
             this.newMessageAudio = null;
         },

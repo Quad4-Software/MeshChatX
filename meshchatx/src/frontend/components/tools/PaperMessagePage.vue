@@ -119,13 +119,13 @@
                             </div>
                             <div class="px-4 py-4 space-y-3 text-gray-900 dark:text-gray-100">
                                 <p class="text-xs text-gray-600 dark:text-gray-400">
-                                    Paste an LXMF URI to decode and add it to your conversations.
+                                    Paste an LXMF, LXMA, or LXM URI to decode and ingest.
                                 </p>
                                 <div class="flex flex-col sm:flex-row gap-2">
                                     <input
                                         v-model="ingestUri"
                                         type="text"
-                                        placeholder="lxmf://..."
+                                        placeholder="lxmf://... or lxma://..."
                                         class="input-field flex-1 min-w-0 font-mono text-sm"
                                         @keydown.enter="ingestPaperMessage"
                                     />
@@ -137,6 +137,15 @@
                                         <MaterialDesignIcon icon-name="content-paste" class="size-5" />
                                         <span class="sm:hidden text-sm font-medium">Paste</span>
                                     </button>
+                                    <button
+                                        v-if="cameraSupported"
+                                        type="button"
+                                        class="inline-flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
+                                        @click="openIngestScannerModal"
+                                    >
+                                        <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
+                                        <span class="sm:hidden text-sm font-medium">{{ $t("messages.scan_qr") }}</span>
+                                    </button>
                                 </div>
                                 <button
                                     type="button"
@@ -146,6 +155,9 @@
                                 >
                                     Read LXM
                                 </button>
+                                <p v-if="!cameraSupported" class="text-xs text-gray-500 dark:text-zinc-400">
+                                    {{ $t("messages.camera_not_supported") }}
+                                </p>
                             </div>
                         </section>
                     </div>
@@ -243,6 +255,37 @@
                 </div>
             </div>
         </div>
+
+        <div
+            v-if="isIngestScannerModalOpen"
+            class="fixed inset-0 z-[210] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            @click.self="closeIngestScannerModal"
+        >
+            <div class="w-full max-w-xl rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100">{{ $t("messages.scan_qr") }}</h3>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                        @click="closeIngestScannerModal"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+                <div class="p-5 space-y-3">
+                    <video
+                        ref="ingestScannerVideo"
+                        class="w-full rounded-xl bg-black max-h-[60vh]"
+                        autoplay
+                        playsinline
+                        muted
+                    ></video>
+                    <div class="text-sm text-gray-500 dark:text-zinc-400">
+                        {{ ingestScannerError || $t("messages.scanner_hint") }}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -264,11 +307,22 @@ export default {
             generatedUri: null,
             ingestUri: "",
             isSending: false,
+            isIngestScannerModalOpen: false,
+            ingestScannerError: null,
+            ingestScannerStream: null,
+            ingestScannerAnimationFrame: null,
         };
     },
     computed: {
         canGenerate() {
             return this.destinationHash.length === 32 && this.content.length > 0;
+        },
+        cameraSupported() {
+            return (
+                typeof window !== "undefined" &&
+                typeof window.BarcodeDetector !== "undefined" &&
+                navigator?.mediaDevices?.getUserMedia
+            );
         },
     },
     mounted() {
@@ -276,6 +330,7 @@ export default {
     },
     beforeUnmount() {
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        this.stopIngestScanner();
     },
     methods: {
         async onWebsocketMessage(message) {
@@ -352,6 +407,89 @@ export default {
             } catch {
                 ToastUtils.error(this.$t("messages.failed_read_clipboard"));
             }
+        },
+        async openIngestScannerModal() {
+            this.ingestScannerError = null;
+            this.isIngestScannerModalOpen = true;
+            await this.$nextTick();
+            await this.startIngestScanner();
+        },
+        closeIngestScannerModal() {
+            this.isIngestScannerModalOpen = false;
+            this.stopIngestScanner();
+        },
+        async startIngestScanner() {
+            if (!this.cameraSupported) {
+                this.ingestScannerError = this.$t("messages.camera_not_supported");
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" },
+                    audio: false,
+                });
+                this.ingestScannerStream = stream;
+                const video = this.$refs.ingestScannerVideo;
+                if (!video) {
+                    this.ingestScannerError = this.$t("messages.camera_failed");
+                    this.stopIngestScanner();
+                    return;
+                }
+                video.srcObject = stream;
+                await video.play();
+                this.detectIngestQrLoop();
+            } catch (e) {
+                this.ingestScannerError = this.describeCameraError(e);
+            }
+        },
+        detectIngestQrLoop() {
+            if (!this.isIngestScannerModalOpen) return;
+            const video = this.$refs.ingestScannerVideo;
+            if (!video || video.readyState < 2) {
+                this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                return;
+            }
+            const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+            detector
+                .detect(video)
+                .then((barcodes) => {
+                    const qr = barcodes?.[0]?.rawValue?.trim();
+                    if (!qr) {
+                        this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                        return;
+                    }
+                    if (!/^lxm(a|f)?:\/\//i.test(qr)) {
+                        ToastUtils.error(this.$t("messages.invalid_qr_uri"));
+                        this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                        return;
+                    }
+                    this.ingestUri = qr;
+                    this.closeIngestScannerModal();
+                    this.ingestPaperMessage();
+                })
+                .catch(() => {
+                    this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                });
+        },
+        stopIngestScanner() {
+            if (this.ingestScannerAnimationFrame) {
+                cancelAnimationFrame(this.ingestScannerAnimationFrame);
+                this.ingestScannerAnimationFrame = null;
+            }
+            if (this.ingestScannerStream) {
+                this.ingestScannerStream.getTracks().forEach((track) => track.stop());
+                this.ingestScannerStream = null;
+            }
+        },
+        describeCameraError(error) {
+            const name = error?.name || "";
+            if (name === "NotAllowedError" || name === "SecurityError") {
+                return this.$t("messages.camera_permission_denied");
+            }
+            if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+                return this.$t("messages.camera_not_found");
+            }
+            return this.$t("messages.camera_failed");
         },
         async copyUri() {
             try {

@@ -37,7 +37,14 @@
                         cv.openImage(cv.lxmfImageUrl(imgItem.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
                 >
+                    <InViewAnimatedImg
+                        v-if="isAnimatedRasterType(imgItem.lxmf_message.fields?.image?.image_type)"
+                        :src="cv.lxmfImageUrl(imgItem.lxmf_message.hash)"
+                        fit-parent
+                        img-class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                    />
                     <img
+                        v-else
                         :src="cv.lxmfImageUrl(imgItem.lxmf_message.hash)"
                         loading="lazy"
                         decoding="async"
@@ -60,7 +67,14 @@
                         cv.openImage(cv.lxmfImageUrl(imgItem.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
                 >
+                    <InViewAnimatedImg
+                        v-if="isAnimatedRasterType(imgItem.lxmf_message.fields?.image?.image_type)"
+                        :src="cv.lxmfImageUrl(imgItem.lxmf_message.hash)"
+                        fit-parent
+                        img-class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                    />
                     <img
+                        v-else
                         :src="cv.lxmfImageUrl(imgItem.lxmf_message.hash)"
                         loading="lazy"
                         decoding="async"
@@ -79,7 +93,18 @@
                         )
                     "
                 >
+                    <InViewAnimatedImg
+                        v-if="
+                            isAnimatedRasterType(
+                                cv.imageGroupSortedChron(entry.items)[2].lxmf_message.fields?.image?.image_type
+                            )
+                        "
+                        :src="cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash)"
+                        fit-parent
+                        img-class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                    />
                     <img
+                        v-else
                         :src="cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash)"
                         loading="lazy"
                         decoding="async"
@@ -99,7 +124,14 @@
                         cv.openImage(cv.lxmfImageUrl(cell.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
                 >
+                    <InViewAnimatedImg
+                        v-if="isAnimatedRasterType(cell.lxmf_message.fields?.image?.image_type)"
+                        :src="cv.lxmfImageUrl(cell.lxmf_message.hash)"
+                        fit-parent
+                        img-class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
+                    />
                     <img
+                        v-else
                         :src="cv.lxmfImageUrl(cell.lxmf_message.hash)"
                         loading="lazy"
                         decoding="async"
@@ -313,14 +345,32 @@
             class="relative group w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
             :class="chatItem.is_outbound ? 'ml-auto' : 'mr-auto'"
         >
-            <img
-                :src="cv.pendingOutboundImageSrc(chatItem)"
-                loading="lazy"
-                decoding="async"
-                class="max-h-[min(320px,55vh)] w-full cursor-pointer object-cover object-center transition-transform hover:scale-[1.01]"
-                alt=""
-                @click.stop="cv.openImage(cv.pendingOutboundImageSrc(chatItem))"
-            />
+            <template
+                v-if="['tgs', 'webm'].includes((chatItem.lxmf_message.fields.image.image_type || '').toLowerCase())"
+            >
+                <StickerView
+                    :src="cv.pendingOutboundImageSrc(chatItem)"
+                    :image-type="(chatItem.lxmf_message.fields.image.image_type || '').toLowerCase()"
+                    class="max-h-[min(320px,55vh)] w-full bg-black/5 dark:bg-white/5"
+                />
+            </template>
+            <template v-else>
+                <InViewAnimatedImg
+                    v-if="isAnimatedRasterType(chatItem.lxmf_message.fields?.image?.image_type)"
+                    :src="cv.pendingOutboundImageSrc(chatItem)"
+                    img-class="max-h-[min(320px,55vh)] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-white/5 transition-transform hover:scale-[1.01]"
+                    @click.stop="cv.openImage(cv.pendingOutboundImageSrc(chatItem))"
+                />
+                <img
+                    v-else
+                    :src="cv.pendingOutboundImageSrc(chatItem)"
+                    loading="lazy"
+                    decoding="async"
+                    class="max-h-[min(320px,55vh)] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-white/5 transition-transform hover:scale-[1.01]"
+                    alt=""
+                    @click.stop="cv.openImage(cv.pendingOutboundImageSrc(chatItem))"
+                />
+            </template>
             <div
                 class="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-black/60 px-2.5 py-1 text-xs text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 sm:opacity-100"
             >
@@ -931,6 +981,9 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
+import StickerView from "../stickers/StickerView.vue";
+import InViewAnimatedImg from "./InViewAnimatedImg.vue";
+import { isAnimatedRasterType } from "../../js/inViewObserver.js";
 
 export default {
     name: "ConversationMessageEntry",
@@ -938,6 +991,8 @@ export default {
         MaterialDesignIcon,
         AudioWaveformPlayer,
         LxmfUserIcon,
+        StickerView,
+        InViewAnimatedImg,
     },
     props: {
         entry: {
@@ -948,6 +1003,9 @@ export default {
             type: Object,
             required: true,
         },
+    },
+    methods: {
+        isAnimatedRasterType,
     },
 };
 </script>

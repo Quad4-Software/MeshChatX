@@ -1,12 +1,14 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div
+        class="fixed bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-[100] flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
+    >
         <TransitionGroup name="toast">
             <div
                 v-for="toast in toasts"
                 :key="toast.id"
-                class="pointer-events-auto flex items-center p-4 min-w-[300px] max-w-md rounded-xl shadow-lg border backdrop-blur-md transition-all duration-300"
+                class="pointer-events-auto flex items-center p-4 w-full sm:min-w-[300px] sm:max-w-md rounded-xl shadow-lg border backdrop-blur-md transition-all duration-300"
                 :class="toastClass(toast.type)"
             >
                 <!-- icon -->
@@ -166,10 +168,18 @@ export default {
 }
 .toast-enter-from {
     opacity: 0;
-    transform: translateX(30px);
+    transform: translateY(30px);
 }
 .toast-leave-to {
     opacity: 0;
-    transform: translateX(30px);
+    transform: translateY(30px);
+}
+@media (min-width: 640px) {
+    .toast-enter-from {
+        transform: translateX(30px);
+    }
+    .toast-leave-to {
+        transform: translateX(30px);
+    }
 }
 </style>

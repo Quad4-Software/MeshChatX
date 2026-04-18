@@ -905,17 +905,7 @@
                                     <button
                                         type="button"
                                         class="primary-chip !py-1.5 !px-2 !text-[10px] shrink-0"
-                                        @click="
-                                            newInterfaceName = communityIface.name;
-                                            newInterfaceType = communityIface.type;
-                                            newInterfaceTargetHost = communityIface.target_host;
-                                            newInterfaceTargetPort = communityIface.target_port;
-                                            newInterfaceTransportIdentity = communityIface.transport_identity || null;
-                                            I2PSettings.newInterfacePeers =
-                                                communityIface.type === 'I2PInterface' && communityIface.i2p_peers
-                                                    ? [...communityIface.i2p_peers]
-                                                    : [];
-                                        "
+                                        @click="quickAddInterfaceFromConfig(communityIface)"
                                     >
                                         {{ $t("interfaces.community_use_preset") }}
                                     </button>
@@ -1012,7 +1002,7 @@
                                         :key="cfg.name"
                                         type="button"
                                         class="bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg px-2 py-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 transition"
-                                        @click="applyConfig(cfg)"
+                                        @click="quickAddInterfaceFromConfig(cfg)"
                                     >
                                         {{ $t("interfaces.quick_import_apply", { name: cfg.name }) }}
                                     </button>
@@ -1253,6 +1243,11 @@ export default {
             this.isEditingInterface = true;
             this.loadInterfaceToEdit(interfaceName);
         }
+
+        // check if we have a discovered interface prefill payload
+        if (this.$route.query.from_discovered) {
+            this.applyDiscoveredInterfacePrefill();
+        }
     },
     methods: {
         async getConfig() {
@@ -1451,9 +1446,9 @@ export default {
 
             this.detectedConfigs = configs;
 
-            // if only one config, auto-apply it
+            // if only one config, auto-import it directly
             if (configs.length === 1) {
-                this.applyConfig(configs[0]);
+                this.quickAddInterfaceFromConfig(configs[0]);
             }
         },
         applyConfig(config) {
@@ -1522,6 +1517,128 @@ export default {
             // clear input if applied
             this.rawConfigInput = "";
             this.detectedConfigs = [];
+        },
+        buildPayloadFromImportedConfig(config) {
+            const discoveryEnabled =
+                config.discoverable !== undefined && config.discoverable !== null && config.discoverable !== ""
+                    ? this.parseBool(config.discoverable)
+                    : false;
+            const i2pPeers =
+                config.type === "I2PInterface"
+                    ? Array.isArray(config.i2p_peers)
+                        ? config.i2p_peers.map((p) => String(p).trim()).filter(Boolean)
+                        : Array.isArray(config.peers)
+                          ? config.peers.map((p) => String(p).trim()).filter(Boolean)
+                          : []
+                    : undefined;
+            return {
+                allow_overwriting_interface: false,
+                name: config.name,
+                type: config.type,
+                target_host: config.target_host || config.remote || null,
+                target_port: this.numOrNull(config.target_port),
+                transport_identity: config.transport_identity || null,
+                peers: i2pPeers,
+                listen_ip: config.listen_ip || null,
+                listen_port: this.numOrNull(config.listen_port),
+                port: config.port || null,
+                frequency: this.numOrNull(config.frequency),
+                bandwidth: this.numOrNull(config.bandwidth),
+                txpower: this.numOrNull(config.txpower),
+                spreadingfactor: this.numOrNull(config.spreadingfactor),
+                codingrate: this.numOrNull(config.codingrate),
+                command: config.command || null,
+                respawn_delay: this.numOrNull(config.respawn_delay),
+                discoverable: discoveryEnabled ? "yes" : null,
+                discovery_name: discoveryEnabled ? config.discovery_name || config.name || null : null,
+                announce_interval: discoveryEnabled ? (this.numOrNull(config.announce_interval) ?? 360) : null,
+                reachable_on: discoveryEnabled ? config.reachable_on || config.target_host || null : null,
+                discovery_stamp_value: discoveryEnabled ? (this.numOrNull(config.discovery_stamp_value) ?? 14) : null,
+                discovery_encrypt: discoveryEnabled
+                    ? config.discovery_encrypt !== undefined
+                        ? this.parseBool(config.discovery_encrypt)
+                        : false
+                    : null,
+                publish_ifac: discoveryEnabled
+                    ? config.publish_ifac !== undefined
+                        ? this.parseBool(config.publish_ifac)
+                        : false
+                    : null,
+                latitude: discoveryEnabled ? this.numOrNull(config.latitude) : null,
+                longitude: discoveryEnabled ? this.numOrNull(config.longitude) : null,
+                height: discoveryEnabled ? this.numOrNull(config.height) : null,
+                discovery_frequency: discoveryEnabled ? this.numOrNull(config.discovery_frequency) : null,
+                discovery_bandwidth: discoveryEnabled ? this.numOrNull(config.discovery_bandwidth) : null,
+                discovery_modulation: discoveryEnabled ? this.numOrNull(config.discovery_modulation) : null,
+                mode: config.mode || "full",
+                bitrate: this.numOrNull(config.bitrate),
+                network_name: config.network_name || null,
+                passphrase: config.passphrase || null,
+            };
+        },
+        applyDiscoveredInterfacePrefill() {
+            let prefill = null;
+            try {
+                if (typeof sessionStorage !== "undefined") {
+                    const raw = sessionStorage.getItem("meshchatx.discoveredInterfacePrefill");
+                    if (raw) {
+                        prefill = JSON.parse(raw);
+                        sessionStorage.removeItem("meshchatx.discoveredInterfacePrefill");
+                    }
+                }
+            } catch (e) {
+                console.log(e);
+            }
+            if (!prefill) return;
+
+            if (prefill.config_entry) {
+                this.rawConfigInput = prefill.config_entry;
+                this.handleRawConfigInput();
+                return;
+            }
+
+            const config = {
+                name: prefill.name || "Discovered Interface",
+                type: prefill.type || "BackboneInterface",
+                target_host: prefill.target_host || null,
+                target_port: prefill.target_port != null ? String(prefill.target_port) : null,
+                transport_identity: prefill.transport_identity || null,
+                network_name: prefill.network_name || null,
+                passphrase: prefill.passphrase || null,
+                frequency: prefill.frequency ?? null,
+                bandwidth: prefill.bandwidth ?? null,
+                spreadingfactor: prefill.spreadingfactor ?? null,
+                codingrate: prefill.codingrate ?? null,
+                latitude: prefill.latitude ?? null,
+                longitude: prefill.longitude ?? null,
+                height: prefill.height ?? null,
+            };
+            this.applyConfig(config);
+            ToastUtils.success(this.$t("interfaces.discovered_prefill_applied"));
+        },
+        async quickAddInterfaceFromConfig(config) {
+            if (!config || !config.type || !config.name || this.isSaving) {
+                return;
+            }
+            this.isSaving = true;
+            try {
+                const response = await window.api.post(
+                    `/api/v1/reticulum/interfaces/add`,
+                    this.buildPayloadFromImportedConfig(config)
+                );
+                ToastUtils.success(response.data?.message || `Imported interface "${config.name}"`);
+                GlobalState.hasPendingInterfaceChanges = true;
+                GlobalState.modifiedInterfaceNames.add(config.name);
+                this.rawConfigInput = "";
+                this.detectedConfigs = [];
+                this.$router.push({ name: "interfaces" });
+            } catch (e) {
+                const message = e.response?.data?.message ?? `Failed to import "${config.name}"`;
+                ToastUtils.error(message);
+                console.log(e);
+            } finally {
+                this.isSaving = false;
+            }
         },
         async saveInterface() {
             if (this.isSaving) return;

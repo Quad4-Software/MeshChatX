@@ -191,12 +191,16 @@
                                 <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                                 <span>{{ $t("nomadnet.pop_out_browser") }}</span>
                             </DropDownMenuItem>
-                            <DropDownMenuItem @click="onCloseNodeViewer">
-                                <MaterialDesignIcon icon-name="close" class="size-5" />
-                                <span>{{ $t("common.cancel") }}</span>
-                            </DropDownMenuItem>
                         </template>
                     </DropDownMenu>
+
+                    <IconButton
+                        class="lg:hidden shrink-0 text-gray-700 dark:text-gray-300"
+                        :title="$t('common.cancel')"
+                        @click="onCloseNodeViewer"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="w-5 h-5" />
+                    </IconButton>
                 </div>
 
                 <!-- browser navigation -->
@@ -1917,6 +1921,27 @@ export default {
     letter-spacing: inherit;
     font-variant-ligatures: inherit;
     font-feature-settings: inherit;
+}
+
+/*
+ * Mobile-only: allow horizontal scrolling for micron pages so ASCII art and
+ * fixed-width content do not get word-wrapped and broken up. Markdown and HTML
+ * rendered content keep their natural wrap behaviour.
+ */
+@media (max-width: 640px) {
+    .nodeContainer {
+        overflow-x: auto;
+    }
+
+    .nodeContainer .Mu-mws {
+        flex-wrap: nowrap;
+    }
+
+    .nodeContainer pre,
+    .nodeContainer .mu-parse-fallback,
+    .nodeContainer .mu-line-parse-fallback {
+        white-space: pre;
+    }
 }
 
 pre.text-wrap > div {

@@ -39,26 +39,26 @@
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
                         </button>
                         <div
-                            class="my-auto mr-2 hidden w-14 shrink-0 cursor-pointer overflow-hidden rounded-xl sm:flex"
+                            class="my-auto mr-2 hidden w-10 shrink-0 cursor-pointer overflow-hidden rounded-xl sm:flex sm:w-14"
                             @click="onAppNameClick"
                         >
-                            <img class="h-14 w-14 object-contain p-1" :src="logoUrl" alt="" />
+                            <img class="h-10 w-10 object-contain p-1 sm:h-14 sm:w-14" :src="logoUrl" alt="" />
                         </div>
-                        <div class="my-auto">
+                        <div class="my-auto hidden sm:block">
                             <div
                                 class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight text-lg"
                                 @click="onAppNameClick"
                             >
                                 {{ $t("app.name") }}
                             </div>
-                            <div class="hidden sm:block text-sm text-gray-600 dark:text-zinc-300">
+                            <div class="text-sm text-gray-600 dark:text-zinc-300">
                                 {{ $t("app.tagline") }}
                             </div>
                         </div>
                         <div class="flex my-auto ml-auto mr-0 sm:mr-2 space-x-1 sm:space-x-2">
                             <button
                                 type="button"
-                                class="relative rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="relative hidden sm:inline-flex rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
                                 @click="toggleTheme"
                             >
@@ -67,8 +67,22 @@
                                     class="w-5 h-5 sm:w-6 sm:h-6"
                                 />
                             </button>
-                            <LanguageSelector @language-change="onLanguageChange" />
+                            <LanguageSelector class="hidden sm:block" @language-change="onLanguageChange" />
                             <NotificationBell />
+                            <button
+                                type="button"
+                                class="sm:hidden rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative"
+                                :title="$t('app.messages')"
+                                @click="$router.push({ name: 'messages' })"
+                            >
+                                <MaterialDesignIcon icon-name="message-text" class="w-5 h-5" />
+                                <span
+                                    v-if="unreadConversationsCount > 0"
+                                    class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none"
+                                >
+                                    {{ unreadConversationsCount > 99 ? "99+" : unreadConversationsCount }}
+                                </span>
+                            </button>
                             <button
                                 type="button"
                                 class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
@@ -131,9 +145,9 @@
                         <div
                             class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 pt-16 sm:pt-0"
                         >
-                            <!-- toggle button for desktop (h-12 aligns with Messages/Nomad collapse rows) -->
+                            <!-- toggle button for desktop (h-10 aligns with Messages/Nomad collapse rows) -->
                             <div
-                                class="hidden sm:flex h-12 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
+                                class="hidden sm:flex h-10 shrink-0 items-center justify-end border-b border-gray-200 dark:border-zinc-800 px-2"
                             >
                                 <button
                                     type="button"
@@ -145,6 +159,27 @@
                                         class="size-5"
                                     />
                                 </button>
+                            </div>
+
+                            <!-- mobile-only quick settings row (theme + language) -->
+                            <div
+                                class="sm:hidden flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-zinc-800"
+                            >
+                                <button
+                                    type="button"
+                                    class="flex items-center gap-2 flex-1 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                    :title="config?.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                                    @click="toggleTheme"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="config?.theme === 'dark' ? 'brightness-6' : 'brightness-4'"
+                                        class="w-5 h-5 shrink-0"
+                                    />
+                                    <span class="truncate">{{
+                                        config?.theme === "dark" ? $t("app.light_theme") : $t("app.dark_theme")
+                                    }}</span>
+                                </button>
+                                <LanguageSelector @language-change="onLanguageChange" />
                             </div>
 
                             <!-- navigation -->
@@ -750,6 +785,7 @@ export default {
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
         this.stopRingtone();
         this.toneGenerator.stop();
+        window.removeEventListener("meshchatx-intent-uri", this.onAndroidIntentUri);
     },
     mounted() {
         try {
@@ -767,6 +803,7 @@ export default {
                 this.handleProtocolLink(url);
             });
         }
+        window.addEventListener("meshchatx-intent-uri", this.onAndroidIntentUri);
     },
     methods: {
         startShellAuthWatch() {
@@ -1645,10 +1682,33 @@ export default {
             });
             this.$router.push("/messages");
         },
+        onAndroidIntentUri(event) {
+            const uri = event?.detail;
+            if (typeof uri !== "string" || uri.trim() === "") {
+                return;
+            }
+            this.handleProtocolLink(uri.trim());
+        },
         handleProtocolLink(url) {
             try {
+                const normalizedUrl = String(url || "").trim();
+                if (!normalizedUrl) {
+                    return;
+                }
+                if (/^lxm(a|f)?:\/\//i.test(normalizedUrl)) {
+                    WebSocketConnection.send(
+                        JSON.stringify({
+                            type: "lxm.ingest_uri",
+                            uri: normalizedUrl,
+                        })
+                    );
+                }
+
                 // lxma://<hash>:<pubkey> or lxmf://<hash> or rns://<hash>
-                const cleanUrl = url.replace("lxma://", "").replace("lxmf://", "").replace("rns://", "");
+                const cleanUrl = normalizedUrl
+                    .replace(/^lxma:\/\//i, "")
+                    .replace(/^lxmf:\/\//i, "")
+                    .replace(/^rns:\/\//i, "");
                 const hash = cleanUrl.split(":")[0].split("/")[0].replace("/", "");
                 if (hash && hash.length === 32) {
                     this.$router.push({

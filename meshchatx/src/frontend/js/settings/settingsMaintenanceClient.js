@@ -42,6 +42,13 @@ export async function clearStickers(api) {
 /**
  * @param {{ delete: (path: string) => Promise<unknown> }} api
  */
+export async function clearGifs(api) {
+    await api.delete("/api/v1/maintenance/gifs");
+}
+
+/**
+ * @param {{ delete: (path: string) => Promise<unknown> }} api
+ */
 export async function clearArchives(api) {
     await api.delete("/api/v1/maintenance/archives");
 }
@@ -68,6 +75,20 @@ export async function fetchStickerCount(api) {
     try {
         const response = await api.get("/api/v1/stickers");
         const list = response.data?.stickers;
+        return Array.isArray(list) ? list.length : 0;
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * @param {{ get: (path: string) => Promise<{ data?: { gifs?: unknown[] } }> }} api
+ * @returns {Promise<number>}
+ */
+export async function fetchGifCount(api) {
+    try {
+        const response = await api.get("/api/v1/gifs");
+        const list = response.data?.gifs;
         return Array.isArray(list) ? list.length : 0;
     } catch {
         return 0;

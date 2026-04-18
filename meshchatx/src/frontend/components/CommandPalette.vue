@@ -266,6 +266,14 @@ export default {
                     route: { name: "micron-editor" },
                 },
                 {
+                    id: "nav-reticulum-config-editor",
+                    title: "nav_reticulum_config_editor",
+                    description: "nav_reticulum_config_editor_desc",
+                    icon: "file-cog",
+                    type: "navigation",
+                    route: { name: "reticulum-config-editor" },
+                },
+                {
                     id: "nav-rnode-flasher",
                     title: "nav_rnode_flasher",
                     description: "nav_rnode_flasher_desc",

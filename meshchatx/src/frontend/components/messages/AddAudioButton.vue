@@ -17,11 +17,10 @@
         <button
             v-else
             type="button"
-            class="my-auto inline-flex items-center gap-x-1 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-100 shadow-sm hover:border-blue-400 dark:hover:border-blue-500 transition"
+            class="my-auto inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
             @click="showMenu"
         >
-            <MaterialDesignIcon icon-name="microphone-plus" class="w-4 h-4" />
-            <span class="hidden xl:inline-block whitespace-nowrap">Add Voice</span>
+            <MaterialDesignIcon icon-name="microphone-plus" class="w-5 h-5" />
         </button>
 
         <div class="relative block">

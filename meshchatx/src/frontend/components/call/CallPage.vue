@@ -5,7 +5,7 @@
         <div class="w-full h-full overflow-y-auto">
             <div class="mx-auto w-full max-w-4xl p-4 md:p-6 flex-1 flex flex-col min-h-full">
                 <!-- Tabs -->
-                <div class="flex flex-wrap justify-center border-b border-gray-200 dark:border-zinc-800 mb-6 shrink-0">
+                <div class="flex flex-wrap justify-center border-b border-gray-200 dark:border-zinc-800 shrink-0">
                     <button
                         :class="[
                             activeTab === 'phone'
@@ -86,7 +86,7 @@
                         class="flex-1 flex flex-col items-center justify-center py-12 px-4"
                     >
                         <div
-                            class="glass-card w-full max-w-md !p-8 flex flex-col items-center text-center relative overflow-hidden"
+                            class="w-full max-w-md border-b border-gray-200 dark:border-zinc-800 !p-8 flex flex-col items-center text-center relative overflow-hidden"
                         >
                             <!-- Status pulse background -->
                             <div
@@ -412,7 +412,7 @@
                     </div>
 
                     <div v-else class="space-y-6 my-6 max-w-3xl mx-auto w-full">
-                        <div class="glass-card">
+                        <div class="w-full border-b border-gray-200 dark:border-zinc-800 py-2">
                             <div class="flex items-center gap-3 mb-6">
                                 <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl">
                                     <MaterialDesignIcon
@@ -504,8 +504,10 @@
                                     </div>
                                 </div>
 
-                                <div class="pt-2 flex items-start justify-between gap-4">
-                                    <div class="flex flex-col gap-2 flex-1">
+                                <div
+                                    class="pt-2 flex flex-col items-stretch gap-4 lg:flex-row lg:items-start lg:justify-between"
+                                >
+                                    <div class="flex min-w-0 flex-1 flex-col gap-2">
                                         <Toggle
                                             id="dnd-toggle"
                                             :model-value="config?.do_not_disturb_enabled"
@@ -531,7 +533,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="flex flex-col gap-2 shrink-0">
+                                    <div class="flex w-full shrink-0 flex-col gap-2 lg:w-auto">
                                         <!-- <Toggle
                                             id="call-recording-toggle"
                                             :model-value="config?.call_recording_enabled"
@@ -547,7 +549,7 @@
                                             <select
                                                 v-if="config"
                                                 v-model="config.telephone_audio_profile_id"
-                                                class="input-field !py-1 !px-2 !text-xs !rounded-lg !border-gray-200 dark:!border-zinc-800 min-w-[120px]"
+                                                class="input-field min-w-0 !rounded-lg !border-gray-200 !py-1 !px-2 !text-xs dark:!border-zinc-800 lg:min-w-[120px]"
                                                 @change="
                                                     updateConfig({
                                                         telephone_audio_profile_id: config.telephone_audio_profile_id,
@@ -634,9 +636,9 @@
                         v-if="callHistory.length > 0 && !activeCall && !isCallEnded"
                         class="space-y-4 max-w-3xl mx-auto w-full"
                     >
-                        <div class="glass-card !p-0 overflow-hidden">
+                        <div class="w-full border-b border-gray-200 dark:border-zinc-800 !p-0 overflow-hidden">
                             <div
-                                class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex flex-col gap-4 bg-gray-50/50 dark:bg-zinc-800/20"
+                                class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex flex-col gap-4 bg-transparent"
                             >
                                 <div class="flex justify-between items-center">
                                     <div class="flex items-center gap-2">
@@ -853,9 +855,7 @@
                     </div>
 
                     <div v-else class="space-y-4">
-                        <div
-                            class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
-                        >
+                        <div class="border-b border-gray-200 dark:border-zinc-800 overflow-hidden">
                             <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
                                 <li
                                     v-for="announce in discoveryAnnounces"
@@ -963,10 +963,7 @@
                     </div>
 
                     <!-- Voicemail Settings Card -->
-                    <div
-                        v-if="config"
-                        class="mb-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
-                    >
+                    <div v-if="config" class="mb-4 border-b border-gray-200 dark:border-zinc-800 overflow-hidden">
                         <button
                             type="button"
                             class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
@@ -1262,9 +1259,7 @@
                     </div>
 
                     <div v-else class="space-y-4">
-                        <div
-                            class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
-                        >
+                        <div class="border-b border-gray-200 dark:border-zinc-800 overflow-hidden">
                             <div
                                 class="px-4 py-3 border-b border-gray-200 dark:border-zinc-800 flex justify-between items-center"
                             >
@@ -1419,9 +1414,7 @@
                     </div>
 
                     <div v-else class="space-y-4">
-                        <div
-                            class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
-                        >
+                        <div class="border-b border-gray-200 dark:border-zinc-800 overflow-hidden">
                             <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
                                 <li
                                     v-for="contact in contacts"
@@ -1525,9 +1518,7 @@
 
                 <!-- Ringtone Tab -->
                 <div v-if="activeTab === 'ringtone' && config" class="flex-1 space-y-6 max-w-3xl mx-auto w-full">
-                    <div
-                        class="bg-white dark:bg-zinc-900 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-zinc-800"
-                    >
+                    <div class="w-full border-b border-gray-200 dark:border-zinc-800 py-6">
                         <template v-if="isRingtoneEditorOpen">
                             <RingtoneEditor
                                 :ringtone="editingRingtoneForAudio"
@@ -1860,9 +1851,7 @@
                     </div>
 
                     <div class="flex-1 overflow-y-auto min-h-0">
-                        <div
-                            class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
-                        >
+                        <div class="border-b border-gray-200 dark:border-zinc-800 overflow-hidden">
                             <div v-if="recordings.length === 0" class="py-12 text-center">
                                 <MaterialDesignIcon
                                     icon-name="microphone-off"

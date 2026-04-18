@@ -152,16 +152,44 @@
                     </div>
                     <div v-else class="text-xs text-gray-500 dark:text-zinc-500">Node stats appear when running.</div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <label class="text-xs text-gray-600 dark:text-zinc-400">
-                            Delivery transfer limit (MB)
-                            <input
-                                v-model.number="deliveryLimitInputMb"
-                                type="number"
-                                min="0.001"
-                                step="0.01"
+                        <label class="text-xs text-gray-600 dark:text-zinc-400 block">
+                            {{ $t("app.incoming_message_size") }}
+                            <span class="block mt-0.5 font-normal text-[11px] text-gray-500 dark:text-zinc-500">{{
+                                $t("app.incoming_message_size_description")
+                            }}</span>
+                            <select
+                                v-model="lxmfIncomingDeliveryPreset"
                                 class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                @input="onDeliveryTransferLimitChange"
-                            />
+                                @change="onLxmfIncomingDeliveryPresetChange"
+                            >
+                                <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
+                                <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
+                                <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
+                                <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
+                                <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
+                                <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
+                            </select>
+                            <div
+                                v-if="lxmfIncomingDeliveryPreset === 'custom'"
+                                class="mt-1 flex flex-wrap items-center gap-2"
+                            >
+                                <input
+                                    v-model.number="lxmfIncomingDeliveryCustomAmount"
+                                    type="number"
+                                    min="0.001"
+                                    step="any"
+                                    class="min-w-0 flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                    @input="onLxmfIncomingDeliveryCustomChange"
+                                />
+                                <select
+                                    v-model="lxmfIncomingDeliveryCustomUnit"
+                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                    @change="onLxmfIncomingDeliveryCustomChange"
+                                >
+                                    <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
+                                    <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
+                                </select>
+                            </div>
                             <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
                                 {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
                             </div>
@@ -486,6 +514,11 @@ import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import {
+    incomingDeliveryBytesFromCustom,
+    incomingDeliveryBytesFromPresetKey,
+    syncIncomingDeliveryFieldsFromBytes,
+} from "../../js/settings/incomingDeliveryLimit";
 
 export default {
     name: "PropagationNodesPage",
@@ -515,7 +548,9 @@ export default {
             },
             isLocalManagerCollapsed: false,
             localNodeDisplayNameDraft: "",
-            deliveryLimitInputMb: 0,
+            lxmfIncomingDeliveryPreset: "10mb",
+            lxmfIncomingDeliveryCustomAmount: 10,
+            lxmfIncomingDeliveryCustomUnit: "mb",
             propagationLimitInputMb: 0,
             propagationSyncLimitInputMb: 0,
             nodePathsByHash: {},
@@ -779,7 +814,10 @@ export default {
         syncManagerInputsFromConfig() {
             const displayName = (this.config.display_name || "").trim();
             this.localNodeDisplayNameDraft = displayName || "Anonymous Peer";
-            this.deliveryLimitInputMb = this.bytesToMb(this.config.lxmf_delivery_transfer_limit_in_bytes);
+            const incoming = syncIncomingDeliveryFieldsFromBytes(this.config.lxmf_delivery_transfer_limit_in_bytes);
+            this.lxmfIncomingDeliveryPreset = incoming.preset;
+            this.lxmfIncomingDeliveryCustomAmount = incoming.customAmount;
+            this.lxmfIncomingDeliveryCustomUnit = incoming.customUnit;
             this.propagationLimitInputMb = this.bytesToMb(this.config.lxmf_propagation_transfer_limit_in_bytes);
             this.propagationSyncLimitInputMb = this.bytesToMb(this.config.lxmf_propagation_sync_limit_in_bytes);
         },
@@ -847,11 +885,32 @@ export default {
             const iface = path.next_hop_interface || "unknown interface";
             return `${hopsText} via ${iface}`;
         },
-        onDeliveryTransferLimitChange() {
+        async onLxmfIncomingDeliveryPresetChange() {
+            if (this.lxmfIncomingDeliveryPreset === "custom") {
+                const incoming = syncIncomingDeliveryFieldsFromBytes(this.config.lxmf_delivery_transfer_limit_in_bytes);
+                this.lxmfIncomingDeliveryCustomAmount = incoming.customAmount;
+                this.lxmfIncomingDeliveryCustomUnit = incoming.customUnit;
+                return;
+            }
+            const bytes = incomingDeliveryBytesFromPresetKey(this.lxmfIncomingDeliveryPreset);
+            if (bytes == null) {
+                return;
+            }
+            await this.updateConfig({
+                lxmf_delivery_transfer_limit_in_bytes: bytes,
+            });
+        },
+        onLxmfIncomingDeliveryCustomChange() {
+            if (this.lxmfIncomingDeliveryPreset !== "custom") {
+                return;
+            }
             if (this.saveTimeouts.deliveryLimit) clearTimeout(this.saveTimeouts.deliveryLimit);
             this.saveTimeouts.deliveryLimit = setTimeout(async () => {
                 await this.updateConfig({
-                    lxmf_delivery_transfer_limit_in_bytes: this.mbToBytes(this.deliveryLimitInputMb),
+                    lxmf_delivery_transfer_limit_in_bytes: incomingDeliveryBytesFromCustom(
+                        this.lxmfIncomingDeliveryCustomAmount,
+                        this.lxmfIncomingDeliveryCustomUnit
+                    ),
                 });
             }, 450);
         },
