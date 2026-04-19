@@ -98,7 +98,9 @@ async def test_download_firmware_returns_zip_for_allowed_url(web_app):
         async with TestClient(TestServer(aio_app)) as client:
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
-                params={"url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"},
+                params={
+                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"
+                },
             )
             assert r.status == 200
             assert r.headers.get("Content-Type", "").startswith("application/zip")
@@ -122,7 +124,9 @@ async def test_download_firmware_propagates_upstream_error_status(web_app):
         async with TestClient(TestServer(aio_app)) as client:
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
-                params={"url": "https://git.quad4.io/Reticulum/RNode_Firmware/releases/download/v1/firmware.zip"},
+                params={
+                    "url": "https://git.quad4.io/Reticulum/RNode_Firmware/releases/download/v1/firmware.zip"
+                },
             )
             assert r.status == 404
             body = await r.json()
@@ -140,7 +144,9 @@ async def test_download_firmware_returns_500_on_exception(web_app):
         async with TestClient(TestServer(aio_app)) as client:
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
-                params={"url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"},
+                params={
+                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"
+                },
             )
             assert r.status == 500
             body = await r.json()
@@ -190,7 +196,12 @@ async def test_latest_release_returns_proxied_payload(web_app):
     aio_app = _build_aio_app(web_app)
     payload = {
         "tag_name": "v1.83",
-        "assets": [{"name": "rnode_firmware_heltec32v3.zip", "browser_download_url": "https://x/rnode.zip"}],
+        "assets": [
+            {
+                "name": "rnode_firmware_heltec32v3.zip",
+                "browser_download_url": "https://x/rnode.zip",
+            }
+        ],
     }
     fake_session = _FakeJsonSession(200, payload)
 

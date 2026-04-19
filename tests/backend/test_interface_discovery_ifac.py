@@ -61,10 +61,9 @@ async def find_route_handler(app_instance, path, method):
 
 
 def test_normalize_handles_non_list_input():
-    assert (
-        ReticulumMeshChat.normalize_discovered_ifac_fields({"foo": "bar"})
-        == {"foo": "bar"}
-    )
+    assert ReticulumMeshChat.normalize_discovered_ifac_fields({"foo": "bar"}) == {
+        "foo": "bar"
+    }
     assert ReticulumMeshChat.normalize_discovered_ifac_fields(None) is None
 
 

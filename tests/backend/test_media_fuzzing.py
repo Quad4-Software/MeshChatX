@@ -29,8 +29,10 @@ _JSON_LEAF = (
 def _recursive_json(max_leaves: int = 24):
     return st.recursive(
         _JSON_LEAF,
-        lambda children: st.lists(children, max_size=8)
-        | st.dictionaries(st.text(max_size=12), children, max_size=8),
+        lambda children: (
+            st.lists(children, max_size=8)
+            | st.dictionaries(st.text(max_size=12), children, max_size=8)
+        ),
         max_leaves=max_leaves,
     )
 
@@ -60,7 +62,9 @@ def test_parse_tgs_gzip_json_fuzz(payload):
     merged.setdefault("op", 60.0)
     merged.setdefault("w", 100)
     merged.setdefault("h", 100)
-    raw = gzip.compress(json.dumps(merged, default=str).encode("utf-8", errors="surrogateescape"))
+    raw = gzip.compress(
+        json.dumps(merged, default=str).encode("utf-8", errors="surrogateescape")
+    )
     if len(raw) > sticker_utils.MAX_ANIMATED_BYTES:
         raw = raw[: sticker_utils.MAX_ANIMATED_BYTES]
     try:
@@ -87,7 +91,18 @@ def test_parse_webm_fuzz_never_raises_unexpected(tail):
         st.none(),
         st.text(max_size=48),
         st.sampled_from(
-            ["png", "jpeg", "webp", "gif", "bmp", "tgs", "webm", "svg", "image/png", ""],
+            [
+                "png",
+                "jpeg",
+                "webp",
+                "gif",
+                "bmp",
+                "tgs",
+                "webm",
+                "svg",
+                "image/png",
+                "",
+            ],
         ),
     ),
     raw=st.binary(min_size=0, max_size=8192),
@@ -103,7 +118,9 @@ def test_extract_metadata_fuzz_never_raises(image_type, raw):
     typ=st.one_of(
         st.none(),
         st.text(max_size=48),
-        st.sampled_from(["png", "jpeg", "jpg", "webp", "gif", "bmp", "tgs", "webm", "svg", ""]),
+        st.sampled_from(
+            ["png", "jpeg", "jpg", "webp", "gif", "bmp", "tgs", "webm", "svg", ""]
+        ),
     ),
     strict=st.booleans(),
 )
@@ -148,7 +165,9 @@ def test_mime_for_image_type_fuzz_never_raises(t):
     description=st.one_of(st.none(), st.text(max_size=400)),
     pack_type=st.one_of(st.none(), st.text(max_size=40)),
 )
-def test_sticker_pack_sanitizers_fuzz_never_raises(title, short_name, description, pack_type):
+def test_sticker_pack_sanitizers_fuzz_never_raises(
+    title, short_name, description, pack_type
+):
     sticker_pack_utils.sanitize_pack_title(title)
     sticker_pack_utils.sanitize_pack_short_name(short_name)
     sticker_pack_utils.sanitize_pack_description(description)
@@ -234,7 +253,10 @@ def test_strict_tgs_from_structured_gzip_json_fuzz(inner):
 
 @settings(max_examples=150, deadline=None)
 @given(
-    b64=st.one_of(st.text(max_size=400), st.binary(max_size=200).map(lambda b: base64.b64encode(b).decode("ascii"))),
+    b64=st.one_of(
+        st.text(max_size=400),
+        st.binary(max_size=200).map(lambda b: base64.b64encode(b).decode("ascii")),
+    ),
 )
 def test_sticker_validate_export_document_sticker_rows_fuzz(b64):
     doc = {

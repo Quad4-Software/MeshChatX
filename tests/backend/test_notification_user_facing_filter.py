@@ -140,9 +140,7 @@ class TestRequireUserFacingFlag:
         )
         # Without ``require_user_facing`` the helper preserves its old behavior
         # so the conversation list (which renders reactions) is unaffected.
-        assert (
-            compute_lxmf_conversation_unread_from_latest_row(row) is True
-        )
+        assert compute_lxmf_conversation_unread_from_latest_row(row) is True
 
     def test_reaction_filtered_when_require_user_facing(self):
         row = _row(

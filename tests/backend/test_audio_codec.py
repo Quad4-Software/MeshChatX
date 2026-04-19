@@ -38,7 +38,9 @@ def _build_wav_pcm16(
         wf.setframerate(samplerate)
         frames = bytearray()
         for i in range(n_samples):
-            sample = int(0.3 * 32767 * math.sin(2 * math.pi * frequency * (i / samplerate)))
+            sample = int(
+                0.3 * 32767 * math.sin(2 * math.pi * frequency * (i / samplerate))
+            )
             for _ in range(channels):
                 frames.extend(struct.pack("<h", sample))
         wf.writeframes(bytes(frames))
@@ -84,7 +86,8 @@ def test_encode_pcm_to_ogg_opus_writes_valid_container():
             assert f.read(4) == b"OggS"
         assert os.path.getsize(out) > 0
     finally:
-        os.unlink(out)
+        if os.path.exists(out):
+            os.unlink(out)
 
 
 def test_encode_pcm_to_ogg_opus_resamples_arbitrary_rate():
@@ -104,7 +107,8 @@ def test_encode_pcm_to_ogg_opus_resamples_arbitrary_rate():
         with open(out, "rb") as f:
             assert f.read(4) == b"OggS"
     finally:
-        os.unlink(out)
+        if os.path.exists(out):
+            os.unlink(out)
 
 
 def test_encode_audio_to_ogg_opus_decodes_and_reencodes(tmp_path):
@@ -190,14 +194,17 @@ def test_encode_pcm_to_ogg_opus_preserves_duration(duration_seconds):
         sr = 48000
         n = int(sr * duration_seconds)
         t = np.arange(n, dtype=np.float32) / sr
-        samples = (0.3 * np.sin(2 * math.pi * 440.0 * t)).astype(np.float32).reshape(-1, 1)
+        samples = (
+            (0.3 * np.sin(2 * math.pi * 440.0 * t)).astype(np.float32).reshape(-1, 1)
+        )
         audio_codec.encode_pcm_to_ogg_opus(samples, sr, 1, out)
         encoded = _ogg_opus_duration_seconds(out)
         assert abs(encoded - duration_seconds) < 0.001, (
             f"expected {duration_seconds}s, got {encoded}s"
         )
     finally:
-        os.unlink(out)
+        if os.path.exists(out):
+            os.unlink(out)
 
 
 def test_encode_pcm_to_ogg_opus_audio_profile_keeps_stereo():
@@ -223,4 +230,5 @@ def test_encode_pcm_to_ogg_opus_audio_profile_keeps_stereo():
         assert channels == 2
         assert _ogg_opus_duration_seconds(out) == pytest.approx(1.0, abs=0.001)
     finally:
-        os.unlink(out)
+        if os.path.exists(out):
+            os.unlink(out)
