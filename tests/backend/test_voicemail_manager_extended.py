@@ -27,7 +27,6 @@ def mock_deps():
         patch("meshchatx.src.backend.voicemail_manager.OpusFileSource") as mock_source,
         patch("RNS.log"),
     ):
-        # Mock finding espeak and ffmpeg
         mock_which.side_effect = lambda x: f"/usr/bin/{x}"
         yield {
             "which": mock_which,
@@ -47,7 +46,6 @@ def test_voicemail_manager_init(mock_deps, temp_dir):
 
     assert vm.storage_dir == os.path.join(temp_dir, "voicemails")
     assert vm.has_espeak is True
-    assert vm.has_ffmpeg is True
     assert os.path.exists(vm.greetings_dir)
     assert os.path.exists(vm.recordings_dir)
 
@@ -65,11 +63,19 @@ def test_generate_greeting(mock_deps, temp_dir):
 
     vm = VoicemailManager(mock_db, mock_config, mock_tel, temp_dir)
 
-    with patch("os.path.exists", return_value=True), patch("os.remove"):
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("os.remove"),
+        patch(
+            "meshchatx.src.backend.voicemail_manager.audio_codec.encode_audio_to_ogg_opus",
+            return_value=os.path.join(vm.greetings_dir, "greeting.opus"),
+        ) as mock_encode,
+    ):
         vm.generate_greeting("Hello world")
 
-    # Should have run espeak and ffmpeg
-    assert mock_deps["run"].call_count == 2
+    # espeak still runs as a subprocess; opus encoding is now in-process via audio_codec.
+    assert mock_deps["run"].call_count == 1
+    mock_encode.assert_called_once()
 
 
 def test_start_recording_currently_disabled(mock_deps, temp_dir):

@@ -30,7 +30,6 @@ describe("CallPage.vue", () => {
                     return Promise.resolve({
                         data: {
                             has_espeak: false,
-                            has_ffmpeg: false,
                             is_recording: false,
                             is_greeting_recording: false,
                             has_greeting: false,
@@ -418,7 +417,6 @@ describe("CallPage.vue", () => {
         axiosMock.get.mockResolvedValueOnce({
             data: {
                 has_espeak: true,
-                has_ffmpeg: false,
                 is_recording: false,
                 is_greeting_recording: false,
                 has_greeting: true,

@@ -432,10 +432,10 @@ def test_convert_webm_opus_to_ogg_already_ogg(mock_app):
     assert result is ogg_data
 
 
-def test_convert_webm_opus_to_ogg_no_ffmpeg(mock_app):
+def test_convert_webm_opus_to_ogg_undecodable_returns_input(mock_app):
+    """Unknown containers (e.g. legacy WebM) fall through unchanged."""
     webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
-    with patch("shutil.which", return_value=None):
-        result = mock_app._convert_webm_opus_to_ogg(webm_data)
+    result = mock_app._convert_webm_opus_to_ogg(webm_data)
     assert result is webm_data
 
 
@@ -459,14 +459,17 @@ def _build_wav_pcm16(samplerate=48000, duration_seconds=0.5, frequency=440.0):
     return buf.getvalue()
 
 
-def test_convert_webm_opus_to_ogg_wav_uses_lxst(mock_app):
+def test_convert_webm_opus_to_ogg_wav_uses_audio_codec(mock_app):
+    """WAV input is routed through audio_codec, no subprocess fallback."""
     wav_bytes = _build_wav_pcm16()
     fake_ogg = b"OggS" + b"\x42" * 64
 
     with (
-        patch.object(mock_app, "_encode_pcm_wav_to_ogg_opus", return_value=fake_ogg) as mock_encode,
+        patch(
+            "meshchatx.src.backend.audio_codec.encode_audio_bytes_to_ogg_opus",
+            return_value=fake_ogg,
+        ) as mock_encode,
         patch("subprocess.run") as mock_run,
-        patch("shutil.which", return_value=None),
     ):
         result = mock_app._convert_webm_opus_to_ogg(wav_bytes)
 
@@ -475,17 +478,18 @@ def test_convert_webm_opus_to_ogg_wav_uses_lxst(mock_app):
     mock_run.assert_not_called()
 
 
-def test_convert_webm_opus_to_ogg_wav_falls_through_when_lxst_fails(mock_app):
+def test_convert_webm_opus_to_ogg_wav_falls_through_when_codec_fails(mock_app):
     wav_bytes = _build_wav_pcm16()
-    with (
-        patch.object(mock_app, "_encode_pcm_wav_to_ogg_opus", return_value=None),
-        patch("shutil.which", return_value=None),
+    with patch(
+        "meshchatx.src.backend.audio_codec.encode_audio_bytes_to_ogg_opus",
+        return_value=None,
     ):
         result = mock_app._convert_webm_opus_to_ogg(wav_bytes)
     assert result is wav_bytes
 
 
 def test_encode_pcm_wav_to_ogg_opus_produces_ogg(mock_app):
+    """The WAV->OGG/Opus wrapper still produces a valid OGG container."""
     wav_bytes = _build_wav_pcm16()
     encoded = mock_app._encode_pcm_wav_to_ogg_opus(wav_bytes)
     assert encoded is not None
@@ -498,76 +502,14 @@ def test_encode_pcm_wav_to_ogg_opus_invalid_returns_none(mock_app):
     assert mock_app._encode_pcm_wav_to_ogg_opus(b"not a wav file at all") is None
 
 
-def test_convert_webm_opus_to_ogg_success(mock_app):
+def test_convert_webm_opus_to_ogg_audio_codec_exception(mock_app):
+    """Exceptions inside the codec helper degrade gracefully."""
     webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
-    fake_ogg = b"OggS" + b"\xff" * 50
-    mock_result = MagicMock()
-    mock_result.returncode = 0
-    mock_result.stdout = fake_ogg
-
-    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = mock_app._convert_webm_opus_to_ogg(webm_data)
-
-    assert result == fake_ogg
-    mock_run.assert_called_once()
-    call_args = mock_run.call_args
-    assert call_args.kwargs["input"] == webm_data
-    assert "-f" in call_args[0][0]
-    assert "ogg" in call_args[0][0]
-
-
-def test_convert_webm_opus_to_ogg_remux_fallback_reencode_success(mock_app):
-    webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
-    remux_result = MagicMock()
-    remux_result.returncode = 1
-    remux_result.stdout = b""
-    reencode_result = MagicMock()
-    reencode_result.returncode = 0
-    reencode_result.stdout = b"OggS" + b"\x11" * 40
-
-    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
-        with patch(
-            "subprocess.run",
-            side_effect=[remux_result, reencode_result],
-        ) as mock_run:
-            result = mock_app._convert_webm_opus_to_ogg(webm_data)
-
-    assert result == reencode_result.stdout
-    assert mock_run.call_count == 2
-    remux_args = mock_run.call_args_list[0][0][0]
-    reencode_args = mock_run.call_args_list[1][0][0]
-    assert "copy" in remux_args
-    assert "libopus" in reencode_args
-    assert "32k" in reencode_args
-    assert "voip" in reencode_args
-
-
-def test_convert_webm_opus_to_ogg_ffmpeg_fails(mock_app):
-    webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
-    mock_result = MagicMock()
-    mock_result.returncode = 1
-    mock_result.stdout = b""
-
-    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
-        with patch("subprocess.run", return_value=mock_result):
-            result = mock_app._convert_webm_opus_to_ogg(webm_data)
-
-    assert result is webm_data
-
-
-def test_convert_webm_opus_to_ogg_exception(mock_app):
-    webm_data = b"\x1a\x45\xdf\xa3" + b"\x00" * 100
-
-    with (
-        patch("shutil.which", return_value="/usr/bin/ffmpeg"),
-        patch(
-            "subprocess.run",
-            side_effect=subprocess.TimeoutExpired(cmd="ffmpeg", timeout=30),
-        ),
+    with patch(
+        "meshchatx.src.backend.audio_codec.encode_audio_bytes_to_ogg_opus",
+        side_effect=RuntimeError("boom"),
     ):
         result = mock_app._convert_webm_opus_to_ogg(webm_data)
-
     assert result is webm_data
 
 

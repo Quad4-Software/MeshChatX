@@ -189,14 +189,12 @@ TELEPHONE_VOICEMAIL_STATUS_SCHEMA: dict = {
     "type": "object",
     "required": [
         "has_espeak",
-        "has_ffmpeg",
         "is_recording",
         "is_greeting_recording",
         "has_greeting",
     ],
     "properties": {
         "has_espeak": {"type": "boolean"},
-        "has_ffmpeg": {"type": "boolean"},
         "is_recording": {"type": "boolean"},
         "is_greeting_recording": {"type": "boolean"},
         "has_greeting": {"type": "boolean"},

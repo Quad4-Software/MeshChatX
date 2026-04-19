@@ -1,5 +1,5 @@
 import { gzipSync } from "node:zlib";
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { decodeTgsBuffer } from "@/js/tgsDecode.js";
 
 beforeAll(() => {
@@ -61,35 +61,7 @@ function randomJsonValue(depth) {
     return o;
 }
 
-function randomLottieLikeJson() {
-    const base = {
-        v: "5.5.7",
-        fr: 30,
-        ip: 0,
-        op: 60,
-        w: 512,
-        h: 512,
-        nm: "x",
-        ddd: 0,
-        assets: [],
-        layers: [],
-    };
-    if (Math.random() < 0.25) {
-        base.layers = [{ ty: 4, nm: "s", ind: 1, ks: {}, ip: 0, op: 60, st: 0, bm: 0 }];
-    }
-    if (Math.random() < 0.2) {
-        delete base.w;
-    }
-    if (Math.random() < 0.2) {
-        delete base.h;
-    }
-    if (Math.random() < 0.2) {
-        base.extra = randomJsonValue(5);
-    }
-    return base;
-}
-
-describe("fuzzing: TGS decode and lottie_light", () => {
+describe("fuzzing: TGS decode", () => {
     it("fuzzing: decodeTgsBuffer handles random buffers without unhandled rejection", async () => {
         for (let i = 0; i < 2000; i++) {
             const len = Math.floor(Math.random() * 6144);
@@ -117,25 +89,4 @@ describe("fuzzing: TGS decode and lottie_light", () => {
         expect(true).toBe(true);
     });
 
-    it("fuzzing: lottie_light loadAnimation random animationData does not crash the runner", async () => {
-        const lottieMod = await import("lottie-web/build/player/lottie_light.js");
-        const lib = lottieMod.default || lottieMod;
-        const container = document.createElement("div");
-        for (let i = 0; i < 500; i++) {
-            const animationData = Math.random() < 0.6 ? randomLottieLikeJson() : randomJsonValue(5);
-            try {
-                const anim = lib.loadAnimation({
-                    container,
-                    renderer: "svg",
-                    loop: true,
-                    autoplay: false,
-                    animationData,
-                });
-                anim.destroy();
-            } catch {
-                /* malformed animation graph */
-            }
-        }
-        expect(true).toBe(true);
-    });
 });

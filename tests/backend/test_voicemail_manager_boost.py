@@ -38,12 +38,6 @@ def test_find_espeak_shutil(voicemail_manager):
         assert "espeak" in path
 
 
-def test_find_ffmpeg_shutil(voicemail_manager):
-    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
-        path = voicemail_manager._find_ffmpeg()
-        assert path == "/usr/bin/ffmpeg"
-
-
 def test_get_voicemails_empty(voicemail_manager):
     # Voicemails are fetched via DAO
     voicemail_manager.db.voicemails.get_voicemails.return_value = []

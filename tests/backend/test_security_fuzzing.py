@@ -412,9 +412,7 @@ def test_lxmf_message_decoding_fuzzing(mock_app, title_bytes, content_bytes):
 def test_voicemail_greeting_fuzzing(mock_app, greeting_text):
     """Fuzz voicemail greeting generation with varied text."""
     mock_app.voicemail_manager.has_espeak = True
-    mock_app.voicemail_manager.has_ffmpeg = True
     mock_app.voicemail_manager.espeak_path = "/usr/bin/espeak"
-    mock_app.voicemail_manager.ffmpeg_path = "/usr/bin/ffmpeg"
 
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0)
@@ -2036,9 +2034,7 @@ def test_voicemail_greeting_text_fuzzing(mock_app, voicemail_text):
     # Use real VoicemailManager to test its internal logic calling subprocess
     vm = VoicemailManager(MagicMock(), MagicMock(), MagicMock(), "/tmp/voicemail_test")
     vm.has_espeak = True
-    vm.has_ffmpeg = True
     vm.espeak_path = "/usr/bin/espeak"
-    vm.ffmpeg_path = "/usr/bin/ffmpeg"
 
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0)
