@@ -133,7 +133,7 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "poetry==2.1.1"
+pip install "poetry==2.3.4"
 poetry check --lock
 poetry install
 pnpm run build-frontend
@@ -146,7 +146,7 @@ Notes on the install commands above:
 - `verify-store-integrity=true` is also set in the project `.npmrc`; the explicit `pnpm config set` line above just hardens the user-level config too.
 - Lifecycle scripts (`preinstall`/`postinstall`) are blocked by default in pnpm v10+. Only the packages listed under `pnpm.onlyBuiltDependencies` in `package.json` are allowed to run install scripts (currently `electron`, `electron-winstaller`, `esbuild`).
 - `poetry check --lock` fails fast if `poetry.lock` is out of sync with `pyproject.toml`; `poetry install` then resolves only from the lockfile.
-- For a strict lockfile-only Poetry install (no implicit lockfile refresh), pin Poetry with `pip install "poetry==2.1.1"` to match what CI uses.
+- For a strict lockfile-only Poetry install (no implicit lockfile refresh), pin Poetry with `pip install "poetry==2.3.4"` to match what CI uses.
 
 If you intentionally want to update dependencies, run `pnpm update` / `poetry update` in a dedicated commit and review the resulting lockfile diff before pushing.
 
