@@ -65,7 +65,7 @@ RUN apk upgrade --no-cache && \
     mkdir -p /config && chown meshchat:meshchat /config
 
 COPY --from=builder --chown=meshchat:meshchat /opt/venv /opt/venv
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 ENV PATH="/opt/venv/bin:$PATH"
