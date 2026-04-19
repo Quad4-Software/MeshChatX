@@ -164,7 +164,9 @@ class TestStampSolving:
         assert LXStamper.validate_peering_key(peer_id, stamp, 2)
 
     def test_peering_key_rejected_for_wrong_id(self):
-        """Pick a peer_b for which the stamp does not accidentally satisfy the
+        """Ensure wrong peer id fails peering validation.
+
+        Pick a peer_b for which the stamp does not accidentally satisfy the
         target cost. With cost=8 there is a 1/256 chance of a random workblock
         producing a hash that already meets the threshold, so retry until we
         get a peer_b that genuinely fails validation. This avoids CI flakes

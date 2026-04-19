@@ -26,7 +26,7 @@ export default class Transport {
         this.writable = null;
     }
 
-    async open(_opts = {}) {
+    async open() {
         throw new Error(`${this.kind} transport: open() not implemented`);
     }
 

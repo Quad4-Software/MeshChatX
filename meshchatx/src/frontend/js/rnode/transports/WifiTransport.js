@@ -11,8 +11,56 @@ import Transport from "./Transport.js";
  */
 
 const DEFAULT_TIMEOUT_MS = 120000;
-const IPV4_RE = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d)$/;
-const HOSTNAME_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+
+function isValidIpv4(trimmed) {
+    const parts = trimmed.split(".");
+    if (parts.length !== 4) {
+        return false;
+    }
+    for (const part of parts) {
+        if (part.length === 0 || part.length > 3) {
+            return false;
+        }
+        for (let i = 0; i < part.length; i++) {
+            const d = part.charCodeAt(i);
+            if (d < 48 || d > 57) {
+                return false;
+            }
+        }
+        const n = Number(part);
+        if (n !== Math.floor(n) || n < 0 || n > 255) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function isValidHostname(trimmed) {
+    if (trimmed.length > 253) {
+        return false;
+    }
+    const labels = trimmed.split(".");
+    for (const label of labels) {
+        if (label.length < 1 || label.length > 63) {
+            return false;
+        }
+        if (label.startsWith("-") || label.endsWith("-")) {
+            return false;
+        }
+        for (let i = 0; i < label.length; i++) {
+            const c = label[i];
+            const code = c.charCodeAt(0);
+            const isDigit = code >= 48 && code <= 57;
+            const isLower = code >= 97 && code <= 122;
+            const isUpper = code >= 65 && code <= 90;
+            const isHyphen = c === "-";
+            if (!isDigit && !isLower && !isUpper && !isHyphen) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 export default class WifiTransport extends Transport {
     /**
@@ -40,7 +88,7 @@ export default class WifiTransport extends Transport {
         if (!trimmed || trimmed.length > 253) {
             return false;
         }
-        return IPV4_RE.test(trimmed) || HOSTNAME_RE.test(trimmed);
+        return isValidIpv4(trimmed) || isValidHostname(trimmed);
     }
 
     async open() {

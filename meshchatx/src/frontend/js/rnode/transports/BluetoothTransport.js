@@ -77,7 +77,7 @@ export default class BluetoothTransport extends Transport {
         return new BluetoothTransport(device, { env });
     }
 
-    async open(_opts = {}) {
+    async open() {
         if (!this.device.gatt) {
             const err = new Error("bluetooth_gatt_unavailable");
             err.code = "GATT_UNAVAILABLE";

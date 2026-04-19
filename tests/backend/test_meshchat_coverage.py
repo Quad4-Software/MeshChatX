@@ -3,7 +3,6 @@
 import asyncio
 import json
 import os
-import subprocess
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import LXMF
