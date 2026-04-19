@@ -16,6 +16,7 @@ RUN apk add --no-cache git
 COPY package.json pnpm-lock.yaml vite.config.js tailwind.config.js postcss.config.js ./
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
 RUN npm install -g pnpm@10.32.1 && \
+    pnpm config set verify-store-integrity true && \
     pnpm install --frozen-lockfile && \
     pnpm run build-frontend
 
@@ -37,9 +38,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
 
 COPY pyproject.toml poetry.lock ./
-# poetry will use the active venv
 RUN poetry config virtualenvs.create false && \
-    poetry install --no-root --only main && \
+    poetry check --lock && \
+    poetry install --no-root --only main --no-interaction --no-ansi && \
     rm -rf /root/.cache/pip /root/.cache/pypoetry
 
 COPY meshchatx ./meshchatx
