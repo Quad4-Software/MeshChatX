@@ -101,7 +101,7 @@ jobs:
                         --cov=meshchatx/src/backend
                       ;;
                     lang-tests)
-                      pnpm run test tests/frontend/i18n.test.js
+                      pnpm exec vitest run tests/frontend/i18n.test.js
                       poetry run python -m pytest tests/backend/test_translator_handler.py
                       ;;
                     build-check)
