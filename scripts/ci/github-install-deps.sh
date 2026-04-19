@@ -26,5 +26,13 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     fi
 fi
 
+# LXST/pyogg loads libopus (and libogg for Ogg muxing) at runtime. GitHub-hosted
+# Linux runners do not ship these by default, so backend Opus encode tests fail
+# with PyOggError until the shared libraries are present.
+if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -y
+    sudo apt-get install -y libopus0 libogg0
+fi
+
 python -m poetry install --no-interaction --no-ansi
 pnpm install --frozen-lockfile
