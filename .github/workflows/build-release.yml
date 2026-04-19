@@ -28,7 +28,7 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    POETRY_VERSION: "2.1.1"
+    POETRY_VERSION: "2.3.4"
     PNPM_VERSION: "10.32.1"
 
 jobs:
