@@ -12,9 +12,7 @@ describe("RNodeFlasherPage.vue", () => {
                     json: () =>
                         Promise.resolve({
                             tag_name: "v1.0",
-                            assets: [
-                                { name: "firmware.zip", browser_download_url: "http://example.com/firmware.zip" },
-                            ],
+                            assets: [{ name: "firmware.zip", browser_download_url: "http://example.com/firmware.zip" }],
                         }),
                 });
             }
@@ -56,9 +54,7 @@ describe("RNodeFlasherPage.vue", () => {
         const wrapper = mountRNodeFlasherPage();
         expect(wrapper.vm.showAdvanced).toBe(false);
 
-        const advancedButton = wrapper
-            .findAll("button")
-            .find((b) => b.text().includes("tools.rnode_flasher.advanced"));
+        const advancedButton = wrapper.findAll("button").find((b) => b.text().includes("tools.rnode_flasher.advanced"));
         await advancedButton.trigger("click");
 
         expect(wrapper.vm.showAdvanced).toBe(true);
@@ -68,8 +64,7 @@ describe("RNodeFlasherPage.vue", () => {
     it("switches connection method", async () => {
         const wrapper = mountRNodeFlasherPage();
 
-        const wifiButton = wrapper
-            .findAll('[data-testid="rnode-transport-wifi"]')[0];
+        const wifiButton = wrapper.findAll('[data-testid="rnode-transport-wifi"]')[0];
         await wifiButton.trigger("click");
 
         expect(wrapper.vm.connectionMethod).toBe("wifi");
@@ -97,8 +92,6 @@ describe("RNodeFlasherPage.vue", () => {
         wrapper.vm.selectedProduct = { firmware_filename: "rnode_firmware_heltec32v3.zip" };
         wrapper.vm.latestRelease = null;
         const url = wrapper.vm._resolveRecommendedAssetUrl();
-        expect(url).toMatch(
-            /\/Reticulum\/RNode_Firmware\/releases\/latest\/download\/rnode_firmware_heltec32v3\.zip$/
-        );
+        expect(url).toMatch(/\/Reticulum\/RNode_Firmware\/releases\/latest\/download\/rnode_firmware_heltec32v3\.zip$/);
     });
 });

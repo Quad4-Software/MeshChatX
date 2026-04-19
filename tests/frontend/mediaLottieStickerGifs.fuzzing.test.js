@@ -88,5 +88,4 @@ describe("fuzzing: TGS decode", () => {
         }
         expect(true).toBe(true);
     });
-
 });

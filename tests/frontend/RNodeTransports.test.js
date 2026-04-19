@@ -19,9 +19,11 @@ describe("SerialTransport.request", () => {
         const env = {
             navigator: {
                 serial: {
-                    requestPort: vi.fn().mockRejectedValue(
-                        Object.assign(new Error("No port selected by the user."), { name: "NotFoundError" })
-                    ),
+                    requestPort: vi
+                        .fn()
+                        .mockRejectedValue(
+                            Object.assign(new Error("No port selected by the user."), { name: "NotFoundError" })
+                        ),
                 },
             },
         };

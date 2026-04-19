@@ -58,9 +58,7 @@ describe("StickerView.vue", () => {
 
     it("TGS renders placeholder without fetching sticker URL", async () => {
         const baseFetch = globalThis.fetch;
-        const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) =>
-            baseFetch(input, init)
-        );
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => baseFetch(input, init));
 
         const w = mount(StickerView, {
             props: {

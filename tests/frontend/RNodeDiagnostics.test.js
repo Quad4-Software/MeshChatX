@@ -47,14 +47,11 @@ describe("Diagnostics.diagnose", () => {
     });
 
     it("flags not_provisioned when rom.parse returns falsy", async () => {
-        const result = await diagnose(
-            fakeRnode({ getRomAsObject: async () => ({ eeprom: [], parse: () => null }) }),
-            { timeoutMs: 1000 }
-        );
+        const result = await diagnose(fakeRnode({ getRomAsObject: async () => ({ eeprom: [], parse: () => null }) }), {
+            timeoutMs: 1000,
+        });
         expect(result.issues).toContain(ISSUE_NOT_PROVISIONED);
-        expect(result.suggestionKeys).toContain(
-            "tools.rnode_flasher.diagnostics.suggestions.not_provisioned"
-        );
+        expect(result.suggestionKeys).toContain("tools.rnode_flasher.diagnostics.suggestions.not_provisioned");
     });
 
     it("flags firmware_hash_missing when target hash is all zero or missing", async () => {
