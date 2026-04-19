@@ -1,10 +1,15 @@
 # SPDX-License-Identifier: 0BSD
 
 import os
-import shutil
-import subprocess
 
-import RNS
+from .audio_codec import encode_audio_to_ogg_opus
+
+
+def _ringtone_profile():
+    """Stereo 48 kHz Opus ``audio`` profile for music-grade ringtones."""
+    from LXST.Codecs import Opus
+
+    return Opus.PROFILE_AUDIO_MAX
 
 
 class RingtoneManager:
@@ -12,50 +17,22 @@ class RingtoneManager:
         self.config = config
         self.storage_dir = os.path.join(storage_dir, "ringtones")
 
-        # Ensure directory exists
         os.makedirs(self.storage_dir, exist_ok=True)
 
-        # Paths to executables
-        self.ffmpeg_path = self._find_ffmpeg()
-        self.has_ffmpeg = self.ffmpeg_path is not None
-
-        if self.has_ffmpeg:
-            RNS.log(f"Ringtone: Found ffmpeg at {self.ffmpeg_path}", RNS.LOG_DEBUG)
-        else:
-            RNS.log("Ringtone: ffmpeg not found", RNS.LOG_ERROR)
-
-    def _find_ffmpeg(self):
-        path = shutil.which("ffmpeg")
-        if path:
-            return path
-        return None
-
     def convert_to_ringtone(self, input_path, ringtone_id=None):
-        if not self.has_ffmpeg:
-            msg = "ffmpeg is required for audio conversion"
-            raise RuntimeError(msg)
+        """Decode ``input_path`` and re-encode it as an OGG/Opus ringtone.
 
+        Accepts any audio container miniaudio can decode (WAV, MP3, FLAC,
+        OGG/Vorbis) plus OGG/Opus via LXST. Encoded with the music
+        ``audio`` profile so trim edits preserve the original duration
+        and stereo image instead of being forced through the low-bitrate
+        voice profile. Returns the stored filename.
+        """
         import secrets
 
         filename = f"ringtone_{secrets.token_hex(8)}.opus"
         opus_path = os.path.join(self.storage_dir, filename)
-
-        subprocess.run(  # noqa: S603
-            [
-                self.ffmpeg_path,
-                "-i",
-                input_path,
-                "-c:a",
-                "libopus",
-                "-b:a",
-                "32k",
-                "-vbr",
-                "on",
-                opus_path,
-            ],
-            check=True,
-        )
-
+        encode_audio_to_ogg_opus(input_path, opus_path, profile=_ringtone_profile())
         return filename
 
     def remove_ringtone(self, filename):

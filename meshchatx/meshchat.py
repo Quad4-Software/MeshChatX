@@ -22,7 +22,6 @@ import secrets
 import shutil
 import socket
 import ssl
-import subprocess
 import sys
 import tempfile
 import threading
@@ -67,6 +66,10 @@ from meshchatx.src.backend.identity_context import IdentityContext
 from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
 from meshchatx.src.backend.interface_editor import InterfaceEditor
+from meshchatx.src.backend.interface_port_check import (
+    describe_port_conflict,
+    is_port_in_use,
+)
 from meshchatx.src.backend.lxmf_message_fields import (
     LxmfAudioField,
     LxmfFileAttachment,
@@ -3688,6 +3691,39 @@ class ReticulumMeshChat:
                 },
             )
 
+        @routes.get("/api/v1/tools/rnode/latest_release")
+        async def tools_rnode_latest_release(request):
+            """Proxy the Gitea releases-latest endpoint for the configured RNode firmware repo.
+
+            The frontend cannot call git.quad4.io directly because the Gitea instance
+            does not return CORS headers; doing the lookup server-side avoids that
+            restriction and works identically in browser, Electron and Android WebView.
+            """
+            repo = request.query.get("repo", "Reticulum/RNode_Firmware")
+            if "/" not in repo or any(c in repo for c in (" ", "?", "#", "..", "\\")):
+                return web.json_response({"error": "Invalid repo"}, status=400)
+
+            gitea_url = "https://git.quad4.io"
+            if self.current_context and self.current_context.config:
+                gitea_url = self.current_context.config.gitea_base_url.get()
+
+            url = f"{gitea_url.rstrip('/')}/api/v1/repos/{repo}/releases/latest"
+            try:
+                timeout = aiohttp.ClientTimeout(total=15)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(url, allow_redirects=True) as response:
+                        if response.status != 200:
+                            return web.json_response(
+                                {
+                                    "error": f"Failed to fetch release: {response.status}"
+                                },
+                                status=response.status,
+                            )
+                        data = await response.json(content_type=None)
+                        return web.json_response(data)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
         @routes.get("/api/v1/tools/rnode/download_firmware")
         async def tools_rnode_download_firmware(request):
             url = request.query.get("url")
@@ -3975,6 +4011,76 @@ class ReticulumMeshChat:
 
             # handle AutoInterface
             if interface_type == "AutoInterface":
+                # validate scope value if provided
+                discovery_scope_value = data.get("discovery_scope")
+                if discovery_scope_value not in (None, ""):
+                    if str(discovery_scope_value).lower() not in {
+                        "link",
+                        "admin",
+                        "site",
+                        "organisation",
+                        "global",
+                    }:
+                        return web.json_response(
+                            {
+                                "message": (
+                                    "Discovery scope must be one of: link, admin, "
+                                    "site, organisation, global"
+                                ),
+                            },
+                            status=422,
+                        )
+
+                multicast_address_type_value = data.get("multicast_address_type")
+                if multicast_address_type_value not in (None, "") and str(
+                    multicast_address_type_value,
+                ).lower() not in {"temporary", "permanent"}:
+                    return web.json_response(
+                        {
+                            "message": (
+                                "Multicast address type must be either "
+                                "'temporary' or 'permanent'"
+                            ),
+                        },
+                        status=422,
+                    )
+
+                # validate ports if provided and ensure they are not in use
+                discovery_port_value = data.get("discovery_port")
+                if discovery_port_value not in (None, "") and is_port_in_use(
+                    None,
+                    discovery_port_value,
+                    kind="udp",
+                ):
+                    return web.json_response(
+                        {
+                            "message": describe_port_conflict(
+                                None,
+                                discovery_port_value,
+                                kind="udp",
+                                interface_name=interface_name,
+                            ),
+                        },
+                        status=409,
+                    )
+                data_port_value = data.get("data_port")
+                if data_port_value not in (None, "") and is_port_in_use(
+                    None,
+                    data_port_value,
+                    kind="udp",
+                ):
+                    return web.json_response(
+                        {
+                            "message": describe_port_conflict(
+                                None,
+                                data_port_value,
+                                kind="udp",
+                                interface_name=interface_name,
+                            ),
+                        },
+                        status=409,
+                    )
+
                 # set optional AutoInterface options
                 InterfaceEditor.update_value(interface_details, data, "group_id")
                 InterfaceEditor.update_value(
@@ -3987,6 +4093,11 @@ class ReticulumMeshChat:
                 InterfaceEditor.update_value(interface_details, data, "discovery_scope")
                 InterfaceEditor.update_value(interface_details, data, "discovery_port")
                 InterfaceEditor.update_value(interface_details, data, "data_port")
+                InterfaceEditor.update_value(
+                    interface_details,
+                    data,
+                    "configured_bitrate",
+                )
 
             # handle TCPClientInterface
             if interface_type == "TCPClientInterface":
@@ -4017,41 +4128,100 @@ class ReticulumMeshChat:
                 # set optional TCPClientInterface options
                 InterfaceEditor.update_value(interface_details, data, "kiss_framing")
                 InterfaceEditor.update_value(interface_details, data, "i2p_tunneled")
+                InterfaceEditor.update_value(
+                    interface_details,
+                    data,
+                    "connect_timeout",
+                )
+                InterfaceEditor.update_value(
+                    interface_details,
+                    data,
+                    "max_reconnect_tries",
+                )
+                InterfaceEditor.update_value(interface_details, data, "fixed_mtu")
 
             if interface_type == "BackboneInterface":
-                remote = data.get("remote") or data.get("target_host")
-                if remote is None or str(remote).strip() == "":
-                    return web.json_response(
-                        {
-                            "message": "Remote host is required",
-                        },
-                        status=422,
+                # BackboneInterface supports two distinct configurations:
+                # - listener mode: bind to listen_ip/listen_port to accept peers
+                # - connector mode: dial out to remote/target_port for a relay
+                listen_port_value = data.get("listen_port")
+                listen_ip_value = data.get("listen_ip")
+                listen_device_value = data.get("device")
+                if (listen_port_value not in (None, "")) and (
+                    listen_ip_value not in (None, "")
+                    or listen_device_value not in (None, "")
+                ):
+                    if is_port_in_use(
+                        listen_ip_value,
+                        listen_port_value,
+                        kind="tcp",
+                    ):
+                        return web.json_response(
+                            {
+                                "message": describe_port_conflict(
+                                    listen_ip_value,
+                                    listen_port_value,
+                                    kind="tcp",
+                                    interface_name=interface_name,
+                                ),
+                            },
+                            status=409,
+                        )
+                    interface_details["listen_port"] = listen_port_value
+                    if listen_ip_value not in (None, ""):
+                        interface_details["listen_ip"] = listen_ip_value
+                    InterfaceEditor.update_value(interface_details, data, "device")
+                    InterfaceEditor.update_value(
+                        interface_details,
+                        data,
+                        "prefer_ipv6",
                     )
-                interface_target_port = data.get("target_port")
-                if interface_target_port is None or interface_target_port == "":
-                    return web.json_response(
-                        {
-                            "message": "Target Port is required",
-                        },
-                        status=422,
-                    )
-                transport_identity = data.get("transport_identity")
-                if transport_identity is None or str(transport_identity).strip() == "":
-                    return web.json_response(
-                        {
-                            "message": "Transport identity is required",
-                        },
-                        status=422,
-                    )
-                interface_details["remote"] = str(remote).strip()
-                interface_details["target_port"] = interface_target_port
-                interface_details["transport_identity"] = str(
-                    transport_identity,
-                ).strip()
+                else:
+                    remote = data.get("remote") or data.get("target_host")
+                    if remote is None or str(remote).strip() == "":
+                        return web.json_response(
+                            {
+                                "message": "Remote host is required",
+                            },
+                            status=422,
+                        )
+                    interface_target_port = data.get("target_port")
+                    if interface_target_port is None or interface_target_port == "":
+                        return web.json_response(
+                            {
+                                "message": "Target Port is required",
+                            },
+                            status=422,
+                        )
+                    transport_identity = data.get("transport_identity")
+                    if (
+                        transport_identity is None
+                        or str(transport_identity).strip() == ""
+                    ):
+                        return web.json_response(
+                            {
+                                "message": "Transport identity is required",
+                            },
+                            status=422,
+                        )
+                    interface_details["remote"] = str(remote).strip()
+                    interface_details["target_port"] = interface_target_port
+                    interface_details["transport_identity"] = str(
+                        transport_identity,
+                    ).strip()
 
             # handle I2P interface
             if interface_type == "I2PInterface":
-                interface_details["connectable"] = "True"
+                connectable_value = data.get("connectable")
+                if connectable_value is None or connectable_value == "":
+                    interface_details["connectable"] = "True"
+                else:
+                    interface_details["connectable"] = (
+                        "True"
+                        if str(connectable_value).lower()
+                        in {"true", "yes", "1", "on", "y"}
+                        else "False"
+                    )
                 peers = data.get("peers")
                 cleaned_peers: list[str] = []
                 if isinstance(peers, list):
@@ -4093,6 +4263,24 @@ class ReticulumMeshChat:
                         status=422,
                     )
 
+                # ensure listen port is not currently in use by another process
+                if is_port_in_use(
+                    interface_listen_ip,
+                    interface_listen_port,
+                    kind="tcp",
+                ):
+                    return web.json_response(
+                        {
+                            "message": describe_port_conflict(
+                                interface_listen_ip,
+                                interface_listen_port,
+                                kind="tcp",
+                                interface_name=interface_name,
+                            ),
+                        },
+                        status=409,
+                    )
+
                 # set required TCPServerInterface options
                 interface_details["listen_ip"] = interface_listen_ip
                 interface_details["listen_port"] = interface_listen_port
@@ -4100,6 +4288,7 @@ class ReticulumMeshChat:
                 # set optional TCPServerInterface options
                 InterfaceEditor.update_value(interface_details, data, "device")
                 InterfaceEditor.update_value(interface_details, data, "prefer_ipv6")
+                InterfaceEditor.update_value(interface_details, data, "i2p_tunneled")
 
             # handle udp interface
             if interface_type == "UDPInterface":
@@ -4141,6 +4330,24 @@ class ReticulumMeshChat:
                             "message": "Forward Port is required",
                         },
                         status=422,
+                    )
+
+                # ensure listen port is not currently in use by another process
+                if is_port_in_use(
+                    interface_listen_ip,
+                    interface_listen_port,
+                    kind="udp",
+                ):
+                    return web.json_response(
+                        {
+                            "message": describe_port_conflict(
+                                interface_listen_ip,
+                                interface_listen_port,
+                                kind="udp",
+                                interface_name=interface_name,
+                            ),
+                        },
+                        status=409,
                     )
 
                 # set required UDPInterface options
@@ -4227,7 +4434,9 @@ class ReticulumMeshChat:
 
                 # set optional RNodeInterface options
                 InterfaceEditor.update_value(interface_details, data, "callsign")
+                InterfaceEditor.update_value(interface_details, data, "id_callsign")
                 InterfaceEditor.update_value(interface_details, data, "id_interval")
+                InterfaceEditor.update_value(interface_details, data, "flow_control")
                 InterfaceEditor.update_value(
                     interface_details,
                     data,
@@ -4348,6 +4557,17 @@ class ReticulumMeshChat:
                     InterfaceEditor.update_value(interface_details, data, "txtail")
                     InterfaceEditor.update_value(interface_details, data, "persistence")
                     InterfaceEditor.update_value(interface_details, data, "slottime")
+                    InterfaceEditor.update_value(
+                        interface_details,
+                        data,
+                        "flow_control",
+                    )
+                    InterfaceEditor.update_value(
+                        interface_details,
+                        data,
+                        "id_callsign",
+                    )
+                    InterfaceEditor.update_value(interface_details, data, "id_interval")
                     InterfaceEditor.update_value(interface_details, data, "callsign")
                     InterfaceEditor.update_value(interface_details, data, "ssid")
 
@@ -6431,7 +6651,6 @@ class ReticulumMeshChat:
             return web.json_response(
                 {
                     "has_espeak": self.voicemail_manager.has_espeak,
-                    "has_ffmpeg": self.voicemail_manager.has_ffmpeg,
                     "is_recording": self.voicemail_manager.is_recording,
                     "is_greeting_recording": self.voicemail_manager.is_greeting_recording,
                     "has_greeting": os.path.exists(greeting_path),
@@ -13522,79 +13741,16 @@ class ReticulumMeshChat:
             return False
 
     def _encode_pcm_wav_to_ogg_opus(self, wav_bytes: bytes) -> bytes | None:
-        """Encode a WAV/PCM payload into an OGG/Opus byte string using LXST.
+        """Encode a WAV/PCM payload into an OGG/Opus byte string.
 
-        Decodes the supplied WAV container (8-bit unsigned, 16-bit signed, or
-        32-bit signed integer PCM) into ``float32`` frames in ``[-1, 1]`` and
-        feeds them through ``LXST.Sinks.OpusFileSink`` configured for a
-        voice-friendly Opus profile. Returns the resulting OGG/Opus bytes,
-        or ``None`` if the payload could not be decoded or encoded.
+        Thin compatibility wrapper around
+        :func:`meshchatx.src.backend.audio_codec.encode_audio_bytes_to_ogg_opus`
+        kept for the existing test surface.
         """
         try:
-            import wave
+            from meshchatx.src.backend import audio_codec
 
-            import numpy as np
-
-            from LXST.Codecs import Opus
-            from LXST.Sinks import OpusFileSink
-
-            with wave.open(io.BytesIO(wav_bytes), "rb") as wf:
-                channels = wf.getnchannels()
-                sample_width = wf.getsampwidth()
-                framerate = wf.getframerate()
-                raw = wf.readframes(wf.getnframes())
-
-            if channels < 1 or framerate <= 0 or len(raw) == 0:
-                return None
-
-            if sample_width == 2:
-                samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
-            elif sample_width == 1:
-                samples = (
-                    np.frombuffer(raw, dtype=np.uint8).astype(np.float32) - 128.0
-                ) / 128.0
-            elif sample_width == 4:
-                samples = (
-                    np.frombuffer(raw, dtype=np.int32).astype(np.float32) / 2147483648.0
-                )
-            else:
-                return None
-
-            samples = samples.reshape(-1, channels)
-
-            tmp = tempfile.NamedTemporaryFile(suffix=".opus", delete=False)
-            tmp.close()
-            output_path = tmp.name
-
-            try:
-                sink = OpusFileSink(path=output_path, profile=Opus.PROFILE_VOICE_HIGH)
-
-                class _PcmFrameSource:
-                    pass
-
-                source = _PcmFrameSource()
-                source.samplerate = framerate
-
-                frame_ms = 60
-                samples_per_frame = max(1, int(framerate * frame_ms / 1000))
-                total = samples.shape[0]
-                for offset in range(0, total, samples_per_frame):
-                    chunk = samples[offset : offset + samples_per_frame]
-                    if chunk.size == 0:
-                        break
-                    sink.handle_frame(chunk, source)
-
-                sink.stop()
-
-                with open(output_path, "rb") as f:
-                    data = f.read()
-            finally:
-                with contextlib.suppress(OSError):
-                    os.unlink(output_path)
-
-            if len(data) > 0 and data[:4] == b"OggS":
-                return data
-            return None
+            return audio_codec.encode_audio_bytes_to_ogg_opus(wav_bytes)
         except Exception as e:
             print(f"PCM->OGG/Opus encoding via LXST failed: {e}")
             return None
@@ -13602,95 +13758,25 @@ class ReticulumMeshChat:
     def _convert_webm_opus_to_ogg(self, audio_bytes: bytes) -> bytes:
         """Convert browser-recorded audio into LXMF-compatible OGG/Opus.
 
-        Detects the supplied container and produces an OGG/Opus payload:
-
-        - ``OggS`` prefix: returned unchanged (already OGG/Opus).
-        - ``RIFF``/``WAVE`` prefix: decoded as PCM and encoded to OGG/Opus
-          via ``LXST.Sinks.OpusFileSink`` (no external dependencies).
-        - Any other container (e.g. legacy WebM/Opus from older clients):
-          falls back to an ffmpeg remux, then an ffmpeg re-encode with
-          voice-friendly Opus settings. If ffmpeg is unavailable or all
-          conversions fail, the original bytes are returned unchanged so
-          the caller can still send the message.
+        Routes everything through
+        :mod:`meshchatx.src.backend.audio_codec`, which decodes the input
+        with miniaudio (WAV/MP3/FLAC/OGG-Vorbis) or LXST (OGG/Opus) and
+        re-encodes it with LXST's voice-friendly Opus profile. If decoding
+        fails the original bytes are returned unchanged so the caller can
+        still try to send the message.
         """
         if audio_bytes[:4] == b"OggS":
             return audio_bytes
-
-        if (
-            len(audio_bytes) >= 12
-            and audio_bytes[:4] == b"RIFF"
-            and audio_bytes[8:12] == b"WAVE"
-        ):
-            encoded = self._encode_pcm_wav_to_ogg_opus(audio_bytes)
-            if encoded is not None:
-                return encoded
-
-        ffmpeg_path = shutil.which("ffmpeg")
-        if ffmpeg_path is None:
-            return audio_bytes
-
         try:
-            remux_result = subprocess.run(  # noqa: S603
-                [
-                    ffmpeg_path,
-                    "-i",
-                    "pipe:0",
-                    "-map",
-                    "0:a:0",
-                    "-c:a",
-                    "copy",
-                    "-f",
-                    "ogg",
-                    "pipe:1",
-                ],
-                input=audio_bytes,
-                capture_output=True,
-                timeout=30,
-            )
-            if (
-                remux_result.returncode == 0
-                and len(remux_result.stdout) > 0
-                and remux_result.stdout[:4] == b"OggS"
-            ):
-                return remux_result.stdout
+            from meshchatx.src.backend import audio_codec
 
-            reencode_result = subprocess.run(  # noqa: S603
-                [
-                    ffmpeg_path,
-                    "-i",
-                    "pipe:0",
-                    "-map",
-                    "0:a:0",
-                    "-c:a",
-                    "libopus",
-                    "-b:a",
-                    "32k",
-                    "-application",
-                    "voip",
-                    "-ac",
-                    "1",
-                    "-ar",
-                    "48000",
-                    "-vbr",
-                    "on",
-                    "-f",
-                    "ogg",
-                    "pipe:1",
-                ],
-                input=audio_bytes,
-                capture_output=True,
-                timeout=30,
-            )
-            if (
-                reencode_result.returncode == 0
-                and len(reencode_result.stdout) > 0
-                and reencode_result.stdout[:4] == b"OggS"
-            ):
-                return reencode_result.stdout
+            encoded = audio_codec.encode_audio_bytes_to_ogg_opus(audio_bytes)
         except Exception as e:
-            print(f"WebM to OGG conversion failed: {e}")
-
-        return audio_bytes
+            print(f"audio conversion failed: {e}")
+            return audio_bytes
+        if encoded is None:
+            return audio_bytes
+        return encoded
 
     def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
         """Return whether ``destination_hash`` is in the block list."""

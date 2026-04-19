@@ -16,6 +16,8 @@ from LXST.Pipeline import Pipeline
 from LXST.Sinks import OpusFileSink
 from LXST.Sources import OpusFileSource
 
+from . import audio_codec
+
 
 class VoicemailManager:
     def __init__(self, db, config, telephone_manager, storage_dir):
@@ -43,23 +45,13 @@ class VoicemailManager:
         # stabilization delay for voicemail greeting
         self.STABILIZATION_DELAY = 1.0
 
-        # Paths to executables
         self.espeak_path = self._find_espeak()
-        self.ffmpeg_path = self._find_ffmpeg()
-
-        # Check for presence
         self.has_espeak = self.espeak_path is not None
-        self.has_ffmpeg = self.ffmpeg_path is not None
 
         if self.has_espeak:
             RNS.log(f"Voicemail: Found eSpeak at {self.espeak_path}", RNS.LOG_DEBUG)
         else:
             RNS.log("Voicemail: eSpeak not found", RNS.LOG_ERROR)
-
-        if self.has_ffmpeg:
-            RNS.log(f"Voicemail: Found ffmpeg at {self.ffmpeg_path}", RNS.LOG_DEBUG)
-        else:
-            RNS.log("Voicemail: ffmpeg not found", RNS.LOG_ERROR)
 
     def get_name_for_identity_hash(self, identity_hash):
         """Default implementation, should be patched by ReticulumMeshChat."""
@@ -114,37 +106,14 @@ class VoicemailManager:
 
         return None
 
-    def _find_ffmpeg(self):
-        # Try bundled first
-        bundled = self._find_bundled_binary("ffmpeg")
-        if bundled:
-            return bundled
-
-        path = shutil.which("ffmpeg")
-        if path:
-            return path
-
-        # Windows common install locations
-        if platform.system() == "Windows":
-            common_paths = [
-                os.path.expandvars(r"%ProgramFiles%\ffmpeg\bin\ffmpeg.exe"),
-                os.path.expandvars(r"%ProgramFiles(x86)%\ffmpeg\bin\ffmpeg.exe"),
-            ]
-            for p in common_paths:
-                if os.path.exists(p):
-                    return p
-
-        return None
-
     def generate_greeting(self, text):
-        if not self.has_espeak or not self.has_ffmpeg:
-            msg = "espeak-ng and ffmpeg are required for greeting generation"
+        if not self.has_espeak:
+            msg = "espeak-ng is required for greeting generation"
             raise RuntimeError(msg)
 
         wav_path = os.path.join(self.greetings_dir, "greeting.wav")
 
         try:
-            # espeak-ng to WAV with improved parameters
             speed = str(self.config.voicemail_tts_speed.get())
             pitch = str(self.config.voicemail_tts_pitch.get())
             voice = self.config.voicemail_tts_voice.get()
@@ -173,42 +142,17 @@ class VoicemailManager:
             )
             subprocess.run(cmd, check=True)  # noqa: S603
 
-            # Convert WAV to Opus
             return self.convert_to_greeting(wav_path)
         finally:
             if os.path.exists(wav_path):
                 os.remove(wav_path)
 
     def convert_to_greeting(self, input_path):
-        if not self.has_ffmpeg:
-            msg = "ffmpeg is required for audio conversion"
-            raise RuntimeError(msg)
-
+        """Decode ``input_path`` (any miniaudio-supported format) and write
+        the OGG/Opus greeting using LXST's voice profile.
+        """
         opus_path = os.path.join(self.greetings_dir, "greeting.opus")
-
-        if os.path.exists(opus_path):
-            os.remove(opus_path)
-
-        subprocess.run(  # noqa: S603
-            [
-                self.ffmpeg_path,
-                "-i",
-                input_path,
-                "-c:a",
-                "libopus",
-                "-b:a",
-                "16k",
-                "-ar",
-                "48000",
-                "-ac",
-                "1",
-                "-vbr",
-                "on",
-                opus_path,
-            ],
-            check=True,
-        )
-
+        audio_codec.encode_audio_to_ogg_opus(input_path, opus_path)
         return opus_path
 
     def remove_greeting(self):
@@ -306,11 +250,9 @@ class VoicemailManager:
             with contextlib.suppress(Exception):
                 telephone.audio_input.stop()
 
-        # Play greeting
         greeting_path = os.path.join(self.greetings_dir, "greeting.opus")
         if not os.path.exists(greeting_path):
-            # Fallback if no greeting generated yet
-            if self.has_espeak and self.has_ffmpeg:
+            if self.has_espeak:
                 try:
                     self.generate_greeting(self.config.voicemail_greeting.get())
                 except Exception as e:
@@ -320,7 +262,7 @@ class VoicemailManager:
                     )
             else:
                 RNS.log(
-                    "Voicemail: espeak-ng or ffmpeg missing, cannot generate greeting",
+                    "Voicemail: espeak-ng missing, cannot generate greeting",
                     RNS.LOG_WARNING,
                 )
 
@@ -523,84 +465,51 @@ class VoicemailManager:
             self.is_recording = False
 
     def _fix_recording(self, filepath):
-        """Ensures the recording is a valid OGG/Opus file using ffmpeg."""
-        if not self.has_ffmpeg or not os.path.exists(filepath):
+        """Ensure ``filepath`` is a valid OGG/Opus file.
+
+        OpusFileSink already produces valid OGG containers, so the common
+        case is a no-op (the file already starts with ``OggS``). For any
+        other input, we try to decode and re-encode using ``audio_codec``
+        which covers WAV/MP3/FLAC/Vorbis/Opus.
+        """
+        if not os.path.exists(filepath):
             return
 
-        temp_path = filepath + ".fix"
         try:
-            # We assume it might be raw opus packets or a slightly broken ogg
-            # ffmpeg can often fix this by just re-wrapping it.
-            # We try to detect if it's already a valid format first.
-            cmd = [
-                self.ffmpeg_path,
-                "-y",
-                "-i",
-                filepath,
-                "-c:a",
-                "libopus",
-                "-b:a",
-                "16k",
-                "-ar",
-                "48000",
-                "-ac",
-                "1",
-                temp_path,
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603
+            with open(filepath, "rb") as f:
+                head = f.read(4)
+            if head == b"OggS":
+                return
 
-            if result.returncode == 0 and os.path.exists(temp_path):
-                os.remove(filepath)
-                os.rename(temp_path, filepath)
+            with open(filepath, "rb") as f:
+                payload = f.read()
+            encoded = audio_codec.encode_audio_bytes_to_ogg_opus(payload)
+            if encoded is None or not encoded.startswith(b"OggS"):
                 RNS.log(
-                    f"Voicemail: Fixed recording format for {filepath}",
-                    RNS.LOG_DEBUG,
-                )
-            else:
-                RNS.log(
-                    f"Voicemail: ffmpeg failed to fix {filepath}: {result.stderr}",
+                    f"Voicemail: Could not normalise recording {filepath}",
                     RNS.LOG_WARNING,
                 )
+                return
+            with open(filepath, "wb") as f:
+                f.write(encoded)
+            RNS.log(
+                f"Voicemail: Fixed recording format for {filepath}",
+                RNS.LOG_DEBUG,
+            )
         except Exception as e:
             RNS.log(f"Voicemail: Error fixing recording {filepath}: {e}", RNS.LOG_ERROR)
-        finally:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
 
     def _write_silence_file(self, filepath, seconds=1):
-        """Creates a minimal OGG/Opus file with silence if recording is missing."""
-        if not self.has_ffmpeg:
-            return False
-
+        """Write a minimal OGG/Opus silence file at ``filepath``."""
         try:
-            cmd = [
-                self.ffmpeg_path,
-                "-y",
-                "-f",
-                "lavfi",
-                "-i",
-                "anullsrc=r=48000:cl=mono",
-                "-t",
-                str(max(1, seconds)),
-                "-c:a",
-                "libopus",
-                "-b:a",
-                "16k",
-                filepath,
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # noqa: S603
-            if result.returncode == 0 and os.path.exists(filepath):
-                return True
-            RNS.log(
-                f"Voicemail: Failed to create silence file for {filepath}: {result.stderr}",
-                RNS.LOG_ERROR,
-            )
+            audio_codec.write_silence_ogg_opus(filepath, seconds=max(1, seconds))
+            return os.path.exists(filepath) and os.path.getsize(filepath) > 0
         except Exception as e:
             RNS.log(
                 f"Voicemail: Error creating silence file for {filepath}: {e}",
                 RNS.LOG_ERROR,
             )
-        return False
+            return False
 
     def start_greeting_recording(self):
         telephone = self.telephone_manager.telephone
