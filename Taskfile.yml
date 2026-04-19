@@ -477,6 +477,19 @@ tasks:
                 cp -r meshchatx "{{.PYTHON_SRC_DIR}}/"
                 echo "MeshChatX Python sources staged. Dependency installation is handled by Chaquopy in android/app/build.gradle."
 
+    android:wheels:
+        desc: Build the Android (Chaquopy) wheels into android/vendor/. Mirrors CI.
+        vars:
+            ANDROID_WHEEL_PYTHON: '{{.ANDROID_WHEEL_PYTHON | default "3.11"}}'
+            ANDROID_WHEEL_ABIS: '{{.ANDROID_WHEEL_ABIS | default "arm64-v8a,x86_64,armeabi-v7a"}}'
+            ANDROID_WHEEL_CHAQUOPY_REF: '{{.ANDROID_WHEEL_CHAQUOPY_REF | default "9f563f45108a873d7feb363e1f754c0173f1114e"}}'
+        cmds:
+            - |
+                bash scripts/build-android-wheels-local.sh \
+                    --python-minor "{{.ANDROID_WHEEL_PYTHON}}" \
+                    --chaquopy-ref "{{.ANDROID_WHEEL_CHAQUOPY_REF}}" \
+                    --abis "{{.ANDROID_WHEEL_ABIS}}"
+
     android:build:
         desc: Build Debug APK
         deps: [android:prepare]

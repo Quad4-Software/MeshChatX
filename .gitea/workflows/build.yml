@@ -88,7 +88,7 @@ jobs:
               run: |
                   sh scripts/ci/exec-priv.sh dpkg --add-architecture i386
                   sh scripts/ci/exec-priv.sh apt-get update
-                  sh scripts/ci/exec-priv.sh apt-get install -y patchelf libopusfile0 ffmpeg espeak-ng zip rpm elfutils
+                  sh scripts/ci/exec-priv.sh apt-get install -y patchelf libopusfile0 espeak-ng zip rpm elfutils
 
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
