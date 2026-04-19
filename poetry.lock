@@ -1425,6 +1425,52 @@ files = [
 ]
 
 [[package]]
+name = "miniaudio"
+version = "1.70"
+description = "python bindings for the miniaudio library and its decoders (mp3, flac, ogg vorbis, wav)"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "miniaudio-1.70-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:34d0bcda68293c6efceb8ea4c2c1871979193ecd1fbc9fe408fa1a69e1fe40b4"},
+    {file = "miniaudio-1.70-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:16d86fe5a9fa54b7a15d417c1bf6b1b8ddbfda0bf82acb59fff8bc01336e9bcd"},
+    {file = "miniaudio-1.70-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5c3ef2023a37a1e81e5e9a65abb20934bc910336ebf23d5da3e235b1d8ee488d"},
+    {file = "miniaudio-1.70-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e68f0d0e957f716bb7ba2f20623ef032a2c0be5fb1aee4b4f5ecb6710bd2da5c"},
+    {file = "miniaudio-1.70-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:e67fa7f34273e651e2f6aa36f06b31bf136e105d9d05332dd2378f89bb0a3f78"},
+    {file = "miniaudio-1.70-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:07b7a813981aeea441b35324fae20a04872d113ad9731f1fe3fad31f8ef65bab"},
+    {file = "miniaudio-1.70-cp310-cp310-win32.whl", hash = "sha256:a6db4139f66317cbad89361c82eb82be7984bb827d1c1954950160b020c2b196"},
+    {file = "miniaudio-1.70-cp310-cp310-win_amd64.whl", hash = "sha256:a71c170e3f9476f707bbb3fce1e8d8c1726be3024c3621685c0d1f29e5510f6b"},
+    {file = "miniaudio-1.70-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:06401e658d64fff8a4705f2082c093b1f1ce78bf99cbc932e2b8e48ec634cfb9"},
+    {file = "miniaudio-1.70-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:588843c600c798e37fbe25b7b9feaa891e6ca0693be89f8d51734b8be441209a"},
+    {file = "miniaudio-1.70-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:8eb21a2bd770e575a0ff14b00b2120bfe9e59495f7a61c98c2e1f3942cccaad9"},
+    {file = "miniaudio-1.70-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:770ece1f3a1d6d0c8e0ce17c444b0e46b919e85389d4ef26ea8e354c0de1b840"},
+    {file = "miniaudio-1.70-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:e39e40562515aea0eafbc21ff9ea7852dd42b8af4f7c65cd218569eaef93add3"},
+    {file = "miniaudio-1.70-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:9c385bdcfb203276a662964ddb4b0786790c56a833cdbcab1eece767b99a3476"},
+    {file = "miniaudio-1.70-cp311-cp311-win32.whl", hash = "sha256:faec5f2d549640e1bffd19f68e6e21449bbe24a0e2eea215c8f8ba78a668d3fc"},
+    {file = "miniaudio-1.70-cp311-cp311-win_amd64.whl", hash = "sha256:1a6b58fc456d0384a39233a5889728c4d6b7fa0d105774c620e5666aad2d0bc9"},
+    {file = "miniaudio-1.70-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:bfe53c6d47a13c6ae5612444731f4717a3b293990a6048d9486bf69a83e876ea"},
+    {file = "miniaudio-1.70-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:5c96244596485a42345b8b7094a1917857d0a4f11a25c254ec9cb8562611093d"},
+    {file = "miniaudio-1.70-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:4ed1da7e0f903eeea3cecd8c199a39bedf27d782a9de9b81bf1db3d0840c673c"},
+    {file = "miniaudio-1.70-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ec53c807dce88f457375538e7d81b87cc4366502a581f46b3ee4b50e282b7a2c"},
+    {file = "miniaudio-1.70-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:fcda7999e1c170ae59019f7ddf8cfd48aafcdbc8ebd89c25f917b4910e30090e"},
+    {file = "miniaudio-1.70-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:3c7116fd74ed2733a4ef6b4f23224fe968872ea89030917f1bcd5eeb7060d0f1"},
+    {file = "miniaudio-1.70-cp312-cp312-win32.whl", hash = "sha256:8adda5de804ececcd1810c9522767f87d2afb951fdd9bce0916fb586457bfc69"},
+    {file = "miniaudio-1.70-cp312-cp312-win_amd64.whl", hash = "sha256:e6c66850acafd8bacfa8b39fecc939527783ae2919336bb446c4d7d48e86e612"},
+    {file = "miniaudio-1.70-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:178bf8671c317a6dec5c2ade93394be406bd52f43ac784c5d51e3c71a23e2919"},
+    {file = "miniaudio-1.70-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:e76686f21cf5d1459f64d61ac41a360db3f27e3e89b6bb61274a2ba240d36092"},
+    {file = "miniaudio-1.70-cp313-cp313-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:4c7b67b4dfbc2478c254fbfb6eca1d3f5f7c6062dd5f63022dfde15099fea20e"},
+    {file = "miniaudio-1.70-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ad0a7ebe9ad4ae987c582f884f87945a21ac3d93131bba01d39797607a5f01cf"},
+    {file = "miniaudio-1.70-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:50cf3e80675fd34cd00c60efcb503b6254a9d4be8eb4633b401aa1d42f05c165"},
+    {file = "miniaudio-1.70-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:540e1ea433b1f2a2f63bcc4acdc8707ba89299b62db9019913367359a087b597"},
+    {file = "miniaudio-1.70-cp313-cp313-win32.whl", hash = "sha256:387213741b55daca5a2db69a89ae904f7b4bbc0440f81e66352150910ff6e416"},
+    {file = "miniaudio-1.70-cp313-cp313-win_amd64.whl", hash = "sha256:2107858d97fad7da021ffd43e109247ee10d6ca31f196f63b2ba2095df9025eb"},
+    {file = "miniaudio-1.70.tar.gz", hash = "sha256:f788504ee2b8ad3092f34b13d72875dba50597a3d25d8af3ac2f8573d31d8c31"},
+]
+
+[package.dependencies]
+cffi = ">=1.12.0"
+
+[[package]]
 name = "multidict"
 version = "6.7.1"
 description = "multidict implementation"
@@ -2870,4 +2916,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "36a9616602e59bc413b5592449193099517935286c0936d4177edba11e19126b"
+content-hash = "110d48ac633b0b1b1d83483d97d8392f9754f32e0f02bc1ed4ea6c35d0c70f64"

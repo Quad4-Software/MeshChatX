@@ -134,6 +134,7 @@ chaquopy {
             install "numpy==1.26.2"
             install "chaquopy-libcodec2==1.2.0"
             install "pycodec2==4.1.1"
+            install "miniaudio==1.70"
             if (!lxstPatchedWheel.exists()) {
                 throw new org.gradle.api.GradleException("Missing patched LXST wheel at ${lxstPatchedWheel}")
             }
