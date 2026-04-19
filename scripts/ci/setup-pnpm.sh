@@ -10,4 +10,6 @@ PNPM_VERSION="${1:-10.32.1}"
 corepack enable
 corepack prepare "pnpm@${PNPM_VERSION}" --activate
 
+pnpm config set verify-store-integrity true
+
 pnpm --version

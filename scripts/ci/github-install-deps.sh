@@ -34,5 +34,8 @@ if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
     sudo apt-get install -y libopus0 libogg0
 fi
 
+python -m poetry check --lock
 python -m poetry install --no-interaction --no-ansi
+
+pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
