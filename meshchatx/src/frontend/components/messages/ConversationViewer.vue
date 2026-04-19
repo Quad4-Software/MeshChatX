@@ -807,35 +807,25 @@
                                         >
                                             {{ $t("stickers.empty_library") }}
                                         </div>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <button
-                                                type="button"
-                                                class="rounded-xl border border-gray-300 dark:border-zinc-600 px-2 py-2 text-xs flex items-center justify-center gap-1 hover:border-emerald-500"
-                                                @click="openStickerEditor()"
-                                            >
-                                                <MaterialDesignIcon icon-name="image-edit-outline" class="size-4" />
-                                                {{ $t("sticker_editor.create_button") }}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-2 py-2 text-xs hover:border-blue-400"
-                                                :class="
-                                                    stickerDropActive
-                                                        ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
-                                                        : ''
-                                                "
-                                                :disabled="isStickerUploading"
-                                                @click="triggerStickerUploadInput"
-                                            >
-                                                <div class="flex items-center justify-center gap-1">
-                                                    <MaterialDesignIcon
-                                                        icon-name="upload"
-                                                        class="size-4 text-blue-500"
-                                                    />
-                                                    {{ $t("stickers.upload_short") }}
-                                                </div>
-                                            </button>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            class="w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-zinc-600 px-2 py-2 text-xs hover:border-blue-400"
+                                            :class="
+                                                stickerDropActive
+                                                    ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40'
+                                                    : ''
+                                            "
+                                            :disabled="isStickerUploading"
+                                            @click="triggerStickerUploadInput"
+                                        >
+                                            <div class="flex items-center justify-center gap-1">
+                                                <MaterialDesignIcon
+                                                    icon-name="upload"
+                                                    class="size-4 text-blue-500"
+                                                />
+                                                {{ $t("stickers.upload_short") }}
+                                            </div>
+                                        </button>
                                     </div>
                                     <div
                                         v-show="emojiStickerTab === 'gifs'"
@@ -1415,13 +1405,6 @@
         @close="isPaperMessageModalOpen = false"
     />
 
-    <StickerEditor
-        :visible="isStickerEditorOpen"
-        :default-pack-id="activeStickerPackId"
-        @close="closeStickerEditor"
-        @saved="onStickerEditorSaved"
-    />
-
     <PaperMessageModal
         v-if="isPaperMessageResultModalOpen"
         :initial-uri="generatedPaperMessageUri"
@@ -1667,7 +1650,6 @@ import { createOutboundQueue } from "../../js/outboundSendQueue";
 import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
 import "emoji-picker-element";
 import StickerView from "../stickers/StickerView.vue";
-import StickerEditor from "../stickers/StickerEditor.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 
 export default {
@@ -1687,7 +1669,6 @@ export default {
         ConversationMessageEntry,
         ConversationMessageListVirtual,
         StickerView,
-        StickerEditor,
         InViewAnimatedImg,
     },
     props: {
@@ -1798,7 +1779,6 @@ export default {
             userStickers: [],
             userStickerPacks: [],
             activeStickerPackId: null,
-            isStickerEditorOpen: false,
             isStickerPickerOpen: false,
             emojiStickerTab: "emoji",
             emojiPickerDataUrl: emojiPickerEnDataUrl,
@@ -4711,16 +4691,6 @@ export default {
         },
         stickerImageUrl(stickerId) {
             return `/api/v1/stickers/${stickerId}/image`;
-        },
-        openStickerEditor() {
-            this.isStickerEditorOpen = true;
-            this.isStickerPickerOpen = false;
-        },
-        closeStickerEditor() {
-            this.isStickerEditorOpen = false;
-        },
-        async onStickerEditorSaved() {
-            await this.loadUserStickers();
         },
         onStickerPanelDragOver(event) {
             event.preventDefault();

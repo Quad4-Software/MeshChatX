@@ -213,35 +213,138 @@
                                                     class="input-field"
                                                 />
                                             </div>
+                                            <div class="flex items-center gap-2">
+                                                <Toggle
+                                                    id="tcp-kiss-framing"
+                                                    v-model="newInterfaceKISSFramingEnabled"
+                                                />
+                                                <FormLabel for="tcp-kiss-framing" class="cursor-pointer !mb-0 text-sm"
+                                                    >Use KISS framing (legacy compatibility)</FormLabel
+                                                >
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <Toggle
+                                                    id="tcp-i2p-tunneled"
+                                                    v-model="newInterfaceI2PTunnelingEnabled"
+                                                />
+                                                <FormLabel for="tcp-i2p-tunneled" class="cursor-pointer !mb-0 text-sm"
+                                                    >I2P Tunneled (target is an I2P b32)</FormLabel
+                                                >
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-3">
+                                                <div>
+                                                    <FormLabel class="glass-label">Connect Timeout (s)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceConnectTimeout"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="default"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Max Reconnect Tries</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceMaxReconnectTries"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="default"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Fixed MTU</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceFixedMTU"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="auto"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div v-if="newInterfaceType === 'BackboneInterface'" class="space-y-4">
-                                            <div>
-                                                <FormLabel class="glass-label">Remote host</FormLabel>
-                                                <input
-                                                    v-model="newInterfaceTargetHost"
-                                                    type="text"
-                                                    placeholder="e.g. example.com or 1.2.3.4"
-                                                    class="input-field"
+                                            <div class="flex items-center gap-2">
+                                                <Toggle
+                                                    id="backbone-listen-mode"
+                                                    v-model="newInterfaceBackboneListenMode"
                                                 />
+                                                <FormLabel
+                                                    for="backbone-listen-mode"
+                                                    class="cursor-pointer !mb-0 text-sm"
+                                                    >Listener mode (host this backbone)</FormLabel
+                                                >
                                             </div>
-                                            <div>
-                                                <FormLabel class="glass-label">Target port</FormLabel>
-                                                <input
-                                                    v-model="newInterfaceTargetPort"
-                                                    type="number"
-                                                    placeholder="4242"
-                                                    class="input-field"
-                                                />
+                                            <div v-if="!newInterfaceBackboneListenMode" class="space-y-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Remote host</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceTargetHost"
+                                                        type="text"
+                                                        placeholder="e.g. example.com or 1.2.3.4"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Target port</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceTargetPort"
+                                                        type="number"
+                                                        placeholder="4242"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Transport identity (hex)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceTransportIdentity"
+                                                        type="text"
+                                                        placeholder="32 hex chars from the directory"
+                                                        class="input-field font-mono text-xs"
+                                                    />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <FormLabel class="glass-label">Transport identity (hex)</FormLabel>
-                                                <input
-                                                    v-model="newInterfaceTransportIdentity"
-                                                    type="text"
-                                                    placeholder="32 hex chars from the directory"
-                                                    class="input-field font-mono text-xs"
-                                                />
+                                            <div v-else class="space-y-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Listen IP (Optional)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceBackboneListenIp"
+                                                        type="text"
+                                                        placeholder="0.0.0.0"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Listen Port</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceBackboneListenPort"
+                                                        type="number"
+                                                        placeholder="4242"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Device (optional)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceBackboneListenDevice"
+                                                        type="text"
+                                                        placeholder="e.g. eth0"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <Toggle
+                                                        id="backbone-listen-ipv6"
+                                                        v-model="newInterfacePreferIPV6"
+                                                    />
+                                                    <FormLabel
+                                                        for="backbone-listen-ipv6"
+                                                        class="cursor-pointer !mb-0 text-sm"
+                                                        >Prefer IPv6</FormLabel
+                                                    >
+                                                </div>
                                             </div>
                                         </div>
 
@@ -267,6 +370,37 @@
                                                     placeholder="4242"
                                                     class="input-field"
                                                 />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Device (optional)</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceNetworkDevice"
+                                                    type="text"
+                                                    placeholder="e.g. eth0 (overrides Listen IP)"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div
+                                                v-if="newInterfaceType === 'TCPServerInterface'"
+                                                class="flex flex-wrap items-center gap-4"
+                                            >
+                                                <div class="flex items-center gap-2">
+                                                    <Toggle id="tcp-server-ipv6" v-model="newInterfacePreferIPV6" />
+                                                    <FormLabel
+                                                        for="tcp-server-ipv6"
+                                                        class="cursor-pointer !mb-0 text-sm"
+                                                        >Prefer IPv6</FormLabel
+                                                    >
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <Toggle
+                                                        id="tcp-server-i2p"
+                                                        v-model="newInterfaceI2PTunnelingEnabled"
+                                                    />
+                                                    <FormLabel for="tcp-server-i2p" class="cursor-pointer !mb-0 text-sm"
+                                                        >I2P Tunneled</FormLabel
+                                                    >
+                                                </div>
                                             </div>
                                         </div>
 
@@ -299,6 +433,12 @@
                                             >
                                                 ⓘ To use the I2P interface, you must have an I2P router running on your
                                                 system.
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <Toggle id="i2p-connectable" v-model="newInterfaceConnectable" />
+                                                <FormLabel for="i2p-connectable" class="cursor-pointer !mb-0 text-sm"
+                                                    >Allow incoming peers (connectable)</FormLabel
+                                                >
                                             </div>
                                             <div>
                                                 <FormLabel class="glass-label">Initial Peers (Optional)</FormLabel>
@@ -486,6 +626,345 @@
                                                         class="input-field"
                                                     />
                                                 </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Spreading Factor</FormLabel>
+                                                    <select v-model="newInterfaceSpreadingFactor" class="input-field">
+                                                        <option
+                                                            v-for="sf in RNodeInterfaceDefaults.spreadingfactors"
+                                                            :key="sf"
+                                                            :value="sf"
+                                                        >
+                                                            SF{{ sf }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Coding Rate</FormLabel>
+                                                    <select v-model="newInterfaceCodingRate" class="input-field">
+                                                        <option
+                                                            v-for="cr in RNodeInterfaceDefaults.codingrates"
+                                                            :key="cr"
+                                                            :value="cr"
+                                                        >
+                                                            4:{{ cr }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <Toggle id="rnode-flow-control" v-model="newInterfaceFlowControl" />
+                                                <FormLabel for="rnode-flow-control" class="cursor-pointer !mb-0 text-sm"
+                                                    >Hardware flow control</FormLabel
+                                                >
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Station ID Callsign</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceIDCallsign"
+                                                        type="text"
+                                                        placeholder="e.g. NOCALL"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">ID Interval (s)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceIDInterval"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="600"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Airtime Limit Long (%)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceAirtimeLimitLong"
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        step="0.1"
+                                                        placeholder="optional"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Airtime Limit Short (%)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceAirtimeLimitShort"
+                                                        type="number"
+                                                        min="0"
+                                                        max="100"
+                                                        step="0.1"
+                                                        placeholder="optional"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Serial port settings (Serial/KISS/AX25KISS) -->
+                                        <div
+                                            v-if="
+                                                ['SerialInterface', 'KISSInterface', 'AX25KISSInterface'].includes(
+                                                    newInterfaceType
+                                                )
+                                            "
+                                            class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                        >
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Baud Rate</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceSpeed"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="9600"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Data Bits</FormLabel>
+                                                    <select v-model="newInterfaceDatabits" class="input-field">
+                                                        <option :value="null">Default (8)</option>
+                                                        <option :value="5">5</option>
+                                                        <option :value="6">6</option>
+                                                        <option :value="7">7</option>
+                                                        <option :value="8">8</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Parity</FormLabel>
+                                                    <select v-model="newInterfaceParity" class="input-field">
+                                                        <option :value="null">Default (none)</option>
+                                                        <option value="N">None</option>
+                                                        <option value="E">Even</option>
+                                                        <option value="O">Odd</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Stop Bits</FormLabel>
+                                                    <select v-model="newInterfaceStopbits" class="input-field">
+                                                        <option :value="null">Default (1)</option>
+                                                        <option :value="1">1</option>
+                                                        <option :value="2">2</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- KISS framing parameters (KISS/AX25KISS) -->
+                                        <div
+                                            v-if="['KISSInterface', 'AX25KISSInterface'].includes(newInterfaceType)"
+                                            class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                        >
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Preamble (ms)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfacePreamble"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="350"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">TX Tail (ms)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceTXTail"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="20"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Persistence (0-255)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfacePersistence"
+                                                        type="number"
+                                                        min="0"
+                                                        max="255"
+                                                        placeholder="64"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Slot Time (ms)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceSlotTime"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="20"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <Toggle id="kiss-flow-control" v-model="newInterfaceFlowControl" />
+                                                <FormLabel for="kiss-flow-control" class="cursor-pointer !mb-0 text-sm"
+                                                    >Hardware flow control</FormLabel
+                                                >
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Beacon Callsign</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceIDCallsign"
+                                                        type="text"
+                                                        placeholder="optional"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Beacon Interval (s)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceIDInterval"
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="optional"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- AX.25 KISS extras -->
+                                        <div
+                                            v-if="newInterfaceType === 'AX25KISSInterface'"
+                                            class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                        >
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">AX.25 Callsign</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceCallsign"
+                                                        type="text"
+                                                        placeholder="e.g. NOCALL"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">SSID (0-15)</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceSSID"
+                                                        type="number"
+                                                        min="0"
+                                                        max="15"
+                                                        placeholder="0"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- AutoInterface -->
+                                        <div v-if="newInterfaceType === 'AutoInterface'" class="space-y-4">
+                                            <div
+                                                class="bg-pink-50/50 dark:bg-pink-900/10 p-3 rounded-2xl border border-pink-100 dark:border-pink-900/20 text-xs text-pink-800 dark:text-pink-300"
+                                            >
+                                                ⓘ Auto Interface auto-discovers peers on connected networks via IPv6
+                                                multicast.
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Group ID (optional)</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceGroupID"
+                                                    type="text"
+                                                    placeholder="reticulum"
+                                                    class="input-field"
+                                                />
+                                                <p class="text-[10px] text-gray-400 mt-1">
+                                                    Only peers sharing the same group_id will discover each other.
+                                                </p>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Discovery Scope</FormLabel>
+                                                    <select v-model="newInterfaceDiscoveryScope" class="input-field">
+                                                        <option :value="null">Default (link)</option>
+                                                        <option value="link">Link (local segment)</option>
+                                                        <option value="admin">Administrative</option>
+                                                        <option value="site">Site</option>
+                                                        <option value="organisation">Organisation</option>
+                                                        <option value="global">Global</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Multicast Address Type</FormLabel>
+                                                    <select
+                                                        v-model="newInterfaceMulticastAddressType"
+                                                        class="input-field"
+                                                    >
+                                                        <option :value="null">Default (temporary)</option>
+                                                        <option value="temporary">Temporary</option>
+                                                        <option value="permanent">Permanent</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <FormLabel class="glass-label">Discovery Port</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceDiscoveryPort"
+                                                        type="number"
+                                                        min="1"
+                                                        max="65535"
+                                                        placeholder="29716"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">Data Port</FormLabel>
+                                                    <input
+                                                        v-model="newInterfaceDataPort"
+                                                        type="number"
+                                                        min="1"
+                                                        max="65535"
+                                                        placeholder="42671"
+                                                        class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label"
+                                                    >Allowed Devices (comma separated)</FormLabel
+                                                >
+                                                <input
+                                                    v-model="newInterfaceDevices"
+                                                    type="text"
+                                                    placeholder="e.g. eth0, wlan0"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label"
+                                                    >Ignored Devices (comma separated)</FormLabel
+                                                >
+                                                <input
+                                                    v-model="newInterfaceIgnoredDevices"
+                                                    type="text"
+                                                    placeholder="e.g. tun0, docker0"
+                                                    class="input-field"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">Configured Bitrate (bps)</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceConfiguredBitrate"
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="optional override"
+                                                    class="input-field"
+                                                />
                                             </div>
                                         </div>
 
@@ -1066,9 +1545,18 @@ export default {
             newInterfaceListenIp: null,
             newInterfaceListenPort: null,
             newInterfaceNetworkDevice: null,
-            newInterfacePreferIPV6: null,
-            newInterfaceKISSFramingEnabled: null,
-            newInterfaceI2PTunnelingEnabled: null,
+            newInterfacePreferIPV6: false,
+            newInterfaceKISSFramingEnabled: false,
+            newInterfaceI2PTunnelingEnabled: false,
+            newInterfaceConnectTimeout: null,
+            newInterfaceMaxReconnectTries: null,
+            newInterfaceFixedMTU: null,
+            newInterfaceConfiguredBitrate: null,
+            newInterfaceConnectable: true,
+            newInterfaceBackboneListenMode: false,
+            newInterfaceBackboneListenPort: null,
+            newInterfaceBackboneListenIp: null,
+            newInterfaceBackboneListenDevice: null,
 
             sharedInterfaceSettings: {
                 mode: null,
@@ -1143,10 +1631,14 @@ export default {
             newInterfacePersistence: null,
             newInterfaceSlotTime: null,
 
+            // AX25 KISS only
+            newInterfaceSSID: null,
+
             // RNode and KISS
             newInterfaceCallsign: null,
+            newInterfaceIDCallsign: null,
             newInterfaceIDInterval: null,
-            newInterfaceFlowControl: null,
+            newInterfaceFlowControl: false,
             newInterfaceAirtimeLimitLong: null,
             newInterfaceAirtimeLimitShort: null,
 
@@ -1343,6 +1835,50 @@ export default {
                 }
                 this.newInterfaceListenIp = iface.listen_ip;
                 this.newInterfaceListenPort = iface.listen_port;
+                this.newInterfaceForwardIp = iface.forward_ip;
+                this.newInterfaceForwardPort = iface.forward_port;
+                this.newInterfaceNetworkDevice = iface.device;
+                this.newInterfacePreferIPV6 = this.parseBool(iface.prefer_ipv6);
+                this.newInterfaceKISSFramingEnabled = this.parseBool(iface.kiss_framing);
+                this.newInterfaceI2PTunnelingEnabled = this.parseBool(iface.i2p_tunneled);
+                this.newInterfaceConnectTimeout = iface.connect_timeout ?? null;
+                this.newInterfaceMaxReconnectTries = iface.max_reconnect_tries ?? null;
+                this.newInterfaceFixedMTU = iface.fixed_mtu ?? null;
+                this.newInterfaceConnectable =
+                    iface.connectable === undefined ? true : this.parseBool(iface.connectable);
+
+                if (iface.type === "BackboneInterface") {
+                    this.newInterfaceBackboneListenMode = iface.listen_port != null && iface.listen_port !== "";
+                    this.newInterfaceBackboneListenIp = iface.listen_ip ?? null;
+                    this.newInterfaceBackboneListenPort = iface.listen_port ?? null;
+                    this.newInterfaceBackboneListenDevice = iface.device ?? null;
+                }
+
+                this.newInterfaceGroupID = iface.group_id ?? null;
+                this.newInterfaceMulticastAddressType = iface.multicast_address_type ?? null;
+                this.newInterfaceDevices = iface.devices ?? null;
+                this.newInterfaceIgnoredDevices = iface.ignored_devices ?? null;
+                this.newInterfaceDiscoveryScope = iface.discovery_scope ?? null;
+                this.newInterfaceDiscoveryPort = iface.discovery_port ?? null;
+                this.newInterfaceDataPort = iface.data_port ?? null;
+                this.newInterfaceConfiguredBitrate = iface.configured_bitrate ?? null;
+
+                this.newInterfaceFlowControl = this.parseBool(iface.flow_control);
+                this.newInterfaceCallsign = iface.callsign ?? null;
+                this.newInterfaceIDCallsign = iface.id_callsign ?? null;
+                this.newInterfaceIDInterval = iface.id_interval ?? null;
+                this.newInterfaceAirtimeLimitLong = iface.airtime_limit_long ?? null;
+                this.newInterfaceAirtimeLimitShort = iface.airtime_limit_short ?? null;
+                this.newInterfaceSSID = iface.ssid ?? null;
+                this.newInterfaceSpeed = iface.speed ?? null;
+                this.newInterfaceDatabits = iface.databits ?? null;
+                this.newInterfaceParity = iface.parity ?? null;
+                this.newInterfaceStopbits = iface.stopbits ?? null;
+                this.newInterfacePreamble = iface.preamble ?? null;
+                this.newInterfaceTXTail = iface.txtail ?? null;
+                this.newInterfacePersistence = iface.persistence ?? null;
+                this.newInterfaceSlotTime = iface.slottime ?? null;
+
                 this.newInterfacePort = iface.port;
                 this.newInterfaceRNodeUseIP = false;
                 if (iface.port && String(iface.port).startsWith("tcp://")) {
@@ -1490,6 +2026,43 @@ export default {
             // KISS/AX.25
             if (config.callsign) this.newInterfaceCallsign = config.callsign;
             if (config.ssid) this.newInterfaceSSID = config.ssid;
+            if (config.id_callsign) this.newInterfaceIDCallsign = config.id_callsign;
+            if (config.id_interval) this.newInterfaceIDInterval = Number(config.id_interval);
+            if (config.flow_control !== undefined) this.newInterfaceFlowControl = this.parseBool(config.flow_control);
+            if (config.preamble) this.newInterfacePreamble = Number(config.preamble);
+            if (config.txtail) this.newInterfaceTXTail = Number(config.txtail);
+            if (config.persistence) this.newInterfacePersistence = Number(config.persistence);
+            if (config.slottime) this.newInterfaceSlotTime = Number(config.slottime);
+            if (config.speed) this.newInterfaceSpeed = Number(config.speed);
+            if (config.databits) this.newInterfaceDatabits = Number(config.databits);
+            if (config.parity) this.newInterfaceParity = config.parity;
+            if (config.stopbits) this.newInterfaceStopbits = Number(config.stopbits);
+
+            // AutoInterface
+            if (config.group_id) this.newInterfaceGroupID = config.group_id;
+            if (config.discovery_scope) this.newInterfaceDiscoveryScope = config.discovery_scope;
+            if (config.discovery_port) this.newInterfaceDiscoveryPort = Number(config.discovery_port);
+            if (config.data_port) this.newInterfaceDataPort = Number(config.data_port);
+            if (config.multicast_address_type) this.newInterfaceMulticastAddressType = config.multicast_address_type;
+            if (config.devices) this.newInterfaceDevices = config.devices;
+            if (config.ignored_devices) this.newInterfaceIgnoredDevices = config.ignored_devices;
+            if (config.configured_bitrate) this.newInterfaceConfiguredBitrate = Number(config.configured_bitrate);
+
+            // TCP / Network extras
+            if (config.kiss_framing !== undefined)
+                this.newInterfaceKISSFramingEnabled = this.parseBool(config.kiss_framing);
+            if (config.i2p_tunneled !== undefined)
+                this.newInterfaceI2PTunnelingEnabled = this.parseBool(config.i2p_tunneled);
+            if (config.connect_timeout) this.newInterfaceConnectTimeout = Number(config.connect_timeout);
+            if (config.max_reconnect_tries) this.newInterfaceMaxReconnectTries = Number(config.max_reconnect_tries);
+            if (config.fixed_mtu) this.newInterfaceFixedMTU = Number(config.fixed_mtu);
+            if (config.device) this.newInterfaceNetworkDevice = config.device;
+            if (config.prefer_ipv6 !== undefined) this.newInterfacePreferIPV6 = this.parseBool(config.prefer_ipv6);
+            if (config.connectable !== undefined) this.newInterfaceConnectable = this.parseBool(config.connectable);
+
+            // RNode airtime / id callsign
+            if (config.airtime_limit_long) this.newInterfaceAirtimeLimitLong = Number(config.airtime_limit_long);
+            if (config.airtime_limit_short) this.newInterfaceAirtimeLimitShort = Number(config.airtime_limit_short);
 
             // Advanced
             if (config.mode) this.sharedInterfaceSettings.mode = config.mode;
@@ -1570,10 +2143,60 @@ export default {
                 discovery_frequency: discoveryEnabled ? this.numOrNull(config.discovery_frequency) : null,
                 discovery_bandwidth: discoveryEnabled ? this.numOrNull(config.discovery_bandwidth) : null,
                 discovery_modulation: discoveryEnabled ? this.numOrNull(config.discovery_modulation) : null,
-                mode: config.mode || "full",
+                mode: config.mode || null,
                 bitrate: this.numOrNull(config.bitrate),
                 network_name: config.network_name || null,
                 passphrase: config.passphrase || null,
+                forward_ip: config.forward_ip || null,
+                forward_port: this.numOrNull(config.forward_port),
+                device: config.device || null,
+                prefer_ipv6:
+                    config.prefer_ipv6 !== undefined && config.prefer_ipv6 !== null && config.prefer_ipv6 !== ""
+                        ? this.parseBool(config.prefer_ipv6)
+                        : null,
+                kiss_framing:
+                    config.kiss_framing !== undefined && config.kiss_framing !== null && config.kiss_framing !== ""
+                        ? this.parseBool(config.kiss_framing)
+                        : null,
+                i2p_tunneled:
+                    config.i2p_tunneled !== undefined && config.i2p_tunneled !== null && config.i2p_tunneled !== ""
+                        ? this.parseBool(config.i2p_tunneled)
+                        : null,
+                connect_timeout: this.numOrNull(config.connect_timeout),
+                max_reconnect_tries: this.numOrNull(config.max_reconnect_tries),
+                fixed_mtu: this.numOrNull(config.fixed_mtu),
+                connectable:
+                    config.type === "I2PInterface"
+                        ? config.connectable !== undefined && config.connectable !== null && config.connectable !== ""
+                            ? this.parseBool(config.connectable)
+                            : true
+                        : null,
+                group_id: config.group_id || null,
+                multicast_address_type: config.multicast_address_type || null,
+                devices: config.devices || null,
+                ignored_devices: config.ignored_devices || null,
+                discovery_scope: config.discovery_scope || null,
+                discovery_port: this.numOrNull(config.discovery_port),
+                data_port: this.numOrNull(config.data_port),
+                configured_bitrate: this.numOrNull(config.configured_bitrate),
+                callsign: config.callsign || null,
+                id_callsign: config.id_callsign || null,
+                id_interval: this.numOrNull(config.id_interval),
+                ssid: this.numOrNull(config.ssid),
+                airtime_limit_long: this.numOrNull(config.airtime_limit_long),
+                airtime_limit_short: this.numOrNull(config.airtime_limit_short),
+                speed: this.numOrNull(config.speed),
+                databits: this.numOrNull(config.databits),
+                parity: config.parity || null,
+                stopbits: this.numOrNull(config.stopbits),
+                preamble: this.numOrNull(config.preamble),
+                txtail: this.numOrNull(config.txtail),
+                persistence: this.numOrNull(config.persistence),
+                slottime: this.numOrNull(config.slottime),
+                flow_control:
+                    config.flow_control !== undefined && config.flow_control !== null && config.flow_control !== ""
+                        ? this.parseBool(config.flow_control)
+                        : null,
             };
         },
         applyDiscoveredInterfacePrefill() {
@@ -1652,16 +2275,36 @@ export default {
                         ? (this.I2PSettings.newInterfacePeers || []).map((p) => String(p).trim()).filter(Boolean)
                         : undefined;
 
-                const response = await window.api.post(`/api/v1/reticulum/interfaces/add`, {
+                const isBackboneListener =
+                    this.newInterfaceType === "BackboneInterface" && this.newInterfaceBackboneListenMode === true;
+
+                const payload = {
                     allow_overwriting_interface: this.isEditingInterface,
                     name: this.newInterfaceName,
                     type: this.newInterfaceType,
-                    target_host: this.newInterfaceTargetHost,
-                    target_port: this.newInterfaceTargetPort,
-                    transport_identity: this.newInterfaceTransportIdentity,
+                    target_host: isBackboneListener ? null : this.newInterfaceTargetHost,
+                    target_port: isBackboneListener ? null : this.newInterfaceTargetPort,
+                    transport_identity: isBackboneListener ? null : this.newInterfaceTransportIdentity,
                     peers: i2pPeers,
-                    listen_ip: this.newInterfaceListenIp,
-                    listen_port: this.newInterfaceListenPort,
+                    listen_ip: isBackboneListener
+                        ? this.newInterfaceBackboneListenIp || null
+                        : this.newInterfaceListenIp,
+                    listen_port: isBackboneListener
+                        ? this.newInterfaceBackboneListenPort || null
+                        : this.newInterfaceListenPort,
+                    forward_ip: this.newInterfaceForwardIp,
+                    forward_port: this.newInterfaceForwardPort,
+                    device: isBackboneListener
+                        ? this.newInterfaceBackboneListenDevice || null
+                        : this.newInterfaceNetworkDevice,
+                    prefer_ipv6: this.newInterfacePreferIPV6 === true,
+                    kiss_framing: this.newInterfaceKISSFramingEnabled === true,
+                    i2p_tunneled: this.newInterfaceI2PTunnelingEnabled === true,
+                    connect_timeout: this.numOrNull(this.newInterfaceConnectTimeout),
+                    max_reconnect_tries: this.numOrNull(this.newInterfaceMaxReconnectTries),
+                    fixed_mtu: this.numOrNull(this.newInterfaceFixedMTU),
+                    connectable:
+                        this.newInterfaceType === "I2PInterface" ? this.newInterfaceConnectable === true : null,
                     port: this.newInterfaceRNodeUseIP
                         ? `tcp://${this.newInterfaceRNodeIPHost}:${this.newInterfaceRNodeIPPort}`
                         : this.newInterfacePort,
@@ -1670,6 +2313,29 @@ export default {
                     txpower: this.newInterfaceTxpower,
                     spreadingfactor: this.newInterfaceSpreadingFactor,
                     codingrate: this.newInterfaceCodingRate,
+                    flow_control: this.newInterfaceFlowControl === true,
+                    callsign: this.newInterfaceCallsign,
+                    id_callsign: this.newInterfaceIDCallsign,
+                    id_interval: this.numOrNull(this.newInterfaceIDInterval),
+                    airtime_limit_long: this.numOrNull(this.newInterfaceAirtimeLimitLong),
+                    airtime_limit_short: this.numOrNull(this.newInterfaceAirtimeLimitShort),
+                    ssid: this.numOrNull(this.newInterfaceSSID),
+                    speed: this.numOrNull(this.newInterfaceSpeed),
+                    databits: this.numOrNull(this.newInterfaceDatabits),
+                    parity: this.newInterfaceParity,
+                    stopbits: this.numOrNull(this.newInterfaceStopbits),
+                    preamble: this.numOrNull(this.newInterfacePreamble),
+                    txtail: this.numOrNull(this.newInterfaceTXTail),
+                    persistence: this.numOrNull(this.newInterfacePersistence),
+                    slottime: this.numOrNull(this.newInterfaceSlotTime),
+                    group_id: this.newInterfaceGroupID,
+                    multicast_address_type: this.newInterfaceMulticastAddressType,
+                    devices: this.newInterfaceDevices,
+                    ignored_devices: this.newInterfaceIgnoredDevices,
+                    discovery_scope: this.newInterfaceDiscoveryScope,
+                    discovery_port: this.numOrNull(this.newInterfaceDiscoveryPort),
+                    data_port: this.numOrNull(this.newInterfaceDataPort),
+                    configured_bitrate: this.numOrNull(this.newInterfaceConfiguredBitrate),
                     command: this.newInterfaceCommand,
                     respawn_delay: this.newInterfaceRespawnDelay,
                     discoverable: discoveryEnabled ? "yes" : null,
@@ -1689,11 +2355,13 @@ export default {
                     discovery_frequency: discoveryEnabled ? this.numOrNull(this.discovery.discovery_frequency) : null,
                     discovery_bandwidth: discoveryEnabled ? this.numOrNull(this.discovery.discovery_bandwidth) : null,
                     discovery_modulation: discoveryEnabled ? this.numOrNull(this.discovery.discovery_modulation) : null,
-                    mode: this.sharedInterfaceSettings.mode || "full",
+                    mode: this.sharedInterfaceSettings.mode || null,
                     bitrate: this.sharedInterfaceSettings.bitrate,
                     network_name: this.sharedInterfaceSettings.network_name,
                     passphrase: this.sharedInterfaceSettings.passphrase,
-                });
+                };
+
+                const response = await window.api.post(`/api/v1/reticulum/interfaces/add`, payload);
 
                 if (response.data.message) ToastUtils.success(response.data.message);
                 GlobalState.hasPendingInterfaceChanges = true;

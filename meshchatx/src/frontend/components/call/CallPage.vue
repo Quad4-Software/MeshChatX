@@ -984,7 +984,7 @@
                         <div v-if="isVoicemailSettingsExpanded" class="px-4 pb-6 space-y-6">
                             <!-- Status Banner -->
                             <div
-                                v-if="!voicemailStatus.has_espeak || !voicemailStatus.has_ffmpeg"
+                                v-if="!voicemailStatus.has_espeak"
                                 class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-3 items-start"
                             >
                                 <MaterialDesignIcon
@@ -993,15 +993,8 @@
                                 />
                                 <div class="text-xs text-amber-800 dark:text-amber-200">
                                     <p class="font-bold mb-1">Dependencies Missing</p>
-                                    <p v-if="!voicemailStatus.has_espeak">
+                                    <p>
                                         Voicemail requires `espeak-ng` to generate greetings. Please install it on your
-                                        system.
-                                    </p>
-                                    <p
-                                        v-if="!voicemailStatus.has_ffmpeg"
-                                        :class="{ 'mt-1': !voicemailStatus.has_espeak }"
-                                    >
-                                        Voicemail requires `ffmpeg` to process audio files. Please install it on your
                                         system.
                                     </p>
                                 </div>
@@ -1018,7 +1011,7 @@
                                     </div>
                                 </div>
                                 <button
-                                    :disabled="!voicemailStatus.has_espeak || !voicemailStatus.has_ffmpeg"
+                                    :disabled="!voicemailStatus.has_espeak"
                                     class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                     :class="config.voicemail_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-zinc-700'"
                                     @click="
@@ -1112,11 +1105,7 @@
                                     </p>
                                     <div class="flex gap-2">
                                         <button
-                                            :disabled="
-                                                !voicemailStatus.has_espeak ||
-                                                !voicemailStatus.has_ffmpeg ||
-                                                isGeneratingGreeting
-                                            "
+                                            :disabled="!voicemailStatus.has_espeak || isGeneratingGreeting"
                                             class="text-[10px] bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 px-3 py-1 rounded-full font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                                             @click="
                                                 updateConfig({ voicemail_greeting: config.voicemail_greeting });
@@ -1144,11 +1133,7 @@
                                         @change="uploadGreeting"
                                     />
                                     <button
-                                        :disabled="
-                                            !voicemailStatus.has_ffmpeg ||
-                                            isUploadingGreeting ||
-                                            voicemailStatus.is_greeting_recording
-                                        "
+                                        :disabled="isUploadingGreeting || voicemailStatus.is_greeting_recording"
                                         class="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                                         @click="$refs.greetingUpload.click()"
                                     >
@@ -2176,7 +2161,6 @@ export default {
             unreadVoicemailsCount: 0,
             voicemailStatus: {
                 has_espeak: false,
-                has_ffmpeg: false,
                 is_recording: false,
                 is_greeting_recording: false,
                 has_greeting: false,

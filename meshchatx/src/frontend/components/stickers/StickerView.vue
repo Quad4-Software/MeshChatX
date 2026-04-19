@@ -1,7 +1,14 @@
 <template>
     <div ref="stickerRoot" :class="['sticker-view', sizeClass]">
         <video v-if="isVideo" ref="videoEl" :src="src" class="sticker-media" loop muted playsinline @error="onError" />
-        <div v-else-if="isAnimated" ref="lottieMount" class="sticker-media" />
+        <div
+            v-else-if="isAnimated"
+            class="w-full h-full flex items-center justify-center bg-gray-200/80 dark:bg-zinc-700/50 text-gray-500 dark:text-zinc-400"
+            :title="alt || 'TGS'"
+            :aria-label="alt || 'Animated sticker'"
+        >
+            <MaterialDesignIcon icon-name="animation-outline" class="w-[42%] h-[42%] opacity-70" />
+        </div>
         <img
             v-else
             :src="src"
@@ -16,10 +23,11 @@
 
 <script>
 import { attachInView } from "../../js/inViewObserver.js";
-import { decodeTgsBuffer } from "../../js/tgsDecode.js";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
     name: "StickerView",
+    components: { MaterialDesignIcon },
     props: {
         src: { type: String, required: true },
         imageType: { type: String, default: "" },
@@ -29,7 +37,6 @@ export default {
     emits: ["error"],
     data() {
         return {
-            lottieAnim: null,
             destroyed: false,
             inView: false,
             ioCleanup: null,
@@ -51,25 +58,13 @@ export default {
             this.onInViewChanged();
         },
         src() {
-            if (this.isAnimated) {
-                this.teardownLottie();
-                this.$nextTick(() => {
-                    if (this.inView) {
-                        this.mountLottie();
-                    }
-                });
-            } else if (this.isVideo) {
+            if (this.isVideo) {
                 this.$nextTick(() => this.syncVideoPlayback());
             }
         },
         imageType() {
-            this.teardownLottie();
-            if (this.isAnimated) {
-                this.$nextTick(() => {
-                    if (this.inView) {
-                        this.mountLottie();
-                    }
-                });
+            if (this.isVideo) {
+                this.$nextTick(() => this.syncVideoPlayback());
             }
         },
     },
@@ -82,7 +77,6 @@ export default {
             this.ioCleanup();
             this.ioCleanup = null;
         }
-        this.teardownLottie();
     },
     methods: {
         setupInView() {
@@ -98,13 +92,6 @@ export default {
             if (this.isVideo) {
                 this.syncVideoPlayback();
             }
-            if (this.isAnimated) {
-                if (this.inView && !this.lottieAnim && !this.destroyed) {
-                    this.$nextTick(() => this.mountLottie());
-                } else {
-                    this.syncLottiePlayback();
-                }
-            }
         },
         syncVideoPlayback() {
             const v = this.$refs.videoEl;
@@ -115,57 +102,6 @@ export default {
                 v.play?.().catch(() => {});
             } else {
                 v.pause?.();
-            }
-        },
-        syncLottiePlayback() {
-            if (!this.lottieAnim || !this.isAnimated) {
-                return;
-            }
-            try {
-                if (this.inView) {
-                    this.lottieAnim.play();
-                } else {
-                    this.lottieAnim.pause();
-                }
-            } catch (e) {
-                console.warn(e);
-            }
-        },
-        async mountLottie() {
-            if (!this.$refs.lottieMount || !this.src || !this.inView) {
-                return;
-            }
-            this.teardownLottie();
-            try {
-                const lottie = await import("lottie-web/build/player/lottie_light.js");
-                const lib = lottie.default || lottie;
-                const response = await fetch(this.src);
-                const buf = await response.arrayBuffer();
-                const data = await decodeTgsBuffer(buf);
-                if (this.destroyed || !this.inView) {
-                    return;
-                }
-                this.lottieAnim = lib.loadAnimation({
-                    container: this.$refs.lottieMount,
-                    renderer: "svg",
-                    loop: true,
-                    autoplay: false,
-                    animationData: data,
-                });
-                this.syncLottiePlayback();
-            } catch (e) {
-                console.error("Failed to render TGS sticker", e);
-                this.$emit("error", e);
-            }
-        },
-        teardownLottie() {
-            if (this.lottieAnim) {
-                try {
-                    this.lottieAnim.destroy();
-                } catch (e) {
-                    console.warn(e);
-                }
-                this.lottieAnim = null;
             }
         },
         onError(e) {

@@ -11,14 +11,6 @@
             </button>
             <button
                 type="button"
-                class="rounded-xl border border-gray-300 dark:border-zinc-600 px-3 py-1.5 text-sm hover:border-emerald-500 flex items-center gap-1"
-                @click="openEditor()"
-            >
-                <MaterialDesignIcon icon-name="image-edit-outline" class="size-4" />
-                {{ $t("sticker_packs.open_editor") }}
-            </button>
-            <button
-                type="button"
                 class="rounded-xl border border-gray-300 dark:border-zinc-600 px-3 py-1.5 text-sm hover:border-teal-500 flex items-center gap-1"
                 @click="triggerInstallInput"
             >
@@ -60,14 +52,6 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
-                        <button
-                            type="button"
-                            class="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-600 dark:text-zinc-300"
-                            :title="$t('sticker_packs.add_sticker')"
-                            @click="openEditor(pack.id)"
-                        >
-                            <MaterialDesignIcon icon-name="plus" class="size-4" />
-                        </button>
                         <button
                             type="button"
                             class="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-600 dark:text-zinc-300"
@@ -157,7 +141,7 @@
                         class="rounded-lg border border-gray-300 dark:border-zinc-600 px-3 py-1.5 text-sm"
                         @click="createOpen = false"
                     >
-                        {{ $t("sticker_editor.cancel") }}
+                        {{ $t("common.cancel") }}
                     </button>
                     <button
                         type="button"
@@ -171,25 +155,18 @@
             </div>
         </div>
 
-        <StickerEditor
-            :visible="editorOpen"
-            :default-pack-id="editorPackId"
-            @close="onEditorClose"
-            @saved="onEditorSaved"
-        />
     </div>
 </template>
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
-import StickerEditor from "./StickerEditor.vue";
 import StickerView from "./StickerView.vue";
 import ToastUtils from "../../js/ToastUtils.js";
 import DialogUtils from "../../js/DialogUtils.js";
 
 export default {
     name: "StickerPacksManager",
-    components: { MaterialDesignIcon, StickerEditor, StickerView },
+    components: { MaterialDesignIcon, StickerView },
     data() {
         return {
             packs: [],
@@ -199,8 +176,6 @@ export default {
             newPackDescription: "",
             newPackType: "mixed",
             newPackStrict: true,
-            editorOpen: false,
-            editorPackId: null,
         };
     },
     mounted() {
@@ -243,17 +218,6 @@ export default {
                 const err = e?.response?.data?.error || "create_failed";
                 ToastUtils.error(`${this.$t("sticker_packs.create_failed")}: ${err}`);
             }
-        },
-        openEditor(packId = null) {
-            this.editorPackId = packId;
-            this.editorOpen = true;
-        },
-        onEditorClose() {
-            this.editorOpen = false;
-            this.editorPackId = null;
-        },
-        async onEditorSaved() {
-            await this.loadPacks();
         },
         async exportPack(pack) {
             try {
