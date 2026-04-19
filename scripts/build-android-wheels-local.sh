@@ -10,7 +10,9 @@ This script:
 2) Downloads a matching Chaquopy Python target toolchain
 3) Builds pycodec2 Android wheels with Chaquopy's build-wheel tool
 4) Optionally patches LXST wheel metadata for local Android constraints
-5) Copies outputs to android/vendor
+5) Builds every recipe under android/chaquopy-recipes/ for each requested
+   ABI (currently: cryptography, miniaudio)
+6) Copies outputs to android/vendor
 
 Usage:
   scripts/build-android-wheels-local.sh [options]
@@ -25,6 +27,10 @@ Options:
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
   --lxst-version V           LXST wheel version for metadata patch (default: 0.4.6)
   --no-lxst-patch            Skip LXST metadata patch
+  --only-recipes LIST        Comma-separated recipe directory names under
+                             android/chaquopy-recipes to build. When set, the
+                             NumPy, pycodec2/chaquopy-libcodec2 and LXST steps
+                             are skipped and only matching custom recipes run.
   --work-dir PATH            Working directory (default: ./.local/chaquopy-build-wheel)
   --out-dir PATH             Output wheel directory (default: ./android/vendor)
   -h, --help                 Show this help
@@ -43,6 +49,7 @@ LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
 LXST_VERSION="0.4.6"
 PATCH_LXST="1"
+ONLY_RECIPES=""
 WORK_DIR="${ROOT_DIR}/.local/chaquopy-build-wheel"
 OUT_DIR="${ROOT_DIR}/android/vendor"
 
@@ -83,6 +90,10 @@ while [[ $# -gt 0 ]]; do
         --no-lxst-patch)
             PATCH_LXST="0"
             shift
+            ;;
+        --only-recipes)
+            ONLY_RECIPES="${2:?missing value for --only-recipes}"
+            shift 2
             ;;
         --work-dir)
             WORK_DIR="${2:?missing value for --work-dir}"
@@ -147,16 +158,21 @@ require_cmd sort
 
 case ",${ABI_LIST}," in
     *,armeabi-v7a,*)
-        if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
-            echo "armeabi-v7a: NumPy is built from source and needs the Android SDK/NDK (Chaquopy android-env.sh)." >&2
-            echo "Set ANDROID_HOME or ANDROID_SDK_ROOT to your SDK root (with cmdline-tools/latest/bin/sdkmanager)." >&2
-            exit 1
-        fi
-        export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}"
-        export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
-        if [[ ! -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]]; then
-            echo "armeabi-v7a: expected sdkmanager at ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" >&2
-            exit 1
+        if [[ -z "${ONLY_RECIPES}" ]]; then
+            if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
+                echo "armeabi-v7a: NumPy is built from source and needs the Android SDK/NDK (Chaquopy android-env.sh)." >&2
+                echo "Set ANDROID_HOME or ANDROID_SDK_ROOT to your SDK root (with cmdline-tools/latest/bin/sdkmanager)." >&2
+                exit 1
+            fi
+            export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}"
+            export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
+            if [[ ! -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]]; then
+                echo "armeabi-v7a: expected sdkmanager at ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" >&2
+                exit 1
+            fi
+        else
+            export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+            export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
         fi
         ;;
 esac
@@ -236,29 +252,53 @@ cache_chaquopy_openblas_for_abi() {
     curl -fsSL -o "${PYPIDIR}/dist/chaquopy-openblas/${name}" "${url}"
 }
 
-for abi in ${ABI_LIST//,/ }; do
-    platform_tag="$(abi_to_platform_tag "${abi}")"
-    echo "Resolving NumPy wheel for ABI ${abi} (${platform_tag})"
-    if ! "${VENV_DIR}/bin/pip" download \
-        --only-binary=:all: \
-        --no-deps \
-        --platform "${platform_tag}" \
-        --python-version "${PYTHON_MINOR/./}" \
-        --implementation cp \
-        --abi "${PYTHON_ABI_TAG}" \
-        "numpy==${NUMPY_VERSION}" \
-        --index-url https://pypi.org/simple \
-        --extra-index-url https://chaquo.com/pypi-13.1 \
-        --dest "${NUMPY_DIST_DIR}"; then
-        echo "No prebuilt NumPy wheel for ${abi}; building locally via Chaquopy recipe"
-        cache_chaquopy_openblas_for_abi "${abi}"
-        "${VENV_DIR}/bin/python" "${PYPIDIR}/build-wheel.py" \
-            --python "${PYTHON_MINOR}" \
-            --api-level "${API_LEVEL}" \
-            --abi "${abi}" \
-            "${PYPIDIR}/packages/numpy"
+cache_chaquopy_libffi_for_abi() {
+    local abi="$1"
+    local name url
+    mkdir -p "${PYPIDIR}/dist/chaquopy-libffi"
+    case "${abi}" in
+        armeabi-v7a) name="chaquopy_libffi-3.3-2-py3-none-android_16_armeabi_v7a.whl" ;;
+        arm64-v8a)   name="chaquopy_libffi-3.3-3-py3-none-android_24_arm64_v8a.whl" ;;
+        x86_64)      name="chaquopy_libffi-3.3-3-py3-none-android_24_x86_64.whl" ;;
+        *) return 0 ;;
+    esac
+    url="https://chaquo.com/pypi-13.1/chaquopy-libffi/${name}"
+    if [[ -f "${PYPIDIR}/dist/chaquopy-libffi/${name}" ]]; then
+        return 0
     fi
-done
+    echo "Caching Chaquopy libffi wheel for ${abi}"
+    curl -fsSL -o "${PYPIDIR}/dist/chaquopy-libffi/${name}" "${url}"
+}
+
+if [[ -z "${ONLY_RECIPES}" ]]; then
+    for abi in ${ABI_LIST//,/ }; do
+        platform_tag="$(abi_to_platform_tag "${abi}")"
+        echo "Resolving NumPy wheel for ABI ${abi} (${platform_tag})"
+        if ! "${VENV_DIR}/bin/pip" download \
+            --only-binary=:all: \
+            --no-deps \
+            --platform "${platform_tag}" \
+            --python-version "${PYTHON_MINOR/./}" \
+            --implementation cp \
+            --abi "${PYTHON_ABI_TAG}" \
+            "numpy==${NUMPY_VERSION}" \
+            --index-url https://pypi.org/simple \
+            --extra-index-url https://chaquo.com/pypi-13.1 \
+            --dest "${NUMPY_DIST_DIR}"; then
+            echo "No prebuilt NumPy wheel for ${abi}; building locally via Chaquopy recipe"
+            cache_chaquopy_openblas_for_abi "${abi}"
+            "${VENV_DIR}/bin/python" "${PYPIDIR}/build-wheel.py" \
+                --python "${PYTHON_MINOR}" \
+                --api-level "${API_LEVEL}" \
+                --abi "${abi}" \
+                "${PYPIDIR}/packages/numpy"
+        fi
+    done
+else
+    echo "Skipping NumPy wheel resolution (--only-recipes set)"
+fi
+
+if [[ -z "${ONLY_RECIPES}" ]]; then
 
 RECIPE_DIR="${WORK_DIR}/recipes/pycodec2-local"
 LIBCODEC2_RECIPE_DIR="${WORK_DIR}/recipes/chaquopy-libcodec2-local"
@@ -533,7 +573,13 @@ mkdir -p "${OUT_DIR}"
 cp -f "${PYPIDIR}/dist/chaquopy-libcodec2"/chaquopy_libcodec2-"${LIBCODEC2_VERSION}"-*.whl "${OUT_DIR}/"
 cp -f "${PYPIDIR}/dist/pycodec2"/pycodec2-"${PYCODEC2_VERSION}"-*.whl "${OUT_DIR}/"
 
-if [[ "${PATCH_LXST}" == "1" ]]; then
+else
+    echo "Skipping pycodec2/chaquopy-libcodec2 builds (--only-recipes set)"
+fi
+
+mkdir -p "${OUT_DIR}"
+
+if [[ "${PATCH_LXST}" == "1" && -z "${ONLY_RECIPES}" ]]; then
     TMP_DIR="$(mktemp -d)"
     trap 'rm -rf "${TMP_DIR}"' EXIT
 
@@ -612,6 +658,10 @@ PY
 fi
 
 CUSTOM_RECIPES_DIR="${ROOT_DIR}/android/chaquopy-recipes"
+ONLY_RECIPES_FILTER=""
+if [[ -n "${ONLY_RECIPES}" ]]; then
+    ONLY_RECIPES_FILTER=" ${ONLY_RECIPES//,/ } "
+fi
 if [[ -d "${CUSTOM_RECIPES_DIR}" ]]; then
     echo "Building custom Android recipes from ${CUSTOM_RECIPES_DIR}"
     for RECIPE_SRC in "${CUSTOM_RECIPES_DIR}"/*; do
@@ -620,6 +670,10 @@ if [[ -d "${CUSTOM_RECIPES_DIR}" ]]; then
         fi
 
         RECIPE_NAME="$(basename "${RECIPE_SRC}")"
+        if [[ -n "${ONLY_RECIPES_FILTER}" && "${ONLY_RECIPES_FILTER}" != *" ${RECIPE_NAME} "* ]]; then
+            echo "Skipping recipe ${RECIPE_NAME} (not in --only-recipes list)"
+            continue
+        fi
         RECIPE_DST="${PYPIDIR}/packages/${RECIPE_NAME}-local"
         rm -rf "${RECIPE_DST}"
         mkdir -p "${RECIPE_DST}"
@@ -640,6 +694,9 @@ PY
         echo "Building ${PACKAGE_NAME} ${PACKAGE_VERSION} from recipe ${RECIPE_NAME}"
         for abi in ${ABI_LIST//,/ }; do
             abi_tag="${abi//-/_}"
+            if [[ "${PACKAGE_NAME}" == "cffi" ]]; then
+                cache_chaquopy_libffi_for_abi "${abi}"
+            fi
             echo "Building ${PACKAGE_NAME} ${PACKAGE_VERSION} for ${abi}"
             "${VENV_DIR}/bin/python" "${PYPIDIR}/build-wheel.py" \
                 --python "${PYTHON_MINOR}" \
@@ -680,3 +737,4 @@ fi
 
 echo "Done."
 echo "Built wheels in: ${OUT_DIR}"
+ls -1 "${OUT_DIR}" | sort

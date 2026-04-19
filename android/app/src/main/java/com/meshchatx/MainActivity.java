@@ -3,8 +3,10 @@ package com.meshchatx;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -48,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int SERVER_PORT = 8000;
     private static final int RUNTIME_PERMISSIONS_REQUEST_CODE = 1001;
     private static final int WEB_MEDIA_PERMISSION_REQUEST_CODE = 1003;
+    private static final int RNODE_BLUETOOTH_PERMISSION_REQUEST_CODE = 1004;
     private static final String PREFS_NAME = "meshchatx";
     private static final String PREF_BATTERY_OPT_REQUESTED = "battery_opt_requested";
     private static final int MAX_CONNECTION_ATTEMPTS = 120;
@@ -345,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void addIfMissing(List<String> missingPermissions, String permission) {
+    void addIfMissing(List<String> missingPermissions, String permission) {
         if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
             missingPermissions.add(permission);
         }
@@ -551,6 +554,81 @@ public class MainActivity extends AppCompatActivity {
             activity.runOnUiThread(() -> {
                 activity.finishAffinity();
                 android.os.Process.killProcess(android.os.Process.myPid());
+            });
+        }
+
+        @JavascriptInterface
+        public String getPlatform() {
+            return "android";
+        }
+
+        @JavascriptInterface
+        public boolean hasBluetoothPermissions() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                return true;
+            }
+            return ContextCompat.checkSelfPermission(activity, Manifest.permission.BLUETOOTH_CONNECT)
+                    == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(activity, Manifest.permission.BLUETOOTH_SCAN)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void requestBluetoothPermissions() {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                return;
+            }
+            activity.runOnUiThread(() -> {
+                List<String> missing = new ArrayList<>();
+                activity.addIfMissing(missing, Manifest.permission.BLUETOOTH_CONNECT);
+                activity.addIfMissing(missing, Manifest.permission.BLUETOOTH_SCAN);
+                if (missing.isEmpty()) {
+                    return;
+                }
+                ActivityCompat.requestPermissions(
+                    activity,
+                    missing.toArray(new String[0]),
+                    RNODE_BLUETOOTH_PERMISSION_REQUEST_CODE
+                );
+            });
+        }
+
+        @JavascriptInterface
+        public boolean hasUsbPermissions() {
+            // WebUSB / Web Serial polyfill drives the device picker; from the
+            // Android manifest standpoint USB host access is granted as soon as
+            // the user accepts the per-device dialog. Surface true when we
+            // have a UsbManager so the JS layer can short-circuit prompts.
+            UsbManager manager = (UsbManager) activity.getSystemService(Context.USB_SERVICE);
+            return manager != null;
+        }
+
+        @JavascriptInterface
+        public void requestUsbPermissions() {
+            // No-op on android: per-device prompts are issued by WebUSB itself.
+            // Method is exposed so the JS bridge contract is symmetric.
+        }
+
+        @JavascriptInterface
+        public void openBluetoothSettings() {
+            activity.runOnUiThread(() -> {
+                try {
+                    activity.startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
+                } catch (ActivityNotFoundException ignored) {
+                    Toast.makeText(activity, "Bluetooth settings unavailable", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void openUsbSettings() {
+            activity.runOnUiThread(() -> {
+                try {
+                    activity.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:" + activity.getPackageName())));
+                } catch (ActivityNotFoundException ignored) {
+                    Toast.makeText(activity, "USB settings unavailable", Toast.LENGTH_SHORT).show();
+                }
             });
         }
     }
