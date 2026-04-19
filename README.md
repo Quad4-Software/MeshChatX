@@ -144,7 +144,7 @@ Notes on the install commands above:
 
 - `pnpm install --frozen-lockfile` refuses to update `pnpm-lock.yaml` and fails if the lockfile does not match `package.json`. This is what blocks an unexpected upstream version from being silently pulled in.
 - `verify-store-integrity=true` is also set in the project `.npmrc`; the explicit `pnpm config set` line above just hardens the user-level config too.
-- Lifecycle scripts (`preinstall`/`postinstall`) are blocked by default in pnpm v10+. Only the packages listed under `pnpm.onlyBuiltDependencies` in `package.json` are allowed to run install scripts (currently `electron`, `electron-winstaller`, `esbuild`, `protobufjs`).
+- Lifecycle scripts (`preinstall`/`postinstall`) are blocked by default in pnpm v10+. Only the packages listed under `pnpm.onlyBuiltDependencies` in `package.json` are allowed to run install scripts (currently `electron`, `electron-winstaller`, `esbuild`).
 - `poetry check --lock` fails fast if `poetry.lock` is out of sync with `pyproject.toml`; `poetry install` then resolves only from the lockfile.
 - For a strict lockfile-only Poetry install (no implicit lockfile refresh), pin Poetry with `pip install "poetry==2.1.1"` to match what CI uses.
 
