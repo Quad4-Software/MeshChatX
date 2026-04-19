@@ -278,7 +278,7 @@
         "electron-squirrel-startup": "^1.0.1",
         "emoji-picker-element": "^1.29.1",
         "emoji-picker-element-data": "^1.8.0",
-        "marked": "^18.0.1",
+        "marked": "^18.0.2",
         "mitt": "^3.0.1",
         "ol": "^10.9.0",
         "protobufjs": "^7.5.5",
