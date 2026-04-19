@@ -354,7 +354,8 @@
         "save_failed": "Opslaan configuratie mislukt!",
         "invalid_address": "Ongeldig adres",
         "loading": "Laden...",
-        "ok": "OK"
+        "ok": "OK",
+        "clear": "Clear"
     },
     "stickers": {
         "settings_title": "Stickers",
@@ -1435,7 +1436,12 @@
                 "failed_disable_bluetooth": "Uitschakelen van Bluetooth:{error}mislukt",
                 "failed_start_pairing": "Paar beginnen is mislukt:{error}",
                 "failed_set_rotation": "Kon weergaverotatie niet instellen:{error}",
-                "failed_start_reconditioning": "Opnieuw opstarten van het display is mislukt:{error}"
+                "failed_start_reconditioning": "Opnieuw opstarten van het display is mislukt:{error}",
+                "no_main_bin": "Could not locate the main firmware binary in the ZIP.",
+                "invalid_host": "Please enter a valid host or IP address.",
+                "bluetooth_flash_unsupported": "Bluetooth cannot be used to flash firmware. Use Serial or WiFi to flash, then return to Bluetooth for management.",
+                "failed_diagnostics": "Failed to run diagnostics: {error}",
+                "failed_detect_with_reason": "Failed to detect RNode: {error}"
             },
             "alerts": {
                 "firmware_downloaded": "Aanbevolen firmware is gedownload en geladen.",
@@ -1455,7 +1461,67 @@
                 "bluetooth_pairing_pin": "Bluetooth Pairing Pin:{pin}",
                 "bluetooth_pairing_started": "Paarmodus gestart (30s)",
                 "rotation_updated": "Rotatie bijgewerkt",
-                "reconditioning_started": "Opknappen gestart"
+                "reconditioning_started": "Opknappen gestart",
+                "diagnostics_healthy": "Diagnostics: device looks healthy.",
+                "diagnostics_issues": "Diagnostics: {count} issue(s) detected."
+            },
+            "simple": "Simple",
+            "advanced": "Advanced",
+            "original": "Original",
+            "open_original_tab": "Open the original flasher in a new tab",
+            "bluetooth": "Bluetooth",
+            "preparing_firmware": "Preparing firmware...",
+            "uploading": "Uploading: {percentage}%",
+            "select_firmware_file": "Or select a firmware file (.zip)",
+            "wifi_help": "The IP address of your RNode on the local network.",
+            "run_diagnostics": "Diagnostics",
+            "support": {
+                "serial": {
+                    "title": "USB serial is unavailable",
+                    "polyfill_not_loaded": "USB serial polyfill has not been loaded yet.",
+                    "android_webview_no_serial": "Android WebView does not expose Web Serial; use the desktop browser or wait for the bundled flasher.",
+                    "browser_unsupported": "This browser does not support Web Serial. Try Chrome, Edge, or another Chromium-based browser.",
+                    "android_use_chrome": "On Android, opening this page in Chrome lets you use Web Serial via WebUSB.",
+                    "unknown": "USB serial cannot be initialised in this environment."
+                },
+                "bluetooth": {
+                    "title": "Bluetooth is unavailable",
+                    "android_bridge_not_implemented": "Web Bluetooth is unavailable in this WebView; use Bluetooth from the OS or a different browser.",
+                    "browser_unsupported": "This browser does not support Web Bluetooth. Try Chrome or Edge.",
+                    "insecure_context": "Web Bluetooth requires a secure context (HTTPS or localhost).",
+                    "requires_https": "Open the flasher over HTTPS or via localhost to enable Bluetooth.",
+                    "unknown": "Bluetooth cannot be initialised in this environment."
+                },
+                "actions": {
+                    "load_polyfill": "Load polyfill",
+                    "request_bluetooth": "Allow Bluetooth",
+                    "open_settings": "Open settings",
+                    "polyfill_loading": "Loading USB serial polyfill...",
+                    "bluetooth_requested": "Bluetooth permission requested."
+                }
+            },
+            "diagnostics": {
+                "title": "Device Diagnostics",
+                "healthy": "Healthy",
+                "needs_attention": "Needs attention",
+                "issues_detected": "Issues detected",
+                "firmware_version": "Firmware",
+                "platform": "Platform",
+                "board": "Board",
+                "provisioned": "Provisioned",
+                "product": "Product",
+                "model": "Model",
+                "firmware_hash": "FW hash",
+                "target_hash": "Target hash",
+                "suggestions": {
+                    "not_provisioned": "EEPROM is not provisioned. Run step 3 (Provision EEPROM).",
+                    "firmware_hash_missing": "Firmware hash is missing. Run step 4 (Set Firmware Hash).",
+                    "firmware_hash_mismatch": "Firmware hash mismatch. Re-flash the firmware and re-run step 4.",
+                    "product_mismatch": "Selected product does not match the connected device.",
+                    "no_firmware_version": "Could not read firmware version. Try reconnecting the device.",
+                    "detect_failed": "Could not detect this RNode. Verify cable, port, and power.",
+                    "read_timeout": "Device did not respond in time. Try reconnecting or rebooting it."
+                }
             }
         },
         "micron_editor": {
@@ -1741,7 +1807,6 @@
         "voicemail_settings": "Voicemailinstellingen",
         "dependencies_missing": "Afhankelijkheden ontbreken",
         "voicemail_requires_espeak": "Voicemail vereist \"espeak-ng\" om begroetingen te genereren. Installeer het op uw systeem.",
-        "voicemail_requires_ffmpeg": "Voicemail vereist dat audiobestanden worden verwerkt. Installeer het op uw systeem.",
         "enable_voicemail": "Voicemail inschakelen",
         "enable_voicemail_description": "Aanroepen automatisch accepteren en berichten opnemen",
         "greeting_message": "Gegroet bericht",
