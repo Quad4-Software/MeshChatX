@@ -37,7 +37,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install essential runtime tools in the venv
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
 
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock README.md ./
 RUN poetry config virtualenvs.create false && \
     poetry check --lock && \
     poetry install --no-root --only main --no-interaction --no-ansi && \
