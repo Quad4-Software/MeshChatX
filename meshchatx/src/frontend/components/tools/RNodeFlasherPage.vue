@@ -299,9 +299,7 @@ export default {
         },
         async fetchLatestRelease() {
             try {
-                const response = await fetch(
-                    "/api/v1/tools/rnode/latest_release?repo=Reticulum/RNode_Firmware"
-                );
+                const response = await fetch("/api/v1/tools/rnode/latest_release?repo=Reticulum/RNode_Firmware");
                 if (response.ok) {
                     this.latestRelease = await response.json();
                 }

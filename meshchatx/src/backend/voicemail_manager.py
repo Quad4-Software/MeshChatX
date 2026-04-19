@@ -148,8 +148,9 @@ class VoicemailManager:
                 os.remove(wav_path)
 
     def convert_to_greeting(self, input_path):
-        """Decode ``input_path`` (any miniaudio-supported format) and write
-        the OGG/Opus greeting using LXST's voice profile.
+        """Decode ``input_path`` and write the OGG/Opus voicemail greeting.
+
+        Any miniaudio-supported format is accepted; output uses LXST's voice profile.
         """
         opus_path = os.path.join(self.greetings_dir, "greeting.opus")
         audio_codec.encode_audio_to_ogg_opus(input_path, opus_path)

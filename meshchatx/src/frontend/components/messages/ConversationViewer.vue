@@ -819,10 +819,7 @@
                                             @click="triggerStickerUploadInput"
                                         >
                                             <div class="flex items-center justify-center gap-1">
-                                                <MaterialDesignIcon
-                                                    icon-name="upload"
-                                                    class="size-4 text-blue-500"
-                                                />
+                                                <MaterialDesignIcon icon-name="upload" class="size-4 text-blue-500" />
                                                 {{ $t("stickers.upload_short") }}
                                             </div>
                                         </button>
