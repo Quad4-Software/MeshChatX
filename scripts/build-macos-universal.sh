@@ -15,7 +15,20 @@ export MESHCHATX_SKIP_BACKEND_MANIFEST=1
 
 pnpm run electron-postinstall
 pnpm run version:sync
-pnpm run build-frontend
+# Skip frontend rebuild when CI provides a prebuilt meshchatx/public artifact
+# via the reusable Frontend build workflow. Local invocations leave the flag
+# unset and continue to build everything from source.
+if [[ "${MESHCHATX_FRONTEND_PREBUILT:-0}" != "1" ]]; then
+    pnpm run build-frontend
+    pnpm run build-docs
+else
+    if [[ ! -f "meshchatx/public/index.html" ]]; then
+        echo "MESHCHATX_FRONTEND_PREBUILT=1 but meshchatx/public/index.html is missing." >&2
+        echo "Download the frontend artifact into meshchatx/public/ before invoking this script." >&2
+        exit 1
+    fi
+    echo "Reusing prebuilt frontend assets in meshchatx/public/."
+fi
 cross-env ARCH=arm64 pnpm run build-backend
 if [[ -n "${PYTHON_CMD_X64:-}" ]]; then
     cross-env ARCH=x64 PYTHON_CMD="$PYTHON_CMD_X64" pnpm run build-backend
