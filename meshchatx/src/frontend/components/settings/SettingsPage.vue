@@ -1793,21 +1793,6 @@
                                     The base URL for your preferred Gitea instance.
                                 </div>
                             </div>
-
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Documentation Download URLs
-                                </div>
-                                <textarea
-                                    v-model="config.docs_download_urls"
-                                    placeholder="Enter one URL per line (or comma-separated)"
-                                    class="input-field min-h-[100px] text-xs font-mono"
-                                    @input="onGiteaConfigChange"
-                                ></textarea>
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    List of ZIP URLs to try when downloading documentation. One URL per line.
-                                </div>
-                            </div>
                         </div>
                     </section>
 
@@ -2380,7 +2365,6 @@ export default {
                 location_manual_alt: "0.0",
                 telemetry_enabled: false,
                 gitea_base_url: "https://git.quad4.io",
-                docs_download_urls: "",
                 csp_extra_connect_src: "",
                 csp_extra_img_src: "",
                 csp_extra_frame_src: "",
@@ -3387,7 +3371,6 @@ export default {
                 await this.updateConfig(
                     {
                         gitea_base_url: this.config.gitea_base_url,
-                        docs_download_urls: this.config.docs_download_urls,
                     },
                     "Infrastructure"
                 );

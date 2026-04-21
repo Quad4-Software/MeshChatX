@@ -193,21 +193,29 @@
                     <MaterialDesignIcon icon-name="download" class="w-4 h-4 md:w-5 md:h-5" />
                 </button>
 
-                <!-- Update Button -->
+                <!-- Share Reticulum Manual (re-uploadable ZIP) -->
                 <button
-                    :disabled="status.status === 'downloading' || status.status === 'extracting'"
-                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
-                    :title="status.has_docs ? $t('docs.btn_update') : $t('docs.btn_download')"
-                    @click="updateDocs"
+                    v-if="status.has_docs"
+                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    :title="$t('docs.btn_share')"
+                    @click="exportReticulumDocs"
+                >
+                    <MaterialDesignIcon icon-name="share-variant" class="w-4 h-4 md:w-5 md:h-5" />
+                </button>
+
+                <!-- Upload Custom Manual -->
+                <label
+                    :class="{ 'opacity-50 pointer-events-none': status.status === 'extracting' }"
+                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
+                    :title="$t('docs.btn_upload')"
                 >
                     <MaterialDesignIcon
-                        :icon-name="
-                            status.status === 'downloading' || status.status === 'extracting' ? 'loading' : 'refresh'
-                        "
-                        :class="{ 'animate-spin': status.status === 'downloading' || status.status === 'extracting' }"
+                        :icon-name="status.status === 'extracting' ? 'loading' : 'upload'"
+                        :class="{ 'animate-spin': status.status === 'extracting' }"
                         class="w-4 h-4 md:w-5 md:h-5"
                     />
-                </button>
+                    <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
+                </label>
 
                 <!-- Open External -->
                 <a
@@ -285,14 +293,11 @@
 
         <!-- Progress Bar -->
         <div
-            v-if="status.status === 'downloading' || status.status === 'extracting'"
+            v-if="status.status === 'extracting'"
             class="w-full h-1 bg-gray-200 dark:bg-zinc-800 overflow-hidden relative"
         >
             <div class="bg-blue-500 h-full transition-all duration-300" :style="{ width: status.progress + '%' }"></div>
-            <div
-                v-if="status.progress === 0 || status.status === 'extracting'"
-                class="absolute inset-0 bg-blue-500/30 animate-pulse"
-            ></div>
+            <div class="absolute inset-0 bg-blue-500/30 animate-pulse"></div>
         </div>
 
         <!-- Main Content (Iframe or Search Results) -->
@@ -374,52 +379,25 @@
                     <div class="text-lg font-bold mb-2">{{ $t("docs.error") }}</div>
                     <div class="text-sm opacity-80">{{ status.last_error }}</div>
                     <div class="flex flex-col gap-4 mt-6">
+                        <label
+                            class="w-full px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-2"
+                        >
+                            <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
+                            <span>{{ $t("docs.btn_upload") }}</span>
+                            <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
+                        </label>
                         <button
-                            class="px-6 py-2.5 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition-colors shadow-lg"
-                            @click="updateDocs"
-                        >
-                            Retry Download
-                        </button>
-
-                        <div class="relative py-2">
-                            <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                                <div class="w-full border-t border-red-200 dark:border-red-900/50"></div>
-                            </div>
-                            <div class="relative flex justify-center text-[10px] uppercase font-bold">
-                                <span class="bg-red-50 dark:bg-zinc-900 px-2 text-red-400"
-                                    >or use alternate source</span
-                                >
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <input
-                                v-model="alternateDocsUrl"
-                                type="text"
-                                class="w-full px-4 py-2.5 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-900/50 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-red-500/20 text-gray-900 dark:text-zinc-100"
-                                placeholder="https://mirror.example.com/reticulum_docs.zip"
-                            />
-                            <button
-                                class="w-full px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-                                :disabled="!alternateDocsUrl"
-                                @click="addAndRetryDocs"
-                            >
-                                Add Source & Retry
-                            </button>
-                        </div>
-
-                        <RouterLink
-                            :to="{ name: 'settings' }"
                             class="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors"
+                            @click="dismissError"
                         >
-                            Manage all sources in settings
-                        </RouterLink>
+                            Dismiss
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div
-                v-if="status.status === 'downloading' || status.status === 'extracting'"
+                v-if="status.status === 'extracting'"
                 class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md"
             >
                 <div class="relative w-24 h-24 mb-6">
@@ -431,22 +409,15 @@
                     ></div>
                     <div class="absolute inset-0 flex items-center justify-center">
                         <MaterialDesignIcon
-                            :icon-name="
-                                status.status === 'downloading' ? 'cloud-download-outline' : 'folder-zip-outline'
-                            "
+                            icon-name="folder-zip-outline"
                             class="w-10 h-10 text-blue-600 animate-bounce"
                         />
                     </div>
                 </div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100 mb-1">
-                    {{
-                        status.status === "downloading" ? $t("docs.status_downloading") : "Extracting Documentation..."
-                    }}
+                    {{ $t("docs.status_extracting") }}
                 </h3>
                 <p class="text-sm text-gray-500 dark:text-zinc-400">{{ status.progress }}% Complete</p>
-                <p class="text-[10px] text-gray-400 mt-8 uppercase tracking-widest animate-pulse">
-                    Please wait, setting up offline manual
-                </p>
             </div>
 
             <!-- MeshChatX Docs View -->
@@ -524,7 +495,7 @@
             ></iframe>
 
             <div
-                v-else-if="status.status !== 'downloading' && status.status !== 'extracting'"
+                v-else-if="status.status !== 'extracting'"
                 class="h-full flex flex-col items-center justify-center p-8 text-center space-y-4"
             >
                 <div class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center">
@@ -532,16 +503,17 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">Reticulum Manual</h3>
-                    <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-[200px]">
-                        Download the official documentation for offline access.
+                    <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-[260px]">
+                        {{ $t("docs.empty_state_hint") }}
                     </p>
                 </div>
-                <button
-                    class="px-6 py-2 bg-blue-600 text-white rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
-                    @click="updateDocs"
+                <label
+                    class="px-6 py-2 bg-blue-600 text-white rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
                 >
-                    {{ $t("docs.btn_download") }}
-                </button>
+                    <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
+                    <span>{{ $t("docs.btn_upload") }}</span>
+                    <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
+                </label>
             </div>
         </div>
     </div>
@@ -578,7 +550,6 @@ export default {
             selectedDocPath: null,
             selectedDocContent: null,
             selectedReticulumPath: null,
-            alternateDocsUrl: "",
             languages: {
                 en: "English",
                 de: "Deutsch",
@@ -635,12 +606,6 @@ export default {
                 const response = await window.api.get("/api/v1/docs/status");
                 this.status = response.data;
 
-                // Auto-download Reticulum docs if missing and we're not already doing something
-                if (!this.status.has_docs && this.status.status === "idle" && !this.status.last_error) {
-                    this.updateDocs();
-                }
-
-                // If we don't have Reticulum docs but have MeshChatX docs, default to MeshChatX tab
                 if (!this.status.has_docs && this.status.has_meshchatx_docs && this.activeTab === "reticulum") {
                     this.activeTab = "meshchatx";
                 } else if (this.status.has_docs && !this.status.has_meshchatx_docs && this.activeTab === "meshchatx") {
@@ -649,6 +614,9 @@ export default {
             } catch (error) {
                 console.error("Failed to fetch docs status:", error);
             }
+        },
+        dismissError() {
+            this.status = { ...this.status, last_error: null };
         },
         async fetchMeshChatXDocs() {
             try {
@@ -673,35 +641,6 @@ export default {
                 this.selectedDocContent = {
                     html: '<div class="text-red-500 font-bold">Failed to load document.</div>',
                 };
-            }
-        },
-        async updateDocs() {
-            try {
-                await window.api.post("/api/v1/docs/update");
-                this.fetchStatus();
-            } catch (error) {
-                console.error("Failed to trigger docs update:", error);
-            }
-        },
-        async addAndRetryDocs() {
-            if (!this.alternateDocsUrl) return;
-            try {
-                // Get current config
-                const configResponse = await window.api.get("/api/v1/config");
-                const currentUrls = configResponse.data.config.docs_download_urls || "";
-                const newUrls = currentUrls ? `${currentUrls},${this.alternateDocsUrl}` : this.alternateDocsUrl;
-
-                // Update config
-                await window.api.patch("/api/v1/config", {
-                    docs_download_urls: newUrls,
-                });
-
-                // Clear input and retry
-                this.alternateDocsUrl = "";
-                await this.updateDocs();
-            } catch (error) {
-                console.error("Failed to add alternate source:", error);
-                ToastUtils.error(this.$t("docs.failed_update_docs"));
             }
         },
         async switchVersion(version) {
@@ -759,6 +698,9 @@ export default {
         },
         async exportDocs() {
             window.location.href = "/api/v1/docs/export";
+        },
+        async exportReticulumDocs() {
+            window.location.href = "/api/v1/docs/export/reticulum";
         },
         copyDocLink() {
             if (!this.selectedDocPath) return;
