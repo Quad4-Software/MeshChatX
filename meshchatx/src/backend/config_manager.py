@@ -133,21 +133,10 @@ class ConfigManager:
         self.auth_enabled = self.BoolConfig(self, "auth_enabled", False)
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
-        self.docs_downloaded = self.BoolConfig(self, "docs_downloaded", False)
-        self.initial_docs_download_attempted = self.BoolConfig(
-            self,
-            "initial_docs_download_attempted",
-            False,
-        )
         self.gitea_base_url = self.StringConfig(
             self,
             "gitea_base_url",
             "https://git.quad4.io",
-        )
-        self.docs_download_urls = self.StringConfig(
-            self,
-            "docs_download_urls",
-            "https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip,https://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip",
         )
 
         # desktop config

@@ -210,6 +210,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/docs/export/reticulum"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/docs/search"
         },
         {
@@ -219,10 +223,6 @@
         {
             "method": "POST",
             "path": "/api/v1/docs/switch"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/docs/update"
         },
         {
             "method": "POST",

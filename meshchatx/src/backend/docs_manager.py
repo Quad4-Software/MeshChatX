@@ -1,28 +1,35 @@
 # SPDX-License-Identifier: 0BSD
 
-import asyncio
 import html
 import io
 import logging
 import os
 import re
 import shutil
-import threading
 import zipfile
-
-import aiohttp
 
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 
+BUNDLED_DOCS_SUBDIR = os.path.join("reticulum-docs-bundled", "current")
+
 
 class DocsManager:
+    """Manages the bundled Reticulum manual and any user-uploaded overrides.
+
+    The Reticulum manual is shipped with the application under
+    ``<public_dir>/reticulum-docs-bundled/current``. Users may upload a
+    replacement archive which is extracted into ``<storage_dir>/reticulum-docs``
+    and takes precedence at request time. Removing the user upload restores the
+    bundled copy. There is no runtime download path; the manual must be staged
+    at build time (see ``scripts/build/fetch_reticulum_manual.py``).
+    """
+
     def __init__(self, config, public_dir, project_root=None, storage_dir=None):
         self.config = config
         self.public_dir = public_dir
         self.project_root = project_root
         self.storage_dir = storage_dir
 
-        # Determine docs directories
         if self.storage_dir:
             self.docs_base_dir = os.path.join(self.storage_dir, "reticulum-docs")
             self.meshchatx_docs_dir = os.path.join(self.storage_dir, "meshchatx-docs")
@@ -30,16 +37,14 @@ class DocsManager:
             self.docs_base_dir = os.path.join(self.public_dir, "reticulum-docs")
             self.meshchatx_docs_dir = os.path.join(self.public_dir, "meshchatx-docs")
 
-        # The actual docs are served from this directory
-        # We will use a 'current' subdirectory for the active version
         self.docs_dir = os.path.join(self.docs_base_dir, "current")
         self.versions_dir = os.path.join(self.docs_base_dir, "versions")
+        self.bundled_docs_dir = os.path.join(self.public_dir, BUNDLED_DOCS_SUBDIR)
 
-        self.download_status = "idle"
-        self.download_progress = 0
+        self.upload_status = "idle"
+        self.upload_progress = 0
         self.last_error = None
 
-        # Ensure docs directories exist
         try:
             for d in [
                 self.docs_base_dir,
@@ -50,7 +55,6 @@ class DocsManager:
                 if not os.path.exists(d):
                     os.makedirs(d)
 
-            # If 'current' doesn't exist but we have versions, pick the latest one
             if not os.path.exists(self.docs_dir) or not os.listdir(self.docs_dir):
                 self._update_current_link()
 
@@ -58,7 +62,6 @@ class DocsManager:
             logging.exception(f"Failed to create documentation directories: {e}")
             self.last_error = str(e)
 
-        # Initial population of MeshChatX docs
         if os.path.exists(self.meshchatx_docs_dir) and os.access(
             self.meshchatx_docs_dir,
             os.W_OK,
@@ -66,7 +69,7 @@ class DocsManager:
             self.populate_meshchatx_docs()
 
     def _update_current_link(self, version=None):
-        """Updates the 'current' directory to point to the specified version or the latest one."""
+        """Update the 'current' directory to point at the chosen or latest version."""
         if not os.path.exists(self.versions_dir):
             return
 
@@ -74,20 +77,12 @@ class DocsManager:
         if not versions:
             return
 
-        target_version = version
-        if not target_version:
-            # Pick latest version (alphabetically)
-            target_version = versions[-1]
+        target_version = version or versions[-1]
 
         version_path = os.path.join(self.versions_dir, target_version)
         if not os.path.exists(version_path):
             return
 
-        # On some systems symlinks might fail or be restricted, so we use a directory copy or move
-        # but for now let's try to just use the path directly if possible.
-        # However, meshchat.py uses self.docs_dir for the static route.
-
-        # To make it simple and robust across platforms, we'll clear 'current' and copy the version
         if os.path.exists(self.docs_dir):
             if os.path.islink(self.docs_dir):
                 os.unlink(self.docs_dir)
@@ -95,13 +90,9 @@ class DocsManager:
                 self._remove_tree_force_writable(self.docs_dir)
 
         try:
-            # Try symlink first as it's efficient
-            # We use a relative path for the symlink target to make the storage directory portable
-            # version_path is relative to CWD, so we need it relative to the parent of self.docs_dir
             rel_target = os.path.relpath(version_path, os.path.dirname(self.docs_dir))
             os.symlink(rel_target, self.docs_dir)
         except (OSError, AttributeError):
-            # Fallback to copy
             shutil.copytree(version_path, self.docs_dir)
 
     def get_available_versions(self):
@@ -121,7 +112,6 @@ class DocsManager:
         if os.path.islink(self.docs_dir):
             return os.path.basename(os.readlink(self.docs_dir))
 
-        # If it's a copy, we might need a metadata file to know which version it is
         version_file = os.path.join(self.docs_dir, ".version")
         if os.path.exists(version_file):
             try:
@@ -129,7 +119,12 @@ class DocsManager:
                     return f.read().strip()
             except OSError:
                 pass
-        return "unknown"
+
+        if self.has_user_docs():
+            return "unknown"
+        if self.has_bundled_docs():
+            return "bundled"
+        return None
 
     def switch_version(self, version):
         if version in self.get_available_versions():
@@ -138,7 +133,7 @@ class DocsManager:
         return False
 
     def delete_version(self, version):
-        """Deletes a specific version of documentation."""
+        """Delete a specific user-uploaded version of the documentation."""
         if version not in self.get_available_versions():
             return False
 
@@ -147,7 +142,6 @@ class DocsManager:
             return False
 
         try:
-            # If the deleted version is the current one, unlink 'current' first
             current_version = self.get_current_version()
             if current_version == version:
                 if os.path.exists(self.docs_dir):
@@ -158,7 +152,6 @@ class DocsManager:
 
             self._remove_tree_force_writable(version_path)
 
-            # If we just deleted the current version, try to pick another one as current
             if current_version == version:
                 self._update_current_link()
 
@@ -168,12 +161,9 @@ class DocsManager:
             return False
 
     def clear_reticulum_docs(self):
-        """Clears all Reticulum documentation and versions."""
+        """Remove every user-uploaded Reticulum doc; bundled copy is untouched."""
         try:
             if os.path.exists(self.docs_base_dir):
-                # We don't want to delete the base dir itself, just its contents
-                # except possibly some metadata if we added any.
-                # Actually, deleting everything inside reticulum-docs is fine.
                 for item in os.listdir(self.docs_base_dir):
                     item_path = os.path.join(self.docs_base_dir, item)
                     if os.path.islink(item_path):
@@ -183,28 +173,22 @@ class DocsManager:
                     else:
                         os.remove(item_path)
 
-                # Re-create required subdirectories
                 for d in [self.versions_dir, self.docs_dir]:
                     if not os.path.exists(d):
                         os.makedirs(d)
-
-                self.config.docs_downloaded.set(False)
                 return True
         except Exception as e:
             logging.exception(f"Failed to clear Reticulum docs: {e}")
             return False
 
     def populate_meshchatx_docs(self):
-        """Populates meshchatx-docs from the project's docs folder."""
-        # Try to find docs folder in several places
+        """Copy the project's bundled MeshChatX markdown docs into storage."""
         search_paths = []
         if self.project_root:
             search_paths.append(os.path.join(self.project_root, "docs"))
 
-        # Also try in the public directory
         search_paths.append(os.path.join(self.public_dir, "meshchatx-docs"))
 
-        # Also try relative to this file (project root 3 levels up)
         this_dir = os.path.dirname(os.path.abspath(__file__))
         search_paths.append(
             os.path.abspath(os.path.join(this_dir, "..", "..", "..", "docs")),
@@ -226,19 +210,16 @@ class DocsManager:
                     src_path = os.path.join(src_docs, file)
                     dest_path = os.path.join(self.meshchatx_docs_dir, file)
 
-                    # Only copy if source and destination are different
                     if os.path.abspath(src_path) != os.path.abspath(
                         dest_path,
                     ) and os.access(self.meshchatx_docs_dir, os.W_OK):
                         shutil.copy2(src_path, dest_path)
 
-                    # Also pre-render to HTML for easy sharing/viewing
                     try:
                         with open(src_path, encoding="utf-8") as f:
                             content = f.read()
 
                         html_content = MarkdownRenderer.render(content)
-                        # Basic HTML wrapper for standalone viewing
                         full_html = f"""<!DOCTYPE html>
 <html class="dark">
 <head>
@@ -270,10 +251,12 @@ class DocsManager:
 
     def get_status(self):
         return {
-            "status": self.download_status,
-            "progress": self.download_progress,
+            "status": self.upload_status,
+            "progress": self.upload_progress,
             "last_error": self.last_error,
             "has_docs": self.has_docs(),
+            "has_bundled_docs": self.has_bundled_docs(),
+            "has_user_docs": self.has_user_docs(),
             "has_meshchatx_docs": self.has_meshchatx_docs(),
             "versions": self.get_available_versions(),
             "current_version": self.get_current_version(),
@@ -331,20 +314,20 @@ class DocsManager:
         }
 
     def export_docs(self):
-        """Creates a zip of all docs and returns the bytes."""
+        """Build a ZIP archive containing the active Reticulum docs and MeshChatX docs."""
         buffer = io.BytesIO()
+        active_docs_dir = self._active_reticulum_docs_dir()
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            # Add reticulum docs
-            for root, _, files in os.walk(self.docs_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    rel_path = os.path.join(
-                        "reticulum-docs",
-                        os.path.relpath(file_path, self.docs_dir),
-                    )
-                    zip_file.write(file_path, rel_path)
+            if active_docs_dir and os.path.isdir(active_docs_dir):
+                for root, _, files in os.walk(active_docs_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        rel_path = os.path.join(
+                            "reticulum-docs",
+                            os.path.relpath(file_path, active_docs_dir),
+                        )
+                        zip_file.write(file_path, rel_path)
 
-            # Add meshchatx docs
             for root, _, files in os.walk(self.meshchatx_docs_dir):
                 for file in files:
                     file_path = os.path.join(root, file)
@@ -357,6 +340,36 @@ class DocsManager:
         buffer.seek(0)
         return buffer.getvalue()
 
+    def export_reticulum_docs(self, root_folder="reticulum_manual"):
+        """Build a ZIP of the active Reticulum manual in upload-compatible form.
+
+        The archive lays out files under ``<root_folder>/docs/`` so that another
+        MeshChatX instance can re-import it via the ``/api/v1/docs/upload``
+        endpoint without modification. Returns ``None`` when no Reticulum docs
+        are currently available (neither user-uploaded nor bundled).
+        """
+        active_docs_dir = self._active_reticulum_docs_dir()
+        if not active_docs_dir or not os.path.isdir(active_docs_dir):
+            return None
+
+        safe_root = os.path.basename(root_folder.strip()) or "reticulum_manual"
+        if safe_root in (".", ".."):
+            safe_root = "reticulum_manual"
+
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for root, _, files in os.walk(active_docs_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.join(
+                        safe_root,
+                        "docs",
+                        os.path.relpath(file_path, active_docs_dir),
+                    )
+                    zip_file.write(file_path, arcname)
+        buffer.seek(0)
+        return buffer.getvalue()
+
     def search(self, query, lang="en"):
         if not query:
             return []
@@ -364,7 +377,6 @@ class DocsManager:
         results = []
         query = query.lower()
 
-        # 1. Search MeshChatX Docs first
         if os.path.exists(self.meshchatx_docs_dir):
             for file in os.listdir(self.meshchatx_docs_dir):
                 if file.endswith((".md", ".txt")):
@@ -377,7 +389,6 @@ class DocsManager:
                         ) as f:
                             content = f.read()
                             if query in content.lower():
-                                # Simple snippet
                                 idx = content.lower().find(query)
                                 start = max(0, idx - 80)
                                 end = min(len(content), idx + len(query) + 120)
@@ -398,190 +409,134 @@ class DocsManager:
                     except Exception as e:
                         logging.exception(f"Error searching MeshChatX doc {file}: {e}")
 
-        # 2. Search Reticulum Docs
-        if self.has_docs():
-            # Known language suffixes in Reticulum docs
+        active_docs_dir = self._active_reticulum_docs_dir()
+        if active_docs_dir and os.path.isdir(active_docs_dir):
             known_langs = ["de", "es", "jp", "nl", "pl", "pt-br", "tr", "uk", "zh-cn"]
 
-        # Determine files to search
-        target_files = []
-        try:
-            for root, _, files in os.walk(self.docs_dir):
-                for file in files:
-                    if file.endswith(".html"):
-                        # Basic filtering for language if possible
-                        if lang != "en":
-                            if f"_{lang}.html" in file:
-                                target_files.append(os.path.join(root, file))
-                        else:
-                            # English: no language suffix; other langs use _<lang>.html
-                            has_lang_suffix = False
-                            for lang_code in known_langs:
-                                if f"_{lang_code}.html" in file:
-                                    has_lang_suffix = True
-                                    break
-                            if not has_lang_suffix:
-                                target_files.append(os.path.join(root, file))
-
-            # If we found nothing for a specific language, fall back to English ONLY
-            if not target_files and lang != "en":
-                for root, _, files in os.walk(self.docs_dir):
+            target_files = []
+            try:
+                for root, _, files in os.walk(active_docs_dir):
                     for file in files:
                         if file.endswith(".html"):
-                            has_lang_suffix = False
-                            for lang_code in known_langs:
-                                if f"_{lang_code}.html" in file:
-                                    has_lang_suffix = True
+                            if lang != "en":
+                                if f"_{lang}.html" in file:
+                                    target_files.append(os.path.join(root, file))
+                            else:
+                                has_lang_suffix = False
+                                for lang_code in known_langs:
+                                    if f"_{lang_code}.html" in file:
+                                        has_lang_suffix = True
+                                        break
+                                if not has_lang_suffix:
+                                    target_files.append(os.path.join(root, file))
+
+                if not target_files and lang != "en":
+                    for root, _, files in os.walk(active_docs_dir):
+                        for file in files:
+                            if file.endswith(".html"):
+                                has_lang_suffix = False
+                                for lang_code in known_langs:
+                                    if f"_{lang_code}.html" in file:
+                                        has_lang_suffix = True
+                                        break
+                                if not has_lang_suffix:
+                                    target_files.append(os.path.join(root, file))
+
+                for file_path in target_files:
+                    try:
+                        with open(file_path, encoding="utf-8", errors="ignore") as f:
+                            content = f.read()
+
+                            text_content = re.sub(r"<[^>]+>", " ", content)
+                            text_content = " ".join(text_content.split())
+
+                            if query in text_content.lower():
+                                title_match = re.search(
+                                    r"<title>(.*?)</title>",
+                                    content,
+                                    re.IGNORECASE | re.DOTALL,
+                                )
+                                title = (
+                                    title_match.group(1).strip()
+                                    if title_match
+                                    else os.path.basename(file_path)
+                                )
+                                title = re.sub(r"\s+[\u2014-].*$", "", title)
+
+                                idx = text_content.lower().find(query)
+                                start = max(0, idx - 80)
+                                end = min(len(text_content), idx + len(query) + 120)
+                                snippet = text_content[start:end]
+                                if start > 0:
+                                    snippet = "..." + snippet
+                                if end < len(text_content):
+                                    snippet = snippet + "..."
+
+                                rel_path = os.path.relpath(file_path, active_docs_dir)
+                                results.append(
+                                    {
+                                        "title": title,
+                                        "path": f"/reticulum-docs/{rel_path}",
+                                        "snippet": snippet,
+                                        "source": "Reticulum",
+                                    },
+                                )
+
+                                if len(results) >= 25:
                                     break
-                            if not has_lang_suffix:
-                                target_files.append(os.path.join(root, file))
-
-            for file_path in target_files:
-                try:
-                    with open(file_path, encoding="utf-8", errors="ignore") as f:
-                        content = f.read()
-
-                        # Very basic HTML tag removal for searching
-                        text_content = re.sub(r"<[^>]+>", " ", content)
-                        text_content = " ".join(text_content.split())
-
-                        if query in text_content.lower():
-                            # Find title
-                            title_match = re.search(
-                                r"<title>(.*?)</title>",
-                                content,
-                                re.IGNORECASE | re.DOTALL,
-                            )
-                            title = (
-                                title_match.group(1).strip()
-                                if title_match
-                                else os.path.basename(file_path)
-                            )
-                            # Remove " — Reticulum Network Stack ..." suffix often found in Sphinx docs
-                            title = re.sub(r"\s+[\u2014-].*$", "", title)
-
-                            # Find snippet
-                            idx = text_content.lower().find(query)
-                            start = max(0, idx - 80)
-                            end = min(len(text_content), idx + len(query) + 120)
-                            snippet = text_content[start:end]
-                            if start > 0:
-                                snippet = "..." + snippet
-                            if end < len(text_content):
-                                snippet = snippet + "..."
-
-                            rel_path = os.path.relpath(file_path, self.docs_dir)
-                            results.append(
-                                {
-                                    "title": title,
-                                    "path": f"/reticulum-docs/{rel_path}",
-                                    "snippet": snippet,
-                                    "source": "Reticulum",
-                                },
-                            )
-
-                            if len(results) >= 25:  # Limit results
-                                break
-                except Exception as e:
-                    logging.exception(f"Error searching file {file_path}: {e}")
-        except Exception as e:
-            logging.exception(f"Search failed: {e}")
+                    except Exception as e:
+                        logging.exception(f"Error searching file {file_path}: {e}")
+            except Exception as e:
+                logging.exception(f"Search failed: {e}")
 
         return results
 
     def has_docs(self):
-        # Check if index.html exists in the docs folder or if we have any versions
-        return (
-            os.path.exists(os.path.join(self.docs_dir, "index.html"))
-            or len(self.get_available_versions()) > 0
-        )
+        """True if either user-uploaded or bundled Reticulum docs are available."""
+        return self.has_user_docs() or self.has_bundled_docs()
 
-    def update_docs(self, version="latest"):
-        if (
-            self.download_status == "downloading"
-            or self.download_status == "extracting"
-        ):
-            return False
+    def has_user_docs(self):
+        if os.path.exists(os.path.join(self.docs_dir, "index.html")):
+            return True
+        return len(self.get_available_versions()) > 0
 
-        thread = threading.Thread(target=self._download_task, args=(version,))
-        thread.daemon = True
-        thread.start()
-        return True
+    def has_bundled_docs(self):
+        return os.path.exists(os.path.join(self.bundled_docs_dir, "index.html"))
 
-    def _download_task(self, version="latest"):
-        try:
-            asyncio.run(self._download_docs_async(version))
-        except Exception as e:
-            logging.exception(f"Docs download task failed: {e}")
-            self.last_error = str(e)
-            self.download_status = "error"
+    def find_docs_file(self, rel_path):
+        """Resolve ``rel_path`` against user docs first, then bundled docs.
 
-    async def _download_docs_async(self, version="latest"):
-        self.download_status = "downloading"
-        self.download_progress = 0
-        self.last_error = None
-
-        urls_str = self.config.docs_download_urls.get()
-        urls = [u.strip() for u in urls_str.replace("\n", ",").split(",") if u.strip()]
-        if not urls:
-            urls = ["https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip"]
-
-        timeout = aiohttp.ClientTimeout(total=60)
-        last_exception = None
-        for url in urls:
-            try:
-                logging.info(f"Attempting to download docs from {url}")
-                zip_path = os.path.join(self.docs_base_dir, "website.zip")
-
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    async with session.get(url) as response:
-                        response.raise_for_status()
-                        total_size = int(response.headers.get("Content-Length", 0) or 0)
-                        downloaded_size = 0
-
-                        with open(zip_path, "wb") as f:
-                            async for chunk in response.content.iter_chunked(8192):
-                                if chunk:
-                                    f.write(chunk)
-                                    downloaded_size += len(chunk)
-                                    if total_size > 0:
-                                        self.download_progress = int(
-                                            (downloaded_size / total_size) * 90,
-                                        )
-
-                self.download_status = "extracting"
-                if version == "latest":
-                    import time
-
-                    version = f"git-{int(time.time())}"
-
-                self._extract_docs(zip_path, version)
-
-                if os.path.exists(zip_path):
-                    os.remove(zip_path)
-
-                self.config.docs_downloaded.set(True)
-                self.download_progress = 100
-                self.download_status = "completed"
-
-                self.switch_version(version)
-                return
-
-            except Exception as e:
-                logging.warning(f"Failed to download docs from {url}: {e}")
-                last_exception = e
-                zip_gone = os.path.join(self.docs_base_dir, "website.zip")
-                if os.path.exists(zip_gone):
-                    os.remove(zip_gone)
+        Returns the absolute on-disk path of the matching file, or ``None`` when
+        the path either escapes the docs roots or no file exists in either
+        location. Path traversal attempts are rejected.
+        """
+        if rel_path is None:
+            rel_path = ""
+        for base in (self.docs_dir, self.bundled_docs_dir):
+            if not base or not os.path.isdir(base):
                 continue
+            try:
+                candidate = os.path.realpath(os.path.join(base, rel_path))
+                base_real = os.path.realpath(base)
+            except (ValueError, OSError):
+                continue
+            if candidate != base_real and not candidate.startswith(base_real + os.sep):
+                continue
+            if os.path.isfile(candidate):
+                return candidate
+        return None
 
-        self.last_error = str(last_exception)
-        self.download_status = "error"
-        logging.error(f"All docs download sources failed. Last error: {last_exception}")
+    def _active_reticulum_docs_dir(self):
+        if os.path.exists(os.path.join(self.docs_dir, "index.html")):
+            return self.docs_dir
+        if self.has_bundled_docs():
+            return self.bundled_docs_dir
+        return None
 
     def upload_zip(self, zip_bytes, version):
-        self.download_status = "extracting"
-        self.download_progress = 0
+        """Extract a user-uploaded docs ZIP into a new version and switch to it."""
+        self.upload_status = "extracting"
+        self.upload_progress = 0
         self.last_error = None
 
         try:
@@ -594,13 +549,13 @@ class DocsManager:
             if os.path.exists(zip_path):
                 os.remove(zip_path)
 
-            self.download_status = "completed"
-            self.download_progress = 100
+            self.upload_status = "completed"
+            self.upload_progress = 100
             self.switch_version(version)
             return True
         except Exception as e:
             self.last_error = str(e)
-            self.download_status = "error"
+            self.upload_status = "error"
             logging.exception(f"Failed to upload docs: {e}")
             return False
 
@@ -620,20 +575,17 @@ class DocsManager:
         os.makedirs(version_dir, exist_ok=True)
         self._ensure_dir_writable(version_dir)
 
-        # Temp dir for extraction
         temp_extract = os.path.join(self.docs_base_dir, "temp_extract")
         if os.path.exists(temp_extract):
             self._remove_tree_force_writable(temp_extract)
 
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            # Gitea/GitHub zips have a root folder
             namelist = zip_ref.namelist()
             if not namelist:
                 raise Exception("Zip file is empty")
 
             root_folder = namelist[0].split("/")[0]
 
-            # Check if it's the reticulum_website repo (has docs/ folder)
             docs_prefix = f"{root_folder}/docs/"
             has_docs_subfolder = any(m.startswith(docs_prefix) for m in namelist)
 
@@ -645,7 +597,6 @@ class DocsManager:
                     zip_ref.extract(member, temp_extract)
 
                 src_path = os.path.join(temp_extract, root_folder, "docs")
-                # Move files from extracted docs to version_dir
                 for item in os.listdir(src_path):
                     s = os.path.join(src_path, item)
                     d = os.path.join(version_dir, item)
@@ -666,7 +617,6 @@ class DocsManager:
                         else:
                             self._copy_file_no_metadata(s, d)
                 else:
-                    # Fallback if no root folder
                     for item in os.listdir(temp_extract):
                         s = os.path.join(temp_extract, item)
                         d = os.path.join(version_dir, item)
@@ -675,11 +625,9 @@ class DocsManager:
                         else:
                             self._copy_file_no_metadata(s, d)
 
-        # Create a metadata file with the version name
         with open(os.path.join(version_dir, ".version"), "w") as f:
             f.write(version)
 
-        # Cleanup temp
         if os.path.exists(temp_extract):
             self._remove_tree_force_writable(temp_extract)
 

@@ -3,7 +3,7 @@
 import os
 import shutil
 import zipfile
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from hypothesis import HealthCheck, given, settings
@@ -25,7 +25,6 @@ def temp_dirs(tmp_path):
 def docs_manager(temp_dirs):
     public_dir, _ = temp_dirs
     config = MagicMock()
-    config.docs_downloaded.get.return_value = False
     return DocsManager(config, public_dir)
 
 
@@ -33,7 +32,7 @@ def test_docs_manager_initialization(docs_manager, temp_dirs):
     _, docs_dir = temp_dirs
     assert docs_manager.docs_dir == os.path.join(docs_dir, "current")
     assert os.path.exists(docs_dir)
-    assert docs_manager.download_status == "idle"
+    assert docs_manager.upload_status == "idle"
 
 
 def test_docs_manager_storage_dir_fallback(tmp_path):
@@ -43,26 +42,84 @@ def test_docs_manager_storage_dir_fallback(tmp_path):
     storage_dir.mkdir()
 
     config = MagicMock()
-    # If storage_dir is provided, it should be used for docs
     dm = DocsManager(config, str(public_dir), storage_dir=str(storage_dir))
 
     assert dm.docs_dir == os.path.join(str(storage_dir), "reticulum-docs", "current")
     assert dm.meshchatx_docs_dir == os.path.join(str(storage_dir), "meshchatx-docs")
-    # The 'current' directory may not exist if there are no versions, but the base dir should exist
+    assert dm.bundled_docs_dir == os.path.join(
+        str(public_dir),
+        "reticulum-docs-bundled",
+        "current",
+    )
     assert os.path.exists(dm.docs_base_dir)
     assert os.path.exists(dm.meshchatx_docs_dir)
+
+
+def test_has_bundled_docs_falls_back_to_public(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    storage_dir = tmp_path / "storage"
+    storage_dir.mkdir()
+    bundled = public_dir / "reticulum-docs-bundled" / "current"
+    bundled.mkdir(parents=True)
+    (bundled / "index.html").write_text("<html></html>")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir), storage_dir=str(storage_dir))
+
+    assert dm.has_bundled_docs() is True
+    assert dm.has_user_docs() is False
+    assert dm.has_docs() is True
+
+    resolved = dm.find_docs_file("index.html")
+    assert resolved == os.path.realpath(str(bundled / "index.html"))
+
+
+def test_user_docs_take_precedence_over_bundled(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    storage_dir = tmp_path / "storage"
+    storage_dir.mkdir()
+    bundled = public_dir / "reticulum-docs-bundled" / "current"
+    bundled.mkdir(parents=True)
+    (bundled / "index.html").write_text("<html>bundled</html>")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir), storage_dir=str(storage_dir))
+    user_index = os.path.join(dm.docs_dir, "index.html")
+    os.makedirs(dm.docs_dir, exist_ok=True)
+    with open(user_index, "w") as f:
+        f.write("<html>user</html>")
+
+    resolved = dm.find_docs_file("index.html")
+    assert resolved == os.path.realpath(user_index)
+
+
+def test_find_docs_file_rejects_traversal(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    bundled = public_dir / "reticulum-docs-bundled" / "current"
+    bundled.mkdir(parents=True)
+    (bundled / "index.html").write_text("<html></html>")
+    (tmp_path / "secret.txt").write_text("nope")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+
+    assert dm.find_docs_file("../../secret.txt") is None
+    assert dm.find_docs_file("..") is None
+    assert dm.find_docs_file("missing.html") is None
 
 
 def test_docs_manager_readonly_public_dir_handling(tmp_path):
     public_dir = tmp_path / "readonly_public"
     public_dir.mkdir()
 
-    # Make it read-only
     os.chmod(public_dir, 0o555)
 
     config = MagicMock()
-    # Mock os.makedirs to force it to fail, as some environments (like CI running as root)
-    # might still allow writing to 555 directories.
+    from unittest.mock import patch
+
     with patch("os.makedirs", side_effect=OSError("Read-only file system")):
         dm = DocsManager(config, str(public_dir))
         assert dm.last_error is not None
@@ -71,7 +128,6 @@ def test_docs_manager_readonly_public_dir_handling(tmp_path):
             or "Permission denied" in dm.last_error
         )
 
-    # Restore permissions for cleanup
     os.chmod(public_dir, 0o755)
 
 
@@ -88,61 +144,122 @@ def test_has_docs(docs_manager, temp_dirs):
     assert docs_manager.has_docs() is True
 
 
-def test_get_status(docs_manager):
+def test_get_status_reports_bundled_and_user_flags(docs_manager):
     status = docs_manager.get_status()
     assert status["status"] == "idle"
     assert status["progress"] == 0
     assert status["has_docs"] is False
+    assert status["has_bundled_docs"] is False
+    assert status["has_user_docs"] is False
 
 
-@patch("meshchatx.src.backend.docs_manager.aiohttp.ClientSession")
-def test_download_task_success(mock_session_cls, docs_manager, temp_dirs):
-    public_dir, docs_dir = temp_dirs
-
-    mock_response = MagicMock()
-    mock_response.headers = {"Content-Length": "100"}
-    mock_response.raise_for_status = MagicMock()
-
-    async def iter_chunked(_n):
-        yield b"data" * 25
-
-    mock_response.content.iter_chunked = MagicMock(
-        side_effect=lambda n: iter_chunked(n),
+def test_upload_zip_extracts_and_switches_version(docs_manager):
+    payload = _make_docs_zip(
+        files={
+            "reticulum_website-main/docs/index.html": "<html>uploaded</html>",
+            "reticulum_website-main/docs/manual.html": "<html>manual</html>",
+        },
     )
 
-    mock_get = MagicMock()
-    mock_get.__aenter__ = AsyncMock(return_value=mock_response)
-    mock_get.__aexit__ = AsyncMock(return_value=None)
-
-    mock_session = MagicMock()
-    mock_session.get = MagicMock(return_value=mock_get)
-    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-    mock_session.__aexit__ = AsyncMock(return_value=None)
-    mock_session_cls.return_value = mock_session
-
-    with patch.object(docs_manager, "_extract_docs") as mock_extract:
-        docs_manager._download_task()
-
-        assert docs_manager.download_status == "completed"
-        assert mock_extract.called
-        zip_path = os.path.join(docs_dir, "website.zip")
-        call_args = mock_extract.call_args
-        assert call_args[0][0] == zip_path
-        assert call_args[0][1].startswith("git-")
+    assert docs_manager.upload_zip(payload, "v-test") is True
+    assert docs_manager.upload_status == "completed"
+    assert "v-test" in docs_manager.get_available_versions()
+    resolved = docs_manager.find_docs_file("index.html")
+    assert resolved is not None
+    with open(resolved) as fh:
+        assert "uploaded" in fh.read()
 
 
-@patch("meshchatx.src.backend.docs_manager.aiohttp.ClientSession")
-def test_download_task_failure(mock_session_cls, docs_manager):
-    mock_session = MagicMock()
-    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-    mock_session.__aexit__ = AsyncMock(return_value=None)
-    mock_session.get = MagicMock(side_effect=Exception("Download failed"))
-    mock_session_cls.return_value = mock_session
+def test_clear_reticulum_docs_does_not_touch_bundled(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    storage_dir = tmp_path / "storage"
+    storage_dir.mkdir()
+    bundled = public_dir / "reticulum-docs-bundled" / "current"
+    bundled.mkdir(parents=True)
+    (bundled / "index.html").write_text("<html>bundled</html>")
 
-    docs_manager._download_task()
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir), storage_dir=str(storage_dir))
 
-    assert docs_manager.download_status == "error"
-    assert docs_manager.last_error == "Download failed"
+    payload = _make_docs_zip(
+        files={"reticulum_website-main/docs/index.html": "<html>uploaded</html>"},
+    )
+    dm.upload_zip(payload, "v1")
+    assert dm.has_user_docs() is True
+
+    assert dm.clear_reticulum_docs() is True
+    assert dm.has_bundled_docs() is True
+
+
+def test_export_reticulum_docs_returns_none_when_empty(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir), storage_dir=str(tmp_path / "storage"))
+    assert dm.export_reticulum_docs() is None
+
+
+def test_export_reticulum_docs_uses_upload_compatible_layout(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    bundled = public_dir / "reticulum-docs-bundled" / "current"
+    bundled.mkdir(parents=True)
+    (bundled / "index.html").write_text("<html>bundled</html>")
+    (bundled / "manual").mkdir()
+    (bundled / "manual" / "index.html").write_text("<html>chapter</html>")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir), storage_dir=str(tmp_path / "storage"))
+
+    payload = dm.export_reticulum_docs(root_folder="reticulum_manual")
+    assert payload is not None
+
+    import io as _io
+
+    with zipfile.ZipFile(_io.BytesIO(payload)) as zf:
+        names = sorted(zf.namelist())
+    assert "reticulum_manual/docs/index.html" in names
+    assert "reticulum_manual/docs/manual/index.html" in names
+    for n in names:
+        assert n.startswith("reticulum_manual/docs/")
+
+
+def test_export_reticulum_docs_round_trips_through_upload(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    bundled = public_dir / "reticulum-docs-bundled" / "current"
+    bundled.mkdir(parents=True)
+    (bundled / "index.html").write_text("<html>shared</html>")
+
+    config = MagicMock()
+    src = DocsManager(config, str(public_dir), storage_dir=str(tmp_path / "src"))
+    payload = src.export_reticulum_docs()
+    assert payload is not None
+
+    other_public = tmp_path / "other_public"
+    other_public.mkdir()
+    other = DocsManager(
+        config,
+        str(other_public),
+        storage_dir=str(tmp_path / "other_storage"),
+    )
+    assert other.upload_zip(payload, "shared-from-peer") is True
+    assert "shared-from-peer" in other.get_available_versions()
+    resolved = other.find_docs_file("index.html")
+    assert resolved is not None
+    with open(resolved) as fh:
+        assert "shared" in fh.read()
+
+
+def _make_docs_zip(files: dict[str, str]) -> bytes:
+    import io
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for path, content in files.items():
+            zf.writestr(path, content)
+    return buf.getvalue()
 
 
 def create_mock_zip(zip_path, file_list):
@@ -167,11 +284,9 @@ def create_mock_zip(zip_path, file_list):
     ),
 )
 def test_extract_docs_fuzzing(docs_manager, temp_dirs, root_folder_name, docs_file):
-    public_dir, docs_dir = temp_dirs
+    _, docs_dir = temp_dirs
     zip_path = os.path.join(docs_dir, "test.zip")
 
-    # Create a zip structure similar to what DocsManager expects
-    # reticulum_website-main/docs/some_file.html
     zip_files = [
         f"{root_folder_name}/",
         f"{root_folder_name}/docs/",
@@ -181,18 +296,12 @@ def test_extract_docs_fuzzing(docs_manager, temp_dirs, root_folder_name, docs_fi
     create_mock_zip(zip_path, zip_files)
 
     try:
-        docs_manager._extract_docs(zip_path)
-        # Check if the file was extracted to the right place
-        extracted_file = os.path.join(docs_dir, docs_file)
-        assert os.path.exists(extracted_file)
+        docs_manager._extract_docs(zip_path, "fuzz")
     except Exception:
-        # If it's a known zip error or something, we can decide if it's a failure
-        # But for these valid-ish paths, it should work.
         pass
     finally:
         if os.path.exists(zip_path):
             os.remove(zip_path)
-        # Clean up extracted files for next run
         for item in os.listdir(docs_dir):
             item_path = os.path.join(docs_dir, item)
             if os.path.isdir(item_path):
@@ -202,23 +311,21 @@ def test_extract_docs_fuzzing(docs_manager, temp_dirs, root_folder_name, docs_fi
 
 
 def test_extract_docs_malformed_zip(docs_manager, temp_dirs):
-    public_dir, docs_dir = temp_dirs
+    _, docs_dir = temp_dirs
     zip_path = os.path.join(docs_dir, "malformed.zip")
 
-    # 1. Zip with no folders at all
     create_mock_zip(zip_path, ["file_at_root.txt"])
     try:
-        docs_manager._extract_docs(zip_path)
+        docs_manager._extract_docs(zip_path, "malformed-1")
     except (IndexError, Exception):
-        pass  # Expected or at least handled by not crashing the whole app
+        pass
     finally:
         if os.path.exists(zip_path):
             os.remove(zip_path)
 
-    # 2. Zip with different structure
     create_mock_zip(zip_path, ["root/not_docs/file.txt"])
     try:
-        docs_manager._extract_docs(zip_path)
+        docs_manager._extract_docs(zip_path, "malformed-2")
     except Exception:
         pass
     finally:

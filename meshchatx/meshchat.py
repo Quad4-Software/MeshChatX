@@ -18,6 +18,7 @@ import json
 import logging
 import os
 import platform
+import re
 import secrets
 import shutil
 import socket
@@ -228,7 +229,6 @@ class ReticulumMeshChat:
         public_dir: str | None = None,
         emergency: bool = False,
         gitea_base_url: str | None = None,
-        docs_download_urls: str | None = None,
         ssl_cert_path: str | None = None,
         ssl_key_path: str | None = None,
         rns_loglevel: str | None = None,
@@ -246,7 +246,6 @@ class ReticulumMeshChat:
         self.auth_enabled_initial = auth_enabled
         self.public_dir_override = public_dir
         self.gitea_base_url_override = gitea_base_url
-        self.docs_download_urls_override = docs_download_urls
         self._rns_loglevel_cli = rns_loglevel
         self.websocket_clients: list[web.WebSocketResponse] = []
         self._websocket_broadcast_lock = asyncio.Lock()
@@ -5256,13 +5255,6 @@ class ReticulumMeshChat:
         async def docs_status(request):
             return web.json_response(self.docs_manager.get_status())
 
-        # update docs
-        @routes.post("/api/v1/docs/update")
-        async def docs_update(request):
-            version = request.query.get("version", "latest")
-            success = self.docs_manager.update_docs(version=version)
-            return web.json_response({"success": success})
-
         # upload docs zip
         @routes.post("/api/v1/docs/upload")
         async def docs_upload(request):
@@ -5361,6 +5353,34 @@ class ReticulumMeshChat:
                 zip_data = self.docs_manager.export_docs()
                 filename = (
                     f"meshchatx_docs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+                )
+                return web.Response(
+                    body=zip_data,
+                    content_type="application/zip",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{filename}"',
+                    },
+                )
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        # export the active Reticulum manual in a layout the upload route accepts,
+        # so users can share their bundled or customised manual with another peer.
+        @routes.get("/api/v1/docs/export/reticulum")
+        async def reticulum_docs_export(request):
+            try:
+                zip_data = self.docs_manager.export_reticulum_docs()
+                if zip_data is None:
+                    return web.json_response(
+                        {"error": "No Reticulum manual available to export"},
+                        status=404,
+                    )
+                version = self.docs_manager.get_current_version() or "manual"
+                safe_version = re.sub(r"[^A-Za-z0-9._-]+", "_", str(version))
+                filename = (
+                    "reticulum_manual_"
+                    f"{safe_version}_"
+                    f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
                 )
                 return web.Response(
                     body=zip_data,
@@ -11307,7 +11327,6 @@ class ReticulumMeshChat:
 
             frame_sources = [
                 "'self'",
-                "https://reticulum.network",
             ]
 
             script_sources = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
@@ -11334,20 +11353,6 @@ class ReticulumMeshChat:
                     self.current_context.config.gitea_base_url.get(),
                     connect_sources,
                 )
-
-                # Add configured docs download URLs domains
-                docs_urls_str = self.current_context.config.docs_download_urls.get()
-                docs_urls = [
-                    u.strip()
-                    for u in docs_urls_str.replace("\n", ",").split(",")
-                    if u.strip()
-                ]
-                for url in docs_urls:
-                    domain = add_domain_from_url(url, connect_sources)
-                    if domain and "github.com" in domain:
-                        content_domain = "https://objects.githubusercontent.com"
-                        if content_domain not in connect_sources:
-                            connect_sources.append(content_domain)
 
                 # Add map tile server domain
                 map_tile_url = self.current_context.config.map_tile_server_url.get()
@@ -11612,12 +11617,12 @@ class ReticulumMeshChat:
         # we use add_static here as it's more robust for serving directories
         public_dir = self.get_public_path()
 
-        # Handle documentation directories that might be in a writable storage location
-        # (e.g. when running from a read-only AppImage)
+        # Serve Reticulum docs from user-uploaded storage with a fallback to the
+        # bundled offline copy shipped under <public>/reticulum-docs-bundled/current.
+        # No remote network fallback exists; users supply replacements via upload.
         if self.current_context and hasattr(self.current_context, "docs_manager"):
             dm = self.current_context.docs_manager
 
-            # Custom handler for reticulum docs to allow fallback to official website
             async def reticulum_docs_handler(request):
                 path = request.match_info.get("filename", "index.html")
                 if not path:
@@ -11625,18 +11630,13 @@ class ReticulumMeshChat:
                 if path.endswith("/"):
                     path += "index.html"
 
-                try:
-                    local_path = os.path.realpath(os.path.join(dm.docs_dir, path))
-                    base = os.path.realpath(dm.docs_dir)
-                except (ValueError, OSError):
-                    return web.json_response({"error": "Invalid path"}, status=400)
-                if not local_path.startswith(base + os.sep) and local_path != base:
-                    return web.json_response({"error": "Invalid path"}, status=400)
-                if os.path.exists(local_path) and os.path.isfile(local_path):
-                    return web.FileResponse(local_path)
-
-                # Fallback to official website
-                return web.HTTPFound(f"https://reticulum.network/manual/{path}")
+                resolved = dm.find_docs_file(path)
+                if resolved is None:
+                    return web.json_response(
+                        {"error": "Documentation not found"},
+                        status=404,
+                    )
+                return web.FileResponse(resolved)
 
             app.router.add_get("/reticulum-docs/{filename:.*}", reticulum_docs_handler)
 
@@ -15435,12 +15435,6 @@ def main():
         help="Base URL for Gitea instance (default: https://git.quad4.io). Can also be set via MESHCHAT_GITEA_BASE_URL environment variable.",
     )
     parser.add_argument(
-        "--docs-download-urls",
-        type=str,
-        default=os.environ.get("MESHCHAT_DOCS_DOWNLOAD_URLS"),
-        help="Comma-separated list of URLs to download documentation from. Can also be set via MESHCHAT_DOCS_DOWNLOAD_URLS environment variable.",
-    )
-    parser.add_argument(
         "--test-exception-message",
         type=str,
         help="Throws an exception. Used for testing the electron error dialog",
@@ -15587,7 +15581,6 @@ def main():
         public_dir=args.public_dir,
         emergency=args.emergency,
         gitea_base_url=args.gitea_base_url,
-        docs_download_urls=args.docs_download_urls,
         ssl_cert_path=ssl_cert,
         ssl_key_path=ssl_key,
         rns_loglevel=rns_log_cli,

@@ -439,14 +439,12 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
     it("onGiteaConfigChange PATCHes after debounce", async () => {
         const w = await mountSettingsPage(api);
         w.vm.config.gitea_base_url = "https://gitea.example";
-        w.vm.config.docs_download_urls = "https://docs.example";
         await w.vm.onGiteaConfigChange();
         await vi.advanceTimersByTimeAsync(1000);
         expect(api.patch).toHaveBeenCalledWith(
             "/api/v1/config",
             expect.objectContaining({
                 gitea_base_url: "https://gitea.example",
-                docs_download_urls: "https://docs.example",
             })
         );
     });

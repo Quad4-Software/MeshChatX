@@ -163,11 +163,6 @@ class IdentityContext:
             and self.app.gitea_base_url_override
         ):
             self.config.gitea_base_url.set(self.app.gitea_base_url_override)
-        if (
-            hasattr(self.app, "docs_download_urls_override")
-            and self.app.docs_download_urls_override
-        ):
-            self.config.docs_download_urls.set(self.app.docs_download_urls_override)
 
         self.message_handler = MessageHandler(self.database)
         self.announce_manager = AnnounceManager(self.database, self.config)
@@ -351,18 +346,6 @@ class IdentityContext:
         # 7. Start background threads
         self.running = True
         self.start_background_threads()
-
-        # 8. Handle initial documentation download
-        if (
-            not getattr(self.app, "emergency", False)
-            and not self.config.initial_docs_download_attempted.get()
-        ):
-            if not self.docs_manager.has_docs():
-                print(
-                    f"Triggering initial documentation download for {self.identity_hash}...",
-                )
-                self.docs_manager.update_docs()
-            self.config.initial_docs_download_attempted.set(True)
 
         # Baseline integrity manifest after successful setup
         if not getattr(self.app, "emergency", False):
