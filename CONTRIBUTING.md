@@ -8,25 +8,25 @@ Patches are the preferred way to contribute. Create your changes locally, export
 
 2. Stage and commit your work:
 
-   ```bash
-   git add -A
-   git commit -m "Short description of the change"
-   ```
+    ```bash
+    git add -A
+    git commit -m "Short description of the change"
+    ```
 
 3. Export the commit(s) as a `.patch` file:
 
-   ```bash
-   # Single most recent commit
-   git format-patch -1
+    ```bash
+    # Single most recent commit
+    git format-patch -1
 
-   # Last N commits
-   git format-patch -N
+    # Last N commits
+    git format-patch -N
 
-   # All commits since a branch point
-   git format-patch main..HEAD
-   ```
+    # All commits since a branch point
+    git format-patch main..HEAD
+    ```
 
-   This produces one `.patch` file per commit (for example `0001-my-change.patch`).
+    This produces one `.patch` file per commit (for example `0001-my-change.patch`).
 
 ## Sending the patch
 
