@@ -1,0 +1,116 @@
+# Reusable workflow that builds the Vite frontend and bundles the offline
+# Reticulum manual into ``meshchatx/public/``. Other workflows invoke this once
+# via ``workflow_call`` and download the resulting artifact instead of
+# re-running the same node/pnpm pipeline on every job.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+
+name: Frontend build
+
+on:
+    workflow_call:
+        inputs:
+            artifact_name:
+                description: >-
+                    Name of the artifact uploaded to the calling workflow run.
+                    Defaults to ``meshchatx-frontend-<run_id>-<run_attempt>``.
+                required: false
+                type: string
+                default: ""
+            retention_days:
+                description: Artifact retention in days.
+                required: false
+                type: number
+                default: 1
+            node_version:
+                description: Node.js major version used for the build.
+                required: false
+                type: string
+                default: "24"
+            pnpm_version:
+                description: pnpm version activated through corepack.
+                required: false
+                type: string
+                default: "10.32.1"
+            python_version:
+                description: Python version used by the docs bundler.
+                required: false
+                type: string
+                default: "3.14"
+        outputs:
+            artifact_name:
+                description: Name of the uploaded frontend artifact.
+                value: ${{ jobs.build.outputs.artifact_name }}
+
+permissions:
+    contents: read
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    NODE_OPTIONS: --max-old-space-size=8192
+
+jobs:
+    build:
+        name: Build frontend artifact
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        outputs:
+            artifact_name: ${{ steps.resolve.outputs.artifact_name }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Resolve artifact name
+              id: resolve
+              env:
+                  REQUESTED_NAME: ${{ inputs.artifact_name }}
+              run: |
+                  set -euo pipefail
+                  if [[ -n "${REQUESTED_NAME}" ]]; then
+                      name="${REQUESTED_NAME}"
+                  else
+                      name="meshchatx-frontend-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+                  fi
+                  echo "artifact_name=${name}" >> "${GITHUB_OUTPUT}"
+
+            - name: Set up Python (for docs bundler)
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ inputs.python_version }}
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ inputs.node_version }}
+
+            - name: Enable pnpm (corepack)
+              env:
+                  PNPM_VERSION: ${{ inputs.pnpm_version }}
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Install frontend dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Sync version metadata
+              run: pnpm run version:sync
+
+            - name: Build frontend (vite)
+              run: pnpm run build-frontend
+
+            - name: Bundle Reticulum manual (offline)
+              run: pnpm run build-docs
+
+            - name: Upload frontend artifact
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: ${{ steps.resolve.outputs.artifact_name }}
+                  path: meshchatx/public
+                  if-no-files-found: error
+                  retention-days: ${{ inputs.retention_days }}
+                  include-hidden-files: false

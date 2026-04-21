@@ -1,9 +1,14 @@
 # Native build verification (Windows + macOS).
 #
+# Pulls the prebuilt meshchatx/public artifact produced by the reusable
+# Frontend build workflow so that each platform job only has to compile the
+# cx_Freeze backend and run electron-builder.
+#
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
 #   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
 #   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
+#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 
 name: Build
 
@@ -32,8 +37,20 @@ env:
     PNPM_VERSION: "10.32.1"
 
 jobs:
+    frontend:
+        name: Build frontend artifact
+        uses: ./.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-build-${{ github.run_id }}-${{ github.run_attempt }}
+            retention_days: 1
+
     build-test:
         name: Build test (${{ matrix.label }})
+        needs: frontend
+        permissions:
+            contents: read
         strategy:
             fail-fast: false
             matrix:
@@ -51,6 +68,9 @@ jobs:
         defaults:
             run:
                 shell: bash
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            MESHCHATX_FRONTEND_PREBUILT: "1"
         steps:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -102,6 +122,19 @@ jobs:
                   "$PY_X64" -m pip install -U pip setuptools wheel
                   "$PY_X64" -m pip install "cx-freeze>=7.0.0"
                   "$PY_X64" -m pip install -e .
+
+            - name: Download frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+                  path: meshchatx/public
+
+            - name: Verify frontend artifact contents
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/public/index.html
+                  test -d meshchatx/public/assets
+                  test -d meshchatx/public/reticulum-docs-bundled/current
 
             - name: Build distributables
               run: bash "${{ matrix.build_script }}"

@@ -1,11 +1,18 @@
-name: Android build
-
+# Android APK build (debug + optional release).
+#
+# The Vite frontend and offline Reticulum manual are produced by the reusable
+# Frontend build workflow and downloaded into meshchatx/public/. This avoids
+# re-running the full pnpm install + build pipeline alongside the much heavier
+# Android NDK/wheel build steps.
+#
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
 #   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
-#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
 #   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
+
+name: Android build
 
 on:
     pull_request:
@@ -45,13 +52,31 @@ env:
     CHAQUOPY_REF: "9f563f45108a873d7feb363e1f754c0173f1114e"
 
 jobs:
+    frontend:
+        name: Build frontend artifact
+        uses: ./.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-android-${{ github.run_id }}-${{ github.run_attempt }}
+            retention_days: 1
+            # Android wheels run on Python 3.11; using the same here avoids
+            # spurious version drift in the docs-bundling step.
+            python_version: "3.11"
+
     android:
         name: Android test/build
         runs-on: ubuntu-latest
+        needs: frontend
         timeout-minutes: 90
+        permissions:
+            contents: read
+            actions: write
         defaults:
             run:
                 shell: bash
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
         steps:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -67,19 +92,18 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Download frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
-                  node-version: ${{ env.NODE_VERSION }}
+                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+                  path: meshchatx/public
 
-            - name: Enable pnpm
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
-
-            - name: Install frontend dependencies
-              run: pnpm install --frozen-lockfile
-
-            - name: Build frontend (meshchatx/public for APK)
-              run: pnpm run build-frontend
+            - name: Verify frontend artifact contents
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/public/index.html
+                  test -d meshchatx/public/assets
+                  test -d meshchatx/public/reticulum-docs-bundled/current
 
             - name: Install Android wheel build dependencies
               run: |
@@ -103,7 +127,6 @@ jobs:
                       exit 1
                   fi
                   NDK_VERSION="27.3.13750724"
-                  # Feed a bounded stream of 'y' so the producer cannot SIGPIPE under set -o pipefail.
                   yes_n() { for _ in $(seq 1 "$1"); do echo y; done; }
                   if [[ ! -d "${SDK_ROOT}/ndk/${NDK_VERSION}" ]]; then
                       yes_n 200 | "${SDKMANAGER}" --sdk_root="${SDK_ROOT}" --licenses >/dev/null

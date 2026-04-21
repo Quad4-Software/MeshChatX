@@ -1,4 +1,8 @@
-# Linux CI moved from Gitea for faster/free runners.
+# Linux CI: lint, frontend/backend tests, localization, and a Linux build check.
+#
+# The frontend bundle is produced once by the reusable Frontend build workflow
+# and downloaded by the Linux build-check job (and by the platform build/release
+# workflows) instead of being rebuilt on every job.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -34,10 +38,21 @@ env:
     PNPM_VERSION: "10.32.1"
 
 jobs:
+    frontend:
+        name: Build frontend artifact
+        uses: ./.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-ci-${{ github.run_id }}-${{ github.run_attempt }}
+            retention_days: 1
+
     verify:
         name: ${{ matrix.task.name }}
         runs-on: ubuntu-latest
         timeout-minutes: ${{ matrix.task.timeout }}
+        permissions:
+            contents: read
         strategy:
             fail-fast: false
             matrix:
@@ -54,9 +69,6 @@ jobs:
                     - name: Localization tests
                       id: lang-tests
                       timeout: 20
-                    - name: Linux build check
-                      id: build-check
-                      timeout: 60
 
         steps:
             - name: Checkout
@@ -104,19 +116,67 @@ jobs:
                       pnpm exec vitest run tests/frontend/i18n.test.js
                       poetry run python -m pytest tests/backend/test_translator_handler.py
                       ;;
-                    build-check)
-                      pnpm run build-frontend
-                      poetry run python -m compileall meshchatx/
-                      pnpm run build-backend
-                      ;;
                     *)
                       echo "Unknown matrix task: ${{ matrix.task.id }}" >&2
                       exit 1
                       ;;
                   esac
 
+    build-check:
+        name: Linux build check
+        runs-on: ubuntu-latest
+        needs: frontend
+        timeout-minutes: 60
+        permissions:
+            contents: read
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            MESHCHATX_FRONTEND_PREBUILT: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install Poetry (PyPI pin)
+              env:
+                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
+              run: bash scripts/ci/github-install-poetry.sh
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: Download frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+                  path: meshchatx/public
+
+            - name: Verify frontend artifact contents
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/public/index.html
+                  test -d meshchatx/public/assets
+                  test -d meshchatx/public/reticulum-docs-bundled/current
+
+            - name: Compile backend sources
+              run: poetry run python -m compileall meshchatx/
+
+            - name: Build backend (cx_Freeze)
+              run: pnpm run build-backend
+
             - name: Upload Linux build-check artifacts
-              if: matrix.task.id == 'build-check'
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-linux-build-check-${{ github.ref_name }}-${{ github.run_id }}
@@ -129,7 +189,9 @@ jobs:
         name: Validate Linux build artifact
         runs-on: ubuntu-latest
         timeout-minutes: 15
-        needs: verify
+        needs: build-check
+        permissions:
+            contents: read
         steps:
             - name: Download Linux build-check artifact
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
