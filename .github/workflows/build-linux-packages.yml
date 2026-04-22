@@ -1,0 +1,214 @@
+# Linux packaging build test: Flatpak + Snap.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
+
+name: Build Linux packages
+
+on:
+    push:
+        branches:
+            - dev
+        tags:
+            - "*"
+    pull_request:
+        branches:
+            - dev
+        paths:
+            - "package.json"
+            - "forge.config.js"
+            - "scripts/ci/github-build-linux-*.sh"
+            - ".github/workflows/build-linux-packages.yml"
+            - ".github/workflows/frontend-build.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    NODE_OPTIONS: --max-old-space-size=8192
+    PYTHON_VERSION: "3.14"
+    NODE_VERSION: "24"
+    POETRY_VERSION: "2.3.4"
+    PNPM_VERSION: "10.32.1"
+
+jobs:
+    frontend:
+        name: Build frontend artifact
+        uses: ./.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-linux-pkg-${{ github.run_id }}-${{ github.run_attempt }}
+            retention_days: 1
+
+    flatpak:
+        name: Flatpak (electron-forge)
+        needs: frontend
+        runs-on: ubuntu-latest
+        timeout-minutes: 90
+        permissions:
+            contents: read
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            MESHCHATX_FRONTEND_PREBUILT: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Install flatpak toolchain
+              run: |
+                  set -euo pipefail
+                  sudo apt-get update -y
+                  sudo apt-get install -y --no-install-recommends \
+                      flatpak \
+                      flatpak-builder \
+                      elfutils \
+                      zstd \
+                      desktop-file-utils \
+                      appstream
+
+            - name: Install flatpak runtimes (user scope)
+              run: |
+                  set -euo pipefail
+                  flatpak --user remote-add --if-not-exists flathub \
+                      https://flathub.org/repo/flathub.flatpakrepo
+                  flatpak --user install -y --noninteractive flathub \
+                      org.freedesktop.Platform//25.08 \
+                      org.freedesktop.Sdk//25.08 \
+                      org.electronjs.Electron2.BaseApp//25.08
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install Poetry (PyPI pin)
+              env:
+                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
+              run: bash scripts/ci/github-install-poetry.sh
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: Download frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+                  path: meshchatx/public
+
+            - name: Verify frontend artifact contents
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/public/index.html
+                  test -d meshchatx/public/assets
+                  test -d meshchatx/public/reticulum-docs-bundled/current
+
+            - name: Build flatpak bundle
+              run: bash scripts/ci/github-build-linux-flatpak.sh
+
+            - name: List flatpak output
+              run: |
+                  set -euo pipefail
+                  ls -la out/make 2>/dev/null || true
+                  find out/make -maxdepth 5 -type f \( -name "*.flatpak" -o -name "*.flatpakref" \) -print || true
+
+            - name: Upload flatpak artifact
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
+                  path: |
+                      out/make/**/*.flatpak
+                  if-no-files-found: warn
+                  retention-days: 7
+
+    snap:
+        name: Snap (electron-forge)
+        needs: frontend
+        runs-on: ubuntu-latest
+        timeout-minutes: 90
+        permissions:
+            contents: read
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            MESHCHATX_FRONTEND_PREBUILT: "1"
+            SNAPCRAFT_BUILD_ENVIRONMENT: host
+            SNAPCRAFT_BUILD_INFO: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Install snapcraft
+              run: |
+                  set -euo pipefail
+                  sudo snap install snapcraft --classic
+                  snapcraft --version
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install Poetry (PyPI pin)
+              env:
+                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
+              run: bash scripts/ci/github-install-poetry.sh
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: Download frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+                  path: meshchatx/public
+
+            - name: Verify frontend artifact contents
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/public/index.html
+                  test -d meshchatx/public/assets
+                  test -d meshchatx/public/reticulum-docs-bundled/current
+
+            - name: Build snap package
+              run: bash scripts/ci/github-build-linux-snap.sh
+
+            - name: List snap output
+              run: |
+                  set -euo pipefail
+                  ls -la out/make 2>/dev/null || true
+                  find out/make -maxdepth 5 -type f -name "*.snap" -print || true
+
+            - name: Upload snap artifact
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-linux-snap-${{ github.ref_name }}-${{ github.run_id }}
+                  path: |
+                      out/make/**/*.snap
+                  if-no-files-found: warn
+                  retention-days: 7
