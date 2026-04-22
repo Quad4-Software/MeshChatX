@@ -245,6 +245,42 @@
                     <IconButton class="shrink-0" title="Go" @click="onNodePageUrlClick(nodePagePathUrlInput)">
                         <MaterialDesignIcon icon-name="arrow-right" class="w-5 h-5" />
                     </IconButton>
+
+                    <DropDownMenu v-if="hasPageLoadFailed" class="shrink-0">
+                        <template #button>
+                            <IconButton
+                                :title="$t('nomadnet.path_finder')"
+                                class="text-blue-600 dark:text-blue-400"
+                                :disabled="pathfinderInProgress"
+                            >
+                                <MaterialDesignIcon
+                                    :icon-name="pathfinderInProgress ? 'loading' : 'map-marker-path'"
+                                    :class="['w-5 h-5', pathfinderInProgress ? 'animate-spin' : '']"
+                                />
+                            </IconButton>
+                        </template>
+                        <template #items>
+                            <DropDownMenuItem @click="runPathFinderQuickRequest">
+                                <MaterialDesignIcon icon-name="flash" class="size-5" />
+                                <span>{{ $t("nomadnet.path_finder_quick_request") }}</span>
+                            </DropDownMenuItem>
+                            <DropDownMenuItem @click="runPathFinderForceFind">
+                                <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                                <span>{{ $t("nomadnet.path_finder_force_find") }}</span>
+                            </DropDownMenuItem>
+                            <DropDownMenuItem @click="runPathFinderDropAndRequest">
+                                <MaterialDesignIcon icon-name="reload-alert" class="size-5" />
+                                <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
+                            </DropDownMenuItem>
+                            <DropDownMenuItem
+                                v-if="hasArchivesForCurrentPage || pageArchives.length > 0"
+                                @click="loadLatestArchiveSnapshot"
+                            >
+                                <MaterialDesignIcon icon-name="archive-clock" class="size-5" />
+                                <span>{{ $t("nomadnet.path_finder_load_archive") }}</span>
+                            </DropDownMenuItem>
+                        </template>
+                    </DropDownMenu>
                 </div>
 
                 <!-- page content: capture-phase clicks so <a href> is handled before browser default navigation -->
@@ -315,10 +351,7 @@
                         </button>
                     </div>
                     <div
-                        v-else-if="
-                            nodePageContent === 'request_failed' ||
-                            (nodePageContent && nodePageContent.includes('failure'))
-                        "
+                        v-else-if="isFailedPageContent(nodePageContent)"
                         class="flex flex-col items-center justify-center h-full text-center space-y-4"
                     >
                         <div class="text-red-400 font-semibold text-lg">{{ $t("nomadnet.failed_to_load_page") }}</div>
@@ -499,6 +532,9 @@ export default {
             partialRefreshByKey: {},
             partialRefreshTimers: {},
             processPartialsRaf: null,
+
+            pathfinderInProgress: false,
+            pendingLoadLatestArchive: false,
         };
     },
     computed: {
@@ -555,6 +591,15 @@ export default {
             }
             return this.renderPageContent(this.nodePagePath, this.nodePageContent);
         },
+        hasPageLoadFailed() {
+            if (this.isLoadingNodePage) {
+                return false;
+            }
+            if (!this.selectedNode) {
+                return false;
+            }
+            return this.isFailedPageContent(this.nodePageContent);
+        },
         nomadRenderedShellFullBleed() {
             if (!this.nodePagePath || this.isShowingNodePageSource) {
                 return false;
@@ -562,10 +607,7 @@ export default {
             if (this.isLoadingNodePage) {
                 return false;
             }
-            if (
-                this.nodePageContent === "request_failed" ||
-                (this.nodePageContent && String(this.nodePageContent).includes("failure"))
-            ) {
+            if (this.isFailedPageContent(this.nodePageContent)) {
                 return false;
             }
             const [p] = this.nodePagePath.split("`");
@@ -688,6 +730,29 @@ export default {
         this.$nextTick(() => this.scheduleProcessPartials());
     },
     methods: {
+        /**
+         * Returns true if the given page content represents a failed load.
+         * Matches the explicit "request_failed" sentinel, any backend failure
+         * payload containing the lowercase word "failure", and the user-facing
+         * "Failed loading page: ..." string set when a download callback fires
+         * with a failure reason (e.g. "Could not establish link to destination.").
+         */
+        isFailedPageContent(content) {
+            if (content == null) {
+                return false;
+            }
+            if (content === "request_failed") {
+                return true;
+            }
+            if (typeof content !== "string") {
+                return false;
+            }
+            if (content.startsWith("Failed loading page:")) {
+                return true;
+            }
+            const lower = content.toLowerCase();
+            return lower.includes("failure");
+        },
         scheduleProcessPartials() {
             if (this.processPartialsRaf != null) {
                 cancelAnimationFrame(this.processPartialsRaf);
@@ -954,6 +1019,15 @@ export default {
                     ) {
                         this.pageArchives = json.archives;
                         this.isLoadingArchives = false;
+
+                        if (this.pendingLoadLatestArchive) {
+                            this.pendingLoadLatestArchive = false;
+                            if (this.pageArchives.length > 0) {
+                                this.loadArchivedPage(this.pageArchives[0].id);
+                            } else {
+                                ToastUtils.info(this.$t("nomadnet.no_archives_for_this_page"));
+                            }
+                        }
                     }
                     break;
                 }
@@ -1381,6 +1455,71 @@ export default {
         async reloadNodePage() {
             // reload current node page without adding to history and without using cache
             this.onNodePageUrlClick(this.nodePagePath, null, false, false);
+        },
+        async runPathFinderQuickRequest() {
+            const hash = this.selectedNode?.destination_hash;
+            if (!hash || this.pathfinderInProgress) return;
+            this.pathfinderInProgress = true;
+            try {
+                await window.api.post(`/api/v1/destination/${hash}/request-path`);
+                ToastUtils.success(this.$t("nomadnet.path_finder_request_sent"));
+                await this.reloadNodePage();
+            } catch (e) {
+                console.error("path finder quick request failed", e);
+                ToastUtils.error(this.$t("nomadnet.path_finder_failed"));
+            } finally {
+                this.pathfinderInProgress = false;
+            }
+        },
+        async runPathFinderForceFind() {
+            const hash = this.selectedNode?.destination_hash;
+            if (!hash || this.pathfinderInProgress) return;
+            this.pathfinderInProgress = true;
+            try {
+                const response = await window.api.get(`/api/v1/destination/${hash}/path`, {
+                    params: { request: "1", timeout: 15 },
+                });
+                if (response?.data?.path) {
+                    ToastUtils.success(this.$t("nomadnet.path_finder_found"));
+                    await this.reloadNodePage();
+                } else {
+                    ToastUtils.error(this.$t("nomadnet.path_finder_not_found"));
+                }
+            } catch (e) {
+                console.error("path finder force find failed", e);
+                ToastUtils.error(this.$t("nomadnet.path_finder_failed"));
+            } finally {
+                this.pathfinderInProgress = false;
+            }
+        },
+        async runPathFinderDropAndRequest() {
+            const hash = this.selectedNode?.destination_hash;
+            if (!hash || this.pathfinderInProgress) return;
+            this.pathfinderInProgress = true;
+            try {
+                try {
+                    await window.api.post(`/api/v1/destination/${hash}/drop-path`);
+                } catch (e) {
+                    console.warn("drop-path failed (continuing)", e);
+                }
+                await window.api.post(`/api/v1/destination/${hash}/request-path`);
+                ToastUtils.success(this.$t("nomadnet.path_finder_dropped_and_requested"));
+                await this.reloadNodePage();
+            } catch (e) {
+                console.error("path finder drop+request failed", e);
+                ToastUtils.error(this.$t("nomadnet.path_finder_failed"));
+            } finally {
+                this.pathfinderInProgress = false;
+            }
+        },
+        loadLatestArchiveSnapshot() {
+            if (this.pageArchives && this.pageArchives.length > 0) {
+                this.loadArchivedPage(this.pageArchives[0].id);
+                return;
+            }
+            this.pendingLoadLatestArchive = true;
+            this.fetchArchives();
+            ToastUtils.info(this.$t("nomadnet.path_finder_archive_loading"));
         },
         async loadPreviousNodePage() {
             // get the previous path from history, or do nothing
