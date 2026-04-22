@@ -20,8 +20,7 @@
             :is-loading="isLoading"
             :auto-reload="autoReload"
             :enable-physics="enablePhysics"
-            :hop-filter-slider="hopFilterSlider"
-            :hop-slider-max="hopSliderMax"
+            :hop-max-filter="hopMaxFilter"
             :node-count="nodes.length"
             :edge-count="edges.length"
             :online-interface-count="onlineInterfaces.length"
@@ -30,7 +29,7 @@
             @update:is-showing-controls="isShowingControls = $event"
             @update:auto-reload="autoReload = $event"
             @update:enable-physics="enablePhysics = $event"
-            @update:hop-filter-slider="hopFilterSlider = $event"
+            @update:hop-max-filter="onUserHopMaxFilterChange"
             @update:search-query="searchQuery = $event"
             @manual-update="manualUpdate"
         />
@@ -53,6 +52,33 @@ import { PONG_NODE_IDS } from "./internal/visualiserConstants.js";
 import NetworkVisualiserLoadingOverlay from "./internal/NetworkVisualiserLoadingOverlay.vue";
 import NetworkVisualiserToolbar from "./internal/NetworkVisualiserToolbar.vue";
 import NetworkVisualiserLegend from "./internal/NetworkVisualiserLegend.vue";
+
+const HOP_MAX_FILTER_STORAGE_KEY = "meshchatx.visualiser.maxHops";
+
+function readStoredHopMaxFilter() {
+    if (typeof localStorage === "undefined") return 4;
+    try {
+        const raw = localStorage.getItem(HOP_MAX_FILTER_STORAGE_KEY);
+        if (raw === null || raw === "") return 4;
+        const v = JSON.parse(raw);
+        if (v === null) return null;
+        if (typeof v === "number" && Number.isFinite(v)) {
+            return Math.max(0, Math.min(128, Math.round(v)));
+        }
+    } catch {
+        return 4;
+    }
+    return 4;
+}
+
+function writeStoredHopMaxFilter(v) {
+    if (typeof localStorage === "undefined") return;
+    try {
+        localStorage.setItem(HOP_MAX_FILTER_STORAGE_KEY, JSON.stringify(v));
+    } catch {
+        return;
+    }
+}
 
 /*
  * Yields control back to the browser so it can paint, dispatch input events,
@@ -138,7 +164,7 @@ export default {
 
             pageSize: 1000,
             searchQuery: "",
-            hopFilterSlider: 0,
+            hopMaxFilter: readStoredHopMaxFilter(),
             hopFilterDebounceTimer: null,
             abortController: new AbortController(),
             currentLOD: "high",
@@ -158,16 +184,8 @@ export default {
         offlineInterfaces() {
             return this.interfaces.filter((i) => !i.status);
         },
-        hopSliderMax() {
-            let m = 0;
-            for (const e of this.pathTable) {
-                if (e.hops != null && e.hops > m) m = e.hops;
-            }
-            return Math.min(256, Math.max(1, m));
-        },
         hopFilterMax() {
-            if (this.hopFilterSlider === 0) return null;
-            return this.hopFilterSlider;
+            return this.hopMaxFilter;
         },
     },
     watch: {
@@ -256,12 +274,7 @@ export default {
             // we don't want to trigger a full update from server, just re-run the filtering on existing data
             this.processVisualization();
         },
-        hopSliderMax() {
-            if (this.hopFilterSlider > this.hopSliderMax) {
-                this.hopFilterSlider = this.hopSliderMax;
-            }
-        },
-        hopFilterSlider() {
+        hopMaxFilter() {
             if (this.hopFilterDebounceTimer) clearTimeout(this.hopFilterDebounceTimer);
             this.hopFilterDebounceTimer = setTimeout(() => {
                 this.hopFilterDebounceTimer = null;
@@ -363,6 +376,10 @@ export default {
         this.init();
     },
     methods: {
+        onUserHopMaxFilterChange(v) {
+            this.hopMaxFilter = v;
+            writeStoredHopMaxFilter(v);
+        },
         async getInterfaceStats() {
             try {
                 const response = await window.api.get(`/api/v1/interface-stats`, {

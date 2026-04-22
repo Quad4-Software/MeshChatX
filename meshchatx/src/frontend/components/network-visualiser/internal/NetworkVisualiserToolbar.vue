@@ -121,20 +121,31 @@
                             class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
                             >{{ $t("visualiser.max_hops_filter") }}</label
                         >
-                        <span
-                            class="text-xs font-bold text-blue-600 dark:text-blue-400 tabular-nums min-w-[4rem] text-right"
-                            >{{ hopFilterSlider === 0 ? $t("visualiser.all") : hopFilterSlider }}</span
-                        >
+                        <input
+                            id="hop-max-hops-input"
+                            type="text"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            maxlength="4"
+                            :aria-label="$t('visualiser.max_hops_filter')"
+                            class="w-[3.25rem] shrink-0 rounded-lg border border-gray-200 bg-white px-1.5 py-1 text-center text-xs font-bold text-blue-600 tabular-nums shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/40 dark:border-zinc-600 dark:bg-zinc-800 dark:text-blue-400 dark:focus:border-blue-500"
+                            :value="hopMaxInputShown"
+                            :placeholder="$t('visualiser.all')"
+                            @focus="onHopMaxInputFocus"
+                            @input="onHopMaxInputInput"
+                            @blur="onHopMaxInputBlur"
+                        />
                     </div>
                     <input
                         id="hop-filter-slider"
-                        :value="hopFilterSlider"
                         type="range"
                         min="0"
-                        :max="hopSliderMax"
+                        :max="hopSliderPosAll"
                         step="1"
+                        :value="hopSliderUiPos"
+                        :aria-valuetext="hopSliderAriaText"
                         class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-200 dark:bg-zinc-700 accent-blue-600 dark:accent-blue-500"
-                        @input="$emit('update:hopFilterSlider', Number($event.target.value))"
+                        @input="onHopSliderInput"
                     />
                 </div>
 
@@ -224,6 +235,7 @@
 
 <script>
 import Toggle from "../../forms/Toggle.vue";
+import { HOP_SLIDER_POS_ALL, hopSliderPosToMaxHops, hopMaxHopsToSliderPos } from "./hopMaxFilterSliderMap.js";
 
 export default {
     name: "NetworkVisualiserToolbar",
@@ -234,8 +246,12 @@ export default {
         isLoading: { type: Boolean, default: false },
         autoReload: { type: Boolean, default: false },
         enablePhysics: { type: Boolean, default: true },
-        hopFilterSlider: { type: Number, default: 0 },
-        hopSliderMax: { type: Number, default: 1 },
+        hopMaxFilter: {
+            default: 4,
+            validator(v) {
+                return v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 128);
+            },
+        },
         nodeCount: { type: Number, default: 0 },
         edgeCount: { type: Number, default: 0 },
         onlineInterfaceCount: { type: Number, default: 0 },
@@ -246,9 +262,63 @@ export default {
         "update:isShowingControls",
         "update:autoReload",
         "update:enablePhysics",
-        "update:hopFilterSlider",
+        "update:hopMaxFilter",
         "update:searchQuery",
         "manual-update",
     ],
+    data() {
+        return {
+            hopMaxInputDraft: null,
+        };
+    },
+    computed: {
+        hopSliderPosAll() {
+            return HOP_SLIDER_POS_ALL;
+        },
+        hopSliderUiPos() {
+            return hopMaxHopsToSliderPos(this.hopMaxFilter);
+        },
+        hopMaxInputShown() {
+            if (this.hopMaxInputDraft !== null) return this.hopMaxInputDraft;
+            if (this.hopMaxFilter === null) return "";
+            return String(this.hopMaxFilter);
+        },
+        hopSliderAriaText() {
+            if (this.hopMaxFilter === null) return this.$t("visualiser.all");
+            return String(this.hopMaxFilter);
+        },
+    },
+    methods: {
+        onHopSliderInput(e) {
+            const v = hopSliderPosToMaxHops(Number(e.target.value));
+            this.$emit("update:hopMaxFilter", v);
+        },
+        onHopMaxInputFocus() {
+            this.hopMaxInputDraft = this.hopMaxFilter === null ? "" : String(this.hopMaxFilter);
+        },
+        onHopMaxInputInput(e) {
+            const raw = e.target.value.replace(/\D/g, "");
+            this.hopMaxInputDraft = raw;
+            if (raw === "") return;
+            const n = parseInt(raw, 10);
+            if (!Number.isFinite(n)) return;
+            const clamped = Math.max(0, Math.min(128, Math.round(n)));
+            this.$emit("update:hopMaxFilter", clamped);
+            this.hopMaxInputDraft = String(clamped);
+        },
+        onHopMaxInputBlur() {
+            const d = this.hopMaxInputDraft;
+            this.hopMaxInputDraft = null;
+            if (d === null) return;
+            const trimmed = (d || "").trim();
+            if (trimmed === "") {
+                this.$emit("update:hopMaxFilter", null);
+                return;
+            }
+            const n = parseInt(trimmed, 10);
+            if (!Number.isFinite(n)) return;
+            this.$emit("update:hopMaxFilter", Math.max(0, Math.min(128, Math.round(n))));
+        },
+    },
 };
 </script>
