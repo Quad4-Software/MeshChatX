@@ -14889,17 +14889,7 @@ class ReticulumMeshChat:
         print(
             "Received an announce from "
             + RNS.prettyhexrep(destination_hash)
-            + " for [lxst.telephony]"
-            + (
-                f" ({display_name})"
-                if (
-                    display_name := parse_lxmf_display_name(
-                        app_data,
-                        None,
-                    )
-                )
-                else ""
-            ),
+            + " for [lxst.telephony]",
         )
 
         # track announce timestamp
