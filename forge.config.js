@@ -84,6 +84,22 @@ module.exports = {
             config: {
                 options: {
                     categories: ["Network"],
+                    // electron-installer-flatpak still defaults to zypak v2021.02, which hardcodes
+                    // clang++; org.freedesktop.Sdk 25.08 does not ship clang++ on PATH. Match
+                    // org.electronjs.Electron2.BaseApp 25.08 (g++ / C++20).
+                    modules: [
+                        {
+                            name: "zypak",
+                            sources: [
+                                {
+                                    type: "git",
+                                    url: "https://github.com/refi64/zypak",
+                                    tag: "v2025.09",
+                                    commit: "693a71c5ffa80ec9c9ce2ae03b1ccc493c698e53",
+                                },
+                            ],
+                        },
+                    ],
                     runtime: "org.freedesktop.Platform",
                     runtimeVersion: "25.08",
                     sdk: "org.freedesktop.Sdk",

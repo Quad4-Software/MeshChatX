@@ -20,6 +20,22 @@ const env = {
 
 const forgeCli = require.resolve("@electron-forge/cli/dist/electron-forge.js");
 const args = process.argv.slice(2);
+
+const flatpakForgeTarget =
+    args.includes("@electron-forge/maker-flatpak") ||
+    process.env.FORGE_MAKE_FLATPAK === "1" ||
+    process.env.FORGE_MAKE_FLATPAK === "true";
+if (flatpakForgeTarget) {
+    const ensure = path.join(root, "scripts", "ensure-flatpak-flathub-remote.sh");
+    const pre = spawnSync("bash", [ensure], { cwd: root, stdio: "inherit" });
+    if (pre.status !== 0 && pre.status !== null) {
+        process.exit(pre.status);
+    }
+    if (pre.signal) {
+        process.exit(1);
+    }
+}
+
 const result = spawnSync(process.execPath, [forgeCli, ...args], {
     cwd: root,
     env,

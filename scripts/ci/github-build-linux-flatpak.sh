@@ -9,6 +9,8 @@
 #   - flatpak, flatpak-builder, elfutils (for eu-strip)
 #   - org.freedesktop.Platform/Sdk//25.08
 #   - org.electronjs.Electron2.BaseApp//25.08
+# ``electron-forge-local-tmp.js`` registers the Flathub user remote before Forge so
+# ``@malept/flatpak-bundler`` can auto-install those refs when missing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

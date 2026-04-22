@@ -21,6 +21,8 @@ on:
         paths:
             - "package.json"
             - "forge.config.js"
+            - "scripts/electron-forge-local-tmp.js"
+            - "scripts/ensure-flatpak-flathub-remote.sh"
             - "scripts/ci/github-build-linux-*.sh"
             - ".github/workflows/build-linux-packages.yml"
             - ".github/workflows/frontend-build.yml"
@@ -80,8 +82,7 @@ jobs:
             - name: Install flatpak runtimes (user scope)
               run: |
                   set -euo pipefail
-                  flatpak --user remote-add --if-not-exists flathub \
-                      https://flathub.org/repo/flathub.flatpakrepo
+                  bash scripts/ensure-flatpak-flathub-remote.sh
                   flatpak --user install -y --noninteractive flathub \
                       org.freedesktop.Platform//25.08 \
                       org.freedesktop.Sdk//25.08 \
