@@ -1260,7 +1260,18 @@
         "load_phase_finding_path": "Ricerca del percorso di rete verso il nodo",
         "load_phase_establishing_link": "Connessione al nodo in corso",
         "load_phase_requesting_page": "Invio richiesta pagina",
-        "load_phase_transferring": "Ricezione pagina"
+        "load_phase_transferring": "Ricezione pagina",
+        "path_finder": "Ricerca percorso",
+        "path_finder_quick_request": "Richiedi percorso",
+        "path_finder_force_find": "Forza ricerca percorso (attendi)",
+        "path_finder_drop_and_request": "Annulla percorso e riscopri",
+        "path_finder_load_archive": "Carica l'ultimo snapshot d'archivio",
+        "path_finder_request_sent": "Richiesta percorso inviata",
+        "path_finder_found": "Percorso trovato, nuovo tentativo della pagina",
+        "path_finder_not_found": "Nessun percorso trovato entro il timeout",
+        "path_finder_dropped_and_requested": "Percorso annullato, nuova richiesta in corso",
+        "path_finder_failed": "Richiesta di ricerca percorso fallita",
+        "path_finder_archive_loading": "Ricerca dello snapshot d'archivio..."
     },
     "forwarder": {
         "title": "Inoltro LXMF",

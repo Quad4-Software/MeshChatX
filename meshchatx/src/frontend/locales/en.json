@@ -1208,7 +1208,18 @@
         "load_phase_finding_path": "Looking for a network path to the node",
         "load_phase_establishing_link": "Establishing link to the node",
         "load_phase_requesting_page": "Sending page request",
-        "load_phase_transferring": "Receiving page"
+        "load_phase_transferring": "Receiving page",
+        "path_finder": "Path Finder",
+        "path_finder_quick_request": "Request path",
+        "path_finder_force_find": "Force find path (wait)",
+        "path_finder_drop_and_request": "Drop path and re-discover",
+        "path_finder_load_archive": "Load latest archive snapshot",
+        "path_finder_request_sent": "Path request sent",
+        "path_finder_found": "Path found, retrying page",
+        "path_finder_not_found": "No path found within timeout",
+        "path_finder_dropped_and_requested": "Path dropped, requesting again",
+        "path_finder_failed": "Path finder request failed",
+        "path_finder_archive_loading": "Looking for archive snapshot..."
     },
     "forwarder": {
         "title": "LXMF Forwarder",

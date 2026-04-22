@@ -1148,7 +1148,18 @@
         "load_phase_finding_path": "Поиск сетевого пути к узлу",
         "load_phase_establishing_link": "Установка соединения с узлом",
         "load_phase_requesting_page": "Отправка запроса страницы",
-        "load_phase_transferring": "Приём страницы"
+        "load_phase_transferring": "Приём страницы",
+        "path_finder": "Поиск маршрута",
+        "path_finder_quick_request": "Запросить маршрут",
+        "path_finder_force_find": "Принудительный поиск маршрута (ждать)",
+        "path_finder_drop_and_request": "Сбросить маршрут и найти снова",
+        "path_finder_load_archive": "Загрузить последний снимок архива",
+        "path_finder_request_sent": "Запрос маршрута отправлен",
+        "path_finder_found": "Маршрут найден, повтор загрузки страницы",
+        "path_finder_not_found": "Маршрут не найден в течение тайм-аута",
+        "path_finder_dropped_and_requested": "Маршрут сброшен, выполняется повторный запрос",
+        "path_finder_failed": "Запрос поиска маршрута не удался",
+        "path_finder_archive_loading": "Поиск снимка архива..."
     },
     "forwarder": {
         "title": "LXMF Форвардер",

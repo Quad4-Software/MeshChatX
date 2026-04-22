@@ -1208,7 +1208,18 @@
         "load_phase_finding_path": "寻找通往节点的网络路径",
         "load_phase_establishing_link": "建立与节点的链接",
         "load_phase_requesting_page": "发送页面请求",
-        "load_phase_transferring": "接收页面"
+        "load_phase_transferring": "接收页面",
+        "path_finder": "路径查找器",
+        "path_finder_quick_request": "请求路径",
+        "path_finder_force_find": "强制查找路径（等待）",
+        "path_finder_drop_and_request": "丢弃路径并重新发现",
+        "path_finder_load_archive": "加载最新归档快照",
+        "path_finder_request_sent": "路径请求已发送",
+        "path_finder_found": "已找到路径，正在重试页面",
+        "path_finder_not_found": "在超时时间内未找到路径",
+        "path_finder_dropped_and_requested": "路径已丢弃，正在重新请求",
+        "path_finder_failed": "路径查找请求失败",
+        "path_finder_archive_loading": "正在查找归档快照..."
     },
     "forwarder": {
         "title": "LXMF 转发器",

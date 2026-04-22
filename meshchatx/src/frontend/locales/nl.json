@@ -1208,7 +1208,18 @@
         "load_phase_finding_path": "Op zoek naar een netwerkpad naar het knooppunt",
         "load_phase_establishing_link": "Koppeling naar het knooppunt instellen",
         "load_phase_requesting_page": "Paginaverzoek versturen",
-        "load_phase_transferring": "Pagina ontvangen"
+        "load_phase_transferring": "Pagina ontvangen",
+        "path_finder": "Padzoeker",
+        "path_finder_quick_request": "Pad opvragen",
+        "path_finder_force_find": "Padzoeken forceren (wachten)",
+        "path_finder_drop_and_request": "Pad verwijderen en opnieuw ontdekken",
+        "path_finder_load_archive": "Laatste archief-snapshot laden",
+        "path_finder_request_sent": "Padaanvraag verzonden",
+        "path_finder_found": "Pad gevonden, pagina opnieuw proberen",
+        "path_finder_not_found": "Geen pad gevonden binnen time-out",
+        "path_finder_dropped_and_requested": "Pad verwijderd, nieuwe aanvraag bezig",
+        "path_finder_failed": "Padzoeker-aanvraag mislukt",
+        "path_finder_archive_loading": "Zoeken naar archief-snapshot..."
     },
     "forwarder": {
         "title": "LXMF Forwarder",

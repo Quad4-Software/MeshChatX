@@ -1208,7 +1208,18 @@
         "load_phase_finding_path": "Recherche d'un chemin réseau vers le nœud",
         "load_phase_establishing_link": "Établir un lien avec le nœud",
         "load_phase_requesting_page": "Envoi de la demande de page",
-        "load_phase_transferring": "Page de réception"
+        "load_phase_transferring": "Page de réception",
+        "path_finder": "Chercheur de chemin",
+        "path_finder_quick_request": "Demander un chemin",
+        "path_finder_force_find": "Forcer la recherche de chemin (attendre)",
+        "path_finder_drop_and_request": "Abandonner le chemin et redécouvrir",
+        "path_finder_load_archive": "Charger le dernier instantané d'archive",
+        "path_finder_request_sent": "Demande de chemin envoyée",
+        "path_finder_found": "Chemin trouvé, nouvelle tentative de page",
+        "path_finder_not_found": "Aucun chemin trouvé dans le délai imparti",
+        "path_finder_dropped_and_requested": "Chemin abandonné, nouvelle demande en cours",
+        "path_finder_failed": "Échec de la demande du chercheur de chemin",
+        "path_finder_archive_loading": "Recherche d'un instantané d'archive..."
     },
     "forwarder": {
         "title": "Expéditeur LXMF",

@@ -1148,7 +1148,18 @@
         "load_phase_finding_path": "Netzwerkpfad zum Knoten wird gesucht",
         "load_phase_establishing_link": "Verbindung zum Knoten wird aufgebaut",
         "load_phase_requesting_page": "Seitenanfrage wird gesendet",
-        "load_phase_transferring": "Seite wird empfangen"
+        "load_phase_transferring": "Seite wird empfangen",
+        "path_finder": "Pfadfinder",
+        "path_finder_quick_request": "Pfad anfordern",
+        "path_finder_force_find": "Pfad erzwingen (warten)",
+        "path_finder_drop_and_request": "Pfad verwerfen und neu suchen",
+        "path_finder_load_archive": "Letzten Archiv-Snapshot laden",
+        "path_finder_request_sent": "Pfadanforderung gesendet",
+        "path_finder_found": "Pfad gefunden, Seite wird erneut versucht",
+        "path_finder_not_found": "Kein Pfad innerhalb des Zeitlimits gefunden",
+        "path_finder_dropped_and_requested": "Pfad verworfen, neue Anforderung läuft",
+        "path_finder_failed": "Pfadfinder-Anforderung fehlgeschlagen",
+        "path_finder_archive_loading": "Suche nach Archiv-Snapshot..."
     },
     "forwarder": {
         "title": "LXMF-Weiterleiter",

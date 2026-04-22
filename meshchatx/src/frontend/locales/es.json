@@ -1208,7 +1208,18 @@
         "load_phase_finding_path": "Buscando un camino de red hacia el nodo",
         "load_phase_establishing_link": "Establecer vínculos con el nodo",
         "load_phase_requesting_page": "Enviar solicitud de página",
-        "load_phase_transferring": "Página de recepción"
+        "load_phase_transferring": "Página de recepción",
+        "path_finder": "Buscador de ruta",
+        "path_finder_quick_request": "Solicitar ruta",
+        "path_finder_force_find": "Forzar búsqueda de ruta (esperar)",
+        "path_finder_drop_and_request": "Descartar ruta y volver a descubrir",
+        "path_finder_load_archive": "Cargar última instantánea de archivo",
+        "path_finder_request_sent": "Solicitud de ruta enviada",
+        "path_finder_found": "Ruta encontrada, reintentando página",
+        "path_finder_not_found": "No se encontró ruta dentro del tiempo de espera",
+        "path_finder_dropped_and_requested": "Ruta descartada, solicitando de nuevo",
+        "path_finder_failed": "La solicitud del buscador de ruta falló",
+        "path_finder_archive_loading": "Buscando instantánea de archivo..."
     },
     "forwarder": {
         "title": "LXMF Forwarder",
