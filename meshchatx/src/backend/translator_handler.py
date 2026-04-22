@@ -261,9 +261,7 @@ class TranslatorHandler:
                 if detected_lang:
                     source_lang = detected_lang
                 else:
-                    msg = (
-                        "Could not auto-detect language. Please select a source language manually."
-                    )
+                    msg = "Could not auto-detect language. Please select a source language manually."
                     raise ValueError(msg)
             else:
                 msg = (
@@ -363,7 +361,11 @@ class TranslatorHandler:
                 "source": "argos",
             }
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr.decode() if isinstance(e.stderr, bytes) else (e.stderr or str(e))
+            error_msg = (
+                e.stderr.decode()
+                if isinstance(e.stderr, bytes)
+                else (e.stderr or str(e))
+            )
             msg = f"Argos Translate CLI error: {error_msg}"
             raise RuntimeError(msg) from e
         except Exception as e:

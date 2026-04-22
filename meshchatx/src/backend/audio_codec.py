@@ -79,9 +79,13 @@ def _decode_with_wave(data: bytes):
         if sample_width == 2:
             samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
         elif sample_width == 1:
-            samples = (np.frombuffer(raw, dtype=np.uint8).astype(np.float32) - 128.0) / 128.0
+            samples = (
+                np.frombuffer(raw, dtype=np.uint8).astype(np.float32) - 128.0
+            ) / 128.0
         elif sample_width == 4:
-            samples = np.frombuffer(raw, dtype=np.int32).astype(np.float32) / 2147483648.0
+            samples = (
+                np.frombuffer(raw, dtype=np.int32).astype(np.float32) / 2147483648.0
+            )
         else:
             return None
 
@@ -109,7 +113,9 @@ def _decode_with_miniaudio(data: bytes):
         return None
     if decoded.num_frames <= 0 or decoded.nchannels <= 0:
         return None
-    samples = np.frombuffer(decoded.samples, dtype=np.int16).astype(np.float32) / 32768.0
+    samples = (
+        np.frombuffer(decoded.samples, dtype=np.int16).astype(np.float32) / 32768.0
+    )
     return DecodedAudio(
         samples=samples.reshape(-1, decoded.nchannels),
         samplerate=decoded.sample_rate,

@@ -240,7 +240,9 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if _is_truthy(os.environ.get("MESHCHATX_SKIP_DOCS_FETCH")):
-        logging.info("MESHCHATX_SKIP_DOCS_FETCH is set; skipping Reticulum manual fetch.")
+        logging.info(
+            "MESHCHATX_SKIP_DOCS_FETCH is set; skipping Reticulum manual fetch."
+        )
         return 0
 
     sources: list[str] = []

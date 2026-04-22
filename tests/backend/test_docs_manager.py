@@ -123,7 +123,10 @@ def test_docs_manager_readonly_public_dir_handling(tmp_path):
     with patch("os.makedirs", side_effect=OSError("Read-only file system")):
         dm = DocsManager(config, str(public_dir))
         assert dm.last_error is not None
-        assert "Read-only file system" in dm.last_error or "Permission denied" in dm.last_error
+        assert (
+            "Read-only file system" in dm.last_error
+            or "Permission denied" in dm.last_error
+        )
 
     os.chmod(public_dir, 0o755)  # noqa: S103
 

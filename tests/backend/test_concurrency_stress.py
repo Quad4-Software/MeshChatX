@@ -91,8 +91,12 @@ class TestConcurrencyStress(unittest.TestCase):
 
     def test_database_concurrency(self):
         """Launches multiple reader and writer threads to check for lock contention."""
-        writers = [threading.Thread(target=self.db_writer_worker, args=(i,)) for i in range(5)]
-        readers = [threading.Thread(target=self.db_reader_worker, args=(i,)) for i in range(5)]
+        writers = [
+            threading.Thread(target=self.db_writer_worker, args=(i,)) for i in range(5)
+        ]
+        readers = [
+            threading.Thread(target=self.db_reader_worker, args=(i,)) for i in range(5)
+        ]
 
         for t in writers + readers:
             t.start()

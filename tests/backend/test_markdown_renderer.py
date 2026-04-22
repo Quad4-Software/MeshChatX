@@ -26,7 +26,8 @@ class TestMarkdownRenderer(unittest.TestCase):
         self.assertIn("<code", rendered)
         self.assertIn("language-python", rendered)
         self.assertTrue(
-            "print(&#x27;hello&#x27;)" in rendered or "print(&#039;hello&#039;)" in rendered,
+            "print(&#x27;hello&#x27;)" in rendered
+            or "print(&#039;hello&#039;)" in rendered,
         )
 
     def test_lists(self):

@@ -48,7 +48,9 @@ class WebAudioSource(LocalSource):
 
     def push_pcm(self, pcm_bytes: bytes):
         try:
-            samples = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            samples = (
+                np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            )
             if samples.size == 0:
                 return
             samples = samples.reshape(-1, 1)

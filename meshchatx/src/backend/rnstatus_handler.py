@@ -196,7 +196,11 @@ class RNStatusHandler:
             name = ifstat.get("name", "")
 
             if name.startswith(
-                ("LocalInterface[", "TCPInterface[Client", "BackboneInterface[Client on")
+                (
+                    "LocalInterface[",
+                    "TCPInterface[Client",
+                    "BackboneInterface[Client on",
+                )
             ):
                 continue
 

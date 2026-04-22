@@ -647,7 +647,9 @@ def test_lxm_uri_comprehensive_fuzzing(mock_app, uri):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        uri_str = uri.decode("utf-8", errors="ignore") if isinstance(uri, bytes) else uri
+        uri_str = (
+            uri.decode("utf-8", errors="ignore") if isinstance(uri, bytes) else uri
+        )
         loop.run_until_complete(
             mock_app.on_websocket_data_received(
                 mock_client,
@@ -1122,17 +1124,20 @@ def test_map_tile_coordinates_fuzzing(mock_app, z, x, y):
     try:
         z_int = (
             int(z)
-            if isinstance(z, (int, float)) and (not isinstance(z, float) or math.isfinite(z))
+            if isinstance(z, (int, float))
+            and (not isinstance(z, float) or math.isfinite(z))
             else 0
         )
         x_int = (
             int(x)
-            if isinstance(x, (int, float)) and (not isinstance(x, float) or math.isfinite(x))
+            if isinstance(x, (int, float))
+            and (not isinstance(x, float) or math.isfinite(x))
             else 0
         )
         y_int = (
             int(y)
-            if isinstance(y, (int, float)) and (not isinstance(y, float) or math.isfinite(y))
+            if isinstance(y, (int, float))
+            and (not isinstance(y, float) or math.isfinite(y))
             else 0
         )
         mock_app.map_manager.get_tile(z_int, x_int, y_int)
@@ -1399,7 +1404,9 @@ def test_nomadnet_page_archive_add_fuzzing(
     import asyncio
 
     content_str = (
-        content.decode("utf-8", errors="replace") if isinstance(content, bytes) else content
+        content.decode("utf-8", errors="replace")
+        if isinstance(content, bytes)
+        else content
     )
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -1936,7 +1943,10 @@ def test_lxmf_audio_mode_fuzzing(mock_app, audio_mode, audio_bytes):
 )
 def test_lxst_profile_switching_fuzzing(mock_app, profile_id):
     """Fuzz LXST audio profile switching."""
-    if hasattr(mock_app.telephone_manager, "telephone") and mock_app.telephone_manager.telephone:
+    if (
+        hasattr(mock_app.telephone_manager, "telephone")
+        and mock_app.telephone_manager.telephone
+    ):
         mock_app.telephone_manager.telephone.switch_profile(profile_id)
 
 
@@ -2176,11 +2186,15 @@ def test_lxmf_display_name_parsing_regression():
 
         # None case (fallback to default)
         mock_parser.return_value = None
-        assert parse_lxmf_display_name(valid_b64, default_value="Fallback") == "Fallback"
+        assert (
+            parse_lxmf_display_name(valid_b64, default_value="Fallback") == "Fallback"
+        )
 
         # Exception case
         mock_parser.side_effect = Exception("Parsing error")
-        assert parse_lxmf_display_name(valid_b64, default_value="Fallback") == "Fallback"
+        assert (
+            parse_lxmf_display_name(valid_b64, default_value="Fallback") == "Fallback"
+        )
 
     # None input
     assert parse_lxmf_display_name(None, default_value="Fallback") == "Fallback"

@@ -74,10 +74,13 @@ class DatabaseProvider:
 
             if isinstance(params, dict):
                 params = {
-                    k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in params.items()
+                    k: (v.isoformat() if isinstance(v, datetime) else v)
+                    for k, v in params.items()
                 }
             else:
-                params = tuple((p.isoformat() if isinstance(p, datetime) else p) for p in params)
+                params = tuple(
+                    (p.isoformat() if isinstance(p, datetime) else p) for p in params
+                )
 
         if params:
             cursor.execute(query, params)

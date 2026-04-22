@@ -383,7 +383,9 @@ class CrashRecovery:
             "no_table_config": "no such table: config" in error_msg,
             "in_memory_db": diagnosis.get("db_type") == "memory",
             "corrupt_in_msg": "corrupt" in error_msg or "malformed" in error_msg,
-            "async_in_msg": any(x in error_msg for x in ["asyncio", "event loop", "runtimeerror"]),
+            "async_in_msg": any(
+                x in error_msg for x in ["asyncio", "event loop", "runtimeerror"]
+            ),
             "no_loop_in_msg": "no current event loop" in error_msg
             or "no running event loop" in error_msg,
             "low_mem": diagnosis.get("low_memory", False),
@@ -392,7 +394,8 @@ class CrashRecovery:
             "lxmf_in_msg": "lxmf" in error_msg or "lxmr" in error_msg,
             "identity_in_msg": "identity" in error_msg or "private key" in error_msg,
             "no_interfaces": diagnosis.get("active_interfaces", 0) == 0,
-            "old_python": py_version.major < 3 or (py_version.major == 3 and py_version.minor < 10),
+            "old_python": py_version.major < 3
+            or (py_version.major == 3 and py_version.minor < 10),
             "legacy_kernel": "linux" in platform.system().lower()
             and (
                 (_m := re.search(r"(\d+\.\d+)", platform.release())) is not None

@@ -148,7 +148,8 @@ class IdentityManager:
                     "lxmf_address": lxmf_address,
                     "lxst_address": lxst_address,
                     "is_current": (
-                        current_identity_hash is not None and identity_hash == current_identity_hash
+                        current_identity_hash is not None
+                        and identity_hash == current_identity_hash
                     ),
                 },
             )

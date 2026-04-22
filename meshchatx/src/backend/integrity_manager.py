@@ -47,7 +47,10 @@ class IntegrityManager:
         # to avoid accidentally ignoring important files with similar names.
         if "lxmf_router" in path_parts:
             # Added more volatile LXMF patterns
-            if any(part in ["announces", "storage", "identities", "tmp"] for part in path_parts):
+            if any(
+                part in ["announces", "storage", "identities", "tmp"]
+                for part in path_parts
+            ):
                 return True
 
             # Specifically ignore stamp costs which are frequently updated
@@ -154,7 +157,10 @@ class IntegrityManager:
                         actual_entropy = self._calculate_entropy(self.database_path)
                         saved_entropy = manifest_metadata.get(db_rel, {}).get("entropy")
 
-                        if saved_entropy is not None and abs(actual_entropy - saved_entropy) > 1.0:
+                        if (
+                            saved_entropy is not None
+                            and abs(actual_entropy - saved_entropy) > 1.0
+                        ):
                             issues.append(
                                 f"Database structural anomaly (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})",
                             )
@@ -190,7 +196,9 @@ class IntegrityManager:
                             )
                             actual_size = full_path.stat().st_size
 
-                            is_critical = any(c in rel_path for c in ["identity", "config"])
+                            is_critical = any(
+                                c in rel_path for c in ["identity", "config"]
+                            )
 
                             if is_critical:
                                 issues.append(

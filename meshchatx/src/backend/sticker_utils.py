@@ -270,7 +270,9 @@ def parse_tgs(data: bytes) -> dict:
     }
 
 
-def _ebml_read_vint(buf: bytes, pos: int, *, mask_marker: bool = True) -> tuple[int, int] | None:
+def _ebml_read_vint(
+    buf: bytes, pos: int, *, mask_marker: bool = True
+) -> tuple[int, int] | None:
     """Read an EBML variable-length integer at ``pos``; returns ``(value, next_pos)``."""
     if pos >= len(buf):
         return None
@@ -362,11 +364,15 @@ def parse_webm(data: bytes) -> dict:
                                 if f_id == 0x83:
                                     track_type = _ebml_read_uint(raw, fb, fe)
                                 elif f_id == 0x86:
-                                    track_codec = raw[fb:fe].decode("ascii", errors="replace")
+                                    track_codec = raw[fb:fe].decode(
+                                        "ascii", errors="replace"
+                                    )
                                 elif f_id == 0x23E383:
                                     track_def_dur = _ebml_read_uint(raw, fb, fe)
                                 elif f_id == 0xE0:
-                                    for v_id, vb, ve in _ebml_iter_elements(raw, fb, fe):
+                                    for v_id, vb, ve in _ebml_iter_elements(
+                                        raw, fb, fe
+                                    ):
                                         if v_id == 0xB0:
                                             t_w = _ebml_read_uint(raw, vb, ve)
                                         elif v_id == 0xBA:
@@ -382,7 +388,9 @@ def parse_webm(data: bytes) -> dict:
                 elif seg_id == 0x1549A966:
                     for inf_id, ib, ie in _ebml_iter_elements(raw, sb, se):
                         if inf_id == 0x2AD7B1:
-                            timecode_scale = _ebml_read_uint(raw, ib, ie) or timecode_scale
+                            timecode_scale = (
+                                _ebml_read_uint(raw, ib, ie) or timecode_scale
+                            )
                         elif inf_id == 0x4489:
                             d = _ebml_read_float(raw, ib, ie)
                             if d is not None:

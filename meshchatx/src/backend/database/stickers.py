@@ -187,7 +187,10 @@ class UserStickersDAO:
         metadata so the picker can render the sticker correctly without
         re-parsing.
         """
-        if self.count_for_identity(identity_hash) >= sticker_utils.MAX_STICKERS_PER_IDENTITY:
+        if (
+            self.count_for_identity(identity_hash)
+            >= sticker_utils.MAX_STICKERS_PER_IDENTITY
+        ):
             msg = "sticker_limit_reached"
             raise ValueError(msg)
 
@@ -345,7 +348,10 @@ class UserStickersDAO:
                     (identity_hash, ch),
                 )
 
-            if self.count_for_identity(identity_hash) >= sticker_utils.MAX_STICKERS_PER_IDENTITY:
+            if (
+                self.count_for_identity(identity_hash)
+                >= sticker_utils.MAX_STICKERS_PER_IDENTITY
+            ):
                 errors.append("sticker_limit_reached")
                 break
 

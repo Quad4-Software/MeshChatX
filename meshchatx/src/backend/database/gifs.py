@@ -219,7 +219,10 @@ class UserGifsDAO:
                     (identity_hash, ch),
                 )
 
-            if self.count_for_identity(identity_hash) >= gif_utils.MAX_GIFS_PER_IDENTITY:
+            if (
+                self.count_for_identity(identity_hash)
+                >= gif_utils.MAX_GIFS_PER_IDENTITY
+            ):
                 errors.append("gif_limit_reached")
                 break
 

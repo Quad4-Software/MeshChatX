@@ -452,7 +452,9 @@ def _build_wav_pcm16(samplerate=48000, duration_seconds=0.5, frequency=440.0):
         wf.setframerate(samplerate)
         frames = bytearray()
         for i in range(n_samples):
-            sample = int(0.3 * 32767 * math.sin(2 * math.pi * frequency * (i / samplerate)))
+            sample = int(
+                0.3 * 32767 * math.sin(2 * math.pi * frequency * (i / samplerate))
+            )
             frames.extend(struct.pack("<h", sample))
         wf.writeframes(bytes(frames))
     return buf.getvalue()

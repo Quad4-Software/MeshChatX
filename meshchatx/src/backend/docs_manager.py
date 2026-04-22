@@ -264,7 +264,9 @@ class DocsManager:
 
     def has_meshchatx_docs(self):
         return (
-            any(f.endswith((".md", ".txt")) for f in os.listdir(self.meshchatx_docs_dir))
+            any(
+                f.endswith((".md", ".txt")) for f in os.listdir(self.meshchatx_docs_dir)
+            )
             if os.path.exists(self.meshchatx_docs_dir)
             else False
         )

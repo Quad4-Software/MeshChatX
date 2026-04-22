@@ -70,7 +70,9 @@ async def test_rnpath_table_endpoint(mock_rns_minimal, temp_dir):
         request.query = {}
 
         handler = next(
-            r.handler for r in app_instance.get_routes() if r.path == "/api/v1/rnpath/table"
+            r.handler
+            for r in app_instance.get_routes()
+            if r.path == "/api/v1/rnpath/table"
         )
         response = await handler(request)
         data = json.loads(response.body)
@@ -96,7 +98,9 @@ async def test_rnpath_request_endpoint(mock_rns_minimal, temp_dir):
         request.json = AsyncMock(return_value={"destination_hash": target_hash})
 
         handler = next(
-            r.handler for r in app_instance.get_routes() if r.path == "/api/v1/rnpath/request"
+            r.handler
+            for r in app_instance.get_routes()
+            if r.path == "/api/v1/rnpath/request"
         )
         response = await handler(request)
 
@@ -118,7 +122,9 @@ async def test_rnpath_drop_endpoint(mock_rns_minimal, temp_dir):
         request.json = AsyncMock(return_value={"destination_hash": target_hash})
 
         handler = next(
-            r.handler for r in app_instance.get_routes() if r.path == "/api/v1/rnpath/drop"
+            r.handler
+            for r in app_instance.get_routes()
+            if r.path == "/api/v1/rnpath/drop"
         )
         response = await handler(request)
 

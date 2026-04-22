@@ -104,9 +104,7 @@ class LegacyMigrator:
                 try:
                     # Check if table exists in legacy DB
                     # We use a f-string here for the alias and table name, which are controlled by us
-                    check_query = (
-                        f"SELECT name FROM {alias}.sqlite_master WHERE type='table' AND name=?"
-                    )
+                    check_query = f"SELECT name FROM {alias}.sqlite_master WHERE type='table' AND name=?"
                     res = self.provider.fetchone(check_query, (table,))
 
                     if res:

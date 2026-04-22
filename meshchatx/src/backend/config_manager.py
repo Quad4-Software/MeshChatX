@@ -66,10 +66,12 @@ class ConfigManager:
             "lxmf_preferred_propagation_node_auto_select",
             False,
         )
-        self.lxmf_preferred_propagation_node_auto_sync_interval_seconds = self.IntConfig(
-            self,
-            "lxmf_preferred_propagation_node_auto_sync_interval_seconds",
-            0,
+        self.lxmf_preferred_propagation_node_auto_sync_interval_seconds = (
+            self.IntConfig(
+                self,
+                "lxmf_preferred_propagation_node_auto_sync_interval_seconds",
+                0,
+            )
         )
         self.lxmf_preferred_propagation_node_last_synced_at = self.IntConfig(
             self,

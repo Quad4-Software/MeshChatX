@@ -180,7 +180,9 @@ class Database:
                 _log.warning("DB open health check: no result")
             else:
                 first = integrity_rows[0]
-                val = next(iter(first.values())) if isinstance(first, dict) else first[0]
+                val = (
+                    next(iter(first.values())) if isinstance(first, dict) else first[0]
+                )
                 if val != "ok":
                     issues.append(f"Database integrity check failed: {val!s}")
                     _log.warning("DB open health check: %s", val)
@@ -227,7 +229,9 @@ class Database:
                 _log.warning("DB close health check: no result")
             else:
                 first = integrity_rows[0]
-                val = next(iter(first.values())) if isinstance(first, dict) else first[0]
+                val = (
+                    next(iter(first.values())) if isinstance(first, dict) else first[0]
+                )
                 if val != "ok":
                     issues.append(f"Database integrity check failed: {val!s}")
                     _log.warning("DB close health check: integrity failed")
@@ -265,7 +269,9 @@ class Database:
         page_size = self._get_pragma_value("page_size", 0) or 0
         page_count = self._get_pragma_value("page_count", 0) or 0
         freelist_pages = self._get_pragma_value("freelist_count", 0) or 0
-        freelist_bytes = page_size * freelist_pages if page_size > 0 and freelist_pages > 0 else 0
+        freelist_bytes = (
+            page_size * freelist_pages if page_size > 0 and freelist_pages > 0 else 0
+        )
         if freelist_bytes > 0:
             free_bytes = freelist_bytes
         else:

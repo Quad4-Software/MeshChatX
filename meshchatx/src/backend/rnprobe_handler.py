@@ -34,9 +34,13 @@ class RNProbeHandler:
             RNS.Transport.request_path(destination_hash)
 
         timeout_after = time.time() + (
-            timeout or self.DEFAULT_TIMEOUT + self.reticulum.get_first_hop_timeout(destination_hash)
+            timeout
+            or self.DEFAULT_TIMEOUT
+            + self.reticulum.get_first_hop_timeout(destination_hash)
         )
-        while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after:
+        while (
+            not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
+        ):
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):
@@ -79,9 +83,12 @@ class RNProbeHandler:
 
             timeout_after = time.time() + (
                 timeout
-                or self.DEFAULT_TIMEOUT + self.reticulum.get_first_hop_timeout(destination_hash)
+                or self.DEFAULT_TIMEOUT
+                + self.reticulum.get_first_hop_timeout(destination_hash)
             )
-            while receipt.status == RNS.PacketReceipt.SENT and time.time() < timeout_after:
+            while (
+                receipt.status == RNS.PacketReceipt.SENT and time.time() < timeout_after
+            ):
                 await asyncio.sleep(0.1)
 
             result: dict = {

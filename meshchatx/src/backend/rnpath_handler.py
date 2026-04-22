@@ -71,10 +71,18 @@ class RNPathHandler:
 
         total = len(formatted_table)
         responsive_count = len(
-            [e for e in formatted_table if e["state"] == RNS.Transport.STATE_RESPONSIVE],
+            [
+                e
+                for e in formatted_table
+                if e["state"] == RNS.Transport.STATE_RESPONSIVE
+            ],
         )
         unresponsive_count = len(
-            [e for e in formatted_table if e["state"] == RNS.Transport.STATE_UNRESPONSIVE],
+            [
+                e
+                for e in formatted_table
+                if e["state"] == RNS.Transport.STATE_UNRESPONSIVE
+            ],
         )
 
         # Pagination

@@ -177,7 +177,9 @@ class MiscDAO:
             params.append(destination_hash)
         if query:
             like_term = f"%{query}%"
-            sql += " AND (destination_hash LIKE ? OR page_path LIKE ? OR content LIKE ?)"
+            sql += (
+                " AND (destination_hash LIKE ? OR page_path LIKE ? OR content LIKE ?)"
+            )
             params.extend([like_term, like_term, like_term])
 
         sql += " ORDER BY created_at DESC"

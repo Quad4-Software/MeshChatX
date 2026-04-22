@@ -162,17 +162,23 @@ class NoteBotTemplate(StoppableBot):
             if not ctx.args:
                 response = "Your Notes:\n"
                 for i, note in enumerate(notes[-10:], 1):
-                    tags = " ".join(f"#{tag}" for tag in note["tags"]) if note["tags"] else ""
+                    tags = (
+                        " ".join(f"#{tag}" for tag in note["tags"])
+                        if note["tags"]
+                        else ""
+                    )
                     response += f"{i}. {note['text']} {tags}\n"
                 if len(notes) > 10:
-                    response += (
-                        f"\nShowing last 10 of {len(notes)} notes. Use /notes all to see all."
-                    )
+                    response += f"\nShowing last 10 of {len(notes)} notes. Use /notes all to see all."
                 ctx.reply(response)
             elif ctx.args[0] == "all":
                 response = "All Your Notes:\n"
                 for i, note in enumerate(notes, 1):
-                    tags = " ".join(f"#{tag}" for tag in note["tags"]) if note["tags"] else ""
+                    tags = (
+                        " ".join(f"#{tag}" for tag in note["tags"])
+                        if note["tags"]
+                        else ""
+                    )
                     response += f"{i}. {note['text']} {tags}\n"
                 ctx.reply(response)
 

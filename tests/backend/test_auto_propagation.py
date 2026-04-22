@@ -56,7 +56,9 @@ async def test_auto_propagation_logic():
         patch.object(manager, "_wait_for_path", return_value=True),
         patch.object(manager, "_probe_propagation_sync", return_value=True),
     ):
-        mock_hops.side_effect = lambda dh: 1 if dh == bytes.fromhex(_VALID_HASH_A) else 3
+        mock_hops.side_effect = lambda dh: (
+            1 if dh == bytes.fromhex(_VALID_HASH_A) else 3
+        )
 
         await manager.check_and_update_propagation_node()
 
@@ -68,7 +70,9 @@ async def test_auto_propagation_logic():
             _VALID_HASH_A,
         )
 
-    config.lxmf_preferred_propagation_node_destination_hash.get.return_value = _VALID_HASH_B
+    config.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
+        _VALID_HASH_B
+    )
     app.set_active_propagation_node.reset_mock()
 
     with (
@@ -77,7 +81,9 @@ async def test_auto_propagation_logic():
         patch.object(manager, "_wait_for_path", return_value=True),
         patch.object(manager, "_probe_propagation_sync", side_effect=[False, True]),
     ):
-        mock_hops.side_effect = lambda dh: 1 if dh == bytes.fromhex(_VALID_HASH_A) else 3
+        mock_hops.side_effect = lambda dh: (
+            1 if dh == bytes.fromhex(_VALID_HASH_A) else 3
+        )
 
         await manager.check_and_update_propagation_node()
 
@@ -86,7 +92,9 @@ async def test_auto_propagation_logic():
             context=context,
         )
 
-    config.lxmf_preferred_propagation_node_destination_hash.get.return_value = _VALID_HASH_C
+    config.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
+        _VALID_HASH_C
+    )
     announce3 = {
         "destination_hash": _VALID_HASH_C,
         "app_data": _APP_DATA_ENABLED,
@@ -100,7 +108,9 @@ async def test_auto_propagation_logic():
         patch.object(manager, "_wait_for_path", return_value=True),
         patch.object(manager, "_probe_propagation_sync", return_value=True),
     ):
-        mock_hops.side_effect = lambda dh: 1 if dh == bytes.fromhex(_VALID_HASH_A) else 2
+        mock_hops.side_effect = lambda dh: (
+            1 if dh == bytes.fromhex(_VALID_HASH_A) else 2
+        )
 
         await manager.check_and_update_propagation_node()
 

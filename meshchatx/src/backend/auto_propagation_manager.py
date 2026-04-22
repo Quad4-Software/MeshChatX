@@ -134,7 +134,9 @@ class AutoPropagationManager:
         if not sorted_candidates:
             return
 
-        previous_hex = self.config.lxmf_preferred_propagation_node_destination_hash.get()
+        previous_hex = (
+            self.config.lxmf_preferred_propagation_node_destination_hash.get()
+        )
         ordered: list[tuple[int, str]] = []
         seen_hex: set[str] = set()
         if previous_hex and previous_hex in best_by_hex:
