@@ -3415,6 +3415,53 @@ export default {
                 console.error("Failed to fetch telemetry", e);
             }
         },
+        dedupeTelemetryMarkersForMap(telemetryList) {
+            const sorted = [...telemetryList].sort((a, b) => {
+                const ta = a.updated_at ? new Date(a.updated_at).getTime() : (a.timestamp || 0) * 1000;
+                const tb = b.updated_at ? new Date(b.updated_at).getTime() : (b.timestamp || 0) * 1000;
+                return tb - ta;
+            });
+            const labelName = (t) => {
+                const p = this.peers[t.destination_hash];
+                return (p?.display_name || t.destination_hash?.substring(0, 8) || "").trim().toLowerCase();
+            };
+            const near = (a, b) => {
+                const la = a.telemetry?.location;
+                const lb = b.telemetry?.location;
+                if (!la || !lb || la.latitude == null || lb.latitude == null) return false;
+                return (
+                    Math.abs(la.latitude - lb.latitude) < 0.005 && Math.abs(la.longitude - lb.longitude) < 0.005
+                );
+            };
+            const out = [];
+            for (const t of sorted) {
+                const nn = labelName(t);
+                if (!nn) {
+                    out.push(t);
+                    continue;
+                }
+                if (out.some((k) => labelName(k) === nn && near(k, t))) continue;
+                out.push(t);
+            }
+            return out;
+        },
+        dedupeDiscoveredMapNodes(nodes) {
+            const sorted = [...nodes].sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
+            const norm = (n) => (n.name || "").trim().toLowerCase();
+            const near = (a, b) =>
+                Math.abs(a.latitude - b.latitude) < 0.005 && Math.abs(a.longitude - b.longitude) < 0.005;
+            const out = [];
+            for (const n of sorted) {
+                const nn = norm(n);
+                if (!nn) {
+                    out.push(n);
+                    continue;
+                }
+                if (out.some((k) => norm(k) === nn && near(k, n))) continue;
+                out.push(n);
+            }
+            return out;
+        },
         updateMarkers() {
             if (!this.markerSource) return;
             this.markerSource.clear();
@@ -3430,7 +3477,7 @@ export default {
             };
 
             // Process telemetry
-            for (const t of this.telemetryList) {
+            for (const t of this.dedupeTelemetryMarkersForMap(this.telemetryList)) {
                 const loc = t.telemetry?.location;
                 if (!loc || loc.latitude === undefined || loc.longitude === undefined) continue;
 
@@ -3681,8 +3728,9 @@ export default {
                 const response = await window.api.get("/api/v1/reticulum/discovered-interfaces");
                 const discovered = response.data?.interfaces ?? [];
                 const nodesWithLoc = discovered.filter((n) => n.latitude != null && n.longitude != null);
+                const nodesDeduped = this.dedupeDiscoveredMapNodes(nodesWithLoc);
 
-                if (nodesWithLoc.length === 0) {
+                if (nodesDeduped.length === 0) {
                     ToastUtils.info(this.$t("map.no_nodes_location"));
                     return;
                 }
@@ -3690,7 +3738,7 @@ export default {
                 const extent = createEmptyExtent();
                 this.discoveredMarkers = [];
 
-                for (const node of nodesWithLoc) {
+                for (const node of nodesDeduped) {
                     const coord = fromLonLat([node.longitude, node.latitude]);
                     extendExtent(extent, coord);
 
@@ -3724,7 +3772,7 @@ export default {
                     });
                 }
 
-                ToastUtils.success(`Mapped ${nodesWithLoc.length} discovered nodes`);
+                ToastUtils.success(`Mapped ${nodesDeduped.length} discovered nodes`);
             } catch (e) {
                 console.error("Failed to map discovered nodes", e);
                 ToastUtils.error(this.$t("map.failed_fetch_nodes"));
