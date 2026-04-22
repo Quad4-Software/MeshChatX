@@ -19,7 +19,7 @@ trap 'rm -f "$PRED"' EXIT INT
 
 python3 scripts/ci/slsa-predicate.py > "$PRED"
 
-find "$DIR" -type f ! -name '*.sha256' ! -name '*.cosign.bundle' | while IFS= read -r f; do
+find "$DIR" -type f ! -name '*.cosign.bundle' | while IFS= read -r f; do
     case "$f" in
         */.git/*) continue ;;
     esac
