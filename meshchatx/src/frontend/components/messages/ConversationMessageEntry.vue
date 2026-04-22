@@ -3,7 +3,7 @@
 <template>
     <div
         v-if="entry.type === 'imageGroup'"
-        class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-4 group min-w-0"
+        class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-2 group min-w-0"
         :class="{
             'ml-auto items-end': entry.items[0].is_outbound,
             'mr-auto items-start': !entry.items[0].is_outbound,
@@ -307,23 +307,31 @@
             </div>
         </div>
         <div
-            class="mt-1 flex w-full flex-wrap gap-0.5 px-0.5"
-            :class="entry.items[0].is_outbound ? 'justify-end' : 'justify-start'"
+            class="flex w-full flex-wrap items-center gap-0.5 px-0.5"
+            :class="[
+                entry.items[0].is_outbound ? 'justify-end' : 'justify-start',
+                (entry.items[0].lxmf_message.reactions?.length ?? 0) > 0 ? 'mt-0.5' : 'mt-0',
+            ]"
         >
             <span
                 v-for="(r, ridx) in entry.items[0].lxmf_message.reactions"
                 :key="r.reactionHash || ridx"
-                class="inline-flex min-h-[1.35rem] min-w-[1.35rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1.5 py-0.5 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
+                class="inline-flex min-h-[1.125rem] min-w-[1.125rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1 py-0 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
                 :title="cv.reactionReactorLabel(r.sender)"
                 >{{ r.emoji }}</span
             >
             <button
                 type="button"
-                class="inline-flex min-h-[1.35rem] min-w-[1.35rem] items-center justify-center rounded-full border border-dashed border-gray-300 bg-transparent px-1 py-0.5 text-xs leading-none text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
+                class="inline-flex items-center justify-center rounded-full border border-dashed border-gray-300 bg-transparent text-xs leading-none text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
+                :class="
+                    (entry.items[0].lxmf_message.reactions?.length ?? 0) > 0
+                        ? 'min-h-[1.125rem] min-w-[1.125rem] px-1 py-0'
+                        : 'h-4 w-4 min-h-0 p-0'
+                "
                 :title="$t('messages.react')"
                 @click.stop="cv.openReactionPicker(entry.items[0])"
             >
-                <MaterialDesignIcon icon-name="emoticon-plus-outline" class="size-3.5" />
+                <MaterialDesignIcon icon-name="emoticon-plus-outline" class="size-3" />
             </button>
         </div>
     </div>
@@ -332,7 +340,7 @@
         v-else
         :id="`message-${chatItem.lxmf_message.hash}`"
         :key="chatItem.lxmf_message.hash"
-        class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-4 group min-w-0"
+        class="flex flex-col max-w-[85%] sm:max-w-[75%] md:max-lg:max-w-[70%] lg:max-w-[65%] mb-2 group min-w-0"
         :class="{
             'ml-auto items-end': chatItem.is_outbound,
             'mr-auto items-start': !chatItem.is_outbound,
@@ -940,24 +948,32 @@
 
         <div
             v-if="chatItem.lxmf_message.reactions?.length || !chatItem.lxmf_message.is_reaction"
-            class="mt-1 flex w-full flex-wrap gap-0.5 px-0.5"
-            :class="chatItem.is_outbound ? 'justify-end' : 'justify-start'"
+            class="flex w-full flex-wrap items-center gap-0.5 px-0.5"
+            :class="[
+                chatItem.is_outbound ? 'justify-end' : 'justify-start',
+                (chatItem.lxmf_message.reactions?.length ?? 0) > 0 ? 'mt-0.5' : 'mt-0',
+            ]"
         >
             <span
                 v-for="(r, ridx) in chatItem.lxmf_message.reactions"
                 :key="r.reactionHash || ridx"
-                class="inline-flex min-h-[1.35rem] min-w-[1.35rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1.5 py-0.5 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
+                class="inline-flex min-h-[1.125rem] min-w-[1.125rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1 py-0 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
                 :title="cv.reactionReactorLabel(r.sender)"
                 >{{ r.emoji }}</span
             >
             <button
                 v-if="!chatItem.lxmf_message.is_reaction"
                 type="button"
-                class="inline-flex min-h-[1.35rem] min-w-[1.35rem] items-center justify-center rounded-full border border-dashed border-gray-300 bg-transparent px-1 py-0.5 text-xs leading-none text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
+                class="inline-flex items-center justify-center rounded-full border border-dashed border-gray-300 bg-transparent text-xs leading-none text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
+                :class="
+                    (chatItem.lxmf_message.reactions?.length ?? 0) > 0
+                        ? 'min-h-[1.125rem] min-w-[1.125rem] px-1 py-0'
+                        : 'h-4 w-4 min-h-0 p-0'
+                "
                 :title="$t('messages.react')"
                 @click.stop="cv.openReactionPicker(chatItem)"
             >
-                <MaterialDesignIcon icon-name="emoticon-plus-outline" class="size-3.5" />
+                <MaterialDesignIcon icon-name="emoticon-plus-outline" class="size-3" />
             </button>
         </div>
 
