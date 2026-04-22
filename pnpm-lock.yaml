@@ -12,6 +12,7 @@ overrides:
   tmp: '>=0.2.4'
   tar: '>=7.5.7'
   minimatch: '>=10.2.1'
+  '@electron/asar>minimatch': 3.1.2
   serialize-javascript: '>=7.0.3'
   flatted: '>=3.4.2'
 
@@ -93,6 +94,9 @@ importers:
         specifier: ^7.11.1
         version: 7.11.1
       '@electron-forge/maker-rpm':
+        specifier: ^7.11.1
+        version: 7.11.1
+      '@electron-forge/maker-snap':
         specifier: ^7.11.1
         version: 7.11.1
       '@electron-forge/maker-squirrel':
@@ -312,6 +316,10 @@ packages:
 
   '@electron-forge/maker-rpm@7.11.1':
     resolution: {integrity: sha512-iEfJPRQQyaTqk2EbUfZgulChNWvxGXeYUH0xBX/r5cj1pL4vcJXt3jLMQBVn3mk/0Ytv9UWRs8R/XuNWX6sf2w==}
+    engines: {node: '>= 16.4.0'}
+
+  '@electron-forge/maker-snap@7.11.1':
+    resolution: {integrity: sha512-VNWSLH+eT8OctTWL3Q7VMSlu0mIiaa2aSJFFXBJZWgpBgYjQdeT6i1RWRD/FsuYkk1naix68LeRzb9V4TlShKA==}
     engines: {node: '>= 16.4.0'}
 
   '@electron-forge/maker-squirrel@7.11.1':
@@ -1160,6 +1168,9 @@ packages:
   arg@5.0.2:
     resolution: {integrity: sha512-PYjyFOLKQ9y57JvQ6QLo8dAgNqswh8M1RMJYdQduT6xbWSgK36P/Z/v+p888pM69jMMfS8Xd8F6I1kQ/I9HUGg==}
 
+  argparse@1.0.10:
+    resolution: {integrity: sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==}
+
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
@@ -1203,6 +1214,9 @@ packages:
     peerDependencies:
       postcss: ^8.1.0
 
+  balanced-match@1.0.2:
+    resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
+
   balanced-match@4.0.4:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
     engines: {node: 18 || 20 || >=22}
@@ -1237,6 +1251,9 @@ packages:
   boolean@3.2.0:
     resolution: {integrity: sha512-d0II/GO9uf9lfUHH2BQsjxzRJZBdsjgsBiW4BvhWk/3qoKwQFjIDVN19PfX8F2D/r9PCMTtLWjYVCFrpeYUzsw==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+  brace-expansion@1.1.14:
+    resolution: {integrity: sha512-MWPGfDxnyzKU7rNOW9SP/c50vi3xrmrua/+6hfPbCS2ABNWfx24vPidzvC7krjU/RTo235sV776ymlsMtGKj8g==}
 
   brace-expansion@5.0.5:
     resolution: {integrity: sha512-VZznLgtwhn+Mact9tfiwx64fA9erHH/MCXEUfB/0bX/6Fz6ny5EGTXYltMocqg4xFAQZtnO3DHWWXi8RiuN7cQ==}
@@ -1437,6 +1454,9 @@ packages:
   compressorjs@1.3.0:
     resolution: {integrity: sha512-TsvzkRgDm/6mIRUdxJbrTH7kfSW3oJzOw8b1xU60fziQSosTML5TczpO6Z4H1LGF0yRmTotk6r5UNhuRxEwA1A==}
 
+  concat-map@0.0.1:
+    resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
+
   config-chain@1.1.13:
     resolution: {integrity: sha512-qj+f8APARXHrM0hraqXYb2/bOVSV4PvJQlNZ/DVj0QrmNM2q2euizkeuVckQ57J+W0mRH6Hvi+k50M4Jul2VRQ==}
 
@@ -1621,6 +1641,11 @@ packages:
     os: [darwin, linux]
     hasBin: true
 
+  electron-installer-snap@5.2.0:
+    resolution: {integrity: sha512-SRm7pCpNHMXV545JjScV8fLC9NhFli5r8L8Ju4EHdXwRh76+mwrJoUEDLItixBudZ5Mcgz1SJcDPJfWpEQWX7Q==}
+    engines: {node: '>= 10.0'}
+    hasBin: true
+
   electron-prompt@1.7.0:
     resolution: {integrity: sha512-IfqJYEgcRO6NuyPROo8AtdkAiZ6N9I1lQEf4dJAkPuhV5YgOHdmLqZJf6OXumZJfzrjpzCM5jHeYOrhGdgbnEA==}
 
@@ -1780,6 +1805,11 @@ packages:
   espree@10.4.0:
     resolution: {integrity: sha512-j6PAQ2uUr79PZhBjP5C5fhl8e39FmRnOjsD5lGnWrFU8i2G776tBK7+nP8KuQUTTyAZUwfQqXAgrVH5MbH9CYQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  esprima@4.0.1:
+    resolution: {integrity: sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==}
+    engines: {node: '>=4'}
+    hasBin: true
 
   esquery@1.7.0:
     resolution: {integrity: sha512-Ap6G0WQwcU/LHsvLwON1fAQX9Zp0A2Y6Y/cJBl9r/JbW90Zyg4/zbG6zzKa2OTALELarYHmKu0GhpM5EO+7T0g==}
@@ -2300,6 +2330,10 @@ packages:
   js-tokens@10.0.0:
     resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
 
+  js-yaml@3.14.2:
+    resolution: {integrity: sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg==}
+    hasBin: true
+
   js-yaml@4.1.1:
     resolution: {integrity: sha512-qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA==}
     hasBin: true
@@ -2594,6 +2628,9 @@ packages:
   minimatch@10.2.5:
     resolution: {integrity: sha512-MULkVLfKGYDFYejP07QOurDLLQpcjk7Fw+7jXS2R2czRQzR56yHRveU5NDJEOviH+hETZKSkIk5c+T23GjFUMg==}
     engines: {node: 18 || 20 || >=22}
+
+  minimatch@3.1.2:
+    resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==}
 
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
@@ -3329,6 +3366,9 @@ packages:
 
   spdx-license-ids@3.0.23:
     resolution: {integrity: sha512-CWLcCCH7VLu13TgOH+r8p1O/Znwhqv/dbb6lqWy67G+pT1kHmeD/+V36AVb/vq8QMIQwVShJ6Ssl5FPh0fuSdw==}
+
+  sprintf-js@1.0.3:
+    resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
   sprintf-js@1.1.3:
     resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
@@ -4153,6 +4193,16 @@ snapshots:
       - bluebird
       - supports-color
 
+  '@electron-forge/maker-snap@7.11.1':
+    dependencies:
+      '@electron-forge/maker-base': 7.11.1
+      '@electron-forge/shared-types': 7.11.1
+    optionalDependencies:
+      electron-installer-snap: 5.2.0
+    transitivePeerDependencies:
+      - bluebird
+      - supports-color
+
   '@electron-forge/maker-squirrel@7.11.1':
     dependencies:
       '@electron-forge/maker-base': 7.11.1
@@ -4279,7 +4329,7 @@ snapshots:
     dependencies:
       commander: 5.1.0
       glob: 7.2.3
-      minimatch: 10.2.5
+      minimatch: 3.1.2
 
   '@electron/fuses@1.8.0':
     dependencies:
@@ -5292,6 +5342,11 @@ snapshots:
 
   arg@5.0.2: {}
 
+  argparse@1.0.10:
+    dependencies:
+      sprintf-js: 1.0.3
+    optional: true
+
   argparse@2.0.1: {}
 
   assert-plus@1.0.0:
@@ -5327,6 +5382,8 @@ snapshots:
       postcss: 8.5.10
       postcss-value-parser: 4.2.0
 
+  balanced-match@1.0.2: {}
+
   balanced-match@4.0.4: {}
 
   base64-js@1.5.1: {}
@@ -5353,6 +5410,11 @@ snapshots:
 
   boolean@3.2.0:
     optional: true
+
+  brace-expansion@1.1.14:
+    dependencies:
+      balanced-match: 1.0.2
+      concat-map: 0.0.1
 
   brace-expansion@5.0.5:
     dependencies:
@@ -5587,6 +5649,8 @@ snapshots:
     dependencies:
       blueimp-canvas-to-blob: 3.29.0
       is-blob: 2.1.0
+
+  concat-map@0.0.1: {}
 
   config-chain@1.1.13:
     dependencies:
@@ -5825,6 +5889,22 @@ snapshots:
       - supports-color
     optional: true
 
+  electron-installer-snap@5.2.0:
+    dependencies:
+      '@malept/cross-spawn-promise': 1.1.1
+      debug: 4.4.3
+      electron-installer-common: 0.10.4
+      fs-extra: 9.1.0
+      js-yaml: 3.14.2
+      lodash: 4.18.1
+      semver: 7.7.4
+      tmp-promise: 3.0.3
+      which: 2.0.2
+      yargs: 16.2.0
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
   electron-prompt@1.7.0: {}
 
   electron-publish@26.8.1:
@@ -6011,6 +6091,9 @@ snapshots:
       acorn: 8.16.0
       acorn-jsx: 5.3.2(acorn@8.16.0)
       eslint-visitor-keys: 4.2.1
+
+  esprima@4.0.1:
+    optional: true
 
   esquery@1.7.0:
     dependencies:
@@ -6562,6 +6645,12 @@ snapshots:
 
   js-tokens@10.0.0: {}
 
+  js-yaml@3.14.2:
+    dependencies:
+      argparse: 1.0.10
+      esprima: 4.0.1
+    optional: true
+
   js-yaml@4.1.1:
     dependencies:
       argparse: 2.0.1
@@ -6852,6 +6941,10 @@ snapshots:
   minimatch@10.2.5:
     dependencies:
       brace-expansion: 5.0.5
+
+  minimatch@3.1.2:
+    dependencies:
+      brace-expansion: 1.1.14
 
   minimist@1.2.8: {}
 
@@ -7543,6 +7636,9 @@ snapshots:
       spdx-license-ids: 3.0.23
 
   spdx-license-ids@3.0.23: {}
+
+  sprintf-js@1.0.3:
+    optional: true
 
   sprintf-js@1.1.3:
     optional: true

@@ -39,15 +39,17 @@
         "dist:windows": "pnpm run electron-postinstall && cross-env PLATFORM=win32 pnpm run build && electron-builder --win portable nsis --publish=never",
         "dist:win-x64": "pnpm run electron-postinstall && cross-env PLATFORM=win32 ARCH=x64 pnpm run build && electron-builder --win portable nsis --x64 --publish=never",
         "dist:win-arm64": "pnpm run electron-postinstall && cross-env PLATFORM=win32 ARCH=arm64 pnpm run build && electron-builder --win portable nsis --arm64 --publish=never",
-        "dist:zip": "pnpm run electron-postinstall && pnpm run build && electron-forge make --targets @electron-forge/maker-zip",
+        "dist:zip": "pnpm run electron-postinstall && pnpm run build && node scripts/electron-forge-local-tmp.js make --targets @electron-forge/maker-zip",
         "dist-prebuilt": "pnpm run electron-postinstall && pnpm run build-backend && electron-builder --publish=never",
         "dist:windows-prebuilt": "pnpm run electron-postinstall && cross-env PLATFORM=win32 pnpm run version:sync && cross-env PLATFORM=win32 pnpm run build-backend && electron-builder --win portable nsis --publish=never",
         "dist:linux-prebuilt": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run version:sync && cross-env PLATFORM=linux pnpm run build-backend && electron-builder --linux AppImage deb --publish=never",
         "dist:mac-arm64": "pnpm run electron-postinstall && pnpm run build && electron-builder --mac --arm64 --publish=never",
         "dist:mac-universal": "bash scripts/build-macos-universal.sh",
-        "start": "pnpm run build && electron-forge start",
-        "package": "pnpm run build && electron-forge package",
-        "make": "pnpm run build && electron-forge make"
+        "start": "pnpm run build && node scripts/electron-forge-local-tmp.js start",
+        "package": "pnpm run build && node scripts/electron-forge-local-tmp.js package",
+        "make": "pnpm run build && node scripts/electron-forge-local-tmp.js make",
+        "make:snap": "pnpm run electron-postinstall && pnpm run build && cross-env FORGE_MAKE_SNAP=1 node scripts/electron-forge-local-tmp.js make --targets @electron-forge/maker-snap",
+        "make:flatpak": "pnpm run electron-postinstall && pnpm run build && cross-env DEBUG=@malept/flatpak-bundler*,electron-installer-flatpak* FORGE_MAKE_FLATPAK=1 node scripts/electron-forge-local-tmp.js make --targets @electron-forge/maker-flatpak"
     },
     "license": "0BSD AND MIT",
     "engines": {
@@ -59,6 +61,7 @@
         "@electron-forge/maker-deb": "^7.11.1",
         "@electron-forge/maker-flatpak": "^7.11.1",
         "@electron-forge/maker-rpm": "^7.11.1",
+        "@electron-forge/maker-snap": "^7.11.1",
         "@electron-forge/maker-squirrel": "^7.11.1",
         "@electron-forge/maker-zip": "^7.11.1",
         "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
@@ -106,6 +109,7 @@
             "tmp": ">=0.2.4",
             "tar": ">=7.5.7",
             "minimatch": ">=10.2.1",
+            "@electron/asar>minimatch": "3.1.2",
             "serialize-javascript": ">=7.0.3",
             "flatted": ">=3.4.2"
         }

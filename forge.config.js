@@ -1,5 +1,21 @@
 const { FusesPlugin } = require("@electron-forge/plugin-fuses");
 const { FuseV1Options, FuseVersion } = require("@electron/fuses");
+const which = require("which");
+
+function hasExecutable(name) {
+    return which.sync(name, { nothrow: true }) !== null;
+}
+
+const forgeSnapExplicit =
+    process.env.FORGE_MAKE_SNAP === "1" || process.env.FORGE_MAKE_SNAP === "true";
+const forgeFlatpakExplicit =
+    process.env.FORGE_MAKE_FLATPAK === "1" ||
+    process.env.FORGE_MAKE_FLATPAK === "true";
+
+const forgeSnapEnabled = hasExecutable("snapcraft") || forgeSnapExplicit;
+const forgeFlatpakEnabled =
+    (hasExecutable("flatpak-builder") && hasExecutable("eu-strip")) ||
+    forgeFlatpakExplicit;
 
 const platform = process.env.PLATFORM || process.platform;
 const arch = process.env.ARCH || process.arch;
@@ -13,6 +29,13 @@ if (platform === "win32" || platform === "win") {
 module.exports = {
     packagerConfig: {
         asar: true,
+        ignore: [
+            /^\/\.flatpak-builder(\/|$)/,
+            /^\/\.snapcraft(\/|$)/,
+            /^\/parts(\/|$)/,
+            /^\/prime(\/|$)/,
+            /^\/stage(\/|$)/,
+        ],
         extraResource: [extraResourceDir],
         executableName: "reticulum-meshchatx",
         name: "Reticulum MeshChatX",
@@ -47,7 +70,23 @@ module.exports = {
             config: {},
         },
         {
+            name: "@electron-forge/maker-snap",
+            enabled: forgeSnapEnabled,
+            config: {
+                summary: "Mesh networking chat client",
+                description:
+                    "A simple mesh network communications app powered by the Reticulum Network Stack",
+                confinement: "strict",
+                grade: "devel",
+                features: {
+                    audio: true,
+                    webgl: true,
+                },
+            },
+        },
+        {
             name: "@electron-forge/maker-flatpak",
+            enabled: forgeFlatpakEnabled,
             config: {
                 options: {
                     categories: ["Network"],
@@ -56,6 +95,19 @@ module.exports = {
                     sdk: "org.freedesktop.Sdk",
                     base: "org.electronjs.Electron2.BaseApp",
                     baseVersion: "24.08",
+                    finishArgs: [
+                        "--share=ipc",
+                        "--share=network",
+                        "--socket=x11",
+                        "--socket=wayland",
+                        "--device=dri",
+                        "--allow=bluetooth",
+                        "--filesystem=home",
+                        "--talk-name=org.freedesktop.Notifications",
+                        "--env=TMPDIR=/var/tmp",
+                        "--socket=pulseaudio",
+                    ],
+                    extraFlatpakBuilderArgs: ["--verbose"],
                 },
             },
         },
