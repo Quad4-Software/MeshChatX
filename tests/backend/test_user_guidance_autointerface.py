@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Tests for AutoInterface bind-failure detection in user guidance.
-"""
+"""Tests for AutoInterface bind-failure detection in user guidance."""
 
 from __future__ import annotations
 
