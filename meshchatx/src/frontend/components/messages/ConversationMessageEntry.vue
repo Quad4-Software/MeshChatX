@@ -307,9 +307,9 @@
             </div>
         </div>
         <div
-            class="flex w-full flex-wrap items-center gap-0.5 px-0.5"
+            class="flex w-fit max-w-full flex-wrap items-center gap-0.5 px-0.5"
             :class="[
-                entry.items[0].is_outbound ? 'justify-end' : 'justify-start',
+                entry.items[0].is_outbound ? 'self-end justify-end' : 'self-start justify-start',
                 (entry.items[0].lxmf_message.reactions?.length ?? 0) > 0 ? 'mt-0.5' : 'mt-0',
             ]"
         >
@@ -317,6 +317,9 @@
                 v-for="(r, ridx) in entry.items[0].lxmf_message.reactions"
                 :key="r.reactionHash || ridx"
                 class="inline-flex min-h-[1.125rem] min-w-[1.125rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1 py-0 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
+                :style="{
+                    order: entry.items[0].is_outbound ? ridx + 2 : ridx + 1,
+                }"
                 :title="cv.reactionReactorLabel(r.sender)"
                 >{{ r.emoji }}</span
             >
@@ -328,6 +331,11 @@
                         ? 'min-h-[1.125rem] min-w-[1.125rem] px-1 py-0'
                         : 'h-4 w-4 min-h-0 p-0'
                 "
+                :style="{
+                    order: entry.items[0].is_outbound
+                        ? 1
+                        : (entry.items[0].lxmf_message.reactions?.length ?? 0) + 1,
+                }"
                 :title="$t('messages.react')"
                 @click.stop="cv.openReactionPicker(entry.items[0])"
             >
@@ -948,9 +956,9 @@
 
         <div
             v-if="chatItem.lxmf_message.reactions?.length || !chatItem.lxmf_message.is_reaction"
-            class="flex w-full flex-wrap items-center gap-0.5 px-0.5"
+            class="flex w-fit max-w-full flex-wrap items-center gap-0.5 px-0.5"
             :class="[
-                chatItem.is_outbound ? 'justify-end' : 'justify-start',
+                chatItem.is_outbound ? 'self-end justify-end' : 'self-start justify-start',
                 (chatItem.lxmf_message.reactions?.length ?? 0) > 0 ? 'mt-0.5' : 'mt-0',
             ]"
         >
@@ -958,6 +966,9 @@
                 v-for="(r, ridx) in chatItem.lxmf_message.reactions"
                 :key="r.reactionHash || ridx"
                 class="inline-flex min-h-[1.125rem] min-w-[1.125rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1 py-0 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
+                :style="{
+                    order: chatItem.is_outbound ? ridx + 2 : ridx + 1,
+                }"
                 :title="cv.reactionReactorLabel(r.sender)"
                 >{{ r.emoji }}</span
             >
@@ -970,6 +981,11 @@
                         ? 'min-h-[1.125rem] min-w-[1.125rem] px-1 py-0'
                         : 'h-4 w-4 min-h-0 p-0'
                 "
+                :style="{
+                    order: chatItem.is_outbound
+                        ? 1
+                        : (chatItem.lxmf_message.reactions?.length ?? 0) + 1,
+                }"
                 :title="$t('messages.react')"
                 @click.stop="cv.openReactionPicker(chatItem)"
             >

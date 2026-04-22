@@ -865,10 +865,10 @@ export default {
         },
         discoveryAutoconnectMetadataPresent() {
             const fromActive = (this.discoveredActive || []).some(
-                (a) => a.autoconnect_source != null && a.autoconnect_source !== undefined,
+                (a) => a.autoconnect_source != null && a.autoconnect_source !== undefined
             );
             const fromStats = (this.activeInterfaceStats || []).some(
-                (s) => s.autoconnect_source != null && s.autoconnect_source !== undefined,
+                (s) => s.autoconnect_source != null && s.autoconnect_source !== undefined
             );
             return fromActive || fromStats;
         },

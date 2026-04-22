@@ -3429,9 +3429,7 @@ export default {
                 const la = a.telemetry?.location;
                 const lb = b.telemetry?.location;
                 if (!la || !lb || la.latitude == null || lb.latitude == null) return false;
-                return (
-                    Math.abs(la.latitude - lb.latitude) < 0.005 && Math.abs(la.longitude - lb.longitude) < 0.005
-                );
+                return Math.abs(la.latitude - lb.latitude) < 0.005 && Math.abs(la.longitude - lb.longitude) < 0.005;
             };
             const out = [];
             for (const t of sorted) {
