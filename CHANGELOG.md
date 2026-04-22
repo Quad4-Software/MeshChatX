@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - **Android App!**: MeshChatX now has a native Android app you can install (not just for Termux users).
 - **Linux Packaging**: Added **Snap** and **Flatpak** initial support.
+- **Copy Messages**: Added right-click context menu item to copy a message.
 - **Sync Messages**: When you tap **Sync Messages**, you’ll just see a simple "Syncing..." label instead of weird technical terms.
 - **Dark Mode Improvements**: The dark theme’s accent colors now look more consistent and easier on the eyes.
 - **Announcements**: The app now handles timed announcements and reminders in a way that's more predictable and easy to understand.
@@ -17,11 +18,11 @@ All notable changes to this project will be documented in this file.
 - **Chats, Images and Reactions**: Bigger chats load faster, images are grouped and sized better, styling improvements to reactions.
 - **Looks and Effects**: You can make parts of the UI transparent or enable a "glass effect" look, with clear settings to control these options.
 - **Simpler Internals**: The app’s settings and chat features were reorganized behind the scenes, making it easier to maintain and more stable.
-- **Visualiser Improvements**: The visualiser now handles really big or complex networks much more smoothly.
+- **Visualiser Improvements**: The visualiser now handles really big or complex networks much more smoothly. Also added better incremental hop slider and set default to 4 hops for faster and less laggy loading. The slider will also remember what you set.
 - **Easier Device Connections**: Advanced users can now see special codes (IFAC) that help with connecting certain types of interfaces here and via the API. 
 - **Better Reliability**: The desktop (Electron) app recovers better from connection problems and crashes.
 - **Audio Without ffmpeg**: Voicemail, ringtones, and microphone capture use in-process encoding (**LXST** / **miniaudio**) so containers and minimal installs no longer need an **ffmpeg** binary for those paths.
-- **Bundled Offline Docs**: In-app documentation can include the **Reticulum manual**, fetched at build time and bundled for offline reading; the docs page upload and sharing flow is smoother.
+- **Bundled Offline Docs**: In-app documentation can include the **Reticulum manual**, fetched at build time and bundled for offline reading; the docs page upload and sharing flow is smoother. Docs will also actually start on proper manual page.
 - **More Languages**: Spanish, French, Dutch, and Chinese options were added to the app’s language selector.
 - **Message Size Limits**: You can now set how big incoming messages can be (from 1MB up to 1GB) with easy presets or custom values. 
 - **Interface Options**: The Add Interface page now exposes the full set of options the Reticulum stack supports.
