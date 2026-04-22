@@ -115,6 +115,7 @@ module.exports = {
         // at package time, before code signing the application
         new FusesPlugin({
             version: FuseVersion.V1,
+            resetAdHocDarwinSignature: process.platform === "darwin" || platform === "darwin",
             [FuseV1Options.RunAsNode]: false,
             [FuseV1Options.EnableCookieEncryption]: true,
             [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
