@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-04-19T19:15:32.663206Z
+Generated at: 2026-04-21T05:41:00.975009Z
 Frontend source: node_modules
 
 Python dependencies
@@ -49,6 +49,9 @@ lxmfy 1.6.2
 lxst 0.4.6
   License: Other/Proprietary License
   Author: Mark Qvist
+miniaudio 1.70
+  License: MIT
+  Author: Irmen de Jong <irmen@razorvine.net>
 multidict 6.7.1
   License: Apache License 2.0
   Author: Andrew Svetlov
@@ -169,6 +172,9 @@ Node dependencies
 @electron-forge/maker-rpm 7.11.1
   License: MIT
   Author: Samuel Attard
+@electron-forge/maker-snap 7.11.1
+  License: MIT
+  Author: —
 @electron-forge/maker-squirrel 7.11.1
   License: MIT
   Author: Samuel Attard
@@ -739,6 +745,9 @@ app-builder-lib 26.8.1
 arg 5.0.2
   License: MIT
   Author: Josh Junon <junon@wavetilt.com>
+argparse 1.0.10
+  License: MIT
+  Author: Eugene Shkuropat
 argparse 2.0.1
   License: Python-2.0
   Author: —
@@ -766,6 +775,9 @@ author-regex 1.0.0
 autoprefixer 10.5.0
   License: MIT
   Author: Andrey Sitnik <andrey@sitnik.es>
+balanced-match 1.0.2
+  License: MIT
+  Author: Julian Gruber <mail@juliangruber.com>
 balanced-match 4.0.4
   License: MIT
   Author: —
@@ -805,6 +817,9 @@ boolbase 1.0.0
 boolean 3.2.0
   License: MIT
   Author: Golo Roden <golo.roden@thenativeweb.io>
+brace-expansion 1.1.14
+  License: MIT
+  Author: Julian Gruber <mail@juliangruber.com>
 brace-expansion 5.0.5
   License: MIT
   Author: —
@@ -892,10 +907,10 @@ ci-info 4.4.0
 clean-stack 2.2.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-cli-cursor 3.1.0
+cli-cursor 4.0.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-cli-cursor 4.0.0
+cli-cursor 3.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 cli-spinners 2.9.2
@@ -910,13 +925,13 @@ cli-width 4.1.0
 click-outside-vue3 4.0.1
   License: MIT
   Author: ndelvalle <nicolas.delvalle@gmail.com>
-cliui 7.0.4
+cliui 8.0.1
   License: ISC
   Author: Ben Coe <ben@npmjs.com>
 cliui 6.0.0
   License: ISC
   Author: Ben Coe <ben@npmjs.com>
-cliui 8.0.1
+cliui 7.0.4
   License: ISC
   Author: Ben Coe <ben@npmjs.com>
 clone 1.0.4
@@ -964,6 +979,9 @@ component-emitter 2.0.0
 compressorjs 1.3.0
   License: MIT
   Author: Chen Fengyuan
+concat-map 0.0.1
+  License: MIT
+  Author: James Halliday <mail@substack.net>
 config-chain 1.1.13
   License: MIT
   Author: Dominic Tarr <dominic.tarr@gmail.com> (http://dominictarr.com)
@@ -1102,6 +1120,9 @@ electron-installer-debian 3.2.0
 electron-installer-redhat 3.4.0
   License: MIT
   Author: Daniel Perez Alvarez <unindented@gmail.com>
+electron-installer-snap 5.2.0
+  License: Apache-2.0
+  Author: Mark Lee
 electron-prompt 1.7.0
   License: MIT
   Author: p-sam <p-sam@users.noreply.github.com>
@@ -1207,6 +1228,9 @@ eslint-visitor-keys 4.2.1
 espree 10.4.0
   License: BSD-2-Clause
   Author: Nicholas C. Zakas <nicholas+npm@nczconsulting.com>
+esprima 4.0.1
+  License: BSD-2-Clause
+  Author: Ariya Hidayat <ariya.hidayat@gmail.com>
 esquery 1.7.0
   License: BSD-3-Clause
   Author: Joel Feenstra <jrfeenst+esquery@gmail.com>
@@ -1609,6 +1633,9 @@ js-cookie 3.0.5
 js-tokens 10.0.0
   License: MIT
   Author: Simon Lydell
+js-yaml 3.14.2
+  License: MIT
+  Author: Vladimir Zapparov <dervus.grim@gmail.com>
 js-yaml 4.1.1
   License: MIT
   Author: Vladimir Zapparov <dervus.grim@gmail.com>
@@ -1789,6 +1816,9 @@ mimic-response 3.1.0
 mini-svg-data-uri 1.4.4
   License: MIT
   Author: Taylor “Tigt” Hunt <holla@ti.gt> (https://ti.gt/)
+minimatch 3.1.2
+  License: ISC
+  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
 minimatch 10.2.5
   License: BlueOak-1.0.0
   Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
@@ -2215,10 +2245,10 @@ resolve-protobuf-schema 2.1.0
 responselike 2.0.1
   License: MIT
   Author: lukechilds
-restore-cursor 4.0.0
+restore-cursor 3.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-restore-cursor 3.1.0
+restore-cursor 4.0.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 retry 0.12.0
@@ -2347,6 +2377,9 @@ spdx-expression-parse 3.0.1
 spdx-license-ids 3.0.23
   License: CC0-1.0
   Author: Shinnosuke Watanabe (https://github.com/shinnn)
+sprintf-js 1.0.3
+  License: BSD-3-Clause
+  Author: Alexandru Marasteanu <hello@alexei.ro> (http://alexei.ro/)
 sprintf-js 1.1.3
   License: BSD-3-Clause
   Author: Alexandru Mărășteanu <hello@alexei.ro>
@@ -2500,10 +2533,10 @@ type-check 0.4.0
 type-fest 0.21.3
   License: (MIT OR CC0-1.0)
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-type-fest 1.4.0
+type-fest 0.13.1
   License: (MIT OR CC0-1.0)
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-type-fest 0.13.1
+type-fest 1.4.0
   License: (MIT OR CC0-1.0)
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 typescript 5.4.5
@@ -2656,10 +2689,10 @@ why-is-node-running 2.3.0
 word-wrap 1.2.5
   License: MIT
   Author: Jon Schlinkert (https://github.com/jonschlinkert)
-wrap-ansi 6.2.0
+wrap-ansi 7.0.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-wrap-ansi 7.0.0
+wrap-ansi 6.2.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 wrap-ansi 8.1.0
@@ -2698,22 +2731,22 @@ yallist 4.0.0
 yaml 2.8.3
   License: ISC
   Author: Eemeli Aro <eemeli@gmail.com>
-yargs 16.2.0
+yargs 17.7.2
   License: MIT
   Author: Yargs Contributors
 yargs 15.4.1
   License: MIT
   Author: Yargs Contributors
-yargs 17.7.2
+yargs 16.2.0
   License: MIT
   Author: Yargs Contributors
-yargs-parser 20.2.9
-  License: ISC
-  Author: Ben Coe <ben@npmjs.com>
 yargs-parser 18.1.3
   License: ISC
   Author: Ben Coe <ben@npmjs.com>
 yargs-parser 21.1.1
+  License: ISC
+  Author: Ben Coe <ben@npmjs.com>
+yargs-parser 20.2.9
   License: ISC
   Author: Ben Coe <ben@npmjs.com>
 yauzl 2.10.0
