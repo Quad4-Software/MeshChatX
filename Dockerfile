@@ -25,7 +25,7 @@ RUN npm install -g pnpm@10.32.1 && \
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH} AS builder
 WORKDIR /build
 RUN apk upgrade --no-cache && \
-    apk add --no-cache gcc musl-dev linux-headers python3-dev libffi-dev openssl-dev git
+    apk add --no-cache gcc g++ musl-dev linux-headers python3-dev libffi-dev openssl-dev git
 
 # Install build tools in the system python
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" poetry setuptools wheel "jaraco.context>=6.1.0"
