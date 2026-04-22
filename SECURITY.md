@@ -42,7 +42,7 @@ The project employs continuous security monitoring and testing:
 
 ## Release provenance
 
-Tagged releases are built from `.gitea/workflows/build.yml`. Release assets include SHA256 sidecars (`.sha256` files next to each file) and a CycloneDX SBOM (`sbom.cyclonedx.json`). When the repository secret **`COSIGN_PRIVATE_KEY`** is set (PEM from `cosign generate-key-pair`, with **`COSIGN_PASSWORD`** if the key is encrypted), the workflow also produces **SLSA v1**-style cosign bundle files (`*.cosign.bundle`) next to each attested artifact.
+Tagged releases are built from `.gitea/workflows/build.yml`. Release assets include a CycloneDX SBOM (`sbom.cyclonedx.json`). When the repository secret **`COSIGN_PRIVATE_KEY`** is set (PEM from `cosign generate-key-pair`, with **`COSIGN_PASSWORD`** if the key is encrypted), the workflow also produces **SLSA v1**-style cosign bundle files (`*.cosign.bundle`) next to each attested artifact.
 
 Attestations are uploaded to the **Sigstore public transparency log (Rekor)** by default. The build runner must be able to reach the Rekor endpoint (default `https://rekor.sigstore.dev`; override with **`COSIGN_REKOR_URL`** if you use another instance).
 
@@ -54,27 +54,37 @@ Rotate the signing key when it may be compromised or on an internal schedule (fo
 
 ## Verifying releases
 
-Install **[cosign](https://docs.sigstore.dev/cosign/installation/)** for bundle verification. You need the **`cosign.pub`** file from the repository (same tag or `master` as the release you are checking).
+Install **[cosign](https://docs.sigstore.dev/cosign/installation/)**. Download the release artifact and its matching **`artifact.cosign.bundle`** from the same release page.
 
-### SHA256 checksums
+Use a **permalink** to the public key that matches the signing key for that release (same tag or commit as the release, or a known-good commit that still documents the key you trust). Example (replace with your tag or commit as needed):
 
-Each released file has a sidecar `filename.sha256` containing the output of `sha256sum` (hex digest and filename). After downloading both files into the same directory:
+- **Immutable commit (raw key):**  
+  `https://git.quad4.io/RNS-Things/MeshChatX/raw/commit/a3ce41148e6b044d9dc78f2a024fec91d343edb9/cosign.pub`
 
-```bash
-sha256sum -c path/to/your-artifact.sha256
-```
-
-On macOS without GNU coreutils, compare the printed digest to `shasum -a 256 your-artifact` or use `openssl dgst -sha256 your-artifact`.
-
-### Cosign attestation (SLSA v1 bundle)
-
-From the repository root (so `scripts/ci/verify-release-attestation.sh` resolves), or with **`COSIGN_PUBLIC_KEY`** pointing at your copy of `cosign.pub`:
+**Bash or zsh** (no separate key file; process substitution feeds the key to cosign):
 
 ```bash
-sh scripts/ci/verify-release-attestation.sh path/to/your-artifact path/to/your-artifact.cosign.bundle
+cosign verify-blob-attestation \
+  --key <(curl -fsSL 'https://git.quad4.io/RNS-Things/MeshChatX/raw/commit/a3ce41148e6b044d9dc78f2a024fec91d343edb9/cosign.pub') \
+  --bundle ./MeshChatX-Example.AppImage.cosign.bundle \
+  --type slsaprovenance1 \
+  ./MeshChatX-Example.AppImage
 ```
 
-This checks the signature and **Rekor** transparency-log inclusion for the attestation. If you intentionally use a private Sigstore deployment, set the same **`COSIGN_REKOR_URL`** (and any other Sigstore env vars) your builder used.
+If your shell does not support `<(...)`, download the key once and pass a path:
+
+```bash
+curl -fsSL -o cosign.pub 'https://git.quad4.io/RNS-Things/MeshChatX/raw/commit/a3ce41148e6b044d9dc78f2a024fec91d343edb9/cosign.pub'
+cosign verify-blob-attestation \
+  --key cosign.pub \
+  --bundle ./MeshChatX-Example.AppImage.cosign.bundle \
+  --type slsaprovenance1 \
+  ./MeshChatX-Example.AppImage
+```
+
+If you intentionally use a private Sigstore deployment, set the same **`COSIGN_REKOR_URL`** (and any other Sigstore env vars) your builder used.
+
+When CI signing is disabled (no **`COSIGN_PRIVATE_KEY`**), there will be no **`.cosign.bundle`** files for that release.
 
 ### Container images
 
