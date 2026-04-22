@@ -19,9 +19,15 @@
                 <!-- offline/online toggle -->
                 <div class="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5 sm:p-1 min-w-0 max-w-full">
                     <button
-                        class="p-1.5 sm:p-2 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors shrink-0"
-                        title="Map Discovered Interfaces"
-                        @click="mapDiscoveredNodes"
+                        :class="
+                            discoveredVisible
+                                ? 'bg-white dark:bg-zinc-700 shadow-sm text-emerald-600 dark:text-emerald-400'
+                                : 'text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
+                        "
+                        class="p-1.5 sm:p-2 rounded-lg transition-colors shrink-0"
+                        :title="discoveredVisible ? 'Hide Discovered Interfaces' : 'Show Discovered Interfaces'"
+                        :aria-pressed="discoveredVisible"
+                        @click="toggleDiscoveredNodes"
                     >
                         <MaterialDesignIcon icon-name="map-marker-radius" class="size-[18px] sm:size-5" />
                     </button>
@@ -94,154 +100,41 @@
 
         <!-- map container -->
         <div class="relative flex-1 min-h-0">
-            <!-- drawing toolbar (mobile: top center with small gap; desktop unchanged) -->
-            <div
-                class="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col gap-2 transform-gpu w-max max-w-[98vw] sm:top-2"
-            >
-                <div
-                    class="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-row p-0.5 sm:p-1 gap-0 sm:gap-0.5 border-0"
-                >
-                    <button
-                        v-for="tool in drawingTools"
-                        :key="tool.type"
-                        :ref="tool.type === 'Export' ? 'exportToolButton' : null"
-                        class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
-                        :class="[
-                            (drawType === tool.type && !isMeasuring) || (tool.type === 'Export' && isExportMode)
-                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-                                : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300',
-                        ]"
-                        :title="tool.type === 'Export' ? 'MBTiles exporter' : $t(`map.tool_${tool.type.toLowerCase()}`)"
-                        @click="tool.type === 'Export' ? toggleExportMode() : toggleDraw(tool.type)"
-                    >
-                        <v-icon :icon="'mdi-' + tool.icon" size="18" class="sm:!size-5"></v-icon>
-                    </button>
-                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-0.5 sm:mx-1"></div>
-                    <button
-                        class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
-                        :class="[
-                            isMeasuring
-                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                                : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300',
-                        ]"
-                        :title="$t('map.tool_measure')"
-                        @click="toggleMeasure"
-                    >
-                        <v-icon icon="mdi-ruler" size="18" class="sm:!size-5"></v-icon>
-                    </button>
-                    <button
-                        class="p-1.5 sm:p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-all hover:scale-110 active:scale-90"
-                        :title="$t('map.tool_clear')"
-                        @click="clearDrawings"
-                    >
-                        <v-icon icon="mdi-trash-can-outline" size="18" class="sm:!size-5"></v-icon>
-                    </button>
-                    <button
-                        v-if="selectedFeature"
-                        class="p-1.5 sm:p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 transition-all hover:scale-110 active:scale-90"
-                        title="Edit note"
-                        @click="startEditingNote(selectedFeature)"
-                    >
-                        <v-icon icon="mdi-note-edit-outline" size="18" class="sm:!size-5"></v-icon>
-                    </button>
-                    <button
-                        v-if="selectedFeature && !selectedFeature.get('telemetry')"
-                        class="p-1.5 sm:p-2 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 transition-all hover:scale-110 active:scale-90 animate-pulse"
-                        title="Delete selected item"
-                        @click="deleteSelectedFeature"
-                    >
-                        <v-icon icon="mdi-selection-remove" size="18" class="sm:!size-5"></v-icon>
-                    </button>
-                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-0.5 sm:mx-1"></div>
-                    <button
-                        class="p-1.5 sm:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
-                        :title="$t('map.save_drawing')"
-                        @click="showSaveDrawingModal = true"
-                    >
-                        <v-icon icon="mdi-content-save-outline" size="18" class="sm:!size-5"></v-icon>
-                    </button>
-                    <button
-                        class="p-1.5 sm:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 transition-all hover:scale-110 active:scale-90"
-                        :title="$t('map.load_drawing')"
-                        @click="openLoadDrawingModal"
-                    >
-                        <v-icon icon="mdi-folder-open-outline" size="18" class="sm:!size-5"></v-icon>
-                    </button>
-                    <div class="w-px h-6 bg-gray-200 dark:bg-zinc-800 my-auto mx-0.5 sm:mx-1"></div>
-                    <button
-                        class="p-1.5 sm:p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 transition-all hover:scale-110 active:scale-90"
-                        :title="$t('map.go_to_my_location')"
-                        @click="goToMyLocation"
-                    >
-                        <v-icon icon="mdi-crosshairs-gps" size="18" class="sm:!size-5"></v-icon>
-                    </button>
-                </div>
-            </div>
+            <MapDrawingToolbar
+                :tools="drawingTools"
+                :draw-type="drawType"
+                :measuring="isMeasuring"
+                :export-mode="isExportMode"
+                :selected-feature="selectedFeature"
+                @toggle-draw="toggleDraw"
+                @toggle-export="toggleExportMode"
+                @toggle-measure="toggleMeasure"
+                @clear="clearDrawings"
+                @edit-note="startEditingNote"
+                @delete-feature="deleteSelectedFeature"
+                @save="showSaveDrawingModal = true"
+                @load="openLoadDrawingModal"
+                @locate="goToMyLocation"
+            />
 
-            <!-- search bar (mobile: below drawing toolbar when open; desktop: top-right) -->
             <div
                 v-if="!offlineEnabled"
                 v-show="!isMobileScreen || isMobileSearchOpen"
                 ref="searchContainer"
                 class="absolute left-4 right-4 top-[calc(0.5rem+2.75rem+0.5rem)] z-30 sm:top-2 sm:left-auto sm:right-4 sm:w-80 md:max-lg:w-72 lg:w-80"
             >
-                <div class="relative">
-                    <div class="flex items-center bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border-0 ring-0">
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            class="flex-1 px-4 py-2.5 bg-transparent text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:outline-none focus:ring-0 border-0 text-sm"
-                            :placeholder="$t('map.search_placeholder')"
-                            @input="onSearchInput"
-                            @keydown.enter="performSearch"
-                            @focus="isSearchFocused = true"
-                        />
-                        <button
-                            v-if="searchQuery"
-                            class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors"
-                            @click="clearSearch"
-                        >
-                            <v-icon icon="mdi-close" size="18"></v-icon>
-                        </button>
-                        <button
-                            class="p-2 mr-1 text-blue-500 hover:text-blue-600 disabled:text-gray-300 transition-colors"
-                            :disabled="!searchQuery || isSearching"
-                            @click="performSearch"
-                        >
-                            <v-icon
-                                :icon="isSearching ? 'mdi-loading' : 'mdi-magnify'"
-                                :class="{ 'animate-spin': isSearching }"
-                                size="20"
-                            ></v-icon>
-                        </button>
-                    </div>
-
-                    <!-- search results dropdown -->
-                    <div
-                        v-if="isSearchFocused && (searchResults.length > 0 || searchError)"
-                        class="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border-0 overflow-y-auto z-40 max-h-64"
-                    >
-                        <div v-if="searchError" class="p-4 text-sm text-red-500 flex items-center gap-2">
-                            <v-icon icon="mdi-alert-circle" size="16"></v-icon>
-                            {{ searchError }}
-                        </div>
-                        <button
-                            v-for="(result, index) in searchResults"
-                            :key="index"
-                            class="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-800/50 border-b border-gray-100/50 dark:border-zinc-800/50 last:border-b-0 transition-all"
-                            @click="selectSearchResult(result)"
-                        >
-                            <div class="font-bold text-gray-900 dark:text-zinc-100 text-sm">
-                                {{ result.display_name }}
-                            </div>
-                            <div
-                                class="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5 font-bold uppercase tracking-wider"
-                            >
-                                {{ result.type }}
-                            </div>
-                        </button>
-                    </div>
-                </div>
+                <MapSearchBar
+                    v-model="searchQuery"
+                    :results="searchResults"
+                    :error="searchError"
+                    :searching="isSearching"
+                    :show-results="isSearchFocused"
+                    @input="onSearchInput"
+                    @search="performSearch"
+                    @clear="clearSearch"
+                    @focus="isSearchFocused = true"
+                    @select="selectSearchResult"
+                />
             </div>
 
             <div ref="mapContainer" class="absolute inset-0" :class="{ 'cursor-crosshair': isExportMode }"></div>
@@ -359,353 +252,46 @@
                 </div>
             </div>
 
-            <!-- telemetry marker overlay -->
-            <div
+            <MapMarkerPanel
                 v-if="selectedMarker"
-                class="absolute bottom-4 left-4 right-4 sm:left-4 sm:right-auto sm:w-80 md:max-lg:w-72 lg:w-80 z-20 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
-            >
-                <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div
-                            v-if="selectedMarker.telemetry || selectedMarker.peer"
-                            class="size-8 rounded-full flex items-center justify-center border-2"
-                            :style="{
-                                color: selectedMarker.peer?.lxmf_user_icon?.foreground_colour || '#3b82f6',
-                                borderColor: selectedMarker.peer?.lxmf_user_icon?.foreground_colour || '#3b82f6',
-                                backgroundColor: selectedMarker.peer?.lxmf_user_icon?.background_colour || '#ffffff',
-                            }"
-                        >
-                            <v-icon
-                                :icon="'mdi-' + (selectedMarker.peer?.lxmf_user_icon?.icon_name || 'account')"
-                                size="18"
-                            ></v-icon>
-                        </div>
-                        <div
-                            v-else-if="selectedMarker.discovered"
-                            class="size-8 rounded-full flex items-center justify-center border-2 border-emerald-500 bg-emerald-50 text-emerald-600"
-                        >
-                            <v-icon icon="mdi-router-wireless" size="18"></v-icon>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-gray-900 dark:text-zinc-100 truncate w-40">
-                                {{
-                                    selectedMarker.discovered?.name ||
-                                    selectedMarker.peer?.display_name ||
-                                    selectedMarker.telemetry?.destination_hash.substring(0, 8)
-                                }}
-                            </h3>
-                            <div
-                                v-if="selectedMarker.telemetry"
-                                class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter"
-                            >
-                                {{ selectedMarker.telemetry.destination_hash }}
-                            </div>
-                            <div
-                                v-else-if="selectedMarker.discovered"
-                                class="text-[10px] font-mono text-gray-500 uppercase tracking-tighter"
-                            >
-                                Discovered Interface
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <button
-                            v-if="selectedMarker.telemetry"
-                            class="p-2 rounded-full transition-colors"
-                            :class="
-                                selectedMarker.telemetry.is_tracking
-                                    ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300'
-                            "
-                            :title="selectedMarker.telemetry.is_tracking ? 'Stop Tracking' : 'Live Track Peer'"
-                            @click="toggleTracking(selectedMarker.telemetry.destination_hash)"
-                        >
-                            <v-icon
-                                :icon="selectedMarker.telemetry.is_tracking ? 'mdi-radar' : 'mdi-crosshairs'"
-                                size="20"
-                            ></v-icon>
-                        </button>
-                        <button
-                            class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300 p-1"
-                            @click="selectedMarker = null"
-                        >
-                            <v-icon icon="mdi-close" size="20"></v-icon>
-                        </button>
-                    </div>
-                </div>
-                <div class="p-4 space-y-3">
-                    <!-- Discovered Node Details -->
-                    <div v-if="selectedMarker.discovered" class="space-y-3">
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                    Latitude
-                                </div>
-                                <div class="font-mono">
-                                    {{ selectedMarker.discovered.latitude.toFixed(6) }}
-                                </div>
-                            </div>
-                            <div>
-                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                    Longitude
-                                </div>
-                                <div class="font-mono">
-                                    {{ selectedMarker.discovered.longitude.toFixed(6) }}
-                                </div>
-                            </div>
-                        </div>
+                :marker="selectedMarker"
+                :mini-chat-open="isMiniChatOpen"
+                @close="selectedMarker = null"
+                @toggle-tracking="toggleTracking"
+                @toggle-mini-chat="isMiniChatOpen = !isMiniChatOpen"
+            />
 
-                        <div class="pt-2 border-t border-gray-100 dark:border-zinc-800 space-y-2">
-                            <div v-if="selectedMarker.discovered.interface" class="flex justify-between items-center">
-                                <span class="text-[10px] font-bold text-gray-400 uppercase">Interface</span>
-                                <span class="text-xs font-mono">{{ selectedMarker.discovered.interface }}</span>
-                            </div>
-                            <div v-if="selectedMarker.discovered.via" class="flex justify-between items-center">
-                                <span class="text-[10px] font-bold text-gray-400 uppercase">Via</span>
-                                <span class="text-xs font-mono">{{ selectedMarker.discovered.via }}</span>
-                            </div>
-                            <div
-                                v-if="selectedMarker.discovered.hops != null"
-                                class="flex justify-between items-center"
-                            >
-                                <span class="text-[10px] font-bold text-gray-400 uppercase">Hops</span>
-                                <span class="text-xs">{{ selectedMarker.discovered.hops }}</span>
-                            </div>
-                        </div>
-                    </div>
+            <MapClusterPanel
+                v-if="selectedCluster && !selectedMarker"
+                :cluster="selectedCluster"
+                @close="closeClusterPanel"
+                @select="selectClusterItem"
+            />
 
-                    <!-- Telemetry Details -->
-                    <div v-if="selectedMarker.telemetry" class="space-y-3">
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                    Latitude
-                                </div>
-                                <div class="font-mono">
-                                    {{ selectedMarker.telemetry.telemetry.location.latitude.toFixed(6) }}
-                                </div>
-                            </div>
-                            <div>
-                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                    Longitude
-                                </div>
-                                <div class="font-mono">
-                                    {{ selectedMarker.telemetry.telemetry.location.longitude.toFixed(6) }}
-                                </div>
-                            </div>
-                            <div>
-                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                    Altitude
-                                </div>
-                                <div>{{ selectedMarker.telemetry.telemetry.location.altitude.toFixed(1) }}m</div>
-                            </div>
-                            <div>
-                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                    Speed
-                                </div>
-                                <div>{{ selectedMarker.telemetry.telemetry.location.speed.toFixed(1) }}km/h</div>
-                            </div>
-                        </div>
+            <MapExportInstructions v-if="isExportMode && !selectedBbox" />
 
-                        <div
-                            v-if="selectedMarker.telemetry.physical_link"
-                            class="pt-2 border-t border-gray-100 dark:border-zinc-800"
-                        >
-                            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Signal</div>
-                            <div class="flex gap-4 text-xs font-mono">
-                                <span>RSSI: {{ selectedMarker.telemetry.physical_link.rssi }}</span>
-                                <span>SNR: {{ selectedMarker.telemetry.physical_link.snr }}</span>
-                                <span>Q: {{ selectedMarker.telemetry.physical_link.q }}%</span>
-                            </div>
-                        </div>
-
-                        <div class="pt-2 text-[10px] text-gray-400 flex items-center gap-1">
-                            <v-icon icon="mdi-clock-outline" size="12"></v-icon>
-                            Updated: {{ formatTimestamp(selectedMarker.telemetry.timestamp) }}
-                        </div>
-
-                        <div class="border-t border-gray-100 dark:border-zinc-800 pt-3">
-                            <button
-                                class="w-full py-2 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-300 rounded-lg font-bold transition-all text-sm flex items-center justify-center gap-2 mb-2"
-                                @click="isMiniChatOpen = !isMiniChatOpen"
-                            >
-                                <v-icon
-                                    :icon="isMiniChatOpen ? 'mdi-chevron-up' : 'mdi-message-text'"
-                                    size="16"
-                                ></v-icon>
-                                {{ isMiniChatOpen ? "Hide Mini-Chat" : "Show Mini-Chat" }}
-                            </button>
-                            <div v-if="isMiniChatOpen">
-                                <MiniChat :destination-hash="selectedMarker.telemetry.destination_hash" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- export instructions overlay -->
-            <div
-                v-if="isExportMode && !selectedBbox"
-                class="absolute top-4 left-1/2 -translate-x-1/2 z-20 px-4 py-2 bg-blue-600 text-white rounded-full shadow-lg font-medium text-sm animate-bounce"
-            >
-                {{ $t("map.export_instructions") }}
-            </div>
-
-            <!-- export configuration overlay -->
-            <div
+            <MapExportConfigPanel
                 v-if="isExportMode && selectedBbox"
-                class="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-80 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-gray-900 dark:text-zinc-100"
-            >
-                <div class="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-900 dark:text-zinc-100">{{ $t("map.export_area") }}</h3>
-                    <button class="text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300" @click="cancelExport">
-                        <MaterialDesignIcon icon-name="close" class="size-5" />
-                    </button>
-                </div>
-                <div class="p-4 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{
-                                $t("map.min_zoom")
-                            }}</label>
-                            <input
-                                v-model.number="exportMinZoom"
-                                type="number"
-                                min="0"
-                                max="20"
-                                class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm dark:text-zinc-100"
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">{{
-                                $t("map.max_zoom")
-                            }}</label>
-                            <input
-                                v-model.number="exportMaxZoom"
-                                type="number"
-                                min="0"
-                                max="20"
-                                class="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm dark:text-zinc-100"
-                            />
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-gray-600 dark:text-zinc-400">{{ $t("map.tile_count") }}:</span>
-                        <span class="font-bold text-blue-600">{{ estimatedTiles }}</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button
-                            :disabled="isExporting"
-                            class="flex-1 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 disabled:bg-gray-100 dark:disabled:bg-zinc-800 text-gray-900 dark:text-zinc-100 rounded-lg font-bold transition-colors"
-                            @click="cancelExport"
-                        >
-                            {{ $t("common.cancel") }}
-                        </button>
-                        <button
-                            :disabled="isExporting"
-                            class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg font-bold transition-colors shadow-md"
-                            @click="startExport"
-                        >
-                            {{ $t("map.start_export") }}
-                        </button>
-                    </div>
-                </div>
-            </div>
+                v-model:min-zoom="exportMinZoom"
+                v-model:max-zoom="exportMaxZoom"
+                :estimated-tiles="estimatedTiles"
+                :exporting="isExporting"
+                @cancel="cancelExport"
+                @start="startExport"
+            />
 
-            <!-- export progress overlay -->
-            <div
+            <MapExportProgressPanel
                 v-if="exportStatus"
-                class="absolute bottom-4 right-4 z-20 w-72 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 p-4 space-y-3 animate-in slide-in-from-bottom-4"
-            >
-                <div class="flex justify-between items-center">
-                    <span class="font-bold text-sm text-gray-900 dark:text-zinc-100">{{
-                        exportStatus.status === "completed" ? $t("map.download_ready") : $t("map.exporting")
-                    }}</span>
-                    <button
-                        v-if="exportStatus.status === 'completed' || exportStatus.status === 'failed'"
-                        class="text-gray-400"
-                        @click="exportStatus = null"
-                    >
-                        <MaterialDesignIcon icon-name="close" class="size-4" />
-                    </button>
-                    <button
-                        v-else
-                        class="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-tighter"
-                        @click="cancelActiveExport"
-                    >
-                        {{ $t("common.cancel") }}
-                    </button>
-                </div>
+                :status="exportStatus"
+                :export-id="exportId"
+                @dismiss="exportStatus = null"
+                @cancel="cancelActiveExport"
+                @show-offline-maps="isSettingsOpen = true"
+            />
 
-                <div v-if="exportStatus.status !== 'completed' && exportStatus.status !== 'failed'">
-                    <div class="w-full h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                        <div
-                            class="h-full bg-blue-500 transition-all duration-300"
-                            :style="{ width: exportStatus.progress + '%' }"
-                        ></div>
-                    </div>
-                    <div class="flex justify-between text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider">
-                        <span>{{ exportStatus.current }} / {{ exportStatus.total }} tiles</span>
-                        <span>{{ exportStatus.progress }}%</span>
-                    </div>
-                </div>
+            <MapLoadingOverlay v-if="isUploading" />
 
-                <div v-if="exportStatus.status === 'completed'" class="flex flex-col gap-2">
-                    <a
-                        :href="`/api/v1/map/export/${exportId}/download`"
-                        class="flex items-center justify-center space-x-2 w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold transition-colors shadow-md text-xs"
-                    >
-                        <MaterialDesignIcon icon-name="download" class="size-4" />
-                        <span>{{ $t("map.download_now") }}</span>
-                    </a>
-                    <button
-                        class="flex items-center justify-center space-x-2 w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-colors shadow-md text-xs"
-                        @click="isSettingsOpen = true"
-                    >
-                        <MaterialDesignIcon icon-name="map-check" class="size-4" />
-                        <span>Show in Offline Maps</span>
-                    </button>
-                </div>
-
-                <div
-                    v-if="exportStatus.status === 'failed'"
-                    class="text-xs text-red-500 bg-red-50 dark:bg-red-950/20 p-2 rounded-lg"
-                >
-                    {{ exportStatus.error }}
-                </div>
-            </div>
-
-            <!-- loading overlay -->
-            <div
-                v-if="isUploading"
-                class="absolute inset-0 z-20 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm"
-            >
-                <div class="bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-xl flex flex-col items-center space-y-4">
-                    <div
-                        class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"
-                    ></div>
-                    <p class="text-gray-900 dark:text-zinc-100 font-medium">{{ $t("map.uploading") }}</p>
-                </div>
-            </div>
-
-            <!-- no map warning -->
-            <div
-                v-if="offlineEnabled && !hasOfflineMap"
-                class="absolute inset-0 z-20 flex items-center justify-center p-4"
-            >
-                <div
-                    class="max-w-md bg-white dark:bg-zinc-900 p-6 rounded-xl shadow-xl border border-amber-200 dark:border-amber-900/50 flex flex-col items-center text-center space-y-4"
-                >
-                    <MaterialDesignIcon icon-name="alert-circle" class="size-12 text-amber-500" />
-                    <p class="text-gray-900 dark:text-zinc-100 font-medium">{{ $t("map.no_map_loaded") }}</p>
-                    <button
-                        class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium"
-                        @click="$refs.fileInput.click()"
-                    >
-                        {{ $t("map.upload_mbtiles") }}
-                    </button>
-                </div>
-            </div>
+            <MapNoMapWarning v-if="offlineEnabled && !hasOfflineMap" @upload="$refs.fileInput.click()" />
 
             <!-- map info overlay -->
             <div class="absolute bottom-4 left-4 z-10 space-y-2 pointer-events-none">
@@ -1315,7 +901,21 @@ import { fromCircle } from "ol/geom/Polygon";
 import { unByKey } from "ol/Observable";
 import Overlay from "ol/Overlay";
 import GeoJSON from "ol/format/GeoJSON";
-import { extend as extendExtent, createEmpty as createEmptyExtent, isEmpty as isExtentEmpty } from "ol/extent";
+import {
+    extend as extendExtent,
+    extendCoordinate,
+    createEmpty as createEmptyExtent,
+    isEmpty as isExtentEmpty,
+} from "ol/extent";
+import {
+    extentDiagonal as computeExtentDiagonal,
+    buildClusterItems as buildClusterItemsHelper,
+} from "./internal/clusterUtils.js";
+import { getDiscoveredIconName as getDiscoveredIconNameHelper } from "./internal/discoveredIcons.js";
+import {
+    dedupeDiscoveredMapNodes as dedupeDiscoveredMapNodesHelper,
+    dedupeTelemetryMarkersForMap as dedupeTelemetryMarkersForMapHelper,
+} from "./internal/mapDedupe.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
@@ -1323,7 +923,15 @@ import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
 import Toggle from "../forms/Toggle.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
-import MiniChat from "./MiniChat.vue";
+import MapClusterPanel from "./internal/MapClusterPanel.vue";
+import MapMarkerPanel from "./internal/MapMarkerPanel.vue";
+import MapDrawingToolbar from "./internal/MapDrawingToolbar.vue";
+import MapSearchBar from "./internal/MapSearchBar.vue";
+import MapExportInstructions from "./internal/MapExportInstructions.vue";
+import MapExportConfigPanel from "./internal/MapExportConfigPanel.vue";
+import MapExportProgressPanel from "./internal/MapExportProgressPanel.vue";
+import MapNoMapWarning from "./internal/MapNoMapWarning.vue";
+import MapLoadingOverlay from "./internal/MapLoadingOverlay.vue";
 
 export default {
     name: "MapPage",
@@ -1332,7 +940,15 @@ export default {
         ContextMenuPanel,
         MaterialDesignIcon,
         Toggle,
-        MiniChat,
+        MapClusterPanel,
+        MapMarkerPanel,
+        MapDrawingToolbar,
+        MapSearchBar,
+        MapExportInstructions,
+        MapExportConfigPanel,
+        MapExportProgressPanel,
+        MapNoMapWarning,
+        MapLoadingOverlay,
     },
     data() {
         return {
@@ -1355,9 +971,11 @@ export default {
             historySource: null,
             historyLayer: null,
             selectedMarker: null,
+            selectedCluster: null,
             isMiniChatOpen: false,
             queryMarker: null,
             discoveredMarkers: [],
+            discoveredVisible: false,
 
             // caching
             cachingEnabled: true,
@@ -1899,7 +1517,14 @@ export default {
                 source: this.markerSource,
                 style: (feature) => {
                     const isHovered = this.hoveredMarker === feature;
-                    const scale = isHovered ? 2.0 : 1.6;
+
+                    if (feature.get("cluster")) {
+                        const style = this.createClusterStyle(feature.get("clusterCount") || 0, isHovered);
+                        style.setZIndex(isHovered ? 1000 : 200);
+                        return style;
+                    }
+
+                    const scale = isHovered ? 0.85 : 0.6;
                     const zIndex = isHovered ? 1000 : 100;
 
                     const t = feature.get("telemetry");
@@ -1934,7 +1559,7 @@ export default {
                         displayName = disc.name;
                         iconColor = "#10b981"; // emerald-500
                         bgColor = "#d1fae5"; // emerald-100
-                        iconPath = "M12 2L2 7L12 12L22 7L12 2Z M2 17L12 22L22 17 M2 12L12 17L22 12"; // router-wireless style path
+                        iconPath = this.getMdiPath(this.getDiscoveredIconName(disc));
                     } else if (feature === this.queryMarker) {
                         displayName = "Search Result";
                         iconColor = "#ef4444";
@@ -1961,10 +1586,14 @@ export default {
                 this.handleMapClick(evt);
                 this.closeContextMenu();
                 const feature = this.map.forEachFeatureAtPixel(evt.pixel, (f) => f);
-                if (feature && (feature.get("telemetry") || feature.get("discovered"))) {
+                if (feature && feature.get("cluster")) {
+                    this.openCluster(feature);
+                } else if (feature && (feature.get("telemetry") || feature.get("discovered"))) {
                     this.onMarkerClick(feature);
+                    this.selectedCluster = null;
                 } else {
                     this.selectedMarker = null;
+                    this.selectedCluster = null;
                 }
 
                 // Deselect drawing if clicking empty space
@@ -3049,7 +2678,7 @@ export default {
                 }
 
                 // Handle marker hover effects
-                const isMarker = feature.get("telemetry") || feature.get("discovered");
+                const isMarker = feature.get("telemetry") || feature.get("discovered") || feature.get("cluster");
                 if (isMarker && this.hoveredMarker !== feature) {
                     const oldHovered = this.hoveredMarker;
                     this.hoveredMarker = feature;
@@ -3416,69 +3045,20 @@ export default {
             }
         },
         dedupeTelemetryMarkersForMap(telemetryList) {
-            const sorted = [...telemetryList].sort((a, b) => {
-                const ta = a.updated_at ? new Date(a.updated_at).getTime() : (a.timestamp || 0) * 1000;
-                const tb = b.updated_at ? new Date(b.updated_at).getTime() : (b.timestamp || 0) * 1000;
-                return tb - ta;
-            });
-            const labelName = (t) => {
-                const p = this.peers[t.destination_hash];
-                return (p?.display_name || t.destination_hash?.substring(0, 8) || "").trim().toLowerCase();
-            };
-            const near = (a, b) => {
-                const la = a.telemetry?.location;
-                const lb = b.telemetry?.location;
-                if (!la || !lb || la.latitude == null || lb.latitude == null) return false;
-                return Math.abs(la.latitude - lb.latitude) < 0.005 && Math.abs(la.longitude - lb.longitude) < 0.005;
-            };
-            const out = [];
-            for (const t of sorted) {
-                const nn = labelName(t);
-                if (!nn) {
-                    out.push(t);
-                    continue;
-                }
-                if (out.some((k) => labelName(k) === nn && near(k, t))) continue;
-                out.push(t);
-            }
-            return out;
+            return dedupeTelemetryMarkersForMapHelper(telemetryList, this.peers || {});
         },
         dedupeDiscoveredMapNodes(nodes) {
-            const sorted = [...nodes].sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
-            const norm = (n) => (n.name || "").trim().toLowerCase();
-            const near = (a, b) =>
-                Math.abs(a.latitude - b.latitude) < 0.005 && Math.abs(a.longitude - b.longitude) < 0.005;
-            const out = [];
-            for (const n of sorted) {
-                const nn = norm(n);
-                if (!nn) {
-                    out.push(n);
-                    continue;
-                }
-                if (out.some((k) => norm(k) === nn && near(k, n))) continue;
-                out.push(n);
-            }
-            return out;
+            return dedupeDiscoveredMapNodesHelper(nodes);
         },
         updateMarkers() {
             if (!this.markerSource) return;
             this.markerSource.clear();
 
-            const featuresByCoord = {};
+            const candidates = [];
 
-            // Helper to collect features
-            const addFeatureToGroup = (coord, feature) => {
-                // Round coordinates to handle floating point jitter
-                const key = coord.map((c) => c.toFixed(6)).join(",");
-                if (!featuresByCoord[key]) featuresByCoord[key] = [];
-                featuresByCoord[key].push(feature);
-            };
-
-            // Process telemetry
             for (const t of this.dedupeTelemetryMarkersForMap(this.telemetryList)) {
                 const loc = t.telemetry?.location;
                 if (!loc || loc.latitude === undefined || loc.longitude === undefined) continue;
-
                 const coord = fromLonLat([loc.longitude, loc.latitude]);
                 const feature = new Feature({
                     geometry: new Point(coord),
@@ -3486,57 +3066,219 @@ export default {
                     peer: this.peers[t.destination_hash],
                     originalCoord: coord,
                 });
-                addFeatureToGroup(coord, feature);
+                candidates.push({ feature, coord, clusterable: true });
             }
 
-            // Process query marker
-            if (this.queryMarker) {
-                const coord = this.queryMarker.get("originalCoord") || this.queryMarker.getGeometry().getCoordinates();
-                if (!this.queryMarker.get("originalCoord")) this.queryMarker.set("originalCoord", coord);
-                addFeatureToGroup(coord, this.queryMarker);
-            }
-
-            // Process discovered markers
             if (this.discoveredMarkers && this.discoveredMarkers.length > 0) {
                 for (const feature of this.discoveredMarkers) {
                     const coord = feature.get("originalCoord") || feature.getGeometry().getCoordinates();
                     if (!feature.get("originalCoord")) feature.set("originalCoord", coord);
-                    addFeatureToGroup(coord, feature);
+                    candidates.push({ feature, coord, clusterable: true });
                 }
             }
 
-            // Now handle groups (Marker Clustering)
             const view = this.map.getView();
             const resolution = view && typeof view.getResolution === "function" ? view.getResolution() : 1;
-            const offsetDist = resolution * 8; // Small 8 pixel offset to show they are separate
+            const safeResolution = Number.isFinite(resolution) && resolution > 0 ? resolution : 1;
+            const clusterPixelDistance = 38;
+            const clusterCoordDistance = clusterPixelDistance * safeResolution;
+            const sqClusterCoordDistance = clusterCoordDistance * clusterCoordDistance;
 
-            Object.entries(featuresByCoord).forEach(([coordStr, features]) => {
-                const trueCoord = coordStr.split(",").map(Number);
+            const visited = new Array(candidates.length).fill(false);
+            for (let i = 0; i < candidates.length; i++) {
+                if (visited[i]) continue;
+                visited[i] = true;
+                const seed = candidates[i];
+                const groupItems = [seed];
 
-                if (features.length === 1) {
-                    const feature = features[0];
-                    const originalCoord = feature.get("originalCoord");
-                    if (originalCoord) {
-                        feature.setGeometry(new Point(originalCoord));
+                if (seed.clusterable) {
+                    for (let j = i + 1; j < candidates.length; j++) {
+                        if (visited[j] || !candidates[j].clusterable) continue;
+                        const dx = candidates[j].coord[0] - seed.coord[0];
+                        const dy = candidates[j].coord[1] - seed.coord[1];
+                        if (dx * dx + dy * dy <= sqClusterCoordDistance) {
+                            visited[j] = true;
+                            groupItems.push(candidates[j]);
+                        }
                     }
-                    this.markerSource.addFeature(feature);
-                } else {
-                    features.forEach((feature, index) => {
-                        const angle = (index / features.length) * 2 * Math.PI;
-                        const originalCoord = feature.get("originalCoord") || trueCoord;
-                        const offsetCoord = [
-                            originalCoord[0] + Math.cos(angle) * offsetDist,
-                            originalCoord[1] + Math.sin(angle) * offsetDist,
-                        ];
+                }
 
-                        // Move the marker to offset position
-                        feature.setGeometry(new Point(offsetCoord));
-                        this.markerSource.addFeature(feature);
+                if (groupItems.length === 1) {
+                    const feature = seed.feature;
+                    const originalCoord = feature.get("originalCoord") || seed.coord;
+                    feature.setGeometry(new Point(originalCoord));
+                    this.markerSource.addFeature(feature);
+                    continue;
+                }
+
+                let cx = 0;
+                let cy = 0;
+                for (const item of groupItems) {
+                    cx += item.coord[0];
+                    cy += item.coord[1];
+                }
+                cx /= groupItems.length;
+                cy /= groupItems.length;
+
+                const clusterFeature = new Feature({
+                    geometry: new Point([cx, cy]),
+                    cluster: true,
+                    clusterCount: groupItems.length,
+                    clusterItems: groupItems.map((g) => g.feature),
+                    originalCoord: [cx, cy],
+                });
+                this.markerSource.addFeature(clusterFeature);
+            }
+
+            if (this.queryMarker) {
+                const coord = this.queryMarker.get("originalCoord") || this.queryMarker.getGeometry().getCoordinates();
+                if (!this.queryMarker.get("originalCoord")) this.queryMarker.set("originalCoord", coord);
+                this.queryMarker.setGeometry(new Point(coord));
+                this.markerSource.addFeature(this.queryMarker);
+            }
+        },
+        createClusterStyle(count, isHovered) {
+            const cacheKey = `cluster-${count}-${isHovered ? "h" : "n"}`;
+            if (this.styleCache[cacheKey]) return this.styleCache[cacheKey];
+
+            const radius = isHovered ? 20 : 18;
+            const style = new Style({
+                image: new CircleStyle({
+                    radius,
+                    fill: new Fill({ color: "rgba(37, 99, 235, 0.92)" }),
+                    stroke: new Stroke({ color: "#ffffff", width: 2 }),
+                }),
+                text: new Text({
+                    text: String(count),
+                    font: "bold 13px sans-serif",
+                    fill: new Fill({ color: "#ffffff" }),
+                    stroke: new Stroke({ color: "rgba(0,0,0,0.35)", width: 1 }),
+                }),
+            });
+            this.styleCache[cacheKey] = style;
+            return style;
+        },
+        buildClusterItems(feature) {
+            return buildClusterItemsHelper(feature);
+        },
+        /**
+         * Open the cluster details overlay and zoom the viewport to encompass
+         * the cluster's items. Always called when a user clicks a cluster
+         * marker on the map.
+         */
+        openCluster(feature) {
+            if (!feature) return;
+            const items = this.buildClusterItems(feature);
+            this.selectedMarker = null;
+            this.selectedCluster = {
+                count: items.length || feature.get("clusterCount") || 0,
+                items,
+            };
+            this.zoomToCluster(feature);
+        },
+        closeClusterPanel() {
+            this.selectedCluster = null;
+        },
+        selectClusterItem(item) {
+            if (!item || !item.feature) return;
+            const view = this.map ? this.map.getView() : null;
+            const coord = item.coord;
+            if (view && coord && Array.isArray(coord) && coord.length >= 2) {
+                const currentZoom = (typeof view.getZoom === "function" && view.getZoom()) || 12;
+                if (typeof view.animate === "function") {
+                    view.animate({
+                        center: coord,
+                        zoom: Math.min(currentZoom + 2, 19),
+                        duration: 300,
                     });
+                }
+            }
+            this.onMarkerClick(item.feature);
+            this.selectedCluster = null;
+        },
+        extentDiagonal(extent) {
+            return computeExtentDiagonal(extent);
+        },
+        /**
+         * Smoothly zoom the viewport to fit a cluster's contents. Handles the
+         * tricky cases that previously made clustering feel "weird":
+         *   - all items at the same coordinate -> animate-zoom to that point
+         *   - cluster spans less than ~1px       -> treat as point
+         *   - cluster fits in the current view   -> still zoom in (don't sit
+         *     at the same zoom level after a click)
+         *   - very large clusters                -> respect a sensible maxZoom
+         */
+        zoomToCluster(feature) {
+            if (!feature || !this.map) return;
+            const items = feature.get("clusterItems") || [];
+            if (items.length === 0) return;
+
+            const view = this.map.getView();
+            const currentZoom = (typeof view.getZoom === "function" && view.getZoom()) || 12;
+            const viewMaxZoom = typeof view.getMaxZoom === "function" ? view.getMaxZoom() : 19;
+            const safeMaxZoom = Number.isFinite(viewMaxZoom) ? viewMaxZoom : 19;
+
+            const extent = createEmptyExtent();
+            const coords = [];
+            for (const item of items) {
+                const coord =
+                    item.get("originalCoord") ||
+                    (typeof item.getGeometry === "function" && item.getGeometry()
+                        ? item.getGeometry().getCoordinates()
+                        : null);
+                if (coord && Array.isArray(coord) && coord.length >= 2) {
+                    coords.push(coord);
+                    extendCoordinate(extent, coord);
+                }
+            }
+
+            if (coords.length === 0) return;
+
+            const resolution = typeof view.getResolution === "function" ? view.getResolution() : 1;
+            const safeResolution = Number.isFinite(resolution) && resolution > 0 ? resolution : 1;
+            const diagonal = this.extentDiagonal(extent);
+            const isDegenerate = isExtentEmpty(extent) || diagonal <= safeResolution;
+
+            if (isDegenerate) {
+                let cx = 0;
+                let cy = 0;
+                for (const c of coords) {
+                    cx += c[0];
+                    cy += c[1];
+                }
+                cx /= coords.length;
+                cy /= coords.length;
+                const targetZoom = Math.min(currentZoom + 4, safeMaxZoom);
+                if (typeof view.animate === "function") {
+                    view.animate({ center: [cx, cy], zoom: targetZoom, duration: 400 });
+                } else {
+                    if (typeof view.setCenter === "function") view.setCenter([cx, cy]);
+                    if (typeof view.setZoom === "function") view.setZoom(targetZoom);
+                }
+                return;
+            }
+
+            if (typeof view.fit === "function") {
+                view.fit(extent, {
+                    padding: [80, 80, 80, 80],
+                    maxZoom: Math.min(currentZoom + 3, safeMaxZoom),
+                    duration: 400,
+                });
+            }
+
+            this.$nextTick(() => {
+                const newZoom = (typeof view.getZoom === "function" && view.getZoom()) || currentZoom;
+                if (newZoom <= currentZoom + 0.01) {
+                    const targetZoom = Math.min(currentZoom + 1, safeMaxZoom);
+                    if (typeof view.animate === "function") {
+                        view.animate({ zoom: targetZoom, duration: 250 });
+                    } else if (typeof view.setZoom === "function") {
+                        view.setZoom(targetZoom);
+                    }
                 }
             });
         },
-        createMarkerStyle({ iconColor, bgColor, label, isStale, iconPath, scale = 1.6, isTracking = false }) {
+        createMarkerStyle({ iconColor, bgColor, label, isStale, iconPath, scale = 0.6, isTracking = false }) {
             const cacheKey = `${iconColor}-${bgColor}-${label}-${isStale}-${iconPath || "default"}-${scale}-${isTracking}`;
             if (this.styleCache[cacheKey]) return this.styleCache[cacheKey];
 
@@ -3546,10 +3288,12 @@ export default {
                 iconPath ||
                 "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z";
 
+            const baseSize = isTracking ? 32 : 24;
+            const renderSize = baseSize * 2;
+
             let svg = "";
             if (isTracking) {
-                // Add a MeshChatX specific pulsing ring for tracking
-                svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${renderSize}" height="${renderSize}" viewBox="0 0 32 32">
                     <circle cx="16" cy="16" r="10" fill="none" stroke="#3b82f6" stroke-width="2">
                         <animate attributeName="r" from="10" to="15" dur="1.5s" repeatCount="indefinite" />
                         <animate attributeName="stroke-opacity" from="1" to="0" dur="1.5s" repeatCount="indefinite" />
@@ -3562,21 +3306,24 @@ export default {
                     </g>
                 </svg>`;
             } else {
-                svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/></svg>`;
+                svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${renderSize}" height="${renderSize}" viewBox="0 0 24 24"><path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/></svg>`;
             }
 
             const src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+
+            const displayHeight = renderSize * scale;
+            const labelOffset = -(displayHeight + 6);
 
             const style = new Style({
                 image: new Icon({
                     src: src,
                     anchor: [0.5, 1],
                     scale: scale,
-                    imgSize: isTracking ? [32, 32] : [24, 24],
+                    imgSize: [renderSize, renderSize],
                 }),
                 text: new Text({
                     text: label,
-                    offsetY: isTracking ? -35 - scale * 12 : -25 - scale * 12, // Dynamic offset based on scale
+                    offsetY: labelOffset,
                     font: "bold 12px sans-serif",
                     fill: new Fill({ color: isStale ? "#6b7280" : "#111827" }),
                     stroke: new Stroke({ color: "#ffffff", width: 3 }),
@@ -3721,6 +3468,25 @@ export default {
                 ToastUtils.error("Failed to update tracking status");
             }
         },
+        async toggleDiscoveredNodes() {
+            if (this.discoveredVisible) {
+                this.hideDiscoveredNodes();
+                return;
+            }
+            await this.mapDiscoveredNodes();
+        },
+        hideDiscoveredNodes() {
+            this.discoveredMarkers = [];
+            this.discoveredVisible = false;
+            if (this.selectedMarker?.discovered) {
+                this.selectedMarker = null;
+                this.clearTelemetryPath();
+            }
+            this.updateMarkers();
+        },
+        getDiscoveredIconName(node) {
+            return getDiscoveredIconNameHelper(node);
+        },
         async mapDiscoveredNodes() {
             try {
                 const response = await window.api.get("/api/v1/reticulum/discovered-interfaces");
@@ -3740,28 +3506,17 @@ export default {
                     const coord = fromLonLat([node.longitude, node.latitude]);
                     extendExtent(extent, coord);
 
-                    // Add markers
                     const feature = new Feature({
                         geometry: new Point(coord),
                         originalCoord: coord,
                         discovered: node,
                     });
-                    feature.setStyle(
-                        this.createMarkerStyle({
-                            iconColor: "#10b981", // emerald-500
-                            bgColor: "#d1fae5", // emerald-100
-                            label: node.name,
-                            isStale: false,
-                            iconPath: null,
-                        })
-                    );
                     this.discoveredMarkers.push(feature);
                 }
 
-                // refresh all markers
+                this.discoveredVisible = true;
                 this.updateMarkers();
 
-                // Fit view to all discovered nodes if extent is valid
                 if (!isExtentEmpty(extent)) {
                     this.map.getView().fit(extent, {
                         padding: [100, 100, 100, 100],
