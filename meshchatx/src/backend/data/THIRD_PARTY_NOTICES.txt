@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-04-21T05:41:00.975009Z
+Generated at: 2026-04-22T16:08:55.428538Z
 Frontend source: node_modules
 
 Python dependencies
@@ -40,7 +40,7 @@ idna 3.11
 jaraco.context 6.1.2
   License: MIT
   Author: "Jason R. Coombs" <jaraco@jaraco.com>
-lxmf 0.9.4
+lxmf 0.9.6
   License: Reticulum License
   Author: Mark Qvist
 lxmfy 1.6.2
@@ -79,7 +79,7 @@ pyserial 3.5
 reticulum-meshchatx 4.5.0
   License: 0BSD AND MIT
   Author: Quad4
-rns 1.1.6
+rns 1.1.9
   License: Reticulum License
   Author: Mark Qvist
 websockets 16.0
@@ -524,6 +524,9 @@ Node dependencies
   License: MIT
   Author: Microsoft TypeScript
 @types/node 25.6.0
+  License: MIT
+  Author: Microsoft TypeScript
+@types/node 24.12.2
   License: MIT
   Author: Microsoft TypeScript
 @types/rbush 4.0.0
@@ -1102,7 +1105,7 @@ editorconfig 1.0.7
 ejs 3.1.10
   License: Apache-2.0
   Author: Matthew Eernisse <mde@fleegix.org> (http://fleegix.org)
-electron 39.8.8
+electron 41.2.2
   License: MIT
   Author: Electron Community
 electron-builder 26.8.1
@@ -2549,6 +2552,9 @@ undici 7.25.0
   License: MIT
   Author: Daniele Belardi
 undici-types 6.21.0
+  License: MIT
+  Author: Daniele Belardi
+undici-types 7.16.0
   License: MIT
   Author: Daniele Belardi
 undici-types 7.19.2

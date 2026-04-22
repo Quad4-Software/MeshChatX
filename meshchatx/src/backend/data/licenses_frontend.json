@@ -870,6 +870,12 @@
     "license": "MIT"
   },
   {
+    "name": "@types/node",
+    "version": "24.12.2",
+    "author": "Microsoft TypeScript",
+    "license": "MIT"
+  },
+  {
     "name": "@types/rbush",
     "version": "4.0.0",
     "author": "Dan Vanderkam",
@@ -2023,7 +2029,7 @@
   },
   {
     "name": "electron",
-    "version": "39.8.8",
+    "version": "41.2.2",
     "author": "Electron Community",
     "license": "MIT"
   },
@@ -4916,6 +4922,12 @@
   {
     "name": "undici-types",
     "version": "6.21.0",
+    "author": "Daniele Belardi",
+    "license": "MIT"
+  },
+  {
+    "name": "undici-types",
+    "version": "7.16.0",
     "author": "Daniele Belardi",
     "license": "MIT"
   },
