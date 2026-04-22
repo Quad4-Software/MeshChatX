@@ -82,10 +82,3 @@ jobs:
                   mkdir -p release-assets
                   find dist -maxdepth 1 -type f \( -name "*-linux*.AppImage" -o -name "*-linux*.deb" -o -name "*-linux*.rpm" \) -exec cp {} release-assets/ \;
                   find python-dist -maxdepth 1 -type f -name "*.whl" -exec cp {} release-assets/ \;
-
-                  cd release-assets
-                  for file in *; do
-                    if [ -f "$file" ] && [[ "$file" != *.sha256 ]]; then
-                      sha256sum "$file" | tee "${file}.sha256"
-                    fi
-                  done
