@@ -6,16 +6,11 @@ function hasExecutable(name) {
     return which.sync(name, { nothrow: true }) !== null;
 }
 
-const forgeSnapExplicit =
-    process.env.FORGE_MAKE_SNAP === "1" || process.env.FORGE_MAKE_SNAP === "true";
-const forgeFlatpakExplicit =
-    process.env.FORGE_MAKE_FLATPAK === "1" ||
-    process.env.FORGE_MAKE_FLATPAK === "true";
+const forgeSnapExplicit = process.env.FORGE_MAKE_SNAP === "1" || process.env.FORGE_MAKE_SNAP === "true";
+const forgeFlatpakExplicit = process.env.FORGE_MAKE_FLATPAK === "1" || process.env.FORGE_MAKE_FLATPAK === "true";
 
 const forgeSnapEnabled = hasExecutable("snapcraft") || forgeSnapExplicit;
-const forgeFlatpakEnabled =
-    (hasExecutable("flatpak-builder") && hasExecutable("eu-strip")) ||
-    forgeFlatpakExplicit;
+const forgeFlatpakEnabled = (hasExecutable("flatpak-builder") && hasExecutable("eu-strip")) || forgeFlatpakExplicit;
 
 const platform = process.env.PLATFORM || process.platform;
 const arch = process.env.ARCH || process.arch;
@@ -41,8 +36,8 @@ module.exports = {
         name: "Reticulum MeshChatX",
         appBundleId: "com.sudoivan.reticulummeshchatx",
         icon: "electron/build/icon",
-        // osxSign: {}, // Uncomment and configure for macOS signing
-        // osxNotarize: { ... }, // Uncomment and configure for macOS notarization
+        // osxSign: {}, macOS signing
+        // osxNotarize: { ... }, macOS notarization
     },
     rebuildConfig: {},
     makers: [
@@ -74,8 +69,7 @@ module.exports = {
             enabled: forgeSnapEnabled,
             config: {
                 summary: "Mesh networking chat client",
-                description:
-                    "A simple mesh network communications app powered by the Reticulum Network Stack",
+                description: "A simple mesh network communications app powered by the Reticulum Network Stack",
                 confinement: "strict",
                 grade: "devel",
                 features: {
