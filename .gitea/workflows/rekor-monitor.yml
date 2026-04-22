@@ -1,0 +1,37 @@
+name: Rekor tree verification
+
+on:
+    schedule:
+        - cron: "23 11 * * 1"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    rekor-loginfo:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Clone Repo
+              run: |
+                  set -eu
+                  SERVER="${GITEA_SERVER_URL:-${GITHUB_SERVER_URL:-}}"
+                  REPO="${GITEA_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
+                  if [ -z "$SERVER" ] || [ -z "$REPO" ]; then
+                    echo "Checkout: set GITEA_SERVER_URL/GITEA_REPOSITORY or GITHUB_SERVER_URL/GITHUB_REPOSITORY" >&2
+                    exit 1
+                  fi
+                  if [ -n "${GITEA_TOKEN:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+                    TOKEN="${GITEA_TOKEN:-$GITHUB_TOKEN}"
+                    git config --global credential.helper "!f() { echo username=x-access-token; echo password=${TOKEN}; }; f"
+                  fi
+                  git init -q && git remote add origin "${SERVER}/${REPO}.git"
+                  git fetch -q --depth=1 origin "${GITHUB_SHA}" && git checkout -q FETCH_HEAD
+
+            - name: Install rekor-cli
+              run: sh scripts/ci/setup-rekor-cli.sh
+
+            - name: Verify Rekor signed tree head
+              run: |
+                  set -eu
+                  rekor-cli loginfo --rekor_server "${REKOR_SERVER:-https://rekor.sigstore.dev}" --store_tree_state=false

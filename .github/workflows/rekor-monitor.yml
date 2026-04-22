@@ -1,0 +1,24 @@
+# Cross-run Rekor checkpoint persistence uses Sigstore's reusable workflow (Actions artifact).
+name: Rekor log monitor
+
+on:
+    schedule:
+        - cron: "17 11 * * 1"
+    workflow_dispatch:
+
+concurrency:
+    group: rekor-monitor
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+    id-token: write
+    issues: write
+
+jobs:
+    rekor:
+        uses: sigstore/rekor-monitor/.github/workflows/reusable_monitoring.yml@01680ec70d6bfa0ee4487f9be605c2db13273963
+        secrets: inherit
+        with:
+            file_issue: false
+            artifact_retention_days: 30
