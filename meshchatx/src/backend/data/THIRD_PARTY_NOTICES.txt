@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-04-22T16:08:55.428538Z
+Generated at: 2026-04-22T22:55:27.117168Z
 Frontend source: node_modules
 
 Python dependencies
@@ -910,10 +910,10 @@ ci-info 4.4.0
 clean-stack 2.2.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-cli-cursor 4.0.0
+cli-cursor 3.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-cli-cursor 3.1.0
+cli-cursor 4.0.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 cli-spinners 2.9.2
@@ -2248,10 +2248,10 @@ resolve-protobuf-schema 2.1.0
 responselike 2.0.1
   License: MIT
   Author: lukechilds
-restore-cursor 3.1.0
+restore-cursor 4.0.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-restore-cursor 4.0.0
+restore-cursor 3.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 retry 0.12.0
@@ -2536,10 +2536,10 @@ type-check 0.4.0
 type-fest 0.21.3
   License: (MIT OR CC0-1.0)
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-type-fest 0.13.1
+type-fest 1.4.0
   License: (MIT OR CC0-1.0)
   Author: Sindre Sorhus <sindresorhus@gmail.com>
-type-fest 1.4.0
+type-fest 0.13.1
   License: (MIT OR CC0-1.0)
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 typescript 5.4.5
