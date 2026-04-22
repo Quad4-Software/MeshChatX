@@ -2,25 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.5.0] - 2026-04-TBD
+## [4.5.0] - 2026-04-22
 
 ### TL;DR 
 
-- **Sync Messages**: When you tap **Sync Messages**, you’ll just see a simple "Syncing..." label instead of weird technical terms. An on-screen message (toast) will keep you updated in plain language about what’s happening and how much is done, until the sync is finished. Once complete, you'll get a summary telling you how many messages were transferred or if there were any issues. Limits on how much can be transferred are now clearer, and the interface is simpler.
+- **Android App!**: MeshChatX now has a native Android app you can install (not just for Termux users).
+- **Linux Packaging**: Added **Snap** and **Flatpak** initial support.
+- **Sync Messages**: When you tap **Sync Messages**, you’ll just see a simple "Syncing..." label instead of weird technical terms.
 - **Dark Mode Improvements**: The dark theme’s accent colors now look more consistent and easier on the eyes.
 - **Announcements**: The app now handles timed announcements and reminders in a way that's more predictable and easy to understand.
-- **Restart Reticulum from the App**: You can now restart the Reticulum network system directly from MeshChatX if there’s a problem. There’s also a tool for editing its configuration, with safeguards and easy reset.
-- **GIFs and Stickers**: Easily manage GIFs and sticker packs for each identity—including adding, importing, exporting, and animated stickers (like Telegram’s). Sticker and GIF pickers are easier to use, and animations only play when visible to save resources.
-- **Messages and Links**: The app can warn you before you open links from people you don’t know. You can also move the messages sidebar to your preferred side. Scrolling through long message lists is much smoother, images are grouped smarter, and links/markdown are handled more reliably. If a message can’t be sent, the error will be clearer.
+- **Hot Reload RNS**: You can now restart the Reticulum network stack directly from MeshChatX if there’s a problem.
+- **Config Editor Tool**: Added config editor tool to edit within app.
+- **Dangerous Links**: The app can warn you before you open links from people you don’t know, if you happen to click on it by mistake.
+- **Chats, Images and Reactions**: Bigger chats load faster, images are grouped and sized better, styling improvements to reactions.
 - **Looks and Effects**: You can make parts of the UI transparent or enable a "glass effect" look, with clear settings to control these options.
 - **Simpler Internals**: The app’s settings and chat features were reorganized behind the scenes, making it easier to maintain and more stable.
-- **Network Map Upgrades**: The network visualiser (the map showing connections) now handles really big or complex networks much more smoothly.
-- **Easier Device Connections**: Advanced users can now see special codes (IFAC) that help with connecting certain types of interfaces here and via the API.
-- **Better Reliability**: The desktop (Electron) app recovers better from connection problems and crashes, making it more robust.
-- **Android App!**: MeshChatX now has a native Android app you can install (not just for Termux users).
+- **Visualiser Improvements**: The visualiser now handles really big or complex networks much more smoothly.
+- **Easier Device Connections**: Advanced users can now see special codes (IFAC) that help with connecting certain types of interfaces here and via the API. 
+- **Better Reliability**: The desktop (Electron) app recovers better from connection problems and crashes.
+- **Audio Without ffmpeg**: Voicemail, ringtones, and microphone capture use in-process encoding (**LXST** / **miniaudio**) so containers and minimal installs no longer need an **ffmpeg** binary for those paths.
+- **Bundled Offline Docs**: In-app documentation can include the **Reticulum manual**, fetched at build time and bundled for offline reading; the docs page upload and sharing flow is smoother.
 - **More Languages**: Spanish, French, Dutch, and Chinese options were added to the app’s language selector.
-- **Message Size Limits**: You can now set how big incoming messages can be (from 1MB up to 1GB) with easy presets or custom values. The server will now accept transfers up to 1GB in size.
-- **Interface Options**: The Add Interface page now exposes the full set of options the Reticulum stack supports. Auto Interface gets group ID, discovery scope, discovery and data ports, multicast type, allowed/ignored devices, and a configured bitrate; TCP/UDP/Backbone gain device, prefer IPv6, KISS framing, I2P tunneling, connect timeout, max reconnect tries, and fixed MTU; RNode/KISS/AX.25 KISS surface flow control, station ID callsign, ID interval, baud rate, data bits, parity, stop bits, preamble, TX tail, persistence, slot time, and SSID; I2P exposes a connectable toggle. If a configured listen, discovery, or data port is already taken by another process, the save now fails with a clear "port already in use" message instead of silently producing an interface that won't come up.
+- **Message Size Limits**: You can now set how big incoming messages can be (from 1MB up to 1GB) with easy presets or custom values. 
+- **Interface Options**: The Add Interface page now exposes the full set of options the Reticulum stack supports.
 
 ### Platform and backend
 
@@ -29,12 +33,18 @@ All notable changes to this project will be documented in this file.
 - **LXMF incoming delivery limit**: **`PATCH /api/v1/config`** clamps **`lxmf_delivery_transfer_limit_in_bytes`** to at most **1 GiB** (was 100 MB); **`LXMRouter.delivery_per_transfer_limit`** updates live when the value changes.
 - **Auto-announce / intervals**: Refactor around **`interval_action_due`** in **`meshchat.py`** to simplify when auto-announce and propagation sync checks run; add tests for auto-announce behaviour.
 - **Reticulum**: User-triggered **RNS restart** with UI feedback; **reload** streamlines teardown, loading indicators, and cleanup of identity state during Reticulum reload.
+- **Notifications**: Filters **silent or non-user-facing** LXMF payloads so the notification bell does not fire on control-only traffic.
+- **Map**: **Deduplication** helpers for **telemetry** markers and **discovered** map nodes.
+- **AutoInterface / user guidance**: Detects **bind/listen failures** (e.g. address already in use) and emits clear **operator guidance**.
+- **Interface discovery**: Connect logic honours **autoconnect** metadata from discovery responses when the stack provides it.
+- **Translation (Argos)**: Refactored **Argos Translate** CLI detection; integration tests for **forwarding** behaviour.
+- **Docs bundle**: **`scripts/build/fetch_reticulum_manual.py`** (via **`pnpm run build-docs`**) fetches the **Reticulum manual** for offline docs; backend wiring serves bundled manual content.
 - **Bots**: **`bot_handler`** updates for LXMF address normalization, reading addresses from sidecar files, improved bot names and on-demand announce requests, and tests.
 - **Telephony**: **`TelephoneManager`** improvements for path discovery, initiation, polling, and cancellation; integration tests for LXST classes and WebAudioBridge mocks.
 - **App info / diagnostics**: **`/api/v1/app/info`** (and related handlers) with safer memory, network, and database stats; tests for missing runtime objects and version resolution without the packaging module.
-- **Media conversion**: WebM-to-OGG voice path gains a **remux fallback**; Python **JIT** status surfaced where applicable; related tests updated.
+- **Media conversion**: Voicemail, ringtones, and **MicrophoneRecorder** capture use **WAV/PCM** and **OGG/Opus** via **LXST** with **miniaudio** instead of shelling out to **ffmpeg** (Alpine Docker images drop the **ffmpeg** package accordingly). Browser-recorded **WebM**/**Opus** attachments decode through the same **`audio_codec`** path and re-encode to **OGG/Opus** for LXMF; if conversion fails the original bytes are passed through unchanged. Python **JIT** status surfaced where applicable; related tests updated.
 - **Docs manager**: Safer forced directory removal (**`_remove_tree_force_writable`**) and writable-directory helpers when replacing tree content.
-- **Python / tooling**: **Poetry** lock updated (e.g. **2.3.4**); **lxmfy** pinned to a compatible commit; **Node** engine requirement relaxed to **>=22** (from >=24) with lockfile/git-URL dependency style updates; **`package.json`** metadata adds desktop entry, vendor, and synopsis where applicable.
+- **Python / tooling**: **Poetry** lock updated (e.g. **2.3.4**); **rns** **>=1.1.9** and **lxmf** **>=0.9.6**; **lxmfy** pinned to a compatible commit; **Node** engine **>=24** with **pnpm** store **integrity** verification in **`.npmrc`** and CI install scripts; lockfile/git-URL dependency style updates; **`package.json`** metadata adds desktop entry, vendor, and synopsis where applicable.
 - **Build / unify**: Script to align **per-architecture cx_Freeze** outputs so unified bundles stay consistent across arches.
 - **Android runtime integration**: Added Android app startup hardening for Chaquopy and WebView, including startup retries, in-app startup errors, runtime permission flow (audio/Bluetooth/notifications/microphone), battery optimization exemption, ABI splits, optional local wheel builds (bcrypt/psutil recipes, Rust for bcrypt, PyO3/OpenSSL-related patches), cryptography and WebView media tweaks, and release minification rules for APK builds.
 - **Licensing**: Relicensed Quad4-owned portions under **0BSD** and kept upstream **Reticulum MeshChat** portions under their original **MIT** notice in **`LICENSE`**. **SPDX** identifiers added across the tree; **`license_scope_mapper`** assists SPDX recommendations; **`licenses_collector`** enriches frontend dependency notices (**package.json** parsing, workspace-root filtering, detailed **`THIRD_PARTY_NOTICES`** / **`licenses_frontend.json`** generation).
@@ -46,6 +56,7 @@ All notable changes to this project will be documented in this file.
 - **Interfaces API**: Discovery responses include **IFAC** fields where the stack provides them; tests for discovery behaviour.
 - **Interfaces API (full options)**: **`POST /api/v1/reticulum/interfaces/add`** now accepts the full RNS option matrix per interface type. **AutoInterface** persists **`group_id`**, **`discovery_scope`** (validated against `link`/`admin`/`site`/`organisation`/`global`), **`discovery_port`**, **`data_port`**, **`multicast_address_type`** (`temporary`/`permanent`), **`devices`**, **`ignored_devices`**, and **`configured_bitrate`**. **TCPClientInterface** gains **`connect_timeout`**, **`max_reconnect_tries`**, and **`fixed_mtu`** alongside existing **`kiss_framing`**/**`i2p_tunneled`**. **TCPServerInterface** adds **`i2p_tunneled`**. **BackboneInterface** now supports a **listener mode** (**`listen_ip`**/**`listen_port`**/**`device`**/**`prefer_ipv6`**) in addition to the existing connector mode. **RNodeInterface** persists **`flow_control`** and **`id_callsign`**. **KISSInterface**/**`AX25KISSInterface`** persist **`flow_control`**, **`id_callsign`**, and **`id_interval`** in addition to the existing serial/framing knobs. **I2PInterface** exposes the **`connectable`** flag.
 - **Interfaces port-in-use validation**: New **`meshchatx/src/backend/interface_port_check.py`** module probes the requested host/port before the configuration is written. **TCPServerInterface** and **BackboneInterface** (listener mode) listen-port collisions, **UDPInterface** listen-port collisions, and **AutoInterface** **`discovery_port`**/**`data_port`** collisions return **HTTP 409** with a translated message (host, port, and conflicting interface name) so the operator can pick a free port instead of restarting into a broken interface.
+- **Wifi transport**: **`WifiTransport`** open paths use simplified signatures and stricter validation.
 
 ### Frontend and UX
 
@@ -62,17 +73,21 @@ All notable changes to this project will be documented in this file.
 - **Pages polish**: **About**, **Call**, **Debug logs**, and **Settings** pages with clearer layout, app info, environment paths, log copy-to-clipboard, and error handling; related tests.
 - **ConversationViewer**: File input clears after selection and improves image-type detection for uploads; **GIF** picker and drag/drop upload to the GIF library; animated stickers and GIFs can use **`InViewAnimatedImg`** so heavy animations run only when visible.
 - **Stickers UI**: **`StickerPacksManager`**, **`StickerEditor`**, **`StickerView`**, and **`tgsDecode`** (`.tgs` / Lottie JSON) integrate with the composer and identities settings.
-- **Tools**: **`ReticulumConfigEditorPage`** for editing Reticulum configuration from the app with validation feedback.
+- **Tools**: **`ReticulumConfigEditorPage`** for editing Reticulum configuration from the app with validation feedback; **RNode** firmware tooling gains expanded **diagnostics**, **device management**, and **i18n** for flash and probe flows.
+- **Docs page**: **`DocsPage`** upload and sharing behaviour polished alongside offline manual bundling.
+- **LXMF reactions**: **Reaction** controls and message row layout tuned for small screens and long emoji strips.
 - **Add Interface page (full options)**: **`AddInterfacePage.vue`** renders type-specific sections for every option the backend now accepts. **AutoInterface** has a dedicated form (**Group ID**, **Discovery Scope**, **Multicast Address Type**, **Discovery Port**, **Data Port**, allowed and ignored devices, configured bitrate). **TCP Client** exposes **KISS framing**, **I2P tunneled**, **connect timeout**, **max reconnect tries**, and **fixed MTU** toggles/fields. **TCP Server** / **UDP** add **device** and **prefer IPv6** controls; **TCP Server** also exposes **I2P tunneled**. **BackboneInterface** has a **Listener mode** toggle that swaps between connector (remote/target/transport identity) and listener (listen IP/port/device/prefer IPv6) layouts. **RNode** sections add **spreading factor**, **coding rate**, **flow control**, **ID callsign**, **ID interval**, and **airtime limit long/short**. **Serial**/**KISS**/**AX.25 KISS** sections expose **baud rate**, **data bits**, **parity**, **stop bits**, **preamble**, **TX tail**, **persistence**, **slot time**, **flow control**, **beacon callsign/interval**, and **AX.25 callsign/SSID**. **I2P** gains a **connectable** toggle. Every new field round-trips through **`saveInterface`**, **`loadInterfaceToEdit`**, **`applyConfig`**, and **`buildPayloadFromImportedConfig`** so editing and quick-import flows keep parity with the form.
 - **Network visualiser**: Chunk and icon rendering tuned for large node sets (see TL;DR).
 
 ### CI and packaging
 
-- **CI hygiene**: **pnpm** store caching removed from CI and security-scan workflows.
-- **Docker**: **Git** installed for frontend build steps; **corepack** replaced with **npm**-based **pnpm** install; Python base image refresh (e.g. **3.14**-series Alpine), venv runtime tools, pip/setuptools updates; **`.dockerignore`** / **`.gitignore`** tweaks; workflow git clone/fetch handling for reproducible image builds.
-- **Electron / Linux**: AppImage pipeline builds **x64** and **arm64** artifacts.
-- **Android CI**: Workflow runs **Node.js** setup and **frontend build** before APK packaging so Web assets stay in sync with the app bundle.
-- **Docs**: Raspberry Pi install guide expanded with automated setup scripts and service-oriented instructions.
+- **CI hygiene**: **pnpm** store caching removed from CI and security-scan workflows; **CodeQL** workflow added for GitHub; install scripts run **`poetry check`** and verify **pnpm** store **integrity**; Linux runners install **libopus** / **libogg** so Opus encode tests pass.
+- **Frontend CI**: Reusable **frontend build** workflow shared across Android, container, and packaging jobs; default **`pnpm test`** uses **`vitest run`** for the web suite plus **`vitest.electron.config.js`** for Electron helpers.
+- **Docker**: **Git** installed for frontend build steps; **corepack** replaced with **npm**-based **pnpm** install; Python base image refresh (e.g. **3.14**-series Alpine), venv runtime tools, pip/setuptools updates; **`.dockerignore`** / **`.gitignore`** tweaks; workflow git clone/fetch handling for reproducible image builds; **`README.md`** included in the **Dockerfile** copy context; container **entrypoint** path updated; **ffmpeg** removed from Alpine package lists now that audio encoding is in-process.
+- **Electron / Linux**: AppImage pipeline builds **x64** and **arm64** artifacts; **Electron Forge** adds optional **Snap** and **Flatpak** makers (see **`forge.config.js`** and local packaging scripts).
+- **Desktop build scripts**: **macOS** and **Windows** scripts can consume **prebuilt frontend** output when present to shorten release builds.
+- **Android CI**: Workflow runs **Node.js** setup and **frontend build** before APK packaging so Web assets stay in sync with the app bundle; **NDK** / **sdkmanager** steps tolerate preinstalled SDK tooling.
+- **Docs**: Raspberry Pi install guide expanded with automated setup scripts and service-oriented instructions; root **README** and translated install docs note **Poetry** **2.3.4** and **pnpm** **v10+** lifecycle behaviour.
 - **Container / compose**: **`docker-compose.yml`** and related Docker notes updated; optional **`Dockerfile.extra`** for layered builds where documented.
 
 ### Testing and docs
@@ -91,6 +106,10 @@ All notable changes to this project will be documented in this file.
 - **Interfaces (port-in-use and full options)**: **`tests/backend/test_interface_port_check.py`** covers the new socket probe (free port, busy TCP port, busy UDP port, invalid input, wildcard host, unresolvable host, conflict-message formatting). **`tests/backend/test_interface_options.py`** drives **`/api/v1/reticulum/interfaces/add`** for **AutoInterface** (full options + invalid `discovery_scope`/`multicast_address_type` + busy `data_port` returning 409), **TCPClient** (advanced options), **TCPServer** (optional options + busy listen-port 409), **UDP** (busy listen-port 409), **BackboneInterface** (listener-mode persistence + connector mode still requiring remote), **RNode** (flow control / ID callsign / airtime limits), **KISS** (full serial + framing + beacon options), **AX.25 KISS** (callsign/SSID), and **I2P** (`connectable=False`). **`tests/frontend/AddInterfaceOptions.test.js`** asserts each new field is sent through **`window.api.post('/api/v1/reticulum/interfaces/add', ...)`** and that backend **HTTP 409** "port already in use" responses are surfaced via **`ToastUtils.error`**.
 - **Messaging**: **`test_message_sending_failures.py`**, **`MessageSendingFailures.test.js`**; **`CJKTextOverflow.test.js`** for composer/thread overflow.
 - **Media API**: **`test_media_http_api.py`**, **`test_media_fuzzing.py`**, shared **`media_test_assets.py`** fixtures.
+- **AutoInterface guidance**: **`tests/backend/test_user_guidance_autointerface.py`** exercises bind-failure detection and user-facing guidance strings.
+- **Translator**: Integration tests for **Argos**-based forwarding after CLI detection refactor.
+- **Electron**: Vitest **Electron** config plus loading/main helper coverage for the desktop shell.
+- **CI stability**: Peering-key rejection integration test avoids flaky peer selection.
 
 ## [4.4.0] - 2026-04-15
 
