@@ -8,12 +8,13 @@
             'ml-auto items-end': entry.items[0].is_outbound,
             'mr-auto items-start': !entry.items[0].is_outbound,
         }"
-        @contextmenu.prevent="cv.onMessageContextMenu($event, entry.items[0])"
+        @contextmenu.prevent="cv.onMessageContextMenu($event, entry.items[0], false)"
     >
         <div
             class="relative w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
             :class="entry.items[0].is_outbound ? 'ml-auto' : 'mr-auto'"
             @click.stop="cv.onChatItemClick(entry.items[0])"
+            @contextmenu.prevent.stop="cv.onMessageContextMenu($event, entry.items[0], true)"
         >
             <button
                 type="button"
@@ -161,6 +162,7 @@
                           : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
             ]"
             :style="cv.bubbleStyles(entry.items[0])"
+            @contextmenu.prevent.stop="cv.onMessageContextMenu($event, entry.items[0], true)"
         >
             <div class="flex items-center justify-end gap-1.5 select-none h-3">
                 <span
@@ -332,9 +334,7 @@
                         : 'h-4 w-4 min-h-0 p-0'
                 "
                 :style="{
-                    order: entry.items[0].is_outbound
-                        ? 1
-                        : (entry.items[0].lxmf_message.reactions?.length ?? 0) + 1,
+                    order: entry.items[0].is_outbound ? 1 : (entry.items[0].lxmf_message.reactions?.length ?? 0) + 1,
                 }"
                 :title="$t('messages.react')"
                 @click.stop="cv.openReactionPicker(entry.items[0])"
@@ -353,13 +353,14 @@
             'ml-auto items-end': chatItem.is_outbound,
             'mr-auto items-start': !chatItem.is_outbound,
         }"
-        @contextmenu.prevent="cv.onMessageContextMenu($event, chatItem)"
+        @contextmenu.prevent="cv.onMessageContextMenu($event, chatItem, false)"
     >
         <!-- standalone image (outside bubble) -->
         <div
             v-if="chatItem.lxmf_message.fields?.image"
             class="relative group w-full max-w-[min(280px,85vw)] rounded-2xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-md mb-1.5"
             :class="chatItem.is_outbound ? 'ml-auto' : 'mr-auto'"
+            @contextmenu.prevent.stop="cv.onMessageContextMenu($event, chatItem, true)"
         >
             <template
                 v-if="['tgs', 'webm'].includes((chatItem.lxmf_message.fields.image.image_type || '').toLowerCase())"
@@ -441,13 +442,14 @@
             ]"
             :style="cv.bubbleStyles(chatItem)"
             @click="cv.onChatItemClick(chatItem)"
+            @contextmenu.prevent.stop="cv.onMessageContextMenu($event, chatItem, true)"
         >
             <button
                 type="button"
                 class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
                 :class="cv.outboundMessageMenuButtonHoverClass(chatItem)"
                 :title="$t('messages.message_actions')"
-                @click.stop="cv.onMessageContextMenu($event, chatItem)"
+                @click.stop="cv.onMessageContextMenu($event, chatItem, false)"
             >
                 <MaterialDesignIcon icon-name="dots-vertical" class="size-4" />
             </button>
@@ -982,9 +984,7 @@
                         : 'h-4 w-4 min-h-0 p-0'
                 "
                 :style="{
-                    order: chatItem.is_outbound
-                        ? 1
-                        : (chatItem.lxmf_message.reactions?.length ?? 0) + 1,
+                    order: chatItem.is_outbound ? 1 : (chatItem.lxmf_message.reactions?.length ?? 0) + 1,
                 }"
                 :title="$t('messages.react')"
                 @click.stop="cv.openReactionPicker(chatItem)"

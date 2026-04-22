@@ -1036,6 +1036,13 @@
                     <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
                     Reply
                 </ContextMenuItem>
+                <ContextMenuItem
+                    v-if="messageContextMenu.openedFromBubble && copyableMessagePlainText(messageContextMenu.chatItem)"
+                    @click="copyMessageFromContextMenu(messageContextMenu.chatItem)"
+                >
+                    <MaterialDesignIcon icon-name="content-copy" class="size-4 text-gray-500 dark:text-zinc-400" />
+                    {{ $t("messages.copy_message") }}
+                </ContextMenuItem>
                 <div
                     v-if="messageContextMenu.chatItem && !messageContextMenu.chatItem.lxmf_message?.is_reaction"
                     class="px-3 py-2 border-t border-gray-100 dark:border-zinc-700"
@@ -1768,6 +1775,7 @@ export default {
                 y: 0,
                 chatItem: null,
                 justOpened: false,
+                openedFromBubble: false,
             },
             columbaReactionEmojis: COLUMBA_REACTION_EMOJIS,
             reactionPickerChatItem: null,
@@ -3182,6 +3190,27 @@ export default {
                 chatItem.is_actions_expanded = false;
             }
         },
+        copyableMessagePlainText(chatItem) {
+            const raw = chatItem?.lxmf_message?.content;
+            if (typeof raw !== "string") {
+                return "";
+            }
+            const t = raw.trim();
+            return t.length > 0 ? t : "";
+        },
+        async copyMessageFromContextMenu(chatItem) {
+            const text = this.copyableMessagePlainText(chatItem);
+            if (!text) {
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                ToastUtils.success(this.$t("messages.message_copied"));
+                this.messageContextMenu.show = false;
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_copy_message"));
+            }
+        },
         replyToMessage(chatItem) {
             this.replyingTo = chatItem;
             this.messageContextMenu.show = false;
@@ -3357,8 +3386,9 @@ export default {
                 ToastUtils.error(this.$t("messages.reaction_send_failed"));
             }
         },
-        onMessageContextMenu(event, chatItem) {
+        onMessageContextMenu(event, chatItem, openedFromBubble = false) {
             this.messageContextMenu.chatItem = chatItem;
+            this.messageContextMenu.openedFromBubble = openedFromBubble;
             this.messageContextMenu.justOpened = true;
             this.messageContextMenu.show = true;
 
