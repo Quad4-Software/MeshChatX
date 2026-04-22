@@ -72,6 +72,10 @@ module.exports = {
                 description: "A simple mesh network communications app powered by the Reticulum Network Stack",
                 confinement: "strict",
                 grade: "devel",
+                base: "core22",
+                appConfig: {
+                    extensions: ["gnome"],
+                },
                 features: {
                     audio: true,
                     webgl: true,
