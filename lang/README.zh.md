@@ -18,7 +18,7 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 - 使用 LXST
 - 以原生 SQL 替代 Peewee ORM
 - 以原生 `fetch` 替代 Axios
-- 使用最新 Electron
+- 使用 Electron 41.x（内置 Node 24 运行时）
 - `.whl` 内置 Web 服务器与前端资源，便于多种部署方式
 - i18n
 - 使用 PNPM 与 Poetry 管理依赖
@@ -27,13 +27,13 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 > MeshChatX 不保证与旧版 Reticulum MeshChat 的数据兼容。迁移或测试前请备份数据。
 
 > [!WARNING]
-> 旧系统尚未完全支持。当前最低要求：Python `>=3.11`，Node `>=22`（Electron 使用 Node 22；CI 可使用更高版本）。
+> 旧系统尚未完全支持。当前最低要求：Python `>=3.11`，Node `>=24`（Electron 41 与 Node 24 一致；`package.json` 的 `engines` 与 CI 同一基线）。
 
 ## 系统要求
 
 - Python `>=3.11`（来自 `pyproject.toml`）
-- Node.js `>=22`（来自 `package.json`）
-- pnpm `10.32.1`（来自 `package.json`）
+- Node.js `>=24`（来自 `package.json` 的 `engines`）
+- pnpm `10.33.0`（来自 `package.json` 的 `packageManager`）
 - Poetry（用于 `Taskfile.yml` 与 CI 工作流）
 
 ```bash

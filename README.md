@@ -18,7 +18,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 - Uses LXST
 - Replaced Peewee ORM with raw SQL.
 - Replaced Axios with native fetch.
-- Uses latest Electron.
+- Uses Electron 41.x (bundled Node 24 runtime).
 - .whls ships with webserver and built-in frontend assets for more deployment options.
 - i18n
 - PNPM and Poetry for dependency management.
@@ -27,13 +27,13 @@ This project is independent from the original Reticulum MeshChat project and is 
 > MeshChatX is not guaranteed to be wire/data compatible with older Reticulum MeshChat releases. Back up data before migration/testing.
 
 > [!WARNING]
-> Legacy systems are not fully supported yet. Current baseline is Python `>=3.11` and Node `>=22` (Electron uses Node 22; CI may use newer).
+> Legacy systems are not fully supported yet. Current baseline is Python `>=3.11` and Node `>=24` (Electron 41 aligns with Node 24; `package.json` `engines` and CI use the same line).
 
 ## Requirements
 
 - Python `>=3.11` (from `pyproject.toml`)
-- Node.js `>=22` (from `package.json`)
-- pnpm `10.32.1` (from `package.json`)
+- Node.js `>=24` (from `package.json` `engines`)
+- pnpm `10.33.0` (from `package.json` `packageManager`)
 - Poetry (used by `Taskfile.yml` and CI workflows)
 
 ```bash

@@ -18,7 +18,7 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 - LXST を使用
 - Peewee ORM を生 SQL に置き換え
 - Axios をネイティブ `fetch` に置き換え
-- 最新の Electron
+- Electron 41.x（同梱 Node 24 ランタイム）
 - Web サーバーと同梱フロントエンドを含む `.whl` によりデプロイの選択肢を拡張
 - i18n
 - 依存関係管理に PNPM と Poetry
@@ -27,13 +27,13 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 > MeshChatX は旧バージョンの Reticulum MeshChat とのデータ互換性を保証しません。マイグレーションやテスト前にデータをバックアップしてください。
 
 > [!WARNING]
-> レガシーシステムはまだ完全にはサポートされていません。現在の最低要件: Python `>=3.11`、Node `>=22`（Electron は Node 22、CI はそれ以上でも可）。
+> レガシーシステムはまだ完全にはサポートされていません。現在の最低要件: Python `>=3.11`、Node `>=24`（Electron 41 は Node 24 系；`package.json` の `engines` と CI は同じ基準）。
 
 ## 必要条件
 
 - Python `>=3.11`（`pyproject.toml` より）
-- Node.js `>=22`（`package.json` より）
-- pnpm `10.32.1`（`package.json` より）
+- Node.js `>=24`（`package.json` の `engines`）
+- pnpm `10.33.0`（`package.json` の `packageManager`）
 - Poetry（`Taskfile.yml` および CI ワークフローで使用）
 
 ```bash
