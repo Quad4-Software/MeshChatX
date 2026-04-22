@@ -863,6 +863,15 @@ export default {
             }
             return "Discovery is working, be patient while it waits for announces.";
         },
+        discoveryAutoconnectMetadataPresent() {
+            const fromActive = (this.discoveredActive || []).some(
+                (a) => a.autoconnect_source != null && a.autoconnect_source !== undefined,
+            );
+            const fromStats = (this.activeInterfaceStats || []).some(
+                (s) => s.autoconnect_source != null && s.autoconnect_source !== undefined,
+            );
+            return fromActive || fromStats;
+        },
     },
     beforeUnmount() {
         clearInterval(this.reloadInterval);
@@ -1063,11 +1072,22 @@ export default {
         isDiscoveredConnected(iface) {
             const reach = iface.reachable_on;
             const port = iface.port;
+            const nid = iface.network_id ? String(iface.network_id).toLowerCase() : null;
             if (iface.transport_id && this.discoveredActiveTransportIds.has(iface.transport_id)) {
                 return true;
             }
-            if (reach && port && this.discoveredActiveSet && this.discoveredActiveSet.has(`${reach}:${port}`)) {
-                return true;
+            const hasMeta = this.discoveryAutoconnectMetadataPresent;
+            for (const a of this.discoveredActive || []) {
+                const host = a.target_host || a.remote || a.listen_ip;
+                const p = a.target_port || a.listen_port;
+                if (!host || p == null || !reach || port == null) continue;
+                if (String(host) !== String(reach) || Number(p) !== Number(port)) continue;
+                const asrc = a.autoconnect_source;
+                if (asrc != null && asrc !== undefined) {
+                    if (nid !== null && String(asrc).toLowerCase() !== nid) continue;
+                    return true;
+                }
+                if (!hasMeta) return true;
             }
             return this.activeInterfaceStats.some((s) => {
                 const hostMatch =
@@ -1075,7 +1095,13 @@ export default {
                 const portMatch =
                     (s.target_port && port && Number(s.target_port) === Number(port)) ||
                     (s.listen_port && port && Number(s.listen_port) === Number(port));
-                return hostMatch && portMatch && (s.connected || s.online);
+                if (!hostMatch || !portMatch || !(s.connected || s.online)) return false;
+                const asrc = s.autoconnect_source;
+                if (asrc != null && asrc !== undefined) {
+                    if (nid !== null) return String(asrc).toLowerCase() === nid;
+                    return true;
+                }
+                return !hasMeta;
             });
         },
         goToMap(iface) {
@@ -1098,13 +1124,21 @@ export default {
         discoveredBytes(iface) {
             const reach = iface.reachable_on;
             const port = iface.port;
+            const nid = iface.network_id ? String(iface.network_id).toLowerCase() : null;
             const stats = this.activeInterfaceStats || [];
+            const hasMeta = this.discoveryAutoconnectMetadataPresent;
             const match = stats.find((s) => {
                 const host = s.target_host || s.remote || s.interface_name;
                 const p = s.target_port || s.listen_port;
                 const hostMatch = host && reach && host === reach;
                 const portMatch = p && port && Number(p) === Number(port);
-                return hostMatch && portMatch;
+                if (!hostMatch || !portMatch || !(s.connected || s.online)) return false;
+                const asrc = s.autoconnect_source;
+                if (asrc != null && asrc !== undefined) {
+                    if (nid !== null) return String(asrc).toLowerCase() === nid;
+                    return true;
+                }
+                return !hasMeta;
             });
             if (!match) return null;
             return {
