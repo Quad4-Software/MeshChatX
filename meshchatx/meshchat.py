@@ -2603,8 +2603,7 @@ class ReticulumMeshChat:
             return False
 
     def _detect_failed_autointerfaces(self):
-        """Return AutoInterface section names enabled in config but not running.
-        """
+        """Return AutoInterface section names enabled in config but not running."""
         enabled_names = []
         try:
             interfaces = self._get_interfaces_section()
@@ -2621,9 +2620,7 @@ class ReticulumMeshChat:
                 continue
             enabled_raw = (
                 str(
-                    section.get("enabled")
-                    or section.get("interface_enabled")
-                    or "",
+                    section.get("enabled") or section.get("interface_enabled") or "",
                 )
                 .strip()
                 .lower()
