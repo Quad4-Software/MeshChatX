@@ -511,7 +511,7 @@
                                             {{ $t("tutorial.meshchatx_docs") }}
                                         </a>
                                         <a
-                                            href="/reticulum-docs/index.html"
+                                            :href="reticulumBundledDocsUrl"
                                             target="_blank"
                                             class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-block"
                                         >
@@ -1180,7 +1180,7 @@
                                             {{ $t("tutorial.read_meshchatx_docs") }}
                                         </a>
                                         <a
-                                            href="/reticulum-docs/index.html"
+                                            :href="reticulumBundledDocsUrl"
                                             target="_blank"
                                             class="h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-flex items-center justify-center px-6"
                                         >
@@ -1358,6 +1358,7 @@ import logoUrl from "../assets/images/logo.png";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import GlobalState from "../js/GlobalState";
+import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import LanguageSelector from "./LanguageSelector.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 
@@ -1419,6 +1420,9 @@ export default {
         },
         selectedBootstrapCount() {
             return this.selectedBootstrapKeys.length;
+        },
+        reticulumBundledDocsUrl() {
+            return bundledReticulumDocsUrl(this.$i18n.locale);
         },
     },
     beforeUnmount() {

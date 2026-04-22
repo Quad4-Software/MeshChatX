@@ -11687,9 +11687,9 @@ class ReticulumMeshChat:
             dm = self.current_context.docs_manager
 
             async def reticulum_docs_handler(request):
-                path = request.match_info.get("filename", "index.html")
+                path = request.match_info.get("filename", "manual/index.html")
                 if not path:
-                    path = "index.html"
+                    path = "manual/index.html"
                 if path.endswith("/"):
                     path += "index.html"
 

@@ -488,6 +488,7 @@
             <!-- Reticulum Docs View -->
             <iframe
                 v-if="activeTab === 'reticulum' && status.has_docs && !searchQuery"
+                :key="localDocsUrl"
                 ref="docsFrame"
                 :src="localDocsUrl"
                 class="w-full h-full border-none opacity-0 transition-opacity duration-1000"
@@ -522,6 +523,8 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import GlobalState from "../../js/GlobalState";
+import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";
 
 export default {
     components: {
@@ -572,12 +575,7 @@ export default {
             if (this.selectedReticulumPath) {
                 return `/reticulum-docs/${this.selectedReticulumPath}`;
             }
-            const lang = this.currentLang;
-            if (lang === "en") return "/reticulum-docs/index.html";
-            if (Object.keys(this.languages).includes(lang)) {
-                return `/reticulum-docs/index_${lang}.html`;
-            }
-            return "/reticulum-docs/index.html";
+            return bundledReticulumDocsUrl(this.currentLang);
         },
         allLanguages() {
             return Object.entries(this.languages).map(([code, name]) => ({
@@ -723,7 +721,8 @@ export default {
                 await window.api.patch("/api/v1/config", {
                     language: langCode,
                 });
-                // The app will update automatically via websocket config sync
+                this.$i18n.locale = langCode;
+                GlobalState.config.language = langCode;
             } catch (error) {
                 console.error("Failed to update language:", error);
             }

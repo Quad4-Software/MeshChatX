@@ -95,7 +95,7 @@ describe("DocsPage.vue", () => {
         await nextTick();
 
         expect(wrapper.find("iframe").exists()).toBe(true);
-        expect(wrapper.find("iframe").attributes("src")).toBe("/reticulum-docs/index.html");
+        expect(wrapper.find("iframe").attributes("src")).toBe("/reticulum-docs/manual/index.html");
     });
 
     it("shows progress bar while extracting an upload", async () => {
@@ -197,7 +197,7 @@ describe("DocsPage.vue", () => {
         expect(wrapper.vm.status.last_error).toBeNull();
     });
 
-    it("changes localDocsUrl based on locale", async () => {
+    it("opens the Sphinx manual for English and localized site index for other locales", async () => {
         const wrapper = mountDocsPage();
         await nextTick();
 
@@ -207,7 +207,7 @@ describe("DocsPage.vue", () => {
 
         i18nMock.locale = "en";
         await nextTick();
-        expect(wrapper.vm.localDocsUrl).toBe("/reticulum-docs/index.html");
+        expect(wrapper.vm.localDocsUrl).toBe("/reticulum-docs/manual/index.html");
     });
 
     it("handles extremely long error messages in the UI", async () => {
