@@ -2602,6 +2602,48 @@ class ReticulumMeshChat:
             print(f"Failed to write Reticulum config: {e}")
             return False
 
+    def _detect_failed_autointerfaces(self):
+        """Return AutoInterface section names enabled in config but not running.
+        """
+        enabled_names = []
+        try:
+            interfaces = self._get_interfaces_section()
+        except Exception:
+            return []
+
+        if not isinstance(interfaces, dict) or not interfaces:
+            return []
+
+        for name, section in interfaces.items():
+            if not isinstance(section, dict):
+                continue
+            if str(section.get("type", "")).strip() != "AutoInterface":
+                continue
+            enabled_raw = (
+                str(
+                    section.get("enabled")
+                    or section.get("interface_enabled")
+                    or "",
+                )
+                .strip()
+                .lower()
+            )
+            if enabled_raw in ("yes", "true", "1"):
+                enabled_names.append(name)
+
+        if not enabled_names:
+            return []
+
+        try:
+            live = getattr(RNS.Transport, "interfaces", None) or []
+            for iface in live:
+                if iface.__class__.__name__ == "AutoInterface":
+                    return []
+        except Exception:
+            return []
+
+        return enabled_names
+
     def build_user_guidance_messages(self):
         guidance = []
 
@@ -2614,6 +2656,29 @@ class ReticulumMeshChat:
                     "description": "Add at least one Reticulum interface so MeshChat can talk to your radio or transport.",
                     "action_route": "/interfaces/add",
                     "action_label": "Add Interface",
+                    "severity": "warning",
+                },
+            )
+
+        failed_autointerfaces = self._detect_failed_autointerfaces()
+        if failed_autointerfaces:
+            failed_label = ", ".join(failed_autointerfaces)
+            guidance.append(
+                {
+                    "id": "autointerface_bind_failed",
+                    "title": "AutoInterface failed to start",
+                    "description": (
+                        f"AutoInterface '{failed_label}' is enabled in your "
+                        "Reticulum config but did not come up at runtime. "
+                        "The most common cause is a UDP port collision with "
+                        "another local Reticulum application (for example "
+                        "Sideband running on the same device on Android). "
+                        "Open the interface and set a unique group_id, or "
+                        "pick free discovery_port and data_port values, then "
+                        "restart Reticulum."
+                    ),
+                    "action_route": "/interfaces",
+                    "action_label": "Open Interfaces",
                     "severity": "warning",
                 },
             )
@@ -6053,6 +6118,7 @@ class ReticulumMeshChat:
                                     "online": s.get("online"),
                                     "transport_id": transport_id,
                                     "network_id": s.get("network_id"),
+                                    "autoconnect_source": s.get("autoconnect_source"),
                                 },
                             )
                 except Exception as e:
@@ -13567,7 +13633,7 @@ class ReticulumMeshChat:
                     return identity
 
         except Exception as e:
-            print(f"Error recalling identity for {hash_hex}: {e}")
+            print(f"Error recalling identity for {hash_hex}: {type(e).__name__}: {e!r}")
 
         return None
 
