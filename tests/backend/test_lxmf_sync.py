@@ -78,10 +78,7 @@ async def test_lxmf_sync_endpoints(mock_app):
     # 1. Test status endpoint initially idle
     handler = None
     for route in mock_app.get_routes():
-        if (
-            route.path == "/api/v1/lxmf/propagation-node/status"
-            and route.method == "GET"
-        ):
+        if route.path == "/api/v1/lxmf/propagation-node/status" and route.method == "GET":
             handler = route.handler
             break
 
@@ -107,9 +104,7 @@ async def test_lxmf_sync_endpoints(mock_app):
     mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_once()
 
     # 3. Test status change to complete
-    mock_app.current_context.message_router.propagation_transfer_state = (
-        LXMF.LXMRouter.PR_COMPLETE
-    )
+    mock_app.current_context.message_router.propagation_transfer_state = LXMF.LXMRouter.PR_COMPLETE
     response = await handler(None)
     data = json.loads(response.body)
     assert data["propagation_node_status"]["state"] == "complete"
@@ -140,7 +135,9 @@ async def test_specific_node_hash_validation(mock_app):
             break
 
     # Ensure it's considered configured
-    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = expected_bytes
+    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = (
+        expected_bytes
+    )
 
     await sync_handler(None)
     mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_once()
@@ -149,14 +146,10 @@ async def test_specific_node_hash_validation(mock_app):
 @pytest.mark.asyncio
 async def test_status_includes_sync_storage_and_confirmation_metrics(mock_app):
     status_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/status"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/status"
     )
     sync_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/sync"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/sync"
     )
 
     mock_app.current_context.message_router.get_outbound_propagation_node.return_value = b"somehash"
@@ -187,9 +180,7 @@ async def test_status_includes_sync_storage_and_confirmation_metrics(mock_app):
 @pytest.mark.asyncio
 async def test_status_metrics_default_to_zero_before_any_sync(mock_app):
     status_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/status"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/status"
     )
     response = await status_handler(None)
     data = json.loads(response.body)["propagation_node_status"]
@@ -203,14 +194,10 @@ async def test_status_metrics_default_to_zero_before_any_sync(mock_app):
 @pytest.mark.asyncio
 async def test_status_hidden_metric_is_clamped_to_zero(mock_app):
     status_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/status"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/status"
     )
     sync_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/sync"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/sync"
     )
 
     mock_app.current_context.message_router.get_outbound_propagation_node.return_value = b"somehash"

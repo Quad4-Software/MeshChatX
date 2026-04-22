@@ -51,7 +51,7 @@ def fmt_packet_count(value: Any) -> str | None:
         x = float(value)
     except (TypeError, ValueError):
         return str(value)
-    return f"{int(round(x)):,}"
+    return f"{round(x):,}"
 
 
 def fmt_percentage(value: Any) -> str | None:
@@ -195,10 +195,8 @@ class RNStatusHandler:
         for ifstat in interfaces:
             name = ifstat.get("name", "")
 
-            if (
-                name.startswith("LocalInterface[")
-                or name.startswith("TCPInterface[Client")
-                or name.startswith("BackboneInterface[Client on")
+            if name.startswith(
+                ("LocalInterface[", "TCPInterface[Client", "BackboneInterface[Client on")
             ):
                 continue
 

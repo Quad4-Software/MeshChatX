@@ -62,9 +62,7 @@ def test_parse_tgs_gzip_json_fuzz(payload):
     merged.setdefault("op", 60.0)
     merged.setdefault("w", 100)
     merged.setdefault("h", 100)
-    raw = gzip.compress(
-        json.dumps(merged, default=str).encode("utf-8", errors="surrogateescape")
-    )
+    raw = gzip.compress(json.dumps(merged, default=str).encode("utf-8", errors="surrogateescape"))
     if len(raw) > sticker_utils.MAX_ANIMATED_BYTES:
         raw = raw[: sticker_utils.MAX_ANIMATED_BYTES]
     try:
@@ -118,9 +116,7 @@ def test_extract_metadata_fuzz_never_raises(image_type, raw):
     typ=st.one_of(
         st.none(),
         st.text(max_size=48),
-        st.sampled_from(
-            ["png", "jpeg", "jpg", "webp", "gif", "bmp", "tgs", "webm", "svg", ""]
-        ),
+        st.sampled_from(["png", "jpeg", "jpg", "webp", "gif", "bmp", "tgs", "webm", "svg", ""]),
     ),
     strict=st.booleans(),
 )
@@ -165,9 +161,7 @@ def test_mime_for_image_type_fuzz_never_raises(t):
     description=st.one_of(st.none(), st.text(max_size=400)),
     pack_type=st.one_of(st.none(), st.text(max_size=40)),
 )
-def test_sticker_pack_sanitizers_fuzz_never_raises(
-    title, short_name, description, pack_type
-):
+def test_sticker_pack_sanitizers_fuzz_never_raises(title, short_name, description, pack_type):
     sticker_pack_utils.sanitize_pack_title(title)
     sticker_pack_utils.sanitize_pack_short_name(short_name)
     sticker_pack_utils.sanitize_pack_description(description)

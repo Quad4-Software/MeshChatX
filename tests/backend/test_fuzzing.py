@@ -283,10 +283,10 @@ def mock_app(temp_dir):
         app.config.auto_send_failed_messages_to_propagation_node.get.return_value = True
         app.config.show_suggested_community_interfaces.get.return_value = True
         app.config.lxmf_local_propagation_node_enabled.get.return_value = False
-        app.config.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
-            None
+        app.config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
+        app.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get.return_value = (
+            3600
         )
-        app.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get.return_value = 3600
         app.config.lxmf_preferred_propagation_node_last_synced_at.get.return_value = 0
         app.config.lxmf_user_icon_name.get.return_value = "user"
         app.config.lxmf_user_icon_foreground_colour.get.return_value = "#ffffff"
@@ -297,16 +297,10 @@ def mock_app(temp_dir):
         app.config.lxmf_auto_sync_propagation_nodes_min_hops.get.return_value = 1
         app.config.lxmf_auto_sync_propagation_nodes_max_hops.get.return_value = 5
         app.config.lxmf_auto_sync_propagation_nodes_max_count.get.return_value = 10
-        app.config.lxmf_auto_sync_propagation_nodes_max_age_seconds.get.return_value = (
-            86400
-        )
-        app.config.lxmf_auto_sync_propagation_nodes_max_size_bytes.get.return_value = (
-            1000000
-        )
+        app.config.lxmf_auto_sync_propagation_nodes_max_age_seconds.get.return_value = 86400
+        app.config.lxmf_auto_sync_propagation_nodes_max_size_bytes.get.return_value = 1000000
         app.config.lxmf_auto_sync_propagation_nodes_max_total_size_bytes.get.return_value = 10000000
-        app.config.lxmf_auto_sync_propagation_nodes_max_total_count.get.return_value = (
-            100
-        )
+        app.config.lxmf_auto_sync_propagation_nodes_max_total_count.get.return_value = 100
         app.config.lxmf_auto_sync_propagation_nodes_max_total_age_seconds.get.return_value = 864000
         app.config.lxmf_auto_sync_propagation_nodes_max_total_size_bytes_per_node.get.return_value = 1000000
         app.config.lxmf_auto_sync_propagation_nodes_max_total_count_per_node.get.return_value = 100

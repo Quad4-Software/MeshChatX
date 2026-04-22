@@ -97,7 +97,7 @@ class MiscDAO:
             return []
         placeholders = ", ".join(["?"] * len(destination_hashes))
         return self.provider.fetchall(
-            f"SELECT * FROM lxmf_user_icons WHERE destination_hash IN ({placeholders})",  # noqa: S608
+            f"SELECT * FROM lxmf_user_icons WHERE destination_hash IN ({placeholders})",
             tuple(destination_hashes),
         )
 
@@ -177,9 +177,7 @@ class MiscDAO:
             params.append(destination_hash)
         if query:
             like_term = f"%{query}%"
-            sql += (
-                " AND (destination_hash LIKE ? OR page_path LIKE ? OR content LIKE ?)"
-            )
+            sql += " AND (destination_hash LIKE ? OR page_path LIKE ? OR content LIKE ?)"
             params.extend([like_term, like_term, like_term])
 
         sql += " ORDER BY created_at DESC"
@@ -189,7 +187,7 @@ class MiscDAO:
         if ids:
             placeholders = ", ".join(["?"] * len(ids))
             self.provider.execute(
-                f"DELETE FROM archived_pages WHERE id IN ({placeholders})",  # noqa: S608
+                f"DELETE FROM archived_pages WHERE id IN ({placeholders})",
                 tuple(ids),
             )
         elif destination_hash and page_path:
@@ -244,7 +242,7 @@ class MiscDAO:
         set_clause = ", ".join([f"{k} = ?" for k in filtered_kwargs])
         params = list(filtered_kwargs.values())
         params.append(task_id)
-        query = f"UPDATE crawl_tasks SET {set_clause} WHERE id = ?"  # noqa: S608
+        query = f"UPDATE crawl_tasks SET {set_clause} WHERE id = ?"
         self.provider.execute(query, params)
 
     def get_pending_or_failed_crawl_tasks(self, max_retries, max_concurrent):
@@ -281,7 +279,7 @@ class MiscDAO:
         if notification_ids:
             placeholders = ", ".join(["?"] * len(notification_ids))
             self.provider.execute(
-                f"UPDATE notifications SET is_viewed = 1 WHERE id IN ({placeholders})",  # noqa: S608
+                f"UPDATE notifications SET is_viewed = 1 WHERE id IN ({placeholders})",
                 notification_ids,
             )
         else:

@@ -213,7 +213,7 @@ def test_interface_config_parser_best_effort_property(names, keys, values):
     config_lines = ["[interfaces]"]
     for name in names:
         config_lines.append(f"[[{name}")  # Missing closing ]]
-        for k, v in zip(keys, values):
+        for k, v in zip(keys, values, strict=False):
             config_lines.append(f"  {k} = {v}")
 
     config_text = "\n".join(config_lines)
@@ -302,7 +302,7 @@ def test_interface_config_parser_structured(names, keys, values):
     config_lines = ["[interfaces]"]
     for name in names:
         config_lines.append(f"[[{name}]]")
-        for k, v in zip(keys, values):
+        for k, v in zip(keys, values, strict=False):
             config_lines.append(f"  {k} = {v}")
 
     config_text = "\n".join(config_lines)

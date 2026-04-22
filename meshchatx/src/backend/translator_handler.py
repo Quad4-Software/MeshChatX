@@ -261,7 +261,9 @@ class TranslatorHandler:
                 if detected_lang:
                     source_lang = detected_lang
                 else:
-                    msg = "Could not auto-detect language. Please select a source language manually."
+                    msg = (
+                        "Could not auto-detect language. Please select a source language manually."
+                    )
                     raise ValueError(msg)
             else:
                 msg = (
@@ -308,7 +310,7 @@ class TranslatorHandler:
             }
         except Exception as e:
             msg = f"Argos Translate error: {e}"
-            raise RuntimeError(msg)
+            raise RuntimeError(msg) from e
 
     def _translate_argos_cli(
         self,
@@ -349,7 +351,7 @@ class TranslatorHandler:
                 target_lang,
                 text,
             ]
-            result = subprocess.run(args, capture_output=True, text=True, check=True)  # noqa: S603
+            result = subprocess.run(args, capture_output=True, text=True, check=True)
             translated_text = result.stdout.strip()
             if not translated_text:
                 msg = "Translation returned empty result"
@@ -361,16 +363,12 @@ class TranslatorHandler:
                 "source": "argos",
             }
         except subprocess.CalledProcessError as e:
-            error_msg = (
-                e.stderr.decode()
-                if isinstance(e.stderr, bytes)
-                else (e.stderr or str(e))
-            )
+            error_msg = e.stderr.decode() if isinstance(e.stderr, bytes) else (e.stderr or str(e))
             msg = f"Argos Translate CLI error: {error_msg}"
-            raise RuntimeError(msg)
+            raise RuntimeError(msg) from e
         except Exception as e:
             msg = f"Argos Translate CLI error: {e!s}"
-            raise RuntimeError(msg)
+            raise RuntimeError(msg) from e
 
     def _detect_language(self, text: str) -> str | None:
         if not self.has_argos_lib:
@@ -398,7 +396,7 @@ class TranslatorHandler:
             return languages
 
         try:
-            result = subprocess.run(  # noqa: S603
+            result = subprocess.run(
                 [argospm, "list"],
                 capture_output=True,
                 text=True,
@@ -444,7 +442,7 @@ class TranslatorHandler:
             raise RuntimeError(msg)
 
         try:
-            result = subprocess.run(  # noqa: S603
+            result = subprocess.run(
                 [argospm, "install", package_name],
                 capture_output=True,
                 text=True,
@@ -456,12 +454,12 @@ class TranslatorHandler:
                 "message": f"Successfully installed {package_name}",
                 "output": result.stdout,
             }
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             msg = f"Installation of {package_name} timed out after 5 minutes"
-            raise RuntimeError(msg)
+            raise RuntimeError(msg) from e
         except subprocess.CalledProcessError as e:
             msg = f"Failed to install {package_name}: {e.stderr or str(e)}"
-            raise RuntimeError(msg)
+            raise RuntimeError(msg) from e
         except Exception as e:
             msg = f"Error installing {package_name}: {e!s}"
-            raise RuntimeError(msg)
+            raise RuntimeError(msg) from e

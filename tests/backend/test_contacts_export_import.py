@@ -48,10 +48,7 @@ async def test_contacts_export_empty(mock_rns_minimal, temp_dir):
         )
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/telephone/contacts/export"
-                and route.method == "GET"
-            ):
+            if route.path == "/api/v1/telephone/contacts/export" and route.method == "GET":
                 handler = route.handler
                 break
         assert handler is not None
@@ -76,10 +73,7 @@ async def test_contacts_export_with_data(mock_rns_minimal, temp_dir):
 
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/telephone/contacts/export"
-                and route.method == "GET"
-            ):
+            if route.path == "/api/v1/telephone/contacts/export" and route.method == "GET":
                 handler = route.handler
                 break
         assert handler is not None
@@ -107,10 +101,7 @@ async def test_contacts_import_valid(mock_rns_minimal, temp_dir):
         )
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/telephone/contacts/import"
-                and route.method == "POST"
-            ):
+            if route.path == "/api/v1/telephone/contacts/import" and route.method == "POST":
                 handler = route.handler
                 break
         assert handler is not None
@@ -147,10 +138,7 @@ async def test_contacts_import_skips_invalid(mock_rns_minimal, temp_dir):
         )
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/telephone/contacts/import"
-                and route.method == "POST"
-            ):
+            if route.path == "/api/v1/telephone/contacts/import" and route.method == "POST":
                 handler = route.handler
                 break
         assert handler is not None
@@ -181,10 +169,7 @@ async def test_contacts_import_rejects_non_array(mock_rns_minimal, temp_dir):
         )
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/telephone/contacts/import"
-                and route.method == "POST"
-            ):
+            if route.path == "/api/v1/telephone/contacts/import" and route.method == "POST":
                 handler = route.handler
                 break
         assert handler is not None

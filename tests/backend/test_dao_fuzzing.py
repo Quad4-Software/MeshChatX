@@ -662,9 +662,7 @@ class TestSafeHrefFuzzing:
         url = f"{scheme}:something"
         result = _safe_href(url)
         lower = url.strip().lower()
-        if any(
-            lower.startswith(p) for p in ("https://", "http://", "/", "#", "mailto:")
-        ):
+        if any(lower.startswith(p) for p in ("https://", "http://", "/", "#", "mailto:")):
             assert result == url
         else:
             assert result == "#"

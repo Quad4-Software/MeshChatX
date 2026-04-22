@@ -178,9 +178,7 @@ class RNCPHandler:
 
                     if transfer_id in self.active_transfers:
                         self.active_transfers[transfer_id]["status"] = "completed"
-                        self.active_transfers[transfer_id]["saved_path"] = (
-                            saved_filename
-                        )
+                        self.active_transfers[transfer_id]["saved_path"] = saved_filename
                         self.active_transfers[transfer_id]["filename"] = filename
                     self._emit_receive_event(
                         {
@@ -279,9 +277,7 @@ class RNCPHandler:
             RNS.Transport.request_path(destination_hash)
 
         timeout_after = time.time() + timeout
-        while (
-            not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
-        ):
+        while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after:
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):
@@ -373,9 +369,7 @@ class RNCPHandler:
             RNS.Transport.request_path(destination_hash)
 
         timeout_after = time.time() + timeout
-        while (
-            not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
-        ):
+        while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after:
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):

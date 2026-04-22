@@ -113,7 +113,6 @@ async def test_config_update_csp(mock_rns_minimal, tmp_path):
             assert response.status == 200
 
         assert (
-            app_instance.config.csp_extra_connect_src.get()
-            == "https://api1.com, https://api2.com"
+            app_instance.config.csp_extra_connect_src.get() == "https://api1.com, https://api2.com"
         )
         assert app_instance.config.csp_extra_img_src.get() == "https://img.com"

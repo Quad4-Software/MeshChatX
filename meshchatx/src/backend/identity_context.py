@@ -158,10 +158,7 @@ class IdentityContext:
         self.config = ConfigManager(self.database)
 
         # Apply overrides from CLI/ENV if provided
-        if (
-            hasattr(self.app, "gitea_base_url_override")
-            and self.app.gitea_base_url_override
-        ):
+        if hasattr(self.app, "gitea_base_url_override") and self.app.gitea_base_url_override:
             self.config.gitea_base_url.set(self.app.gitea_base_url_override)
 
         self.message_handler = MessageHandler(self.database)
@@ -238,9 +235,7 @@ class IdentityContext:
 
         # Restore preferred propagation node on startup
         with contextlib.suppress(Exception):
-            preferred_node = (
-                self.config.lxmf_preferred_propagation_node_destination_hash.get()
-            )
+            preferred_node = self.config.lxmf_preferred_propagation_node_destination_hash.get()
             if preferred_node:
                 self.app.set_active_propagation_node(preferred_node, context=self)
 
@@ -289,9 +284,7 @@ class IdentityContext:
             storage_dir=self.storage_path,
             db=self.database,
         )
-        self.telephone_manager.get_name_for_identity_hash = (
-            self.app.get_name_for_identity_hash
-        )
+        self.telephone_manager.get_name_for_identity_hash = self.app.get_name_for_identity_hash
         self.telephone_manager.on_initiation_status_callback = lambda status, target: (
             self.app.on_telephone_initiation_status(
                 status,
@@ -319,9 +312,7 @@ class IdentityContext:
             telephone_manager=self.telephone_manager,
             storage_dir=self.storage_path,
         )
-        self.voicemail_manager.get_name_for_identity_hash = (
-            self.app.get_name_for_identity_hash
-        )
+        self.voicemail_manager.get_name_for_identity_hash = self.app.get_name_for_identity_hash
         self.voicemail_manager.on_new_voicemail_callback = lambda vm: (
             self.app.on_new_voicemail_received(vm, context=self)
         )
@@ -365,9 +356,7 @@ class IdentityContext:
         # start background thread for auto syncing propagation nodes
         thread = threading.Thread(
             target=asyncio.run,
-            args=(
-                self.app.announce_sync_propagation_nodes(self.session_id, context=self),
-            ),
+            args=(self.app.announce_sync_propagation_nodes(self.session_id, context=self),),
         )
         thread.daemon = True
         thread.start()
@@ -430,28 +419,24 @@ class IdentityContext:
             ),
             AnnounceHandler(
                 "lxmf.propagation",
-                lambda aspect, dh, ai, ad, aph: (
-                    self.app.on_lxmf_propagation_announce_received(
-                        aspect,
-                        dh,
-                        ai,
-                        ad,
-                        aph,
-                        context=self,
-                    )
+                lambda aspect, dh, ai, ad, aph: self.app.on_lxmf_propagation_announce_received(
+                    aspect,
+                    dh,
+                    ai,
+                    ad,
+                    aph,
+                    context=self,
                 ),
             ),
             AnnounceHandler(
                 "nomadnetwork.node",
-                lambda aspect, dh, ai, ad, aph: (
-                    self.app.on_nomadnet_node_announce_received(
-                        aspect,
-                        dh,
-                        ai,
-                        ad,
-                        aph,
-                        context=self,
-                    )
+                lambda aspect, dh, ai, ad, aph: self.app.on_nomadnet_node_announce_received(
+                    aspect,
+                    dh,
+                    ai,
+                    ad,
+                    aph,
+                    context=self,
                 ),
             ),
         ]

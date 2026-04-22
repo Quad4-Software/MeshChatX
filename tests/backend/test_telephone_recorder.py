@@ -27,8 +27,7 @@ def mock_config():
 
 @pytest.fixture
 def mock_db():
-    db = MagicMock()
-    return db
+    return MagicMock()
 
 
 @pytest.fixture

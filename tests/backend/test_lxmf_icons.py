@@ -61,9 +61,7 @@ def mock_rns():
         # Apply patches
         mocks = {}
         for p in patches:
-            attr_name = (
-                p.attribute if hasattr(p, "attribute") else p.target.split(".")[-1]
-            )
+            attr_name = p.attribute if hasattr(p, "attribute") else p.target.split(".")[-1]
             mocks[attr_name] = stack.enter_context(p)
 
         # Access specifically the ones we need to configure
@@ -72,13 +70,11 @@ def mock_rns():
         # Setup mock config
         mock_config.return_value.display_name.get.return_value = "Test User"
         mock_config.return_value.lxmf_user_icon_name.get.return_value = "user"
-        mock_config.return_value.lxmf_user_icon_foreground_colour.get.return_value = (
-            "#ffffff"
+        mock_config.return_value.lxmf_user_icon_foreground_colour.get.return_value = "#ffffff"
+        mock_config.return_value.lxmf_user_icon_background_colour.get.return_value = "#000000"
+        mock_config.return_value.auto_send_failed_messages_to_propagation_node.get.return_value = (
+            False
         )
-        mock_config.return_value.lxmf_user_icon_background_colour.get.return_value = (
-            "#000000"
-        )
-        mock_config.return_value.auto_send_failed_messages_to_propagation_node.get.return_value = False
 
         # Mock class methods on MockIdentityClass
         mock_id_instance = MockIdentityClass()

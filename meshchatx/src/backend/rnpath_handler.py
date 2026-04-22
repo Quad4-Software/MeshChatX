@@ -9,10 +9,10 @@ class RNPathHandler:
 
     def get_path_table(
         self,
-        max_hops: int = None,
-        search: str = None,
-        interface: str = None,
-        hops: int = None,
+        max_hops: int | None = None,
+        search: str | None = None,
+        interface: str | None = None,
+        hops: int | None = None,
         page: int = 1,
         limit: int = 0,
     ):
@@ -71,18 +71,10 @@ class RNPathHandler:
 
         total = len(formatted_table)
         responsive_count = len(
-            [
-                e
-                for e in formatted_table
-                if e["state"] == RNS.Transport.STATE_RESPONSIVE
-            ],
+            [e for e in formatted_table if e["state"] == RNS.Transport.STATE_RESPONSIVE],
         )
         unresponsive_count = len(
-            [
-                e
-                for e in formatted_table
-                if e["state"] == RNS.Transport.STATE_UNRESPONSIVE
-            ],
+            [e for e in formatted_table if e["state"] == RNS.Transport.STATE_UNRESPONSIVE],
         )
 
         # Pagination

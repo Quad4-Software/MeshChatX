@@ -76,15 +76,9 @@ def test_convert_lxmf_message_to_dict_with_attachments():
         == base64.b64encode(b"content1").decode()
     )
     assert result["fields"]["image"]["image_type"] == "png"
-    assert (
-        result["fields"]["image"]["image_bytes"]
-        == base64.b64encode(b"image_data").decode()
-    )
+    assert result["fields"]["image"]["image_bytes"] == base64.b64encode(b"image_data").decode()
     assert result["fields"]["audio"]["audio_mode"] == "voice"
-    assert (
-        result["fields"]["audio"]["audio_bytes"]
-        == base64.b64encode(b"audio_data").decode()
-    )
+    assert result["fields"]["audio"]["audio_bytes"] == base64.b64encode(b"audio_data").decode()
 
 
 def test_convert_lxmf_state_to_string():

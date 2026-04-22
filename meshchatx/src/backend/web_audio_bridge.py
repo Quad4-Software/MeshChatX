@@ -48,16 +48,14 @@ class WebAudioSource(LocalSource):
 
     def push_pcm(self, pcm_bytes: bytes):
         try:
-            samples = (
-                np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
-            )
+            samples = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
             if samples.size == 0:
                 return
             samples = samples.reshape(-1, 1)
             frame = self.codec.encode(samples)
             if self.sink and self.sink.can_receive(from_source=self):
                 self.sink.handle_frame(frame, self)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             RNS.log(f"WebAudioSource: failed to push pcm: {exc}", RNS.LOG_ERROR)
 
 
@@ -80,7 +78,7 @@ class WebAudioSink(LocalSink):
             else:
                 pcm = frame
             self.loop.call_soon_threadsafe(asyncio.create_task, self.send_bytes(pcm))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             RNS.log(f"WebAudioSink: failed to handle frame: {exc}", RNS.LOG_ERROR)
 
 
@@ -188,7 +186,7 @@ class WebAudioBridge:
             tele.audio_input = self.tx_source
             if tele.transmit_mixer and not tele.transmit_mixer.should_run:
                 tele.transmit_mixer.start()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             RNS.log(
                 f"WebAudioBridge: failed to swap transmit path: {exc}",
                 RNS.LOG_ERROR,
@@ -214,7 +212,7 @@ class WebAudioBridge:
                 sink=self.rx_tee,
             )
             tele.receive_pipeline.start()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             RNS.log(f"WebAudioBridge: failed to tee receive path: {exc}", RNS.LOG_ERROR)
 
     def _restore_host_audio(self):

@@ -102,12 +102,8 @@ def test_build_licenses_payload_composes_counts_and_meta():
 
 def test_render_third_party_notices_contains_sections_and_rows():
     payload = {
-        "backend": [
-            {"name": "rns", "version": "1.0", "author": "Author A", "license": "MIT"}
-        ],
-        "frontend": [
-            {"name": "vue", "version": "3.0", "author": "Author B", "license": "MIT"}
-        ],
+        "backend": [{"name": "rns", "version": "1.0", "author": "Author A", "license": "MIT"}],
+        "frontend": [{"name": "vue", "version": "3.0", "author": "Author B", "license": "MIT"}],
         "meta": {"generated_at": "2026-01-01T00:00:00Z", "frontend_source": "pnpm"},
     }
     rendered = render_third_party_notices(payload)
@@ -135,9 +131,7 @@ def test_write_embedded_license_artifacts_writes_files(tmp_path):
     assert frontend_path.exists()
     assert notices_path.exists()
     assert '"name": "vue"' in frontend_path.read_text(encoding="utf-8")
-    assert "Reticulum MeshChatX - Third-party notices" in notices_path.read_text(
-        encoding="utf-8"
-    )
+    assert "Reticulum MeshChatX - Third-party notices" in notices_path.read_text(encoding="utf-8")
 
 
 def test_write_embedded_license_artifacts_preserves_existing_frontend_when_empty(

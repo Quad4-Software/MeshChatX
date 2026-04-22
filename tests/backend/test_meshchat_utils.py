@@ -104,12 +104,11 @@ def mock_app(temp_dir):
             patch.object(MockIdentityClass, "from_bytes", return_value=mock_id),
         )
 
-        app = ReticulumMeshChat(
+        return ReticulumMeshChat(
             identity=mock_id,
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
         )
-        return app
 
 
 def test_get_interfaces_snapshot(mock_app):

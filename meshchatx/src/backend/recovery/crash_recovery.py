@@ -156,7 +156,7 @@ class CrashRecovery:
 
             cause_counts = {r["diagnosed_cause"]: r["count"] for r in freq_rows}
             weights = {}
-            for key, default_prior in _DEFAULT_PRIORS.items():
+            for key in _DEFAULT_PRIORS:
                 desc = self._cause_key_to_description(key)
                 count = cause_counts.get(desc, 0)
                 alpha = 1.0 + count
@@ -383,9 +383,7 @@ class CrashRecovery:
             "no_table_config": "no such table: config" in error_msg,
             "in_memory_db": diagnosis.get("db_type") == "memory",
             "corrupt_in_msg": "corrupt" in error_msg or "malformed" in error_msg,
-            "async_in_msg": any(
-                x in error_msg for x in ["asyncio", "event loop", "runtimeerror"]
-            ),
+            "async_in_msg": any(x in error_msg for x in ["asyncio", "event loop", "runtimeerror"]),
             "no_loop_in_msg": "no current event loop" in error_msg
             or "no running event loop" in error_msg,
             "low_mem": diagnosis.get("low_memory", False),
@@ -394,11 +392,11 @@ class CrashRecovery:
             "lxmf_in_msg": "lxmf" in error_msg or "lxmr" in error_msg,
             "identity_in_msg": "identity" in error_msg or "private key" in error_msg,
             "no_interfaces": diagnosis.get("active_interfaces", 0) == 0,
-            "old_python": py_version.major < 3
-            or (py_version.major == 3 and py_version.minor < 10),
+            "old_python": py_version.major < 3 or (py_version.major == 3 and py_version.minor < 10),
             "legacy_kernel": "linux" in platform.system().lower()
-            and (lambda m: m is not None and float(m.group(1)) < 4.0)(
-                re.search(r"(\d+\.\d+)", platform.release()),
+            and (
+                (_m := re.search(r"(\d+\.\d+)", platform.release())) is not None
+                and float(_m.group(1)) < 4.0
             ),
             "attribute_error": "attributeerror" in error_type,
         }
@@ -523,7 +521,7 @@ class CrashRecovery:
         entropy = sum(h(q) for q in q_vec)
 
         # Systemic Divergence: How 'surprising' this state is compared to ideal
-        divergence = sum(kl_div(q, p) for q, p in zip(q_vec, p_vec))
+        divergence = sum(kl_div(q, p) for q, p in zip(q_vec, p_vec, strict=False))
 
         return entropy, divergence
 

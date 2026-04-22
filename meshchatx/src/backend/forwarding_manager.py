@@ -144,10 +144,7 @@ class ForwardingManager:
                     for link in list(RNS.Transport.active_links):
                         match = False
                         if hasattr(link, "destination") and link.destination:
-                            if (
-                                hasattr(link.destination, "identity")
-                                and link.destination.identity
-                            ):
+                            if hasattr(link.destination, "identity") and link.destination.identity:
                                 if link.destination.identity.hash == ih:
                                     match = True
                         if match:

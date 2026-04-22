@@ -74,13 +74,10 @@ class DatabaseProvider:
 
             if isinstance(params, dict):
                 params = {
-                    k: (v.isoformat() if isinstance(v, datetime) else v)
-                    for k, v in params.items()
+                    k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in params.items()
                 }
             else:
-                params = tuple(
-                    (p.isoformat() if isinstance(p, datetime) else p) for p in params
-                )
+                params = tuple((p.isoformat() if isinstance(p, datetime) else p) for p in params)
 
         if params:
             cursor.execute(query, params)
@@ -148,7 +145,7 @@ class DatabaseProvider:
             try:
                 self._memory_connection.commit()
                 self._memory_connection.close()
-            except Exception:  # noqa: S110
+            except Exception:
                 pass
             self._memory_connection = None
 
@@ -156,7 +153,7 @@ class DatabaseProvider:
             try:
                 self.commit()  # Ensure everything is saved
                 self._local.connection.close()
-            except Exception:  # noqa: S110
+            except Exception:
                 pass
             del self._local.connection
 
@@ -166,7 +163,7 @@ class DatabaseProvider:
                 try:
                     self._memory_connection.commit()
                     self._memory_connection.close()
-                except Exception:  # noqa: S110
+                except Exception:
                     pass
                 self._memory_connection = None
 
@@ -175,7 +172,7 @@ class DatabaseProvider:
                     try:
                         loc.connection.commit()
                         loc.connection.close()
-                    except Exception:  # noqa: S110
+                    except Exception:
                         pass
                     del loc.connection
 

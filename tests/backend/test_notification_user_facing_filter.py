@@ -32,7 +32,6 @@ from meshchatx.src.backend.lxmf_utils import (
 )
 from meshchatx.src.backend.message_handler import MessageHandler
 
-
 LOCAL_HASH = "aa" * 16
 PEER_HASH = "bb" * 16
 PEER_HASH_2 = "cc" * 16

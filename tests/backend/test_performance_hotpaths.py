@@ -512,9 +512,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
             with lock:
                 all_durations.extend(thread_durations)
 
-        threads = [
-            threading.Thread(target=writer, args=(t,)) for t in range(num_threads)
-        ]
+        threads = [threading.Thread(target=writer, args=(t,)) for t in range(num_threads)]
         t0 = time.perf_counter()
         for t in threads:
             t.start()
@@ -558,9 +556,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
             with lock:
                 all_durations.extend(thread_durations)
 
-        threads = [
-            threading.Thread(target=writer, args=(t,)) for t in range(num_threads)
-        ]
+        threads = [threading.Thread(target=writer, args=(t,)) for t in range(num_threads)]
         t0 = time.perf_counter()
         for t in threads:
             t.start()
@@ -623,12 +619,8 @@ class TestPerformanceHotPaths(unittest.TestCase):
             with lock:
                 read_durations.extend(local_durs)
 
-        writers = [
-            threading.Thread(target=writer, args=(t,)) for t in range(num_writers)
-        ]
-        readers = [
-            threading.Thread(target=reader, args=(t,)) for t in range(num_readers)
-        ]
+        writers = [threading.Thread(target=writer, args=(t,)) for t in range(num_writers)]
+        readers = [threading.Thread(target=reader, args=(t,)) for t in range(num_readers)]
 
         t0 = time.perf_counter()
         for t in writers + readers:

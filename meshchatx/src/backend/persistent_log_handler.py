@@ -64,9 +64,7 @@ class PersistentLogHandler(logging.Handler):
                     self._error_events.append(now_mono)
 
             # Periodically flush to database if available
-            if self.database and (
-                time.time() - self.last_flush_time > self.flush_interval
-            ):
+            if self.database and (time.time() - self.last_flush_time > self.flush_interval):
                 self._flush_to_db()
 
         except Exception:
@@ -228,9 +226,7 @@ class PersistentLogHandler(logging.Handler):
             if level:
                 logs = [log for log in logs if log["level"] == level]
             if is_anomaly is not None:
-                logs = [
-                    log for log in logs if log["is_anomaly"] == (1 if is_anomaly else 0)
-                ]
+                logs = [log for log in logs if log["is_anomaly"] == (1 if is_anomaly else 0)]
 
             # Sort descending
             logs.sort(key=lambda x: x["timestamp"], reverse=True)

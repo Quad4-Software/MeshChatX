@@ -20,9 +20,8 @@ import sys
 import textwrap
 
 import pytest
-
-import LXMF.LXStamper as LXStamper
 import RNS
+from LXMF import LXStamper
 
 _RUN = os.environ.get("MESHCHAT_LIVE_RETICULUM") == "1"
 
@@ -37,13 +36,13 @@ _MINIMAL_RNS_CONFIG = """\
 
 
 def _run_lxmf_script(script_body, timeout=120):
-    result = subprocess.run(
+    return subprocess.run(
         [sys.executable, "-c", script_body],
         capture_output=True,
         text=True,
         timeout=timeout,
+        check=False,
     )
-    return result
 
 
 def _parse_result(proc):

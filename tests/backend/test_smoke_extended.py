@@ -15,6 +15,7 @@ def test_cli_help():
         [sys.executable, "-m", "meshchatx.meshchat", "--help"],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0
     assert "usage:" in result.stdout.lower() or "options:" in result.stdout.lower()

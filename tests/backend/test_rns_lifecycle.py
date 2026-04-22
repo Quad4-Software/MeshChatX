@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
-import os
 import json
+import os
 import shutil
 import socket
 import tempfile
@@ -528,10 +528,7 @@ async def test_transport_enable_endpoint_reloads_rns(mock_rns, temp_dir):
 
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/reticulum/enable-transport"
-                and route.method == "POST"
-            ):
+            if route.path == "/api/v1/reticulum/enable-transport" and route.method == "POST":
                 handler = route.handler
                 break
 
@@ -541,10 +538,7 @@ async def test_transport_enable_endpoint_reloads_rns(mock_rns, temp_dir):
         payload = json.loads(response.body)
 
         assert response.status == 200
-        assert (
-            payload["message"]
-            == "Transport mode enabled and RNS restarted successfully."
-        )
+        assert payload["message"] == "Transport mode enabled and RNS restarted successfully."
         app.reload_reticulum.assert_awaited_once()
         app.teardown_identity()
 
@@ -576,10 +570,7 @@ async def test_transport_disable_endpoint_reloads_rns(mock_rns, temp_dir):
 
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/reticulum/disable-transport"
-                and route.method == "POST"
-            ):
+            if route.path == "/api/v1/reticulum/disable-transport" and route.method == "POST":
                 handler = route.handler
                 break
 
@@ -589,10 +580,7 @@ async def test_transport_disable_endpoint_reloads_rns(mock_rns, temp_dir):
         payload = json.loads(response.body)
 
         assert response.status == 200
-        assert (
-            payload["message"]
-            == "Transport mode disabled and RNS restarted successfully."
-        )
+        assert payload["message"] == "Transport mode disabled and RNS restarted successfully."
         app.reload_reticulum.assert_awaited_once()
         app.teardown_identity()
 
@@ -624,10 +612,7 @@ async def test_transport_enable_endpoint_reload_failure(mock_rns, temp_dir):
 
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/reticulum/enable-transport"
-                and route.method == "POST"
-            ):
+            if route.path == "/api/v1/reticulum/enable-transport" and route.method == "POST":
                 handler = route.handler
                 break
 
@@ -637,10 +622,7 @@ async def test_transport_enable_endpoint_reload_failure(mock_rns, temp_dir):
         payload = json.loads(response.body)
 
         assert response.status == 500
-        assert (
-            payload["message"]
-            == "Transport mode was enabled in config, but RNS reload failed."
-        )
+        assert payload["message"] == "Transport mode was enabled in config, but RNS reload failed."
         app.reload_reticulum.assert_awaited_once()
         app.teardown_identity()
 
@@ -672,10 +654,7 @@ async def test_transport_disable_endpoint_reload_failure(mock_rns, temp_dir):
 
         handler = None
         for route in app.get_routes():
-            if (
-                route.path == "/api/v1/reticulum/disable-transport"
-                and route.method == "POST"
-            ):
+            if route.path == "/api/v1/reticulum/disable-transport" and route.method == "POST":
                 handler = route.handler
                 break
 
@@ -685,10 +664,7 @@ async def test_transport_disable_endpoint_reload_failure(mock_rns, temp_dir):
         payload = json.loads(response.body)
 
         assert response.status == 500
-        assert (
-            payload["message"]
-            == "Transport mode was disabled in config, but RNS reload failed."
-        )
+        assert payload["message"] == "Transport mode was disabled in config, but RNS reload failed."
         app.reload_reticulum.assert_awaited_once()
         app.teardown_identity()
 

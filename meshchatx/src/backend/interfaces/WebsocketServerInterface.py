@@ -18,9 +18,7 @@ class WebsocketServerInterface(Interface):
     RESTART_DELAY_SECONDS = 5
 
     def __str__(self):
-        return (
-            f"WebsocketServerInterface[{self.name}/{self.listen_ip}:{self.listen_port}]"
-        )
+        return f"WebsocketServerInterface[{self.name}/{self.listen_ip}:{self.listen_port}]"
 
     def __init__(self, owner, configuration):
         super().__init__()

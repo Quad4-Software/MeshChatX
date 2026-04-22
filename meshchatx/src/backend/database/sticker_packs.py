@@ -15,7 +15,6 @@ import time
 
 from meshchatx.src.backend import sticker_pack_utils, sticker_utils
 
-
 _PACK_COLUMNS = (
     "id, identity_hash, title, short_name, description, pack_type, author, "
     "is_strict, cover_sticker_id, sort_order, created_at, updated_at"
@@ -82,10 +81,7 @@ class UserStickerPacksDAO:
         is_strict: bool = True,
     ) -> dict:
         """Create a new pack. Raises ``ValueError`` on quota or short_name clash."""
-        if (
-            self.count_for_identity(identity_hash)
-            >= sticker_utils.MAX_STICKER_PACKS_PER_IDENTITY
-        ):
+        if self.count_for_identity(identity_hash) >= sticker_utils.MAX_STICKER_PACKS_PER_IDENTITY:
             msg = "pack_limit_reached"
             raise ValueError(msg)
         sn = sticker_pack_utils.sanitize_pack_short_name(short_name)
@@ -154,11 +150,7 @@ class UserStickerPacksDAO:
             if pack_type is not None
             else existing["pack_type"]
         )
-        new_cover = (
-            existing["cover_sticker_id"]
-            if cover_sticker_id is ...
-            else cover_sticker_id
-        )
+        new_cover = existing["cover_sticker_id"] if cover_sticker_id is ... else cover_sticker_id
         cur = self.provider.execute(
             """
             UPDATE user_sticker_packs

@@ -260,7 +260,7 @@ def parse_tgs(data: bytes) -> dict:
     if width <= 0 or height <= 0 or fps <= 0 or out_point <= in_point:
         msg = "invalid_tgs_metadata"
         raise ValueError(msg)
-    duration_ms = int(round(((out_point - in_point) / fps) * 1000.0))
+    duration_ms = round(((out_point - in_point) / fps) * 1000.0)
     return {
         "width": width,
         "height": height,
@@ -270,9 +270,7 @@ def parse_tgs(data: bytes) -> dict:
     }
 
 
-def _ebml_read_vint(
-    buf: bytes, pos: int, *, mask_marker: bool = True
-) -> tuple[int, int] | None:
+def _ebml_read_vint(buf: bytes, pos: int, *, mask_marker: bool = True) -> tuple[int, int] | None:
     """Read an EBML variable-length integer at ``pos``; returns ``(value, next_pos)``."""
     if pos >= len(buf):
         return None
@@ -364,15 +362,11 @@ def parse_webm(data: bytes) -> dict:
                                 if f_id == 0x83:
                                     track_type = _ebml_read_uint(raw, fb, fe)
                                 elif f_id == 0x86:
-                                    track_codec = raw[fb:fe].decode(
-                                        "ascii", errors="replace"
-                                    )
+                                    track_codec = raw[fb:fe].decode("ascii", errors="replace")
                                 elif f_id == 0x23E383:
                                     track_def_dur = _ebml_read_uint(raw, fb, fe)
                                 elif f_id == 0xE0:
-                                    for v_id, vb, ve in _ebml_iter_elements(
-                                        raw, fb, fe
-                                    ):
+                                    for v_id, vb, ve in _ebml_iter_elements(raw, fb, fe):
                                         if v_id == 0xB0:
                                             t_w = _ebml_read_uint(raw, vb, ve)
                                         elif v_id == 0xBA:
@@ -388,9 +382,7 @@ def parse_webm(data: bytes) -> dict:
                 elif seg_id == 0x1549A966:
                     for inf_id, ib, ie in _ebml_iter_elements(raw, sb, se):
                         if inf_id == 0x2AD7B1:
-                            timecode_scale = (
-                                _ebml_read_uint(raw, ib, ie) or timecode_scale
-                            )
+                            timecode_scale = _ebml_read_uint(raw, ib, ie) or timecode_scale
                         elif inf_id == 0x4489:
                             d = _ebml_read_float(raw, ib, ie)
                             if d is not None:
@@ -399,7 +391,7 @@ def parse_webm(data: bytes) -> dict:
         msg = "invalid_webm_no_video"
         raise ValueError(msg)
     if duration_ticks > 0:
-        duration_ms = int(round(duration_ticks * timecode_scale / 1_000_000.0))
+        duration_ms = round(duration_ticks * timecode_scale / 1_000_000.0)
     fps = 0.0
     if track_default_duration_ns:
         fps = 1_000_000_000.0 / float(track_default_duration_ns[0])
@@ -420,7 +412,7 @@ def _validate_dimensions_telegram_static(width: int, height: int) -> None:
     if width > STICKER_CANVAS or height > STICKER_CANVAS:
         msg = "dimensions_too_large"
         raise ValueError(msg)
-    if width != STICKER_CANVAS and height != STICKER_CANVAS:
+    if STICKER_CANVAS not in (width, height):
         msg = "dimensions_not_512_on_one_side"
         raise ValueError(msg)
 

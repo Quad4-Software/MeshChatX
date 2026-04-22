@@ -124,9 +124,7 @@ def validate_pack_document(data: object) -> dict:
         out_stickers.append(
             {
                 "name": item.get("name") if isinstance(item.get("name"), str) else None,
-                "emoji": item.get("emoji")
-                if isinstance(item.get("emoji"), str)
-                else None,
+                "emoji": item.get("emoji") if isinstance(item.get("emoji"), str) else None,
                 "image_type": item.get("image_type"),
                 "image_bytes_b64": b64.strip(),
             },
@@ -137,9 +135,7 @@ def validate_pack_document(data: object) -> dict:
             "short_name": sanitize_pack_short_name(pack_meta.get("short_name")),
             "description": sanitize_pack_description(pack_meta.get("description")),
             "pack_type": sanitize_pack_type(pack_meta.get("type")),
-            "author": pack_meta.get("author")
-            if isinstance(pack_meta.get("author"), str)
-            else None,
+            "author": pack_meta.get("author") if isinstance(pack_meta.get("author"), str) else None,
             "is_strict": bool(pack_meta.get("is_strict", True)),
         },
         "stickers": out_stickers,

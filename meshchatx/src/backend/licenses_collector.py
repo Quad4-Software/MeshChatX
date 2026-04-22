@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from packaging.requirements import Requirement
+from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
 
 _ROOT_DIST_CANDIDATES = ("reticulum-meshchatx", "reticulum_meshchatx")
@@ -96,7 +96,7 @@ def _collect_python_transitive(root_names: tuple[str, ...]) -> list[dict[str, An
                 continue
             try:
                 req = Requirement(req_str)
-            except Exception:
+            except InvalidRequirement:
                 continue
             if req.extras and not req.marker:
                 pass
@@ -125,7 +125,7 @@ def _python_roots_from_pyproject(repo_root: Path) -> tuple[str, ...]:
     for line in deps:
         try:
             req = Requirement(line)
-        except Exception:
+        except InvalidRequirement:
             continue
         names.append(req.name)
     if not names:
@@ -297,7 +297,7 @@ def _try_pnpm_licenses(repo_root: Path) -> list[dict[str, Any]] | None:
     if not isinstance(parsed, dict):
         return None
     rows = _flatten_pnpm_licenses_json(parsed)
-    return rows if rows else None
+    return rows or None
 
 
 def _flatten_pnpm_licenses_json(data: dict[str, Any]) -> list[dict[str, Any]]:

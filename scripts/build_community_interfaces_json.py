@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: 0BSD
 
 """Emit meshchatx/src/backend/data/community_interfaces.json from the directory API or a local export."""
-# ruff: noqa: T201
 
 import argparse
 import json

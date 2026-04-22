@@ -67,10 +67,7 @@ async def test_propagation_nodes_endpoint_robustness(mock_rns_minimal, temp_dir)
         assert "is_local_node" in node
         if node.get("is_local_node") and isinstance(node.get("local_node_stats"), dict):
             if isinstance(node["local_node_stats"].get("is_running"), bool):
-                assert (
-                    node.get("is_propagation_enabled")
-                    == node["local_node_stats"]["is_running"]
-                )
+                assert node.get("is_propagation_enabled") == node["local_node_stats"]["is_running"]
 
     # Test with invalid limit (should not crash)
     request.query = {"limit": "invalid"}
@@ -82,10 +79,7 @@ async def test_propagation_nodes_endpoint_robustness(mock_rns_minimal, temp_dir)
         assert "is_local_node" in node
         if node.get("is_local_node") and isinstance(node.get("local_node_stats"), dict):
             if isinstance(node["local_node_stats"].get("is_running"), bool):
-                assert (
-                    node.get("is_propagation_enabled")
-                    == node["local_node_stats"]["is_running"]
-                )
+                assert node.get("is_propagation_enabled") == node["local_node_stats"]["is_running"]
 
     # Test with missing limit (should not crash)
     request.query = {}
@@ -97,7 +91,4 @@ async def test_propagation_nodes_endpoint_robustness(mock_rns_minimal, temp_dir)
         assert "is_local_node" in node
         if node.get("is_local_node") and isinstance(node.get("local_node_stats"), dict):
             if isinstance(node["local_node_stats"].get("is_running"), bool):
-                assert (
-                    node.get("is_propagation_enabled")
-                    == node["local_node_stats"]["is_running"]
-                )
+                assert node.get("is_propagation_enabled") == node["local_node_stats"]["is_running"]

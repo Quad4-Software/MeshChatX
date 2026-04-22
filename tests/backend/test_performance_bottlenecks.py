@@ -196,9 +196,7 @@ class TestPerformanceBottlenecks(unittest.TestCase):
                     b"packet",
                 )
 
-        threads = [
-            threading.Thread(target=insert_announces) for _ in range(num_threads)
-        ]
+        threads = [threading.Thread(target=insert_announces) for _ in range(num_threads)]
 
         print(
             f"\nRunning {num_threads} threads inserting {announces_per_thread} announces each...",

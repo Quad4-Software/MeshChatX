@@ -60,9 +60,7 @@ class TelephoneManager:
         self.storage_dir = storage_dir
         self.db = db
         self.get_name_for_identity_hash = None
-        self.recordings_dir = (
-            os.path.join(storage_dir, "recordings") if storage_dir else None
-        )
+        self.recordings_dir = os.path.join(storage_dir, "recordings") if storage_dir else None
         if self.recordings_dir:
             os.makedirs(self.recordings_dir, exist_ok=True)
 
@@ -445,8 +443,7 @@ class TelephoneManager:
                 # to ensure the UI has something to show (either active_call or initiation_status)
                 for _ in range(40):  # Max 4 seconds of defensive waiting
                     if self.telephone and (
-                        self.telephone.active_call
-                        or self.telephone.call_status in [0, 1, 3, 6]
+                        self.telephone.active_call or self.telephone.call_status in [0, 1, 3, 6]
                     ):
                         break
                     await asyncio.sleep(self._status_poll_interval_s)
@@ -472,7 +469,7 @@ class TelephoneManager:
             # Still call the internal method just in case it does something useful
             try:
                 self.telephone.mute_transmit()
-            except Exception:  # noqa: S110
+            except Exception:
                 pass
 
             self.transmit_muted = True
@@ -492,7 +489,7 @@ class TelephoneManager:
             # Still call the internal method just in case
             try:
                 self.telephone.unmute_transmit()
-            except Exception:  # noqa: S110
+            except Exception:
                 pass
 
             self.transmit_muted = False
@@ -509,7 +506,7 @@ class TelephoneManager:
             # Still call the internal method just in case
             try:
                 self.telephone.mute_receive()
-            except Exception:  # noqa: S110
+            except Exception:
                 pass
 
             self.receive_muted = True
@@ -529,7 +526,7 @@ class TelephoneManager:
             # Still call the internal method just in case
             try:
                 self.telephone.unmute_receive()
-            except Exception:  # noqa: S110
+            except Exception:
                 pass
 
             self.receive_muted = False

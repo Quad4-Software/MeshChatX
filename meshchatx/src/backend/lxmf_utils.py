@@ -70,17 +70,13 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
         return True
 
     image = fields.get("image")
-    if isinstance(image, dict) and (
-        image.get("image_size") or image.get("image_bytes")
-    ):
+    if isinstance(image, dict) and (image.get("image_size") or image.get("image_bytes")):
         return True
     if image is None and fields.get(LXMF_IMAGE_FIELD) is not None:
         return True
 
     audio = fields.get("audio")
-    if isinstance(audio, dict) and (
-        audio.get("audio_size") or audio.get("audio_bytes")
-    ):
+    if isinstance(audio, dict) and (audio.get("audio_size") or audio.get("audio_bytes")):
         return True
     if audio is None and fields.get(LXMF_AUDIO_FIELD) is not None:
         return True
@@ -114,10 +110,7 @@ def convert_lxmf_message_to_dict(
         if field_type == LXMF.FIELD_FILE_ATTACHMENTS and isinstance(value, list):
             file_attachments = []
             for file_attachment in value:
-                if (
-                    not isinstance(file_attachment, (list, tuple))
-                    or len(file_attachment) < 2
-                ):
+                if not isinstance(file_attachment, (list, tuple)) or len(file_attachment) < 2:
                     continue
                 file_name = file_attachment[0]
                 file_data = file_attachment[1]
@@ -140,11 +133,7 @@ def convert_lxmf_message_to_dict(
             fields["file_attachments"] = file_attachments
 
         # handle image field
-        if (
-            field_type == LXMF.FIELD_IMAGE
-            and isinstance(value, (list, tuple))
-            and len(value) >= 2
-        ):
+        if field_type == LXMF.FIELD_IMAGE and isinstance(value, (list, tuple)) and len(value) >= 2:
             image_type = value[0]
             image_data = value[1]
             if isinstance(image_data, (bytes, bytearray)):
@@ -159,11 +148,7 @@ def convert_lxmf_message_to_dict(
                 }
 
         # handle audio field
-        if (
-            field_type == LXMF.FIELD_AUDIO
-            and isinstance(value, (list, tuple))
-            and len(value) >= 2
-        ):
+        if field_type == LXMF.FIELD_AUDIO and isinstance(value, (list, tuple)) and len(value) >= 2:
             audio_mode = value[0]
             audio_data = value[1]
             if isinstance(audio_data, (bytes, bytearray)):
@@ -182,7 +167,7 @@ def convert_lxmf_message_to_dict(
             fields["telemetry"] = Telemeter.from_packed(value)
 
         # handle commands field
-        if field_type == LXMF.FIELD_COMMANDS or field_type == 0x01:
+        if field_type in (LXMF.FIELD_COMMANDS, 1):
             processed_commands = []
             if isinstance(value, list):
                 for cmd in value:
@@ -211,9 +196,7 @@ def convert_lxmf_message_to_dict(
             fields["reply_to"] = value.hex() if isinstance(value, bytes) else value
         if field_type == 0x31:
             fields["reply_quoted_content"] = (
-                value.decode("utf-8", errors="replace")
-                if isinstance(value, bytes)
-                else value
+                value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value
             )
 
         if field_type == LXMF_APP_EXTENSIONS_FIELD and isinstance(value, dict):
@@ -248,11 +231,7 @@ def convert_lxmf_message_to_dict(
         val = message_fields[0x30]
         reply_to_hash = val.hex() if isinstance(val, bytes) else val
 
-    content = (
-        lxmf_message.content.decode("utf-8", errors="replace")
-        if lxmf_message.content
-        else ""
-    )
+    content = lxmf_message.content.decode("utf-8", errors="replace") if lxmf_message.content else ""
 
     # auto-detect reply from content if not present
     if not reply_to_hash and content and isinstance(content, str):
@@ -276,9 +255,7 @@ def convert_lxmf_message_to_dict(
             "next_delivery_attempt",
             None,
         ),  # attribute may not exist yet
-        "title": lxmf_message.title.decode("utf-8", errors="replace")
-        if lxmf_message.title
-        else "",
+        "title": lxmf_message.title.decode("utf-8", errors="replace") if lxmf_message.title else "",
         "content": content,
         "fields": fields,
         "timestamp": lxmf_message.timestamp,

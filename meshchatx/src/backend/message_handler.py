@@ -123,7 +123,7 @@ class MessageHandler:
         where_clauses = []
 
         if folder_id is not None:
-            if folder_id == 0 or folder_id == "0":
+            if folder_id in {0, "0"}:
                 # Special case: no folder (Uncategorized)
                 where_clauses.append("f.folder_id IS NULL")
             else:

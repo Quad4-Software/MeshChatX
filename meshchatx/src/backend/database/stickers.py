@@ -6,7 +6,6 @@ import time
 
 from meshchatx.src.backend import sticker_utils
 
-
 _STICKER_SUMMARY_COLUMNS = (
     "id, identity_hash, name, image_type, length(image_blob) AS image_size, "
     "content_hash, source_message_hash, pack_id, emoji, width, height, "
@@ -188,10 +187,7 @@ class UserStickersDAO:
         metadata so the picker can render the sticker correctly without
         re-parsing.
         """
-        if (
-            self.count_for_identity(identity_hash)
-            >= sticker_utils.MAX_STICKERS_PER_IDENTITY
-        ):
+        if self.count_for_identity(identity_hash) >= sticker_utils.MAX_STICKERS_PER_IDENTITY:
             msg = "sticker_limit_reached"
             raise ValueError(msg)
 
@@ -349,10 +345,7 @@ class UserStickersDAO:
                     (identity_hash, ch),
                 )
 
-            if (
-                self.count_for_identity(identity_hash)
-                >= sticker_utils.MAX_STICKERS_PER_IDENTITY
-            ):
+            if self.count_for_identity(identity_hash) >= sticker_utils.MAX_STICKERS_PER_IDENTITY:
                 errors.append("sticker_limit_reached")
                 break
 

@@ -87,8 +87,7 @@ class TestIntegrityManager(unittest.TestCase):
         self.assertFalse(is_ok)
         self.assertTrue(
             any(
-                "Critical security component" in i or "File signature mismatch" in i
-                for i in issues
+                "Critical security component" in i or "File signature mismatch" in i for i in issues
             ),
         )
 

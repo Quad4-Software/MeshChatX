@@ -79,8 +79,7 @@ class PageNodeManager:
         if node.running:
             return node.get_destination_hash()
 
-        dest_hash = node.setup()
-        return dest_hash
+        return node.setup()
 
     def stop_node(self, node_id):
         """Stop serving for a specific node."""

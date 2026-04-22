@@ -21,7 +21,9 @@ class BenchmarkResult:
         self.memory_delta_mb = memory_delta_mb
 
     def __repr__(self):
-        return f"<BenchmarkResult {self.name}: {self.duration_ms:.2f}ms, {self.memory_delta_mb:.2f}MB>"
+        return (
+            f"<BenchmarkResult {self.name}: {self.duration_ms:.2f}ms, {self.memory_delta_mb:.2f}MB>"
+        )
 
 
 def benchmark(name=None, iterations=1):

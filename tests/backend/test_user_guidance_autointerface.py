@@ -19,12 +19,8 @@ def _make_app(config_interfaces):
         config={"interfaces": dict(config_interfaces)},
         transport_enabled=lambda: True,
     )
-    app._get_interfaces_section = (
-        ReticulumMeshChat._get_interfaces_section.__get__(app)
-    )
-    app._detect_failed_autointerfaces = (
-        ReticulumMeshChat._detect_failed_autointerfaces.__get__(app)
-    )
+    app._get_interfaces_section = ReticulumMeshChat._get_interfaces_section.__get__(app)
+    app._detect_failed_autointerfaces = ReticulumMeshChat._detect_failed_autointerfaces.__get__(app)
     return app
 
 
@@ -106,9 +102,7 @@ def test_guidance_message_emitted_for_failed_autointerface():
     )
     app.config = MagicMock()
     app.config.auto_announce_enabled.get.return_value = True
-    app.build_user_guidance_messages = (
-        ReticulumMeshChat.build_user_guidance_messages.__get__(app)
-    )
+    app.build_user_guidance_messages = ReticulumMeshChat.build_user_guidance_messages.__get__(app)
 
     with patch("meshchatx.meshchat.RNS.Transport") as transport:
         transport.interfaces = []
@@ -131,9 +125,7 @@ def test_guidance_message_absent_when_autointerface_running():
     )
     app.config = MagicMock()
     app.config.auto_announce_enabled.get.return_value = True
-    app.build_user_guidance_messages = (
-        ReticulumMeshChat.build_user_guidance_messages.__get__(app)
-    )
+    app.build_user_guidance_messages = ReticulumMeshChat.build_user_guidance_messages.__get__(app)
 
     with patch("meshchatx.meshchat.RNS.Transport") as transport:
         transport.interfaces = [_FakeAutoInterface()]

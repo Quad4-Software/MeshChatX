@@ -59,24 +59,13 @@ def test_validate_sticker_payload_magic_type_mismatch():
 
 def test_detect_image_format_from_magic():
     assert sticker_utils.detect_image_format_from_magic(b"\x89PNG\r\n\x1a\n") == "png"
-    assert (
-        sticker_utils.detect_image_format_from_magic(b"\xff\xd8\xff\xe0\x00\x10")
-        == "jpeg"
-    )
-    assert (
-        sticker_utils.detect_image_format_from_magic(b"GIF89a" + b"\x00" * 4) == "gif"
-    )
+    assert sticker_utils.detect_image_format_from_magic(b"\xff\xd8\xff\xe0\x00\x10") == "jpeg"
+    assert sticker_utils.detect_image_format_from_magic(b"GIF89a" + b"\x00" * 4) == "gif"
     assert sticker_utils.detect_image_format_from_magic(b"BM" + b"\x00" * 20) == "bmp"
     webp = b"RIFF\x00\x00\x00\x00WEBP" + b"\x00" * 8
     assert sticker_utils.detect_image_format_from_magic(webp) == "webp"
-    assert (
-        sticker_utils.detect_image_format_from_magic(b"\x1a\x45\xdf\xa3" + b"\x00" * 8)
-        == "webm"
-    )
-    assert (
-        sticker_utils.detect_image_format_from_magic(b"\x1f\x8b\x08\x00" + b"\x00" * 8)
-        == "tgs"
-    )
+    assert sticker_utils.detect_image_format_from_magic(b"\x1a\x45\xdf\xa3" + b"\x00" * 8) == "webm"
+    assert sticker_utils.detect_image_format_from_magic(b"\x1f\x8b\x08\x00" + b"\x00" * 8) == "tgs"
     assert sticker_utils.detect_image_format_from_magic(b"") is None
     assert sticker_utils.detect_image_format_from_magic(b"short") is None
 
@@ -199,9 +188,7 @@ def test_validate_export_document_fuzz_never_raises_unexpected(doc):
         pass
 
 
-def _build_tgs(
-    width: int = 512, height: int = 512, fps: float = 30.0, frames: int = 60
-) -> bytes:
+def _build_tgs(width: int = 512, height: int = 512, fps: float = 30.0, frames: int = 60) -> bytes:
     import gzip
     import json
 
@@ -247,9 +234,7 @@ def test_parse_tgs_invalid_metadata():
     import gzip
     import json
 
-    raw = gzip.compress(
-        json.dumps({"w": 0, "h": 0, "fr": 0, "ip": 0, "op": 0}).encode()
-    )
+    raw = gzip.compress(json.dumps({"w": 0, "h": 0, "fr": 0, "ip": 0, "op": 0}).encode())
     with pytest.raises(ValueError, match="invalid_tgs_metadata"):
         sticker_utils.parse_tgs(raw)
 
@@ -305,12 +290,7 @@ def test_validate_strict_webm_too_large():
 
 
 def test_detect_image_dimensions_png():
-    raw = (
-        b"\x89PNG\r\n\x1a\n"
-        + b"\x00\x00\x00\rIHDR"
-        + struct_pack(512, 512)
-        + b"\x08\x06\x00\x00\x00"
-    )
+    raw = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + struct_pack(512, 512) + b"\x08\x06\x00\x00\x00"
     assert sticker_utils.detect_image_dimensions("png", raw) == (512, 512)
 
 
@@ -349,12 +329,7 @@ def test_extract_metadata_tgs():
 
 
 def test_extract_metadata_static_png():
-    raw = (
-        b"\x89PNG\r\n\x1a\n"
-        + b"\x00\x00\x00\rIHDR"
-        + struct_pack(512, 256)
-        + b"\x08\x06\x00\x00\x00"
-    )
+    raw = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + struct_pack(512, 256) + b"\x08\x06\x00\x00\x00"
     meta = sticker_utils.extract_metadata("png", raw)
     assert meta["width"] == 512
     assert meta["height"] == 256

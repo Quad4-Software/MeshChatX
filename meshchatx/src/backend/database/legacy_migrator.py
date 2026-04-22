@@ -60,7 +60,7 @@ class LegacyMigrator:
             if res and res["count"] > 0:
                 # Already have data, don't auto-migrate
                 return False
-        except Exception:  # noqa: S110
+        except Exception:
             # Table doesn't exist yet, which is fine
             # We use a broad Exception here as the database might not even be initialized
             pass
@@ -104,7 +104,9 @@ class LegacyMigrator:
                 try:
                     # Check if table exists in legacy DB
                     # We use a f-string here for the alias and table name, which are controlled by us
-                    check_query = f"SELECT name FROM {alias}.sqlite_master WHERE type='table' AND name=?"  # noqa: S608
+                    check_query = (
+                        f"SELECT name FROM {alias}.sqlite_master WHERE type='table' AND name=?"
+                    )
                     res = self.provider.fetchone(check_query, (table,))
 
                     if res:
@@ -137,7 +139,7 @@ class LegacyMigrator:
                             cols_str = ", ".join(common_columns)
                             # We use INSERT OR IGNORE to avoid duplicates
                             # The table and columns are controlled by us
-                            migrate_query = f"INSERT OR IGNORE INTO {table} ({cols_str}) SELECT {cols_str} FROM {alias}.{table}"  # noqa: S608
+                            migrate_query = f"INSERT OR IGNORE INTO {table} ({cols_str}) SELECT {cols_str} FROM {alias}.{table}"
                             self.provider.execute(migrate_query)
                             print(
                                 f"  - Migrated table: {table} ({len(common_columns)} columns)",

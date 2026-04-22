@@ -36,11 +36,7 @@ def get_cached_active_link(destination_hash: bytes):
 def sweep_stale_links():
     """Evict all non-ACTIVE links from the global cache."""
     with _nomadnet_links_lock:
-        stale = [
-            k
-            for k, v in nomadnet_cached_links.items()
-            if v.status is not RNS.Link.ACTIVE
-        ]
+        stale = [k for k, v in nomadnet_cached_links.items() if v.status is not RNS.Link.ACTIVE]
         for k in stale:
             del nomadnet_cached_links[k]
 
@@ -185,9 +181,7 @@ class NomadnetDownloader:
 
         timeout_after_seconds = time.time() + link_establishment_timeout
 
-        while (
-            link.status is not RNS.Link.ACTIVE and time.time() < timeout_after_seconds
-        ):
+        while link.status is not RNS.Link.ACTIVE and time.time() < timeout_after_seconds:
             if self.is_cancelled:
                 return
             await asyncio.sleep(_POLL_INTERVAL_S)
@@ -307,11 +301,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
             self.on_file_download_success(file_name, file_data)
             return
 
-        if (
-            isinstance(response, list)
-            and len(response) > 1
-            and isinstance(response[1], dict)
-        ):
+        if isinstance(response, list) and len(response) > 1 and isinstance(response[1], dict):
             file_data: bytes = response[0]
             metadata: dict = response[1]
 

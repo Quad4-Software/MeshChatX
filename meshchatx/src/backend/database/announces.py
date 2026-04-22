@@ -39,7 +39,7 @@ class AnnounceDAO:
         update_set = ", ".join(update_parts)
 
         query = (
-            f"INSERT INTO announces ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "  # noqa: S608
+            f"INSERT INTO announces ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
             f"ON CONFLICT(destination_hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"
         )
 

@@ -93,17 +93,13 @@ def ensure_package_installed(from_code, to_code):
             if pkg_to_install:
                 print_info(f"Downloading package: {pkg_to_install}")
                 argostranslate.package.install_from_path(pkg_to_install.download())
-                print_success(
-                    f"Successfully installed package: {from_code} -> {to_code}"
-                )
+                print_success(f"Successfully installed package: {from_code} -> {to_code}")
 
                 # Refresh installed languages
                 installed = argostranslate.translate.get_installed_languages()
                 installed_dict = {lang.code: lang for lang in installed}
             else:
-                print_error(
-                    f"Could not find a translation package for {from_code} -> {to_code}"
-                )
+                print_error(f"Could not find a translation package for {from_code} -> {to_code}")
                 sys.exit(1)
         except Exception as e:
             print_error(f"Failed to install language package: {e}")
@@ -160,16 +156,16 @@ def translate_dict(data, translate_func, target_name=None):
             if k == "_languageName" and target_name:
                 new_dict[k] = target_name
                 continue
-            elif k == "_languageName":
+            if k == "_languageName":
                 # Keep original if no target name provided
                 new_dict[k] = v
                 continue
 
             new_dict[k] = translate_dict(v, translate_func, target_name)
         return new_dict
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [translate_dict(item, translate_func, target_name) for item in data]
-    elif isinstance(data, str):
+    if isinstance(data, str):
         if not data.strip():
             return data
 
@@ -178,9 +174,7 @@ def translate_dict(data, translate_func, target_name=None):
             translated_temp = translate_func(temp_text)
             return restore_vars_from_tokens(translated_temp, vars_found)
         except Exception as e:
-            print_warning(
-                f"Failed to translate '{data}': {e}. Falling back to original."
-            )
+            print_warning(f"Failed to translate '{data}': {e}. Falling back to original.")
             return data
     else:
         return data
@@ -190,9 +184,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Translate JSON localization files using Argos Translate."
     )
-    parser.add_argument(
-        "--from", dest="from_lang", help="Source language code (e.g. 'en')"
-    )
+    parser.add_argument("--from", dest="from_lang", help="Source language code (e.g. 'en')")
     parser.add_argument("--to", dest="to_lang", help="Target language code (e.g. 'zh')")
     parser.add_argument("--input", dest="input_file", help="Path to input JSON file")
     parser.add_argument("--output", dest="output_file", help="Path to output JSON file")
@@ -229,7 +221,7 @@ def main():
 
     # Load JSON
     try:
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             source_data = json.load(f)
     except json.JSONDecodeError as e:
         print_error(f"Invalid JSON in input file: {e}")
@@ -240,9 +232,7 @@ def main():
     # Get Translator
     translate_func = get_translation_func(from_lang, to_lang)
 
-    print_info(
-        "Starting translation. This may take a moment depending on the file size..."
-    )
+    print_info("Starting translation. This may take a moment depending on the file size...")
     translated_data = translate_dict(source_data, translate_func, target_name)
 
     # Ensure output directory exists
@@ -253,7 +243,7 @@ def main():
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(translated_data, f, ensure_ascii=False, indent=4)
             f.write("\n")
-    except IOError as e:
+    except OSError as e:
         print_error(f"Could not write to output file: {e}")
         sys.exit(1)
 

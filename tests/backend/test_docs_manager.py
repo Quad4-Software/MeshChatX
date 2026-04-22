@@ -115,7 +115,7 @@ def test_docs_manager_readonly_public_dir_handling(tmp_path):
     public_dir = tmp_path / "readonly_public"
     public_dir.mkdir()
 
-    os.chmod(public_dir, 0o555)
+    os.chmod(public_dir, 0o555)  # noqa: S103
 
     config = MagicMock()
     from unittest.mock import patch
@@ -123,12 +123,9 @@ def test_docs_manager_readonly_public_dir_handling(tmp_path):
     with patch("os.makedirs", side_effect=OSError("Read-only file system")):
         dm = DocsManager(config, str(public_dir))
         assert dm.last_error is not None
-        assert (
-            "Read-only file system" in dm.last_error
-            or "Permission denied" in dm.last_error
-        )
+        assert "Read-only file system" in dm.last_error or "Permission denied" in dm.last_error
 
-    os.chmod(public_dir, 0o755)
+    os.chmod(public_dir, 0o755)  # noqa: S103
 
 
 def test_has_docs(docs_manager, temp_dirs):

@@ -28,19 +28,15 @@ class RNProbeHandler:
             app_name, aspects = RNS.Destination.app_and_aspects_from_name(full_name)
         except Exception as e:
             msg = f"Invalid destination name: {e}"
-            raise ValueError(msg)
+            raise ValueError(msg) from e
 
         if not RNS.Transport.has_path(destination_hash):
             RNS.Transport.request_path(destination_hash)
 
         timeout_after = time.time() + (
-            timeout
-            or self.DEFAULT_TIMEOUT
-            + self.reticulum.get_first_hop_timeout(destination_hash)
+            timeout or self.DEFAULT_TIMEOUT + self.reticulum.get_first_hop_timeout(destination_hash)
         )
-        while (
-            not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after
-        ):
+        while not RNS.Transport.has_path(destination_hash) and time.time() < timeout_after:
             await asyncio.sleep(0.1)
 
         if not RNS.Transport.has_path(destination_hash):
@@ -65,10 +61,13 @@ class RNProbeHandler:
 
             try:
                 probe = RNS.Packet(request_destination, os.urandom(size))
+            except OSError as e:
+                raise ValueError(f"Failed to build probe packet: {e!s}") from e
+            try:
                 probe.pack()
-            except OSError:
+            except OSError as e:
                 msg = f"Probe packet size of {len(probe.raw)} bytes exceeds MTU of {RNS.Reticulum.MTU} bytes"
-                raise ValueError(msg)
+                raise ValueError(msg) from e
 
             receipt = probe.send()
             sent += 1
@@ -80,12 +79,9 @@ class RNProbeHandler:
 
             timeout_after = time.time() + (
                 timeout
-                or self.DEFAULT_TIMEOUT
-                + self.reticulum.get_first_hop_timeout(destination_hash)
+                or self.DEFAULT_TIMEOUT + self.reticulum.get_first_hop_timeout(destination_hash)
             )
-            while (
-                receipt.status == RNS.PacketReceipt.SENT and time.time() < timeout_after
-            ):
+            while receipt.status == RNS.PacketReceipt.SENT and time.time() < timeout_after:
                 await asyncio.sleep(0.1)
 
             result: dict = {

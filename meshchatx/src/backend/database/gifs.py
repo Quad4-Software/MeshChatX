@@ -192,8 +192,7 @@ class UserGifsDAO:
             b64 = item.get("image_bytes_b64")
             src = item.get("source_message_hash")
             usage = int(item.get("usage_count") or 0)
-            if usage < 0:
-                usage = 0
+            usage = max(usage, 0)
             try:
                 raw = base64.b64decode(b64, validate=False)
             except (ValueError, TypeError):
@@ -220,10 +219,7 @@ class UserGifsDAO:
                     (identity_hash, ch),
                 )
 
-            if (
-                self.count_for_identity(identity_hash)
-                >= gif_utils.MAX_GIFS_PER_IDENTITY
-            ):
+            if self.count_for_identity(identity_hash) >= gif_utils.MAX_GIFS_PER_IDENTITY:
                 errors.append("gif_limit_reached")
                 break
 

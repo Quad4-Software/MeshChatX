@@ -19,10 +19,7 @@ def test_sanitize_pack_title_default():
 def test_sanitize_pack_short_name():
     assert sticker_pack_utils.sanitize_pack_short_name(None) is None
     assert sticker_pack_utils.sanitize_pack_short_name("Cats!@#") == "cats"
-    assert (
-        sticker_pack_utils.sanitize_pack_short_name(" Hello_World-1 ")
-        == "hello_world-1"
-    )
+    assert sticker_pack_utils.sanitize_pack_short_name(" Hello_World-1 ") == "hello_world-1"
     assert sticker_pack_utils.sanitize_pack_short_name("***") is None
     assert len(sticker_pack_utils.sanitize_pack_short_name("a" * 200)) == 32
 

@@ -136,9 +136,9 @@ def parse_lxmf_display_name(
 
         # Try manual parsing first to avoid LXMF library call.
         if len(app_data_bytes) > 0:
-            if (
-                app_data_bytes[0] >= 0x90 and app_data_bytes[0] <= 0x9F
-            ) or app_data_bytes[0] == 0xDC:
+            if (app_data_bytes[0] >= 0x90 and app_data_bytes[0] <= 0x9F) or app_data_bytes[
+                0
+            ] == 0xDC:
                 with contextlib.suppress(Exception):
                     peer_data = msgpack.unpackb(app_data_bytes)
                     if isinstance(peer_data, list) and len(peer_data) >= 1:

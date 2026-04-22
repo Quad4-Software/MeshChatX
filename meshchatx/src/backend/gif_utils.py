@@ -143,8 +143,7 @@ def validate_export_document(data: object) -> list[dict]:
             usage_int = int(usage) if usage is not None else 0
         except (TypeError, ValueError):
             usage_int = 0
-        if usage_int < 0:
-            usage_int = 0
+        usage_int = max(usage_int, 0)
         out.append(
             {
                 "name": name if isinstance(name, str) else None,

@@ -114,18 +114,14 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         # Setup config mock values
         mock_config_instance.auth_enabled.get.return_value = False
         mock_config_instance.lxmf_propagation_node_stamp_cost.get.return_value = 0
-        mock_config_instance.lxmf_delivery_transfer_limit_in_bytes.get.return_value = (
-            1000000
-        )
+        mock_config_instance.lxmf_delivery_transfer_limit_in_bytes.get.return_value = 1000000
         mock_config_instance.lxmf_inbound_stamp_cost.get.return_value = 0
         mock_config_instance.display_name.get.return_value = "Test User"
-        mock_config_instance.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
-        mock_config_instance.lxmf_local_propagation_node_enabled.get.return_value = (
-            False
+        mock_config_instance.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
+            None
         )
-        mock_config_instance.libretranslate_url.get.return_value = (
-            "http://localhost:5000"
-        )
+        mock_config_instance.lxmf_local_propagation_node_enabled.get.return_value = False
+        mock_config_instance.libretranslate_url.get.return_value = "http://localhost:5000"
         mock_config_instance.translator_enabled.get.return_value = False
 
         app = ReticulumMeshChat(

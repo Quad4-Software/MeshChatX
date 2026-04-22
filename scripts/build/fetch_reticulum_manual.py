@@ -61,11 +61,11 @@ def _is_truthy(value: str | None) -> bool:
 
 def _download(url: str, timeout: float) -> bytes:
     logging.info("Downloading Reticulum manual from %s", url)
-    req = urllib.request.Request(  # noqa: S310 - URL is constrained to known sources
+    req = urllib.request.Request(
         url,
         headers={"User-Agent": "meshchatx-build-script"},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as response:  # noqa: S310
+    with urllib.request.urlopen(req, timeout=timeout) as response:
         return response.read()
 
 
@@ -240,9 +240,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if _is_truthy(os.environ.get("MESHCHATX_SKIP_DOCS_FETCH")):
-        logging.info(
-            "MESHCHATX_SKIP_DOCS_FETCH is set; skipping Reticulum manual fetch."
-        )
+        logging.info("MESHCHATX_SKIP_DOCS_FETCH is set; skipping Reticulum manual fetch.")
         return 0
 
     sources: list[str] = []

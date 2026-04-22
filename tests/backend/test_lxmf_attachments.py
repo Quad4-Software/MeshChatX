@@ -18,9 +18,7 @@ def test_message_fields_have_attachments():
     assert message_fields_have_attachments(json.dumps({"audio": "base64data"})) is True
 
     # File attachments - empty list
-    assert (
-        message_fields_have_attachments(json.dumps({"file_attachments": []})) is False
-    )
+    assert message_fields_have_attachments(json.dumps({"file_attachments": []})) is False
 
     # File attachments - with files
     assert (

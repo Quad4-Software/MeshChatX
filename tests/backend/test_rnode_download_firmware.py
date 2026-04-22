@@ -98,9 +98,7 @@ async def test_download_firmware_returns_zip_for_allowed_url(web_app):
         async with TestClient(TestServer(aio_app)) as client:
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
-                params={
-                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"
-                },
+                params={"url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"},
             )
             assert r.status == 200
             assert r.headers.get("Content-Type", "").startswith("application/zip")
@@ -144,9 +142,7 @@ async def test_download_firmware_returns_500_on_exception(web_app):
         async with TestClient(TestServer(aio_app)) as client:
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
-                params={
-                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"
-                },
+                params={"url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"},
             )
             assert r.status == 500
             body = await r.json()

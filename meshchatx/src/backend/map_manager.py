@@ -315,9 +315,7 @@ class MapManager:
                     )
                 return None
 
-            tasks = [
-                asyncio.create_task(download_tile(tile)) for tile in tiles_to_download
-            ]
+            tasks = [asyncio.create_task(download_tile(tile)) for tile in tiles_to_download]
 
             for coro in asyncio.as_completed(tasks):
                 if export_id in self._export_cancelled:
@@ -339,9 +337,7 @@ class MapManager:
                         (current_count / total_tiles) * 100,
                     )
 
-                if len(batch_data) >= batch_size or (
-                    current_count == total_tiles and batch_data
-                ):
+                if len(batch_data) >= batch_size or (current_count == total_tiles and batch_data):
                     try:
                         cursor.executemany(
                             "INSERT INTO tiles VALUES (?, ?, ?, ?)",
@@ -358,9 +354,7 @@ class MapManager:
         n = 2.0**zoom
         x = int((lon + 180.0) / 360.0 * n)
         y = int(
-            (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi)
-            / 2.0
-            * n,
+            (1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi) / 2.0 * n,
         )
         return x, y
 

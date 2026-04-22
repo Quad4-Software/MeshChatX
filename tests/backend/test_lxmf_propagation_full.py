@@ -104,10 +104,7 @@ async def test_lxmf_propagation_config(mock_app):
     mock_app.current_context.message_router.set_outbound_propagation_node.assert_called_with(
         node_hash_bytes,
     )
-    assert (
-        mock_app.config.lxmf_preferred_propagation_node_destination_hash.get()
-        == node_hash_hex
-    )
+    assert mock_app.config.lxmf_preferred_propagation_node_destination_hash.get() == node_hash_hex
 
 
 @pytest.mark.asyncio
@@ -128,9 +125,7 @@ async def test_lxmf_sync_flow(mock_app):
     mock_router.propagation_transfer_progress = 0.75
 
     status_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/status"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/status"
     )
     response = await status_handler(None)
     data = json.loads(response.body)
@@ -144,9 +139,7 @@ async def test_lxmf_sync_requests_path_before_sync(mock_app):
     outbound = b"somehash"
     mock_router.get_outbound_propagation_node.return_value = outbound
     sync_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/sync"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/sync"
     )
 
     with patch("meshchatx.meshchat.RNS.Transport.has_path", return_value=False):
@@ -165,9 +158,7 @@ async def test_lxmf_sync_completes_immediately_for_local_preferred_node(mock_app
     mock_router.propagation_destination = SimpleNamespace(hash=local_hash)
     mock_router.get_outbound_propagation_node.return_value = local_hash
     sync_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/sync"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/sync"
     )
 
     await sync_handler(None)
@@ -212,19 +203,14 @@ async def test_auto_sync_interval_config(mock_app):
     await mock_app.update_config(
         {"lxmf_preferred_propagation_node_auto_sync_interval_seconds": 3600},
     )
-    assert (
-        mock_app.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
-        == 3600
-    )
+    assert mock_app.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get() == 3600
 
 
 @pytest.mark.asyncio
 async def test_propagation_node_status_mapping(mock_app):
     mock_router = mock_app.current_context.message_router
     status_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/status"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/status"
     )
 
     states_to_test = [
@@ -271,9 +257,7 @@ async def test_local_propagation_node_stop_and_restart_routes(mock_app):
     }
 
     stop_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/stop"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/stop"
     )
     restart_handler = next(
         r.handler
@@ -318,13 +302,13 @@ async def test_user_provided_node_hash(mock_app):
     )
 
     # Trigger a sync request
-    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = bytes.fromhex(
-        node_hash_hex,
+    mock_app.current_context.message_router.get_outbound_propagation_node.return_value = (
+        bytes.fromhex(
+            node_hash_hex,
+        )
     )
     sync_handler = next(
-        r.handler
-        for r in mock_app.get_routes()
-        if r.path == "/api/v1/lxmf/propagation-node/sync"
+        r.handler for r in mock_app.get_routes() if r.path == "/api/v1/lxmf/propagation-node/sync"
     )
     await sync_handler(None)
 

@@ -59,9 +59,7 @@ def mock_rns():
         # Apply patches
         mocks = {}
         for p in patches:
-            attr_name = (
-                p.attribute if hasattr(p, "attribute") else p.target.split(".")[-1]
-            )
+            attr_name = p.attribute if hasattr(p, "attribute") else p.target.split(".")[-1]
             mocks[attr_name] = stack.enter_context(p)
 
         # Mock class methods on MockIdentityClass

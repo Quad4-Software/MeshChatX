@@ -51,11 +51,7 @@ class RNPathTraceHandler:
             local_hash = "unknown"
             if self.identity and hasattr(self.identity, "hash"):
                 local_hash = self.identity.hash.hex()
-            elif (
-                self.reticulum
-                and hasattr(self.reticulum, "identity")
-                and self.reticulum.identity
-            ):
+            elif self.reticulum and hasattr(self.reticulum, "identity") and self.reticulum.identity:
                 local_hash = self.reticulum.identity.hash.hex()
 
             path.append({"type": "local", "hash": local_hash, "name": "Local Node"})

@@ -2,7 +2,7 @@
 
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from lxmfy import IconAppearance, LXMFBot, pack_icon_appearance_field
 
@@ -141,7 +141,7 @@ class NoteBotTemplate(StoppableBot):
 
             note = {
                 "text": " ".join(ctx.args),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "tags": [w[1:] for w in ctx.args if w.startswith("#")],
             }
 
@@ -162,23 +162,17 @@ class NoteBotTemplate(StoppableBot):
             if not ctx.args:
                 response = "Your Notes:\n"
                 for i, note in enumerate(notes[-10:], 1):
-                    tags = (
-                        " ".join(f"#{tag}" for tag in note["tags"])
-                        if note["tags"]
-                        else ""
-                    )
+                    tags = " ".join(f"#{tag}" for tag in note["tags"]) if note["tags"] else ""
                     response += f"{i}. {note['text']} {tags}\n"
                 if len(notes) > 10:
-                    response += f"\nShowing last 10 of {len(notes)} notes. Use /notes all to see all."
+                    response += (
+                        f"\nShowing last 10 of {len(notes)} notes. Use /notes all to see all."
+                    )
                 ctx.reply(response)
             elif ctx.args[0] == "all":
                 response = "All Your Notes:\n"
                 for i, note in enumerate(notes, 1):
-                    tags = (
-                        " ".join(f"#{tag}" for tag in note["tags"])
-                        if note["tags"]
-                        else ""
-                    )
+                    tags = " ".join(f"#{tag}" for tag in note["tags"]) if note["tags"] else ""
                     response += f"{i}. {note['text']} {tags}\n"
                 ctx.reply(response)
 
@@ -252,7 +246,7 @@ class ReminderBotTemplate(StoppableBot):
                 ctx.reply("Invalid time format. Use combinations of d, h, m")
                 return
 
-            remind_time = datetime.now() + timedelta(minutes=total_minutes)
+            remind_time = datetime.now(UTC) + timedelta(minutes=total_minutes)
             reminder = {
                 "user": ctx.sender,
                 "message": message,

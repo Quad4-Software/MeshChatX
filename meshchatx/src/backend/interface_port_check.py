@@ -15,7 +15,6 @@ import contextlib
 import errno
 import socket
 
-
 _PORT_IN_USE_ERRNOS = {
     errno.EADDRINUSE,
     errno.EACCES,
@@ -28,7 +27,7 @@ def _normalize_host(host: str | None) -> str:
     if host is None:
         return ""
     host = str(host).strip()
-    if host == "" or host in {"*", "0.0.0.0", "::", "[::]"}:
+    if host == "" or host in {"*", "0.0.0.0", "::", "[::]"}:  # noqa: S104
         return ""
     return host
 
@@ -64,7 +63,7 @@ def is_port_in_use(host: str | None, port, *, kind: str = "tcp") -> bool:
     normalized = _normalize_host(host)
     candidates: list[tuple[int, str]] = []
     if normalized == "":
-        candidates.append((socket.AF_INET, "0.0.0.0"))
+        candidates.append((socket.AF_INET, "0.0.0.0"))  # noqa: S104
         candidates.append((socket.AF_INET6, "::"))
     else:
         try:
@@ -110,7 +109,7 @@ def describe_port_conflict(
 ) -> str:
     """Build a user-facing message describing a port conflict."""
     coerced_port = _coerce_port(port)
-    host_label = _normalize_host(host) or "0.0.0.0"
+    host_label = _normalize_host(host) or "0.0.0.0"  # noqa: S104
     name_part = f' for interface "{interface_name}"' if interface_name else ""
     proto = str(kind).upper()
     if coerced_port is None:

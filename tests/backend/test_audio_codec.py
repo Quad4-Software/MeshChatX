@@ -38,9 +38,7 @@ def _build_wav_pcm16(
         wf.setframerate(samplerate)
         frames = bytearray()
         for i in range(n_samples):
-            sample = int(
-                0.3 * 32767 * math.sin(2 * math.pi * frequency * (i / samplerate))
-            )
+            sample = int(0.3 * 32767 * math.sin(2 * math.pi * frequency * (i / samplerate)))
             for _ in range(channels):
                 frames.extend(struct.pack("<h", sample))
         wf.writeframes(bytes(frames))
@@ -194,9 +192,7 @@ def test_encode_pcm_to_ogg_opus_preserves_duration(duration_seconds):
         sr = 48000
         n = int(sr * duration_seconds)
         t = np.arange(n, dtype=np.float32) / sr
-        samples = (
-            (0.3 * np.sin(2 * math.pi * 440.0 * t)).astype(np.float32).reshape(-1, 1)
-        )
+        samples = (0.3 * np.sin(2 * math.pi * 440.0 * t)).astype(np.float32).reshape(-1, 1)
         audio_codec.encode_pcm_to_ogg_opus(samples, sr, 1, out)
         encoded = _ogg_opus_duration_seconds(out)
         assert abs(encoded - duration_seconds) < 0.001, (
@@ -219,9 +215,7 @@ def test_encode_pcm_to_ogg_opus_audio_profile_keeps_stereo():
         t = np.arange(n, dtype=np.float32) / sr
         samples[:, 0] = 0.3 * np.sin(2 * math.pi * 440.0 * t)
         samples[:, 1] = 0.3 * np.sin(2 * math.pi * 660.0 * t)
-        audio_codec.encode_pcm_to_ogg_opus(
-            samples, sr, 2, out, profile=Opus.PROFILE_AUDIO_MAX
-        )
+        audio_codec.encode_pcm_to_ogg_opus(samples, sr, 2, out, profile=Opus.PROFILE_AUDIO_MAX)
         with open(out, "rb") as f:
             data = f.read()
         head = data.find(b"OpusHead")

@@ -29,9 +29,7 @@ class RingtoneDAO:
             display_name = filename
 
         # check if this is the first ringtone, if so make it primary
-        count = self.provider.fetchone("SELECT COUNT(*) as count FROM ringtones")[
-            "count"
-        ]
+        count = self.provider.fetchone("SELECT COUNT(*) as count FROM ringtones")["count"]
         is_primary = 1 if count == 0 else 0
 
         cursor = self.provider.execute(

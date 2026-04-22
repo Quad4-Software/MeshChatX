@@ -42,5 +42,6 @@ finally:
         capture_output=True,
         text=True,
         timeout=120,
+        check=False,
     )
     assert result.returncode == 0, result.stderr + result.stdout

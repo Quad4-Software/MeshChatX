@@ -66,12 +66,10 @@ class ConfigManager:
             "lxmf_preferred_propagation_node_auto_select",
             False,
         )
-        self.lxmf_preferred_propagation_node_auto_sync_interval_seconds = (
-            self.IntConfig(
-                self,
-                "lxmf_preferred_propagation_node_auto_sync_interval_seconds",
-                0,
-            )
+        self.lxmf_preferred_propagation_node_auto_sync_interval_seconds = self.IntConfig(
+            self,
+            "lxmf_preferred_propagation_node_auto_sync_interval_seconds",
+            0,
         )
         self.lxmf_preferred_propagation_node_last_synced_at = self.IntConfig(
             self,
@@ -449,7 +447,7 @@ class ConfigManager:
             self.key = key
             self.default_value = default_value
 
-        def get(self, default_value: str = None) -> str | None:
+        def get(self, default_value: str | None = None) -> str | None:
             _default_value = default_value or self.default_value
             return self.manager.get(self.key, default_value=_default_value)
 

@@ -36,8 +36,8 @@ def mock_app():
 
     # Attach the actual method we want to test if possible,
     # but since it's an instance method, we might need to bind it.
-    app.process_incoming_telemetry = (
-        ReticulumMeshChat.process_incoming_telemetry.__get__(app, ReticulumMeshChat)
+    app.process_incoming_telemetry = ReticulumMeshChat.process_incoming_telemetry.__get__(
+        app, ReticulumMeshChat
     )
 
     return app

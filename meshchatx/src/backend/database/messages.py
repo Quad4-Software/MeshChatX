@@ -44,7 +44,7 @@ class MessageDAO:
         update_set = ", ".join([f"{f} = EXCLUDED.{f}" for f in fields if f != "hash"])
 
         query = (
-            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "  # noqa: S608
+            f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
             f"ON CONFLICT(hash) DO UPDATE SET {update_set}, updated_at = EXCLUDED.updated_at"
         )
 
@@ -150,7 +150,7 @@ class MessageDAO:
             return
         placeholders = ", ".join(["?"] * len(message_hashes))
         self.provider.execute(
-            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",  # noqa: S608
+            f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",
             tuple(message_hashes),
         )
 
@@ -234,7 +234,7 @@ class MessageDAO:
             ) m2 ON m1.peer_hash = m2.peer_hash AND m1.timestamp = m2.max_ts
             GROUP BY m1.peer_hash
             ORDER BY m1.timestamp DESC
-        """  # noqa: S608
+        """
         return self.provider.fetchall(query)
 
     def mark_conversation_as_read(self, destination_hash):
@@ -325,7 +325,7 @@ class MessageDAO:
             LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = m.peer_hash
             WHERE m.peer_hash IN ({placeholders}) AND m.is_incoming = 1
             GROUP BY m.peer_hash
-        """  # noqa: S608
+        """
         rows = self.provider.fetchall(query, destination_hashes)
 
         unread_states = {}
@@ -351,7 +351,7 @@ class MessageDAO:
             return {}
         placeholders = ", ".join(["?"] * len(destination_hashes))
         rows = self.provider.fetchall(
-            f"SELECT peer_hash, COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash IN ({placeholders}) GROUP BY peer_hash",  # noqa: S608
+            f"SELECT peer_hash, COUNT(*) as count FROM lxmf_messages WHERE state = 'failed' AND peer_hash IN ({placeholders}) GROUP BY peer_hash",
             tuple(destination_hashes),
         )
         return {row["peer_hash"]: row["count"] for row in rows}
@@ -367,7 +367,7 @@ class MessageDAO:
             WHERE peer_hash IN ({placeholders})
             AND fields IS NOT NULL AND fields != '{{}}' AND fields != ''
             GROUP BY peer_hash
-        """  # noqa: S608
+        """
         rows = self.provider.fetchall(query, destination_hashes)
 
         return {row["peer_hash"]: True for row in rows}
@@ -405,7 +405,7 @@ class MessageDAO:
         ]
         columns = ", ".join(fields)
         placeholders = ", ".join(["?"] * len(fields))
-        query = f"INSERT INTO lxmf_forwarding_mappings ({columns}, created_at) VALUES ({placeholders}, ?)"  # noqa: S608
+        query = f"INSERT INTO lxmf_forwarding_mappings ({columns}, created_at) VALUES ({placeholders}, ?)"
         params = [data.get(f) for f in fields]
         params.append(datetime.now(UTC).isoformat())
         self.provider.execute(query, params)
@@ -523,7 +523,7 @@ class MessageDAO:
             if folder_id is None:
                 placeholders = ", ".join(["?"] * len(peer_hashes))
                 self.provider.execute(
-                    f"DELETE FROM lxmf_conversation_folders WHERE peer_hash IN ({placeholders})",  # noqa: S608
+                    f"DELETE FROM lxmf_conversation_folders WHERE peer_hash IN ({placeholders})",
                     tuple(peer_hashes),
                 )
             else:

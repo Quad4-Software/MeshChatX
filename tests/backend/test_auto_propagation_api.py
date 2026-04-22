@@ -103,9 +103,7 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     response = await patch_handler(mock_request)
     data = json.loads(response.body)
     assert data["config"]["lxmf_preferred_propagation_node_auto_select"] is False
-    assert (
-        app_instance.config.lxmf_preferred_propagation_node_auto_select.get() is False
-    )
+    assert app_instance.config.lxmf_preferred_propagation_node_auto_select.get() is False
 
     # Update transfer/sync limits and validate clamping/application
     mock_request = MagicMock()
@@ -133,7 +131,5 @@ async def test_auto_propagation_api(mock_rns_minimal, temp_dir):
     response = await patch_handler(mock_request)
     data = json.loads(response.body)
     assert data["config"]["lxmf_delivery_transfer_limit_in_bytes"] == 1_000_000_000
-    assert (
-        app_instance.config.lxmf_delivery_transfer_limit_in_bytes.get() == 1_000_000_000
-    )
+    assert app_instance.config.lxmf_delivery_transfer_limit_in_bytes.get() == 1_000_000_000
     assert app_instance.message_router.delivery_per_transfer_limit == 1_000_000

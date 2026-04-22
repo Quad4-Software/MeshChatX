@@ -46,14 +46,11 @@ class BotHandler:
                 for entry in self.bots_state:
                     if "storage_dir" in entry:
                         entry["storage_dir"] = os.path.abspath(entry["storage_dir"])
-                    if "bot_config_dir" in entry and entry["bot_config_dir"]:
+                    if entry.get("bot_config_dir"):
                         entry["bot_config_dir"] = os.path.abspath(
                             os.path.expanduser(entry["bot_config_dir"]),
                         )
-                    if (
-                        "reticulum_config_dir" in entry
-                        and entry["reticulum_config_dir"]
-                    ):
+                    if entry.get("reticulum_config_dir"):
                         entry["reticulum_config_dir"] = os.path.abspath(
                             os.path.expanduser(entry["reticulum_config_dir"]),
                         )
@@ -150,16 +147,10 @@ class BotHandler:
 
             # Try running instance first
             instance = self.running_bots.get(bot_id, {}).get("instance")
-            if (
-                instance
-                and getattr(instance, "bot", None)
-                and getattr(instance.bot, "local", None)
-            ):
+            if instance and getattr(instance, "bot", None) and getattr(instance.bot, "local", None):
                 with contextlib.suppress(Exception):
                     lh = instance.bot.local.hash
-                    address_full = (
-                        lh.hex() if isinstance(lh, (bytes, bytearray)) else None
-                    )
+                    address_full = lh.hex() if isinstance(lh, (bytes, bytearray)) else None
                     if address_full:
                         address_full = self._normalize_lxmf_hash_hex(address_full)
                     if address_full:
@@ -173,9 +164,7 @@ class BotHandler:
                         destination = RNS.Destination(identity, "lxmf", "delivery")
                         address_full = self._normalize_lxmf_hash_hex(destination.hash)
                         if address_full:
-                            address_pretty = RNS.prettyhexrep(
-                                bytes.fromhex(address_full)
-                            )
+                            address_pretty = RNS.prettyhexrep(bytes.fromhex(address_full))
 
             if address_full is None:
                 address_full = self._read_lxmf_address_sidecar(entry.get("storage_dir"))
@@ -255,7 +244,7 @@ class BotHandler:
             entry["reticulum_config_dir"],
         ]
 
-        proc = subprocess.Popen(cmd, cwd=bot_storage_dir)  # noqa: S603
+        proc = subprocess.Popen(cmd, cwd=bot_storage_dir)
         entry["pid"] = proc.pid
         self._save_state()
 
@@ -284,7 +273,7 @@ class BotHandler:
                 if sys.platform.startswith("win"):
                     # Use absolute path if possible to avoid S607
                     taskkill = shutil.which("taskkill") or "taskkill"
-                    subprocess.run(  # noqa: S603
+                    subprocess.run(
                         [taskkill, "/PID", str(pid), "/T", "/F"],
                         check=False,
                         timeout=5,

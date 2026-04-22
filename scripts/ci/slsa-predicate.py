@@ -14,12 +14,10 @@ def _source_uri() -> str:
     server = (
         os.environ.get("GITHUB_SERVER_URL") or os.environ.get("GITEA_SERVER_URL") or ""
     ).rstrip("/")
-    repo = (
-        os.environ.get("GITHUB_REPOSITORY") or os.environ.get("GITEA_REPOSITORY") or ""
-    )
+    repo = os.environ.get("GITHUB_REPOSITORY") or os.environ.get("GITEA_REPOSITORY") or ""
     if not server or not repo:
         return ""
-    if server.startswith("https://") or server.startswith("http://"):
+    if server.startswith(("https://", "http://")):
         return f"git+{server}/{repo}.git"
     return f"git+https://{server}/{repo}.git"
 
@@ -31,9 +29,7 @@ def _build_type() -> str:
     server = (
         os.environ.get("GITHUB_SERVER_URL") or os.environ.get("GITEA_SERVER_URL") or ""
     ).rstrip("/")
-    repo = (
-        os.environ.get("GITHUB_REPOSITORY") or os.environ.get("GITEA_REPOSITORY") or ""
-    )
+    repo = os.environ.get("GITHUB_REPOSITORY") or os.environ.get("GITEA_REPOSITORY") or ""
     if server and repo:
         return f"{server}/{repo}/.gitea/workflows/build.yml"
     return "https://slsa.dev/provenance/v1"

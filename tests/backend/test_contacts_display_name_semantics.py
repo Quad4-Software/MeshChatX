@@ -176,9 +176,7 @@ class TestCustomDisplayNameLifecycle:
 
     def test_unicode_display_name(self, announce_dao):
         announce_dao.upsert_custom_display_name("dest1", "\u5c71\u7530\u592a\u90ce")
-        assert (
-            announce_dao.get_custom_display_name("dest1") == "\u5c71\u7530\u592a\u90ce"
-        )
+        assert announce_dao.get_custom_display_name("dest1") == "\u5c71\u7530\u592a\u90ce"
 
     def test_very_long_display_name(self, announce_dao):
         long_name = "A" * 10000

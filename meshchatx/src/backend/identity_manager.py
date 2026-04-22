@@ -53,7 +53,7 @@ class IdentityManager:
             try:
                 with open(identity_file, "rb") as f:
                     result[identity_hash] = f.read()
-            except Exception:
+            except OSError:
                 continue
         return result
 
@@ -148,8 +148,7 @@ class IdentityManager:
                     "lxmf_address": lxmf_address,
                     "lxst_address": lxst_address,
                     "is_current": (
-                        current_identity_hash is not None
-                        and identity_hash == current_identity_hash
+                        current_identity_hash is not None and identity_hash == current_identity_hash
                     ),
                 },
             )
@@ -234,7 +233,7 @@ class IdentityManager:
 
             return self._save_new_identity(identity, "Restored Identity")
         except Exception as exc:
-            raise ValueError(f"Failed to restore identity: {exc}")
+            raise ValueError(f"Failed to restore identity: {exc}") from exc
 
     def restore_identity_from_base32(self, base32_value: str) -> dict:
         try:

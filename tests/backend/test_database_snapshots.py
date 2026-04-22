@@ -139,9 +139,7 @@ def test_backup_suspicious_when_messages_gone_skips_cleanup_and_baseline(temp_di
     assert "baseline" in result2
     assert result2["baseline"]["message_count"] == 1
     assert result2["current_stats"]["message_count"] == 0
-    zip_count_after_suspicious = sum(
-        1 for f in os.listdir(backup_dir) if f.endswith(".zip")
-    )
+    zip_count_after_suspicious = sum(1 for f in os.listdir(backup_dir) if f.endswith(".zip"))
     assert zip_count_after_suspicious == 2
     assert any("SUSPICIOUS" in f for f in os.listdir(backup_dir) if f.endswith(".zip"))
     with open(os.path.join(backup_dir, "backup-baseline.json")) as f:
@@ -304,13 +302,8 @@ def test_is_backup_suspicious_does_not_mistrigger_empty_baseline():
 
     db = Database(":memory:")
     db.initialize()
-    assert (
-        db._is_backup_suspicious({"message_count": 0, "total_bytes": 0}, None) is False
-    )
-    assert (
-        db._is_backup_suspicious({"message_count": 10, "total_bytes": 1000}, None)
-        is False
-    )
+    assert db._is_backup_suspicious({"message_count": 0, "total_bytes": 0}, None) is False
+    assert db._is_backup_suspicious({"message_count": 10, "total_bytes": 1000}, None) is False
 
 
 def test_is_backup_suspicious_does_not_mistrigger_legitimate_empty():
@@ -319,10 +312,7 @@ def test_is_backup_suspicious_does_not_mistrigger_legitimate_empty():
     db = Database(":memory:")
     db.initialize()
     baseline = {"message_count": 0, "total_bytes": 5000}
-    assert (
-        db._is_backup_suspicious({"message_count": 0, "total_bytes": 5000}, baseline)
-        is False
-    )
+    assert db._is_backup_suspicious({"message_count": 0, "total_bytes": 5000}, baseline) is False
 
 
 def test_is_backup_suspicious_does_not_mistrigger_small_db():
@@ -331,7 +321,4 @@ def test_is_backup_suspicious_does_not_mistrigger_small_db():
     db = Database(":memory:")
     db.initialize()
     baseline = {"message_count": 5, "total_bytes": 50_000}
-    assert (
-        db._is_backup_suspicious({"message_count": 5, "total_bytes": 55_000}, baseline)
-        is False
-    )
+    assert db._is_backup_suspicious({"message_count": 5, "total_bytes": 55_000}, baseline) is False

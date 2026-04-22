@@ -336,8 +336,7 @@ class PageNode:
         return sorted(
             f
             for f in os.listdir(self.pages_dir)
-            if os.path.isfile(os.path.join(self.pages_dir, f))
-            and is_allowed_page_filename(f)
+            if os.path.isfile(os.path.join(self.pages_dir, f)) and is_allowed_page_filename(f)
         )
 
     def get_page_content(self, name):

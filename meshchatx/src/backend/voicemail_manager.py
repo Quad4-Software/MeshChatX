@@ -140,7 +140,7 @@ class VoicemailManager:
                 f"Voicemail: Generating greeting with command: {' '.join(cmd)}",
                 RNS.LOG_DEBUG,
             )
-            subprocess.run(cmd, check=True)  # noqa: S603
+            subprocess.run(cmd, check=True)
 
             return self.convert_to_greeting(wav_path)
         finally:

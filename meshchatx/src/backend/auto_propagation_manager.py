@@ -120,7 +120,7 @@ class AutoPropagationManager:
                 continue
             try:
                 dest_hash = bytes.fromhex(dest_hex)
-            except Exception:
+            except ValueError:
                 continue
             if RNS.Transport.has_path(dest_hash):
                 hops = RNS.Transport.hops_to(dest_hash)
@@ -134,9 +134,7 @@ class AutoPropagationManager:
         if not sorted_candidates:
             return
 
-        previous_hex = (
-            self.config.lxmf_preferred_propagation_node_destination_hash.get()
-        )
+        previous_hex = self.config.lxmf_preferred_propagation_node_destination_hash.get()
         ordered: list[tuple[int, str]] = []
         seen_hex: set[str] = set()
         if previous_hex and previous_hex in best_by_hex:
@@ -150,7 +148,7 @@ class AutoPropagationManager:
         for _hops, node_hex in ordered:
             try:
                 dest_hash = bytes.fromhex(node_hex)
-            except Exception:
+            except ValueError:
                 continue
 
             if not await self._wait_for_path(dest_hash, PATH_WAIT_SECONDS):

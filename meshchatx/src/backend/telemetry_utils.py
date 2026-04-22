@@ -66,12 +66,12 @@ class Telemeter:
     ):
         try:
             return [
-                struct.pack("!i", int(round(latitude * 1e6))),
-                struct.pack("!i", int(round(longitude * 1e6))),
-                struct.pack("!i", int(round(altitude * 1e2))),
-                struct.pack("!I", int(round(speed * 1e2))),
-                struct.pack("!i", int(round(bearing * 1e2))),
-                struct.pack("!H", int(round(accuracy * 1e2))),
+                struct.pack("!i", round(latitude * 1e6)),
+                struct.pack("!i", round(longitude * 1e6)),
+                struct.pack("!i", round(altitude * 1e2)),
+                struct.pack("!I", round(speed * 1e2)),
+                struct.pack("!i", round(bearing * 1e2)),
+                struct.pack("!H", round(accuracy * 1e2)),
                 int(last_update) if last_update is not None else int(time.time()),
             ]
         except Exception:

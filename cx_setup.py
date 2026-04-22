@@ -20,9 +20,7 @@ changelog_path = ROOT / "CHANGELOG.md"
 if changelog_path.exists():
     include_files.append((str(changelog_path), "CHANGELOG.md"))
 
-frontend_licenses_path = (
-    ROOT / "meshchatx" / "src" / "backend" / "data" / "licenses_frontend.json"
-)
+frontend_licenses_path = ROOT / "meshchatx" / "src" / "backend" / "data" / "licenses_frontend.json"
 if frontend_licenses_path.exists():
     include_files.append((str(frontend_licenses_path), "licenses_frontend.json"))
 

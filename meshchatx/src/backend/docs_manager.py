@@ -206,7 +206,7 @@ class DocsManager:
 
         try:
             for file in os.listdir(src_docs):
-                if file.endswith(".md") or file.endswith(".txt"):
+                if file.endswith((".md", ".txt")):
                     src_path = os.path.join(src_docs, file)
                     dest_path = os.path.join(self.meshchatx_docs_dir, file)
 
@@ -264,9 +264,7 @@ class DocsManager:
 
     def has_meshchatx_docs(self):
         return (
-            any(
-                f.endswith((".md", ".txt")) for f in os.listdir(self.meshchatx_docs_dir)
-            )
+            any(f.endswith((".md", ".txt")) for f in os.listdir(self.meshchatx_docs_dir))
             if os.path.exists(self.meshchatx_docs_dir)
             else False
         )
@@ -635,7 +633,7 @@ class DocsManager:
         if not os.path.isdir(path):
             return
         try:
-            os.chmod(path, 0o755)
+            os.chmod(path, 0o755)  # noqa: S103
         except OSError:
             pass
 
