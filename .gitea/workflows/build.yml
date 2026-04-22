@@ -136,27 +136,13 @@ jobs:
                   sh scripts/ci/exec-priv.sh dpkg -i /tmp/trivy.deb || sh scripts/ci/exec-priv.sh apt-get install -f -y
                   trivy fs --format cyclonedx --include-dev-deps --output release-assets/sbom.cyclonedx.json .
 
-                  # Generate checksums
-                  cd release-assets
-                  for file in *; do
-                    if [ -f "$file" ] && [[ "$file" != *.sha256 ]]; then
-                      sha256sum "$file" | tee "${file}.sha256"
-                    fi
-                  done
-
-                  # Generate release notes (outside release-assets directory)
-                  cd ..
-                  echo "## SHA256 Checksums" > release-body.md
-                  echo "" >> release-body.md
-                  for file in release-assets/*; do
-                    if [ -f "$file" ] && [[ "$file" != *.sha256 ]] && [[ "$file" != *.cosign.bundle ]] && [[ "$file" != *release-body.md* ]]; then
-                      filename=$(basename "$file")
-                      if [ -f "release-assets/${filename}.sha256" ]; then
-                        # Extract just the filename and its sha256 (format: <sha256> <filename>)
-                        echo "\`$(cat "release-assets/${filename}.sha256")\`" >> release-body.md
-                      fi
-                    fi
-                  done
+                  {
+                    echo "## Integrity"
+                    echo ""
+                    echo "Each artifact may have a matching **\`*.cosign.bundle\`** (SLSA v1 provenance via cosign; see \`SECURITY.md\` for verification)."
+                    echo ""
+                    echo "SBOM: **\`sbom.cyclonedx.json\`** (CycloneDX)."
+                  } > release-body.md
 
             - name: SLSA attestations (cosign)
               env:
