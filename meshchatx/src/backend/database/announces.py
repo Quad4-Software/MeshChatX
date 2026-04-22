@@ -50,7 +50,15 @@ class AnnounceDAO:
         self.provider.execute(query, params)
 
     def trim_announces_for_aspect(self, aspect, max_rows):
-        """Delete oldest rows for this aspect until at most max_rows remain."""
+        """Delete oldest rows for this aspect until at most max_rows remain.
+
+        Announces that correspond to a favourited destination or to a saved
+        contact are considered protected and are never deleted by this trim,
+        even if the total count exceeds ``max_rows``. This prevents purging
+        of announces (and the path/identity context they provide) for
+        favourited NomadNet nodes and for messaging contacts when storage
+        limits are enforced.
+        """
         if max_rows < 1 or not aspect:
             return
         row = self.provider.fetchone(
@@ -64,8 +72,19 @@ class AnnounceDAO:
         self.provider.execute(
             """
             DELETE FROM announces WHERE id IN (
-                SELECT id FROM announces WHERE aspect = ?
-                ORDER BY updated_at ASC, id ASC
+                SELECT a.id FROM announces a
+                WHERE a.aspect = ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM favourite_destinations f
+                      WHERE f.destination_hash = a.destination_hash
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM contacts c
+                      WHERE c.remote_identity_hash = a.identity_hash
+                         OR c.lxmf_address = a.destination_hash
+                         OR c.lxst_address = a.destination_hash
+                  )
+                ORDER BY a.updated_at ASC, a.id ASC
                 LIMIT ?
             )
             """,
