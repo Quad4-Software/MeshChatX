@@ -48,7 +48,7 @@
         "start": "pnpm run build && node scripts/electron-forge-local-tmp.js start",
         "package": "pnpm run build && node scripts/electron-forge-local-tmp.js package",
         "make": "pnpm run build && node scripts/electron-forge-local-tmp.js make",
-        "make:snap": "pnpm run electron-postinstall && pnpm run build && cross-env FORGE_MAKE_SNAP=1 node scripts/electron-forge-local-tmp.js make --targets @electron-forge/maker-snap",
+        "make:snap": "pnpm run electron-postinstall && pnpm run build && cross-env DEBUG=electron-installer-snap:snapcraft FORGE_MAKE_SNAP=1 node scripts/electron-forge-local-tmp.js make --targets @electron-forge/maker-snap",
         "make:flatpak": "pnpm run electron-postinstall && pnpm run build && cross-env DEBUG=@malept/flatpak-bundler*,electron-installer-flatpak* FORGE_MAKE_FLATPAK=1 node scripts/electron-forge-local-tmp.js make --targets @electron-forge/maker-flatpak"
     },
     "license": "0BSD AND MIT",

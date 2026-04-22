@@ -150,7 +150,6 @@ jobs:
         env:
             FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
             MESHCHATX_FRONTEND_PREBUILT: "1"
-            SNAPCRAFT_BUILD_ENVIRONMENT: host
             SNAPCRAFT_BUILD_INFO: "1"
         steps:
             - name: Checkout
