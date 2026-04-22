@@ -53,9 +53,9 @@
     },
     "license": "0BSD AND MIT",
     "engines": {
-        "node": ">=22"
+        "node": ">=24"
     },
-    "packageManager": "pnpm@10.32.1",
+    "packageManager": "pnpm@10.33.0",
     "devDependencies": {
         "@electron-forge/cli": "^7.11.1",
         "@electron-forge/maker-deb": "^7.11.1",
@@ -75,7 +75,7 @@
         "@vue/test-utils": "^2.4.6",
         "autoprefixer": "^10.5.0",
         "cross-env": "^10.1.0",
-        "electron": "^39.8.8",
+        "electron": "41.2.2",
         "electron-builder": "^26.8.1",
         "electron-builder-squirrel-windows": "^26.8.1",
         "eslint": "^9.39.4",
