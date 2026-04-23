@@ -2,7 +2,6 @@
 
 import time
 import urllib.request
-from subprocess import CompletedProcess
 from unittest.mock import patch
 
 from meshchatx.src.backend.repository_server_manager import (
@@ -100,59 +99,43 @@ def test_refresh_invokes_bundled_downloader(mock_dl, tmp_path):
     out = mgr.refresh_bundled_wheels()
     assert out["ok"] is True
     mock_dl.assert_called_once()
-    assert mock_dl.call_args.kwargs.get("pip") is None
+    assert mock_dl.call_args.kwargs.get("on_package") is not None
 
 
 @patch("meshchatx.src.backend.repository_server_manager._download_wheel_via_pypi_index")
-@patch("meshchatx.src.backend.repository_server_manager.subprocess.run")
-@patch("meshchatx.src.backend.repository_server_manager.shutil.which")
-def test_download_bundled_wheels_to_directory(
-    mock_which, mock_run, mock_pypi, tmp_path, monkeypatch
-):
+def test_download_bundled_wheels_to_directory(mock_pypi, tmp_path, monkeypatch):
     monkeypatch.setenv("MESHCHAT_REPOSITORY_EXTRA_PIP", "")
-    mock_which.return_value = "/fake/pip3"
-    mock_pypi.return_value = (False, "offline")
-
-    def fake_run(cmd, **kwargs):
-        assert cmd[0] == "/fake/pip3"
-        assert cmd[1] in ("download", "wheel")
-        assert cmd[2] == "--no-deps"
-        assert cmd[3] in ("-d", "-w")
-        return CompletedProcess(cmd, 0, "", "")
-
-    mock_run.side_effect = fake_run
+    mock_pypi.return_value = (True, None)
     dest = tmp_path / "out"
-    out = download_bundled_wheels_to_directory(dest, "/fake/pip3")
-    assert out["ok"] is True
+    out = download_bundled_wheels_to_directory(dest)
     n = len(bundled_pip_targets())
-    assert mock_run.call_count == n
-    assert mock_pypi.call_count == n - 1
+    assert out["ok"] is True
+    assert len(out["downloaded"]) == n
+    assert not out["failed"]
+    assert mock_pypi.call_count == n
 
 
 @patch("meshchatx.src.backend.repository_server_manager._download_wheel_via_pypi_index")
-@patch("meshchatx.src.backend.repository_server_manager.subprocess.run")
-@patch("meshchatx.src.backend.repository_server_manager.shutil.which")
-def test_refresh_calls_pip_after_pypi_fails(
-    mock_which, mock_run, mock_pypi, tmp_path, monkeypatch
-):
+def test_download_bundled_wheels_records_pypi_failures(mock_pypi, tmp_path, monkeypatch):
     monkeypatch.setenv("MESHCHAT_REPOSITORY_EXTRA_PIP", "")
-    mock_which.return_value = "/fake/pip3"
     mock_pypi.return_value = (False, "offline")
+    dest = tmp_path / "out"
+    out = download_bundled_wheels_to_directory(dest)
+    n = len(bundled_pip_targets())
+    assert out["ok"] is False
+    assert not out["downloaded"]
+    assert len(out["failed"]) == n
+    assert mock_pypi.call_count == n
 
-    def fake_run(cmd, **kwargs):
-        assert cmd[0] == "/fake/pip3"
-        assert cmd[1] in ("download", "wheel")
-        assert cmd[2] == "--no-deps"
-        assert cmd[3] in ("-d", "-w")
-        return CompletedProcess(cmd, 0, "", "")
 
-    mock_run.side_effect = fake_run
+@patch("meshchatx.src.backend.repository_server_manager._download_wheel_via_pypi_index")
+def test_refresh_bundled_wheels_fails_when_pypi_unavailable(mock_pypi, tmp_path, monkeypatch):
+    monkeypatch.setenv("MESHCHAT_REPOSITORY_EXTRA_PIP", "")
+    mock_pypi.return_value = (False, "offline")
     mgr = RepositoryServerManager(str(tmp_path))
     out = mgr.refresh_bundled_wheels()
-    assert out["ok"] is True
-    n = len(bundled_pip_targets())
-    assert mock_run.call_count == n
-    assert mock_pypi.call_count == n - 1
+    assert out["ok"] is False
+    assert not out["downloaded"]
 
 
 def test_http_start_stop_and_status(tmp_path):

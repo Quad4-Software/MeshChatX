@@ -71,7 +71,7 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as e:
             logging.warning("Could not remove %s: %s", old, e)
 
-    result = download_bundled_wheels_to_directory(dest, pip=None)
+    result = download_bundled_wheels_to_directory(dest)
     failed = result.get("failed") or {}
     ok = result.get("downloaded") or []
     if failed:

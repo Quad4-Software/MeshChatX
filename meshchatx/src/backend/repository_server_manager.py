@@ -12,8 +12,6 @@ import os
 import re
 import shutil
 import socketserver
-import subprocess
-import sys
 import threading
 import urllib.error
 import urllib.parse
@@ -49,7 +47,7 @@ def bundled_pip_targets() -> tuple[str, ...]:
 
 
 def meshchat_bundle_project_root() -> Path | None:
-    """Directory containing ``pyproject.toml`` for this MeshChatX tree (for local ``pip wheel``)."""
+    """Directory containing ``pyproject.toml`` for this MeshChatX tree (repo layout helper)."""
     here = Path(__file__).resolve()
     for anc in here.parents:
         meta = anc / "pyproject.toml"
@@ -81,29 +79,6 @@ def _pip_spec_stem(spec: str) -> str:
             s = s.split(op, 1)[0].strip()
             break
     return s.strip() or spec.strip()
-
-
-def _resolve_pip_argv(pip: str | list[str] | None) -> list[str] | None:
-    if isinstance(pip, list) and pip:
-        return pip[:]
-    if isinstance(pip, str) and pip.strip():
-        return [pip.strip()]
-    exe = shutil.which("pip3") or shutil.which("pip")
-    if exe:
-        return [exe]
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-m", "pip", "--version"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
-        )
-        if proc.returncode == 0:
-            return [sys.executable, "-m", "pip"]
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-    return None
 
 
 def _pypi_project_json(canonical_name: str) -> dict[str, Any] | None:
@@ -204,102 +179,28 @@ def _download_wheel_via_pypi_index(
     return True, None
 
 
-def _pip_download_no_deps(
-    pip_argv: list[str], package_spec: str, dest: Path
-) -> tuple[bool, str | None]:
-    try:
-        proc = subprocess.run(
-            [*pip_argv, "download", "--no-deps", "-d", str(dest), package_spec],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=900,
-        )
-    except subprocess.TimeoutExpired:
-        return False, "timeout"
-    except OSError as e:
-        return False, str(e)
-    if proc.returncode != 0:
-        err = (proc.stderr or proc.stdout or "").strip() or f"exit {proc.returncode}"
-        return False, err[:2000]
-    return True, None
-
-
-def _bundle_meshchatx_wheel_pip(
-    pip_argv: list[str], dest: Path
-) -> tuple[bool, str | None]:
-    root = meshchat_bundle_project_root()
-    if root is None:
-        return False, "meshchat_project_root_not_found"
-    try:
-        proc = subprocess.run(
-            [*pip_argv, "wheel", "--no-deps", "-w", str(dest), str(root)],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=900,
-        )
-    except subprocess.TimeoutExpired:
-        return False, "timeout"
-    except OSError as e:
-        return False, str(e)
-    if proc.returncode != 0:
-        err = (proc.stderr or proc.stdout or "").strip() or f"exit {proc.returncode}"
-        return False, err[:2000]
-    return True, None
-
-
 def download_bundled_wheels_to_directory(
     dest: Path,
-    pip: str | list[str] | None = None,
     *,
     on_package: Callable[[int, int, str], None] | None = None,
 ) -> dict[str, Any]:
     """Populate ``dest`` with wheels for :func:`bundled_pip_targets`.
 
-    Uses PyPI JSON + ``urllib`` (no pip CLI required). If ``pip`` resolves to an executable
-    or ``python -m pip``, failed HTTP steps fall back to ``pip download`` / ``pip wheel``.
+    Uses PyPI project metadata JSON and HTTPS downloads via ``urllib`` only.
     """
     dest.mkdir(parents=True, exist_ok=True)
     packages = list(bundled_pip_targets())
     total = len(packages)
     ok: list[str] = []
     failed: dict[str, str] = {}
-    pip_argv = _resolve_pip_argv(pip)
     for i, pkg in enumerate(packages):
         if on_package is not None:
             on_package(i, total, pkg)
-        if pkg == _MESHCHATX_BUNDLE_PIP_NAME:
-            good = False
-            err: str | None = None
-            if pip_argv:
-                good, err = _bundle_meshchatx_wheel_pip(pip_argv, dest)
-            if not good:
-                g2, e2 = _download_wheel_via_pypi_index(pkg, dest)
-                if g2:
-                    good, err = True, None
-                elif err is None:
-                    err = e2
-                elif e2:
-                    err = f"{err}; pypi:{e2}"
-            if good:
-                ok.append(pkg)
-            else:
-                failed[pkg] = err or "wheel_failed"
-            continue
-
         g_http, e_http = _download_wheel_via_pypi_index(pkg, dest)
         if g_http:
             ok.append(pkg)
-            continue
-        if pip_argv:
-            g_pip, e_pip = _pip_download_no_deps(pip_argv, pkg, dest)
-            if g_pip:
-                ok.append(pkg)
-                continue
-            failed[pkg] = f"pypi:{e_http or 'failed'}; pip:{e_pip}"
         else:
-            failed[pkg] = f"pypi:{e_http or 'failed'}; pip:unavailable"
+            failed[pkg] = f"pypi:{e_http or 'failed'}"
     return {
         "ok": bool(ok),
         "downloaded": ok,
@@ -473,7 +374,7 @@ def _safe_any_upload_filename(name: str) -> str | None:
 
 
 class RepositoryServerManager:
-    """Keeps user uploads and a ``bundled`` directory of wheels (PyPI HTTP + optional pip)."""
+    """Keeps user uploads and a ``bundled`` directory of wheels (PyPI over HTTPS, stdlib only)."""
 
     def __init__(self, storage_path: str, public_dir: str | None = None) -> None:
         self.root = os.path.join(storage_path, "repository-server")
@@ -721,7 +622,7 @@ class RepositoryServerManager:
         }
 
     def refresh_bundled_wheels(self) -> dict[str, Any]:
-        """Download wheels into ``bundled_dir`` (PyPI over HTTPS; pip optional fallback)."""
+        """Download wheels into ``bundled_dir`` (PyPI JSON + ``urllib``)."""
         self._last_refresh_error = None
         self._last_refresh_ok = []
         self._last_refresh_failed = {}
@@ -745,9 +646,7 @@ class RepositoryServerManager:
                     running=True, current=pkg, completed=i, total=t
                 )
 
-            result = download_bundled_wheels_to_directory(
-                dest, pip=None, on_package=_on_pkg
-            )
+            result = download_bundled_wheels_to_directory(dest, on_package=_on_pkg)
             ok = result["downloaded"]
             failed = result["failed"]
         finally:
