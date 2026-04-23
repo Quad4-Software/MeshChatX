@@ -194,33 +194,48 @@ class DocsManager:
             os.path.abspath(os.path.join(this_dir, "..", "..", "..", "docs")),
         )
 
-        src_docs = None
-        for path in search_paths:
-            if os.path.exists(path) and os.path.isdir(path):
-                src_docs = path
-                break
-
-        if not src_docs:
+        candidate_dirs = [p for p in search_paths if os.path.isdir(p)]
+        if not candidate_dirs:
             logging.warning("MeshChatX docs source directory not found.")
             return
 
+        seen_basenames: set[str] = set()
+        sourced: list[tuple[str, str]] = []
+        for base in candidate_dirs:
+            try:
+                names = sorted(os.listdir(base))
+            except OSError:
+                continue
+            for file in names:
+                if not file.endswith((".md", ".txt")):
+                    continue
+                if file in seen_basenames:
+                    continue
+                seen_basenames.add(file)
+                sourced.append((file, base))
+
+        if not sourced:
+            logging.warning(
+                "No MeshChatX .md or .txt files found in docs search paths."
+            )
+            return
+
         try:
-            for file in os.listdir(src_docs):
-                if file.endswith((".md", ".txt")):
-                    src_path = os.path.join(src_docs, file)
-                    dest_path = os.path.join(self.meshchatx_docs_dir, file)
+            for file, src_docs in sourced:
+                src_path = os.path.join(src_docs, file)
+                dest_path = os.path.join(self.meshchatx_docs_dir, file)
 
-                    if os.path.abspath(src_path) != os.path.abspath(
-                        dest_path,
-                    ) and os.access(self.meshchatx_docs_dir, os.W_OK):
-                        shutil.copy2(src_path, dest_path)
+                if os.path.abspath(src_path) != os.path.abspath(
+                    dest_path,
+                ) and os.access(self.meshchatx_docs_dir, os.W_OK):
+                    shutil.copy2(src_path, dest_path)
 
-                    try:
-                        with open(src_path, encoding="utf-8") as f:
-                            content = f.read()
+                try:
+                    with open(src_path, encoding="utf-8") as f:
+                        content = f.read()
 
-                        html_content = MarkdownRenderer.render(content)
-                        full_html = f"""<!DOCTYPE html>
+                    html_content = MarkdownRenderer.render(content)
+                    full_html = f"""<!DOCTYPE html>
 <html class="dark">
 <head>
     <meta charset="utf-8">
@@ -237,15 +252,15 @@ class DocsManager:
     </div>
 </body>
 </html>"""
-                        html_file = os.path.splitext(file)[0] + ".html"
-                        with open(
-                            os.path.join(self.meshchatx_docs_dir, html_file),
-                            "w",
-                            encoding="utf-8",
-                        ) as f:
-                            f.write(full_html)
-                    except Exception as e:
-                        logging.exception(f"Failed to render {file} to HTML: {e}")
+                    html_file = os.path.splitext(file)[0] + ".html"
+                    with open(
+                        os.path.join(self.meshchatx_docs_dir, html_file),
+                        "w",
+                        encoding="utf-8",
+                    ) as f:
+                        f.write(full_html)
+                except Exception as e:
+                    logging.exception(f"Failed to render {file} to HTML: {e}")
         except Exception as e:
             logging.exception(f"Failed to populate MeshChatX docs: {e}")
 
