@@ -36,10 +36,12 @@ vi.mock("ol/Map", () => ({
             removeOverlay: vi.fn(),
             getView: vi.fn().mockReturnValue({
                 on: vi.fn(),
+                un: vi.fn(),
                 setCenter: vi.fn(),
                 setZoom: vi.fn(),
                 getCenter: vi.fn().mockReturnValue([0, 0]),
                 getZoom: vi.fn().mockReturnValue(2),
+                getRotation: vi.fn().mockReturnValue(0),
                 fit: vi.fn(),
                 animate: vi.fn(),
             }),

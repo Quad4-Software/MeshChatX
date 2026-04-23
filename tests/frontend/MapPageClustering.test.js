@@ -21,12 +21,14 @@ vi.mock("ol/layer/Group", () => ({
 
 const viewMock = {
     on: vi.fn(),
+    un: vi.fn(),
     setCenter: vi.fn(),
     setZoom: vi.fn(),
     getCenter: vi.fn().mockReturnValue([0, 0]),
     getZoom: vi.fn().mockReturnValue(8),
     getMaxZoom: vi.fn().mockReturnValue(19),
     getResolution: vi.fn().mockReturnValue(10),
+    getRotation: vi.fn().mockReturnValue(0),
     fit: vi.fn(),
     animate: vi.fn(),
 };

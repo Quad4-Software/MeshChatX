@@ -111,18 +111,16 @@ describe("AboutPage.vue", () => {
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/app/info");
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
 
-        expect(wrapper.text()).toContain("MeshChatX");
-        expect(wrapper.text()).toContain("Reticulum Network Stack");
+        expect(wrapper.text()).toContain("about.app_name");
+        expect(wrapper.text()).toContain("about.tagline_link");
         expect(wrapper.text()).toContain("hash1");
         expect(wrapper.text()).toContain("hash2");
 
-        // Check for Dependency Chain section
-        expect(wrapper.text()).toContain("Dependency Chain");
-        expect(wrapper.text()).toContain("Lightweight Extensible Message Format");
-        expect(wrapper.text()).toContain("Reticulum Network Stack");
+        expect(wrapper.text()).toContain("about.dependency_chain");
+        expect(wrapper.text()).toContain("about.dep_lxmf_subtitle");
+        expect(wrapper.text()).toContain("about.dep_rns_subtitle");
 
-        // Check for dependencies
-        expect(wrapper.text()).toContain("Backend Stack");
+        expect(wrapper.text()).toContain("about.backend_stack");
         expect(wrapper.text()).toContain("aiohttp");
         expect(wrapper.text()).toContain("3.8.1");
     });
@@ -155,7 +153,7 @@ describe("AboutPage.vue", () => {
 
         expect(getMemoryUsageSpy).toHaveBeenCalled();
         expect(wrapper.vm.electronMemoryUsage).not.toBeNull();
-        expect(wrapper.text()).toContain("Environment Information");
+        expect(wrapper.text()).toContain("about.environment_information");
     });
 
     it("handles shutdown action", async () => {
@@ -269,7 +267,7 @@ describe("AboutPage.vue", () => {
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.text()).toContain("Free Space");
+        expect(wrapper.text()).toContain("about.free_space");
         expect(wrapper.text()).toContain("1 GB");
     });
 
@@ -291,7 +289,7 @@ describe("AboutPage.vue", () => {
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.text()).toContain("Free Space");
+        expect(wrapper.text()).toContain("about.free_space");
         expect(wrapper.text()).toContain("0 Bytes");
     });
 
@@ -321,8 +319,8 @@ describe("AboutPage.vue", () => {
         await wrapper.vm.$nextTick();
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.text()).toContain("Reticulum Config");
-        expect(wrapper.text()).toContain("Database Path");
-        expect(wrapper.text()).toContain("unknown");
+        expect(wrapper.text()).toContain("about.reticulum_config");
+        expect(wrapper.text()).toContain("about.database_path");
+        expect(wrapper.text()).toContain("about.path_unknown");
     });
 });
