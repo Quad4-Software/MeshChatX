@@ -11574,7 +11574,9 @@ class ReticulumMeshChat:
             ]
 
             path = request.path
-            if path.startswith("/reticulum-docs/") or path.startswith("/rnode-flasher/"):
+            if path.startswith("/reticulum-docs/") or path.startswith(
+                "/rnode-flasher/"
+            ):
                 script_sources = ["'self'", "'unsafe-inline'"]
             else:
                 script_sources = ["'self'"]

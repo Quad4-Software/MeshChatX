@@ -11,7 +11,12 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from meshchatx.src.backend import gif_utils, lxmf_utils, sticker_pack_utils, sticker_utils
+from meshchatx.src.backend import (
+    gif_utils,
+    lxmf_utils,
+    sticker_pack_utils,
+    sticker_utils,
+)
 
 
 _TINY_GIF = (
@@ -32,21 +37,27 @@ _TINY_PNG = (
 @given(s=st.text(max_size=5000, alphabet=st.characters(blacklist_categories=("Cs",))))
 def test_sanitize_sticker_name_fuzzing(s):
     out = sticker_utils.sanitize_sticker_name(s)
-    assert out is None or (isinstance(out, str) and len(out) <= 128 and all(c.isprintable() for c in out))
+    assert out is None or (
+        isinstance(out, str) and len(out) <= 128 and all(c.isprintable() for c in out)
+    )
 
 
 @settings(max_examples=150, deadline=None)
 @given(s=st.text(max_size=500, alphabet=st.characters(blacklist_categories=("Cs",))))
 def test_sanitize_sticker_emoji_fuzzing(s):
     out = sticker_utils.sanitize_sticker_emoji(s)
-    assert out is None or (isinstance(out, str) and len(out) <= 16 and all(c.isprintable() for c in out))
+    assert out is None or (
+        isinstance(out, str) and len(out) <= 16 and all(c.isprintable() for c in out)
+    )
 
 
 @settings(max_examples=120, deadline=None)
 @given(s=st.text(max_size=2000, alphabet=st.characters(blacklist_categories=("Cs",))))
 def test_sanitize_gif_name_fuzzing(s):
     out = gif_utils.sanitize_gif_name(s)
-    assert out is None or (isinstance(out, str) and len(out) <= 128 and all(c.isprintable() for c in out))
+    assert out is None or (
+        isinstance(out, str) and len(out) <= 128 and all(c.isprintable() for c in out)
+    )
 
 
 @settings(max_examples=100, deadline=None)
@@ -135,7 +146,9 @@ def _minimal_lxmf_mock(app_ext: dict):
 @settings(max_examples=80, deadline=None)
 @given(
     emoji=st.text(max_size=800, alphabet=st.characters(blacklist_categories=("Cs",))),
-    reaction_to=st.text(max_size=800, alphabet=st.characters(blacklist_categories=("Cs",))),
+    reaction_to=st.text(
+        max_size=800, alphabet=st.characters(blacklist_categories=("Cs",))
+    ),
     sender=st.text(max_size=800, alphabet=st.characters(blacklist_categories=("Cs",))),
 )
 def test_convert_lxmf_reaction_app_extensions_fuzzing(emoji, reaction_to, sender):

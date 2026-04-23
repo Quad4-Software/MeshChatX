@@ -8,7 +8,10 @@ import shutil
 import subprocess
 from typing import Any
 
-from meshchatx.src.backend.http_url_guard import UnsafeOutboundUrlError, normalize_loopback_http_service_base
+from meshchatx.src.backend.http_url_guard import (
+    UnsafeOutboundUrlError,
+    normalize_loopback_http_service_base,
+)
 
 try:
     import aiohttp

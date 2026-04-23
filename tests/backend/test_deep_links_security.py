@@ -135,7 +135,7 @@ async def test_lxm_ingest_map_invalid_lat_lon(mock_app):
         ("<script>alert(1)</script>", "safe"),
         ("discovered", "<img src=x onerror=alert(1)>"),
         ("javascript:alert(1)", "ping"),
-        ("';DROP TABLE map;--", "\"><svg/onload=alert(1)>"),
+        ("';DROP TABLE map;--", '"><svg/onload=alert(1)>'),
         ("a" * 4000, "b" * 4000),
     ],
 )
@@ -222,10 +222,16 @@ def test_meshchatx_map_query_tail_fuzzing(mock_app, tail):
     max_examples=60,
 )
 @given(
-    lat=st.floats(min_value=-90.0, max_value=90.0, allow_nan=False, allow_infinity=False),
-    lon=st.floats(min_value=-180.0, max_value=180.0, allow_nan=False, allow_infinity=False),
+    lat=st.floats(
+        min_value=-90.0, max_value=90.0, allow_nan=False, allow_infinity=False
+    ),
+    lon=st.floats(
+        min_value=-180.0, max_value=180.0, allow_nan=False, allow_infinity=False
+    ),
     z=st.integers(min_value=-50, max_value=50),
-    extra=st.dictionaries(keys=st.text(max_size=8), values=st.text(max_size=40), max_size=6),
+    extra=st.dictionaries(
+        keys=st.text(max_size=8), values=st.text(max_size=40), max_size=6
+    ),
 )
 def test_meshchatx_map_numeric_params_fuzzing(mock_app, lat, lon, z, extra):
     q = {"lat": str(lat), "lon": str(lon), "z": str(z)}

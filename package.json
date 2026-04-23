@@ -129,7 +129,9 @@
     "build": {
         "appId": "com.sudoivan.reticulummeshchat",
         "productName": "Reticulum MeshChatX",
-        "electronLanguages": ["en-US"],
+        "electronLanguages": [
+            "en-US"
+        ],
         "asar": true,
         "electronFuses": {
             "runAsNode": false,

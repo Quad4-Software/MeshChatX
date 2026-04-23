@@ -30,9 +30,7 @@ describe("App.vue deep link protocol handling (security-oriented)", () => {
     });
 
     it("sends map deep links to lxm.ingest_uri unchanged over WebSocket", () => {
-        const uri =
-            "meshchatx://map?lat=1&lon=2&z=4&label=" +
-            encodeURIComponent("<img src=x onerror=alert(1)>");
+        const uri = "meshchatx://map?lat=1&lon=2&z=4&label=" + encodeURIComponent("<img src=x onerror=alert(1)>");
         App.methods.handleProtocolLink.call({ $router: { push: vi.fn() } }, uri);
         expect(WebSocketConnection.send).toHaveBeenCalledTimes(1);
         const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
@@ -85,7 +83,7 @@ describe("App.vue deep link protocol handling (security-oriented)", () => {
                         label: marker,
                     },
                 }),
-            },
+            }
         );
         expect(push).toHaveBeenCalledWith({
             name: "map",

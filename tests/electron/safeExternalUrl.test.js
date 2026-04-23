@@ -4,9 +4,7 @@ import { normalizeExternalUrlForOpen } from "../../electron/safeExternalUrl.js";
 describe("safeExternalUrl", () => {
     it("allows http and https origins", () => {
         expect(normalizeExternalUrlForOpen("http://example.com/path")).toBe("http://example.com/path");
-        expect(normalizeExternalUrlForOpen("https://example.com/x?y=1#z")).toBe(
-            "https://example.com/x?y=1#z",
-        );
+        expect(normalizeExternalUrlForOpen("https://example.com/x?y=1#z")).toBe("https://example.com/x?y=1#z");
     });
 
     it("allows mailto", () => {
@@ -39,9 +37,7 @@ describe("safeExternalUrl", () => {
             expect(() => normalizeExternalUrlForOpen(s)).not.toThrow();
             const o = normalizeExternalUrlForOpen(s);
             if (o !== null) {
-                expect(o.startsWith("http://") || o.startsWith("https://") || o.startsWith("mailto:")).toBe(
-                    true,
-                );
+                expect(o.startsWith("http://") || o.startsWith("https://") || o.startsWith("mailto:")).toBe(true);
             }
         }
     });

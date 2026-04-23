@@ -2,19 +2,31 @@
 
 import pytest
 
-from meshchatx.src.backend.http_url_guard import UnsafeOutboundUrlError, normalize_loopback_http_service_base
+from meshchatx.src.backend.http_url_guard import (
+    UnsafeOutboundUrlError,
+    normalize_loopback_http_service_base,
+)
 
 
 def test_normalize_loopback_localhost():
-    assert normalize_loopback_http_service_base("http://localhost:5000") == "http://localhost:5000"
+    assert (
+        normalize_loopback_http_service_base("http://localhost:5000")
+        == "http://localhost:5000"
+    )
 
 
 def test_normalize_loopback_strip_path():
-    assert normalize_loopback_http_service_base("https://127.0.0.1:5000/v1") == "https://127.0.0.1:5000"
+    assert (
+        normalize_loopback_http_service_base("https://127.0.0.1:5000/v1")
+        == "https://127.0.0.1:5000"
+    )
 
 
 def test_normalize_loopback_ipv6():
-    assert normalize_loopback_http_service_base("http://[::1]:8080/") == "http://[::1]:8080"
+    assert (
+        normalize_loopback_http_service_base("http://[::1]:8080/")
+        == "http://[::1]:8080"
+    )
 
 
 @pytest.mark.parametrize(
