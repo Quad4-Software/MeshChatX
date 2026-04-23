@@ -618,6 +618,20 @@ app.whenReady().then(async () => {
     const resourcesPath = process.resourcesPath || path.join(appPath, "..", "..");
     var exe = null;
 
+    const platformFolder =
+        process.platform === "win32" || process.platform === "win"
+            ? "win32"
+            : process.platform === "darwin"
+              ? "darwin"
+              : "linux";
+    const archSegment = (() => {
+        if (process.arch === "arm64") return "arm64";
+        if (process.arch === "ia32") return "ia32";
+        if (process.arch === "arm") return "armv7l";
+        return "x64";
+    })();
+    const packagedExtraResourceDir = path.join(resourcesPath, `${platformFolder}-${archSegment}`, exeName);
+
     // when packaged, extraResources are placed at resources/backend
     // when packaged with extraFiles, they were at resources/app/electron/build/exe
     // when packaged with asar, unpacked files are in app.asar.unpacked/ directory
@@ -625,6 +639,8 @@ app.whenReady().then(async () => {
     const possiblePaths = [
         // packaged app - extraResources location (resources/backend)
         path.join(resourcesPath, "backend", exeName),
+        // @electron/packager extraResource: copies build/exe/<platform>-<arch> to resources/<platform>-<arch>/
+        packagedExtraResourceDir,
         // electron-forge extraResource location (resources/exe)
         path.join(resourcesPath, "exe", exeName),
         // legacy packaged app - extraFiles location (resources/app/electron/build/exe)

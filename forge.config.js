@@ -23,7 +23,9 @@ if (platform === "win32" || platform === "win") {
 
 module.exports = {
     packagerConfig: {
-        asar: true,
+        asar: {
+            unpack: "electron/{loading.html,crash.html,preload.js}",
+        },
         ignore: [
             /^\/\.flatpak-builder(\/|$)/,
             /^\/\.snapcraft(\/|$)/,
