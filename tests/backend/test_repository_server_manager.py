@@ -116,7 +116,9 @@ def test_download_bundled_wheels_to_directory(mock_pypi, tmp_path, monkeypatch):
 
 
 @patch("meshchatx.src.backend.repository_server_manager._download_wheel_via_pypi_index")
-def test_download_bundled_wheels_records_pypi_failures(mock_pypi, tmp_path, monkeypatch):
+def test_download_bundled_wheels_records_pypi_failures(
+    mock_pypi, tmp_path, monkeypatch
+):
     monkeypatch.setenv("MESHCHAT_REPOSITORY_EXTRA_PIP", "")
     mock_pypi.return_value = (False, "offline")
     dest = tmp_path / "out"
@@ -129,7 +131,9 @@ def test_download_bundled_wheels_records_pypi_failures(mock_pypi, tmp_path, monk
 
 
 @patch("meshchatx.src.backend.repository_server_manager._download_wheel_via_pypi_index")
-def test_refresh_bundled_wheels_fails_when_pypi_unavailable(mock_pypi, tmp_path, monkeypatch):
+def test_refresh_bundled_wheels_fails_when_pypi_unavailable(
+    mock_pypi, tmp_path, monkeypatch
+):
     monkeypatch.setenv("MESHCHAT_REPOSITORY_EXTRA_PIP", "")
     mock_pypi.return_value = (False, "offline")
     mgr = RepositoryServerManager(str(tmp_path))
