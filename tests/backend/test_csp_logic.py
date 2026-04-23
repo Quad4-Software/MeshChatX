@@ -66,6 +66,7 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
         assert "https://api.example.com" in csp
         assert "https://tiles.example.com" in csp
         assert "default-src 'self'" in csp
+        assert "wasm-unsafe-eval" in csp
 
 
 @pytest.mark.asyncio

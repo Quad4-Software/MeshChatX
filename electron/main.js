@@ -506,7 +506,7 @@ app.whenReady().then(async () => {
         // Define a robust fallback CSP that matches our backend's policy
         const fallbackCsp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline'",
+            "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.cartocdn.com https://tiles.openfreemap.org https://*.openfreemap.org",
             "font-src 'self' data: https://tiles.openfreemap.org https://*.openfreemap.org",
