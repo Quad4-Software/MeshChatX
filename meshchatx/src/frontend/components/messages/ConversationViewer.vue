@@ -1616,6 +1616,7 @@
 
 <script>
 import Utils from "../../js/Utils";
+import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
 import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "./conversationScroll.js";
 import {
     isTelemetryOnly as isTelemetryOnlyMessage,
@@ -3332,10 +3333,13 @@ export default {
                 const mv = me.touches ? me.touches[0] : me;
                 const dx = mv.clientX - this.reactionDragState.startX;
                 const dy = mv.clientY - this.reactionDragState.startY;
-                this.reactionPickerPos = {
-                    x: this.reactionDragState.originX + dx,
-                    y: this.reactionDragState.originY + dy,
-                };
+                const panelEl = this.$refs.reactionPickerPanel;
+                if (!panelEl) return;
+                const pr = panelEl.getBoundingClientRect();
+                const nx = this.reactionDragState.originX + dx;
+                const ny = this.reactionDragState.originY + dy;
+                const { left, top } = clampFloatingToViewport(nx, ny, pr.width, pr.height);
+                this.reactionPickerPos = { x: left, y: top };
             };
             const onUp = () => {
                 document.removeEventListener("mousemove", onMove);

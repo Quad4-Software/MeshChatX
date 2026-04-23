@@ -27,6 +27,14 @@ describe("context menu styling", () => {
         expect(item).toContain("context-item");
     });
 
+    it("ContextMenuPanel clamps position to the viewport via clampFloatingToViewport", () => {
+        const panel = readProjectFile("meshchatx/src/frontend/components/contextmenu/ContextMenuPanel.vue");
+        expect(panel).toContain("clampFloatingToViewport");
+        expect(panel).toContain('ref="panel"');
+        expect(panel).toContain("repositionToViewport");
+        expect(panel).toContain("resize");
+    });
+
     it("uses ContextMenuPanel and ContextMenuItem on all right-click context menus", () => {
         const files = [
             "meshchatx/src/frontend/components/contacts/ContactsPage.vue",

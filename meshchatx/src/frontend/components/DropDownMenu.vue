@@ -21,11 +21,9 @@
             >
                 <div
                     v-if="isShowingMenu && dropdownPosition"
-                    class="overflow-hidden fixed z-[200] w-56 rounded-md bg-white dark:bg-zinc-800 shadow-lg border border-gray-200 dark:border-zinc-700 focus:outline-none"
-                    :style="{
-                        left: dropdownPosition.x + 'px',
-                        top: dropdownPosition.y + 'px',
-                    }"
+                    ref="dropdownPanel"
+                    class="overflow-x-hidden fixed z-[200] w-56 rounded-md bg-white dark:bg-zinc-800 shadow-lg border border-gray-200 dark:border-zinc-700 focus:outline-none"
+                    :style="dropdownPanelStyle"
                     @click.stop="hideMenu"
                 >
                     <slot name="items" />
@@ -36,6 +34,8 @@
 </template>
 
 <script>
+import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
+
 export default {
     name: "DropDownMenu",
     data() {
@@ -43,6 +43,24 @@ export default {
             isShowingMenu: false,
             dropdownPosition: null,
         };
+    },
+    computed: {
+        dropdownPanelStyle() {
+            if (!this.dropdownPosition) {
+                return {};
+            }
+            const style = {
+                left: `${this.dropdownPosition.x}px`,
+                top: `${this.dropdownPosition.y}px`,
+            };
+            if (this.dropdownPosition.maxHeight != null) {
+                style.maxHeight = `${this.dropdownPosition.maxHeight}px`;
+                style.overflowY = "auto";
+            } else {
+                style.overflow = "hidden";
+            }
+            return style;
+        },
     },
     methods: {
         toggleMenu() {
@@ -71,24 +89,22 @@ export default {
                 if (!button) return;
 
                 const buttonRect = button.getBoundingClientRect();
-                const estimatedHeight = 200;
-                const spaceBelow = window.innerHeight - buttonRect.bottom;
-                const spaceAbove = buttonRect.top;
+                const menuWidth = 224;
+                let x = buttonRect.right - menuWidth;
+                x = Math.min(Math.max(8, x), window.innerWidth - menuWidth - 8);
 
-                let x = buttonRect.right - 224;
-                if (x < 8) x = 8;
-                if (x + 224 > window.innerWidth) x = window.innerWidth - 224 - 8;
+                const spaceBelow = window.innerHeight - buttonRect.bottom - 4;
+                const spaceAbove = buttonRect.top - 8;
+                let y = spaceBelow >= spaceAbove ? buttonRect.bottom + 4 : Math.max(8, buttonRect.top - 200 - 4);
 
-                let y;
-                if (spaceBelow >= estimatedHeight || spaceBelow >= spaceAbove) {
-                    y = buttonRect.bottom + 4;
-                } else {
-                    y = buttonRect.top - estimatedHeight - 4;
-                }
-                if (y < 8) y = 8;
-                if (y + estimatedHeight > window.innerHeight - 8) y = window.innerHeight - estimatedHeight - 8;
-
-                this.dropdownPosition = { x, y };
+                this.dropdownPosition = { x, y, maxHeight: null };
+                this.$nextTick(() => {
+                    const panel = this.$refs.dropdownPanel;
+                    if (!panel) return;
+                    const rect = panel.getBoundingClientRect();
+                    const { left, top, maxHeight } = clampFloatingToViewport(rect.left, rect.top, rect.width, rect.height);
+                    this.dropdownPosition = { x: left, y: top, maxHeight };
+                });
             });
         },
     },

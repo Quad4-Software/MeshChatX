@@ -19,8 +19,9 @@
         <Teleport to="body">
             <div
                 v-if="isDropdownOpen"
+                ref="notificationDropdown"
                 v-click-outside="closeDropdown"
-                class="fixed w-80 sm:w-96 md:max-lg:w-80 lg:w-96 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] max-h-[500px] overflow-hidden flex flex-col"
+                class="fixed w-80 sm:w-96 md:max-lg:w-80 lg:w-96 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] max-h-[min(500px,calc(100vh-2rem))] overflow-hidden flex flex-col"
                 :style="dropdownStyle"
             >
                 <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
@@ -147,6 +148,7 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import Utils from "../js/Utils";
 import WebSocketConnection from "../js/WebSocketConnection";
 import GlobalState from "../js/GlobalState";
+import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
 
 export default {
     name: "NotificationBell",
@@ -177,15 +179,20 @@ export default {
             unreadCount: 0,
             reloadInterval: null,
             dropdownPosition: { top: 0, left: 0 },
+            dropdownMaxHeight: null,
             showHistory: false,
         };
     },
     computed: {
         dropdownStyle() {
-            return {
+            const style = {
                 top: `${this.dropdownPosition.top}px`,
                 left: `${this.dropdownPosition.left}px`,
             };
+            if (this.dropdownMaxHeight != null) {
+                style.maxHeight = `${this.dropdownMaxHeight}px`;
+            }
+            return style;
         },
     },
     beforeUnmount() {
@@ -224,18 +231,30 @@ export default {
                 if (hadNotifications) {
                     await this.loadNotifications({ updateList: false });
                 }
+                await this.$nextTick();
+                this.clampNotificationDropdown();
             }
         },
         updateDropdownPosition(event) {
             const button = event.currentTarget;
             const rect = button.getBoundingClientRect();
             const isMobile = window.innerWidth < 640;
-            const dropdownWidth = isMobile ? 320 : 384; // 80 (320px) or 96 (384px)
+            const dropdownWidth = isMobile ? 320 : 384;
 
+            this.dropdownMaxHeight = null;
             this.dropdownPosition = {
                 top: rect.bottom + 8,
                 left: Math.max(16, rect.right - dropdownWidth),
             };
+            this.$nextTick(() => this.clampNotificationDropdown());
+        },
+        clampNotificationDropdown() {
+            const panel = this.$refs.notificationDropdown;
+            if (!panel || !this.isDropdownOpen) return;
+            const pr = panel.getBoundingClientRect();
+            const { left, top, maxHeight } = clampFloatingToViewport(pr.left, pr.top, pr.width, pr.height);
+            this.dropdownPosition = { top, left };
+            this.dropdownMaxHeight = maxHeight;
         },
         closeDropdown() {
             this.isDropdownOpen = false;
@@ -250,6 +269,10 @@ export default {
                 if (hadNotifications) {
                     await this.loadNotifications({ updateList: false });
                 }
+            }
+            if (this.isDropdownOpen) {
+                await this.$nextTick();
+                this.clampNotificationDropdown();
             }
         },
         async loadNotifications(options = {}) {

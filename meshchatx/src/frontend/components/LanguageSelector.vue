@@ -14,8 +14,9 @@
         <Teleport to="body">
             <div
                 v-if="isDropdownOpen"
+                ref="languageDropdown"
                 v-click-outside="closeDropdown"
-                class="fixed w-48 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] overflow-hidden"
+                class="fixed w-48 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] overflow-x-hidden"
                 :style="dropdownStyle"
             >
                 <div class="p-2">
@@ -42,6 +43,7 @@
 
 <script>
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
 
 const localeModules = import.meta.glob("../locales/*.json", { eager: true });
 const discoveredLanguages = Object.entries(localeModules)
@@ -80,6 +82,7 @@ export default {
         return {
             isDropdownOpen: false,
             dropdownPosition: { top: 0, left: 0 },
+            dropdownMaxHeight: null,
         };
     },
     computed: {
@@ -90,10 +93,17 @@ export default {
             return discoveredLanguages;
         },
         dropdownStyle() {
-            return {
+            const style = {
                 top: `${this.dropdownPosition.top}px`,
                 left: `${this.dropdownPosition.left}px`,
             };
+            if (this.dropdownMaxHeight != null) {
+                style.maxHeight = `${this.dropdownMaxHeight}px`;
+                style.overflowY = "auto";
+            } else {
+                style.overflow = "hidden";
+            }
+            return style;
         },
     },
     methods: {
@@ -106,10 +116,19 @@ export default {
         updateDropdownPosition(event) {
             const button = event.currentTarget;
             const rect = button.getBoundingClientRect();
+            this.dropdownMaxHeight = null;
             this.dropdownPosition = {
                 top: rect.bottom + 8,
-                left: Math.max(8, rect.right - 192), // 192px is w-48
+                left: Math.max(8, rect.right - 192),
             };
+            this.$nextTick(() => {
+                const panel = this.$refs.languageDropdown;
+                if (!panel) return;
+                const pr = panel.getBoundingClientRect();
+                const { left, top, maxHeight } = clampFloatingToViewport(pr.left, pr.top, pr.width, pr.height);
+                this.dropdownPosition = { left, top };
+                this.dropdownMaxHeight = maxHeight;
+            });
         },
         closeDropdown() {
             this.isDropdownOpen = false;
