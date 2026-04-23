@@ -7,6 +7,53 @@
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" type="image/png" href="favicons/favicon-512x512.png" />
         <title>Reticulum MeshChatX</title>
+        <style>
+            #meshchatx-boot-splash {
+                box-sizing: border-box;
+                position: fixed;
+                inset: 0;
+                z-index: 2147483000;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 0.75rem;
+                padding: 1.5rem;
+                font:
+                    0.95rem/1.5 system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    sans-serif;
+                color: #0f172a;
+                background: linear-gradient(160deg, #f1f5f9 0%, #e2e8f0 45%, #cbd5e1 100%);
+            }
+            @media (prefers-color-scheme: dark) {
+                #meshchatx-boot-splash {
+                    color: #f1f5f9;
+                    background: linear-gradient(160deg, #0f172a 0%, #18181b 50%, #27272a 100%);
+                }
+            }
+            #meshchatx-boot-splash[data-state="error"] {
+                background: #450a0a;
+                color: #fecaca;
+            }
+            #meshchatx-boot-splash .meshchatx-boot-logo {
+                width: 3.25rem;
+                height: 3.25rem;
+                object-fit: contain;
+            }
+            #meshchatx-boot-splash .meshchatx-boot-title {
+                font-weight: 600;
+                font-size: 1.05rem;
+                letter-spacing: -0.02em;
+            }
+            #meshchatx-boot-splash .meshchatx-boot-line {
+                max-width: 20rem;
+                text-align: center;
+                opacity: 0.85;
+                font-size: 0.875rem;
+            }
+        </style>
     </head>
     <body class="bg-gray-100">
         <noscript>
@@ -32,6 +79,11 @@
                 and reload this page.
             </div>
         </noscript>
+        <div id="meshchatx-boot-splash" role="status" aria-live="polite" aria-busy="true">
+            <img class="meshchatx-boot-logo" src="favicons/favicon-512x512.png" alt="" width="52" height="52" />
+            <div class="meshchatx-boot-title">MeshChatX</div>
+            <div class="meshchatx-boot-line" data-boot-line>Starting…</div>
+        </div>
         <div id="app"></div>
         <script type="module" src="main.js"></script>
     </body>

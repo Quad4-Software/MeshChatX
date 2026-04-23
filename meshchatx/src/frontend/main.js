@@ -11,7 +11,7 @@ injectMeshchatThemeVariables();
 window.DOMPurify = DOMPurify;
 import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
-import { ensureCodec2ScriptsLoaded } from "./js/Codec2Loader";
+import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
 
 import App from "./components/App.vue";
@@ -346,10 +346,26 @@ function registerMeshchatServiceWorker() {
     });
 }
 
-async function bootstrap() {
+function bootstrap() {
     registerMeshchatServiceWorker();
-    await ensureCodec2ScriptsLoaded();
-    createApp(App).use(router).use(vuetify).use(i18n).use(vClickOutside).mount("#app");
+    const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
+    try {
+        createApp(App).use(router).use(vuetify).use(i18n).use(vClickOutside).mount("#app");
+    } catch (e) {
+        console.error("MeshChatX bootstrap failed:", e);
+        if (splash) {
+            splash.setAttribute("data-state", "error");
+            const line = splash.querySelector("[data-boot-line]");
+            if (line) {
+                line.textContent = "Failed to start. Try closing and reopening the app.";
+            }
+        }
+        return;
+    }
+    if (splash) {
+        splash.remove();
+    }
+    void startCodec2ScriptsBackgroundLoad();
 }
 
 bootstrap();
