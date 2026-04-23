@@ -57,4 +57,27 @@ describe("shellPathGuard", () => {
             fs.unlinkSync(p);
         }
     });
+
+    it("fuzz: paths under default storage stay allowed", () => {
+        for (let i = 0; i < 200; i++) {
+            const seg = Array.from({ length: 10 }, () => String.fromCharCode(Math.floor(Math.random() * 94) + 33)).join(
+                ""
+            );
+            const p = path.join(storage, "fuzz-shell", seg);
+            expect(() => isAllowedShellPath(p, ctx)).not.toThrow();
+            expect(isAllowedShellPath(p, ctx)).toBe(true);
+        }
+    });
+
+    it("fuzz: random absolute-looking paths return boolean without throw", () => {
+        for (let i = 0; i < 200; i++) {
+            let s = process.platform === "win32" ? "C:\\" : "/";
+            const n = Math.floor(Math.random() * 24) + 4;
+            for (let j = 0; j < n; j++) {
+                s += String.fromCharCode(Math.floor(Math.random() * 96) + 32);
+            }
+            expect(() => isAllowedShellPath(s, ctx)).not.toThrow();
+            expect(typeof isAllowedShellPath(s, ctx)).toBe("boolean");
+        }
+    });
 });

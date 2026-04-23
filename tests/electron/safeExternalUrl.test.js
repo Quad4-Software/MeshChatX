@@ -41,4 +41,19 @@ describe("safeExternalUrl", () => {
             }
         }
     });
+
+    it("fuzz: full BMP code units do not throw and only yield safe schemes", () => {
+        for (let i = 0; i < 250; i++) {
+            let s = "";
+            const len = Math.floor(Math.random() * 400);
+            for (let j = 0; j < len; j++) {
+                s += String.fromCharCode(Math.floor(Math.random() * 65536));
+            }
+            expect(() => normalizeExternalUrlForOpen(s)).not.toThrow();
+            const o = normalizeExternalUrlForOpen(s);
+            if (o !== null) {
+                expect(o.startsWith("http://") || o.startsWith("https://") || o.startsWith("mailto:")).toBe(true);
+            }
+        }
+    });
 });

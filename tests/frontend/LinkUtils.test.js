@@ -178,4 +178,24 @@ describe("LinkUtils.js", () => {
             expect(LinkUtils.httpUrlHrefOrNull("file:///etc/passwd")).toBeNull();
         });
     });
+
+    describe("fuzzing robustness", () => {
+        it("httpUrlHrefOrNull and renderAllLinks tolerate random BMP strings", () => {
+            for (let i = 0; i < 300; i++) {
+                let s = "";
+                const len = Math.floor(Math.random() * 600);
+                for (let j = 0; j < len; j++) {
+                    s += String.fromCharCode(Math.floor(Math.random() * 65536));
+                }
+                expect(() => LinkUtils.httpUrlHrefOrNull(s)).not.toThrow();
+                expect(() => LinkUtils.renderAllLinks(s)).not.toThrow();
+                const h = LinkUtils.httpUrlHrefOrNull(s);
+                if (h !== null) {
+                    expect(h.startsWith("http://") || h.startsWith("https://")).toBe(true);
+                }
+                const rendered = LinkUtils.renderAllLinks(s);
+                expect(rendered.toLowerCase()).not.toContain("<script");
+            }
+        });
+    });
 });
