@@ -72,7 +72,11 @@ export function buildWebHashMapUrl({ lat, lon, zoom, layers = "", label = "" }) 
 }
 
 export function mapLinkKindFromMessage(content, parsed) {
-    if (content && typeof content === "string" && /MeshChatX\s+map\s+ping/i.test(content)) {
+    if (
+        content &&
+        typeof content === "string" &&
+        /^\s*MeshChatX\s+map\s+ping\b/i.test(content)
+    ) {
         return "ping";
     }
     if (parsed?.label && /^ping$/i.test(parsed.label)) {

@@ -46,6 +46,8 @@ describe("mapLinkUtils", () => {
 
     it("classifies ping vs view from message", () => {
         expect(mapLinkKindFromMessage("MeshChatX map ping: meshchatx://map?lat=0&lon=0&z=3", null)).toBe("ping");
+        expect(mapLinkKindFromMessage("  MeshChatX map ping: meshchatx://map?lat=0&lon=0&z=3", null)).toBe("ping");
+        expect(mapLinkKindFromMessage("<script>MeshChatX map ping:</script>", null)).toBe("view");
         expect(mapLinkKindFromMessage("hello", { label: "Ping" })).toBe("ping");
         expect(mapLinkKindFromMessage("hello", { label: "Here" })).toBe("view");
     });
