@@ -5,7 +5,7 @@ set -eu
 
 . "$(dirname "$0")/priv.sh"
 
-COSIGN_VERSION="${1:-3.0.5}"
+COSIGN_VERSION="${1:-3.0.6}"
 
 ARCH="$(uname -m)"
 case "$ARCH" in

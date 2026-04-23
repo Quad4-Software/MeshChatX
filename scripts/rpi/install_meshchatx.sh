@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEFAULT_WHEEL_URL="https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.4.0/reticulum_meshchatx-4.4.0-py3-none-any.whl"
+# Official defaults target Gitea at git.quad4.io. Override for forks or mirrors:
+#   MESHCHATX_RELEASES_RSS  Release feed (default: .../MeshChatX/releases.rss)
+#   MESHCHATX_REPO_BASE     Repo root for synthesized wheel URLs if RSS has no
+#                           .whl link in descriptions (default: derived from RSS URL)
+# Cosign: Sigstore attestation verify needs the real cosign binary; this script can
+# download a checksum-verified release from GitHub to /tmp if none is on PATH.
+#   MESHCHATX_COSIGN_VERSION   (default: 3.0.6)
+#   MESHCHATX_COSIGN_PUB_URL   (default: raw cosign.pub from master in this repo)
 
 RUN_USER="${SUDO_USER:-$USER}"
 RUN_GROUP="$(id -gn "$RUN_USER")"
@@ -83,6 +90,205 @@ prompt_yes_no() {
     done
 }
 
+repo_base_from_rss() {
+    local u="$1"
+    case "$u" in
+        *"/releases.rss")
+            echo "${u%/releases.rss}"
+            ;;
+        *"/releases.atom")
+            echo "${u%/releases.atom}"
+            ;;
+        *)
+            echo "${u%/*}"
+            ;;
+    esac
+}
+
+is_prerelease_tag() {
+    local t="${1#v}"
+    t="${t#V}"
+    if [[ "$t" =~ (^|[-_.])(rc|RC|alpha|beta|pre|dev|a[0-9]+|b[0-9]+)([-_.[:digit:]]|$) ]]; then
+        return 0
+    fi
+    return 1
+}
+
+absolutize_link() {
+    local l="$1" o="$2"
+    case "$l" in
+        http://* | https://*) printf "%s" "$l" ;;
+        //*)
+            case "$o" in
+                http://*)  printf "http:%s" "$l" ;;
+                https://*) printf "https:%s" "$l" ;;
+                *)         printf "https:%s" "$l" ;;
+            esac
+            ;;
+        /*)
+            local h="${o#*//}"
+            h="${h%%/*}"
+            case "$o" in
+                http://*)  printf "http://%s%s" "$h" "$l" ;;
+                https://*) printf "https://%s%s" "$h" "$l" ;;
+                *)         printf "https://%s%s" "$h" "$l" ;;
+            esac
+            ;;
+        *) printf "%s" "$l" ;;
+    esac
+}
+
+tag_from_link() {
+    local l="$1"
+    if [[ "$l" =~ /releases/tag/([^/?#]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    fi
+}
+
+discover_release_wheels() {
+    local rss raw repo_base st_tag st_url p_tag p_url
+    if ! command -v curl >/dev/null 2>&1; then
+        err "curl is required (RSS and downloads)."
+        return 1
+    fi
+    MESHCHATX_RELEASES_RSS="${MESHCHATX_RELEASES_RSS:-https://git.quad4.io/RNS-Things/MeshChatX/releases.rss}"
+    repo_base="${MESHCHATX_REPO_BASE:-}"
+    rss="$MESHCHATX_RELEASES_RSS"
+    [[ -n "$repo_base" ]] || repo_base="$(repo_base_from_rss "$rss")"
+    if ! raw="$(
+        curl -fsSL -m 90 -H "User-Agent: MeshChatX-rpi-installer/1 (+https://git.quad4.io/RNS-Things/MeshChatX)" \
+            "$rss" 2>/dev/null
+    )"; then
+        return 1
+    fi
+    [[ -n "$raw" ]] || return 1
+    st_tag=""; st_url=""; p_tag=""; p_url=""
+    while IFS=$'\t' read -r alink itemblk || [[ -n "$alink" ]]; do
+        [[ -z "$alink" && -z "$itemblk" ]] && continue
+        local link t ver synth whl
+        link="$(absolutize_link "$alink" "$rss")"
+        t="$(tag_from_link "$link")"
+        [[ -n "$t" ]] || continue
+        whl="$(
+            printf "%s" "$itemblk" | tr -d '\r' | awk '{
+                s = $0
+                while (match(s, /https?:\/\/[^[:space:]<&]+\.whl/)) {
+                    w = substr(s, RSTART, RLENGTH)
+                    if (w ~ /[Mm]eshchatx/) { print w; exit 0 }
+                    s = substr(s, RSTART + 1)
+                }
+                s = $0
+                while (match(s, /https?:\/\/[^[:space:]<&]+\.whl/)) {
+                    print substr(s, RSTART, RLENGTH)
+                    exit 0
+                }
+            }'
+        )"
+        ver="$t"
+        if [[ "$ver" == v* ]]; then
+            ver="${ver#v}"
+        elif [[ "$ver" == V* ]]; then
+            ver="${ver#V}"
+        fi
+        synth="${repo_base}/releases/download/${t}/reticulum_meshchatx-${ver}-py3-none-any.whl"
+        if [[ -n "$whl" ]]; then
+            link="$whl"
+        else
+            link="$synth"
+        fi
+        if is_prerelease_tag "$t"; then
+            if [[ -z "$p_url" ]]; then
+                p_tag="$t"
+                p_url="$link"
+            fi
+        else
+            if [[ -z "$st_url" ]]; then
+                st_tag="$t"
+                st_url="$link"
+            fi
+        fi
+    done < <(
+        printf '%s' "$raw" | tr -d '\r' | awk 'BEGIN{RS="<item>";} NR>1 {
+    blk=$0
+    gsub(/<atom:link/,"<link",blk);
+    p=index(blk, "<link>");
+    if (!p) next;
+    s=substr(blk, p+6);
+    q=index(s, "</link>");
+    if (!q) next;
+    l=substr(s, 1, q-1);
+    gsub(/^[ \t\n]+/,"",l);
+    gsub(/[ \t\n]+$/,"",l);
+    print l "\t" blk
+    }'
+    )
+    printf '%s\n' "$st_tag" "$st_url" "$p_tag" "$p_url"
+}
+
+prompt_wheel_source() {
+    local stable_tag="$1"
+    local stable_url="$2"
+    local pre_tag="$3"
+    local pre_url="$4"
+
+    local choice="" default_choice="1"
+    echo
+    note "Pick the MeshChatX wheel (from Gitea release feed)."
+    if [[ -n "$stable_tag" && -n "$stable_url" ]]; then
+        echo "  1) stable (${stable_tag})"
+    else
+        echo "  1) stable (not available from feed)"
+        default_choice="3"
+    fi
+    if [[ -n "$pre_tag" && -n "$pre_url" ]]; then
+        echo "  2) pre-release (${pre_tag})"
+    else
+        echo "  2) pre-release (not available from feed)"
+    fi
+    echo "  3) custom wheel URL"
+    if [[ -z "$stable_url" && -z "$pre_url" ]]; then
+        default_choice="3"
+    elif [[ -z "$stable_url" && -n "$pre_url" ]]; then
+        default_choice="2"
+    fi
+
+    while true; do
+        read -r -p "Selection [1/2/3] (default ${default_choice}): " choice
+        if [[ -z "$choice" ]]; then
+            choice="$default_choice"
+        fi
+        case "$choice" in
+            1)
+                if [[ -n "$stable_url" ]]; then
+                    echo "$stable_url"
+                    return 0
+                fi
+                echo "Stable wheel is not available; choose 2 or 3." >&2
+                ;;
+            2)
+                if [[ -n "$pre_url" ]]; then
+                    echo "$pre_url"
+                    return 0
+                fi
+                echo "Pre-release wheel is not available; choose 1 or 3." >&2
+                ;;
+            3)
+                local custom_u=""
+                custom_u="$(prompt_default "Wheel URL" "")"
+                if [[ -z "$custom_u" ]]; then
+                    echo "URL cannot be empty." >&2
+                else
+                    echo "$custom_u"
+                    return 0
+                fi
+                ;;
+            *)
+                echo "Please enter 1, 2, or 3." >&2
+                ;;
+        esac
+    done
+}
+
 pick_package_manager() {
     if command -v apt-get >/dev/null 2>&1; then
         echo "apt"
@@ -132,30 +338,25 @@ install_package_if_possible() {
 }
 
 check_port_available() {
-    local host="$1"
-    local port="$2"
-    python3 - "$host" "$port" <<'PY'
-import socket
-import sys
-
-host = sys.argv[1]
-port = int(sys.argv[2])
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-try:
-    s.bind((host, port))
-except OSError:
-    sys.exit(1)
-finally:
-    s.close()
-sys.exit(0)
-PY
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        if ss -tlnH 2>/dev/null | grep -qE ":${port}( |$)"; then
+            return 1
+        fi
+        return 0
+    fi
+    if command -v netstat >/dev/null 2>&1; then
+        if netstat -tln 2>/dev/null | grep -qE ":${port}( |$)"; then
+            return 1
+        fi
+        return 0
+    fi
+    warn "ss/netstat not found; port availability not checked."
+    return 0
 }
 
 detect_arch() {
-    python3 - <<'PY'
-import platform
-print(platform.machine().strip().lower())
-PY
+    uname -m | tr '[:upper:]' '[:lower:]'
 }
 
 is_supported_rpi_arch() {
@@ -228,6 +429,108 @@ WantedBy=default.target
 EOF"
 }
 
+api_status_is_ok() {
+    local scheme="$1"
+    local h="$2"
+    local p="$3"
+    local url="${scheme}://${h}:${p}/api/v1/status"
+    if command -v curl >/dev/null 2>&1; then
+        if [[ "$scheme" == "https" ]]; then
+            curl -fsS -k -m 2 "$url" 2>/dev/null | grep -qE '"status"[[:space:]]*:[[:space:]]*"ok"'
+        else
+            curl -fsS -m 2 "$url" 2>/dev/null | grep -qE '"status"[[:space:]]*:[[:space:]]*"ok"'
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if [[ "$scheme" == "https" ]]; then
+            wget -qO- -T 2 --no-check-certificate "$url" 2>/dev/null | grep -qE '"status"[[:space:]]*:[[:space:]]*"ok"'
+        else
+            wget -qO- -T 2 "$url" 2>/dev/null | grep -qE '"status"[[:space:]]*:[[:space:]]*"ok"'
+        fi
+    else
+        return 1
+    fi
+}
+
+ensure_cosign_binary() {
+    local u ver bin_name expect act tmpd sumf base
+    u="$(uname -m)"
+    case "$u" in
+        x86_64)   bin_name="cosign-linux-amd64" ;;
+        aarch64)  bin_name="cosign-linux-arm64" ;;
+        arm64)    bin_name="cosign-linux-arm64" ;;
+        armv7l | armv6l) bin_name="cosign-linux-arm" ;;
+        *)
+            err "No bootstrap cosign build for uname: $u (install cosign, or skip attestation verify)."
+            return 1
+            ;;
+    esac
+    ver="${MESHCHATX_COSIGN_VERSION:-3.0.6}"
+    tmpd="${TMPDIR:-/tmp}/meshchatx-cosign-${$}"
+    mkdir -p "$tmpd" || return 1
+    sumf="${tmpd}/cosign_checksums.txt"
+    base="https://github.com/sigstore/cosign/releases/download/v${ver}"
+    if ! curl -fsSL -m 120 "$base/cosign_checksums.txt" -o "$sumf" \
+        || ! curl -fsSL -m 120 "$base/${bin_name}" -o "${tmpd}/cosign"; then
+        rm -rf "$tmpd"
+        err "Could not download cosign ${ver} for verification."
+        return 1
+    fi
+    expect="$(awk -v b="$bin_name" 'index($0, b) {print $1; exit}' "$sumf" 2>/dev/null || true)"
+    act="$(sha256sum "${tmpd}/cosign" | awk '{print $1}')"
+    if [[ -z "$expect" || "$expect" != "$act" ]]; then
+        rm -rf "$tmpd"
+        err "cosign binary SHA256 mismatch (expected from checksums: ${expect:-missing})."
+        return 1
+    fi
+    chmod 755 "${tmpd}/cosign"
+    echo "${tmpd}/cosign"
+}
+
+try_verify_and_localize_wheel() {
+    MESHCHATX_WHEEL_FILE=""
+    local src_url="${1:-}"
+    local bundle_url="${src_url}.cosign.bundle"
+    local code cbin kf wf bf
+    MESHCHATX_COSIGN_PUB_URL="${MESHCHATX_COSIGN_PUB_URL:-https://git.quad4.io/RNS-Things/MeshChatX/raw/branch/master/cosign.pub}"
+    if ! code="$(curl -fsS -o /dev/null -w '%{http_code}' -I -L -m 30 "$bundle_url" 2>/dev/null)"; then
+        code="000"
+    fi
+    [[ "$code" == "200" ]] || return 1
+    if ! prompt_yes_no "A cosign attestation exists for this wheel. Verify with cosign (uses PATH binary, or one-time download to /tmp, not a system package)?" "y"; then
+        return 1
+    fi
+    wf="$(mktemp "${TMPDIR:-/tmp}/meshchatx.XXXXXX.whl")" || return 1
+    bf="$(mktemp "${TMPDIR:-/tmp}/meshchatx.XXXXXX.cosign.bundle")" || {
+        rm -f "$wf"
+        return 1
+    }
+    kf="$(mktemp "${TMPDIR:-/tmp}/meshchatx.XXXXXX.pub")" || {
+        rm -f "$wf" "$bf"
+        return 1
+    }
+    if ! curl -fsSL -m 600 "$src_url" -o "$wf" || ! curl -fsSL -m 120 "$bundle_url" -o "$bf" || ! curl -fsSL -m 60 "$MESHCHATX_COSIGN_PUB_URL" -o "$kf"; then
+        err "Failed to download wheel, bundle, or cosign.pub."
+        rm -f "$wf" "$bf" "$kf"
+        return 1
+    fi
+    if command -v cosign >/dev/null 2>&1; then
+        cbin="$(command -v cosign)"
+    elif ! cbin="$(ensure_cosign_binary)"; then
+        err "Set cosign on PATH, or use a build arch supported by the Sigstore binary."
+        rm -f "$wf" "$bf" "$kf"
+        return 1
+    fi
+    if ! "$cbin" verify-blob-attestation --key "$kf" --bundle "$bf" --type slsaprovenance1 "$wf"; then
+        err "cosign attestation verification failed for the downloaded wheel."
+        rm -f "$wf" "$bf" "$kf"
+        exit 1
+    fi
+    rm -f "$bf" "$kf"
+    MESHCHATX_WHEEL_FILE="$wf"
+    ok "cosign attestation OK (SLSA provenance v1). Installing verified wheel from ${wf}."
+    return 0
+}
+
 handle_service_start_failure() {
     local mode="$1"
     local reason="$2"
@@ -270,29 +573,7 @@ verify_service_started() {
 
     note "Verifying service startup via ${scheme}://${probe_host}:${probe_port}/api/v1/status ..."
     for _ in $(seq 1 "$tries"); do
-        if python3 - "$scheme" "$probe_host" "$probe_port" <<'PY'
-import json
-import ssl
-import sys
-import urllib.request
-
-scheme, host, port = sys.argv[1], sys.argv[2], int(sys.argv[3])
-url = f"{scheme}://{host}:{port}/api/v1/status"
-
-ctx = ssl._create_unverified_context() if scheme == "https" else None
-req = urllib.request.Request(url, method="GET")
-try:
-    with urllib.request.urlopen(req, timeout=2, context=ctx) as resp:
-        if resp.status != 200:
-            raise RuntimeError(f"unexpected status {resp.status}")
-        data = json.loads(resp.read().decode("utf-8"))
-        if data.get("status") != "ok":
-            raise RuntimeError("status payload is not ok")
-except Exception:
-    sys.exit(1)
-sys.exit(0)
-PY
-        then
+        if api_status_is_ok "$scheme" "$probe_host" "$probe_port"; then
             ok "Service started successfully (status endpoint is healthy)."
             return 0
         fi
@@ -347,8 +628,25 @@ main() {
         fi
     done
 
-    local wheel_url
-    wheel_url="$(prompt_default "Wheel URL" "$DEFAULT_WHEEL_URL")"
+    local wheel_url=""
+    local -a rel_lines=()
+    note "Fetching release list from Gitea (RSS)..."
+    if mapfile -t rel_lines < <(discover_release_wheels 2>/dev/null) && [[ ${#rel_lines[@]} -ge 4 ]]; then
+        wheel_url="$(prompt_wheel_source "${rel_lines[0]:-}" "${rel_lines[1]:-}" "${rel_lines[2]:-}" "${rel_lines[3]:-}")"
+    else
+        warn "Could not use the release feed (set MESHCHATX_RELEASES_RSS or check network)."
+        wheel_url="$(prompt_default "Wheel URL" "")"
+        if [[ -z "$wheel_url" ]]; then
+            err "Aborted: need a wheel URL."
+            exit 1
+        fi
+    fi
+    ok "Selected wheel: ${wheel_url}"
+    local wheel_install_target="$wheel_url"
+    MESHCHATX_WHEEL_FILE=""
+    if try_verify_and_localize_wheel "$wheel_url"; then
+        wheel_install_target="${MESHCHATX_WHEEL_FILE}"
+    fi
 
     local install_root
     install_root="$(prompt_default "Install root directory" "${USER_HOME}/meshchatx")"
@@ -361,7 +659,7 @@ main() {
     local bind_port
     bind_port="$(prompt_default "Bind port" "8000")"
 
-    if check_port_available "$bind_host" "$bind_port"; then
+    if check_port_available "$bind_port"; then
         ok "Port ${bind_port} is available on ${bind_host}."
     else
         warn "Port ${bind_port} appears to be in use on ${bind_host}."
@@ -416,14 +714,14 @@ main() {
         fi
         note "Installing MeshChatX via pipx..."
         run_as_user "pipx ensurepath >/dev/null 2>&1 || true"
-        run_as_user "pipx install --force '${wheel_url}'"
+        run_as_user "pipx install --force '${wheel_install_target}'"
         run_as_user "pipx inject reticulum-meshchatx packaging >/dev/null 2>&1 || true"
         bin_path="${USER_HOME}/.local/bin/meshchatx"
     else
         note "Installing MeshChatX via venv + pip..."
         run_as_user "python3 -m venv '${venv_path}'"
         run_as_user "'${venv_path}/bin/python' -m pip install --upgrade pip"
-        run_as_user "'${venv_path}/bin/python' -m pip install '${wheel_url}'"
+        run_as_user "'${venv_path}/bin/python' -m pip install '${wheel_install_target}'"
         run_as_user "'${venv_path}/bin/python' -m pip install packaging"
         bin_path="${venv_path}/bin/meshchatx"
     fi

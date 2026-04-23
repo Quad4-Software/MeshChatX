@@ -7,7 +7,11 @@ This install path uses a release wheel, which already includes frontend assets.
 
 ## Automated Setup Scripts
 
-If you want one-command setup, use the interactive installer from repo root:
+```bash
+curl -fsSL 'https://git.quad4.io/RNS-Things/MeshChatX/raw/branch/master/scripts/rpi/install_meshchatx.sh' | bash
+```
+
+If you have the repo cloned locally already:
 
 ```bash
 bash scripts/rpi/install_meshchatx.sh
@@ -17,23 +21,20 @@ The installer guides you through:
 
 - Optional `espeak-ng` install (tries apt/dnf/pacman)
 - Install method (`pipx` or `venv + pip`)
+- Wheel choice (latest stable, latest pre-release, or a custom URL)
+- Optional **cosign** attestation: if a `*.whl.cosign.bundle` is published
+  next to the wheel, you can verify it. The script uses `cosign` on `PATH` if
+  present, or downloads a **checksum-verified** official Linux binary to `/tmp`
+  (the Sigstore bundle format is not reimplemented in shell; you still use the
+  real `cosign` to verify, without installing a distro package)
 - Storage and Reticulum directories
 - Bind host and port (with availability check)
 - HTTPS on/off (default on)
 - Service mode (`system`, `user`, or `none`)
-- Service startup verification (`Running on ...`)
+- Service startup validation via the HTTP status endpoint
 
 If startup validation fails, it prints recent logs and stops the service to avoid
 restart loops.
-
-The installer also applies compatibility dependencies needed by older wheel
-releases.
-
-For all options:
-
-```bash
-bash scripts/rpi/install_meshchatx.sh --help
-```
 
 ## 1) Install Base Dependencies
 

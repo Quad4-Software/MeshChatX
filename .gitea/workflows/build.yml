@@ -22,7 +22,7 @@ permissions:
     packages: write
 
 env:
-    COSIGN_VERSION: "3.0.5"
+    COSIGN_VERSION: "3.0.6"
 
 jobs:
     build:
