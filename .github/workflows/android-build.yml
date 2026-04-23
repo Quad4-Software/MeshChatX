@@ -172,20 +172,20 @@ jobs:
               working-directory: android
               run: |
                   chmod +x gradlew
-                  ./gradlew --no-daemon :app:testDebugUnitTest
+                  ./gradlew --no-daemon :app:testSlimDebugUnitTest
 
             - name: Build debug APK
               working-directory: android
               run: |
                   chmod +x gradlew
-                  ./gradlew --no-daemon :app:assembleDebug
+                  ./gradlew --no-daemon :app:assembleSlimDebug
 
             - name: Build release APK
               if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_release }}
               working-directory: android
               run: |
                   chmod +x gradlew
-                  ./gradlew --no-daemon :app:assembleRelease
+                  ./gradlew --no-daemon :app:assembleSlimRelease
 
             - name: Upload wheels
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
@@ -198,7 +198,7 @@ jobs:
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-debug-${{ github.ref_name }}-${{ github.run_id }}
-                  path: android/app/build/outputs/apk/debug/*.apk
+                  path: android/app/build/outputs/apk/slim/debug/*.apk
                   if-no-files-found: error
 
             - name: Upload test reports
@@ -216,5 +216,5 @@ jobs:
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-release-${{ github.ref_name }}-${{ github.run_id }}
-                  path: android/app/build/outputs/apk/release/*.apk
+                  path: android/app/build/outputs/apk/slim/release/*.apk
                   if-no-files-found: error

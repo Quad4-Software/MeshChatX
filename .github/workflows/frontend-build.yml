@@ -1,5 +1,5 @@
-# Reusable workflow that builds the Vite frontend and bundles the offline
-# Reticulum manual into ``meshchatx/public/``. Other workflows invoke this once
+# Reusable workflow that builds the Vite frontend, bundles the offline Reticulum
+# manual and repository wheels into ``meshchatx/public/``. Other workflows invoke this once
 # via ``workflow_call`` and download the resulting artifact instead of
 # re-running the same node/pnpm pipeline on every job.
 #
@@ -105,6 +105,9 @@ jobs:
 
             - name: Bundle Reticulum manual (offline)
               run: pnpm run build-docs
+
+            - name: Bundle repository wheels (offline mirror)
+              run: pnpm run build-repository-wheels
 
             - name: Upload frontend artifact
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
