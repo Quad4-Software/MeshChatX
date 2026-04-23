@@ -7,6 +7,10 @@ ship with the same artifact layout as the Vite output. At runtime,
 copies any missing ``*.whl`` files from that directory into each identity's
 ``repository-server/bundled`` folder (no network required).
 
+The PyPI/sdist wheel intentionally omits this tree (see ``MANIFEST.in`` and
+``tool.setuptools.exclude-package-data``); use this script for desktop/full
+builds or refresh bundled wheels in the app when online.
+
 Usage::
 
     python3 scripts/build/fetch_repository_wheels.py [--dest DIR]

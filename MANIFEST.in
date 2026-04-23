@@ -1,4 +1,5 @@
 recursive-include meshchatx/public *
+recursive-exclude meshchatx/public/repository-server-bundled *
 recursive-include meshchatx/src/backend *
 include meshchatx/src/version.py
 include meshchatx/src/__init__.py
