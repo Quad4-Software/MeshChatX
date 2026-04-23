@@ -18,6 +18,79 @@ function getFiles(dir, fileList = []) {
     return fileList;
 }
 
+function stripDuplicateMeshchatxPublic(buildDir) {
+    const dup = path.join(buildDir, "lib", "meshchatx", "public");
+    if (!fs.existsSync(dup)) {
+        return;
+    }
+    console.log(
+        "Removing lib/meshchatx/public from cx_Freeze output."
+    );
+    fs.rmSync(dup, { recursive: true, force: true });
+}
+
+function stripMeshchatxFrontendSources(buildDir) {
+    const fe = path.join(buildDir, "lib", "meshchatx", "src", "frontend");
+    if (!fs.existsSync(fe)) {
+        return;
+    }
+    const keepRel = path.join("public", "repository-server-index.html");
+    const keepPath = path.join(fe, keepRel);
+    let buf = null;
+    if (fs.existsSync(keepPath)) {
+        buf = fs.readFileSync(keepPath);
+    }
+    console.log(
+        "Trimming meshchatx/src/frontend to repository-server-index.html only (Vue sources are unused at runtime)."
+    );
+    fs.rmSync(fe, { recursive: true, force: true });
+    if (buf) {
+        const dest = path.join(fe, keepRel);
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.writeFileSync(dest, buf);
+    }
+}
+
+function stripFrozenPythonBloat(buildDir) {
+    const lib = path.join(buildDir, "lib");
+    if (!fs.existsSync(lib)) {
+        return;
+    }
+    for (const name of ["pydoc_data", "setuptools"]) {
+        const p = path.join(lib, name);
+        if (fs.existsSync(p)) {
+            console.log(`Removing lib/${name} from cx_Freeze output.`);
+            fs.rmSync(p, { recursive: true, force: true });
+        }
+    }
+    const numpyRoot = path.join(lib, "numpy");
+    if (!fs.existsSync(numpyRoot)) {
+        return;
+    }
+    const stack = [numpyRoot];
+    while (stack.length) {
+        const dir = stack.pop();
+        let entries;
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch {
+            continue;
+        }
+        for (const ent of entries) {
+            if (!ent.isDirectory()) {
+                continue;
+            }
+            const full = path.join(dir, ent.name);
+            if (ent.name === "tests") {
+                console.log(`Removing ${path.relative(buildDir, full)} from cx_Freeze output.`);
+                fs.rmSync(full, { recursive: true, force: true });
+            } else {
+                stack.push(full);
+            }
+        }
+    }
+}
+
 function stripPythonBytecodeArtifacts(dir) {
     if (!fs.existsSync(dir)) return;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -197,6 +270,9 @@ try {
     failOnSpawnResult("Backend build", result);
 
     if (fs.existsSync(buildDir)) {
+        stripDuplicateMeshchatxPublic(buildDir);
+        stripMeshchatxFrontendSources(buildDir);
+        stripFrozenPythonBloat(buildDir);
         if (isDarwin) {
             stripPythonBytecodeArtifacts(buildDir);
         }
