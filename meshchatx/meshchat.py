@@ -9068,6 +9068,8 @@ class ReticulumMeshChat:
                         "has_argos_cli": self.translator_handler.has_argos_cli,
                     },
                 )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
             except Exception as e:
                 return web.json_response(
                     {"message": str(e)},
@@ -9104,6 +9106,8 @@ class ReticulumMeshChat:
                     libretranslate_url=libretranslate_url,
                 )
                 return web.json_response(result)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
             except Exception as e:
                 return web.json_response(
                     {"message": str(e)},
@@ -11569,7 +11573,11 @@ class ReticulumMeshChat:
                 "'self'",
             ]
 
-            script_sources = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
+            path = request.path
+            if path.startswith("/reticulum-docs/") or path.startswith("/rnode-flasher/"):
+                script_sources = ["'self'", "'unsafe-inline'"]
+            else:
+                script_sources = ["'self'"]
             style_sources = ["'self'", "'unsafe-inline'"]
 
             if self.current_context and self.current_context.config:
