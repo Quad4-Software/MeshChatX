@@ -1,0 +1,51 @@
+diff --git a/render/canvas/ExecutorGroup.js b/render/canvas/ExecutorGroup.js
+index e791ac73b7ca585c3892b5f02841e86aa83f47ce..75eb7d56e49d46bbfdf17ac303cc0557c53bb527 100644
+--- a/render/canvas/ExecutorGroup.js
++++ b/render/canvas/ExecutorGroup.js
+@@ -48,30 +48,7 @@ let canvasReadsBenchmarked = false;
+ 
+ /** Determine if canvas read operations are faster with willReadFrequently set to true or false */
+ function benchmarkCanvasReads() {
+-  let bestResult = 0;
+-  /**
+-   * @param {boolean} willReadFrequently Will read frequently.
+-   * @return {number} Operation count.
+-   */
+-  const measure = (willReadFrequently) => {
+-    const context = createCanvasContext2D(1, 1, null, {willReadFrequently});
+-    let count = 0;
+-    const start = performance.now();
+-    for (; performance.now() - start < 50; ++count) {
+-      context.fillStyle = `rgba(255,0,${count % 256},1)`;
+-      context.fillRect(0, 0, 1, 1);
+-      context.getImageData(0, 0, 1, 1);
+-    }
+-    bestResult = count > bestResult ? count : bestResult;
+-    return count;
+-  };
+-
+-  const measures = {
+-    [measure(true)]: true,
+-    [measure(false)]: false,
+-    [measure(undefined)]: undefined,
+-  };
+-  willReadFrequently = measures[bestResult];
++  willReadFrequently = true;
+   canvasReadsBenchmarked = true;
+ }
+ 
+diff --git a/render/canvas/hitdetect.js b/render/canvas/hitdetect.js
+index 7f161bd7e94abb1293a5e61d5d11c87996ec9949..465c18663ccf257e494de0473ab6848e67d6f8f2 100644
+--- a/render/canvas/hitdetect.js
++++ b/render/canvas/hitdetect.js
+@@ -46,7 +46,9 @@ export function createHitDetectionImageData(
+   const userExtent = projection ? toUserExtent(extent, projection) : extent;
+   const width = size[0] * HIT_DETECT_RESOLUTION;
+   const height = size[1] * HIT_DETECT_RESOLUTION;
+-  const context = createCanvasContext2D(width, height);
++  const context = createCanvasContext2D(width, height, undefined, {
++    willReadFrequently: true,
++  });
+   context.imageSmoothingEnabled = false;
+   const canvas = context.canvas;
+   const renderer = new CanvasImmediateRenderer(

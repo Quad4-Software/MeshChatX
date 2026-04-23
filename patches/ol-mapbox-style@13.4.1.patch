@@ -1,0 +1,26 @@
+diff --git a/src/util.js b/src/util.js
+index 93d48b4488def00cfa1641341435ea76516d9741..727ad1b3e6e668a8b34c8e544613710184cc9cd1 100644
+--- a/src/util.js
++++ b/src/util.js
+@@ -329,7 +329,9 @@ export function drawIconHalo(
+     2 * haloWidth * spriteImageData.pixelRatio + spriteImageData.height,
+   ];
+   const imageCanvas = createCanvas(imgSize[0], imgSize[1]);
+-  const imageContext = imageCanvas.getContext('2d');
++  const imageContext = imageCanvas.getContext('2d', {
++    willReadFrequently: true,
++  });
+   imageContext.drawImage(
+     spriteImage,
+     spriteImageData.x,
+@@ -379,7 +381,9 @@ function smoothstep(min, max, value) {
+  */
+ export function drawSDF(image, area, color) {
+   const imageCanvas = createCanvas(area.width, area.height);
+-  const imageContext = imageCanvas.getContext('2d');
++  const imageContext = imageCanvas.getContext('2d', {
++    willReadFrequently: true,
++  });
+   imageContext.drawImage(
+     image,
+     area.x,
