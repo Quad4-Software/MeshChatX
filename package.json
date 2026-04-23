@@ -284,6 +284,7 @@
         "marked": "^18.0.2",
         "mitt": "^3.0.1",
         "ol": "^10.9.0",
+        "ol-mapbox-style": "^13.4.1",
         "qrcode": "^1.5.4",
         "vis-data": "^7.1.10",
         "vis-network": "^9.1.13",
