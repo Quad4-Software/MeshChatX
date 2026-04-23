@@ -50,7 +50,7 @@ describe("LinkUtils.js", () => {
         it("detects http links", () => {
             const text = "visit http://example.com";
             const result = LinkUtils.renderStandardLinks(text);
-            expect(result).toContain('<a href="http://example.com"');
+            expect(result).toMatch(/<a href="http:\/\/example\.com\/?"/);
         });
 
         it("detects https links", () => {
@@ -85,7 +85,7 @@ describe("LinkUtils.js", () => {
         it("detects both types of links", () => {
             const text = "Check https://google.com and nomadnet://1dfeb0d794963579bd21ac8f153c77a4";
             const result = LinkUtils.renderAllLinks(text);
-            expect(result).toContain('href="https://google.com"');
+            expect(result).toMatch(/<a href="https:\/\/google\.com\/?"/);
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
         });
 
@@ -136,8 +136,18 @@ describe("LinkUtils.js", () => {
         it("stops URL at space so no script in same line", () => {
             const text = "https://example.com javascript:alert(1)";
             const result = LinkUtils.renderStandardLinks(text);
-            expect(result).toContain('href="https://example.com"');
+            expect(result).toMatch(/<a href="https:\/\/example\.com\/?"/);
             expect(result).not.toMatch(/href="[^"]*javascript:/);
+        });
+
+        it("does not put attacker text inside the anchor opening tag", () => {
+            const text = 'see https://evil.example/path" onmouseover="alert(1) ok';
+            const result = LinkUtils.renderStandardLinks(text);
+            const open = result.indexOf("<a ");
+            const openEnd = result.indexOf(">", open);
+            const openTag = result.slice(open, openEnd + 1);
+            expect(openTag).not.toMatch(/onmouseover/i);
+            expect(openTag).not.toMatch(/javascript:/i);
         });
 
         it("handles null and undefined without throwing", () => {

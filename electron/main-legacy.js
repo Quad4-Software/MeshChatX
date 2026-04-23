@@ -15,6 +15,7 @@ const path = require("node:path");
 const crypto = require("crypto");
 const { getUserProvidedArguments } = require("./mainHelpers");
 const { isAllowedShellPath } = require("./shellPathGuard");
+const { normalizeExternalUrlForOpen } = require("./safeExternalUrl");
 
 // remember main window
 var mainWindow = null;
@@ -350,8 +351,10 @@ app.whenReady().then(async () => {
                 };
             }
 
-            // fallback to opening any other url in external browser
-            shell.openExternal(url);
+            const safe = normalizeExternalUrlForOpen(url);
+            if (safe) {
+                shell.openExternal(safe);
+            }
             return {
                 action: "deny",
             };

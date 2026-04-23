@@ -1,8 +1,27 @@
 import GlobalState from "./GlobalState.js";
+import Utils from "./Utils.js";
 
 function defaultNomadPagePath() {
     const p = GlobalState.config?.nomad_default_page_path;
     return typeof p === "string" && p.startsWith("/page/") ? p : "/page/index.mu";
+}
+
+function httpUrlHrefOrNull(core) {
+    const tries = [core];
+    if (core.includes("&amp;")) {
+        tries.push(core.replace(/&amp;/g, "&"));
+    }
+    for (const candidate of tries) {
+        try {
+            const u = new URL(candidate);
+            if (u.protocol === "http:" || u.protocol === "https:") {
+                return u.href;
+            }
+        } catch {
+            /* try next */
+        }
+    }
+    return null;
 }
 
 export default class LinkUtils {
@@ -75,7 +94,8 @@ export default class LinkUtils {
             if (isNomadNet) {
                 const fullPath = path || defaultNomadPagePath();
                 const url = `${hash}:${fullPath}`;
-                return `<a href="#" class="nomadnet-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-nomadnet-url="${url}">${match}</a>`;
+                const safeAttr = Utils.escapeHtml(url);
+                return `<a href="#" class="nomadnet-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-nomadnet-url="${safeAttr}">${match}</a>`;
             } else {
                 // Treat as LXMF link
                 return `<a href="#" class="lxmf-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-lxmf-address="${hash}">${match}</a>`;
@@ -89,13 +109,18 @@ export default class LinkUtils {
     static renderStandardLinks(text) {
         if (!text) return "";
 
-        const urlRegex = /(^|[^\w"'=])(https?:\/\/[^\s<]+)/g;
+        const urlRegex = /(^|[^\w"'=])(https?:\/\/[^\s<'"]+)/g;
         return text.replace(urlRegex, (match, prefix, url) => {
             const { core, suffix } = this.splitTrailingPunctuation(url);
             if (!core) {
                 return match;
             }
-            return `${prefix}<a href="${core}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${core}</a>${suffix}`;
+            const href = httpUrlHrefOrNull(core);
+            if (!href) {
+                return match;
+            }
+            const label = Utils.escapeHtml(core);
+            return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${label}</a>${suffix}`;
         });
     }
 

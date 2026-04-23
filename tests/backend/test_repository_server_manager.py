@@ -4,6 +4,8 @@ import time
 import urllib.request
 from unittest.mock import patch
 
+import pytest
+
 from meshchatx.src.backend.repository_server_manager import (
     RepositoryServerManager,
     build_repository_index_html,
@@ -101,6 +103,23 @@ def test_save_list_delete_upload(tmp_path):
 def test_save_rejects_bad_filename(tmp_path):
     mgr = RepositoryServerManager(str(tmp_path))
     ok, err = mgr.save_upload("../evil.whl", b"x")
+    assert not ok
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "x<script>.whl",
+        "a b.whl",
+        "wheel\x00.wheel",
+        "subdir/x.whl",
+        "",
+        "bad!.whl",
+    ],
+)
+def test_save_rejects_invalid_upload_filenames(tmp_path, name):
+    mgr = RepositoryServerManager(str(tmp_path))
+    ok, err = mgr.save_upload(name, b"x")
     assert not ok
 
 

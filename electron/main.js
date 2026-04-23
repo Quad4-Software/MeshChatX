@@ -20,6 +20,7 @@ const path = require("node:path");
 const { verifyBackendIntegrity } = require("./backendIntegrity");
 const { getUserProvidedArguments, formatRenderProcessGoneDetails, isLocalBackendUrl } = require("./mainHelpers");
 const { isAllowedShellPath } = require("./shellPathGuard");
+const { normalizeExternalUrlForOpen } = require("./safeExternalUrl");
 
 // remember main window
 var mainWindow = null;
@@ -372,7 +373,10 @@ function attachDefaultContextMenu(browserWindow) {
             template.push({
                 label: "Open link",
                 click: () => {
-                    shell.openExternal(params.linkURL);
+                    const safe = normalizeExternalUrlForOpen(params.linkURL);
+                    if (safe) {
+                        shell.openExternal(safe);
+                    }
                 },
             });
             template.push({
@@ -614,8 +618,11 @@ app.whenReady().then(async () => {
                 };
             }
 
-            // fallback to opening any other url in external browser
-            shell.openExternal(url);
+            // fallback to opening any other url in external browser (http(s) / mailto only)
+            const safe = normalizeExternalUrlForOpen(url);
+            if (safe) {
+                shell.openExternal(safe);
+            }
             return {
                 action: "deny",
             };
