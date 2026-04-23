@@ -244,7 +244,7 @@ class ConfigManager:
         self.map_tile_server_url = self.StringConfig(
             self,
             "map_tile_server_url",
-            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "https://tiles.openfreemap.org/styles/bright",
         )
         self.map_nominatim_api_url = self.StringConfig(
             self,
@@ -418,6 +418,11 @@ class ConfigManager:
             self,
             "nomad_default_page_path",
             "/page/index.mu",
+        )
+        self.lxmf_sieve_filters_json = self.StringConfig(
+            self,
+            "lxmf_sieve_filters_json",
+            "[]",
         )
 
         self._migrate_legacy_announce_limit_keys()
