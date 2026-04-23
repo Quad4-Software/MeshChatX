@@ -23,9 +23,7 @@ function stripDuplicateMeshchatxPublic(buildDir) {
     if (!fs.existsSync(dup)) {
         return;
     }
-    console.log(
-        "Removing lib/meshchatx/public from cx_Freeze output."
-    );
+    console.log("Removing lib/meshchatx/public from cx_Freeze output.");
     fs.rmSync(dup, { recursive: true, force: true });
 }
 
