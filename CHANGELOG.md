@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.5.0] - 2026-04-22
+## [4.5.0] - 2026-04-24
 
 ### TL;DR 
 
@@ -14,7 +14,9 @@ All notable changes to this project will be documented in this file.
 - **Announcements**: The app now handles timed announcements and reminders in a way that's more predictable and easy to understand.
 - **Hot Reload RNS**: You can now restart the Reticulum network stack directly from MeshChatX if there’s a problem.
 - **Config Editor Tool**: Added config editor tool to edit within app.
+- **Repository Server Tool**: New **Tool** for the optional local file shelf to redestribute reticulum and meshchatx python wheels locally or any file you upload. 
 - **Dangerous Links**: The app can warn you before you open links from people you don’t know, if you happen to click on it by mistake.
+- **Message Rules**: New sieve tool for simple patterns—matching stuff can land in the right folder, quiet the notification bell, or other actions you pick.
 - **Chats, Images and Reactions**: Bigger chats load faster, images are grouped and sized better, styling improvements to reactions.
 - **Looks and Effects**: You can make parts of the UI transparent or enable a "glass effect" look, with clear settings to control these options.
 - **Simpler Internals**: The app’s settings and chat features were reorganized behind the scenes, making it easier to maintain and more stable.
@@ -22,10 +24,13 @@ All notable changes to this project will be documented in this file.
 - **Easier Device Connections**: Advanced users can now see special codes (IFAC) that help with connecting certain types of interfaces here and via the API. 
 - **Better Reliability**: The desktop (Electron) app recovers better from connection problems and crashes.
 - **Audio Without ffmpeg**: Voicemail, ringtones, and microphone capture use in-process encoding (**LXST** / **miniaudio**) so containers and minimal installs no longer need an **ffmpeg** binary for those paths.
+- **Calls and Microphone**: Picking input and output devices is less fiddly, permission edge cases recover more gracefully, and the microphone path through the browser stack has improved.
 - **Bundled Offline Docs**: In-app documentation can include the **Reticulum manual**, fetched at build time and bundled for offline reading; the docs page upload and sharing flow is smoother. Docs will also actually start on proper manual page.
 - **More Languages**: Spanish, French, Dutch, and Chinese options were added to the app’s language selector.
 - **Message Size Limits**: You can now set how big incoming messages can be (from 1MB up to 1GB) with easy presets or custom values. 
 - **Interface Options**: The Add Interface page now exposes the full set of options the Reticulum stack supports.
+- **Map**: Another free map style, improve tile caching to show offline, mbtiles take priority, and improved markers.
+- **Nomad Browsing Path Finder**: Path finder tool that shows on failed links to pages, allowing you to manually try a bunch of path finding methods.
 
 ### Platform and backend
 
@@ -35,19 +40,25 @@ All notable changes to this project will be documented in this file.
 - **Auto-announce / intervals**: Refactor around **`interval_action_due`** in **`meshchat.py`** to simplify when auto-announce and propagation sync checks run; add tests for auto-announce behaviour.
 - **Reticulum**: User-triggered **RNS restart** with UI feedback; **reload** streamlines teardown, loading indicators, and cleanup of identity state during Reticulum reload.
 - **Notifications**: Filters **silent or non-user-facing** LXMF payloads so the notification bell does not fire on control-only traffic.
-- **Map**: **Deduplication** helpers for **telemetry** markers and **discovered** map nodes.
+- **LXMF sieve filters**: **`lxmf_sieve.py`** with **`GET`/`PUT /api/v1/lxmf/sieve-filters`**; **`normalize_lxmf_sieve_filters`** / **`parse_lxmf_sieve_filters_json`**; rules match peer/message text (**substring** or **regex**) and can **suppress notifications**, **hide** peers, **route to folders**, or **banish**; wired through ingest, sidebar, and notification paths; **`config.lxmf_sieve_filters_json`** persistence; tests **`test_lxmf_sieve.py`**, **`test_lxmf_sieve_fuzz.py`**.
+- **Announce trimming**: **`trim_announces_for_aspect`** keeps **favourited** destinations and **saved contacts** when capping announce noise.
+- **Map**: **Deduplication** helpers for **telemetry** markers and **discovered** map nodes; **geodesy** helpers, **tile network** management, **OpenFreeMap** support, and **MBTiles** export **tile limit** plus **unique tile** counting in **`map_manager`**; tile caching refactor.
 - **AutoInterface / user guidance**: Detects **bind/listen failures** (e.g. address already in use) and emits clear **operator guidance**.
 - **Interface discovery**: Connect logic honours **autoconnect** metadata from discovery responses when the stack provides it.
 - **Translation (Argos)**: Refactored **Argos Translate** CLI detection; integration tests for **forwarding** behaviour.
 - **Docs bundle**: **`scripts/build/fetch_reticulum_manual.py`** (via **`pnpm run build-docs`**) fetches the **Reticulum manual** for offline docs; backend wiring serves bundled manual content.
 - **Bots**: **`bot_handler`** updates for LXMF address normalization, reading addresses from sidecar files, improved bot names and on-demand announce requests, and tests.
 - **Telephony**: **`TelephoneManager`** improvements for path discovery, initiation, polling, and cancellation; integration tests for LXST classes and WebAudioBridge mocks.
+- **WebAudioBridge**: Adds a client only when a **call** is actually active.
+- **Codec2 microphone**: **`Codec2MicrophoneRecorder`** uses a **silent tap** for processing and resumes the **audio context** reliably.
+- **Microphone (worklet)**: **AudioWorklet**-based mic processing and audio graph wiring; ESLint **`AudioWorklet`** globals for worklet modules.
+- **Repository server**: **`RepositoryServerManager`** (**`repository_server_manager.py`**) with **`/api/v1/repository-server/`** status, **list**, **upload**, **delete**, **refresh-bundled**, and HTTP **start**/**stop**/**restart**; wheel fetch uses **urllib** only (no **pip** subprocess); file copy skips existing files only when **size** matches; **`fetch_repository_wheels.py`** and build wiring for **bundled** wheels; **`repository-server-bundled`** kept out of generic **package data** where appropriate.
 - **App info / diagnostics**: **`/api/v1/app/info`** (and related handlers) with safer memory, network, and database stats; tests for missing runtime objects and version resolution without the packaging module.
 - **Media conversion**: Voicemail, ringtones, and **MicrophoneRecorder** capture use **WAV/PCM** and **OGG/Opus** via **LXST** with **miniaudio** instead of shelling out to **ffmpeg** (Alpine Docker images drop the **ffmpeg** package accordingly). Browser-recorded **WebM**/**Opus** attachments decode through the same **`audio_codec`** path and re-encode to **OGG/Opus** for LXMF; if conversion fails the original bytes are passed through unchanged. Python **JIT** status surfaced where applicable; related tests updated.
-- **Docs manager**: Safer forced directory removal (**`_remove_tree_force_writable`**) and writable-directory helpers when replacing tree content.
-- **Python / tooling**: **Poetry** lock updated (e.g. **2.3.4**); **rns** **>=1.1.9** and **lxmf** **>=0.9.6**; **lxmfy** pinned to a compatible commit; **Node** engine **>=24** with **pnpm** store **integrity** verification in **`.npmrc`** and CI install scripts; lockfile/git-URL dependency style updates; **`package.json`** metadata adds desktop entry, vendor, and synopsis where applicable.
-- **Build / unify**: Script to align **per-architecture cx_Freeze** outputs so unified bundles stay consistent across arches.
-- **Android runtime integration**: Added Android app startup hardening for Chaquopy and WebView, including startup retries, in-app startup errors, runtime permission flow (audio/Bluetooth/notifications/microphone), battery optimization exemption, ABI splits, optional local wheel builds (bcrypt/psutil recipes, Rust for bcrypt, PyO3/OpenSSL-related patches), cryptography and WebView media tweaks, and release minification rules for APK builds.
+- **Docs manager**: Safer forced directory removal (**`_remove_tree_force_writable`**) and writable-directory helpers when replacing tree content; clearer document **sourcing** and **rendering** for in-app docs.
+- **Python / tooling**: **Poetry** lock updated (e.g. **2.3.4**); **rns** **>=1.1.9** and **lxmf** **>=0.9.6**; **lxmfy** pinned to a compatible commit; **Electron** **41.x** series; **Node** engine **>=24** with **pnpm** store **integrity** verification in **`.npmrc`** and CI install scripts; lockfile/git-URL dependency style updates; **`package.json`** metadata adds desktop entry, vendor, and synopsis where applicable.
+- **Build / unify**: Script to align **per-architecture cx_Freeze** outputs so unified bundles stay consistent across arches; post-freeze **cleanup** strips redundant **`meshchatx`** public assets and trims Python bloat; **`electronLanguages`** lists packaged locales; **`cx_setup.py`** excludes extra modules and bumps **optimize**.
+- **Android runtime integration**: Added Android app startup hardening for Chaquopy and WebView, including startup retries, in-app startup errors, runtime permission flow (audio/Bluetooth/notifications/microphone), battery optimization exemption, ABI splits, optional local wheel builds (bcrypt/psutil recipes, Rust for bcrypt, PyO3/OpenSSL-related patches), cryptography and WebView media tweaks, and release minification rules for APK builds; **Gradle** **slim** / **full** **product flavors** with **repository-bundled** wheels for the fuller variant; Chaquopy-synced Python trees ignored in **`.gitignore`** / **`.prettierignore`**; APK signing glob fix in **`sign-android-apks.sh`**.
 - **Licensing**: Relicensed Quad4-owned portions under **0BSD** and kept upstream **Reticulum MeshChat** portions under their original **MIT** notice in **`LICENSE`**. **SPDX** identifiers added across the tree; **`license_scope_mapper`** assists SPDX recommendations; **`licenses_collector`** enriches frontend dependency notices (**package.json** parsing, workspace-root filtering, detailed **`THIRD_PARTY_NOTICES`** / **`licenses_frontend.json`** generation).
 - **GIFs**: Schema and **`database.gifs`** DAO; **`gif_utils`** validation and naming; HTTP **`/api/v1/gifs`** CRUD, **`…/image`**, import/export, use-from-message, and **`DELETE /api/v1/maintenance/gifs`**; configurable limits via **`config_manager`** where applicable.
 - **Sticker packs**: **`database.sticker_packs`** and **`sticker_pack_utils`**; **`/api/v1/sticker-packs`** (list, create, install, reorder, delete, export) complementing per-sticker routes; stickers DAO/schema updates for pack association and animated assets.
@@ -72,23 +83,32 @@ All notable changes to this project will be documented in this file.
 - **Modularity (settings and messages)**: Config fetch/merge, **`PATCH /api/v1/config`**, color normalization, transport enable/disable, maintenance HTTP calls, and visualiser **`localStorage`** prefs live in **`meshchatx/src/frontend/js/settings/`** (`settingsConfigService`, `settingsTransportService`, `settingsMaintenanceClient`, `settingsVisualiserPrefs`); **`SettingsPage`** delegates to those modules. Message renderability, telemetry-only detection, image-only detection, and drag/paste image extraction are in **`conversationMessageHelpers.js`** with thin **`ConversationViewer`** wrappers.
 - **Shell and settings UI**: Emergency and WebSocket status banners extracted to **`AppShellBanners.vue`**; conversation peer chrome to **`ConversationPeerHeader.vue`**; reusable **`SettingsSectionBlock.vue`** (used for the stranger-protection section).
 - **Pages polish**: **About**, **Call**, **Debug logs**, and **Settings** pages with clearer layout, app info, environment paths, log copy-to-clipboard, and error handling; related tests.
+- **Call (audio devices)**: **`getUserMedia`** fallback and clearer error handling when inputs/outputs or permissions misbehave.
 - **ConversationViewer**: File input clears after selection and improves image-type detection for uploads; **GIF** picker and drag/drop upload to the GIF library; animated stickers and GIFs can use **`InViewAnimatedImg`** so heavy animations run only when visible.
 - **Stickers UI**: **`StickerPacksManager`**, **`StickerEditor`**, **`StickerView`**, and **`tgsDecode`** (`.tgs` / Lottie JSON) integrate with the composer and identities settings.
-- **Tools**: **`ReticulumConfigEditorPage`** for editing Reticulum configuration from the app with validation feedback; **RNode** firmware tooling gains expanded **diagnostics**, **device management**, and **i18n** for flash and probe flows.
-- **Docs page**: **`DocsPage`** upload and sharing behaviour polished alongside offline manual bundling.
+- **Tools**: **`ReticulumConfigEditorPage`** for editing Reticulum configuration from the app with validation feedback; **`RepositoryServerPage`** (**`/tools/repository-server`**) for **status**/**list**, **HTTP** server **start**/**stop**/**restart**, **upload**/**delete**, and **refresh-bundled** against **`/api/v1/repository-server/`** (command palette + **Tools** grid); **RNode** firmware tooling gains expanded **diagnostics**, **device management**, and **i18n** for flash and probe flows.
+- **Docs page**: **`DocsPage`** upload and sharing behaviour polished alongside offline manual bundling; Reticulum manual links follow the **active locale** where applicable.
+- **Sieve Filters page**: **`SieveFiltersPage`** with **`GET`/`PUT /api/v1/lxmf/sieve-filters`** wiring and notification-suppression behaviour in the UI; route and sidebar/tool entry points; i18n for rule copy.
+- **NomadNetwork**: **Path finder** dropdown and improved **error** handling when a page load fails; translated strings.
+- **Telemetry**: **Telemetry history** modal with **battery** sparkline/chart components for timeline review.
+- **Map UI**: **OpenFreeMap** and tile URL config updates; **bearing** mode; **vector exchange** panel; improved **export** UX; **map link** utilities on **conversation** messages; query-param handling and clearer **error** toasts; marker **clustering** and **drawing** component refactors; **`willReadFrequently`** on read-heavy **canvas** paths; **`clampFloatingToViewport`** shared helper so **dropdowns** stay inside the viewport (**`DropDownMenu`** and other surfaces).
+- **Electron shell**: **CSP** allows **OpenFreeMap** image/font/connect sources alongside existing tile providers.
+- **Fonts and map deps**: **`@fontsource/noto-sans`**, **`jszip`**, and pinned/patched **`ol`** / **`ol-mapbox-style`** for vector map styling.
 - **LXMF reactions**: **Reaction** controls and message row layout tuned for small screens and long emoji strips.
 - **Add Interface page (full options)**: **`AddInterfacePage.vue`** renders type-specific sections for every option the backend now accepts. **AutoInterface** has a dedicated form (**Group ID**, **Discovery Scope**, **Multicast Address Type**, **Discovery Port**, **Data Port**, allowed and ignored devices, configured bitrate). **TCP Client** exposes **KISS framing**, **I2P tunneled**, **connect timeout**, **max reconnect tries**, and **fixed MTU** toggles/fields. **TCP Server** / **UDP** add **device** and **prefer IPv6** controls; **TCP Server** also exposes **I2P tunneled**. **BackboneInterface** has a **Listener mode** toggle that swaps between connector (remote/target/transport identity) and listener (listen IP/port/device/prefer IPv6) layouts. **RNode** sections add **spreading factor**, **coding rate**, **flow control**, **ID callsign**, **ID interval**, and **airtime limit long/short**. **Serial**/**KISS**/**AX.25 KISS** sections expose **baud rate**, **data bits**, **parity**, **stop bits**, **preamble**, **TX tail**, **persistence**, **slot time**, **flow control**, **beacon callsign/interval**, and **AX.25 callsign/SSID**. **I2P** gains a **connectable** toggle. Every new field round-trips through **`saveInterface`**, **`loadInterfaceToEdit`**, **`applyConfig`**, and **`buildPayloadFromImportedConfig`** so editing and quick-import flows keep parity with the form.
-- **Network visualiser**: Chunk and icon rendering tuned for large node sets (see TL;DR).
+- **Network visualiser**: Chunk and icon rendering tuned for large node sets (see TL;DR); optional **max hops** filter with **`localStorage`** persistence alongside the hop slider prefs.
 
 ### CI and packaging
 
-- **CI hygiene**: **pnpm** store caching removed from CI and security-scan workflows; **CodeQL** workflow added for GitHub; install scripts run **`poetry check`** and verify **pnpm** store **integrity**; Linux runners install **libopus** / **libogg** so Opus encode tests pass.
+- **CI hygiene**: **pnpm** store caching removed from CI and security-scan workflows; **CodeQL** for GitHub with **`build-mode: none`** (no manual build block); install scripts run **`poetry check`** and verify **pnpm** store **integrity**; Linux runners install **libopus** / **libogg** so Opus encode tests pass.
+- **Supply-chain monitoring**: **Rekor** monitoring workflow plus **`rekor-cli`** install helper script.
+- **Release assets**: **GitHub** release notes generation includes **integrity** / **SBOM**-style detail; per-file **SHA256** sidecar checksums removed from the main build-test flow; **`SECURITY.md`** points readers at **cosign** / attestation-style verification instead.
 - **Frontend CI**: Reusable **frontend build** workflow shared across Android, container, and packaging jobs; default **`pnpm test`** uses **`vitest run`** for the web suite plus **`vitest.electron.config.js`** for Electron helpers.
-- **Docker**: **Git** installed for frontend build steps; **corepack** replaced with **npm**-based **pnpm** install; Python base image refresh (e.g. **3.14**-series Alpine), venv runtime tools, pip/setuptools updates; **`.dockerignore`** / **`.gitignore`** tweaks; workflow git clone/fetch handling for reproducible image builds; **`README.md`** included in the **Dockerfile** copy context; container **entrypoint** path updated; **ffmpeg** removed from Alpine package lists now that audio encoding is in-process.
-- **Electron / Linux**: AppImage pipeline builds **x64** and **arm64** artifacts; **Electron Forge** adds optional **Snap** and **Flatpak** makers (see **`forge.config.js`** and local packaging scripts).
+- **Docker**: **Git** installed for frontend build steps; **corepack** replaced with **npm**-based **pnpm** install; Python base image refresh (e.g. **3.14**-series Alpine), venv runtime tools, pip/setuptools updates; **`g++`** in build deps for **miniaudio** compile paths; **`.dockerignore`** / **`.gitignore`** tweaks; workflow git clone/fetch handling for reproducible image builds; **`README.md`** included in the **Dockerfile** copy context; container **entrypoint** path updated; **ffmpeg** removed from Alpine package lists now that audio encoding is in-process.
+- **Electron / Linux**: AppImage pipeline builds **x64** and **arm64** artifacts; **Electron Forge** adds optional **Snap** and **Flatpak** makers (see **`forge.config.js`** and local packaging scripts); **Flatpak** **25.08** runtime/base alignment, **Flathub** remote bootstrap script, and packaging script tweaks; **Snap** **core22** base prep and multi-snap install for destructive-mode builds; Forge **temp-dir** helper for packaging; **`resetAdHocDarwinSignature`** on **Darwin**; platform-specific **resource** handling fix in the Electron packager path.
 - **Desktop build scripts**: **macOS** and **Windows** scripts can consume **prebuilt frontend** output when present to shorten release builds.
-- **Android CI**: Workflow runs **Node.js** setup and **frontend build** before APK packaging so Web assets stay in sync with the app bundle; **NDK** / **sdkmanager** steps tolerate preinstalled SDK tooling.
-- **Docs**: Raspberry Pi install guide expanded with automated setup scripts and service-oriented instructions; root **README** and translated install docs note **Poetry** **2.3.4** and **pnpm** **v10+** lifecycle behaviour.
+- **Android CI**: Workflow runs **Node.js** setup and **frontend build** before APK packaging so Web assets stay in sync with the app bundle; **slim**/**full** flavor alignment with **bundled** repository wheels where applicable; **NDK** / **sdkmanager** steps tolerate preinstalled SDK tooling; **Taskfile** gains flavour/ABI/l10n-test polish and cleanup steps.
+- **Docs**: Raspberry Pi install guide expanded with automated setup scripts and service-oriented instructions; root **README** and translated install docs note **Poetry** **2.3.4** and **pnpm** **v10+** lifecycle behaviour; **README** APK section calls out **slim** vs **full** / ABI packaging; **NomadNet** browser and **Mesh Server** page documentation added.
 - **Container / compose**: **`docker-compose.yml`** and related Docker notes updated; optional **`Dockerfile.extra`** for layered builds where documented.
 
 ### Testing and docs
@@ -108,7 +128,10 @@ All notable changes to this project will be documented in this file.
 - **Messaging**: **`test_message_sending_failures.py`**, **`MessageSendingFailures.test.js`**; **`CJKTextOverflow.test.js`** for composer/thread overflow.
 - **Media API**: **`test_media_http_api.py`**, **`test_media_fuzzing.py`**, shared **`media_test_assets.py`** fixtures.
 - **AutoInterface guidance**: **`tests/backend/test_user_guidance_autointerface.py`** exercises bind-failure detection and user-facing guidance strings.
-- **Translator**: Integration tests for **Argos**-based forwarding after CLI detection refactor.
+- **Translator**: Integration tests for **Argos**-based forwarding after CLI detection refactor, including **network** checks for **Stanza** resource fetching.
+- **LXMF sieve**: **`test_lxmf_sieve.py`** and **`test_lxmf_sieve_fuzz.py`**.
+- **Repository server**: **`test_repository_server_manager.py`**.
+- **Map / audio (frontend)**: Additional **Vitest** coverage for **map** components, **geodesy** utilities, and **audio** handling paths.
 - **Electron**: Vitest **Electron** config plus loading/main helper coverage for the desktop shell.
 - **CI stability**: Peering-key rejection integration test avoids flaky peer selection.
 
