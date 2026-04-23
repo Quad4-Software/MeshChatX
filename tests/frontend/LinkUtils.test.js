@@ -163,4 +163,21 @@ describe("LinkUtils.js", () => {
             expect(Date.now() - start).toBeLessThan(200);
         });
     });
+
+    describe("httpUrlHrefOrNull", () => {
+        it("returns canonical https href", () => {
+            expect(LinkUtils.httpUrlHrefOrNull("https://example.com/path")).toBe(
+                "https://example.com/path"
+            );
+        });
+
+        it("returns null for javascript: payloads that start with https-looking junk", () => {
+            expect(LinkUtils.httpUrlHrefOrNull("https://example.com javascript:alert(1)")).toBeNull();
+        });
+
+        it("returns null for non-http schemes", () => {
+            expect(LinkUtils.httpUrlHrefOrNull("javascript:alert(1)")).toBeNull();
+            expect(LinkUtils.httpUrlHrefOrNull("file:///etc/passwd")).toBeNull();
+        });
+    });
 });

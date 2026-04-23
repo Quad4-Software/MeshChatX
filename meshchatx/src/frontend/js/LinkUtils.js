@@ -25,6 +25,13 @@ function httpUrlHrefOrNull(core) {
 }
 
 export default class LinkUtils {
+    /**
+     * Returns canonical http(s) href or null if the string is not a safe remote URL.
+     */
+    static httpUrlHrefOrNull(core) {
+        return httpUrlHrefOrNull(core);
+    }
+
     static protectAnchors(text) {
         const anchors = [];
         const protectedText = text.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, (anchor) => {

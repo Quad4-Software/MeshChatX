@@ -444,6 +444,7 @@
 
 <script>
 import MicronParser from "../../js/MicronParser";
+import LinkUtils from "../../js/LinkUtils";
 import { renderNomadPageByPath } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
@@ -1625,9 +1626,10 @@ export default {
 
             console.log(fieldData);
 
-            // open http urls in new tab
-            if (url.startsWith("http://") || url.startsWith("https://")) {
-                window.open(url, "_blank");
+            const httpHref =
+                typeof url === "string" ? LinkUtils.httpUrlHrefOrNull(url.trim()) : null;
+            if (httpHref) {
+                window.open(httpHref, "_blank", "noopener,noreferrer");
                 return;
             }
 
