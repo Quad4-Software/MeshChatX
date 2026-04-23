@@ -1521,6 +1521,7 @@ import ToastUtils from "../../js/ToastUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
 import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
+import LinkUtils from "../../js/LinkUtils";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
 import { COLUMBA_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
@@ -2161,6 +2162,7 @@ export default {
             return base;
         },
         async handleMessageClick(event) {
+            const hex32 = /^[a-fA-F0-9]{32}$/;
             const nomadnetLink = event.target.closest(".nomadnet-link");
             if (nomadnetLink) {
                 event.preventDefault();
@@ -2168,6 +2170,9 @@ export default {
                 if (url) {
                     const [hash, ...pathParts] = url.split(":");
                     const path = pathParts.join(":");
+                    if (!hex32.test(hash)) {
+                        return;
+                    }
                     const routeName = this.$route.meta.isPopout ? "nomadnetwork-popout" : "nomadnetwork";
                     this.$router.push({
                         name: routeName,
@@ -2182,7 +2187,7 @@ export default {
             if (lxmfLink) {
                 event.preventDefault();
                 const address = lxmfLink.getAttribute("data-lxmf-address");
-                if (address) {
+                if (address && hex32.test(address)) {
                     this.$router.push({
                         name: "messages",
                         params: { destinationHash: address },
@@ -2196,8 +2201,9 @@ export default {
                 return;
             }
 
-            const href = String(standardLink.getAttribute("href") || "").trim();
-            if (!/^https?:\/\//i.test(href)) {
+            const hrefRaw = String(standardLink.getAttribute("href") || "").trim();
+            const safeHttp = LinkUtils.httpUrlHrefOrNull(hrefRaw);
+            if (!safeHttp) {
                 event.preventDefault();
                 return;
             }
@@ -2205,14 +2211,14 @@ export default {
             event.preventDefault();
             if (this.isStrangerPeer && this.warnOnStrangerLinksEnabled) {
                 const proceed = await DialogUtils.confirm(
-                    this.$t("messages.stranger_link_open_confirm", { url: href })
+                    this.$t("messages.stranger_link_open_confirm", { url: safeHttp })
                 );
                 if (!proceed) {
                     return;
                 }
             }
 
-            window.open(href, "_blank", "noopener");
+            window.open(safeHttp, "_blank", "noopener,noreferrer");
         },
         async updatePropagationNodeStatus() {
             try {

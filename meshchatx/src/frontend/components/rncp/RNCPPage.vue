@@ -836,6 +836,7 @@ export default {
             return MarkdownRenderer.render(text);
         },
         handleMessageClick(event) {
+            const hex32 = /^[a-fA-F0-9]{32}$/;
             const nomadnetLink = event.target.closest(".nomadnet-link");
             if (nomadnetLink) {
                 event.preventDefault();
@@ -843,19 +844,22 @@ export default {
                 if (url) {
                     const [hash, ...pathParts] = url.split(":");
                     const path = pathParts.join(":");
-                    this.$router.push({
-                        name: "nomadnetwork",
-                        params: { destinationHash: hash },
-                        query: { path: path },
-                    });
+                    if (hex32.test(hash)) {
+                        this.$router.push({
+                            name: "nomadnetwork",
+                            params: { destinationHash: hash },
+                            query: { path: path },
+                        });
+                    }
                 }
+                return;
             }
 
             const lxmfLink = event.target.closest(".lxmf-link");
             if (lxmfLink) {
                 event.preventDefault();
                 const address = lxmfLink.getAttribute("data-lxmf-address");
-                if (address) {
+                if (address && hex32.test(address)) {
                     this.$router.push({
                         name: "messages",
                         params: { destinationHash: address },

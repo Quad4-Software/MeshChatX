@@ -67,7 +67,7 @@ describe("ConversationViewer.vue", () => {
         WebSocketConnection.destroy();
     });
 
-    const mountConversationViewer = (props = {}) => {
+    const mountConversationViewer = (props = {}, extraMocks = {}) => {
         return mount(ConversationViewer, {
             props: {
                 selectedPeer: { destination_hash: "test-hash", display_name: "Test Peer" },
@@ -79,6 +79,9 @@ describe("ConversationViewer.vue", () => {
                 directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
                 mocks: {
                     $t: (key) => key,
+                    $route: { meta: {} },
+                    $router: { push: vi.fn() },
+                    ...extraMocks,
                 },
                 stubs: {
                     MaterialDesignIcon: true,
@@ -195,7 +198,7 @@ describe("ConversationViewer.vue", () => {
 
         expect(event.preventDefault).toHaveBeenCalled();
         expect(DialogUtils.confirm).toHaveBeenCalledWith("messages.stranger_link_open_confirm");
-        expect(window.open).toHaveBeenCalledWith("https://example.com/path", "_blank", "noopener");
+        expect(window.open).toHaveBeenCalledWith("https://example.com/path", "_blank", "noopener,noreferrer");
     });
 
     it("does not open stranger http link when warning confirm is rejected", async () => {
@@ -232,7 +235,7 @@ describe("ConversationViewer.vue", () => {
 
         expect(event.preventDefault).toHaveBeenCalled();
         expect(DialogUtils.confirm).not.toHaveBeenCalled();
-        expect(window.open).toHaveBeenCalledWith("https://example.com/path", "_blank", "noopener");
+        expect(window.open).toHaveBeenCalledWith("https://example.com/path", "_blank", "noopener,noreferrer");
     });
 
     it("blocks non-http href payloads like data urls in message anchors", async () => {
@@ -251,6 +254,124 @@ describe("ConversationViewer.vue", () => {
         expect(event.preventDefault).toHaveBeenCalled();
         expect(DialogUtils.confirm).not.toHaveBeenCalled();
         expect(window.open).not.toHaveBeenCalled();
+    });
+
+    it("blocks https-looking anchors that are not a single safe http(s) URL (LinkUtils)", async () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.isStrangerPeer = false;
+        window.open.mockClear();
+
+        const anchor = document.createElement("a");
+        anchor.setAttribute("href", "https://example.com javascript:alert(1)");
+        const event = { target: anchor, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(window.open).not.toHaveBeenCalled();
+    });
+
+    it("blocks javascript: href in rendered message anchors", async () => {
+        const wrapper = mountConversationViewer();
+        window.open.mockClear();
+
+        const anchor = document.createElement("a");
+        anchor.setAttribute("href", "javascript:alert(1)");
+        const event = { target: anchor, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(window.open).not.toHaveBeenCalled();
+    });
+
+    it("does not router.push for nomadnet link when destination hash is not 32 hex chars", async () => {
+        const push = vi.fn();
+        const wrapper = mountConversationViewer(
+            {},
+            {
+                $router: { push },
+                $route: { meta: { isPopout: false } },
+            }
+        );
+
+        const a = document.createElement("a");
+        a.className = "nomadnet-link";
+        a.setAttribute("data-nomadnet-url", "not32hexchars:/page/index.mu");
+        const event = { target: a, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(push).not.toHaveBeenCalled();
+    });
+
+    it("router.push for valid nomadnet data-nomadnet-url", async () => {
+        const push = vi.fn();
+        const wrapper = mountConversationViewer(
+            {},
+            {
+                $router: { push },
+                $route: { meta: { isPopout: false } },
+            }
+        );
+        const hash = "1dfeb0d794963579bd21ac8f153c77a4";
+        const a = document.createElement("a");
+        a.className = "nomadnet-link";
+        a.setAttribute("data-nomadnet-url", `${hash}:/page/index.mu`);
+        const event = { target: a, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(push).toHaveBeenCalledWith({
+            name: "nomadnetwork",
+            params: { destinationHash: hash },
+            query: { path: "/page/index.mu" },
+        });
+    });
+
+    it("does not router.push for lxmf link when address is not 32 hex chars", async () => {
+        const push = vi.fn();
+        const wrapper = mountConversationViewer(
+            {},
+            {
+                $router: { push },
+                $route: { meta: {} },
+            }
+        );
+
+        const a = document.createElement("a");
+        a.className = "lxmf-link";
+        a.setAttribute("data-lxmf-address", "abcdabcdabcdabcdabcdabcdabcdab");
+        const event = { target: a, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(push).not.toHaveBeenCalled();
+    });
+
+    it("router.push for valid lxmf data-lxmf-address", async () => {
+        const push = vi.fn();
+        const wrapper = mountConversationViewer(
+            {},
+            {
+                $router: { push },
+                $route: { meta: {} },
+            }
+        );
+        const hash = "1dfeb0d794963579bd21ac8f153c77a4";
+        const a = document.createElement("a");
+        a.className = "lxmf-link";
+        a.setAttribute("data-lxmf-address", hash);
+        const event = { target: a, preventDefault: vi.fn() };
+
+        await wrapper.vm.handleMessageClick(event);
+
+        expect(push).toHaveBeenCalledWith({
+            name: "messages",
+            params: { destinationHash: hash },
+        });
     });
 
     it("onComposerImageDrop ignores non-image files", () => {

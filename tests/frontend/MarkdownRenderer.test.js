@@ -141,7 +141,7 @@ describe("MarkdownRenderer.js", () => {
         });
     });
 
-    describe("security: XSS prevention", () => {
+    describe("security: XSS prevention (MarkdownRenderer output is v-html in ConversationMessageEntry)", () => {
         it("escapes script tags", () => {
             const malformed = "<script>alert('xss')</script>";
             const result = MarkdownRenderer.render(malformed);

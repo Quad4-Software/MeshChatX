@@ -155,8 +155,11 @@ class KeyboardShortcuts {
     }
 
     setShortcuts(shortcuts) {
-        // Merge with defaults to ensure all actions have a description
         const defaults = this.getDefaultShortcuts();
+        if (!Array.isArray(shortcuts) || shortcuts.length === 0) {
+            this.shortcuts = defaults.map((d) => ({ ...d }));
+            return;
+        }
         this.shortcuts = shortcuts.map((s) => {
             const def = defaults.find((d) => d.action === s.action);
             return {

@@ -119,6 +119,21 @@ describe("KeyboardShortcuts", () => {
         KeyboardShortcuts.setShortcuts(KeyboardShortcuts.getDefaultShortcuts());
     });
 
+    it("setShortcuts ignores non-array payloads and keeps defaults", () => {
+        KeyboardShortcuts.setShortcuts(null);
+        dispatchKeyDown({ key: "1", altKey: true, code: "Digit1" });
+        expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "nav_messages");
+        KeyboardShortcuts.setShortcuts({ action: "nav_map", keys: ["alt", "3"] });
+        dispatchKeyDown({ key: "3", altKey: true, code: "Digit3" });
+        expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "nav_map");
+    });
+
+    it("setShortcuts treats empty array as reset to defaults", () => {
+        KeyboardShortcuts.setShortcuts([]);
+        dispatchKeyDown({ key: "2", altKey: true, code: "Digit2" });
+        expect(emitSpy).toHaveBeenCalledWith("keyboard-shortcut", "nav_nomad");
+    });
+
     it("saveShortcut sends keyboard_shortcuts.set over WebSocket", async () => {
         await KeyboardShortcuts.saveShortcut("nav_messages", ["alt", "q"]);
         expect(wsSend).toHaveBeenCalledWith(
