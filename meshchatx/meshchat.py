@@ -12268,15 +12268,25 @@ class ReticulumMeshChat:
             self.config.crawler_enabled.set(self._parse_bool(data["crawler_enabled"]))
 
         if "crawler_max_retries" in data:
-            self.config.crawler_max_retries.set(int(data["crawler_max_retries"]))
+            try:
+                value = int(data["crawler_max_retries"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_max_retries.default_value
+            self.config.crawler_max_retries.set(value)
 
         if "crawler_retry_delay_seconds" in data:
-            self.config.crawler_retry_delay_seconds.set(
-                int(data["crawler_retry_delay_seconds"]),
-            )
+            try:
+                value = int(data["crawler_retry_delay_seconds"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_retry_delay_seconds.default_value
+            self.config.crawler_retry_delay_seconds.set(value)
 
         if "crawler_max_concurrent" in data:
-            self.config.crawler_max_concurrent.set(int(data["crawler_max_concurrent"]))
+            try:
+                value = int(data["crawler_max_concurrent"])
+            except (TypeError, ValueError):
+                value = self.config.crawler_max_concurrent.default_value
+            self.config.crawler_max_concurrent.set(value)
 
         if "auth_enabled" in data:
             value = self._parse_bool(data["auth_enabled"])
