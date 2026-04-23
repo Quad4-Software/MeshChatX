@@ -16,6 +16,9 @@ TRANSPARENT_TILE = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
 )
 
+# Guardrail for MBTiles exports (world + high zoom can explode).
+MAX_EXPORT_TILES = 200_000
+
 
 class MapManager:
     def __init__(self, config_manager, storage_dir):
@@ -153,6 +156,18 @@ class MapManager:
             RNS.log(f"Error reading MBTiles tile {z}/{x}/{y}: {e}", RNS.LOG_ERROR)
             return None
 
+    def count_export_tiles(self, bbox, min_zoom, max_zoom):
+        """Return the number of unique raster tiles that would be exported."""
+        min_lon, min_lat, max_lon, max_lat = bbox
+        seen = set()
+        for z in range(min_zoom, max_zoom + 1):
+            x1, y1 = self._lonlat_to_tile(min_lon, max_lat, z)
+            x2, y2 = self._lonlat_to_tile(max_lon, min_lat, z)
+            for x in range(x1, x2 + 1):
+                for y in range(y1, y2 + 1):
+                    seen.add((z, x, y))
+        return len(seen)
+
     def start_export(self, export_id, bbox, min_zoom, max_zoom, name="Exported Map"):
         """Start downloading tiles and creating an MBTiles file in a background thread."""
         thread = threading.Thread(
@@ -192,15 +207,19 @@ class MapManager:
         # bbox: [min_lon, min_lat, max_lon, max_lat]
         min_lon, min_lat, max_lon, max_lat = bbox
 
-        # collect all tiles to download
+        # collect all tiles to download (unique keys; bbox can span tile seams)
         tiles_to_download = []
+        seen = set()
         zoom_levels = range(min_zoom, max_zoom + 1)
         for z in zoom_levels:
             x1, y1 = self._lonlat_to_tile(min_lon, max_lat, z)
             x2, y2 = self._lonlat_to_tile(max_lon, min_lat, z)
-            tiles_to_download.extend(
-                (z, x, y) for x in range(x1, x2 + 1) for y in range(y1, y2 + 1)
-            )
+            for x in range(x1, x2 + 1):
+                for y in range(y1, y2 + 1):
+                    key = (z, x, y)
+                    if key not in seen:
+                        seen.add(key)
+                        tiles_to_download.append(key)
 
         total_tiles = len(tiles_to_download)
         self._export_progress[export_id]["total"] = total_tiles
