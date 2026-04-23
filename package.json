@@ -118,6 +118,12 @@
         "patchedDependencies": {
             "ol@10.9.0": "patches/ol@10.9.0.patch",
             "ol-mapbox-style@13.4.1": "patches/ol-mapbox-style@13.4.1.patch"
+        },
+        "peerDependencyRules": {
+            "allowedVersions": {
+                "vis-data>uuid": ">=14.0.0",
+                "vis-network>uuid": ">=14.0.0"
+            }
         }
     },
     "build": {
@@ -295,6 +301,7 @@
         "ol": "^10.9.0",
         "ol-mapbox-style": "^13.4.1",
         "qrcode": "^1.5.4",
+        "uuid": "^14.0.0",
         "vis-data": "^7.1.10",
         "vis-network": "^9.1.13",
         "vue": "^3.5.32",
