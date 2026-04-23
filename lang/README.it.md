@@ -219,30 +219,31 @@ Dalla root del repository:
 # 1) Build delle wheel Chaquopy usate da android/app/build.gradle
 bash scripts/build-android-wheels-local.sh
 
-# 2) Build di entrambe le varianti APK
+# 2) Build degli APK slim predefiniti (universal: un APK per flavor e tipo di build)
 cd android
-./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+./gradlew --no-daemon :app:assembleSlimDebug :app:assembleSlimRelease
 ```
 
-Output APK (split degli ABI e APK universale; vedere `splits { abi { ... } }` in `android/app/build.gradle`):
+Gli output dipendono dai **product flavors** `slim` / `full` (dimensione dell'albero Python) e dall **imballaggio ABI** `universal` (predefinito) o `split` (vedi `android/app/build.gradle`).
 
-Debug (`android/app/build/outputs/apk/debug/`):
+Con **`-PmeshchatxAbiPackaging=universal`** (predefinito), un solo APK contiene tutti gli ABI selezionati.
 
-- `app-arm64-v8a-debug.apk` (dispositivi ARM64)
-- `app-x86_64-debug.apk` (emulatori x86_64)
-- `app-universal-debug.apk` (tutti gli ABI inclusi in un unico pacchetto)
+Debug (`android/app/build/outputs/apk/slim/debug/`):
 
-Release (`android/app/build/outputs/apk/release/`):
+- `app-slim-debug.apk`
 
-- `app-arm64-v8a-release-unsigned.apk`
-- `app-x86_64-release-unsigned.apk`
-- `app-universal-release-unsigned.apk`
+Release (`android/app/build/outputs/apk/slim/release/`):
+
+- `app-slim-release-unsigned.apk`
+
+Per il bundle Python completo: `:app:assembleFullDebug` o `:app:assembleFullRelease`.
 
 Note:
 
 - Gli output release sono non firmati di default se non configurate le firme.
-- Se serve una sola variante: `:app:assembleDebug` o `:app:assembleRelease`.
-- Android punta agli ABI `arm64-v8a` e `x86_64` come in `android/app/build.gradle`.
+- Per una sola build, ad esempio: `:app:assembleSlimDebug` o `:app:assembleSlimRelease`.
+- ABI: `-PmeshchatxAbis` o `MESHCHATX_ABIS`; imballaggio: `-PmeshchatxAbiPackaging` o `MESHCHATX_ABI_PACKAGING`.
+- Albero `meshchatx/` per Chaquopy: **`slim`** in `src/slim/python/`, **`full`** in `src/full/python/`. Dettagli in [`android/README.md`](../android/README.md).
 
 Documentazione aggiuntiva:
 

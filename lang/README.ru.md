@@ -219,30 +219,31 @@ MeshChatX поддерживает нативные Android APK (не тольк
 # 1) Собрать колёса Chaquopy для android/app/build.gradle
 bash scripts/build-android-wheels-local.sh
 
-# 2) Собрать обе вариации APK
+# 2) Собрать slim APK по умолчанию (universal: один APK на flavor и тип сборки)
 cd android
-./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+./gradlew --no-daemon :app:assembleSlimDebug :app:assembleSlimRelease
 ```
 
-Выходные APK (разбиение по ABI и универсальный APK; см. `splits { abi { ... } }` в `android/app/build.gradle`):
+Выходы определяются **product flavors** `slim` / `full` (размер дерева Python) и **ABI-упаковкой** `universal` (по умолчанию) или `split` (см. `android/app/build.gradle`).
 
-Отладка (`android/app/build/outputs/apk/debug/`):
+При **`-PmeshchatxAbiPackaging=universal`** (по умолчанию) один APK содержит все выбранные ABI.
 
-- `app-arm64-v8a-debug.apk` (устройства ARM64)
-- `app-x86_64-debug.apk` (эмуляторы x86_64)
-- `app-universal-debug.apk` (все включённые ABI в одном пакете)
+Отладка (`android/app/build/outputs/apk/slim/debug/`):
 
-Релиз (`android/app/build/outputs/apk/release/`):
+- `app-slim-debug.apk`
 
-- `app-arm64-v8a-release-unsigned.apk`
-- `app-x86_64-release-unsigned.apk`
-- `app-universal-release-unsigned.apk`
+Релиз (`android/app/build/outputs/apk/slim/release/`):
+
+- `app-slim-release-unsigned.apk`
+
+Для полного Python-бандла: `:app:assembleFullDebug` или `:app:assembleFullRelease`.
 
 Примечания:
 
 - Релизные артефакты по умолчанию не подписаны, если не настроена подпись.
-- Если нужна одна вариация: `:app:assembleDebug` или `:app:assembleRelease`.
-- Целевые ABI — `arm64-v8a` и `x86_64` согласно `android/app/build.gradle`.
+- Для одной сборки, например: `:app:assembleSlimDebug` или `:app:assembleSlimRelease`.
+- ABI: `-PmeshchatxAbis` или `MESHCHATX_ABIS`; упаковка: `-PmeshchatxAbiPackaging` или `MESHCHATX_ABI_PACKAGING`.
+- Дерево `meshchatx/` для Chaquopy: **`slim`** синхронизируется в `src/slim/python/`, **`full`** в `src/full/python/`. Подробнее в [`android/README.md`](../android/README.md).
 
 Дополнительная документация:
 

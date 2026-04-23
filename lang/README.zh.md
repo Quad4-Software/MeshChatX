@@ -219,30 +219,31 @@ MeshChatX 支持构建原生 Android APK（不仅限于 Termux）。
 # 1) 构建 android/app/build.gradle 所需的 Chaquopy 轮子
 bash scripts/build-android-wheels-local.sh
 
-# 2) 构建两种 APK 变体
+# 2) 构建默认 slim APK（universal：每种 flavor + 构建类型一个 APK）
 cd android
-./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+./gradlew --no-daemon :app:assembleSlimDebug :app:assembleSlimRelease
 ```
 
-APK 输出（ABI 分包与 universal APK；见 `android/app/build.gradle` 中的 `splits { abi { ... } }`）:
+输出由 **product flavors** `slim` / `full`（Python 树大小）和 **ABI 打包** `universal`（默认）或 `split`（见 `android/app/build.gradle`）决定。
 
-调试（`android/app/build/outputs/apk/debug/`）:
+**`-PmeshchatxAbiPackaging=universal`**（默认）下，单个 APK 包含所选的全部 ABI。
 
-- `app-arm64-v8a-debug.apk`（ARM64 设备）
-- `app-x86_64-debug.apk`（x86_64 模拟器）
-- `app-universal-debug.apk`（所有已打包 ABI 的单包）
+调试（`android/app/build/outputs/apk/slim/debug/`）:
 
-发布（`android/app/build/outputs/apk/release/`）:
+- `app-slim-debug.apk`
 
-- `app-arm64-v8a-release-unsigned.apk`
-- `app-x86_64-release-unsigned.apk`
-- `app-universal-release-unsigned.apk`
+发布（`android/app/build/outputs/apk/slim/release/`）:
+
+- `app-slim-release-unsigned.apk`
+
+需要更大 Python 包时用 `:app:assembleFullDebug` 或 `:app:assembleFullRelease`。
 
 说明:
 
 - 若未配置签名，发布构建默认未签名。
-- 若只需一种变体，可运行 `:app:assembleDebug` 或 `:app:assembleRelease`。
-- Android 目标 ABI 为 `android/app/build.gradle` 中配置的 `arm64-v8a` 与 `x86_64`。
+- 若只需一种构建，可运行例如 `:app:assembleSlimDebug` 或 `:app:assembleSlimRelease`。
+- ABI 可用 `-PmeshchatxAbis` 或 `MESHCHATX_ABIS` 覆盖；打包方式用 `-PmeshchatxAbiPackaging` 或 `MESHCHATX_ABI_PACKAGING`。
+- Chaquopy 的 `meshchatx/` 树：**`slim`** 同步到 `src/slim/python/`（较小），**`full`** 同步到 `src/full/python/`（完整）。详见 [`android/README.md`](../android/README.md)。
 
 更多文档:
 

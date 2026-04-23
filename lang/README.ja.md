@@ -219,30 +219,31 @@ MeshChatX はネイティブ Android APK のビルドに対応しています（
 # 1) android/app/build.gradle で使う Chaquopy 用ホイールをビルド
 bash scripts/build-android-wheels-local.sh
 
-# 2) 両方の APK バリアントをビルド
+# 2) 既定の slim APK をビルド（universal: フレーバーとビルドタイプごとに 1 つの APK）
 cd android
-./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+./gradlew --no-daemon :app:assembleSlimDebug :app:assembleSlimRelease
 ```
 
-APK の出力（ABI 分割と universal APK。`android/app/build.gradle` の `splits { abi { ... } }` を参照）:
+**product flavors** `slim` / `full`（Python ツリーの大きさ）と **ABI パッケージング** `universal`（既定）または `split`（`android/app/build.gradle`）で出力が決まります。
 
-デバッグ（`android/app/build/outputs/apk/debug/`）:
+**`-PmeshchatxAbiPackaging=universal`**（既定）では、選択した ABI がすべて入った単一 APK です。
 
-- `app-arm64-v8a-debug.apk`（ARM64 端末）
-- `app-x86_64-debug.apk`（x86_64 エミュレータ）
-- `app-universal-debug.apk`（同梱 ABI を 1 パッケージに）
+デバッグ（`android/app/build/outputs/apk/slim/debug/`）:
 
-リリース（`android/app/build/outputs/apk/release/`）:
+- `app-slim-debug.apk`
 
-- `app-arm64-v8a-release-unsigned.apk`
-- `app-x86_64-release-unsigned.apk`
-- `app-universal-release-unsigned.apk`
+リリース（`android/app/build/outputs/apk/slim/release/`）:
+
+- `app-slim-release-unsigned.apk`
+
+より大きい Python バンドルが必要なら `:app:assembleFullDebug` または `:app:assembleFullRelease`。
 
 備考:
 
 - リリース出力は署名を設定しない限りデフォルトで未署名です。
-- どちらか一方でよい場合は `:app:assembleDebug` または `:app:assembleRelease`。
-- Android の対象 ABI は `android/app/build.gradle` で設定されている `arm64-v8a` と `x86_64` です。
+- 1 種類だけ欲しい場合は例: `:app:assembleSlimDebug` または `:app:assembleSlimRelease`。
+- ABI は `-PmeshchatxAbis` または `MESHCHATX_ABIS`、パッケージングは `-PmeshchatxAbiPackaging` または `MESHCHATX_ABI_PACKAGING` で上書きできます。
+- Chaquopy の `meshchatx/` ツリー: **`slim`** は `src/slim/python/` に小さい同期、**`full`** は `src/full/python/` に完全同期。詳細は [`android/README.md`](../android/README.md)。
 
 追加ドキュメント:
 

@@ -32,34 +32,54 @@ yes | path/to/cmdline-tools/latest/bin/sdkmanager --licenses
 path/to/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 ```
 
-Build from the `android/` directory:
+Build from the `android/` directory (default **slim** flavor, **universal** ABI packaging):
 
 ```bash
-./gradlew assembleDebug
+./gradlew :app:assembleSlimDebug
 ```
 
-Debug APK outputs (ABI splits plus universal) are written under `app/build/outputs/apk/debug/`, for example:
+Debug APK example path:
 
-- `app-arm64-v8a-debug.apk`
-- `app-x86_64-debug.apk`
-- `app-armeabi-v7a-debug.apk`
-- `app-universal-debug.apk`
+- `app/build/outputs/apk/slim/debug/app-slim-debug.apk`
 
-By default all ABIs are included. To build only specific ABIs, pass a property:
+By default all ABIs are included in that single universal APK. To build only specific ABIs:
 
 ```bash
-./gradlew assembleDebug -PmeshchatxAbis=armeabi-v7a
-./gradlew assembleDebug -PmeshchatxAbis=arm64-v8a,x86_64
+./gradlew :app:assembleSlimDebug -PmeshchatxAbis=armeabi-v7a
+./gradlew :app:assembleSlimDebug -PmeshchatxAbis=arm64-v8a,x86_64
 ```
 
-`app-universal-*.apk` is produced only when more than one ABI is selected.
+To emit **per-ABI split APKs** (and a universal split when Gradle enables it), set:
+
+```bash
+./gradlew :app:assembleSlimDebug -PmeshchatxAbiPackaging=split
+```
+
+Same property accepts `MESHCHATX_ABI_PACKAGING`.
+
+### Python bundle: `slim` vs `full` flavors
+
+The Chaquopy layer packs `meshchatx/` into `assets/chaquopy/app.imy`. These are **Android product flavors** (separate Gradle variants):
+
+| Flavor | Meaning |
+|--------|--------|
+| **`slim`** (default `isDefault`) | Smaller APK: sync omits Vue sources (`src/frontend`), bundled Reticulum HTML manual (`public/reticulum-docs-bundled`), RNode flasher static files, and **offline repository wheels** (`public/repository-server-bundled`). |
+| **`full`** | Syncs the whole `meshchatx/` tree (Gradle runs `fetchRepositoryBundledWheels` first when bundled wheels are missing). Use when the APK must ship the offline repository mirror and bundled docs. |
+
+Assemble the matching variant:
+
+```bash
+./gradlew :app:assembleSlimDebug -PmeshchatxAbis=arm64-v8a
+./gradlew :app:assembleFullDebug
+./gradlew :app:assembleFullRelease
+```
 
 ## Signing Release APKs (optional SourceStamp)
 
 Build release APKs first:
 
 ```bash
-./gradlew --no-daemon :app:assembleRelease
+./gradlew --no-daemon :app:assembleSlimRelease
 ```
 
 Create a release signing key (one time):
@@ -131,7 +151,7 @@ For **`armeabi-v7a`**, Chaquopy usually has no prebuilt NumPy wheel; `scripts/bu
    - Store source patches in `patches/`.
 3. Build the configured ABIs with Chaquopy `build-wheel.py` (via `scripts/build-android-wheels-local.sh`) and place final wheels in `android/vendor/`.
 4. Update `android/app/build.gradle` `pip` installs to the new pinned version.
-5. Rebuild with `./gradlew assembleDebug` and verify split outputs (per enabled ABIs), including `app-universal-debug.apk`.
+5. Rebuild with `./gradlew :app:assembleSlimDebug` (or `-PmeshchatxAbiPackaging=split` when you need per-ABI artifacts) and confirm the expected APK under `app/build/outputs/apk/`.
 
 Local host build example (no shell startup files required):
 

@@ -219,33 +219,34 @@ From repo root:
 # 1) Build Chaquopy wheels used by android/app/build.gradle
 bash scripts/build-android-wheels-local.sh
 
-# 2) Build both APK variants
+# 2) Build default slim APKs (universal packaging: one APK per flavor+type)
 cd android
-./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+./gradlew --no-daemon :app:assembleSlimDebug :app:assembleSlimRelease
 ```
 
-APK outputs (ABI splits plus a universal APK; see `splits { abi { ... } }` in `android/app/build.gradle`):
+APK layout uses **product flavors** `slim` and `full` (Python tree size) plus **ABI packaging** `universal` (default) or `split` (see `android/app/build.gradle`).
 
-Debug (`android/app/build/outputs/apk/debug/`):
+With **`-PmeshchatxAbiPackaging=universal`** (default), each variant is a single APK containing every selected ABI:
 
-- `app-arm64-v8a-debug.apk` (ARM64 devices)
-- `app-x86_64-debug.apk` (x86_64 emulators)
-- `app-armeabi-v7a-debug.apk` (32-bit ARM devices)
-- `app-universal-debug.apk` (all bundled ABIs in one package)
+Debug (`android/app/build/outputs/apk/slim/debug/`):
 
-Release (`android/app/build/outputs/apk/release/`):
+- `app-slim-debug.apk`
 
-- `app-arm64-v8a-release-unsigned.apk`
-- `app-x86_64-release-unsigned.apk`
-- `app-armeabi-v7a-release-unsigned.apk`
-- `app-universal-release-unsigned.apk`
+Release (`android/app/build/outputs/apk/slim/release/`):
+
+- `app-slim-release-unsigned.apk`
+
+Use `:app:assembleFullDebug` / `:app:assembleFullRelease` for the larger `full` Python bundle (offline repository wheels, bundled docs, Vue sources, etc.).
+
+With **`-PmeshchatxAbiPackaging=split`** and more than one ABI in `-PmeshchatxAbis`, Gradle also emits per-ABI APKs under the same flavor folders, plus a universal split APK when enabled.
 
 Notes:
 
 - Release outputs are unsigned by default unless you configure signing.
-- If you only need one variant, run `:app:assembleDebug` or `:app:assembleRelease`.
+- If you only need one build, run for example `:app:assembleSlimDebug` or `:app:assembleSlimRelease`.
 - Android targets the ABIs listed in `android/app/build.gradle` (including `armeabi-v7a` when enabled). Building wheels for `armeabi-v7a` needs an Android SDK on `ANDROID_HOME` (see `android/README.md`).
-- You can override ABI selection per build with `-PmeshchatxAbis=<comma-separated list>`, for example `-PmeshchatxAbis=armeabi-v7a`. Universal APKs are emitted only when multiple ABIs are selected.
+- Override ABI selection with `-PmeshchatxAbis=<comma-separated list>` or `MESHCHATX_ABIS`. Override packaging with `-PmeshchatxAbiPackaging=universal|split` or `MESHCHATX_ABI_PACKAGING`.
+- Chaquopy bundle size: **`slim`** flavor (default) syncs a smaller `meshchatx/` tree into `src/slim/python/`; **`full`** flavor syncs the complete tree into `src/full/python/` (including offline repository wheels after fetch when needed). See `android/README.md`.
 
 Additional docs:
 
