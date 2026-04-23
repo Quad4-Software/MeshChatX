@@ -39,6 +39,9 @@
                 <span class="text-gray-600 dark:text-zinc-400">{{ $t("map.tile_count") }}:</span>
                 <span class="font-bold text-blue-600">{{ estimatedTiles }}</span>
             </div>
+            <p v-if="tileLimitExceeded" class="text-xs text-red-600 dark:text-red-400 font-semibold">
+                {{ $t("map.export_tile_limit_exceeded") }}
+            </p>
             <div class="flex gap-2">
                 <button
                     :disabled="exporting"
@@ -48,7 +51,7 @@
                     {{ $t("common.cancel") }}
                 </button>
                 <button
-                    :disabled="exporting"
+                    :disabled="exporting || tileLimitExceeded"
                     class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg font-bold transition-colors shadow-md"
                     @click="$emit('start')"
                 >
@@ -70,6 +73,7 @@ export default {
         maxZoom: { type: Number, required: true },
         estimatedTiles: { type: [Number, String], default: 0 },
         exporting: { type: Boolean, default: false },
+        tileLimitExceeded: { type: Boolean, default: false },
     },
     emits: ["cancel", "start", "update:minZoom", "update:maxZoom"],
 };

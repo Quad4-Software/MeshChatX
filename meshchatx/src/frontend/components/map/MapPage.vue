@@ -98,23 +98,36 @@
             </div>
         </div>
 
-        <!-- map container -->
-        <div class="relative flex-1 min-h-0">
+        <!-- map container (h-full so absolute overlays can use max-h-full / inset height) -->
+        <div ref="mapViewOverlayRoot" class="relative flex-1 min-h-0 h-full">
             <MapDrawingToolbar
                 :tools="drawingTools"
                 :draw-type="drawType"
                 :measuring="isMeasuring"
+                :bearing-mode="isBearingMode"
+                :bearing-from-gps="bearingFromGps"
                 :export-mode="isExportMode"
                 :selected-feature="selectedFeature"
                 @toggle-draw="toggleDraw"
                 @toggle-export="toggleExportMode"
                 @toggle-measure="toggleMeasure"
+                @toggle-bearing="toggleBearingMode"
+                @bearing-from-here="startBearingFromMyLocation"
                 @clear="clearDrawings"
                 @edit-note="startEditingNote"
                 @delete-feature="deleteSelectedFeature"
                 @save="showSaveDrawingModal = true"
                 @load="openLoadDrawingModal"
                 @locate="goToMyLocation"
+                @share-view="shareMapView"
+                @ping-here="openPingModalFromMapCenter"
+            />
+
+            <MapBearingInstructions
+                v-if="isBearingMode"
+                :from-gps-active="bearingFromGps"
+                :awaiting-second-tap="bearingFromGps || !!bearingFirstMapCoord"
+                @use-my-location="startBearingFromMyLocation"
             />
 
             <div
@@ -205,6 +218,58 @@
                 </div>
             </div>
 
+            <div ref="drawFeatureInfoElement" class="absolute z-[45] pointer-events-none">
+                <div
+                    v-show="drawFeatureInfoPayload"
+                    class="pointer-events-auto min-w-[11rem] max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2"
+                >
+                    <template v-if="drawFeatureInfoPayload">
+                        <div v-if="drawFeatureInfoPayload.iconSrc" class="flex justify-center mb-2">
+                            <img
+                                :src="drawFeatureInfoPayload.iconSrc"
+                                alt=""
+                                class="max-h-12 max-w-[4.5rem] object-contain rounded border border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800/50"
+                            />
+                        </div>
+                        <div
+                            v-if="drawFeatureInfoPayload.name"
+                            class="text-xs font-bold text-gray-900 dark:text-zinc-100 leading-snug mb-1"
+                        >
+                            {{ drawFeatureInfoPayload.name }}
+                        </div>
+                        <div
+                            v-if="drawFeatureInfoPayload.description && !drawFeatureInfoPayload.descriptionIsHtml"
+                            class="text-[11px] text-gray-600 dark:text-zinc-400 whitespace-pre-wrap break-words leading-snug"
+                        >
+                            {{ drawFeatureInfoPayload.description }}
+                        </div>
+                        <!-- eslint-disable vue/no-v-html -->
+                        <div
+                            v-else-if="drawFeatureDescriptionSanitized"
+                            class="text-[11px] text-gray-600 dark:text-zinc-400 prose prose-sm dark:prose-invert max-w-none leading-snug"
+                            v-html="drawFeatureDescriptionSanitized"
+                        ></div>
+                        <!-- eslint-enable vue/no-v-html -->
+                        <dl
+                            v-if="drawFeatureInfoPayload.extended.length"
+                            class="mt-2 space-y-1 border-t border-gray-100 dark:border-zinc-800 pt-2"
+                        >
+                            <template v-for="row in drawFeatureInfoPayload.extended" :key="row.key">
+                                <div class="grid grid-cols-[minmax(0,40%)_1fr] gap-x-2 gap-y-0.5 text-[10px]">
+                                    <dt
+                                        class="font-semibold text-gray-500 dark:text-zinc-500 truncate"
+                                        :title="row.key"
+                                    >
+                                        {{ row.key }}
+                                    </dt>
+                                    <dd class="text-gray-800 dark:text-zinc-200 break-words m-0">{{ row.value }}</dd>
+                                </div>
+                            </template>
+                        </dl>
+                    </template>
+                </div>
+            </div>
+
             <!-- context menu -->
             <ContextMenuPanel
                 :show="showContextMenu"
@@ -239,6 +304,10 @@
                     <MaterialDesignIcon icon-name="crosshairs-gps" class="size-4" />
                     Copy coords
                 </ContextMenuItem>
+                <ContextMenuItem @click="contextPingHere">
+                    <MaterialDesignIcon icon-name="send" class="size-4" />
+                    {{ $t("map.ping_here") }}
+                </ContextMenuItem>
                 <ContextMenuItem v-if="!contextMenuFeature" @click="contextClearMap">
                     <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
                     Clear drawings
@@ -268,7 +337,11 @@
                 @select="selectClusterItem"
             />
 
-            <MapExportInstructions v-if="isExportMode && !selectedBbox" />
+            <MapExportInstructions
+                v-if="isExportMode && !selectedBbox"
+                :presets="exportRegionPresets"
+                @select-preset="applyExportRegionPreset"
+            />
 
             <MapExportConfigPanel
                 v-if="isExportMode && selectedBbox"
@@ -276,6 +349,7 @@
                 v-model:max-zoom="exportMaxZoom"
                 :estimated-tiles="estimatedTiles"
                 :exporting="isExporting"
+                :tile-limit-exceeded="exportTileLimitExceeded"
                 @cancel="cancelExport"
                 @start="startExport"
             />
@@ -293,8 +367,80 @@
 
             <MapNoMapWarning v-if="offlineEnabled && !hasOfflineMap" @upload="$refs.fileInput.click()" />
 
-            <!-- map info overlay -->
-            <div class="absolute bottom-4 left-4 z-10 space-y-2 pointer-events-none">
+            <div
+                v-if="showMapPingModal"
+                class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4"
+                role="dialog"
+                aria-modal="true"
+                @click.self="showMapPingModal = false"
+            >
+                <div
+                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl max-w-md w-full p-4 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100"
+                >
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-lg">{{ $t("map.ping_modal_title") }}</h3>
+                        <button
+                            type="button"
+                            class="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800"
+                            @click="showMapPingModal = false"
+                        >
+                            <MaterialDesignIcon icon-name="close" class="size-5" />
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-zinc-400 mb-2 font-mono">
+                        {{ mapPingSummary }}
+                    </p>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">{{
+                        $t("map.ping_destination")
+                    }}</label>
+                    <select
+                        v-model="pingDestinationHash"
+                        class="w-full mb-2 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-sm"
+                    >
+                        <option value="">{{ $t("map.ping_pick_conversation") }}</option>
+                        <option v-for="p in conversationOptions" :key="p.hash" :value="p.hash">
+                            {{ p.label }}
+                        </option>
+                    </select>
+                    <button
+                        type="button"
+                        class="w-full py-2 mb-3 text-sm font-bold bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+                        :disabled="!pingDestinationHash"
+                        @click="sendMapPing"
+                    >
+                        {{ $t("map.ping_send") }}
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full py-2 text-sm font-semibold bg-gray-100 dark:bg-zinc-800 rounded-lg"
+                        @click="showMapPingModal = false"
+                    >
+                        {{ $t("common.cancel") }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- scale line: bottom-right so it never stacks over the lat/lon readout (bottom-left) -->
+            <div
+                ref="scaleLineMount"
+                class="ol-scale-line-host absolute z-10 bottom-4 right-4 sm:bottom-4 max-sm:bottom-[5.5rem] pointer-events-auto min-w-[120px] max-w-[min(55vw,14rem)]"
+                :class="{ 'ol-scale-line-host--dark-basemap': isDarkRasterBasemap }"
+            ></div>
+
+            <!-- map info overlay (north + metadata + coords) -->
+            <div
+                class="absolute bottom-4 left-4 z-10 flex flex-col gap-2 pointer-events-none max-w-[min(100vw-2rem,22rem)]"
+            >
+                <div
+                    class="flex flex-col items-center justify-end text-gray-800 dark:text-zinc-100 bg-white/80 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1 shadow-sm pointer-events-auto w-fit"
+                    :title="$t('map.north_up')"
+                >
+                    <span class="text-[10px] font-black leading-none">N</span>
+                    <MaterialDesignIcon
+                        icon-name="navigation"
+                        class="size-5 text-blue-600 dark:text-blue-400 -mb-0.5"
+                    />
+                </div>
                 <div
                     v-if="metadata && metadata.name && !metadata.name.startsWith('Map Export')"
                     class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-xs text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-sm"
@@ -326,14 +472,31 @@
                 </div>
             </div>
 
-            // controls overlay -->
             <!-- controls overlay -->
             <div
                 v-if="isSettingsOpen"
-                class="absolute top-14 right-4 z-20 w-72 max-h-[calc(100vh-5rem)] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+                ref="settingsPanel"
+                class="absolute z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col min-h-0 animate-in fade-in zoom-in-95 duration-200"
+                :class="
+                    settingsPanelPos
+                        ? 'w-96 max-w-[min(100vw-2rem,28rem)] max-h-full'
+                        : isMobileScreen
+                          ? 'left-2 right-2 top-14 bottom-2 w-auto max-w-none'
+                          : 'top-14 right-4 w-96 max-w-[min(100vw-2rem,28rem)] max-h-full'
+                "
+                :style="
+                    settingsPanelPos
+                        ? { left: `${settingsPanelPos.left}px`, top: `${settingsPanelPos.top}px` }
+                        : undefined
+                "
             >
                 <div
-                    class="p-3 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-gray-50/50 dark:bg-zinc-800/50"
+                    ref="settingsPanelHeader"
+                    class="p-3 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between shrink-0 bg-gray-50/50 dark:bg-zinc-800/50 touch-none select-none cursor-grab active:cursor-grabbing"
+                    @pointerdown="onSettingsPanelPointerDown"
+                    @pointermove="onSettingsPanelPointerMove"
+                    @pointerup="onSettingsPanelPointerUp"
+                    @pointercancel="onSettingsPanelPointerUp"
                 >
                     <div class="flex items-center space-x-2">
                         <MaterialDesignIcon icon-name="cog" class="size-4 text-gray-500 dark:text-gray-300" />
@@ -342,7 +505,9 @@
                         </h3>
                     </div>
                     <button
-                        class="p-1 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-gray-500 dark:text-gray-300"
+                        type="button"
+                        class="p-1 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors text-gray-500 dark:text-gray-300 cursor-pointer"
+                        @pointerdown.stop
                         @click="isSettingsOpen = false"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-4" />
@@ -368,6 +533,16 @@
                             <span>Clear Cache</span>
                         </button>
                     </div>
+
+                    <MapVectorExchangePanel
+                        :disabled="!drawSource"
+                        :has-features="hasVectorDrawFeatures"
+                        @import-features="onVectorExchangeImport"
+                        @import-error="onVectorExchangeImportError"
+                        @export-geojson="exportVectorGeoJson"
+                        @export-kml="exportVectorKml"
+                        @export-kmz="exportVectorKmz"
+                    />
 
                     <!-- Map Style Presets -->
                     <div v-if="!offlineEnabled" class="space-y-2">
@@ -608,42 +783,53 @@
                 </div>
             </div>
 
-            <!-- offline warning overlay -->
             <div
-                v-if="showOfflineHint"
-                class="absolute top-14 left-1/2 -translate-x-1/2 z-30 w-full max-w-sm px-4 animate-in fade-in slide-in-from-top-4 duration-500"
+                v-if="!offlineEnabled && showTileConnectivityBanner"
+                class="absolute top-14 left-1/2 -translate-x-1/2 z-30 w-full max-w-md px-4 animate-in fade-in slide-in-from-top-4 duration-500"
             >
                 <div
-                    class="bg-amber-500 text-white rounded-xl shadow-2xl p-4 flex items-start space-x-3 border-2 border-amber-600/50"
+                    class="rounded-xl shadow-2xl p-4 flex items-start gap-3 border border-zinc-700/80 bg-zinc-900 text-zinc-100 dark:border-zinc-600 dark:bg-zinc-950"
                 >
-                    <MaterialDesignIcon icon-name="wifi-off" class="size-6 shrink-0 mt-0.5" />
-                    <div class="flex-1 space-y-2">
-                        <p class="text-xs font-bold leading-tight">
-                            Failed to fetch map tiles. You appear to be offline or off-grid.
+                    <MaterialDesignIcon icon-name="wifi-off" class="size-6 shrink-0 mt-0.5 text-amber-400" />
+                    <div class="flex-1 min-w-0 space-y-2">
+                        <p class="text-sm font-semibold leading-snug text-white">
+                            {{ $t("map.tile_connectivity_title") }}
                         </p>
-                        <p class="text-[10px] opacity-90 font-medium leading-relaxed">
-                            Please use an
-                            <strong
-                                class="font-bold text-white underline decoration-white/30 decoration-2 underline-offset-2"
-                                >Offline Map</strong
-                            >
-                            with MBTiles, or configure a local tile/geocoder server in the map settings.
+                        <p class="text-xs leading-relaxed text-zinc-300">
+                            {{ $t("map.tile_connectivity_body") }}
                         </p>
-                        <div class="flex space-x-2 pt-1">
+                        <div class="flex flex-wrap gap-2 pt-1">
                             <button
-                                class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-bold uppercase transition-colors border border-white/20"
-                                @click="
-                                    isSettingsOpen = true;
-                                    showOfflineHint = false;
-                                "
+                                type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                                @click="retryMapTiles"
                             >
-                                Open Settings
+                                {{ $t("map.tile_connectivity_retry") }}
                             </button>
                             <button
-                                class="px-3 py-1 bg-black/10 hover:bg-black/20 rounded-lg text-[10px] font-bold uppercase transition-colors"
-                                @click="showOfflineHint = false"
+                                v-if="hasOfflineMap"
+                                type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-700 hover:bg-zinc-600 text-white transition-colors"
+                                @click="switchToOfflineFromTileBanner"
                             >
-                                Dismiss
+                                {{ $t("map.tile_connectivity_use_offline") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                                @click="dismissTileConnectivityBanner"
+                            >
+                                {{ $t("map.tile_connectivity_dismiss") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition-colors"
+                                @click="
+                                    dismissTileConnectivityBanner();
+                                    isSettingsOpen = true;
+                                "
+                            >
+                                {{ $t("map.settings") }}
                             </button>
                         </div>
                     </div>
@@ -879,7 +1065,9 @@
 </template>
 
 <script>
+import { markRaw } from "vue";
 import "ol/ol.css";
+import "../../js/mapVectorWebFonts.js";
 import { apply as applyMapboxStyle } from "ol-mapbox-style";
 import Map from "ol/Map";
 import View from "ol/View";
@@ -895,6 +1083,7 @@ import * as mdi from "@mdi/js";
 import { Style, Text, Fill, Stroke, Circle as CircleStyle, Icon } from "ol/style";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
+import ScaleLine from "ol/control/ScaleLine";
 import DragBox from "ol/interaction/DragBox";
 import Draw from "ol/interaction/Draw";
 import Modify from "ol/interaction/Modify";
@@ -925,22 +1114,49 @@ import {
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
+import DOMPurify from "dompurify";
 import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
+import {
+    fetchTileBlobWithRetry,
+    fetchJsonWithRetry,
+    buildNominatimSearchUrl,
+    NOMINATIM_FETCH_TIMEOUT_MS,
+    NOMINATIM_FETCH_RETRIES,
+    NOMINATIM_FETCH_RETRY_BASE_DELAY_MS,
+} from "../../js/mapTileNetwork";
 import Toggle from "../forms/Toggle.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import MapClusterPanel from "./internal/MapClusterPanel.vue";
 import MapMarkerPanel from "./internal/MapMarkerPanel.vue";
 import MapDrawingToolbar from "./internal/MapDrawingToolbar.vue";
+import MapBearingInstructions from "./internal/MapBearingInstructions.vue";
 import MapSearchBar from "./internal/MapSearchBar.vue";
 import MapExportInstructions from "./internal/MapExportInstructions.vue";
 import MapExportConfigPanel from "./internal/MapExportConfigPanel.vue";
 import MapExportProgressPanel from "./internal/MapExportProgressPanel.vue";
 import MapNoMapWarning from "./internal/MapNoMapWarning.vue";
 import MapLoadingOverlay from "./internal/MapLoadingOverlay.vue";
+import MapVectorExchangePanel from "./internal/MapVectorExchangePanel.vue";
+import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.js";
+import { writeFeaturesToGeoJson } from "../../js/mapExchange/geoJsonCodec.js";
+import { writeFeaturesToKml } from "../../js/mapExchange/kmlCodec.js";
+import { writeFeaturesToKmzBlob } from "../../js/mapExchange/kmzCodec.js";
+import { getDrawFeatureMetadataPayload, getFeatureAnchorCoordinate } from "../../js/mapExchange/metadataUtils.js";
+import { styleFromMcxProperties } from "../../js/mapExchange/styleFromProperties.js";
+import { computeSegmentMetrics, buildBearingOverlayHtml, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
 
 const OPENFREEMAP_DEFAULT_STYLE = "https://tiles.openfreemap.org/styles/bright";
 const LEGACY_DEFAULT_OSM_RASTER = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OFFLINE_MB_TILES_URL = "/api/v1/map/tiles/{z}/{x}/{y}.png";
+const OFFLINE_TRANSPARENT_TILE_PNG =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+const MAX_EXPORT_TILES = 200000;
+
+const WORLD_MBTILES_BBOX = [-180, -85.051129, 180, 85.051129];
+
+const MAP_FEATURE_HIT_TOLERANCE = 15;
 
 export default {
     name: "MapPage",
@@ -952,12 +1168,14 @@ export default {
         MapClusterPanel,
         MapMarkerPanel,
         MapDrawingToolbar,
+        MapBearingInstructions,
         MapSearchBar,
         MapExportInstructions,
         MapExportConfigPanel,
         MapExportProgressPanel,
         MapNoMapWarning,
         MapLoadingOverlay,
+        MapVectorExchangePanel,
     },
     data() {
         return {
@@ -967,6 +1185,8 @@ export default {
             metadata: null,
             isUploading: false,
             isSettingsOpen: false,
+            settingsPanelPos: null,
+            settingsPanelDrag: null,
             currentCenter: [0, 0],
             currentZoom: 2,
             cursorCoords: null,
@@ -1027,7 +1247,8 @@ export default {
             mbtilesDir: "",
             isMapLoaded: false,
             tileErrorCount: 0,
-            showOfflineHint: false,
+            showTileConnectivityBanner: false,
+            tileConnectivityBannerTimer: null,
 
             // drawing tools
             draw: null,
@@ -1048,6 +1269,11 @@ export default {
 
             // measurement
             isMeasuring: false,
+            isBearingMode: false,
+            bearingFromGps: false,
+            bearingGpsMapCoord: null,
+            bearingFirstMapCoord: null,
+            bearingPreviewFeature: null,
             sketch: null,
             helpTooltipElement: null,
             helpTooltip: null,
@@ -1064,6 +1290,8 @@ export default {
             hoveredFeature: null,
             hoveredMarker: null,
             noteOverlay: null,
+            drawFeatureInfoOverlay: null,
+            drawFeatureInfoPayload: null,
             showNoteModal: false,
             showSaveDrawingModal: false,
             newDrawingName: "",
@@ -1078,6 +1306,22 @@ export default {
             contextMenuPos: { x: 0, y: 0 },
             contextMenuFeature: null,
             contextMenuCoord: null,
+
+            showMapPingModal: false,
+            pingDestinationHash: "",
+            mapPingLat: 0,
+            mapPingLon: 0,
+            mapPingZoom: 10,
+
+            exportRegionPresets: [
+                { id: "world", bbox: WORLD_MBTILES_BBOX.slice(), minZoom: 0, maxZoom: 4 },
+                { id: "europe", bbox: [-12, 35, 40, 72], minZoom: 0, maxZoom: 10 },
+                { id: "north_america", bbox: [-170, 15, -50, 72], minZoom: 0, maxZoom: 10 },
+                { id: "south_america", bbox: [-82, -56, -34, 14], minZoom: 0, maxZoom: 10 },
+                { id: "africa", bbox: [-20, -36, 52, 38], minZoom: 0, maxZoom: 10 },
+                { id: "asia", bbox: [25, -12, 145, 55], minZoom: 0, maxZoom: 10 },
+                { id: "oceania", bbox: [110, -48, 179, 0], minZoom: 0, maxZoom: 10 },
+            ],
         };
     },
     computed: {
@@ -1086,6 +1330,10 @@ export default {
                 return this.$route.meta.popoutType;
             }
             return this.$route?.query?.popout ?? this.getHashPopoutValue();
+        },
+        isDarkRasterBasemap() {
+            const u = (this.tileServerUrl || "").toLowerCase();
+            return u.includes("dark_all");
         },
         isPopoutMode() {
             return this.popoutRouteType === "map";
@@ -1109,8 +1357,45 @@ export default {
         displayCoords() {
             return this.cursorCoords || this.currentCenter;
         },
+        hasVectorDrawFeatures() {
+            return Boolean(this.drawSource && this.drawSource.getFeatures().length > 0);
+        },
+        exportTileLimitExceeded() {
+            return this.estimatedTiles > MAX_EXPORT_TILES;
+        },
+        conversationOptions() {
+            const out = [];
+            for (const c of Object.values(this.peers || {})) {
+                const hash = c.destination_hash;
+                if (!hash) {
+                    continue;
+                }
+                const name = (c.display_name || "").trim();
+                const label = name ? `${name} (${hash.substring(0, 8)}…)` : hash;
+                out.push({ hash, label });
+            }
+            out.sort((a, b) => a.label.localeCompare(b.label));
+            return out;
+        },
+        mapPingSummary() {
+            return `${this.mapPingLat.toFixed(6)}, ${this.mapPingLon.toFixed(6)} @ z${Math.round(this.mapPingZoom)}`;
+        },
+        drawFeatureDescriptionSanitized() {
+            const p = this.drawFeatureInfoPayload;
+            if (!p || !p.description?.trim() || !p.descriptionIsHtml) {
+                return "";
+            }
+            return DOMPurify.sanitize(p.description, {
+                USE_PROFILES: { html: true },
+            });
+        },
     },
     watch: {
+        isSettingsOpen(open) {
+            if (open) {
+                this.$nextTick(() => this.clampSettingsPanelIntoView());
+            }
+        },
         selectedMarker(newVal, oldVal) {
             // Close mini-chat if the selected peer changed
             if (!newVal || !oldVal || newVal.telemetry?.destination_hash !== oldVal.telemetry?.destination_hash) {
@@ -1123,6 +1408,19 @@ export default {
                     this.$refs.newDrawingNameInput?.focus();
                 });
             }
+        },
+        "$route.query": {
+            handler() {
+                const name = this.$route.name;
+                if (name !== "map" && name !== "map-popout") {
+                    return;
+                }
+                if (!this.map || !this.markerSource) {
+                    return;
+                }
+                this.applyMapViewFromRoute();
+            },
+            deep: true,
         },
     },
     async mounted() {
@@ -1181,37 +1479,7 @@ export default {
         // Listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
-        // Check for query params to center map (overrides saved state)
-        if (this.$route.query.lat && this.$route.query.lon) {
-            const lat = parseFloat(this.$route.query.lat);
-            const lon = parseFloat(this.$route.query.lon);
-            const zoom = parseInt(this.$route.query.zoom || 15);
-            const label = this.$route.query.label || "Target";
-
-            if (!isNaN(lat) && !isNaN(lon)) {
-                this.map.getView().setCenter(fromLonLat([lon, lat]));
-                this.map.getView().setZoom(zoom);
-
-                // add a temporary marker for the query target
-                const feature = new Feature({
-                    geometry: new Point(fromLonLat([lon, lat])),
-                    originalCoord: fromLonLat([lon, lat]),
-                });
-                feature.setStyle(
-                    this.createMarkerStyle({
-                        iconColor: "#2563eb",
-                        bgColor: "#bfdbfe",
-                        label,
-                        isStale: false,
-                        iconPath: null,
-                    })
-                );
-                this.queryMarker = feature;
-                if (this.markerSource) {
-                    this.markerSource.addFeature(feature);
-                }
-            }
-        }
+        this.applyMapViewFromRoute();
 
         // Listen for moveend to update coordinates in UI and save state
         if (this.map) {
@@ -1257,12 +1525,25 @@ export default {
         if (this.reloadInterval) clearInterval(this.reloadInterval);
         if (this.exportInterval) clearInterval(this.exportInterval);
         if (this.searchTimeout) clearTimeout(this.searchTimeout);
+        if (this.tileConnectivityBannerTimer) {
+            clearTimeout(this.tileConnectivityBannerTimer);
+            this.tileConnectivityBannerTimer = null;
+        }
         document.removeEventListener("click", this.handleClickOutside);
         window.removeEventListener("resize", this.checkScreenSize);
         WebSocketConnection.off("message", this.onWebsocketMessage);
         if (this._pointerMoveRaf != null) {
             cancelAnimationFrame(this._pointerMoveRaf);
             this._pointerMoveRaf = null;
+        }
+        if (this.settingsPanelDrag?.rafId != null) {
+            cancelAnimationFrame(this.settingsPanelDrag.rafId);
+            this.settingsPanelDrag.rafId = null;
+        }
+        const settingsEl = this.$refs.settingsPanel;
+        if (settingsEl) {
+            settingsEl.style.transform = "";
+            settingsEl.style.willChange = "";
         }
         if (this.map) {
             this.map.setTarget(null);
@@ -1410,7 +1691,18 @@ export default {
             this.drawSource = new VectorSource();
             this.drawLayer = new VectorLayer({
                 source: this.drawSource,
-                style: (feature) => {
+                style: (feature, resolution) => {
+                    const own = feature.getStyle();
+                    if (own != null) {
+                        if (typeof own === "function") {
+                            return own(feature, resolution);
+                        }
+                        return own;
+                    }
+                    const fromProps = styleFromMcxProperties(feature);
+                    if (fromProps) {
+                        return fromProps;
+                    }
                     const type = feature.get("type");
                     const geometry = feature.getGeometry();
                     const geomType = geometry ? geometry.getType() : null;
@@ -1458,6 +1750,14 @@ export default {
             });
             this.map.addOverlay(this.noteOverlay);
 
+            this.drawFeatureInfoOverlay = new Overlay({
+                element: this.$refs.drawFeatureInfoElement,
+                offset: [0, -10],
+                positioning: "bottom-center",
+                stopEvent: false,
+            });
+            this.map.addOverlay(this.drawFeatureInfoOverlay);
+
             this.modify = new Modify({ source: this.drawSource });
             this.modify.on("modifystart", (e) => {
                 const feats = (e.features && e.features.getArray()) || this.select.getFeatures().getArray();
@@ -1467,16 +1767,19 @@ export default {
                 const feats = (e.features && e.features.getArray()) || this.select.getFeatures().getArray();
                 feats.forEach((f) => this.finalizeMeasurementOverlay(f));
                 this.saveMapState();
+                this.syncDrawFeatureInfoOverlay();
             });
             this.map.addInteraction(this.modify);
 
             this.select = new Select({
                 layers: [this.drawLayer],
-                hitTolerance: 15, // High tolerance for touch/offgrid
+                hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
                 style: null, // Keep original feature style
             });
             this.select.on("select", (e) => {
-                this.selectedFeature = e.selected[0] || null;
+                const picked = e.selected[0];
+                this.selectedFeature = picked ? markRaw(picked) : null;
+                this.syncDrawFeatureInfoOverlay();
             });
             this.map.addInteraction(this.select);
 
@@ -1488,6 +1791,7 @@ export default {
                 const feats = (e.features && e.features.getArray()) || this.select.getFeatures().getArray();
                 feats.forEach((f) => this.finalizeMeasurementOverlay(f));
                 this.saveMapState();
+                this.syncDrawFeatureInfoOverlay();
             });
             this.map.addInteraction(this.translate);
 
@@ -1590,9 +1894,16 @@ export default {
 
             this.map.on("pointermove", this.handleMapPointerMove);
             this.map.on("click", (evt) => {
+                if (this.isBearingMode) {
+                    this.handleBearingClick(evt);
+                    this.closeContextMenu();
+                    return;
+                }
                 this.handleMapClick(evt);
                 this.closeContextMenu();
-                const feature = this.map.forEachFeatureAtPixel(evt.pixel, (f) => f);
+                const feature = this.map.forEachFeatureAtPixel(evt.pixel, (f) => f, {
+                    hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
+                });
                 if (feature && feature.get("cluster")) {
                     this.openCluster(feature);
                 } else if (feature && (feature.get("telemetry") || feature.get("discovered"))) {
@@ -1607,6 +1918,7 @@ export default {
                 if (!feature && this.select) {
                     this.select.getFeatures().clear();
                     this.selectedFeature = null;
+                    this.syncDrawFeatureInfoOverlay();
                 }
             });
 
@@ -1628,10 +1940,172 @@ export default {
             });
 
             this.map.addInteraction(this.dragBox);
+            await this.$nextTick();
+            if (this.$refs.scaleLineMount) {
+                this.map.addControl(
+                    new ScaleLine({
+                        target: this.$refs.scaleLineMount,
+                        units: "metric",
+                        bar: true,
+                        text: true,
+                    })
+                );
+            }
             this.isMapLoaded = true;
 
             // Close context menu when clicking elsewhere
             document.addEventListener("click", this.handleGlobalClick);
+        },
+        applyExportRegionPreset(preset) {
+            if (!preset || !preset.bbox) {
+                return;
+            }
+            this.selectedBbox = preset.bbox.slice();
+            this.exportMinZoom = preset.minZoom;
+            this.exportMaxZoom = preset.maxZoom;
+        },
+        applyLayersFromRouteString(layersStr) {
+            if (!layersStr || typeof layersStr !== "string") {
+                return;
+            }
+            const parts = layersStr
+                .split(",")
+                .map((s) => s.trim().toLowerCase())
+                .filter(Boolean);
+            if (parts.includes("discovered")) {
+                this.mapDiscoveredNodes({ skipFit: true, silent: true });
+            }
+        },
+        applyMapViewFromRoute() {
+            if (!this.map || !this.markerSource) {
+                return;
+            }
+            const q = this.$route.query || {};
+            const latRaw = q.lat;
+            const lonRaw = q.lon;
+            if (latRaw == null || lonRaw == null || latRaw === "" || lonRaw === "") {
+                if (q.layers) {
+                    this.applyLayersFromRouteString(String(q.layers));
+                }
+                return;
+            }
+            const lat = parseFloat(latRaw);
+            const lon = parseFloat(lonRaw);
+            const zRaw = q.zoom != null && q.zoom !== "" ? q.zoom : q.z;
+            let zoom = parseFloat(zRaw != null && zRaw !== "" ? zRaw : "15");
+            if (!Number.isFinite(zoom)) {
+                zoom = 15;
+            }
+            zoom = Math.max(0, Math.min(22, zoom));
+            const label = (q.label != null && String(q.label)) || "Target";
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                return;
+            }
+
+            if (this.queryMarker) {
+                this.markerSource.removeFeature(this.queryMarker);
+                this.queryMarker = null;
+            }
+
+            this.map.getView().setCenter(fromLonLat([lon, lat]));
+            this.map.getView().setZoom(zoom);
+
+            const feature = new Feature({
+                geometry: new Point(fromLonLat([lon, lat])),
+                originalCoord: fromLonLat([lon, lat]),
+            });
+            feature.setStyle(
+                this.createMarkerStyle({
+                    iconColor: "#2563eb",
+                    bgColor: "#bfdbfe",
+                    label: String(label),
+                    isStale: false,
+                    iconPath: null,
+                })
+            );
+            this.queryMarker = feature;
+            this.markerSource.addFeature(feature);
+
+            if (q.layers) {
+                this.applyLayersFromRouteString(String(q.layers));
+            }
+        },
+        layersTagForShare() {
+            return this.discoveredVisible ? "discovered" : "";
+        },
+        async shareMapView() {
+            if (!this.map) {
+                return;
+            }
+            const view = this.map.getView();
+            const c = toLonLat(view.getCenter());
+            const z = view.getZoom();
+            const lat = c[1];
+            const lon = c[0];
+            const layers = this.layersTagForShare();
+            const mesh = buildMeshchatMapUri({ lat, lon, zoom: z, layers });
+            const web = buildWebHashMapUrl({ lat, lon, zoom: z, layers });
+            const text = `${this.$t("map.share_message_prefix")} ${mesh}\n${web}`;
+            try {
+                if (navigator?.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    ToastUtils.success(this.$t("map.share_copied"));
+                } else {
+                    ToastUtils.info(text);
+                }
+            } catch (e) {
+                console.error(e);
+                ToastUtils.warning(web);
+            }
+        },
+        openPingModalFromMapCenter() {
+            if (!this.map) {
+                return;
+            }
+            const view = this.map.getView();
+            const c = toLonLat(view.getCenter());
+            this.mapPingLat = c[1];
+            this.mapPingLon = c[0];
+            this.mapPingZoom = view.getZoom();
+            this.pingDestinationHash = "";
+            this.showMapPingModal = true;
+        },
+        openPingModalAt(lat, lon, zoom) {
+            this.mapPingLat = lat;
+            this.mapPingLon = lon;
+            this.mapPingZoom = zoom;
+            this.pingDestinationHash = "";
+            this.showMapPingModal = true;
+        },
+        async sendMapPing() {
+            const hash = (this.pingDestinationHash || "").trim();
+            if (!hash || hash.length !== 32) {
+                ToastUtils.error(this.$t("map.ping_invalid_destination"));
+                return;
+            }
+            const layers = this.layersTagForShare();
+            const uri = buildMeshchatMapUri({
+                lat: this.mapPingLat,
+                lon: this.mapPingLon,
+                zoom: this.mapPingZoom,
+                layers,
+                label: "Ping",
+            });
+            const content = `${this.$t("map.ping_message_prefix")} ${uri}`;
+            try {
+                await window.api.post("/api/v1/lxmf-messages/send", {
+                    lxmf_message: {
+                        destination_hash: hash,
+                        content,
+                    },
+                });
+                ToastUtils.success(this.$t("map.ping_sent"));
+                this.showMapPingModal = false;
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("map.ping_failed"));
+            }
         },
         isLocalUrl(url) {
             if (!url) return false;
@@ -1678,7 +2152,7 @@ export default {
                     testUrl = testUrl.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0");
                 }
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
                 const response = await fetch(testUrl, {
                     method: "HEAD",
                     signal: controller.signal,
@@ -1695,12 +2169,41 @@ export default {
         isOpenFreeMapStyleUrl(url) {
             return typeof url === "string" && url.includes("tiles.openfreemap.org/styles/");
         },
+        usesOfflineMbtilesRaster() {
+            if (!this.offlineEnabled) return false;
+            const defaultTileUrl = OPENFREEMAP_DEFAULT_STYLE;
+            const customTileUrl = this.tileServerUrl || defaultTileUrl;
+            const isCustomLocal = this.isLocalUrl(customTileUrl);
+            if (isCustomLocal) return false;
+            const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl);
+            if (isDefaultOnline) return true;
+            if (customTileUrl !== defaultTileUrl && customTileUrl !== LEGACY_DEFAULT_OSM_RASTER) return false;
+            return true;
+        },
         async buildBaseMapLayer() {
             const url = (this.tileServerUrl || OPENFREEMAP_DEFAULT_STYLE).trim();
             if (!this.offlineEnabled && this.isOpenFreeMapStyleUrl(url)) {
                 const group = new LayerGroup();
                 await applyMapboxStyle(group, url);
                 return group;
+            }
+            if (this.cachingEnabled && this.usesOfflineMbtilesRaster()) {
+                return new LayerGroup({
+                    layers: [
+                        new TileLayer({
+                            source: this.getOfflineRasterCacheOnlySource(),
+                            preload: 2,
+                            transition: 0,
+                            cacheSize: 896,
+                        }),
+                        new TileLayer({
+                            source: this.getOfflineMbtilesTopSource(),
+                            preload: 2,
+                            transition: 0,
+                            cacheSize: 896,
+                        }),
+                    ],
+                });
             }
             return new TileLayer({
                 source: this.getTileSource(),
@@ -1730,7 +2233,191 @@ export default {
                 setTimeout(() => URL.revokeObjectURL(url), 10000);
                 return;
             }
+            await this.applyRasterPlaceholderTile(tile, "dark");
+        },
+        async applyRasterPlaceholderTile(tile, variant) {
+            const isTransparent = variant === "transparent";
+            if (typeof createImageBitmap === "function") {
+                try {
+                    const c = document.createElement("canvas");
+                    const size = isTransparent ? 1 : 256;
+                    c.width = size;
+                    c.height = size;
+                    const ctx = c.getContext("2d");
+                    if (isTransparent) {
+                        ctx.clearRect(0, 0, 1, 1);
+                    } else {
+                        ctx.fillStyle = "#18181b";
+                        ctx.fillRect(0, 0, size, size);
+                    }
+                    const bitmap = await createImageBitmap(c);
+                    tile.setImage(bitmap);
+                    tile.setState(TileState.LOADED);
+                    return;
+                } catch {
+                    /* fall through */
+                }
+            }
+            const el = tile.getImage();
+            if (el && "src" in el) {
+                el.removeAttribute("crossorigin");
+                if (isTransparent) {
+                    el.src = OFFLINE_TRANSPARENT_TILE_PNG;
+                } else {
+                    const c = document.createElement("canvas");
+                    c.width = 1;
+                    c.height = 1;
+                    const ctx = c.getContext("2d");
+                    ctx.fillStyle = "#18181b";
+                    ctx.fillRect(0, 0, 1, 1);
+                    el.src = c.toDataURL("image/png");
+                }
+                tile.setState(TileState.LOADED);
+                return;
+            }
             tile.setState(TileState.ERROR);
+        },
+        parseZxyFromTileUrl(url) {
+            if (typeof url !== "string") return null;
+            const m = url.match(/\/(\d+)\/(\d+)\/(\d+)\.(?:png|jpg|jpeg|webp)(\?|$)/i);
+            if (!m) return null;
+            return [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)];
+        },
+        expandRasterTileUrlTemplates(template, z, x, y) {
+            const out = [];
+            if (typeof template !== "string") return out;
+            if (!template.includes("{z}") || !template.includes("{x}") || !template.includes("{y}")) return out;
+            const zs = String(z);
+            const xs = String(x);
+            const ys = String(y);
+            if (template.includes("{r}")) {
+                const a = template
+                    .replaceAll("{z}", zs)
+                    .replaceAll("{x}", xs)
+                    .replaceAll("{y}", ys)
+                    .replaceAll("{r}", "");
+                out.push(a);
+                const b = template
+                    .replaceAll("{z}", zs)
+                    .replaceAll("{x}", xs)
+                    .replaceAll("{y}", ys)
+                    .replaceAll("{r}", "@2x");
+                if (!out.includes(b)) out.push(b);
+            } else {
+                out.push(template.replaceAll("{z}", zs).replaceAll("{x}", xs).replaceAll("{y}", ys));
+            }
+            return out;
+        },
+        offlineTileCacheLookupUrls(tileCoord, primarySrc) {
+            let z;
+            let x;
+            let y;
+            if (Array.isArray(tileCoord) && tileCoord.length >= 3) {
+                z = tileCoord[0];
+                x = tileCoord[1];
+                y = tileCoord[2];
+            } else {
+                const parsed = this.parseZxyFromTileUrl(primarySrc);
+                if (!parsed) return primarySrc ? [primarySrc] : [];
+                [z, x, y] = parsed;
+            }
+            const ordered = [];
+            const push = (u) => {
+                if (typeof u === "string" && u.length > 0 && !ordered.includes(u)) ordered.push(u);
+            };
+            push(primarySrc);
+            const ts = this.tileServerUrl || OPENFREEMAP_DEFAULT_STYLE;
+            if (!this.isOpenFreeMapStyleUrl(ts)) {
+                for (const u of this.expandRasterTileUrlTemplates(ts, z, x, y)) push(u);
+            }
+            for (const u of this.expandRasterTileUrlTemplates(LEGACY_DEFAULT_OSM_RASTER, z, x, y)) push(u);
+            return ordered;
+        },
+        offlineCachedRasterOnlyLookupUrls(tileCoord, primarySrc) {
+            let z;
+            let x;
+            let y;
+            if (Array.isArray(tileCoord) && tileCoord.length >= 3) {
+                z = tileCoord[0];
+                x = tileCoord[1];
+                y = tileCoord[2];
+            } else {
+                const parsed = this.parseZxyFromTileUrl(primarySrc);
+                if (!parsed) return [];
+                [z, x, y] = parsed;
+            }
+            const ordered = [];
+            const push = (u) => {
+                if (typeof u === "string" && u.length > 0 && !ordered.includes(u)) ordered.push(u);
+            };
+            const ts = this.tileServerUrl || OPENFREEMAP_DEFAULT_STYLE;
+            if (!this.isOpenFreeMapStyleUrl(ts)) {
+                for (const u of this.expandRasterTileUrlTemplates(ts, z, x, y)) push(u);
+            }
+            for (const u of this.expandRasterTileUrlTemplates(LEGACY_DEFAULT_OSM_RASTER, z, x, y)) push(u);
+            return ordered;
+        },
+        async tryApplyCachedRasterTilesOnly(tile, src) {
+            if (!this.cachingEnabled) return false;
+            const coord = typeof tile.getTileCoord === "function" ? tile.getTileCoord() : null;
+            const urls = this.offlineCachedRasterOnlyLookupUrls(coord, src);
+            for (const key of urls) {
+                try {
+                    const cached = await TileCache.getTile(key);
+                    if (cached) {
+                        await this.fastApplyBlobToTile(tile, cached);
+                        return true;
+                    }
+                } catch {
+                    /* ignore */
+                }
+            }
+            return false;
+        },
+        getOfflineRasterCacheOnlySource() {
+            const source = new XYZ({
+                url: OFFLINE_MB_TILES_URL,
+                crossOrigin: "anonymous",
+                transition: 0,
+            });
+            source.setTileLoadFunction(async (tile, src) => {
+                if (await this.tryApplyCachedRasterTilesOnly(tile, src)) return;
+                await this.applyRasterPlaceholderTile(tile, "dark");
+            });
+            return source;
+        },
+        getOfflineMbtilesTopSource() {
+            const source = new XYZ({
+                url: OFFLINE_MB_TILES_URL,
+                crossOrigin: "anonymous",
+                transition: 0,
+            });
+            source.setTileLoadFunction(async (tile, src) => {
+                const result = await fetchTileBlobWithRetry(src, { credentials: "omit" }, {});
+                if (result.ok) {
+                    await this.fastApplyBlobToTile(tile, result.blob);
+                    return;
+                }
+                await this.applyRasterPlaceholderTile(tile, "transparent");
+            });
+            return source;
+        },
+        async tryApplyCachedTileForOfflineView(tile, src) {
+            if (!this.cachingEnabled) return false;
+            const coord = typeof tile.getTileCoord === "function" ? tile.getTileCoord() : null;
+            const urls = this.offlineTileCacheLookupUrls(coord, src);
+            for (const key of urls) {
+                try {
+                    const cached = await TileCache.getTile(key);
+                    if (cached) {
+                        await this.fastApplyBlobToTile(tile, cached);
+                        return true;
+                    }
+                } catch {
+                    /* ignore */
+                }
+            }
+            return false;
         },
         getTileSource() {
             const isOffline = this.offlineEnabled;
@@ -1743,7 +2430,7 @@ export default {
             if (isOffline) {
                 // If it's a known online URL, force offline tiles from MBTiles
                 if (isDefaultOnline) {
-                    tileUrl = "/api/v1/map/tiles/{z}/{x}/{y}.png";
+                    tileUrl = OFFLINE_MB_TILES_URL;
                 } else if (isCustomLocal) {
                     // It's a local/mesh URL, allow it
                     tileUrl = customTileUrl;
@@ -1752,8 +2439,7 @@ export default {
                     // assume it might be a local mesh server with a domain.
                     tileUrl = customTileUrl;
                 } else {
-                    // Fallback to offline MBTiles
-                    tileUrl = "/api/v1/map/tiles/{z}/{x}/{y}.png";
+                    tileUrl = OFFLINE_MB_TILES_URL;
                 }
             } else {
                 tileUrl = customTileUrl;
@@ -1765,74 +2451,101 @@ export default {
                 transition: 0,
             });
 
-            // Track tile load errors to notify user if they appear to be offline
-            if (source && typeof source.on === "function") {
-                source.on("tileloaderror", () => {
-                    if (!isOffline) {
-                        this.tileErrorCount++;
-                        if (this.tileErrorCount > 5) {
-                            this.showOfflineHint = true;
-                            // Reset count after showing hint to avoid multiple triggers
-                            this.tileErrorCount = 0;
-                            // Auto-hide hint after 30 seconds
-                            setTimeout(() => {
-                                this.showOfflineHint = false;
-                            }, 30000);
-                        }
-                    }
+            if (!isOffline && source && typeof source.on === "function") {
+                source.on("tileloadend", () => {
+                    this.onOnlineRasterTileLoadedOk();
                 });
             }
 
-            const originalTileLoadFunction = source.getTileLoadFunction();
-
             if (isOffline) {
                 source.setTileLoadFunction(async (tile, src) => {
-                    try {
-                        const response = await fetch(src);
-                        if (!response.ok) {
-                            if (response.status === 404) {
-                                tile.setState(TileState.ERROR);
-                                return;
-                            }
-                            throw new Error(`HTTP ${response.status}`);
-                        }
-                        const blob = await response.blob();
-                        await this.fastApplyBlobToTile(tile, blob);
-                    } catch {
-                        tile.setState(TileState.ERROR);
+                    const result = await fetchTileBlobWithRetry(src, { credentials: "omit" }, {});
+                    if (result.ok) {
+                        await this.fastApplyBlobToTile(tile, result.blob);
+                        return;
                     }
+                    if (await this.tryApplyCachedTileForOfflineView(tile, src)) return;
+                    await this.applyRasterPlaceholderTile(tile, "dark");
                 });
             } else {
                 source.setTileLoadFunction(async (tile, src) => {
-                    if (!this.cachingEnabled) {
-                        originalTileLoadFunction(tile, src);
+                    if (this.cachingEnabled) {
+                        try {
+                            const cached = await TileCache.getTile(src);
+                            if (cached) {
+                                await this.fastApplyBlobToTile(tile, cached);
+                                return;
+                            }
+                        } catch {
+                            /* ignore */
+                        }
+                    }
+
+                    const result = await fetchTileBlobWithRetry(src, { credentials: "omit" }, {});
+                    if (result.ok) {
+                        await this.fastApplyBlobToTile(tile, result.blob);
+                        if (this.cachingEnabled) {
+                            queueMicrotask(() => {
+                                TileCache.setTile(src, result.blob).catch(() => {});
+                            });
+                        }
                         return;
                     }
-
-                    try {
-                        const cached = await TileCache.getTile(src);
-                        if (cached) {
-                            await this.fastApplyBlobToTile(tile, cached);
-                            return;
-                        }
-
-                        const response = await fetch(src);
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}`);
-                        }
-                        const blob = await response.blob();
-                        await this.fastApplyBlobToTile(tile, blob);
-
-                        queueMicrotask(() => {
-                            TileCache.setTile(src, blob).catch(() => {});
-                        });
-                    } catch {
-                        originalTileLoadFunction(tile, src);
-                    }
+                    await this.applyRasterPlaceholderTile(tile, "dark");
+                    this.onOnlineRasterTileLoadFailure();
                 });
             }
 
             return source;
+        },
+        onOnlineRasterTileLoadedOk() {
+            this.tileErrorCount = Math.max(0, this.tileErrorCount - 4);
+        },
+        onOnlineRasterTileLoadFailure() {
+            this.tileErrorCount++;
+            if (this.tileErrorCount > 10) {
+                this.showTileConnectivityBanner = true;
+                this.tileErrorCount = 0;
+                if (this.tileConnectivityBannerTimer) {
+                    clearTimeout(this.tileConnectivityBannerTimer);
+                }
+                this.tileConnectivityBannerTimer = setTimeout(() => {
+                    this.showTileConnectivityBanner = false;
+                    this.tileConnectivityBannerTimer = null;
+                }, 45000);
+            }
+        },
+        dismissTileConnectivityBanner() {
+            this.showTileConnectivityBanner = false;
+            if (this.tileConnectivityBannerTimer) {
+                clearTimeout(this.tileConnectivityBannerTimer);
+                this.tileConnectivityBannerTimer = null;
+            }
+        },
+        refreshBaseMapTileSources() {
+            if (!this.map) return;
+            const base = this.map.getLayers().item(0);
+            if (!base) return;
+            const walk = (layer) => {
+                const s = layer.getSource && layer.getSource();
+                if (s && typeof s.refresh === "function") {
+                    s.refresh();
+                }
+                const inner = layer.getLayers && layer.getLayers();
+                if (inner && typeof inner.forEach === "function") {
+                    inner.forEach(walk);
+                }
+            };
+            walk(base);
+        },
+        retryMapTiles() {
+            this.tileErrorCount = 0;
+            this.dismissTileConnectivityBanner();
+            this.refreshBaseMapTileSources();
+        },
+        async switchToOfflineFromTileBanner() {
+            this.dismissTileConnectivityBanner();
+            await this.toggleOffline(true);
         },
         async checkOfflineMap() {
             try {
@@ -1888,7 +2601,7 @@ export default {
             }
 
             this.tileErrorCount = 0;
-            this.showOfflineHint = false;
+            this.dismissTileConnectivityBanner();
 
             if (enabled) {
                 const defaultTileUrl = OPENFREEMAP_DEFAULT_STYLE;
@@ -1942,7 +2655,7 @@ export default {
         async toggleCaching(enabled) {
             this.cachingEnabled = enabled;
             this.tileErrorCount = 0;
-            this.showOfflineHint = false;
+            this.dismissTileConnectivityBanner();
             try {
                 await window.api.patch("/api/v1/config", {
                     map_tile_cache_enabled: enabled,
@@ -1953,6 +2666,9 @@ export default {
         },
         toggleExportMode() {
             this.isExportMode = !this.isExportMode;
+            if (this.isExportMode) {
+                this.stopBearingMode();
+            }
             if (!this.isExportMode) {
                 this.selectedBbox = null;
             }
@@ -1976,7 +2692,7 @@ export default {
             }
         },
         async startExport() {
-            if (!this.selectedBbox) return;
+            if (!this.selectedBbox || this.exportTileLimitExceeded) return;
             this.isExporting = true;
             try {
                 const response = await window.api.post("/api/v1/map/export", {
@@ -1989,8 +2705,9 @@ export default {
                 this.isExportMode = false;
                 this.selectedBbox = null;
                 this.pollExportStatus();
-            } catch {
-                ToastUtils.error(this.$t("map.failed_start_export"));
+            } catch (e) {
+                const msg = e.response?.data?.error || this.$t("map.failed_start_export");
+                ToastUtils.error(msg);
                 this.isExporting = false;
             }
         },
@@ -2086,6 +2803,7 @@ export default {
         async clearCache() {
             try {
                 await TileCache.clear();
+                this.dismissTileConnectivityBanner();
                 ToastUtils.success(this.$t("map.cache_cleared"));
             } catch {
                 ToastUtils.error(this.$t("map.failed_clear_cache"));
@@ -2096,6 +2814,7 @@ export default {
                 await window.api.patch("/api/v1/config", {
                     map_tile_server_url: this.tileServerUrl,
                 });
+                this.dismissTileConnectivityBanner();
                 await this.updateMapSource();
                 ToastUtils.success(this.$t("map.tile_server_saved"));
                 await this.saveMapState();
@@ -2105,7 +2824,7 @@ export default {
         },
         setTileServer(type) {
             this.tileErrorCount = 0;
-            this.showOfflineHint = false;
+            this.dismissTileConnectivityBanner();
             if (type === "openfreemap") {
                 this.tileServerUrl = OPENFREEMAP_DEFAULT_STYLE;
             } else if (type === "osm") {
@@ -2252,22 +2971,33 @@ export default {
             this.searchResults = [];
 
             try {
-                const apiUrl = this.nominatimApiUrl.endsWith("/")
-                    ? this.nominatimApiUrl.slice(0, -1)
-                    : this.nominatimApiUrl;
-                const url = `${apiUrl}/search?format=json&q=${encodeURIComponent(this.searchQuery)}&limit=10&addressdetails=1`;
-
-                const response = await fetch(url, {
-                    headers: {
-                        "User-Agent": "ReticulumMeshChatX/1.0",
+                const url = buildNominatimSearchUrl(this.nominatimApiUrl, this.searchQuery);
+                const result = await fetchJsonWithRetry(
+                    url,
+                    {
+                        headers: {
+                            "User-Agent": "ReticulumMeshChatX/1.0",
+                        },
                     },
-                });
+                    {
+                        timeoutMs: NOMINATIM_FETCH_TIMEOUT_MS,
+                        retries: NOMINATIM_FETCH_RETRIES,
+                        retryBaseDelayMs: NOMINATIM_FETCH_RETRY_BASE_DELAY_MS,
+                    }
+                );
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                if (!result.ok) {
+                    if (result.status) {
+                        this.searchError = `${this.$t("map.search_error")} (HTTP ${result.status})`;
+                    } else if (result.error && result.error.name === "AbortError") {
+                        this.searchError = this.$t("map.search_timeout_error");
+                    } else {
+                        this.searchError = this.$t("map.search_connection_error");
+                    }
+                    return;
                 }
 
-                const data = await response.json();
+                const data = await result.response.json();
 
                 if (Array.isArray(data) && data.length > 0) {
                     this.searchResults = data.map((item) => ({
@@ -2282,12 +3012,7 @@ export default {
                 }
             } catch (e) {
                 console.error("Search error:", e);
-                if (e.message.includes("Failed to fetch") || e.message.includes("NetworkError")) {
-                    this.searchError = this.$t("map.search_connection_error");
-                    this.showOfflineHint = true;
-                } else {
-                    this.searchError = this.$t("map.search_error") + ": " + e.message;
-                }
+                this.searchError = this.$t("map.search_error") + ": " + (e.message || String(e));
             } finally {
                 this.isSearching = false;
             }
@@ -2335,6 +3060,142 @@ export default {
             if (!this.isMobileScreen) {
                 this.isMobileSearchOpen = false;
             }
+            this.clampSettingsPanelIntoView();
+        },
+        clampSettingsPanelIntoView() {
+            if (!this.isSettingsOpen || !this.settingsPanelPos) {
+                return;
+            }
+            const root = this.$refs.mapViewOverlayRoot;
+            const panel = this.$refs.settingsPanel;
+            if (!root || !panel) {
+                return;
+            }
+            const margin = 6;
+            const w = panel.offsetWidth;
+            const h = panel.offsetHeight;
+            const maxLeft = Math.max(margin, root.clientWidth - w - margin);
+            const maxTop = Math.max(margin, root.clientHeight - h - margin);
+            const left = Math.min(Math.max(this.settingsPanelPos.left, margin), maxLeft);
+            const top = Math.min(Math.max(this.settingsPanelPos.top, margin), maxTop);
+            if (left !== this.settingsPanelPos.left || top !== this.settingsPanelPos.top) {
+                this.settingsPanelPos = { left, top };
+            }
+        },
+        onSettingsPanelPointerDown(e) {
+            if (e.pointerType === "mouse" && e.button !== 0) {
+                return;
+            }
+            if (e.target.closest("button")) {
+                return;
+            }
+            const root = this.$refs.mapViewOverlayRoot;
+            const panel = this.$refs.settingsPanel;
+            const header = this.$refs.settingsPanelHeader;
+            if (!root || !panel || !header) {
+                return;
+            }
+            const rootRect = root.getBoundingClientRect();
+            const panelRect = panel.getBoundingClientRect();
+            if (!this.settingsPanelPos) {
+                this.settingsPanelPos = {
+                    left: panelRect.left - rootRect.left,
+                    top: panelRect.top - rootRect.top,
+                };
+            }
+            header.setPointerCapture(e.pointerId);
+            const anchorLeft = this.settingsPanelPos.left;
+            const anchorTop = this.settingsPanelPos.top;
+            this.settingsPanelDrag = {
+                pointerId: e.pointerId,
+                startClientX: e.clientX,
+                startClientY: e.clientY,
+                lastClientX: e.clientX,
+                lastClientY: e.clientY,
+                anchorLeft,
+                anchorTop,
+                rafId: null,
+            };
+            panel.style.willChange = "transform";
+        },
+        settingsPanelDragClamped() {
+            const d = this.settingsPanelDrag;
+            if (!d) {
+                return null;
+            }
+            const root = this.$refs.mapViewOverlayRoot;
+            const panel = this.$refs.settingsPanel;
+            if (!root || !panel) {
+                return null;
+            }
+            const margin = 6;
+            const dx = d.lastClientX - d.startClientX;
+            const dy = d.lastClientY - d.startClientY;
+            let left = d.anchorLeft + dx;
+            let top = d.anchorTop + dy;
+            const maxLeft = Math.max(margin, root.clientWidth - panel.offsetWidth - margin);
+            const maxTop = Math.max(margin, root.clientHeight - panel.offsetHeight - margin);
+            left = Math.min(Math.max(left, margin), maxLeft);
+            top = Math.min(Math.max(top, margin), maxTop);
+            return {
+                left,
+                top,
+                tx: left - d.anchorLeft,
+                ty: top - d.anchorTop,
+            };
+        },
+        scheduleSettingsPanelDragRaf() {
+            const d = this.settingsPanelDrag;
+            if (!d || d.rafId != null) {
+                return;
+            }
+            d.rafId = requestAnimationFrame(() => {
+                d.rafId = null;
+                const panel = this.$refs.settingsPanel;
+                const fin = this.settingsPanelDragClamped();
+                if (!panel || !fin) {
+                    return;
+                }
+                panel.style.transform = `translate3d(${fin.tx}px,${fin.ty}px,0)`;
+            });
+        },
+        onSettingsPanelPointerMove(e) {
+            if (!this.settingsPanelDrag || this.settingsPanelDrag.pointerId !== e.pointerId) {
+                return;
+            }
+            this.settingsPanelDrag.lastClientX = e.clientX;
+            this.settingsPanelDrag.lastClientY = e.clientY;
+            this.scheduleSettingsPanelDragRaf();
+        },
+        onSettingsPanelPointerUp(e) {
+            if (!this.settingsPanelDrag || this.settingsPanelDrag.pointerId !== e.pointerId) {
+                return;
+            }
+            const d = this.settingsPanelDrag;
+            if (d.rafId != null) {
+                cancelAnimationFrame(d.rafId);
+                d.rafId = null;
+            }
+            d.lastClientX = e.clientX;
+            d.lastClientY = e.clientY;
+            const panel = this.$refs.settingsPanel;
+            const fin = this.settingsPanelDragClamped();
+            if (panel) {
+                panel.style.transform = "";
+                panel.style.willChange = "";
+            }
+            if (fin) {
+                this.settingsPanelPos = { left: fin.left, top: fin.top };
+            }
+            const header = this.$refs.settingsPanelHeader;
+            if (header) {
+                try {
+                    header.releasePointerCapture(e.pointerId);
+                } catch {
+                    /* already released */
+                }
+            }
+            this.settingsPanelDrag = null;
         },
         toggleMobileSearch() {
             this.isMobileSearchOpen = !this.isMobileSearchOpen;
@@ -2378,8 +3239,34 @@ export default {
                 this.drawSource.removeFeature(this.selectedFeature);
                 if (this.select) this.select.getFeatures().clear();
                 this.selectedFeature = null;
+                this.syncDrawFeatureInfoOverlay();
                 this.saveMapState();
             }
+        },
+
+        syncDrawFeatureInfoOverlay() {
+            if (!this.drawFeatureInfoOverlay || !this.map || !this.drawSource) {
+                return;
+            }
+            const f = this.selectedFeature;
+            if (!f || !this.drawSource.hasFeature(f)) {
+                this.drawFeatureInfoOverlay.setPosition(undefined);
+                this.drawFeatureInfoPayload = null;
+                return;
+            }
+            const payload = getDrawFeatureMetadataPayload(f);
+            if (!payload) {
+                this.drawFeatureInfoOverlay.setPosition(undefined);
+                this.drawFeatureInfoPayload = null;
+                return;
+            }
+            this.drawFeatureInfoPayload = payload;
+            const coord = getFeatureAnchorCoordinate(f);
+            if (!coord) {
+                this.drawFeatureInfoOverlay.setPosition(undefined);
+                return;
+            }
+            this.drawFeatureInfoOverlay.setPosition(coord);
         },
 
         // Drawing methods
@@ -2392,6 +3279,7 @@ export default {
 
             this.stopDrawing();
             this.isMeasuring = false;
+            this.stopBearingMode();
             this.drawType = type;
 
             if (type === "Select") {
@@ -2583,6 +3471,48 @@ export default {
         finalizeMeasurementOverlay(feature) {
             if (!this.map) return;
             this.clearMeasurementOverlay(feature);
+            if (feature.get("bearingPreview")) {
+                return;
+            }
+            if (feature.get("segmentKind") === "bearing") {
+                let metrics = feature.get("bearingMetrics");
+                if (!metrics) {
+                    const g = feature.getGeometry();
+                    if (g && g.getType() === "LineString") {
+                        const c = g.getCoordinates();
+                        if (c.length === 2) {
+                            const p0 = toLonLat(c[0]);
+                            const p1 = toLonLat(c[1]);
+                            metrics = computeSegmentMetrics(p0[0], p0[1], p1[0], p1[1]);
+                            feature.set("bearingMetrics", metrics);
+                        }
+                    }
+                }
+                if (!metrics) {
+                    return;
+                }
+                const g = feature.getGeometry();
+                const coord =
+                    g && g.getType() === "LineString"
+                        ? /** @type {import("ol/geom/LineString").default} */ (g).getCoordinateAt(0.5)
+                        : null;
+                if (!coord) {
+                    return;
+                }
+                const el = document.createElement("div");
+                el.className = "ol-tooltip ol-tooltip-static";
+                el.innerHTML = buildBearingOverlayHtml(metrics, (k) => this.$t(k));
+                const overlay = new Overlay({
+                    element: el,
+                    offset: [0, -7],
+                    positioning: "bottom-center",
+                });
+                overlay.set("isMeasureTooltip", true);
+                this.map.addOverlay(overlay);
+                overlay.setPosition(coord);
+                feature.set("_measureOverlay", overlay);
+                return;
+            }
             const geom = feature.getGeometry();
             const measurement = this.getMeasurementForGeometry(geom);
             if (!measurement) return;
@@ -2611,34 +3541,45 @@ export default {
             }
             // Rebuild for all features
             this.drawSource.getFeatures().forEach((f) => {
+                if (f.get("bearingPreview")) {
+                    return;
+                }
                 f.unset("_measureOverlay", true);
                 this.finalizeMeasurementOverlay(f);
             });
         },
         serializeFeatures(features) {
-            return features.map((f) => {
-                const clone = f.clone();
-                clone.unset("_measureOverlay", true); // avoid circular refs
-                const geom = clone.getGeometry();
-                if (geom instanceof Circle) {
-                    clone.setGeometry(fromCircle(geom, 128));
-                }
-                return clone;
-            });
+            return features
+                .filter((f) => !f.get("bearingPreview"))
+                .map((f) => {
+                    const clone = f.clone();
+                    clone.unset("_measureOverlay", true); // avoid circular refs
+                    const geom = clone.getGeometry();
+                    if (geom instanceof Circle) {
+                        clone.setGeometry(fromCircle(geom, 128));
+                    }
+                    const st = f.getStyle();
+                    if (st != null && typeof st !== "function") {
+                        clone.setStyle(st);
+                    }
+                    return clone;
+                });
         },
         // Context menu handlers
         onContextMenu(evt) {
             if (!this.map) return;
             evt.preventDefault();
             const pixel = this.map.getEventPixel(evt);
-            const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f);
+            const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f, {
+                hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
+            });
             this.contextMenuFeature = feature || null;
             this.contextMenuCoord = toLonLat(this.map.getCoordinateFromPixel(pixel));
             this.contextMenuPos = { x: evt.clientX, y: evt.clientY };
             if (feature && this.select) {
                 this.select.getFeatures().clear();
                 this.select.getFeatures().push(feature);
-                this.selectedFeature = feature;
+                this.selectedFeature = markRaw(feature);
             }
             this.showContextMenu = true;
         },
@@ -2655,7 +3596,7 @@ export default {
             this.modify?.setActive(true);
             this.select.getFeatures().clear();
             this.select.getFeatures().push(this.contextMenuFeature);
-            this.selectedFeature = this.contextMenuFeature;
+            this.selectedFeature = markRaw(this.contextMenuFeature);
             this.drawType = "Select";
             this.closeContextMenu();
         },
@@ -2692,6 +3633,16 @@ export default {
             }
             this.closeContextMenu();
         },
+        contextPingHere() {
+            if (!this.contextMenuCoord || !this.map) {
+                this.closeContextMenu();
+                return;
+            }
+            const [lon, lat] = this.contextMenuCoord;
+            const z = this.map.getView().getZoom();
+            this.openPingModalAt(lat, lon, z);
+            this.closeContextMenu();
+        },
         contextClearMap() {
             this.clearDrawings();
             this.closeContextMenu();
@@ -2707,6 +3658,9 @@ export default {
             if (!this.map) return;
             const lonLat = toLonLat(evt.coordinate);
             this.cursorCoords = [lonLat[0], lonLat[1]];
+            if (this.isBearingMode && !evt.dragging) {
+                this.updateBearingPointerUi(evt);
+            }
             if (evt.dragging || this.isDrawing || this.isMeasuring) return;
 
             const pixel = this.map.getEventPixel(evt.originalEvent);
@@ -2721,7 +3675,9 @@ export default {
                 this._pendingPointerPixel = null;
                 if (!this.map || !p) return;
 
-                const feature = this.map.forEachFeatureAtPixel(p, (f) => f);
+                const feature = this.map.forEachFeatureAtPixel(p, (f) => f, {
+                    hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
+                });
 
                 if (feature) {
                     const hasNote = feature.get("note") || (feature.get("telemetry") && feature.get("telemetry").note);
@@ -2753,11 +3709,12 @@ export default {
         },
 
         handleMapClick(evt) {
-            if (this.isDrawing || this.isMeasuring) return;
+            if (this.isDrawing || this.isMeasuring || this.isBearingMode) return;
 
             const pixel = this.map.getEventPixel(evt.originalEvent);
             const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f, {
                 layerFilter: (l) => l === this.drawLayer,
+                hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
             });
 
             if (feature && feature.get("type") === "note") {
@@ -2768,6 +3725,7 @@ export default {
         },
 
         stopDrawing() {
+            this.stopBearingMode();
             if (this.draw) {
                 this.map.removeInteraction(this.draw);
                 this.draw = null;
@@ -2783,6 +3741,11 @@ export default {
         clearDrawings() {
             if (confirm("Clear all drawings from the map?")) {
                 this.drawSource.clear();
+                if (this.select) {
+                    this.select.getFeatures().clear();
+                }
+                this.selectedFeature = null;
+                this.syncDrawFeatureInfoOverlay();
                 // clear tooltips if any
                 const overlays = this.map.getOverlays().getArray();
                 for (let i = overlays.length - 1; i >= 0; i--) {
@@ -2893,6 +3856,244 @@ export default {
             this.helpTooltipElement.innerHTML = helpMsg;
             this.helpTooltip.setPosition(evt.coordinate);
             this.helpTooltipElement.classList.remove("hidden");
+        },
+
+        stopBearingMode() {
+            if (!this.isBearingMode) {
+                return;
+            }
+            this.removeBearingPreview();
+            this.cleanupBearingTooltips();
+            this.isBearingMode = false;
+            this.bearingFromGps = false;
+            this.bearingGpsMapCoord = null;
+            this.bearingFirstMapCoord = null;
+            if (this.drawType === "Bearing") {
+                this.drawType = null;
+            }
+            if (this.select) {
+                this.select.setActive(true);
+            }
+            if (this.translate) {
+                this.translate.setActive(true);
+            }
+            if (this.modify) {
+                this.modify.setActive(true);
+            }
+        },
+
+        cleanupBearingTooltips() {
+            this.cleanupMeasureTooltip();
+            if (this.helpTooltip && this.map) {
+                this.map.removeOverlay(this.helpTooltip);
+                this.helpTooltip = null;
+            }
+            this.helpTooltipElement = null;
+        },
+
+        setupBearingTooltips() {
+            if (!this.map) {
+                return;
+            }
+            this.cleanupBearingTooltips();
+            this.createHelpTooltip();
+            this.createMeasureTooltip();
+            if (this.helpTooltipElement) {
+                this.helpTooltipElement.classList.remove("hidden");
+            }
+        },
+
+        toggleBearingMode() {
+            if (!this.map) {
+                return;
+            }
+            if (this.isBearingMode) {
+                this.stopBearingMode();
+                return;
+            }
+            this.stopDrawing();
+            this.isMeasuring = false;
+            this.bearingFromGps = false;
+            this.bearingGpsMapCoord = null;
+            this.bearingFirstMapCoord = null;
+            this.isBearingMode = true;
+            this.drawType = "Bearing";
+            if (this.select) {
+                this.select.setActive(false);
+            }
+            if (this.translate) {
+                this.translate.setActive(false);
+            }
+            if (this.modify) {
+                this.modify.setActive(false);
+            }
+            this.setupBearingTooltips();
+        },
+
+        async resolveMyLocationWgs84() {
+            if (this.config?.location_source === "manual") {
+                const lat = parseFloat(this.config.location_manual_lat);
+                const lon = parseFloat(this.config.location_manual_lon);
+                if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+                    return { lon, lat };
+                }
+            }
+            if (this.config && this.config.identity_hash) {
+                const myTelemetry = this.telemetryList.find((t) => t.destination_hash === this.config.identity_hash);
+                if (myTelemetry && myTelemetry.telemetry?.location) {
+                    const loc = myTelemetry.telemetry.location;
+                    if (loc.longitude != null && loc.latitude != null) {
+                        return { lon: loc.longitude, lat: loc.latitude };
+                    }
+                }
+            }
+            if (!navigator.geolocation) {
+                return null;
+            }
+            return new Promise((resolve) => {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        resolve({ lon: pos.coords.longitude, lat: pos.coords.latitude });
+                    },
+                    () => resolve(null),
+                    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+                );
+            });
+        },
+
+        async startBearingFromMyLocation() {
+            if (!this.map) {
+                return;
+            }
+            const loc = await this.resolveMyLocationWgs84();
+            if (!loc) {
+                ToastUtils.warning(this.$t("map.location_not_determined"));
+                return;
+            }
+            this.stopDrawing();
+            this.bearingFirstMapCoord = null;
+            this.removeBearingPreview();
+            this.isBearingMode = true;
+            this.bearingFromGps = true;
+            this.bearingGpsMapCoord = fromLonLat([loc.lon, loc.lat]);
+            this.drawType = "Bearing";
+            if (this.select) {
+                this.select.setActive(false);
+            }
+            if (this.translate) {
+                this.translate.setActive(false);
+            }
+            if (this.modify) {
+                this.modify.setActive(false);
+            }
+            this.setupBearingTooltips();
+        },
+
+        handleBearingClick(evt) {
+            const coord = evt.coordinate;
+            if (this.bearingFromGps && this.bearingGpsMapCoord) {
+                this.finishBearingSegment(this.bearingGpsMapCoord, coord);
+                return;
+            }
+            if (!this.bearingFirstMapCoord) {
+                this.bearingFirstMapCoord = coord;
+                return;
+            }
+            this.finishBearingSegment(this.bearingFirstMapCoord, coord);
+        },
+
+        finishBearingSegment(startMapCoord, endMapCoord) {
+            if (!this.map || !this.drawSource) {
+                return;
+            }
+            const ll0 = toLonLat(startMapCoord);
+            const ll1 = toLonLat(endMapCoord);
+            const metrics = computeSegmentMetrics(ll0[0], ll0[1], ll1[0], ll1[1]);
+            this.removeBearingPreview();
+            const line = new LineString([startMapCoord, endMapCoord]);
+            const feature = new Feature({
+                geometry: line,
+                type: "draw",
+                segmentKind: "bearing",
+                bearingMetrics: metrics,
+            });
+            this.drawSource.addFeature(feature);
+            this.finalizeMeasurementOverlay(feature);
+            this.stopBearingMode();
+            if (this.select) {
+                this.select.setActive(true);
+            }
+            if (this.translate) {
+                this.translate.setActive(true);
+            }
+            if (this.modify) {
+                this.modify.setActive(true);
+            }
+            setTimeout(() => this.saveMapState(), 100);
+        },
+
+        removeBearingPreview() {
+            if (this.bearingPreviewFeature && this.drawSource) {
+                this.drawSource.removeFeature(this.bearingPreviewFeature);
+            }
+            this.bearingPreviewFeature = null;
+        },
+
+        ensureBearingPreviewLine(endMapCoord) {
+            if (!this.drawSource) {
+                return;
+            }
+            const origin = this.bearingFromGps ? this.bearingGpsMapCoord : this.bearingFirstMapCoord;
+            if (!origin) {
+                return;
+            }
+            if (!this.bearingPreviewFeature) {
+                const f = new Feature({
+                    geometry: new LineString([origin, endMapCoord]),
+                    type: "draw",
+                    bearingPreview: true,
+                });
+                f.setStyle(
+                    new Style({
+                        stroke: new Stroke({
+                            color: "rgba(13, 148, 136, 0.85)",
+                            width: 2,
+                            lineDash: [8, 6],
+                        }),
+                    })
+                );
+                this.drawSource.addFeature(f);
+                this.bearingPreviewFeature = f;
+            } else {
+                /** @type {import("ol/geom/LineString").default} */ (
+                    this.bearingPreviewFeature.getGeometry()
+                ).setCoordinates([origin, endMapCoord]);
+            }
+        },
+
+        updateBearingPointerUi(evt) {
+            const origin = this.bearingFromGps ? this.bearingGpsMapCoord : this.bearingFirstMapCoord;
+            if (this.helpTooltip && this.helpTooltipElement) {
+                const msg = !origin ? this.$t("map.bearing_help_first") : this.$t("map.bearing_help_drag");
+                this.helpTooltipElement.textContent = msg;
+                this.helpTooltip.setPosition(evt.coordinate);
+                this.helpTooltipElement.classList.remove("hidden");
+            }
+            if (!origin) {
+                return;
+            }
+            this.ensureBearingPreviewLine(evt.coordinate);
+            const ll0 = toLonLat(origin);
+            const ll1 = toLonLat(evt.coordinate);
+            const metrics = computeSegmentMetrics(ll0[0], ll0[1], ll1[0], ll1[1]);
+            if (!this.measureTooltipElement || !this.measureTooltip) {
+                this.createMeasureTooltip();
+            }
+            if (this.measureTooltipElement && this.measureTooltip) {
+                this.measureTooltipElement.className = "ol-tooltip ol-tooltip-measure";
+                this.measureTooltipElement.innerHTML = buildBearingLiveTooltipHtml(metrics, (k) => this.$t(k));
+                this.measureTooltip.setPosition(evt.coordinate);
+            }
         },
 
         formatLength(line) {
@@ -3022,10 +4223,111 @@ export default {
                 featureProjection: "EPSG:3857",
             });
             this.drawSource.clear();
+            if (this.select) {
+                this.select.getFeatures().clear();
+            }
+            this.selectedFeature = null;
+            this.syncDrawFeatureInfoOverlay();
             this.drawSource.addFeatures(features);
+            this.rebuildMeasurementOverlays();
             await this.saveMapState();
             this.showLoadDrawingModal = false;
             ToastUtils.success(`Loaded "${drawing.name}"`);
+        },
+
+        onVectorExchangeImport({ features, merge }) {
+            if (!this.drawSource || !features?.length) {
+                ToastUtils.warning(this.$t("map.vector_import_empty"));
+                return;
+            }
+            if (!merge) {
+                this.drawSource.clear();
+                if (this.select) {
+                    this.select.getFeatures().clear();
+                }
+                this.selectedFeature = null;
+                this.syncDrawFeatureInfoOverlay();
+            }
+            for (const f of features) {
+                if (f.get("type") == null || f.get("type") === "") {
+                    f.set("type", "draw");
+                }
+            }
+            this.drawSource.addFeatures(features);
+            this.rebuildMeasurementOverlays();
+            this.saveMapState();
+            ToastUtils.success(this.$t("map.vector_import_ok", { count: features.length }));
+        },
+
+        onVectorExchangeImportError() {
+            ToastUtils.error(this.$t("map.vector_import_failed"));
+        },
+
+        exportVectorGeoJson() {
+            if (!this.drawSource || !this.hasVectorDrawFeatures) {
+                return;
+            }
+            const raw = this.drawSource.getFeatures();
+            const features = this.serializeFeatures(raw);
+            const text = writeFeaturesToGeoJson(features, "EPSG:3857");
+            const name = `meshchatx-drawings-${new Date().toISOString().slice(0, 10)}.geojson`;
+            this.downloadTextFile(name, text, "application/geo+json");
+            ToastUtils.success(this.$t("map.vector_export_ok"));
+        },
+
+        exportVectorKml() {
+            if (!this.drawSource || !this.hasVectorDrawFeatures) {
+                return;
+            }
+            const raw = this.drawSource.getFeatures();
+            const features = this.serializeFeatures(raw);
+            const text = writeFeaturesToKml(features, "EPSG:3857");
+            const name = `meshchatx-drawings-${new Date().toISOString().slice(0, 10)}.kml`;
+            this.downloadTextFile(name, text, "application/vnd.google-earth.kml+xml");
+            ToastUtils.success(this.$t("map.vector_export_ok"));
+        },
+
+        async exportVectorKmz() {
+            if (!this.drawSource || !this.hasVectorDrawFeatures) {
+                return;
+            }
+            const raw = this.drawSource.getFeatures();
+            const features = this.serializeFeatures(raw);
+            try {
+                const blob = await writeFeaturesToKmzBlob(features, "EPSG:3857");
+                const name = `meshchatx-drawings-${new Date().toISOString().slice(0, 10)}.kmz`;
+                this.downloadBlobFile(name, blob, "application/vnd.google-earth.kmz");
+                ToastUtils.success(this.$t("map.vector_export_ok"));
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("map.vector_import_failed"));
+            }
+        },
+
+        downloadBlobFile(filename, blob, mime) {
+            const b = new Blob([blob], { type: mime });
+            const url = URL.createObjectURL(b);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.rel = "noopener";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        },
+
+        downloadTextFile(filename, text, mime) {
+            const blob = new Blob([text], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.rel = "noopener";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
         },
 
         async deleteDrawing(drawing) {
@@ -3362,7 +4664,14 @@ export default {
                 svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${renderSize}" height="${renderSize}" viewBox="0 0 24 24"><path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/></svg>`;
             }
 
-            const src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+            const svgBytes = new TextEncoder().encode(svg);
+            let svgBinary = "";
+            const chunkSize = 8192;
+            for (let i = 0; i < svgBytes.length; i += chunkSize) {
+                const sub = svgBytes.subarray(i, i + chunkSize);
+                svgBinary += String.fromCharCode(...sub);
+            }
+            const src = "data:image/svg+xml;base64," + btoa(svgBinary);
 
             const displayHeight = renderSize * scale;
             const labelOffset = -(displayHeight + 6);
@@ -3540,7 +4849,9 @@ export default {
         getDiscoveredIconName(node) {
             return getDiscoveredIconNameHelper(node);
         },
-        async mapDiscoveredNodes() {
+        async mapDiscoveredNodes(options = {}) {
+            const skipFit = options.skipFit === true;
+            const silent = options.silent === true;
             try {
                 const response = await window.api.get("/api/v1/reticulum/discovered-interfaces");
                 const discovered = response.data?.interfaces ?? [];
@@ -3548,7 +4859,9 @@ export default {
                 const nodesDeduped = this.dedupeDiscoveredMapNodes(nodesWithLoc);
 
                 if (nodesDeduped.length === 0) {
-                    ToastUtils.info(this.$t("map.no_nodes_location"));
+                    if (!silent) {
+                        ToastUtils.info(this.$t("map.no_nodes_location"));
+                    }
                     return;
                 }
 
@@ -3570,7 +4883,7 @@ export default {
                 this.discoveredVisible = true;
                 this.updateMarkers();
 
-                if (!isExtentEmpty(extent)) {
+                if (!skipFit && !isExtentEmpty(extent)) {
                     this.map.getView().fit(extent, {
                         padding: [100, 100, 100, 100],
                         maxZoom: 12,
@@ -3578,10 +4891,14 @@ export default {
                     });
                 }
 
-                ToastUtils.success(`Mapped ${nodesDeduped.length} discovered nodes`);
+                if (!silent) {
+                    ToastUtils.success(`Mapped ${nodesDeduped.length} discovered nodes`);
+                }
             } catch (e) {
                 console.error("Failed to map discovered nodes", e);
-                ToastUtils.error(this.$t("map.failed_fetch_nodes"));
+                if (!silent) {
+                    ToastUtils.error(this.$t("map.failed_fetch_nodes"));
+                }
             }
         },
         openMapPopout() {
@@ -3678,6 +4995,39 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+.ol-scale-line-host :deep(.ol-scale-line),
+.ol-scale-line-host :deep(.ol-scale-bar) {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    top: auto;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 6px;
+    padding: 2px 4px;
+    max-width: 100%;
+}
+.dark .ol-scale-line-host :deep(.ol-scale-line),
+.dark .ol-scale-line-host :deep(.ol-scale-bar) {
+    background: rgba(24, 24, 27, 0.9);
+}
+
+.ol-scale-line-host--dark-basemap :deep(.ol-scale-line),
+.ol-scale-line-host--dark-basemap :deep(.ol-scale-bar) {
+    background: transparent;
+    --ol-background-color: rgba(255, 255, 255, 0.14);
+    --ol-partial-background-color: transparent;
+    --ol-foreground-color: #ffffff;
+    --ol-subtle-foreground-color: rgba(255, 255, 255, 0.4);
+}
+
+.ol-scale-line-host--dark-basemap :deep(.ol-scale-step-text),
+.ol-scale-line-host--dark-basemap :deep(.ol-scale-text) {
+    text-shadow:
+        0 0 2px rgba(0, 0, 0, 0.9),
+        0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
 @media (max-width: 639px) {

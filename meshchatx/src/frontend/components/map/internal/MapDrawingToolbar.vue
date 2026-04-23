@@ -13,7 +13,7 @@
                 :ref="tool.type === 'Export' ? 'exportToolButton' : null"
                 class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                 :class="[
-                    (drawType === tool.type && !measuring) || (tool.type === 'Export' && exportMode)
+                    (drawType === tool.type && !measuring && !bearingMode) || (tool.type === 'Export' && exportMode)
                         ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
                         : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300',
                 ]"
@@ -26,7 +26,7 @@
             <button
                 class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
                 :class="[
-                    measuring
+                    measuring && !bearingMode
                         ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
                         : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300',
                 ]"
@@ -34,6 +34,30 @@
                 @click="$emit('toggle-measure')"
             >
                 <v-icon icon="mdi-ruler" size="18" class="sm:!size-5"></v-icon>
+            </button>
+            <button
+                class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
+                :class="[
+                    bearingMode
+                        ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30'
+                        : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300',
+                ]"
+                :title="$t('map.tool_bearing')"
+                @click="$emit('toggle-bearing')"
+            >
+                <v-icon icon="mdi-compass-outline" size="18" class="sm:!size-5"></v-icon>
+            </button>
+            <button
+                class="p-1.5 sm:p-2 rounded-xl transition-all hover:scale-110 active:scale-90"
+                :class="[
+                    bearingMode && bearingFromGps
+                        ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30'
+                        : 'hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300',
+                ]"
+                :title="$t('map.tool_bearing_from_here')"
+                @click="$emit('bearing-from-here')"
+            >
+                <v-icon icon="mdi-navigation-variant" size="18" class="sm:!size-5"></v-icon>
             </button>
             <button
                 class="p-1.5 sm:p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-all hover:scale-110 active:scale-90"
@@ -81,6 +105,20 @@
             >
                 <v-icon icon="mdi-crosshairs-gps" size="18" class="sm:!size-5"></v-icon>
             </button>
+            <button
+                class="p-1.5 sm:p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 transition-all hover:scale-110 active:scale-90"
+                :title="$t('map.share_view')"
+                @click="$emit('share-view')"
+            >
+                <v-icon icon="mdi-share-variant" size="18" class="sm:!size-5"></v-icon>
+            </button>
+            <button
+                class="p-1.5 sm:p-2 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-600 dark:text-amber-400 transition-all hover:scale-110 active:scale-90"
+                :title="$t('map.ping_here_toolbar')"
+                @click="$emit('ping-here')"
+            >
+                <v-icon icon="mdi-send" size="18" class="sm:!size-5"></v-icon>
+            </button>
         </div>
     </div>
 </template>
@@ -92,6 +130,8 @@ export default {
         tools: { type: Array, required: true },
         drawType: { type: String, default: null },
         measuring: { type: Boolean, default: false },
+        bearingMode: { type: Boolean, default: false },
+        bearingFromGps: { type: Boolean, default: false },
         exportMode: { type: Boolean, default: false },
         selectedFeature: { type: Object, default: null },
     },
@@ -99,12 +139,16 @@ export default {
         "toggle-draw",
         "toggle-export",
         "toggle-measure",
+        "toggle-bearing",
+        "bearing-from-here",
         "clear",
         "edit-note",
         "delete-feature",
         "save",
         "load",
         "locate",
+        "share-view",
+        "ping-here",
     ],
     methods: {
         onToolClick(tool) {
