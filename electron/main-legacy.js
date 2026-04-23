@@ -13,6 +13,8 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("node:path");
 const crypto = require("crypto");
+const { getUserProvidedArguments } = require("./mainHelpers");
+const { isAllowedShellPath } = require("./shellPathGuard");
 
 // remember main window
 var mainWindow = null;
@@ -197,12 +199,32 @@ ipcMain.handle("get-memory-usage", async () => {
 });
 
 // allow showing a file path in os file manager
-ipcMain.handle("showPathInFolder", (event, path) => {
-    shell.showItemInFolder(path);
+ipcMain.handle("showPathInFolder", (event, targetPath) => {
+    const ctx = {
+        app,
+        getDefaultStorageDir,
+        getDefaultReticulumConfigDir,
+        getUserProvidedArguments,
+    };
+    if (!isAllowedShellPath(targetPath, ctx)) {
+        console.warn("showPathInFolder denied (path outside allowed directories)");
+        return;
+    }
+    shell.showItemInFolder(targetPath);
 });
 
-ipcMain.handle("open-path", (event, p) => {
-    return shell.openPath(p);
+ipcMain.handle("open-path", (event, targetPath) => {
+    const ctx = {
+        app,
+        getDefaultStorageDir,
+        getDefaultReticulumConfigDir,
+        getUserProvidedArguments,
+    };
+    if (!isAllowedShellPath(targetPath, ctx)) {
+        console.warn("open-path denied (path outside allowed directories)");
+        return "Path is not allowed";
+    }
+    return shell.openPath(targetPath);
 });
 
 ipcMain.handle("pick-file", async () => {

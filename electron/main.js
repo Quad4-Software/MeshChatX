@@ -19,6 +19,7 @@ const path = require("node:path");
 
 const { verifyBackendIntegrity } = require("./backendIntegrity");
 const { getUserProvidedArguments, formatRenderProcessGoneDetails, isLocalBackendUrl } = require("./mainHelpers");
+const { isAllowedShellPath } = require("./shellPathGuard");
 
 // remember main window
 var mainWindow = null;
@@ -261,12 +262,32 @@ ipcMain.handle("get-memory-usage", async () => {
 });
 
 // allow showing a file path in os file manager
-ipcMain.handle("showPathInFolder", (event, path) => {
-    shell.showItemInFolder(path);
+ipcMain.handle("showPathInFolder", (event, targetPath) => {
+    const ctx = {
+        app,
+        getDefaultStorageDir,
+        getDefaultReticulumConfigDir,
+        getUserProvidedArguments,
+    };
+    if (!isAllowedShellPath(targetPath, ctx)) {
+        console.warn("showPathInFolder denied (path outside allowed directories)");
+        return;
+    }
+    shell.showItemInFolder(targetPath);
 });
 
-ipcMain.handle("open-path", (event, p) => {
-    return shell.openPath(p);
+ipcMain.handle("open-path", (event, targetPath) => {
+    const ctx = {
+        app,
+        getDefaultStorageDir,
+        getDefaultReticulumConfigDir,
+        getUserProvidedArguments,
+    };
+    if (!isAllowedShellPath(targetPath, ctx)) {
+        console.warn("open-path denied (path outside allowed directories)");
+        return "Path is not allowed";
+    }
+    return shell.openPath(targetPath);
 });
 
 ipcMain.handle("pick-file", async () => {
@@ -467,7 +488,7 @@ app.whenReady().then(async () => {
         // Define a robust fallback CSP that matches our backend's policy
         const fallbackCsp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            "script-src 'self' 'unsafe-inline'",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.cartocdn.com https://tiles.openfreemap.org https://*.openfreemap.org",
             "font-src 'self' data: https://tiles.openfreemap.org https://*.openfreemap.org",
