@@ -79,6 +79,11 @@ from meshchatx.src.backend.lxmf_message_fields import (
     LxmfFileAttachmentsField,
     LxmfImageField,
 )
+from meshchatx.src.backend.lxmf_sieve import (
+    first_matching_lxmf_sieve_rule,
+    normalize_lxmf_sieve_filters,
+    parse_lxmf_sieve_filters_json,
+)
 from meshchatx.src.backend.lxmf_utils import (
     LXMF_APP_EXTENSIONS_FIELD,
     compute_lxmf_conversation_unread_from_latest_row,
@@ -9848,6 +9853,13 @@ class ReticulumMeshChat:
                 if not display_name:
                     display_name = "Anonymous Peer"
 
+                if self._lxmf_sieve_hides_peer(
+                    other_user_hash,
+                    message_title=row.get("title"),
+                    message_content=row.get("content"),
+                ):
+                    continue
+
                 # user icon
                 user_icon = None
                 if row["icon_name"]:
@@ -9937,6 +9949,36 @@ class ReticulumMeshChat:
             folder_id = int(request.match_info["id"])
             self.database.messages.delete_folder(folder_id)
             return web.json_response({"message": "Folder deleted"})
+
+        @routes.get("/api/v1/lxmf/sieve-filters")
+        async def lxmf_sieve_filters_get(request):
+            raw = self.config.lxmf_sieve_filters_json.get()
+            return web.json_response(
+                {
+                    "filters": parse_lxmf_sieve_filters_json(raw),
+                },
+            )
+
+        @routes.put("/api/v1/lxmf/sieve-filters")
+        async def lxmf_sieve_filters_put(request):
+            data = await request.json()
+            filters = data.get("filters")
+            if not isinstance(filters, list):
+                return web.json_response(
+                    {"message": "filters must be a list"},
+                    status=400,
+                )
+            normalized = normalize_lxmf_sieve_filters(filters)
+            folder_rows = self.database.messages.get_all_folders()
+            valid_folder_ids = {f["id"] for f in folder_rows}
+            for r in normalized:
+                if r["action"] == "folder" and r["folder_id"] not in valid_folder_ids:
+                    return web.json_response(
+                        {"message": f"Unknown folder_id {r['folder_id']}"},
+                        status=400,
+                    )
+            self.config.lxmf_sieve_filters_json.set(json.dumps(normalized))
+            return web.json_response({"filters": normalized})
 
         @routes.post("/api/v1/lxmf/conversations/move-to-folder")
         async def lxmf_conversations_move_to_folder(request):
@@ -10143,6 +10185,13 @@ class ReticulumMeshChat:
                                     pass
                             latest_for_preview = latest_user_facing
 
+                        if self._lxmf_sieve_suppresses_notifications(
+                            other_user_hash,
+                            message_title=latest_for_preview.get("title"),
+                            message_content=latest_for_preview.get("content"),
+                        ):
+                            continue
+
                         # Check if notification has been viewed
                         if self.database.messages.is_notification_viewed(
                             other_user_hash,
@@ -10294,6 +10343,13 @@ class ReticulumMeshChat:
                                     pass
                             latest_for_check = latest_user_facing
 
+                        if self._lxmf_sieve_suppresses_notifications(
+                            other_user_hash,
+                            message_title=latest_for_check.get("title"),
+                            message_content=latest_for_check.get("content"),
+                        ):
+                            continue
+
                         if not self.database.messages.is_notification_viewed(
                             other_user_hash,
                             latest_for_check["timestamp"],
@@ -10345,53 +10401,15 @@ class ReticulumMeshChat:
 
             try:
                 self.database.misc.add_blocked_destination(destination_hash)
-
-                # add to Reticulum blackhole if available and enabled
-                if self.config.blackhole_integration_enabled.get():
-                    try:
-                        if hasattr(self, "reticulum") and self.reticulum:
-                            # Try to resolve identity hash from destination hash
-                            identity_hash = None
-                            announce = self.database.announces.get_announce_by_hash(
-                                destination_hash,
-                            )
-                            if announce and announce.get("identity_hash"):
-                                identity_hash = announce["identity_hash"]
-
-                            # Use resolved identity hash or fallback to destination hash
-                            target_hash = identity_hash or destination_hash
-                            dest_bytes = bytes.fromhex(target_hash)
-
-                            # Reticulum 1.1.0+
-                            if hasattr(self.reticulum, "blackhole_identity"):
-                                reason = (
-                                    f"Blocked in MeshChatX (from {destination_hash})"
-                                    if identity_hash
-                                    else "Blocked in MeshChatX"
-                                )
-                                self.reticulum.blackhole_identity(
-                                    dest_bytes,
-                                    reason=reason,
-                                )
-                            else:
-                                # fallback to dropping path
-                                self.reticulum.drop_path(dest_bytes)
-                    except Exception as e:
-                        print(f"Failed to blackhole identity in Reticulum: {e}")
-                else:
-                    # fallback to just dropping path if integration disabled
-                    try:
-                        if hasattr(self, "reticulum") and self.reticulum:
-                            self.reticulum.drop_path(bytes.fromhex(destination_hash))
-                    except Exception as e:
-                        print(f"Failed to drop path for blocked destination: {e}")
-
-                return web.json_response({"message": "ok"})
             except Exception:
                 return web.json_response(
                     {"error": "Destination already blocked"},
                     status=400,
                 )
+
+            self._lxmf_reticulum_enforce_block(destination_hash)
+
+            return web.json_response({"message": "ok"})
 
         # remove blocked destination
         @routes.delete("/api/v1/blocked-destinations/{destination_hash}")
@@ -11367,6 +11385,8 @@ class ReticulumMeshChat:
                 "https://tile.openstreetmap.org",
                 "https://nominatim.openstreetmap.org",
                 "https://*.cartocdn.com",
+                "https://tiles.openfreemap.org",
+                "https://*.openfreemap.org",
             ]
 
             img_sources = [
@@ -11376,6 +11396,8 @@ class ReticulumMeshChat:
                 "https://*.tile.openstreetmap.org",
                 "https://tile.openstreetmap.org",
                 "https://*.cartocdn.com",
+                "https://tiles.openfreemap.org",
+                "https://*.openfreemap.org",
             ]
 
             frame_sources = [
@@ -11457,7 +11479,7 @@ class ReticulumMeshChat:
                 f"script-src {' '.join(script_sources)}; "
                 f"style-src {' '.join(style_sources)}; "
                 f"img-src {' '.join(img_sources)}; "
-                "font-src 'self' data:; "
+                "font-src 'self' data: https://tiles.openfreemap.org https://*.openfreemap.org; "
                 f"connect-src {' '.join(connect_sources)}; "
                 "media-src 'self' blob:; "
                 "worker-src 'self' blob:; "
@@ -13841,6 +13863,51 @@ class ReticulumMeshChat:
         except Exception:
             return False
 
+    def _lxmf_reticulum_enforce_block(self, destination_hash: str) -> None:
+        """Apply Reticulum blackhole or drop_path after a peer was added to the block list."""
+        if self.config.blackhole_integration_enabled.get():
+            try:
+                if hasattr(self, "reticulum") and self.reticulum:
+                    identity_hash = None
+                    announce = self.database.announces.get_announce_by_hash(
+                        destination_hash,
+                    )
+                    if announce and announce.get("identity_hash"):
+                        identity_hash = announce["identity_hash"]
+                    target_hash = identity_hash or destination_hash
+                    dest_bytes = bytes.fromhex(target_hash)
+                    if hasattr(self.reticulum, "blackhole_identity"):
+                        reason = (
+                            f"Blocked in MeshChatX (from {destination_hash})"
+                            if identity_hash
+                            else "Blocked in MeshChatX"
+                        )
+                        self.reticulum.blackhole_identity(dest_bytes, reason=reason)
+                    else:
+                        self.reticulum.drop_path(dest_bytes)
+            except Exception as e:
+                print(f"_lxmf_reticulum_enforce_block: blackhole failed: {e}")
+        else:
+            try:
+                if hasattr(self, "reticulum") and self.reticulum:
+                    self.reticulum.drop_path(bytes.fromhex(destination_hash))
+            except Exception as e:
+                print(f"_lxmf_reticulum_enforce_block: drop_path failed: {e}")
+
+    def banish_lxmf_peer(self, destination_hash: str, context=None) -> None:
+        """Banish (block) an LXMF peer: persist block and apply Reticulum blackhole/drop when configured."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return
+        if not destination_hash or len(destination_hash) != 32:
+            return
+        try:
+            ctx.database.misc.add_blocked_destination(destination_hash)
+        except Exception as e:
+            print(f"banish_lxmf_peer: add_blocked_destination failed: {e}")
+            return
+        self._lxmf_reticulum_enforce_block(destination_hash)
+
     def check_spam_keywords(self, title: str, content: str, context=None) -> bool:
         """Return whether title/content match configured spam keywords."""
         ctx = context or self.current_context
@@ -13850,6 +13917,163 @@ class ReticulumMeshChat:
             return ctx.database.misc.check_spam_keywords(title, content)
         except Exception:
             return False
+
+    def _collect_lxmf_sieve_peer_haystack(
+        self,
+        peer_hash: str,
+        context=None,
+        contact=None,
+    ) -> str:
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return ""
+        parts: list[str] = []
+        nm = self.get_lxmf_conversation_name(peer_hash, default_name="")
+        if nm:
+            parts.append(str(nm))
+        custom = self.get_custom_destination_display_name(peer_hash)
+        if custom:
+            parts.append(str(custom))
+        if contact is None:
+            contact = ctx.database.contacts.get_contact_by_identity_hash(peer_hash)
+        if contact:
+            if contact.get("name"):
+                parts.append(str(contact["name"]))
+            if contact.get("lxmf_address"):
+                parts.append(str(contact["lxmf_address"]))
+        return " ".join(parts)
+
+    def _lxmf_sieve_message_haystack(
+        self,
+        message_title: str | bytes | None,
+        message_content: str | bytes | None,
+    ) -> str | None:
+        if message_title is None and message_content is None:
+            return None
+
+        def norm(x):
+            if x is None:
+                return ""
+            if isinstance(x, bytes):
+                return x.decode("utf-8", errors="replace")
+            return str(x)
+
+        t = norm(message_title).strip()
+        c = norm(message_content).strip()
+        if not t and not c:
+            return ""
+        return f"{t} {c}".strip()
+
+    def _evaluate_lxmf_sieve_for_peer(
+        self,
+        peer_hash: str,
+        context=None,
+        *,
+        message_title=None,
+        message_content=None,
+    ):
+        ctx = context or self.current_context
+        if not ctx or not ctx.config:
+            return None
+        raw = ctx.config.lxmf_sieve_filters_json.get()
+        rules = parse_lxmf_sieve_filters_json(raw)
+        contact = ctx.database.contacts.get_contact_by_identity_hash(peer_hash)
+        is_contact = bool(contact)
+        haystack = self._collect_lxmf_sieve_peer_haystack(
+            peer_hash,
+            context=ctx,
+            contact=contact,
+        )
+        msg_hs = self._lxmf_sieve_message_haystack(message_title, message_content)
+        return first_matching_lxmf_sieve_rule(
+            rules,
+            haystack,
+            is_contact=is_contact,
+            message_haystack=msg_hs,
+        )
+
+    def _lxmf_sieve_suppresses_notifications(
+        self,
+        peer_hash: str,
+        context=None,
+        *,
+        message_title=None,
+        message_content=None,
+    ) -> bool:
+        m = self._evaluate_lxmf_sieve_for_peer(
+            peer_hash,
+            context=context,
+            message_title=message_title,
+            message_content=message_content,
+        )
+        if not m:
+            return False
+        return m.get("action") in ("hide", "ignore", "banish")
+
+    def _lxmf_sieve_hides_peer(
+        self,
+        peer_hash: str,
+        context=None,
+        *,
+        message_title=None,
+        message_content=None,
+    ) -> bool:
+        m = self._evaluate_lxmf_sieve_for_peer(
+            peer_hash,
+            context=context,
+            message_title=message_title,
+            message_content=message_content,
+        )
+        return bool(m and m.get("action") == "hide")
+
+    def _apply_lxmf_sieve_folder_rule(
+        self,
+        peer_hash: str,
+        context=None,
+        *,
+        message_title=None,
+        message_content=None,
+    ):
+        m = self._evaluate_lxmf_sieve_for_peer(
+            peer_hash,
+            context=context,
+            message_title=message_title,
+            message_content=message_content,
+        )
+        if not m or m.get("action") != "folder":
+            return
+        fid = m.get("folder_id")
+        if fid is None:
+            return
+        try:
+            fid_int = int(fid)
+        except (TypeError, ValueError):
+            return
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return
+        try:
+            ctx.database.messages.move_conversation_to_folder(peer_hash, fid_int)
+        except Exception:
+            pass
+
+    def _apply_lxmf_sieve_banish_rule(
+        self,
+        peer_hash: str,
+        context=None,
+        *,
+        message_title=None,
+        message_content=None,
+    ):
+        m = self._evaluate_lxmf_sieve_for_peer(
+            peer_hash,
+            context=context,
+            message_title=message_title,
+            message_content=message_content,
+        )
+        if not m or m.get("action") != "banish":
+            return
+        self.banish_lxmf_peer(peer_hash, context=context)
 
     def on_lxmf_delivery(self, lxmf_message: LXMF.LXMessage, context=None):
         """Handle inbound LXMF delivery from Reticulum (synchronous callback)."""
@@ -14035,6 +14259,19 @@ class ReticulumMeshChat:
             # handle forwarding
             self.handle_forwarding(lxmf_message, context=ctx)
 
+            self._apply_lxmf_sieve_folder_rule(
+                source_hash,
+                context=ctx,
+                message_title=message_title,
+                message_content=message_content,
+            )
+            self._apply_lxmf_sieve_banish_rule(
+                source_hash,
+                context=ctx,
+                message_title=message_title,
+                message_content=message_content,
+            )
+
             # handle telemetry
             try:
                 message_fields = lxmf_message.get_fields()
@@ -14145,6 +14382,13 @@ class ReticulumMeshChat:
                 reticulum=self.reticulum,
             )
 
+            suppress_notifications = self._lxmf_sieve_suppresses_notifications(
+                source_hash,
+                context=ctx,
+                message_title=message_title,
+                message_content=message_content,
+            )
+
             AsyncUtils.run_async(
                 self.websocket_broadcast(
                     json.dumps(
@@ -14152,6 +14396,7 @@ class ReticulumMeshChat:
                             "type": "lxmf.delivery",
                             "remote_identity_name": sender_name,
                             "lxmf_message": msg_dict,
+                            "sieve_suppress_notifications": suppress_notifications,
                         },
                     ),
                 ),
