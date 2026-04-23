@@ -161,6 +161,15 @@ jobs:
                   sudo snap install snapcraft --classic
                   snapcraft --version
 
+            - name: Prepare snap base for destructive-mode build
+              run: |
+                  set -euo pipefail
+                  sudo snap wait system seed.loaded 2>/dev/null || true
+                  if ! snap list core22 >/dev/null 2>&1; then
+                      sudo snap install core22
+                  fi
+                  snap list core22
+
             - name: Set up Python
               uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
               with:
