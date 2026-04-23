@@ -21,6 +21,7 @@ pnpm run version:sync
 if [[ "${MESHCHATX_FRONTEND_PREBUILT:-0}" != "1" ]]; then
     pnpm run build-frontend
     pnpm run build-docs
+    pnpm run build-repository-wheels
 else
     if [[ ! -f "meshchatx/public/index.html" ]]; then
         echo "MESHCHATX_FRONTEND_PREBUILT=1 but meshchatx/public/index.html is missing." >&2

@@ -14,7 +14,7 @@ Required env vars:
 Optional env vars:
   ANDROID_HOME              Android SDK root (or ANDROID_SDK_ROOT)
   APK_GLOB                  Glob for unsigned APKs
-                            (default: android/app/build/outputs/apk/release/*-unsigned.apk)
+                            (default: android/app/build/outputs/apk/*/release/*-unsigned.apk)
   ENABLE_SOURCESTAMP        true/false (default: false)
   SOURCESTAMP_KEYSTORE_PATH Path to SourceStamp keystore
   SOURCESTAMP_KEY_ALIAS     Alias in SourceStamp keystore
@@ -80,7 +80,7 @@ if [[ ! -x "${BT_DIR}/zipalign" || ! -x "${BT_DIR}/apksigner" ]]; then
     exit 1
 fi
 
-APK_GLOB="${APK_GLOB:-android/app/build/outputs/apk/release/*-unsigned.apk}"
+APK_GLOB="${APK_GLOB:-android/app/build/outputs/apk/*/release/*-unsigned.apk}"
 shopt -s nullglob
 APKS=( ${APK_GLOB} )
 shopt -u nullglob
