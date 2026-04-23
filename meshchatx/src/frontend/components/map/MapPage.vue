@@ -420,8 +420,9 @@
                 </div>
             </div>
 
-            <!-- scale line: bottom-right so it never stacks over the lat/lon readout (bottom-left) -->
+            <!-- scale line: bottom-right so it never stacks over the lat/lon readout (bottom-left); hidden on small screens -->
             <div
+                v-show="!isMobileScreen"
                 ref="scaleLineMount"
                 class="ol-scale-line-host absolute z-10 bottom-4 right-4 sm:bottom-4 max-sm:bottom-[5.5rem] pointer-events-auto min-w-[120px] max-w-[min(55vw,14rem)]"
                 :class="{ 'ol-scale-line-host--dark-basemap': isDarkRasterBasemap }"
@@ -435,11 +436,16 @@
                     class="flex flex-col items-center justify-end text-gray-800 dark:text-zinc-100 bg-white/80 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1 shadow-sm pointer-events-auto w-fit"
                     :title="$t('map.north_up')"
                 >
-                    <span class="text-[10px] font-black leading-none">N</span>
-                    <MaterialDesignIcon
-                        icon-name="navigation"
-                        class="size-5 text-blue-600 dark:text-blue-400 -mb-0.5"
-                    />
+                    <div
+                        class="flex flex-col items-center justify-end origin-center"
+                        :style="northIndicatorRotateStyle"
+                    >
+                        <span class="text-[10px] font-black leading-none">N</span>
+                        <MaterialDesignIcon
+                            icon-name="navigation"
+                            class="size-5 text-blue-600 dark:text-blue-400 -mb-0.5"
+                        />
+                    </div>
                 </div>
                 <div
                     v-if="metadata && metadata.name && !metadata.name.startsWith('Map Export')"
@@ -1241,6 +1247,7 @@ export default {
             arrowSvgHeight: 200,
             isMobileScreen: false,
             isMobileSearchOpen: false,
+            mapViewRotationRad: 0,
 
             // MBTiles management
             mbtilesList: [],
@@ -1356,6 +1363,13 @@ export default {
         },
         displayCoords() {
             return this.cursorCoords || this.currentCenter;
+        },
+        northIndicatorRotateStyle() {
+            const r = this.mapViewRotationRad || 0;
+            return {
+                transform: `rotate(${-r}rad)`,
+                transformOrigin: "center center",
+            };
         },
         hasVectorDrawFeatures() {
             return Boolean(this.drawSource && this.drawSource.getFeatures().length > 0);
@@ -1546,11 +1560,25 @@ export default {
             settingsEl.style.willChange = "";
         }
         if (this.map) {
+            const v = this.map.getView();
+            if (v && typeof v.un === "function") {
+                v.un("change:rotation", this.syncMapNorthIndicatorFromViewRotation);
+            }
             this.map.setTarget(null);
             this.map = null;
         }
     },
     methods: {
+        syncMapNorthIndicatorFromViewRotation() {
+            if (!this.map) {
+                return;
+            }
+            const view = this.map.getView();
+            if (!view || typeof view.getRotation !== "function") {
+                return;
+            }
+            this.mapViewRotationRad = view.getRotation();
+        },
         saveMapState() {
             if (!this._pendingSaveResolvers) {
                 this._pendingSaveResolvers = [];
@@ -1686,6 +1714,12 @@ export default {
                 pixelRatio: mapPixelRatio,
                 maxTilesLoading: 48,
             });
+
+            const mapView = this.map.getView();
+            if (mapView && typeof mapView.on === "function" && typeof mapView.getRotation === "function") {
+                mapView.on("change:rotation", this.syncMapNorthIndicatorFromViewRotation);
+                this.syncMapNorthIndicatorFromViewRotation();
+            }
 
             // setup drawing layer
             this.drawSource = new VectorSource();
