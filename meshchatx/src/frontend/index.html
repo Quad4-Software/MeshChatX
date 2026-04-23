@@ -34,25 +34,5 @@
         </noscript>
         <div id="app"></div>
         <script type="module" src="main.js"></script>
-        <script>
-            // install service worker
-            if ("serviceWorker" in navigator) {
-                navigator.serviceWorker.register("/service-worker.js").catch((error) => {
-                    // Silently handle SSL certificate errors and other registration failures
-                    // This is common in development with self-signed certificates
-                    const errorMessage = error.message || "";
-                    const errorName = error.name || "";
-                    if (
-                        errorName === "SecurityError" ||
-                        errorMessage.includes("SSL certificate") ||
-                        errorMessage.includes("certificate")
-                    ) {
-                        return;
-                    }
-                    // Log other errors for debugging but don't throw
-                    console.debug("Service worker registration failed:", error);
-                });
-            }
-        </script>
     </body>
 </html>
