@@ -14,8 +14,9 @@ FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 RUN apk add --no-cache git
 COPY package.json pnpm-lock.yaml vite.config.js tailwind.config.js postcss.config.js ./
+COPY patches ./patches
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
-RUN npm install -g pnpm@10.32.1 && \
+RUN npm install -g pnpm@10.33.0 && \
     pnpm config set verify-store-integrity true && \
     pnpm install --frozen-lockfile && \
     pnpm run build-frontend
