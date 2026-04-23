@@ -50,6 +50,15 @@ export default [
             },
         },
     },
+    {
+        files: ["**/*.worklet.js"],
+        languageOptions: {
+            globals: {
+                AudioWorkletProcessor: "readonly",
+                registerProcessor: "readonly",
+            },
+        },
+    },
     js.configs.recommended,
     ...pluginVue.configs["flat/recommended"],
     pluginPrettier,
