@@ -319,6 +319,19 @@ ipcMain.handle("pick-directory", async () => {
     return filePaths[0];
 });
 
+function attachDevToolsF12Shortcut(browserWindow) {
+    browserWindow.webContents.on("before-input-event", (event, input) => {
+        if (input.type !== "keyDown" || input.key !== "F12") {
+            return;
+        }
+        if (browserWindow.isDestroyed()) {
+            return;
+        }
+        browserWindow.webContents.toggleDevTools();
+        event.preventDefault();
+    });
+}
+
 function attachDefaultContextMenu(browserWindow) {
     const webContents = browserWindow.webContents;
     webContents.on("context-menu", (event, params) => {
@@ -483,6 +496,7 @@ function createTray() {
 app.whenReady().then(async () => {
     app.on("browser-window-created", (event, browserWindow) => {
         attachDefaultContextMenu(browserWindow);
+        attachDevToolsF12Shortcut(browserWindow);
     });
 
     // Security: Enforce CSP for all requests as a shell-level fallback
@@ -530,6 +544,7 @@ app.whenReady().then(async () => {
             width: 1500,
             height: 800,
             icon: appIconPath,
+            autoHideMenuBar: true,
             webPreferences: {
                 // used to inject logging over ipc
                 preload: path.join(__dirname, "preload.js"),

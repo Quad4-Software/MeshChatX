@@ -311,6 +311,7 @@ app.whenReady().then(async () => {
         mainWindow = new BrowserWindow({
             width: 1500,
             height: 800,
+            autoHideMenuBar: true,
             webPreferences: {
                 // used to inject logging over ipc
                 preload: path.join(__dirname, "preload.js"),
@@ -323,6 +324,13 @@ app.whenReady().then(async () => {
                 // Security: disable remote module (deprecated but explicit)
                 enableRemoteModule: false,
             },
+        });
+
+        mainWindow.webContents.on("before-input-event", (event, input) => {
+            if (input.type === "keyDown" && input.key === "F12" && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.toggleDevTools();
+                event.preventDefault();
+            }
         });
 
         // open external links in default web browser instead of electron
