@@ -564,8 +564,10 @@ export default {
                 });
 
                 if (response.data.hotswapped) {
-                    // Success is handled by GlobalEmitter "identity-switched" which we listen to
-                    ToastUtils.success(this.$t("identities.switched") || "Identity switched successfully");
+                    GlobalEmitter.emit("identity-switched-apply", {
+                        identity_hash: response.data.identity_hash ?? identity.hash,
+                        display_name: response.data.display_name ?? identity.display_name ?? "",
+                    });
                 } else {
                     ToastUtils.info(this.$t("identities.switch_scheduled"));
                     setTimeout(() => {

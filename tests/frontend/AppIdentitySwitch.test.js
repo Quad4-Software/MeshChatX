@@ -23,8 +23,8 @@ vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
 
 function makeCtx() {
     return {
-        _identitySwitchDedupeHash: null,
-        _identitySwitchDedupeAt: 0,
+        identitySwitchDedupeHash: null,
+        identitySwitchDedupeAt: 0,
         isSwitchingIdentity: true,
         getConfig: vi.fn().mockResolvedValue(undefined),
         updateRingtonePlayer: vi.fn().mockResolvedValue(undefined),

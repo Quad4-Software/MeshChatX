@@ -704,6 +704,9 @@ export default {
             wsReconnectedBanner: false,
             wsDisconnectTickTimer: null,
             wsReconnectedHideTimer: null,
+
+            identitySwitchDedupeHash: null,
+            identitySwitchDedupeAt: 0,
         };
     },
     computed: {
@@ -842,6 +845,7 @@ export default {
             WebSocketConnection.on("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.on("connected", this.onWsShellConnected);
             GlobalEmitter.on("identity-switching-start", this.onIdentitySwitchingStartShell);
+            GlobalEmitter.on("identity-switched-apply", this.onIdentitySwitchedApplyShell);
             GlobalEmitter.on("sync-propagation-node", this.onSyncPropagationNodeShell);
             GlobalEmitter.on("config-updated", this.onConfigUpdatedExternally);
             GlobalEmitter.on("keyboard-shortcut", this.onKeyboardShortcutShell);
@@ -878,6 +882,7 @@ export default {
             WebSocketConnection.off("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.off("connected", this.onWsShellConnected);
             GlobalEmitter.off("identity-switching-start", this.onIdentitySwitchingStartShell);
+            GlobalEmitter.off("identity-switched-apply", this.onIdentitySwitchedApplyShell);
             GlobalEmitter.off("sync-propagation-node", this.onSyncPropagationNodeShell);
             GlobalEmitter.off("config-updated", this.onConfigUpdatedExternally);
             GlobalEmitter.off("keyboard-shortcut", this.onKeyboardShortcutShell);
@@ -989,6 +994,33 @@ export default {
                     this.isSwitchingIdentity = false;
                 }
             }, 45000);
+        },
+        onIdentitySwitchedApplyShell(payload) {
+            this.applyIdentitySwitched(payload).catch(() => {});
+        },
+        async applyIdentitySwitched(json) {
+            const hash = json?.identity_hash;
+            if (hash == null || hash === "") {
+                return;
+            }
+            const now = Date.now();
+            if (this.identitySwitchDedupeHash === hash && now - this.identitySwitchDedupeAt < 10000) {
+                return;
+            }
+            this.identitySwitchDedupeHash = hash;
+            this.identitySwitchDedupeAt = now;
+
+            ToastUtils.success(this.$t("identities.switched"));
+
+            GlobalState.unreadConversationsCount = 0;
+
+            await this.getConfig();
+            await this.updateRingtonePlayer();
+            await this.getAppInfo();
+
+            this.isSwitchingIdentity = false;
+
+            GlobalEmitter.emit("identity-switched", json);
         },
         onSyncPropagationNodeShell() {
             this.syncPropagationNode();
@@ -1177,21 +1209,7 @@ export default {
                     break;
                 }
                 case "identity_switched": {
-                    ToastUtils.success(`Switched to identity: ${json.display_name}`);
-
-                    // reset global state
-                    GlobalState.unreadConversationsCount = 0;
-
-                    // update local state
-                    await this.getConfig();
-                    await this.updateRingtonePlayer();
-                    await this.getAppInfo();
-
-                    // hide loading overlay
-                    this.isSwitchingIdentity = false;
-
-                    // if we are on identities page, we might want to refresh it
-                    GlobalEmitter.emit("identity-switched", json);
+                    await this.applyIdentitySwitched(json);
                     break;
                 }
                 case "rncp.receive.completed": {
