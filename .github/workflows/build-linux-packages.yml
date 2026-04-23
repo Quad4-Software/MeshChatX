@@ -161,14 +161,16 @@ jobs:
                   sudo snap install snapcraft --classic
                   snapcraft --version
 
-            - name: Prepare snap base for destructive-mode build
+            - name: Prepare snaps for Snapcraft (destructive mode)
               run: |
                   set -euo pipefail
                   sudo snap wait system seed.loaded 2>/dev/null || true
-                  if ! snap list core22 >/dev/null 2>&1; then
-                      sudo snap install core22
-                  fi
-                  snap list core22
+                  for snap_name in core22 gnome-42-2204; do
+                      if ! snap list "$snap_name" >/dev/null 2>&1; then
+                          sudo snap install "$snap_name"
+                      fi
+                      snap list "$snap_name"
+                  done
 
             - name: Set up Python
               uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
