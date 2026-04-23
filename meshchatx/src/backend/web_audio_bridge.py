@@ -131,10 +131,10 @@ class WebAudioBridge:
 
     def attach_client(self, client):
         with self.lock:
-            self.clients.add(client)
             tele = self._tele()
             if not tele or not tele.active_call:
                 return False
+            self.clients.add(client)
             self._ensure_remote_tx(tele)
             self._ensure_rx_tee(tele)
             return True
