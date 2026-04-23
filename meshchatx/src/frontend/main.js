@@ -328,7 +328,26 @@ router.beforeEach(async (to, from, next) => {
     }
 });
 
+function registerMeshchatServiceWorker() {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+        return;
+    }
+    navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+        const errorMessage = error.message || "";
+        const errorName = error.name || "";
+        if (
+            errorName === "SecurityError" ||
+            errorMessage.includes("SSL certificate") ||
+            errorMessage.includes("certificate")
+        ) {
+            return;
+        }
+        console.debug("Service worker registration failed:", error);
+    });
+}
+
 async function bootstrap() {
+    registerMeshchatServiceWorker();
     await ensureCodec2ScriptsLoaded();
     createApp(App).use(router).use(vuetify).use(i18n).use(vClickOutside).mount("#app");
 }
