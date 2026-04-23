@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-04-22T22:55:27.117168Z
+Generated at: 2026-04-23T00:17:42.701001Z
 Frontend source: node_modules
 
 Python dependencies
@@ -400,6 +400,9 @@ Node dependencies
 @mdi/js 7.4.47
   License: Apache-2.0
   Author: Austin Andrews
+@maplibre/maplibre-gl-style-spec 24.8.1
+  License: ISC
+  Author: MapLibre
 @my-scope/package-a 0.0.0
   License: MIT
   Author: —
@@ -1768,6 +1771,9 @@ make-fetch-happen 14.0.3
 map-age-cleaner 0.1.3
   License: MIT
   Author: Sam Verschueren <sam.verschueren@gmail.com>
+mapbox-to-css-font 3.2.0
+  License: BSD-2-Clause
+  Author: Andreas Hocevar
 marked 18.0.2
   License: MIT
   Author: Christopher Jeffrey
@@ -1964,6 +1970,9 @@ obug 2.1.1
   License: MIT
   Author: Kevin Deng <sxzz@sxzz.moe>
 ol 10.9.0
+  License: BSD-2-Clause
+  Author: —
+ol-mapbox-style 13.4.1
   License: BSD-2-Clause
   Author: —
 once 1.4.0
