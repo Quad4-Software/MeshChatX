@@ -2,7 +2,7 @@
     "_languageName": "English",
     "bots": {
         "title": "LXMFy Bots",
-        "description": "Simple LXMF bots (echo, notes, reminders) when LXMFy is installed.",
+        "description": "Run simple LXMF bots (echo, notes, reminders) when the LXMFy add-on is installed.",
         "bot_framework": "Bot Framework",
         "lxmfy_not_detected": "LXMFy not detected",
         "lxmfy_not_detected_desc": "To use bots, you must install the LXMFy package:",
@@ -814,7 +814,13 @@
         "search_placeholder": "Search for a location...",
         "search_offline_error": "Search is only available in online mode",
         "search_connection_error": "Failed to connect to search service. Please check your internet connection.",
+        "search_timeout_error": "The geocoder did not respond in time. It may be slow, overloaded, or unreachable. Try again.",
         "search_error": "Search error",
+        "tile_connectivity_title": "Map tiles could not be loaded",
+        "tile_connectivity_body": "Check your network, try again, use a local tile server in settings, or switch to offline mode if you have MBTiles loaded.",
+        "tile_connectivity_retry": "Retry tiles",
+        "tile_connectivity_use_offline": "Use offline mode",
+        "tile_connectivity_dismiss": "Dismiss",
         "search_no_results": "No results found",
         "custom_tile_server_unavailable": "Custom tile server is not accessible in offline mode",
         "custom_nominatim_unavailable": "Custom Nominatim server is not accessible in offline mode",
@@ -826,6 +832,19 @@
         "tool_polygon": "Draw Polygon",
         "tool_circle": "Draw Circle",
         "tool_measure": "Measure Distance/Area",
+        "tool_bearing": "Bearing and distance (two taps, offline)",
+        "tool_bearing_from_here": "Bearing from my location to one tap",
+        "bearing_geodesic": "Geodesic (great circle)",
+        "bearing_rhumb": "Rhumb line (constant bearing)",
+        "bearing_forward": "Forward azimuth",
+        "bearing_back": "Back azimuth",
+        "bearing_rhumb_line": "Rhumb bearing / back",
+        "bearing_hint_first": "Tap the start point, then the end point.",
+        "bearing_hint_second": "Tap the end point.",
+        "bearing_hint_destination": "Tap your destination on the map.",
+        "bearing_from_here": "Use my location as start",
+        "bearing_help_first": "Tap start, then end",
+        "bearing_help_drag": "Move the pointer for a live readout",
         "tool_clear": "Clear Drawings",
         "save_drawing": "Save Drawing Layer",
         "load_drawing": "Load Drawing Layer",
@@ -865,7 +884,42 @@
         "location_not_determined": "Could not determine your location",
         "geolocation_not_supported": "Geolocation is not supported by your browser",
         "no_nodes_location": "No discovered nodes with location found",
-        "failed_fetch_nodes": "Failed to fetch discovered nodes for mapping"
+        "failed_fetch_nodes": "Failed to fetch discovered nodes for mapping",
+        "share_view": "Share map view (copy links)",
+        "share_message_prefix": "MeshChatX map:",
+        "share_copied": "Map links copied to clipboard",
+        "ping_here": "Ping here (send in chat)",
+        "ping_here_toolbar": "Ping map center in chat",
+        "ping_modal_title": "Send map ping",
+        "ping_destination": "Destination",
+        "ping_pick_conversation": "Choose a conversation",
+        "ping_send": "Send ping",
+        "ping_sent": "Map ping sent",
+        "ping_failed": "Could not send map ping",
+        "ping_invalid_destination": "Pick a valid 32-character destination hash",
+        "ping_message_prefix": "MeshChatX map ping:",
+        "north_up": "North is up (map not rotated)",
+        "export_tile_limit_exceeded": "Too many tiles for one export. Lower max zoom or shrink the area.",
+        "export_region_world": "World (low zoom)",
+        "export_region_europe": "Europe",
+        "export_region_north_america": "North America",
+        "export_region_south_america": "South America",
+        "export_region_africa": "Africa",
+        "export_region_asia": "Asia",
+        "export_region_oceania": "Oceania",
+        "vector_exchange_title": "GeoJSON / KML / KMZ",
+        "vector_exchange_merge": "Merge with existing drawings (uncheck to replace)",
+        "vector_exchange_hint": "Imports support icons via mcx_icon_href, mcx_icon_data_url (data URIs), Mapbox simplestyle marker-color, and KML/KMZ IconStyle. KMZ packs KML with embedded images. Name, description, and extra properties import/export with GeoJSON and KML; select a drawing to see metadata above it.",
+        "vector_import_geojson": "Import GeoJSON",
+        "vector_import_kml": "Import KML",
+        "vector_import_kmz": "Import KMZ",
+        "vector_export_geojson": "Export GeoJSON",
+        "vector_export_kml": "Export KML",
+        "vector_export_kmz": "Export KMZ",
+        "vector_import_ok": "Imported {count} feature(s).",
+        "vector_import_empty": "No features found in file.",
+        "vector_import_failed": "Could not read vector file.",
+        "vector_export_ok": "Export started."
     },
     "interface": {
         "disable": "Disable",
@@ -916,6 +970,17 @@
         "more_actions": "More actions",
         "retry_failed": "Retry failed messages",
         "telemetry_history": "Telemetry history",
+        "telemetry_history_modal_title": "Telemetry History",
+        "telemetry_history_empty": "No telemetry history found for this peer.",
+        "telemetry_history_done": "Done",
+        "telemetry_show_in_chat": "Show telemetry in main chat",
+        "telemetry_battery_trend": "Battery trend",
+        "telemetry_battery_range": "{from}% → {to}%",
+        "telemetry_label_sent": "Sent",
+        "telemetry_label_received": "Received",
+        "telemetry_battery_level": "Battery: {percent}%",
+        "telemetry_snr_db": "SNR: {snr} dB",
+        "telemetry_location_request": "Location Request",
         "start_call": "Call",
         "share_contact": "Share contact",
         "custom_display_name": "Custom Display Name",
@@ -972,6 +1037,11 @@
         "failed_copy_message": "Could not copy message",
         "failed_send_ingest": "Failed to send ingest request",
         "address_copied": "Your LXMF address copied to clipboard",
+        "map_link_share_title": "Shared map view",
+        "map_link_ping_title": "Map ping",
+        "map_link_open": "Open on map",
+        "map_link_copy_uri": "Copy meshchatx link",
+        "map_link_copied": "Map link copied",
         "hash_copied": "Identity hash copied to clipboard",
         "failed_to_copy_hash": "Failed to copy identity hash",
         "failed_copy_address": "Failed to copy address",
@@ -1054,7 +1124,7 @@
     },
     "debug": {
         "title": "Debug Logs",
-        "description": "Browse application logs and filter by level.",
+        "description": "Read application and access logs, filter by severity, and search when troubleshooting.",
         "tab_logs": "Logs",
         "tab_access_attempts": "Access attempts",
         "search_logs_placeholder": "Search logs...",
@@ -1257,7 +1327,7 @@
     },
     "docs": {
         "title": "Documentation",
-        "subtitle": "Reticulum and MeshChat manuals.",
+        "subtitle": "Reticulum manual and MeshChatX guides, available offline after setup.",
         "status_title": "Documentation Status",
         "status_extracting": "Extracting Documentation...",
         "status_available": "Offline Manual Available",
@@ -1288,26 +1358,26 @@
     "tools": {
         "utilities": "Utilities",
         "power_tools": "Utilities",
-        "diagnostics_description": "Connectivity checks, transfers, paths, translation, docs, and hardware helpers in one place.",
+        "diagnostics_description": "Mesh and Reticulum utilities in one place: reachability, paths, file transfer, translation, documentation, and hardware helpers. Open any row for the full tool.",
         "ping": {
             "title": "Ping",
-            "description": "Measure round-trip time to a destination that accepts ping."
+            "description": "Measure round-trip time to another node or app that answers ping."
         },
         "rnprobe": {
             "title": "RNProbe",
-            "description": "Send probes with configurable payload size to test reachability and delay."
+            "description": "Send test payloads over the mesh to check reachability and delay."
         },
         "rncp": {
             "title": "RNCP",
-            "description": "Send and receive files over Reticulum (RNCP) with progress."
+            "description": "Send files to or fetch files from another destination over Reticulum, with progress and optional compression."
         },
         "rnstatus": {
             "title": "RNStatus",
-            "description": "Per-interface counters and link-oriented status from Reticulum."
+            "description": "Per-interface traffic counters and link status from your Reticulum instance."
         },
         "rnpath": {
             "title": "RNPath",
-            "description": "Inspect paths, announces, and request or drop routes.",
+            "description": "Inspect paths and announce queues, and request or drop routes when you need to steer traffic.",
             "failed_fetch": "Failed to fetch path data",
             "path_dropped": "Path dropped",
             "failed_drop": "Could not drop path",
@@ -1321,7 +1391,7 @@
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
-            "description": "Show the hop list toward a destination hash.",
+            "description": "List each hop along the path to a destination hash.",
             "destination_hash": "Destination Hash",
             "placeholder": "Enter 32-char destination hash...",
             "trace": "Trace Path",
@@ -1336,15 +1406,19 @@
         },
         "translator": {
             "title": "Translator",
-            "description": "Translate text via a LibreTranslate server or local Argos Translate."
+            "description": "Translate text with LibreTranslate over the network or Argos Translate on this device."
         },
         "forwarder": {
             "title": "Forwarder",
-            "description": "Forward LXMF between addresses with reply routing preserved."
+            "description": "Forward LXMF messages between addresses while keeping reply routing intact."
+        },
+        "propagation_nodes": {
+            "title": "Propagation nodes",
+            "description": "Pick preferred mesh propagation nodes, watch live stats, and run quick path checks."
         },
         "sieve_filters": {
             "title": "Sieve filters",
-            "description": "Match text in peer identity fields and/or message title and body, then hide the thread, silence notifications, move it to a folder, or banish the sender (full block).",
+            "description": "Auto-sort mail: match words in peer names or message text, then hide, silence, move to a folder, or block the sender.",
             "subtitle": "Rules run in order. Scope picks everyone, contacts only, or non-contacts only. Choose substring or regex matching. The first enabled rule whose scope fits and whose targets match wins.",
             "back_tools": "Back to tools",
             "rules_heading": "Rules",
@@ -1396,9 +1470,54 @@
             "flow_folder": "Folder",
             "flow_no_rules": "No rules"
         },
+        "repository_server": {
+            "title": "Repository server",
+            "description": "Redistribute MeshChatX and Reticulum-related Python wheels plus your own files over plain HTTP so people on your network—or on this device—can download them.",
+            "subtitle": "When online, refresh the bundled wheel set; add your own files anytime; start a small download page from the app or use the separate HTTP helper.",
+            "back_tools": "Back to tools",
+            "http_heading": "Plain HTTP mirror",
+            "host_label": "Listen address",
+            "port_label": "Port",
+            "start_http": "Start",
+            "stop_http": "Stop",
+            "restart_http": "Restart",
+            "http_listen_label": "Listening:",
+            "open_http": "Open in browser",
+            "http_started": "HTTP server started",
+            "http_stopped": "HTTP server stopped",
+            "http_restarted": "HTTP server restarted",
+            "http_err_generic": "HTTP server request failed",
+            "http_err_invalid_host": "Invalid listen address",
+            "http_err_invalid_port": "Invalid port",
+            "http_err_already_running": "HTTP server is already running",
+            "http_err_bind_failed": "Could not bind (port in use or permission denied)",
+            "upload_heading": "Upload file",
+            "choose_file": "Choose file",
+            "refresh_bundled_tooltip": "Download bundled wheels to this device (needs network)",
+            "refresh_started": "Downloading bundled packages…",
+            "refresh_fetching": "Getting {pkg}…",
+            "refresh_ok": "Bundled wheels refreshed",
+            "refresh_ok_count": "{n} packages downloaded",
+            "refresh_failed": "Could not refresh bundled wheels",
+            "refresh_pip_missing": "pip was not found on this system. Install pip and try again.",
+            "refresh_partial": "Some packages could not be downloaded (details below)",
+            "refresh_partial_toast": "Bundled download finished with some failures",
+            "files_heading": "Files",
+            "col_name": "Name",
+            "col_source": "Source",
+            "col_size": "Size",
+            "empty": "No files yet. Upload a file or refresh bundled wheels.",
+            "delete": "Delete",
+            "delete_confirm": "Delete uploaded file \"{name}\"?",
+            "delete_ok": "File removed",
+            "delete_failed": "Could not delete file",
+            "upload_ok": "File uploaded",
+            "upload_failed": "Upload failed",
+            "load_failed": "Could not load repository"
+        },
         "rnode_flasher": {
             "title": "RNode Flasher",
-            "description": "Flash or update RNode firmware from the browser (supported hardware).",
+            "description": "Flash or update RNode firmware from the browser when your hardware and browser support USB or Wi‑Fi flashing.",
             "select_device": "1. Select your device",
             "product": "Product",
             "model": "Model",
@@ -1595,7 +1714,7 @@
         },
         "micron_editor": {
             "title": "Micron Editor",
-            "description": "Edit Micron markup with a live preview.",
+            "description": "Write Nomad Network Micron pages with a live preview.",
             "editor": "Editor",
             "preview": "Preview",
             "save": "Save",
@@ -1613,7 +1732,7 @@
         },
         "reticulum_config_editor": {
             "title": "Reticulum Config Editor",
-            "description": "Edit the raw Reticulum config file in-app. Useful on mobile where the file lives in private storage.",
+            "description": "Edit the main Reticulum (RNS) configuration file inside MeshChatX. Restart RNS to apply changes.",
             "info": "This is the raw Reticulum config file. Saving will not apply changes until RNS is restarted.",
             "loading": "Loading config...",
             "reload": "Reload",
@@ -1638,27 +1757,27 @@
             "tips_title": "Tips",
             "tip_sections": "The config must contain [reticulum] and [interfaces] sections.",
             "tip_restart": "Use the Restart RNS button or the Interfaces page to apply changes.",
-            "tip_mobile": "On mobile this is the easiest way to tweak Reticulum without an external editor."
+            "tip_mobile": "Useful whenever you prefer not to edit the file in another program on disk."
         },
         "paper_message": {
             "title": "Paper Message",
-            "description": "Create or scan QR-encoded LXMF paper messages."
+            "description": "Encode LXMF messages as QR codes or scan codes back into the app."
         },
         "mesh_server": {
             "title": "Mesh Server",
-            "description": "Host Micron pages and files for peers on the mesh."
+            "description": "Publish Micron pages and small files for mesh peers to open."
         },
         "rns_tunnel": {
             "title": "RNS Tunnel",
-            "description": "IP tunneling over Reticulum links (in development)."
+            "description": "Carry IP traffic over Reticulum links (in development)."
         },
         "rns_filesync": {
             "title": "RNS Filesync",
-            "description": "File sync between mesh peers (in development)."
+            "description": "Sync files between mesh peers (in development)."
         },
         "bots": {
             "title": "LXMFy Bots",
-            "description": "Simple LXMF bots (echo, notes, reminders) when LXMFy is installed."
+            "description": "Run simple LXMF bots (echo, notes, reminders) when the LXMFy add-on is installed."
         }
     },
     "ping": {
@@ -2190,6 +2309,8 @@
         "nav_forwarder_desc": "LXMF forwarding rules",
         "nav_documentation": "Documentation",
         "nav_documentation_desc": "Offline manuals",
+        "nav_repository_server": "Repository server",
+        "nav_repository_server_desc": "MeshChatX wheels, Reticulum packages, and your files over HTTP",
         "nav_micron_editor": "Micron Editor",
         "nav_micron_editor_desc": "Edit Micron markup",
         "nav_reticulum_config_editor": "Reticulum Config Editor",
