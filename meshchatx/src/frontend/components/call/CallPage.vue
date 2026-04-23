@@ -586,8 +586,8 @@
                                                     "
                                                 >
                                                     <option
-                                                        v-for="d in audioInputDevices"
-                                                        :key="d.deviceId"
+                                                        v-for="(d, idx) in audioInputDevices"
+                                                        :key="d.deviceId || `in-${idx}`"
                                                         :value="d.deviceId"
                                                     >
                                                         {{ d.label || "Microphone" }}
@@ -609,8 +609,8 @@
                                                     "
                                                 >
                                                     <option
-                                                        v-for="d in audioOutputDevices"
-                                                        :key="d.deviceId"
+                                                        v-for="(d, idx) in audioOutputDevices"
+                                                        :key="d.deviceId || `out-${idx}`"
                                                         :value="d.deviceId"
                                                     >
                                                         {{ d.label || "Speaker" }}
@@ -2128,6 +2128,7 @@ import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import RingtoneEditor from "./RingtoneEditor.vue";
 import AudioWaveformPlayer from "../messages/AudioWaveformPlayer.vue";
+import telephonePcmCaptureWorkletUrl from "../../js/telephone-pcm-capture.worklet.js?url";
 
 export default {
     name: "CallPage",
@@ -2397,6 +2398,40 @@ export default {
         getAudioContextConstructor() {
             return window.AudioContext || window.webkitAudioContext || null;
         },
+        pickWebAudioMicConstraints(mediaDevices) {
+            const canEnumerate = this.hasEnumerateDevicesApi(mediaDevices);
+            const validIds = canEnumerate
+                ? new Set(
+                      (this.audioInputDevices || [])
+                          .filter((d) => d.kind === "audioinput" && d.deviceId)
+                          .map((d) => d.deviceId)
+                  )
+                : new Set();
+            const sid = this.selectedAudioInputId;
+            if (sid === "__meshchat_default_in__") {
+                return { audio: true };
+            }
+            const id = sid && validIds.has(sid) ? sid : null;
+            return id ? { audio: { deviceId: { exact: id } } } : { audio: true };
+        },
+        async getUserMediaWithMicFallback(mediaDevices) {
+            const constraints = this.pickWebAudioMicConstraints(mediaDevices);
+            try {
+                return await mediaDevices.getUserMedia(constraints);
+            } catch (e) {
+                if (
+                    (e?.name === "NotFoundError" || e?.name === "OverconstrainedError") &&
+                    constraints?.audio &&
+                    typeof constraints.audio === "object" &&
+                    constraints.audio.deviceId
+                ) {
+                    this.selectedAudioInputId = null;
+                    this.logWebAudioFailure("getUserMedia-fallback-wide", e);
+                    return await mediaDevices.getUserMedia({ audio: true });
+                }
+                throw e;
+            }
+        },
         logWebAudioFailure(stage, error) {
             const appImage = Boolean(
                 window.electron && typeof navigator?.userAgent === "string" && navigator.userAgent.includes("AppImage")
@@ -2441,7 +2476,7 @@ export default {
             const previousValue = this.config.telephone_web_audio_enabled;
             this.config.telephone_web_audio_enabled = newVal;
             try {
-                if (newVal) {
+                if (newVal && this.activeCall) {
                     const permitted = await this.requestAudioPermission();
                     if (!permitted) {
                         this.config.telephone_web_audio_enabled = false;
@@ -2451,7 +2486,9 @@ export default {
                 }
                 await this.updateConfig({ telephone_web_audio_enabled: newVal });
                 if (newVal) {
-                    await this.startWebAudio();
+                    if (this.activeCall) {
+                        await this.startWebAudio();
+                    }
                 } else {
                     this.stopWebAudio();
                 }
@@ -2461,8 +2498,30 @@ export default {
             }
         },
         async startWebAudio() {
-            if (this.audioWs) {
+            if (!this.activeCall) {
                 return;
+            }
+            if (this.audioWs && this.audioWs.readyState === WebSocket.OPEN) {
+                try {
+                    this.audioWs.send(JSON.stringify({ type: "attach" }));
+                } catch {
+                    // ignore
+                }
+                if (
+                    this.audioCtx &&
+                    this.audioCtx.state === "suspended" &&
+                    typeof this.audioCtx.resume === "function"
+                ) {
+                    try {
+                        await this.audioCtx.resume();
+                    } catch {
+                        // ignore
+                    }
+                }
+                return;
+            }
+            if (this.audioWs) {
+                this.stopWebAudio();
             }
             try {
                 const mediaDevices = this.getMediaDevicesApi();
@@ -2475,23 +2534,28 @@ export default {
                     return;
                 }
                 await this.refreshAudioDevices();
-                const canEnumerate = this.hasEnumerateDevicesApi(mediaDevices);
-                const validDeviceIds = canEnumerate
-                    ? new Set((this.audioInputDevices || []).map((d) => d.deviceId))
-                    : new Set();
-                const hasSelectedDevice = this.selectedAudioInputId && validDeviceIds.has(this.selectedAudioInputId);
-                const constraints = hasSelectedDevice
-                    ? { audio: { deviceId: { exact: this.selectedAudioInputId } } }
-                    : { audio: true };
-                const stream = await mediaDevices.getUserMedia(constraints);
+                const stream = await this.getUserMediaWithMicFallback(mediaDevices);
                 this.audioStream = stream;
+                await this.refreshAudioDevices();
 
                 if (!this.audioCtx) {
                     const AudioContextCtor = this.getAudioContextConstructor();
                     if (!AudioContextCtor) {
                         throw new Error("AudioContext is unavailable");
                     }
-                    this.audioCtx = new AudioContextCtor({ sampleRate: 48000 });
+                    try {
+                        this.audioCtx = new AudioContextCtor({ sampleRate: 48000 });
+                    } catch {
+                        this.audioCtx = new AudioContextCtor();
+                    }
+                }
+
+                if (this.audioCtx.state === "suspended" && typeof this.audioCtx.resume === "function") {
+                    try {
+                        await this.audioCtx.resume();
+                    } catch {
+                        // ignore
+                    }
                 }
 
                 const source = this.audioCtx.createMediaStreamSource(stream);
@@ -2499,21 +2563,36 @@ export default {
                 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
                 const url = `${wsProtocol}//${window.location.host}/ws/telephone/audio`;
 
-                const workletLoaded = false; // disabled to avoid CSP violations from blob worklets
-                if (!workletLoaded) {
-                    const processor = this.audioCtx.createScriptProcessor(1024, 1, 1);
-                    processor.onaudioprocess = (event) => {
-                        if (!this.audioWs || this.audioWs.readyState !== WebSocket.OPEN) return;
-                        const input = event.inputBuffer.getChannelData(0);
-                        const pcm = new Int16Array(input.length);
-                        for (let i = 0; i < input.length; i += 1) {
-                            pcm[i] = Math.max(-1, Math.min(1, input[i])) * 0x7fff;
-                        }
-                        this.audioWs.send(pcm.buffer);
-                    };
-                    source.connect(processor);
-                    this.audioProcessor = processor;
+                if (!this.audioCtx.audioWorklet || typeof this.audioCtx.audioWorklet.addModule !== "function") {
+                    await this.disableWebAudioBridgeWithError(
+                        "call.web_audio_not_available",
+                        new Error("AudioWorklet is unavailable in this browser"),
+                        "start-preflight-audio-worklet"
+                    );
+                    return;
                 }
+                await this.audioCtx.audioWorklet.addModule(telephonePcmCaptureWorkletUrl);
+                const processor = new AudioWorkletNode(this.audioCtx, "telephone-pcm-capture", {
+                    numberOfInputs: 1,
+                    numberOfOutputs: 1,
+                    channelCount: 1,
+                });
+                processor.port.onmessage = (event) => {
+                    if (!this.audioWs || this.audioWs.readyState !== WebSocket.OPEN) {
+                        return;
+                    }
+                    const data = event.data;
+                    if (data && data.byteLength > 0) {
+                        this.audioWs.send(data);
+                    }
+                };
+                source.connect(processor);
+                this.audioWorkletNode = processor;
+                const silentGain = this.audioCtx.createGain();
+                silentGain.gain.value = 0;
+                this.audioSilentGain = silentGain;
+                processor.connect(silentGain);
+                silentGain.connect(this.audioCtx.destination);
 
                 const ws = new WebSocket(url);
                 ws.binaryType = "arraybuffer";
@@ -2522,6 +2601,29 @@ export default {
                 };
                 ws.onmessage = (event) => {
                     if (typeof event.data === "string") {
+                        try {
+                            const msg = JSON.parse(event.data);
+                            if (msg.type === "error") {
+                                this.logWebAudioFailure("ws-server-error", new Error(msg.message || "unknown"));
+                                if (
+                                    this.activeCall &&
+                                    typeof msg.message === "string" &&
+                                    msg.message.includes("No active call")
+                                ) {
+                                    window.setTimeout(() => {
+                                        try {
+                                            if (this.audioWs && this.audioWs.readyState === WebSocket.OPEN) {
+                                                this.audioWs.send(JSON.stringify({ type: "attach" }));
+                                            }
+                                        } catch {
+                                            // ignore
+                                        }
+                                    }, 150);
+                                }
+                            }
+                        } catch {
+                            // ignore non-json
+                        }
                         return;
                     }
                     this.playRemotePcm(event.data);
@@ -2551,18 +2653,20 @@ export default {
                     throw new Error("navigator.mediaDevices is unavailable");
                 }
                 if (this.hasEnumerateDevicesApi(mediaDevices)) {
-                    const devices = await mediaDevices.enumerateDevices();
-                    const hasAudioInput = devices.some((d) => d.kind === "audioinput");
-                    if (devices.length > 0 && !hasAudioInput) {
-                        ToastUtils.error(this.$t("call.no_audio_input_found"));
-                        return false;
+                    try {
+                        const devices = await mediaDevices.enumerateDevices();
+                        const hasAudioInput = devices.some((d) => d.kind === "audioinput");
+                        if (devices.length > 0 && !hasAudioInput) {
+                            ToastUtils.error(this.$t("call.no_audio_input_found"));
+                            return false;
+                        }
+                    } catch (enumErr) {
+                        this.logWebAudioFailure("enumerate-devices-preflight", enumErr);
                     }
                 }
 
-                const constraints = this.selectedAudioInputId
-                    ? { audio: { deviceId: { exact: this.selectedAudioInputId } } }
-                    : { audio: true };
-                const stream = await mediaDevices.getUserMedia(constraints);
+                await this.refreshAudioDevices();
+                const stream = await this.getUserMediaWithMicFallback(mediaDevices);
                 stream.getTracks().forEach((t) => t.stop());
                 await this.refreshAudioDevices();
                 return true;
@@ -2579,21 +2683,41 @@ export default {
             }
         },
         async refreshAudioDevices() {
+            const defaultIn = {
+                deviceId: "__meshchat_default_in__",
+                kind: "audioinput",
+                label: "Default",
+                groupId: "",
+            };
+            const defaultOut = {
+                deviceId: "__meshchat_default_out__",
+                kind: "audiooutput",
+                label: "Default",
+                groupId: "",
+            };
             try {
                 const mediaDevices = this.getMediaDevicesApi();
                 if (!mediaDevices) {
-                    this.audioInputDevices = [];
-                    this.audioOutputDevices = [];
+                    this.audioInputDevices = [defaultIn];
+                    this.audioOutputDevices = [defaultOut];
                     return;
                 }
                 if (!this.hasEnumerateDevicesApi(mediaDevices)) {
-                    this.audioInputDevices = [];
-                    this.audioOutputDevices = [];
+                    this.audioInputDevices = [defaultIn];
+                    this.audioOutputDevices = [defaultOut];
                     return;
                 }
                 const devices = await mediaDevices.enumerateDevices();
-                this.audioInputDevices = devices.filter((d) => d.kind === "audioinput");
-                this.audioOutputDevices = devices.filter((d) => d.kind === "audiooutput");
+                let inputs = devices.filter((d) => d.kind === "audioinput");
+                let outputs = devices.filter((d) => d.kind === "audiooutput");
+                if (inputs.length === 0 || inputs.every((d) => !d.deviceId || String(d.deviceId).trim() === "")) {
+                    inputs = [defaultIn];
+                }
+                if (outputs.length === 0 || outputs.every((d) => !d.deviceId || String(d.deviceId).trim() === "")) {
+                    outputs = [defaultOut];
+                }
+                this.audioInputDevices = inputs;
+                this.audioOutputDevices = outputs;
                 if (!this.selectedAudioInputId && this.audioInputDevices.length) {
                     this.selectedAudioInputId = this.audioInputDevices[0].deviceId;
                 }
@@ -2602,8 +2726,8 @@ export default {
                 }
             } catch (e) {
                 this.logWebAudioFailure("refresh-devices", e);
-                this.audioInputDevices = [];
-                this.audioOutputDevices = [];
+                this.audioInputDevices = [defaultIn];
+                this.audioOutputDevices = [defaultOut];
             }
         },
         playRemotePcm(arrayBuffer) {
@@ -2620,7 +2744,10 @@ export default {
             audioBuffer.copyToChannel(floatBuf, 0);
             const bufferSource = this.audioCtx.createBufferSource();
             bufferSource.buffer = audioBuffer;
-            if (this.selectedAudioOutputId && "setSinkId" in HTMLMediaElement.prototype) {
+            const sinkId = this.selectedAudioOutputId;
+            const useSetSinkId =
+                sinkId && sinkId !== "__meshchat_default_out__" && "setSinkId" in HTMLMediaElement.prototype;
+            if (useSetSinkId) {
                 if (!this.remoteAudioEl) {
                     this.remoteAudioEl = new Audio();
                     this.remoteAudioEl.autoplay = true;
@@ -2629,9 +2756,7 @@ export default {
                 bufferSource.connect(dest);
                 bufferSource.start();
                 this.remoteAudioEl.srcObject = dest.stream;
-                this.remoteAudioEl
-                    .setSinkId(this.selectedAudioOutputId)
-                    .catch((err) => console.warn("setSinkId failed", err));
+                this.remoteAudioEl.setSinkId(sinkId).catch((err) => console.warn("setSinkId failed", err));
             } else {
                 bufferSource.connect(this.audioCtx.destination);
                 bufferSource.start();
@@ -2667,6 +2792,19 @@ export default {
                 }
                 this.audioProcessor = null;
             }
+            if (this.audioWorkletNode) {
+                try {
+                    this.audioWorkletNode.port.onmessage = null;
+                } catch {
+                    // ignore
+                }
+                try {
+                    this.audioWorkletNode.disconnect();
+                } catch {
+                    // ignore
+                }
+                this.audioWorkletNode = null;
+            }
             if (this.audioStream) {
                 this.audioStream.getTracks().forEach((t) => t.stop());
                 this.audioStream = null;
@@ -2674,14 +2812,6 @@ export default {
             if (this.remoteAudioEl) {
                 this.remoteAudioEl.srcObject = null;
                 this.remoteAudioEl = null;
-            }
-            if (this.audioWorkletNode) {
-                try {
-                    this.audioWorkletNode.disconnect();
-                } catch {
-                    // ignore
-                }
-                this.audioWorkletNode = null;
             }
             if (this.audioSilentGain) {
                 try {
