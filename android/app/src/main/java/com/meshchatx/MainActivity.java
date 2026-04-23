@@ -31,6 +31,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
@@ -71,6 +72,33 @@ public class MainActivity extends AppCompatActivity {
         "Establishing secure local connection...",
         "Finalizing startup..."
     };
+    private static boolean isAllowedWebViewNavigationUri(Uri uri) {
+        if (uri == null) {
+            return false;
+        }
+        String scheme = uri.getScheme();
+        if (scheme == null) {
+            return false;
+        }
+        String s = scheme.toLowerCase();
+        if ("about".equals(s)) {
+            String part = uri.getSchemeSpecificPart();
+            return part != null && "blank".equalsIgnoreCase(part);
+        }
+        if ("blob".equals(s) || "data".equals(s)) {
+            return true;
+        }
+        if (!"http".equals(s) && !"https".equals(s)) {
+            return false;
+        }
+        String host = uri.getHost();
+        if (host == null) {
+            return false;
+        }
+        String h = host.toLowerCase();
+        return "127.0.0.1".equals(h) || "localhost".equals(h) || "[::1]".equals(h) || "::1".equals(h);
+    }
+
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
         new ActivityResultContracts.StartActivityForResult(),
         result -> {
@@ -124,6 +152,25 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri uri = request != null ? request.getUrl() : null;
+                if (isAllowedWebViewNavigationUri(uri)) {
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            @SuppressWarnings("deprecation")
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (isAllowedWebViewNavigationUri(url != null ? Uri.parse(url) : null)) {
+                    return false;
+                }
+                return true;
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
