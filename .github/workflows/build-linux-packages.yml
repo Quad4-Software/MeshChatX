@@ -1,4 +1,4 @@
-# Linux packaging build test: Flatpak + Snap.
+# Linux packaging build test: Flatpak (Snap job commented out for now).
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -140,86 +140,86 @@ jobs:
                   if-no-files-found: warn
                   retention-days: 7
 
-    snap:
-        name: Snap (electron-forge)
-        needs: frontend
-        runs-on: ubuntu-latest
-        timeout-minutes: 90
-        permissions:
-            contents: read
-        env:
-            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
-            MESHCHATX_FRONTEND_PREBUILT: "1"
-            SNAPCRAFT_BUILD_INFO: "1"
-        steps:
-            - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
-
-            - name: Install snapcraft
-              run: |
-                  set -euo pipefail
-                  sudo snap install snapcraft --classic
-                  snapcraft --version
-
-            - name: Prepare snaps for Snapcraft (destructive mode)
-              run: |
-                  set -euo pipefail
-                  sudo snap wait system seed.loaded 2>/dev/null || true
-                  for snap_name in core22 gnome-42-2204; do
-                      if ! snap list "$snap_name" >/dev/null 2>&1; then
-                          sudo snap install "$snap_name"
-                      fi
-                      snap list "$snap_name"
-                  done
-
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-              with:
-                  python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install Poetry (PyPI pin)
-              env:
-                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
-              run: bash scripts/ci/github-install-poetry.sh
-
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
-              with:
-                  node-version: ${{ env.NODE_VERSION }}
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
-
-            - name: Install dependencies
-              run: bash scripts/ci/github-install-deps.sh
-
-            - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
-              with:
-                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
-                  path: meshchatx/public
-
-            - name: Verify frontend artifact contents
-              run: |
-                  set -euo pipefail
-                  test -f meshchatx/public/index.html
-                  test -d meshchatx/public/assets
-                  test -d meshchatx/public/reticulum-docs-bundled/current
-
-            - name: Build snap package
-              run: bash scripts/ci/github-build-linux-snap.sh
-
-            - name: List snap output
-              run: |
-                  set -euo pipefail
-                  ls -la out/make 2>/dev/null || true
-                  find out/make -maxdepth 5 -type f -name "*.snap" -print || true
-
-            - name: Upload snap artifact
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
-              with:
-                  name: meshchatx-linux-snap-${{ github.ref_name }}-${{ github.run_id }}
-                  path: |
-                      out/make/**/*.snap
-                  if-no-files-found: warn
-                  retention-days: 7
+    # snap:
+    #     name: Snap (electron-forge)
+    #     needs: frontend
+    #     runs-on: ubuntu-latest
+    #     timeout-minutes: 90
+    #     permissions:
+    #         contents: read
+    #     env:
+    #         FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+    #         MESHCHATX_FRONTEND_PREBUILT: "1"
+    #         SNAPCRAFT_BUILD_INFO: "1"
+    #     steps:
+    #         - name: Checkout
+    #           uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+    #
+    #         - name: Install snapcraft
+    #           run: |
+    #               set -euo pipefail
+    #               sudo snap install snapcraft --classic
+    #               snapcraft --version
+    #
+    #         - name: Prepare snaps for Snapcraft (destructive mode)
+    #           run: |
+    #               set -euo pipefail
+    #               sudo snap wait system seed.loaded 2>/dev/null || true
+    #               for snap_name in core22 gnome-42-2204; do
+    #                   if ! snap list "$snap_name" >/dev/null 2>&1; then
+    #                       sudo snap install "$snap_name"
+    #                   fi
+    #                   snap list "$snap_name"
+    #               done
+    #
+    #         - name: Set up Python
+    #           uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+    #           with:
+    #               python-version: ${{ env.PYTHON_VERSION }}
+    #
+    #         - name: Install Poetry (PyPI pin)
+    #           env:
+    #               POETRY_VERSION: ${{ env.POETRY_VERSION }}
+    #           run: bash scripts/ci/github-install-poetry.sh
+    #
+    #         - name: Set up Node
+    #           uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+    #           with:
+    #               node-version: ${{ env.NODE_VERSION }}
+    #
+    #         - name: Enable pnpm (corepack)
+    #           run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+    #
+    #         - name: Install dependencies
+    #           run: bash scripts/ci/github-install-deps.sh
+    #
+    #         - name: Download frontend artifact
+    #           uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+    #           with:
+    #               name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+    #               path: meshchatx/public
+    #
+    #         - name: Verify frontend artifact contents
+    #           run: |
+    #               set -euo pipefail
+    #               test -f meshchatx/public/index.html
+    #               test -d meshchatx/public/assets
+    #               test -d meshchatx/public/reticulum-docs-bundled/current
+    #
+    #         - name: Build snap package
+    #           run: bash scripts/ci/github-build-linux-snap.sh
+    #
+    #         - name: List snap output
+    #           run: |
+    #               set -euo pipefail
+    #               ls -la out/make 2>/dev/null || true
+    #               find out/make -maxdepth 5 -type f -name "*.snap" -print || true
+    #
+    #         - name: Upload snap artifact
+    #           uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+    #           with:
+    #               name: meshchatx-linux-snap-${{ github.ref_name }}-${{ github.run_id }}
+    #               path: |
+    #                   out/make/**/*.snap
+    #               if-no-files-found: warn
+    #               retention-days: 7
