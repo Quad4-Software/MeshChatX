@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import IdentitiesPage from "@/components/settings/IdentitiesPage.vue";
+import GlobalEmitter from "@/js/GlobalEmitter";
 
 // Mock dependencies
 vi.mock("@/js/ToastUtils", () => ({
@@ -8,6 +9,7 @@ vi.mock("@/js/ToastUtils", () => ({
         success: vi.fn(),
         error: vi.fn(),
         warning: vi.fn(),
+        info: vi.fn(),
     },
 }));
 
@@ -54,7 +56,13 @@ describe("IdentitiesPage.vue", () => {
                 }
                 return Promise.resolve({ data: {} });
             }),
-            post: vi.fn().mockResolvedValue({ data: { hotswapped: true } }),
+            post: vi.fn().mockResolvedValue({
+                data: {
+                    hotswapped: true,
+                    identity_hash: "hash2",
+                    display_name: "Identity 2",
+                },
+            }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.api = axiosMock;
@@ -145,6 +153,71 @@ describe("IdentitiesPage.vue", () => {
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/identities/switch", {
             identity_hash: "hash2",
         });
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith(
+            "identity-switched-apply",
+            expect.objectContaining({
+                identity_hash: "hash2",
+                display_name: "Identity 2",
+            })
+        );
+    });
+
+    it("emits identity-switched-apply using list row when API omits hash fields (legacy server)", async () => {
+        axiosMock.post.mockResolvedValue({ data: { hotswapped: true } });
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        const switchButton = wrapper.findAll("button").find((b) => b.attributes("title") === "identities.switch");
+        await switchButton.trigger("click");
+
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith(
+            "identity-switched-apply",
+            expect.objectContaining({
+                identity_hash: "hash2",
+                display_name: "Identity 2",
+            })
+        );
+    });
+
+    it("emits identity-switching-start before identity-switched-apply", async () => {
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        const switchButton = wrapper.findAll("button").find((b) => b.attributes("title") === "identities.switch");
+        await switchButton.trigger("click");
+
+        const names = GlobalEmitter.emit.mock.calls.map((c) => c[0]);
+        const startAt = names.indexOf("identity-switching-start");
+        const applyAt = names.indexOf("identity-switched-apply");
+        expect(startAt).toBeGreaterThanOrEqual(0);
+        expect(applyAt).toBeGreaterThanOrEqual(0);
+        expect(startAt).toBeLessThan(applyAt);
+    });
+
+    it("schedules window.location.reload when hotswap is not used", async () => {
+        const reloadFn = vi.fn();
+        vi.stubGlobal("location", { ...window.location, reload: reloadFn });
+        axiosMock.post.mockResolvedValue({
+            data: { hotswapped: false, should_restart: true },
+        });
+        vi.useFakeTimers();
+        try {
+            const wrapper = mountPage();
+            await wrapper.vm.$nextTick();
+            await wrapper.vm.$nextTick();
+
+            const switchButton = wrapper.findAll("button").find((b) => b.attributes("title") === "identities.switch");
+            await switchButton.trigger("click");
+
+            expect(reloadFn).not.toHaveBeenCalled();
+            await vi.advanceTimersByTimeAsync(2000);
+            expect(reloadFn).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.unstubAllGlobals();
+            vi.useRealTimers();
+        }
     });
 
     it("performance: measures identity list rendering for many identities", async () => {

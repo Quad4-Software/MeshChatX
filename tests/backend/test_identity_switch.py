@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import json
 import os
 import shutil
 import tempfile
@@ -136,6 +137,10 @@ async def test_hotswap_identity_success(mock_rns, temp_dir):
     app.teardown_identity.assert_called_once()
     app.setup_identity.assert_called_once_with(new_id_instance)
     app.websocket_broadcast.assert_called_once()
+    ws_payload = json.loads(app.websocket_broadcast.call_args[0][0])
+    assert ws_payload["type"] == "identity_switched"
+    assert ws_payload["identity_hash"] == new_hash
+    assert ws_payload["display_name"] == "New User"
 
     # Verify main identity file was updated
     main_identity_file = os.path.join(temp_dir, "identity")
