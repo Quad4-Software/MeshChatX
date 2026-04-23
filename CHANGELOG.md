@@ -2,7 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.5.0] - 2026-04-24
+## [4.5.1] - 2026-04-24
+
+### Identity switching
+
+- **Hotswap API**: Identity switch responses now include **display name** and **identity hash** so the client can refresh state without guessing from partial payloads.
+- **Event handling**: Identity switch events are **deduplicated** in **`App.vue`** and **`IdentitiesPage.vue`** so rapid or repeated signals do not stack duplicate work.
+- **Locales**: Confirmation copy for switching identities no longer tells users to restart when that is not required (aligned strings across supported languages).
+- **Tests**: New **HTTP** coverage for the identity switch API (success paths, validation, and error responses).
+
+### Desktop (Electron)
+
+- **Boot experience**: **Splash screen** on startup and **Codec2** loader scripts use **retry** logic so transient load failures are less likely to strand voice features.
+- **Developer tools**: **F12** toggles **DevTools**; the menu bar **auto-hides** in main windows for a cleaner ui.
+- **Content Security Policy**: CSP now allows **`wasm-unsafe-eval`** where needed so **WebAssembly** used by the stack (for example audio codec paths) can run under the hardened policy.
+
+### Microphone and translations
+
+- **Recording**: Microphone capture updates **error handling** and adjusts **AudioWorklet** import so failures surface more reliably instead of failing silently.
+- **Locales**: New and updated strings for **microphone** errors so users get clearer guidance when capture or permissions go wrong.
+
+## [4.5.0] - 2026-04-23
 
 ### TL;DR 
 

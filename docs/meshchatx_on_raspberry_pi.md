@@ -61,17 +61,17 @@ source ~/.profile
 
 ## 3) Install MeshChatX with pipx (recommended)
 
-Preferred option (recommended): install from a release wheel (4.5.0 or newer),
+Preferred option (recommended): install from a release wheel (4.5.1 or newer),
 because the wheel bundles frontend assets.
 
 ```bash
 pipx install /path/to/reticulum_meshchatx-<version>-py3-none-any.whl
 ```
 
-Direct example (v4.5.0):
+Direct example (v4.5.1):
 
 ```bash
-pipx install "https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.4.0/reticulum_meshchatx-4.5.0-py3-none-any.whl"
+pipx install "https://git.quad4.io/RNS-Things/MeshChatX/releases/download/v4.5.1/reticulum_meshchatx-4.5.1-py3-none-any.whl"
 ```
 
 `py3-none-any` wheels are architecture-independent, so the same wheel artifact
