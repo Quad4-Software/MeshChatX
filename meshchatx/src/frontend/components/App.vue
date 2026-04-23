@@ -1138,6 +1138,27 @@ export default {
                     break;
                 }
                 case "lxm.ingest_uri.result": {
+                    if (json.ingest_type === "map_view" && json.map_query) {
+                        const mq = json.map_query;
+                        const query = {
+                            lat: String(mq.lat),
+                            lon: String(mq.lon),
+                            zoom: String(mq.zoom),
+                        };
+                        if (mq.layers) {
+                            query.layers = mq.layers;
+                        }
+                        if (mq.label) {
+                            query.label = mq.label;
+                        }
+                        await this.$router.push({ name: "map", query });
+                        if (json.status === "error") {
+                            ToastUtils.error(json.message);
+                        } else if (json.message) {
+                            ToastUtils.info(json.message);
+                        }
+                        break;
+                    }
                     if (json.status === "success") {
                         ToastUtils.success(json.message);
                     } else if (json.status === "error") {
@@ -1696,6 +1717,15 @@ export default {
             try {
                 const normalizedUrl = String(url || "").trim();
                 if (!normalizedUrl) {
+                    return;
+                }
+                if (/^(meshchatx|meshchat):\/\/map\b/i.test(normalizedUrl)) {
+                    WebSocketConnection.send(
+                        JSON.stringify({
+                            type: "lxm.ingest_uri",
+                            uri: normalizedUrl,
+                        })
+                    );
                     return;
                 }
                 if (/^lxm(a|f)?:\/\//i.test(normalizedUrl)) {
