@@ -6,12 +6,15 @@
  * encode the audio to OGG/Opus using LXST's OpusFileSink without relying
  * on ffmpeg or any browser MediaRecorder container output.
  */
+import microphoneRecorderWorkletUrl from "./MicrophoneRecorder.worklet.js?url";
+
 class MicrophoneRecorder {
     constructor() {
         this.microphoneMediaStream = null;
         this.audioContext = null;
         this.sourceNode = null;
         this.processorNode = null;
+        this.silentGainNode = null;
         this.pcmChunks = [];
         this.sampleRate = 0;
         this.channels = 1;
@@ -33,7 +36,19 @@ class MicrophoneRecorder {
 
     teardownAudioGraph() {
         try {
+            if (this.processorNode?.port) {
+                this.processorNode.port.onmessage = null;
+            }
+        } catch {
+            // ignore
+        }
+        try {
             this.processorNode?.disconnect?.();
+        } catch {
+            // ignore disconnect failures
+        }
+        try {
+            this.silentGainNode?.disconnect?.();
         } catch {
             // ignore disconnect failures
         }
@@ -53,6 +68,7 @@ class MicrophoneRecorder {
             }
         }
         this.processorNode = null;
+        this.silentGainNode = null;
         this.sourceNode = null;
         this.audioContext = null;
     }
@@ -88,24 +104,39 @@ class MicrophoneRecorder {
 
             this.sourceNode = this.audioContext.createMediaStreamSource(this.microphoneMediaStream);
 
-            if (typeof this.audioContext.createScriptProcessor !== "function") {
+            if (!this.audioContext.audioWorklet || typeof this.audioContext.audioWorklet.addModule !== "function") {
                 this.cleanupMediaStream();
                 this.teardownAudioGraph();
                 return false;
             }
 
-            const bufferSize = 4096;
-            this.processorNode = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
-            this.processorNode.onaudioprocess = (event) => {
-                const input = event?.inputBuffer?.getChannelData(0);
-                if (!input || input.length === 0) {
+            await this.audioContext.audioWorklet.addModule(microphoneRecorderWorkletUrl);
+            this.processorNode = new AudioWorkletNode(this.audioContext, "microphone-pcm-float", {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                channelCount: 1,
+            });
+            this.processorNode.port.onmessage = (event) => {
+                const buf = event.data;
+                if (!buf || typeof buf.byteLength !== "number" || buf.byteLength === 0) {
                     return;
                 }
-                this.pcmChunks.push(new Float32Array(input));
+                this.pcmChunks.push(new Float32Array(buf.slice(0)));
             };
 
             this.sourceNode.connect(this.processorNode);
-            this.processorNode.connect(this.audioContext.destination);
+            this.silentGainNode = this.audioContext.createGain();
+            this.silentGainNode.gain.value = 0;
+            this.processorNode.connect(this.silentGainNode);
+            this.silentGainNode.connect(this.audioContext.destination);
+
+            if (typeof this.audioContext.resume === "function") {
+                try {
+                    await this.audioContext.resume();
+                } catch {
+                    // ignore resume failures
+                }
+            }
 
             return true;
         } catch {
