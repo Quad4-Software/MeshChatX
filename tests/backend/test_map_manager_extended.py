@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from meshchatx.src.backend.map_manager import MapManager
+from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, MapManager
 
 
 @pytest.fixture
@@ -108,3 +108,17 @@ def test_start_export_status(mock_config, temp_dir):
         assert export_id == "test_id"
         status = mm.get_export_status(export_id)
         assert status["status"] == "starting"
+
+
+def test_count_export_tiles_world_low_zoom(mock_config, temp_dir):
+    mm = MapManager(mock_config, temp_dir)
+    bbox = [-180, -85.051129, 180, 85.051129]
+    n = mm.count_export_tiles(bbox, 0, 4)
+    assert n > 0
+    assert n < MAX_EXPORT_TILES
+
+
+def test_count_export_tiles_dedupes(mock_config, temp_dir):
+    mm = MapManager(mock_config, temp_dir)
+    single = mm.count_export_tiles([0, 0, 0.0001, 0.0001], 2, 2)
+    assert single > 0
