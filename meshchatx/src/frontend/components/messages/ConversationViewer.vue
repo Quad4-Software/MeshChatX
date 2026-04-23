@@ -5167,12 +5167,33 @@ export default {
         },
         buildAudioRecordingFailureMessage() {
             if (!navigator?.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
-                return `${this.$t("messages.failed_start_recording")} (microphone API unavailable in this webview context)`;
+                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_mediadevices")}`;
             }
-            if (typeof MediaRecorder !== "function") {
-                return `${this.$t("messages.failed_start_recording")} (MediaRecorder not supported on this device)`;
+            const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
+            if (typeof AudioContextCtor !== "function") {
+                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_web_audio")}`;
             }
-            return this.$t("messages.failed_start_recording");
+            let probe = null;
+            try {
+                probe = new AudioContextCtor();
+                if (!probe.audioWorklet || typeof probe.audioWorklet.addModule !== "function") {
+                    return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_audio_worklet")}`;
+                }
+            } catch {
+                return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_web_audio")}`;
+            } finally {
+                try {
+                    if (probe && typeof probe.close === "function") {
+                        const closed = probe.close();
+                        if (closed && typeof closed.catch === "function") {
+                            void closed.catch(() => {});
+                        }
+                    }
+                } catch {
+                    // ignore
+                }
+            }
+            return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_permission")}`;
         },
         removeFileAttachment: function (file) {
             this.newMessageFiles = this.newMessageFiles.filter((newMessageFile) => {

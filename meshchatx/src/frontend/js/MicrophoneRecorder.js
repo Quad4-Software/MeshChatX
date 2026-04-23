@@ -6,7 +6,7 @@
  * encode the audio to OGG/Opus using LXST's OpusFileSink without relying
  * on ffmpeg or any browser MediaRecorder container output.
  */
-import microphoneRecorderWorkletUrl from "./MicrophoneRecorder.worklet.js?url";
+import microphoneRecorderWorkletSource from "./MicrophoneRecorder.worklet.js?raw";
 
 class MicrophoneRecorder {
     constructor() {
@@ -18,6 +18,7 @@ class MicrophoneRecorder {
         this.pcmChunks = [];
         this.sampleRate = 0;
         this.channels = 1;
+        this._workletBlobUrl = null;
     }
 
     cleanupMediaStream() {
@@ -56,6 +57,14 @@ class MicrophoneRecorder {
             this.sourceNode?.disconnect?.();
         } catch {
             // ignore disconnect failures
+        }
+        if (this._workletBlobUrl) {
+            try {
+                URL.revokeObjectURL(this._workletBlobUrl);
+            } catch {
+                // ignore
+            }
+            this._workletBlobUrl = null;
         }
         if (this.audioContext && typeof this.audioContext.close === "function") {
             try {
@@ -110,7 +119,21 @@ class MicrophoneRecorder {
                 return false;
             }
 
-            await this.audioContext.audioWorklet.addModule(microphoneRecorderWorkletUrl);
+            const workletBlob = new Blob([microphoneRecorderWorkletSource], {
+                type: "application/javascript",
+            });
+            this._workletBlobUrl = URL.createObjectURL(workletBlob);
+            try {
+                await this.audioContext.audioWorklet.addModule(this._workletBlobUrl);
+            } catch {
+                try {
+                    URL.revokeObjectURL(this._workletBlobUrl);
+                } catch {
+                    // ignore
+                }
+                this._workletBlobUrl = null;
+                throw new Error("AudioWorklet addModule failed");
+            }
             this.processorNode = new AudioWorkletNode(this.audioContext, "microphone-pcm-float", {
                 numberOfInputs: 1,
                 numberOfOutputs: 1,

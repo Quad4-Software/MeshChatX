@@ -133,6 +133,7 @@ describe("MicrophoneRecorder", () => {
 
             expect(audio.ctx.createMediaStreamSource).toHaveBeenCalledTimes(1);
             expect(audio.ctx.audioWorklet.addModule).toHaveBeenCalledTimes(1);
+            expect(audio.ctx.audioWorklet.addModule.mock.calls[0][0]).toMatch(/^blob:/);
             expect(globalThis.AudioWorkletNode).toHaveBeenCalledWith(
                 audio.ctx,
                 "microphone-pcm-float",
