@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vitest";
 import MapPage from "@/components/map/MapPage.vue";
 
@@ -28,6 +28,7 @@ vi.mock("ol/Map", () => ({
             on: vi.fn(),
             un: vi.fn(),
             addLayer: vi.fn(),
+            addControl: vi.fn(),
             removeLayer: vi.fn(),
             addInteraction: vi.fn(),
             removeInteraction: vi.fn(),
@@ -51,6 +52,8 @@ vi.mock("ol/Map", () => ({
                 getArray: vi.fn().mockReturnValue([]),
             }),
             forEachFeatureAtPixel: vi.fn(),
+            getEventPixel: vi.fn().mockReturnValue([0, 0]),
+            getTargetElement: vi.fn().mockReturnValue({ style: {} }),
             setTarget: vi.fn(),
             updateSize: vi.fn(),
             getViewport: vi.fn().mockReturnValue({
@@ -58,6 +61,11 @@ vi.mock("ol/Map", () => ({
                 removeEventListener: vi.fn(),
             }),
         };
+    }),
+}));
+vi.mock("ol/control/ScaleLine", () => ({
+    default: vi.fn().mockImplementation(function () {
+        return {};
     }),
 }));
 
@@ -359,5 +367,63 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
         await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for axios and modal render
 
         expect(wrapper.text()).toContain("Saved Layer 1");
+    });
+
+    it("renders bearing toolbar controls", async () => {
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('button[title="map.tool_bearing"]').exists()).toBe(true);
+        expect(wrapper.find('button[title="map.tool_bearing_from_here"]').exists()).toBe(true);
+    });
+
+    it("toggles bearing mode", async () => {
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        await wrapper.vm.$nextTick();
+        const bearingBtn = wrapper.find('button[title="map.tool_bearing"]');
+        await bearingBtn.trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isBearingMode).toBe(true);
+        await bearingBtn.trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isBearingMode).toBe(false);
+    });
+
+    it("entering bearing mode turns off measurement mode", async () => {
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        await wrapper.vm.$nextTick();
+        await wrapper.find('button[title="map.tool_measure"]').trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isMeasuring).toBe(true);
+        await wrapper.find('button[title="map.tool_bearing"]').trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isMeasuring).toBe(false);
+        expect(wrapper.vm.isBearingMode).toBe(true);
+    });
+
+    it("bearing from here sets GPS anchor when geolocation succeeds", async () => {
+        const origNav = global.navigator;
+        try {
+            global.navigator = {
+                geolocation: {
+                    getCurrentPosition: vi.fn((success) => success({ coords: { longitude: -0.1, latitude: 51.5 } })),
+                },
+            };
+            const wrapper = mountMapPage();
+            await wrapper.vm.$nextTick();
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            await wrapper.vm.$nextTick();
+            await wrapper.find('button[title="map.tool_bearing_from_here"]').trigger("click");
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.isBearingMode).toBe(true);
+            expect(wrapper.vm.bearingFromGps).toBe(true);
+            expect(wrapper.vm.bearingGpsMapCoord).toEqual([-0.1, 51.5]);
+        } finally {
+            global.navigator = origNav;
+        }
     });
 });

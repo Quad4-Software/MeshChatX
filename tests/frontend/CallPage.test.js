@@ -261,10 +261,53 @@ describe("CallPage.vue", () => {
         expect(stop).toHaveBeenCalled();
     });
 
+    it("onToggleWebAudio enabling without active call skips microphone preflight", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.config = { telephone_web_audio_enabled: false };
+        wrapper.vm.activeCall = null;
+        const permit = vi.spyOn(wrapper.vm, "requestAudioPermission").mockResolvedValue(true);
+        const patch = vi.spyOn(wrapper.vm, "updateConfig").mockResolvedValue(undefined);
+        await wrapper.vm.onToggleWebAudio(true);
+        expect(permit).not.toHaveBeenCalled();
+        expect(patch).toHaveBeenCalledWith({ telephone_web_audio_enabled: true });
+    });
+
+    it("onToggleWebAudio enabling during active call runs microphone preflight", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.config = { telephone_web_audio_enabled: false };
+        wrapper.vm.activeCall = { status: 6 };
+        const permit = vi.spyOn(wrapper.vm, "requestAudioPermission").mockResolvedValue(true);
+        const patch = vi.spyOn(wrapper.vm, "updateConfig").mockResolvedValue(undefined);
+        const start = vi.spyOn(wrapper.vm, "startWebAudio").mockResolvedValue(undefined);
+        await wrapper.vm.onToggleWebAudio(true);
+        expect(permit).toHaveBeenCalled();
+        expect(patch).toHaveBeenCalledWith({ telephone_web_audio_enabled: true });
+        expect(start).toHaveBeenCalled();
+    });
+
+    it("getUserMediaWithMicFallback clears stale device id and retries wide open", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.selectedAudioInputId = "gone";
+        wrapper.vm.audioInputDevices = [{ kind: "audioinput", deviceId: "gone" }];
+        const err = new Error("over");
+        err.name = "OverconstrainedError";
+        const fakeStream = { getTracks: () => [{ stop: vi.fn() }] };
+        const getUserMedia = vi.fn().mockRejectedValueOnce(err).mockResolvedValueOnce(fakeStream);
+        const mediaDevices = { getUserMedia, enumerateDevices: vi.fn().mockResolvedValue([]) };
+        const stream = await wrapper.vm.getUserMediaWithMicFallback(mediaDevices);
+        expect(getUserMedia).toHaveBeenCalledTimes(2);
+        expect(wrapper.vm.selectedAudioInputId).toBeNull();
+        expect(stream).toBe(fakeStream);
+    });
+
     it("startWebAudio disables bridge when media devices API is missing", async () => {
         const wrapper = mountCallPage();
         await flushPromises();
         wrapper.vm.config = { telephone_web_audio_enabled: true };
+        wrapper.vm.activeCall = { status: 6 };
         const updateConfig = vi.spyOn(wrapper.vm, "updateConfig").mockResolvedValue(undefined);
         const stopWebAudio = vi.spyOn(wrapper.vm, "stopWebAudio");
         const mediaDevicesDescriptor = Object.getOwnPropertyDescriptor(navigator, "mediaDevices");
@@ -307,7 +350,7 @@ describe("CallPage.vue", () => {
         }
     });
 
-    it("refreshAudioDevices clears stale devices when media devices API is missing", async () => {
+    it("refreshAudioDevices uses default placeholders when media devices API is missing", async () => {
         const wrapper = mountCallPage();
         await flushPromises();
         wrapper.vm.audioInputDevices = [{ kind: "audioinput", deviceId: "old-in" }];
@@ -320,8 +363,22 @@ describe("CallPage.vue", () => {
 
         try {
             await wrapper.vm.refreshAudioDevices();
-            expect(wrapper.vm.audioInputDevices).toEqual([]);
-            expect(wrapper.vm.audioOutputDevices).toEqual([]);
+            expect(wrapper.vm.audioInputDevices).toEqual([
+                {
+                    deviceId: "__meshchat_default_in__",
+                    kind: "audioinput",
+                    label: "Default",
+                    groupId: "",
+                },
+            ]);
+            expect(wrapper.vm.audioOutputDevices).toEqual([
+                {
+                    deviceId: "__meshchat_default_out__",
+                    kind: "audiooutput",
+                    label: "Default",
+                    groupId: "",
+                },
+            ]);
         } finally {
             if (mediaDevicesDescriptor) {
                 Object.defineProperty(navigator, "mediaDevices", mediaDevicesDescriptor);
@@ -346,8 +403,11 @@ describe("CallPage.vue", () => {
         };
         const sourceDisconnect = vi.fn();
         wrapper.vm.audioSourceNode = { disconnect: sourceDisconnect };
-        const processorDisconnect = vi.fn();
-        wrapper.vm.audioProcessor = { disconnect: processorDisconnect };
+        const workletDisconnect = vi.fn();
+        wrapper.vm.audioWorkletNode = {
+            port: { onmessage: vi.fn() },
+            disconnect: workletDisconnect,
+        };
         const stopTrack = vi.fn();
         wrapper.vm.audioStream = { getTracks: () => [{ stop: stopTrack }] };
         const ctxClose = vi.fn().mockResolvedValue(undefined);
@@ -357,7 +417,7 @@ describe("CallPage.vue", () => {
 
         expect(wsClose).toHaveBeenCalledTimes(1);
         expect(sourceDisconnect).toHaveBeenCalledTimes(1);
-        expect(processorDisconnect).toHaveBeenCalledTimes(1);
+        expect(workletDisconnect).toHaveBeenCalledTimes(1);
         expect(stopTrack).toHaveBeenCalledTimes(1);
         expect(ctxClose).toHaveBeenCalledTimes(1);
         expect(wrapper.vm.audioWs).toBeNull();

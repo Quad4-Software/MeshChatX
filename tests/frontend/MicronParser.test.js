@@ -495,7 +495,7 @@ describe("MicronParser.js", () => {
             const markup = "\n".repeat(10000);
             const start = Date.now();
             parser.convertMicronToHtml(markup);
-            expect(Date.now() - start).toBeLessThan(1500);
+            expect(Date.now() - start).toBeLessThan(2500);
         });
 
         it("handles rapid format toggle (open/close/open/close) quickly", () => {

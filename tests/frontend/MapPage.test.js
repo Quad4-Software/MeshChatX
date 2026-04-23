@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vitest";
 
 // Mock TileCache BEFORE importing MapPage
@@ -26,6 +26,7 @@ vi.mock("ol/Map", () => ({
         return {
             on: vi.fn(),
             addLayer: vi.fn(),
+            addControl: vi.fn(),
             addInteraction: vi.fn(),
             addOverlay: vi.fn(),
             removeInteraction: vi.fn(),
@@ -89,6 +90,11 @@ vi.mock("ol/proj", () => ({
 }));
 vi.mock("ol/control", () => ({
     defaults: vi.fn().mockReturnValue([]),
+}));
+vi.mock("ol/control/ScaleLine", () => ({
+    default: vi.fn().mockImplementation(function () {
+        return {};
+    }),
 }));
 vi.mock("ol/interaction/Draw", () => ({
     default: vi.fn().mockImplementation(function () {
@@ -306,6 +312,40 @@ describe("MapPage.vue", () => {
         delete global.fetch;
     });
 
+    it("uses stacked MBTiles only for default or known online tile presets, not local tile URLs", async () => {
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.offlineEnabled = true;
+        wrapper.vm.tileServerUrl = "http://192.168.1.10/tiles/{z}/{x}/{y}.png";
+        expect(wrapper.vm.usesOfflineMbtilesRaster()).toBe(false);
+        wrapper.vm.tileServerUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+        expect(wrapper.vm.usesOfflineMbtilesRaster()).toBe(true);
+    });
+
+    it("search uses custom local nominatim base URL in request", async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve([]),
+        });
+
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.nominatimApiUrl = "http://127.0.0.1:18181/nominatim/";
+        const searchInput = wrapper.find('input[type="text"]');
+        await searchInput.trigger("focus");
+        await searchInput.setValue("hq");
+        await searchInput.trigger("keydown.enter");
+        await flushPromises();
+
+        expect(global.fetch).toHaveBeenCalled();
+        const calledUrl = String(global.fetch.mock.calls[0][0]);
+        expect(calledUrl).toContain("127.0.0.1:18181");
+        expect(calledUrl).toContain("/search?");
+        expect(calledUrl).toContain(encodeURIComponent("hq"));
+
+        delete global.fetch;
+    });
+
     it("toggles export mode", async () => {
         const wrapper = mountMapPage();
         await wrapper.vm.$nextTick();
@@ -316,6 +356,44 @@ describe("MapPage.vue", () => {
             expect(wrapper.vm.isExportMode).toBe(true);
             expect(wrapper.text()).toContain("map.export_instructions");
         }
+    });
+
+    it("serializeFeatures drops bearing preview features", async () => {
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+        const preview = {
+            get: (k) => (k === "bearingPreview" ? true : undefined),
+        };
+        const normal = {
+            get: () => undefined,
+            clone: () => ({
+                unset: vi.fn(),
+                getGeometry: () => null,
+                setGeometry: vi.fn(),
+            }),
+            getStyle: () => null,
+        };
+        const out = wrapper.vm.serializeFeatures([preview, normal]);
+        expect(out).toHaveLength(1);
+    });
+
+    it("toggleBearingMode enables and disables bearing state with a stub map", async () => {
+        const wrapper = mountMapPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.map = {
+            addOverlay: vi.fn(),
+            removeOverlay: vi.fn(),
+            un: vi.fn(),
+        };
+        wrapper.vm.select = { setActive: vi.fn(), getFeatures: () => ({ clear: vi.fn(), push: vi.fn() }) };
+        wrapper.vm.translate = { setActive: vi.fn() };
+        wrapper.vm.modify = { setActive: vi.fn() };
+        wrapper.vm.toggleBearingMode();
+        expect(wrapper.vm.isBearingMode).toBe(true);
+        expect(wrapper.vm.drawType).toBe("Bearing");
+        wrapper.vm.toggleBearingMode();
+        expect(wrapper.vm.isBearingMode).toBe(false);
+        expect(wrapper.vm.select.setActive).toHaveBeenCalledWith(true);
     });
 
     it("handles a large number of search results with overflow", async () => {

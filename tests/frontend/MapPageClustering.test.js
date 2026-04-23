@@ -34,6 +34,7 @@ const viewMock = {
 const mapMock = {
     on: vi.fn(),
     addLayer: vi.fn(),
+    addControl: vi.fn(),
     addInteraction: vi.fn(),
     addOverlay: vi.fn(),
     removeInteraction: vi.fn(),

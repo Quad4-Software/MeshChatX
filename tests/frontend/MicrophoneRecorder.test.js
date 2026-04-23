@@ -2,8 +2,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import MicrophoneRecorder from "@/js/MicrophoneRecorder";
 
 function installFakeAudioContext({ sampleRate = 48000 } = {}) {
-    const processorNode = {
-        onaudioprocess: null,
+    const workletNode = {
+        port: {
+            onmessage: null,
+        },
+        connect: vi.fn(),
+        disconnect: vi.fn(),
+    };
+    const gainNode = {
+        gain: { value: 0 },
         connect: vi.fn(),
         disconnect: vi.fn(),
     };
@@ -17,21 +24,34 @@ function installFakeAudioContext({ sampleRate = 48000 } = {}) {
         resume: vi.fn().mockResolvedValue(undefined),
         close: vi.fn().mockResolvedValue(undefined),
         createMediaStreamSource: vi.fn(() => sourceNode),
-        createScriptProcessor: vi.fn(() => processorNode),
+        createGain: vi.fn(() => gainNode),
+        audioWorklet: {
+            addModule: vi.fn().mockResolvedValue(undefined),
+        },
     };
     const original = globalThis.AudioContext;
+    const originalAWN = globalThis.AudioWorkletNode;
     globalThis.AudioContext = vi.fn(function FakeAudioContext() {
         return ctx;
     });
+    globalThis.AudioWorkletNode = vi.fn(function FakeAudioWorkletNode() {
+        return workletNode;
+    });
     return {
         ctx,
-        processorNode,
+        workletNode,
+        gainNode,
         sourceNode,
         restore() {
             if (typeof original === "undefined") {
                 Reflect.deleteProperty(globalThis, "AudioContext");
             } else {
                 globalThis.AudioContext = original;
+            }
+            if (typeof originalAWN === "undefined") {
+                Reflect.deleteProperty(globalThis, "AudioWorkletNode");
+            } else {
+                globalThis.AudioWorkletNode = originalAWN;
             }
         },
     };
@@ -112,17 +132,26 @@ describe("MicrophoneRecorder", () => {
             await expect(recorder.start()).resolves.toBe(true);
 
             expect(audio.ctx.createMediaStreamSource).toHaveBeenCalledTimes(1);
-            expect(audio.ctx.createScriptProcessor).toHaveBeenCalledWith(4096, 1, 1);
-            expect(audio.sourceNode.connect).toHaveBeenCalledWith(audio.processorNode);
-            expect(audio.processorNode.connect).toHaveBeenCalledWith(audio.ctx.destination);
+            expect(audio.ctx.audioWorklet.addModule).toHaveBeenCalledTimes(1);
+            expect(globalThis.AudioWorkletNode).toHaveBeenCalledWith(
+                audio.ctx,
+                "microphone-pcm-float",
+                expect.objectContaining({
+                    numberOfInputs: 1,
+                    numberOfOutputs: 1,
+                    channelCount: 1,
+                })
+            );
+            expect(audio.sourceNode.connect).toHaveBeenCalledWith(audio.workletNode);
+            expect(audio.workletNode.connect).toHaveBeenCalledWith(audio.gainNode);
+            expect(audio.gainNode.connect).toHaveBeenCalledWith(audio.ctx.destination);
 
             const frame = new Float32Array(1024);
             for (let i = 0; i < frame.length; i++) {
                 frame[i] = Math.sin((i / frame.length) * Math.PI * 2) * 0.5;
             }
-            audio.processorNode.onaudioprocess({
-                inputBuffer: { getChannelData: () => frame },
-            });
+            expect(typeof audio.workletNode.port.onmessage).toBe("function");
+            audio.workletNode.port.onmessage({ data: frame.buffer.slice(0) });
 
             const blob = await recorder.stop();
             expect(blob).toBeInstanceOf(Blob);

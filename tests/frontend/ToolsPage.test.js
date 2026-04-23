@@ -24,6 +24,7 @@ describe("ToolsPage.vue", () => {
             { path: "/rnode-flasher", name: "rnode-flasher", component: { template: "div" } },
             { path: "/debug-logs", name: "debug-logs", component: { template: "div" } },
             { path: "/mesh-server", name: "mesh-server", component: { template: "div" } },
+            { path: "/tools/repository-server", name: "repository-server", component: { template: "div" } },
             { path: "/tools/sieve-filters", name: "sieve-filters", component: { template: "div" } },
         ],
     });
@@ -54,7 +55,7 @@ describe("ToolsPage.vue", () => {
     it("renders all tool rows", () => {
         const wrapper = mountToolsPage();
         const toolRows = wrapper.findAll(".tool-row");
-        expect(toolRows.length).toBe(20);
+        expect(toolRows.length).toBe(21);
     });
 
     it("filters tools based on search query", async () => {
@@ -79,6 +80,6 @@ describe("ToolsPage.vue", () => {
         await clearButton.trigger("click");
 
         expect(wrapper.vm.searchQuery).toBe("");
-        expect(wrapper.vm.filteredTools.length).toBe(20);
+        expect(wrapper.vm.filteredTools.length).toBe(21);
     });
 });
