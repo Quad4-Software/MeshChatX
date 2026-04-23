@@ -35,18 +35,32 @@ def test_seed_copies_bundled_wheels_from_public(tmp_path):
     assert "from_build.whl" in bundled_names
 
 
-def test_seed_skips_when_wheel_already_present(tmp_path):
+def test_seed_skips_when_wheel_already_present_same_size(tmp_path):
     identity = tmp_path / "identity"
     identity.mkdir()
     public = tmp_path / "public"
     bundled_pub = public / "repository-server-bundled" / "bundled"
     bundled_pub.mkdir(parents=True)
-    (bundled_pub / "same.whl").write_bytes(b"from_public")
+    (bundled_pub / "same.whl").write_bytes(b"aaaaaaaaaaaa")
     dest = identity / "repository-server" / "bundled"
     dest.mkdir(parents=True)
-    (dest / "same.whl").write_bytes(b"user_keeps")
+    (dest / "same.whl").write_bytes(b"bbbbbbbbbbbb")
     RepositoryServerManager(str(identity), public_dir=str(public))
-    assert (dest / "same.whl").read_bytes() == b"user_keeps"
+    assert (dest / "same.whl").read_bytes() == b"bbbbbbbbbbbb"
+
+
+def test_seed_replaces_bundled_when_public_wheel_size_differs(tmp_path):
+    identity = tmp_path / "identity"
+    identity.mkdir()
+    public = tmp_path / "public"
+    bundled_pub = public / "repository-server-bundled" / "bundled"
+    bundled_pub.mkdir(parents=True)
+    (bundled_pub / "mesh.whl").write_bytes(b"slim_wheel_from_build")
+    dest = identity / "repository-server" / "bundled"
+    dest.mkdir(parents=True)
+    (dest / "mesh.whl").write_bytes(b"fat_old")
+    RepositoryServerManager(str(identity), public_dir=str(public))
+    assert (dest / "mesh.whl").read_bytes() == b"slim_wheel_from_build"
 
 
 def test_meshchat_bundle_project_root_exists():

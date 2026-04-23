@@ -431,12 +431,16 @@ class RepositoryServerManager:
         except OSError:
             existing = set()
         for name in names:
+            src = os.path.join(src_root, name)
+            dest = os.path.join(self.bundled_dir, name)
             if name in existing:
-                continue
+                try:
+                    if os.path.getsize(src) == os.path.getsize(dest):
+                        continue
+                except OSError:
+                    continue
             try:
-                shutil.copy2(
-                    os.path.join(src_root, name), os.path.join(self.bundled_dir, name)
-                )
+                shutil.copy2(src, dest)
             except OSError as e:
                 logging.warning(
                     "repository bundled seed copy failed for %s: %s", name, e
