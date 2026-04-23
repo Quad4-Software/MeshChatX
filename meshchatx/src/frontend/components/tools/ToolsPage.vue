@@ -195,8 +195,8 @@ export default {
                     route: { name: "propagation-nodes" },
                     icon: "mailbox",
                     iconBg: "tool-card__icon bg-cyan-50 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-200",
-                    title: "Propagation Nodes",
-                    description: "Manage preferred and local propagation nodes with live stats and path checks.",
+                    titleKey: "tools.propagation_nodes.title",
+                    descriptionKey: "tools.propagation_nodes.description",
                 },
                 {
                     name: "forwarder",
@@ -221,6 +221,14 @@ export default {
                     iconBg: "tool-card__icon bg-cyan-50 text-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-200",
                     titleKey: "docs.title",
                     descriptionKey: "docs.subtitle",
+                },
+                {
+                    name: "repository-server",
+                    route: { name: "repository-server" },
+                    icon: "package-variant",
+                    iconBg: "tool-card__icon bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-200",
+                    titleKey: "tools.repository_server.title",
+                    descriptionKey: "tools.repository_server.description",
                 },
                 {
                     name: "micron-editor",

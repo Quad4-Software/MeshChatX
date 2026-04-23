@@ -45,143 +45,14 @@
             @close="close"
         />
 
-        <!-- Telemetry History Modal -->
-        <div
-            v-if="isTelemetryHistoryModalOpen"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            @click.self="isTelemetryHistoryModalOpen = false"
-        >
-            <div
-                class="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
-            >
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <MaterialDesignIcon icon-name="satellite-variant" class="size-6 text-blue-500" />
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Telemetry History</h3>
-                    </div>
-                    <button
-                        type="button"
-                        class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
-                        @click="isTelemetryHistoryModalOpen = false"
-                    >
-                        <MaterialDesignIcon icon-name="close" class="size-6" />
-                    </button>
-                </div>
-                <div class="flex-1 overflow-y-auto p-4 space-y-3">
-                    <div v-if="selectedPeerTelemetryItems.length === 0" class="text-center py-8 text-gray-400">
-                        No telemetry history found for this peer.
-                    </div>
-                    <div
-                        v-for="item in selectedPeerTelemetryItems"
-                        :key="item.lxmf_message.hash"
-                        class="p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30"
-                    >
-                        <div class="flex justify-between items-start mb-2">
-                            <span
-                                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
-                            >
-                                {{ item.is_outbound ? "Sent" : "Received" }}
-                            </span>
-                            <span class="text-[10px] text-gray-400">{{
-                                formatTimeAgo(item.lxmf_message.created_at)
-                            }}</span>
-                        </div>
-
-                        <!-- location -->
-                        <div v-if="item.lxmf_message.fields?.telemetry?.location" class="flex items-center gap-2 mb-2">
-                            <button
-                                type="button"
-                                class="flex items-center gap-2 text-xs font-mono text-blue-600 dark:text-blue-400 hover:underline"
-                                @click="viewLocationOnMap(item.lxmf_message.fields.telemetry.location)"
-                            >
-                                <MaterialDesignIcon icon-name="map-marker" class="size-4" />
-                                {{ item.lxmf_message.fields.telemetry.location.latitude.toFixed(6) }},
-                                {{ item.lxmf_message.fields.telemetry.location.longitude.toFixed(6) }}
-                            </button>
-                        </div>
-
-                        <!-- sensors -->
-                        <div
-                            v-if="item.lxmf_message.fields?.telemetry"
-                            class="flex flex-wrap gap-3 text-[10px] text-gray-500"
-                        >
-                            <span v-if="item.lxmf_message.fields.telemetry.battery" class="flex items-center gap-1">
-                                <MaterialDesignIcon icon-name="battery" class="size-3" />
-                                Battery: {{ item.lxmf_message.fields.telemetry.battery.charge_percent }}%
-                            </span>
-                            <span
-                                v-if="item.lxmf_message.fields.telemetry.physical_link"
-                                class="flex items-center gap-1"
-                            >
-                                <MaterialDesignIcon icon-name="antenna" class="size-3" />
-                                SNR: {{ item.lxmf_message.fields.telemetry.physical_link.snr }}dB
-                            </span>
-                        </div>
-
-                        <!-- commands -->
-                        <div
-                            v-if="item.lxmf_message.fields?.commands?.some((c) => c['0x01'])"
-                            class="flex items-center gap-2 text-[10px] text-emerald-600 dark:text-emerald-400 mt-1"
-                        >
-                            <MaterialDesignIcon icon-name="crosshairs-question" class="size-3" />
-                            <span>Location Request</span>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    class="px-6 py-4 border-t border-gray-100 dark:border-zinc-800 bg-gray-50/30 dark:bg-zinc-900/20 flex flex-col gap-4"
-                >
-                    <div v-if="telemetryBatteryHistory.length > 1" class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
-                                >Battery Level (%)</span
-                            >
-                            <span class="text-[10px] text-gray-500"
-                                >{{ telemetryBatteryHistory[0].y }}% →
-                                {{ telemetryBatteryHistory[telemetryBatteryHistory.length - 1].y }}%</span
-                            >
-                        </div>
-                        <svg class="w-full h-12 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <path
-                                :d="batterySparklinePath"
-                                fill="none"
-                                stroke="#3b82f6"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                            <circle
-                                :cx="100"
-                                :cy="100 - telemetryBatteryHistory[telemetryBatteryHistory.length - 1].y"
-                                r="3"
-                                fill="#3b82f6"
-                            />
-                        </svg>
-                    </div>
-
-                    <div class="flex justify-between items-center w-full">
-                        <label class="flex items-center gap-2 cursor-pointer group">
-                            <input
-                                v-model="showTelemetryInChat"
-                                type="checkbox"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span
-                                class="text-xs font-medium text-gray-600 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-zinc-200"
-                                >Show telemetry in main chat</span
-                            >
-                        </label>
-                        <button
-                            type="button"
-                            class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                            @click="isTelemetryHistoryModalOpen = false"
-                        >
-                            Done
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <TelemetryHistoryModal
+            v-model="isTelemetryHistoryModalOpen"
+            v-model:show-telemetry-in-chat="showTelemetryInChat"
+            :telemetry-items="selectedPeerTelemetryItems"
+            :format-time-ago="formatTimeAgo"
+            :gradient-id-suffix="telemetryModalGradientSuffix"
+            @location-click="viewLocationOnMap"
+        />
 
         <!-- Share Contact Modal -->
         <div
@@ -1650,12 +1521,14 @@ import ToastUtils from "../../js/ToastUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
 import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
+import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
 import { COLUMBA_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
 import "emoji-picker-element";
 import StickerView from "../stickers/StickerView.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
+import TelemetryHistoryModal from "./telemetry/TelemetryHistoryModal.vue";
 
 export default {
     name: "ConversationViewer",
@@ -1675,6 +1548,7 @@ export default {
         ConversationMessageListVirtual,
         StickerView,
         InViewAnimatedImg,
+        TelemetryHistoryModal,
     },
     props: {
         config: {
@@ -2112,30 +1986,9 @@ export default {
                 (item) => item.is_outbound && ["failed", "cancelled"].includes(item.lxmf_message?.state)
             );
         },
-        telemetryBatteryHistory() {
-            return this.selectedPeerTelemetryItems
-                .filter((item) => item.lxmf_message.fields?.telemetry?.battery)
-                .map((item) => ({
-                    x: item.lxmf_message.timestamp,
-                    y: item.lxmf_message.fields.telemetry.battery.charge_percent,
-                }))
-                .sort((a, b) => a.x - b.x);
-        },
-        batterySparklinePath() {
-            const history = this.telemetryBatteryHistory;
-            if (history.length < 2) return "";
-
-            const minX = history[0].x;
-            const maxX = history[history.length - 1].x;
-            const rangeX = maxX - minX || 1;
-
-            return history
-                .map((p, i) => {
-                    const x = ((p.x - minX) / rangeX) * 100;
-                    const y = 100 - p.y; // SVG y is top-down
-                    return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-                })
-                .join(" ");
+        telemetryModalGradientSuffix() {
+            const h = this.selectedPeer?.destination_hash || "default";
+            return h.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24) || "default";
         },
     },
     watch: {
@@ -2290,6 +2143,9 @@ export default {
                 return false;
             }
             if (this.getParsedItems(chatItem)?.isOnlyPaperMessage) {
+                return false;
+            }
+            if (this.getParsedItems(chatItem)?.isOnlyMapLink) {
                 return false;
             }
             if (this.shouldHideAutoImageCaption(chatItem)) {
@@ -2652,6 +2508,7 @@ export default {
             const items = {
                 contact: null,
                 paperMessage: null,
+                mapLink: null,
             };
 
             // Parse contact: Contact: ivan <ca314c30b27eacec5f6ca6ac504e94c9> [LXMF: ...] [LXST: ...]
@@ -2691,6 +2548,23 @@ export default {
                 const trimmedContent = content.trim();
                 if (trimmedContent === items.paperMessage || trimmedContent.includes("Paper Message detected")) {
                     items.isOnlyPaperMessage = true;
+                }
+            }
+
+            const mapUri = findMapUriInContent(content);
+            if (mapUri && !items.paperMessage) {
+                const parsed = parseMeshchatMapUri(mapUri);
+                if (parsed) {
+                    const kind = mapLinkKindFromMessage(content, parsed);
+                    let t = content.trim().replace(mapUri, "").trim();
+                    t = t
+                        .replace(/^MeshChatX\s+map\s+ping:\s*/i, "")
+                        .replace(/^MeshChatX\s+map:\s*/i, "")
+                        .trim();
+                    items.mapLink = { uri: mapUri, parsed, kind };
+                    if (t === "") {
+                        items.isOnlyMapLink = true;
+                    }
                 }
             }
 
@@ -4485,6 +4359,38 @@ export default {
                     zoom: 15,
                 },
             });
+        },
+        openMapShareFromParsed(parsed) {
+            if (!parsed) {
+                return;
+            }
+            const query = {
+                lat: String(parsed.lat),
+                lon: String(parsed.lon),
+                zoom: String(parsed.zoom),
+            };
+            if (parsed.layers) {
+                query.layers = parsed.layers;
+            }
+            if (parsed.label) {
+                query.label = parsed.label;
+            }
+            this.$router.push({
+                name: "map",
+                query,
+            });
+        },
+        async copyMapShareUri(uri) {
+            if (!uri) {
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(uri);
+                ToastUtils.success(this.$t("messages.map_link_copied"));
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("messages.failed_copy_address"));
+            }
         },
         isTelemetryOnly(msg) {
             return isTelemetryOnlyMessage(msg);

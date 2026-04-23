@@ -258,6 +258,14 @@ export default {
                     route: { name: "documentation" },
                 },
                 {
+                    id: "nav-repository-server",
+                    title: "nav_repository_server",
+                    description: "nav_repository_server_desc",
+                    icon: "package-variant",
+                    type: "navigation",
+                    route: { name: "repository-server" },
+                },
+                {
                     id: "nav-micron-editor",
                     title: "nav_micron_editor",
                     description: "nav_micron_editor_desc",

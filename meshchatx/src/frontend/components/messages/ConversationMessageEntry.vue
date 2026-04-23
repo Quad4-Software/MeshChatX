@@ -500,6 +500,7 @@
                     v-if="
                         chatItem.lxmf_message.content &&
                         !cv.getParsedItems(chatItem)?.isOnlyPaperMessage &&
+                        !cv.getParsedItems(chatItem)?.isOnlyMapLink &&
                         !cv.shouldHideAutoImageCaption(chatItem)
                     "
                     class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
@@ -633,6 +634,39 @@
                             @click="cv.ingestPaperMessage(cv.getParsedItems(chatItem).paperMessage)"
                         >
                             Ingest Message
+                        </button>
+                    </div>
+
+                    <div
+                        v-if="cv.getParsedItems(chatItem).mapLink"
+                        class="flex flex-col gap-2 p-3 rounded-xl bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/50"
+                    >
+                        <div class="flex items-center gap-2 text-sky-800 dark:text-sky-300">
+                            <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                            <span class="text-sm font-bold">{{
+                                cv.getParsedItems(chatItem).mapLink.kind === "ping"
+                                    ? $t("messages.map_link_ping_title")
+                                    : $t("messages.map_link_share_title")
+                            }}</span>
+                        </div>
+                        <div class="text-[10px] font-mono text-sky-900/80 dark:text-sky-200/90 break-all">
+                            {{ cv.getParsedItems(chatItem).mapLink.parsed.lat.toFixed(5) }},
+                            {{ cv.getParsedItems(chatItem).mapLink.parsed.lon.toFixed(5) }}
+                            (z{{ cv.getParsedItems(chatItem).mapLink.parsed.zoom }})
+                        </div>
+                        <button
+                            type="button"
+                            class="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                            @click="cv.openMapShareFromParsed(cv.getParsedItems(chatItem).mapLink.parsed)"
+                        >
+                            {{ $t("messages.map_link_open") }}
+                        </button>
+                        <button
+                            type="button"
+                            class="w-full py-2 bg-white dark:bg-zinc-900 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 rounded-lg text-xs font-bold"
+                            @click="cv.copyMapShareUri(cv.getParsedItems(chatItem).mapLink.uri)"
+                        >
+                            {{ $t("messages.map_link_copy_uri") }}
                         </button>
                     </div>
                 </div>
