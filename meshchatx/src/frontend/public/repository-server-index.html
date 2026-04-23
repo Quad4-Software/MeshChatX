@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeshChatX repository</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f4f5;
+      --card: #fff;
+      --text: #18181b;
+      --muted: #71717a;
+      --border: #e4e4e7;
+      --accent: #0369a1;
+      --accent-hover: #075985;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #09090b;
+        --card: #18181b;
+        --text: #fafafa;
+        --muted: #a1a1aa;
+        --border: #27272a;
+        --accent: #38bdf8;
+        --accent-hover: #7dd3fc;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .wrap {
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 3rem;
+    }
+    header {
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.35rem;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
+    .lede {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    h2.section {
+      margin: 1.35rem 0 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    h2.section:first-of-type {
+      margin-top: 0;
+    }
+    table.files {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table.files th,
+    table.files td {
+      text-align: left;
+      padding: 0.5rem 0.65rem;
+      border-bottom: 1px solid var(--border);
+    }
+    table.files th {
+      background: var(--bg);
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    table.files td.size {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      width: 5.5rem;
+    }
+    table.files tr:last-child td {
+      border-bottom: 0;
+    }
+    table.files td a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      word-break: break-all;
+    }
+    table.files td a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+    .empty {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.875rem;
+      padding: 0.75rem 0.85rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    footer {
+      margin-top: 1.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>MeshChatX repository</h1>
+      <p class="lede">A simple place for files you share from MeshChatX.</p>
+    </header>
+    <!--FILE_LISTS-->
+    <footer>MeshChatX</footer>
+  </div>
+</body>
+</html>
