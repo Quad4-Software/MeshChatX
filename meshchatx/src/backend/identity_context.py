@@ -16,6 +16,7 @@ from meshchatx.src.backend.community_interfaces import CommunityInterfacesManage
 from meshchatx.src.backend.config_manager import ConfigManager
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.docs_manager import DocsManager
+from meshchatx.src.backend.repository_server_manager import RepositoryServerManager
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
 from meshchatx.src.backend.integrity_manager import IntegrityManager
 from meshchatx.src.backend.map_manager import MapManager
@@ -70,6 +71,7 @@ class IdentityContext:
         self.archiver_manager = None
         self.map_manager = None
         self.docs_manager = None
+        self.repository_server_manager = None
         self.nomadnet_manager = None
         self.message_router = None
         self.telephone_manager = None
@@ -177,6 +179,10 @@ class IdentityContext:
                 ),
             ),
             storage_dir=self.storage_path,
+        )
+        self.repository_server_manager = RepositoryServerManager(
+            self.storage_path,
+            public_dir=self.app.get_public_path(),
         )
         self.nomadnet_manager = NomadNetworkManager(
             self.config,
@@ -580,6 +586,11 @@ class IdentityContext:
 
         if self.docs_manager:
             self.docs_manager = None
+
+        if self.repository_server_manager:
+            with contextlib.suppress(Exception):
+                self.repository_server_manager.stop_http_server()
+            self.repository_server_manager = None
 
         if self.nomadnet_manager:
             self.nomadnet_manager = None

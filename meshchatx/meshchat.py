@@ -93,7 +93,7 @@ from meshchatx.src.backend.lxmf_utils import (
     is_user_facing_lxmf_payload,
     lxmf_fields_are_columba_reaction,
 )
-from meshchatx.src.backend.map_manager import TRANSPARENT_TILE
+from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.meshchat_utils import (
     convert_db_favourite_to_dict,
@@ -356,6 +356,19 @@ class ReticulumMeshChat:
     def docs_manager(self, value):
         if self.current_context:
             self.current_context.docs_manager = value
+
+    @property
+    def repository_server_manager(self):
+        return (
+            self.current_context.repository_server_manager
+            if self.current_context
+            else None
+        )
+
+    @repository_server_manager.setter
+    def repository_server_manager(self, value):
+        if self.current_context:
+            self.current_context.repository_server_manager = value
 
     @property
     def nomadnet_manager(self):
@@ -5412,6 +5425,141 @@ class ReticulumMeshChat:
                 return web.json_response({"error": "Document not found"}, status=404)
 
             return web.json_response(content)
+
+        # repository server (wheels + uploads; optional in-process plain HTTP)
+        @routes.get("/api/v1/repository-server/status")
+        async def repository_server_status(_request):
+            mgr = self.repository_server_manager
+            if not mgr:
+                return web.json_response({"error": "Unavailable"}, status=503)
+            return web.json_response(mgr.status())
+
+        @routes.get("/api/v1/repository-server/list")
+        async def repository_server_list(_request):
+            mgr = self.repository_server_manager
+            if not mgr:
+                return web.json_response({"error": "Unavailable"}, status=503)
+            return web.json_response(mgr.list_entries())
+
+        @routes.post("/api/v1/repository-server/upload")
+        async def repository_server_upload(request):
+            mgr = self.repository_server_manager
+            if not mgr:
+                return web.json_response({"error": "Unavailable"}, status=503)
+            try:
+                reader = await request.multipart()
+                field = await reader.next()
+                if not field or field.name != "file":
+                    return web.json_response(
+                        {"error": "No file field in multipart request"},
+                        status=400,
+                    )
+                filename = field.filename or "upload.bin"
+                data = await field.read()
+                ok, err = mgr.save_upload(filename, data)
+                if not ok:
+                    return web.json_response(
+                        {"success": False, "error": err}, status=400
+                    )
+                return web.json_response({"success": True})
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        @routes.delete("/api/v1/repository-server/upload/{name}")
+        async def repository_server_delete_upload(request):
+            mgr = self.repository_server_manager
+            if not mgr:
+                return web.json_response({"error": "Unavailable"}, status=503)
+            name = request.match_info.get("name") or ""
+            ok, err = mgr.delete_upload(name)
+            if not ok:
+                code = 404 if err == "not_found" else 400
+                return web.json_response({"success": False, "error": err}, status=code)
+            return web.json_response({"success": True})
+
+        @routes.post("/api/v1/repository-server/refresh-bundled")
+        async def repository_server_refresh_bundled(_request):
+            mgr = self.repository_server_manager
+            if not mgr:
+                return web.json_response({"error": "Unavailable"}, status=503)
+            try:
+                result = await asyncio.to_thread(mgr.refresh_bundled_wheels)
+                return web.json_response(result)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        @routes.post("/api/v1/repository-server/http/start")
+        async def repository_server_http_start(request):
+            mgr = self.repository_server_manager
+            if not mgr:
+                return web.json_response({"error": "Unavailable"}, status=503)
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            if not isinstance(data, dict):
+                data = {}
+            host = data.get("host")
+            port = data.get("port")
+            port_int = None
+            if port is not None:
+                try:
+                    port_int = int(port)
+                except (TypeError, ValueError):
+                    return web.json_response(
+                        {"ok": False, "error": "invalid_port"}, status=400
+                    )
+            try:
+                result = await asyncio.to_thread(
+                    mgr.start_http_server,
+                    str(host).strip() if host is not None else None,
+                    port_int,
+                )
+                return web.json_response(result)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        @routes.post("/api/v1/repository-server/http/stop")
+        async def repository_server_http_stop(_request):
+            mgr = self.repository_server_manager
+            if not mgr:
+                return web.json_response({"error": "Unavailable"}, status=503)
+            try:
+                result = await asyncio.to_thread(mgr.stop_http_server)
+                return web.json_response(result)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+
+        @routes.post("/api/v1/repository-server/http/restart")
+        async def repository_server_http_restart(request):
+            mgr = self.repository_server_manager
+            if not mgr:
+                return web.json_response({"error": "Unavailable"}, status=503)
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            if not isinstance(data, dict):
+                data = {}
+            host = data.get("host")
+            port = data.get("port")
+            port_int = None
+            if port is not None:
+                try:
+                    port_int = int(port)
+                except (TypeError, ValueError):
+                    return web.json_response(
+                        {"ok": False, "error": "invalid_port"}, status=400
+                    )
+            try:
+                result = await asyncio.to_thread(
+                    mgr.restart_http_server,
+                    str(host).strip() if host is not None else None,
+                    port_int,
+                )
+                return web.json_response(result)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
 
         # export docs
         @routes.get("/api/v1/docs/export")
@@ -11277,6 +11425,23 @@ class ReticulumMeshChat:
                 if not bbox or len(bbox) != 4:
                     return web.json_response({"error": "Invalid bbox"}, status=400)
 
+                tile_count = self.map_manager.count_export_tiles(
+                    bbox,
+                    min_zoom,
+                    max_zoom,
+                )
+                if tile_count > MAX_EXPORT_TILES:
+                    return web.json_response(
+                        {
+                            "error": (
+                                f"Export would download {tile_count} tiles; "
+                                f"maximum allowed is {MAX_EXPORT_TILES}. "
+                                "Shrink the area or lower max zoom."
+                            ),
+                        },
+                        status=400,
+                    )
+
                 export_id = secrets.token_hex(8)
                 self.map_manager.start_export(export_id, bbox, min_zoom, max_zoom, name)
 
@@ -13074,6 +13239,61 @@ class ReticulumMeshChat:
             duplicate_signal = "duplicate_lxm"
 
             try:
+                uri_raw = uri.strip()
+                lu = uri_raw.lower()
+                if lu.startswith("meshchatx://map") or lu.startswith("meshchat://map"):
+                    from urllib.parse import parse_qsl, urlparse
+
+                    parsed = urlparse(uri_raw)
+                    q = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                    try:
+                        lat = float(q.get("lat", "") or "")
+                        lon = float(q.get("lon", "") or "")
+                    except (TypeError, ValueError):
+                        AsyncUtils.run_async(
+                            client.send_str(
+                                json.dumps(
+                                    {
+                                        "type": "lxm.ingest_uri.result",
+                                        "status": "error",
+                                        "message": "Invalid map link: lat and lon must be numbers.",
+                                    },
+                                ),
+                            ),
+                        )
+                        return
+                    zraw = q.get("z") or q.get("zoom") or "10"
+                    try:
+                        zoom = int(float(zraw))
+                    except (TypeError, ValueError):
+                        zoom = 10
+                    zoom = max(0, min(22, zoom))
+                    layers = (q.get("layers") or "").strip()
+                    label = (q.get("label") or "").strip()
+                    mq = {
+                        "lat": lat,
+                        "lon": lon,
+                        "zoom": zoom,
+                    }
+                    if layers:
+                        mq["layers"] = layers
+                    if label:
+                        mq["label"] = label
+                    AsyncUtils.run_async(
+                        client.send_str(
+                            json.dumps(
+                                {
+                                    "type": "lxm.ingest_uri.result",
+                                    "status": "success",
+                                    "message": "Opening map view.",
+                                    "ingest_type": "map_view",
+                                    "map_query": mq,
+                                },
+                            ),
+                        ),
+                    )
+                    return
+
                 # Columba-style contact sharing URI:
                 # lxma://<destination_hash_hex>:<public_key_hex>
                 if uri.lower().startswith("lxma://"):
