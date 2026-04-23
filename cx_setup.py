@@ -78,8 +78,14 @@ setup(
             "include_files": include_files,
             "excludes": [
                 "PIL",
+                "tkinter",
+                "pydoc",
+                "pydoc_data",
+                "setuptools",
+                "distutils",
+                "pkg_resources",
             ],
-            "optimize": 1,
+            "optimize": 2,
             "build_exe": build_exe_dir,
             "replace_paths": [
                 ("*", ""),
