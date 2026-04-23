@@ -1,5 +1,8 @@
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1                       8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0                   a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/setup-node@v6.1.0                     395ad3262231945c25e8478fd5baf05154b1d79f
+#   actions/download-artifact@v5.0.0              634f93cb2916e3fdff6788551b99b062d0335ce0
 #   github/codeql-action/init@v4.31.6             95e58e9a2cdfd71adc6e0353d5c52f41a045d225
 #   github/codeql-action/analyze@v4.31.6          95e58e9a2cdfd71adc6e0353d5c52f41a045d225
 
@@ -21,7 +24,24 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    NODE_OPTIONS: --max-old-space-size=8192
+    PYTHON_VERSION: "3.14"
+    NODE_VERSION: "24"
+    POETRY_VERSION: "2.3.4"
+    PNPM_VERSION: "10.32.1"
+
 jobs:
+    frontend:
+        name: Build frontend artifact (CodeQL)
+        uses: ./.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-codeql-${{ github.run_id }}-${{ github.run_attempt }}
+            retention_days: 1
+
     analyze:
         name: Analyze (${{ matrix.language }})
         runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
@@ -42,8 +62,6 @@ jobs:
                       build-mode: autobuild
                     - language: java-kotlin
                       build-mode: none
-                    - language: javascript-typescript
-                      build-mode: none
                     - language: python
                       build-mode: none
 
@@ -57,14 +75,76 @@ jobs:
                   languages: ${{ matrix.language }}
                   build-mode: ${{ matrix.build-mode }}
 
-            - name: Run manual build steps
-              if: matrix.build-mode == 'manual'
-              shell: bash
-              run: |
-                  echo 'Manual build mode requires custom build commands.'
-                  exit 1
-
             - name: Perform CodeQL Analysis
               uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225
               with:
                   category: "/language:${{matrix.language}}"
+
+    analyze-javascript:
+        name: Analyze (javascript-typescript)
+        runs-on: ubuntu-latest
+        needs: [frontend]
+        timeout-minutes: 360
+        permissions:
+            security-events: write
+            packages: read
+            actions: read
+            contents: read
+        env:
+            MESHCHATX_FRONTEND_PREBUILT: "1"
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install Poetry (PyPI pin)
+              env:
+                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
+              run: bash scripts/ci/github-install-poetry.sh
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: Download frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+                  path: meshchatx/public
+
+            - name: Verify frontend artifact contents
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/public/index.html
+                  test -d meshchatx/public/assets
+                  test -d meshchatx/public/reticulum-docs-bundled/current
+
+            - name: Initialize CodeQL
+              uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225
+              with:
+                  languages: javascript-typescript
+                  build-mode: manual
+
+            - name: Build (CodeQL trace)
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  pnpm run version:sync
+                  pnpm run build-backend
+
+            - name: Perform CodeQL Analysis
+              uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225
+              with:
+                  category: "/language:javascript-typescript"
