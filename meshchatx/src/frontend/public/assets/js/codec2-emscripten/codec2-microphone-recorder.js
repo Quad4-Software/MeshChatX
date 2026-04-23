@@ -33,6 +33,18 @@ class Codec2MicrophoneRecorder {
             // send mic audio to audio worklet
             this.mediaStreamSource = this.audioContext.createMediaStreamSource(this.microphoneMediaStream);
             this.mediaStreamSource.connect(this.audioWorkletNode);
+            this._silentTap = this.audioContext.createGain();
+            this._silentTap.gain.value = 0;
+            this.audioWorkletNode.connect(this._silentTap);
+            this._silentTap.connect(this.audioContext.destination);
+
+            if (typeof this.audioContext.resume === "function") {
+                try {
+                    await this.audioContext.resume();
+                } catch {
+                    // ignore
+                }
+            }
 
             // successfully started recording
             return true;
@@ -56,6 +68,15 @@ class Codec2MicrophoneRecorder {
         // disconnect the audio worklet node
         if (this.audioWorkletNode) {
             this.audioWorkletNode.disconnect();
+        }
+
+        if (this._silentTap) {
+            try {
+                this._silentTap.disconnect();
+            } catch {
+                // ignore
+            }
+            this._silentTap = null;
         }
 
         // close audio context
