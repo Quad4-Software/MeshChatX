@@ -102,7 +102,12 @@ export default {
                     const panel = this.$refs.dropdownPanel;
                     if (!panel) return;
                     const rect = panel.getBoundingClientRect();
-                    const { left, top, maxHeight } = clampFloatingToViewport(rect.left, rect.top, rect.width, rect.height);
+                    const { left, top, maxHeight } = clampFloatingToViewport(
+                        rect.left,
+                        rect.top,
+                        rect.width,
+                        rect.height
+                    );
                     this.dropdownPosition = { x: left, y: top, maxHeight };
                 });
             });

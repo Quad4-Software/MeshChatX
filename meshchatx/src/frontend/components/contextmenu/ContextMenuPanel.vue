@@ -1,14 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div
-        v-if="show"
-        ref="panel"
-        class="context-menu-panel"
-        :class="panelClass"
-        :style="panelStyle"
-        v-bind="$attrs"
-    >
+    <div v-if="show" ref="panel" class="context-menu-panel" :class="panelClass" :style="panelStyle" v-bind="$attrs">
         <slot name="header" />
         <slot />
     </div>

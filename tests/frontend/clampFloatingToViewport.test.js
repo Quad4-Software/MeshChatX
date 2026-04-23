@@ -80,8 +80,16 @@ describe("clampFloatingToViewport wiring", () => {
     it.each([
         ["DropDownMenu.vue", "meshchatx/src/frontend/components/DropDownMenu.vue", 'ref="dropdownPanel"'],
         ["LanguageSelector.vue", "meshchatx/src/frontend/components/LanguageSelector.vue", 'ref="languageDropdown"'],
-        ["NotificationBell.vue", "meshchatx/src/frontend/components/NotificationBell.vue", 'ref="notificationDropdown"'],
-        ["ConversationViewer.vue", "meshchatx/src/frontend/components/messages/ConversationViewer.vue", "onReactionPickerDragStart"],
+        [
+            "NotificationBell.vue",
+            "meshchatx/src/frontend/components/NotificationBell.vue",
+            'ref="notificationDropdown"',
+        ],
+        [
+            "ConversationViewer.vue",
+            "meshchatx/src/frontend/components/messages/ConversationViewer.vue",
+            "onReactionPickerDragStart",
+        ],
     ])("%s imports the helper and clamps floating UI", (_, relativePath, anchor) => {
         const src = readSource(relativePath);
         expect(src).toContain("clampFloatingToViewport");
