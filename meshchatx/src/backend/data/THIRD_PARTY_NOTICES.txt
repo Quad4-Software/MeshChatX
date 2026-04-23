@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-04-23T00:17:42.701001Z
+Generated at: 2026-04-23T08:33:01.779940Z
 Frontend source: node_modules
 
 Python dependencies
@@ -283,6 +283,9 @@ Node dependencies
 @exodus/bytes 1.15.0
   License: MIT
   Author: Exodus Movement, Inc.
+@fontsource/noto-sans 5.2.10
+  License: OFL-1.1
+  Author: Google Inc.
 @gar/promisify 1.1.3
   License: MIT
   Author: Gar <gar+npm@danger.computer>
@@ -394,15 +397,21 @@ Node dependencies
 @malept/flatpak-bundler 0.4.0
   License: MIT
   Author: Matt Watson <mattdangerw@gmail.com>
+@mapbox/jsonlint-lines-primitives 2.0.2
+  License: —
+  Author: Zach Carter <zach@carter.name> (http://zaa.ch)
+@mapbox/unitbezier 0.0.1
+  License: BSD-2-Clause
+  Author: —
+@maplibre/maplibre-gl-style-spec 24.8.1
+  License: ISC
+  Author: MapLibre
 @mdi/font 7.4.47
   License: Apache-2.0
   Author: Austin Andrews
 @mdi/js 7.4.47
   License: Apache-2.0
   Author: Austin Andrews
-@maplibre/maplibre-gl-style-spec 24.8.1
-  License: ISC
-  Author: MapLibre
 @my-scope/package-a 0.0.0
   License: MIT
   Author: —
@@ -994,6 +1003,9 @@ config-chain 1.1.13
 convert-source-map 2.0.0
   License: MIT
   Author: Thorsten Lorenz <thlorenz@gmx.de>
+core-util-is 1.0.2
+  License: MIT
+  Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)
 cross-dirname 0.1.0
   License: MIT
   Author: —
@@ -1519,6 +1531,9 @@ ieee754 1.2.1
 ignore 5.3.2
   License: MIT
   Author: kael
+immediate 3.0.6
+  License: MIT
+  Author: Domenic Denicola <domenic@domenicdenicola.com> (http://domenicdenicola.com)
 import-fresh 3.3.1
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -1594,6 +1609,9 @@ is-stream 1.1.0
 is-unicode-supported 0.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
+isarray 1.0.0
+  License: MIT
+  Author: Julian Gruber <mail@juliangruber.com>
 isbinaryfile 5.0.7
   License: MIT
   Author: —
@@ -1660,6 +1678,9 @@ json-schema-traverse 1.0.0
 json-stable-stringify-without-jsonify 1.0.1
   License: MIT
   Author: James Halliday <mail@substack.net>
+json-stringify-pretty-compact 4.0.0
+  License: MIT
+  Author: Simon Lydell
 json-stringify-safe 5.0.1
   License: ISC
   Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)
@@ -1672,6 +1693,9 @@ jsonfile 4.0.0
 jsonfile 6.2.0
   License: MIT
   Author: JP Richardson <jprichardson@gmail.com>
+jszip 3.10.1
+  License: (MIT OR GPL-3.0-or-later)
+  Author: Stuart Knightley <stuart@stuartk.com>
 junk 3.1.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -1690,6 +1714,9 @@ lerc 3.0.0
 levn 0.4.1
   License: MIT
   Author: George Zahariev <z@georgezahariev.com>
+lie 3.3.0
+  License: MIT
+  Author: —
 lightningcss 1.32.0
   License: MPL-2.0
   Author: —
@@ -2035,6 +2062,9 @@ package-json-from-dist 1.0.1
 pako 2.1.0
   License: (MIT AND Zlib)
   Author: Andrei Tuputcyn (https://github.com/andr83)
+pako 1.0.11
+  License: (MIT AND Zlib)
+  Author: Andrei Tuputcyn (https://github.com/andr83)
 parent-module 1.0.1
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -2158,6 +2188,9 @@ proc-log 2.0.1
 proc-log 5.0.0
   License: ISC
   Author: GitHub Inc.
+process-nextick-args 2.0.1
+  License: MIT
+  Author: —
 progress 2.0.3
   License: MIT
   Author: TJ Holowaychuk <tj@vision-media.ca>
@@ -2213,6 +2246,9 @@ read-pkg-up 2.0.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
 readable-stream 3.6.2
+  License: MIT
+  Author: —
+readable-stream 2.3.8
   License: MIT
   Author: —
 readdirp 3.6.0
@@ -2287,7 +2323,13 @@ rolldown 1.0.0-rc.15
 run-parallel 1.2.0
   License: MIT
   Author: Feross Aboukhadijeh <feross@feross.org>
+rw 1.3.3
+  License: BSD-3-Clause
+  Author: Mike Bostock
 safe-buffer 5.2.1
+  License: MIT
+  Author: Feross Aboukhadijeh <feross@feross.org>
+safe-buffer 5.1.2
   License: MIT
   Author: Feross Aboukhadijeh <feross@feross.org>
 safe-regex 2.1.1
@@ -2326,6 +2368,9 @@ serialize-error 7.0.1
 set-blocking 2.0.0
   License: ISC
   Author: Ben Coe <ben@npmjs.com>
+setimmediate 1.0.5
+  License: MIT
+  Author: YuzuJS
 shebang-command 1.2.0
   License: MIT
   Author: Kevin Martensson <kevinmartensson@gmail.com>
@@ -2419,6 +2464,9 @@ string-width 4.2.3
 string_decoder 1.3.0
   License: MIT
   Author: —
+string_decoder 1.1.1
+  License: MIT
+  Author: —
 strip-ansi 7.2.0
   License: MIT
   Author: Sindre Sorhus <sindresorhus@gmail.com>
@@ -2500,6 +2548,9 @@ tinyexec 1.1.1
 tinyglobby 0.2.16
   License: MIT
   Author: Superchupu
+tinyqueue 3.0.0
+  License: ISC
+  Author: —
 tinyrainbow 3.1.0
   License: MIT
   Author: —
