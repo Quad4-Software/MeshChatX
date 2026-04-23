@@ -9,6 +9,8 @@ export function numOrNull(value) {
         const n = Number(t);
         return Number.isFinite(n) ? n : null;
     }
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : null;
+    }
+    return null;
 }
