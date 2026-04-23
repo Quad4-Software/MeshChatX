@@ -245,6 +245,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/tools/RNodeFlasherPage.vue")),
         },
         {
+            name: "repository-server",
+            path: "/tools/repository-server",
+            component: defineAsyncComponent(() => import("./components/tools/RepositoryServerPage.vue")),
+        },
+        {
             name: "debug-logs",
             path: "/debug/logs",
             component: defineAsyncComponent(() => import("./components/debug/DebugLogsPage.vue")),
