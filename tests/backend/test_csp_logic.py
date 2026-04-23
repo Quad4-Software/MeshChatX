@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import re
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -67,6 +68,8 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
         assert "https://tiles.example.com" in csp
         assert "default-src 'self'" in csp
         assert "wasm-unsafe-eval" in csp
+        m = re.search(r"script-src([^;]+);", csp)
+        assert m is not None and "blob:" in m.group(1)
 
 
 @pytest.mark.asyncio

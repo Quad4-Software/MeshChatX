@@ -11593,10 +11593,16 @@ class ReticulumMeshChat:
             if path.startswith("/reticulum-docs/") or path.startswith(
                 "/rnode-flasher/"
             ):
-                script_sources = ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"]
+                # blob: AudioWorklet addModule(blob:...) and similar dynamic scripts
+                script_sources = [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "'wasm-unsafe-eval'",
+                    "blob:",
+                ]
             else:
-                # wasm-unsafe-eval: Codec2 / sox Emscripten WASM (sox.js) without full unsafe-eval
-                script_sources = ["'self'", "'wasm-unsafe-eval'"]
+                # wasm-unsafe-eval: Codec2 / sox Emscripten WASM; blob: worklets from object URLs
+                script_sources = ["'self'", "'wasm-unsafe-eval'", "blob:"]
             style_sources = ["'self'", "'unsafe-inline'"]
 
             if self.current_context and self.current_context.config:
