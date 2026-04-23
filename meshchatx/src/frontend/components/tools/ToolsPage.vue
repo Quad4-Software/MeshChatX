@@ -207,6 +207,14 @@ export default {
                     descriptionKey: "tools.forwarder.description",
                 },
                 {
+                    name: "sieve-filters",
+                    route: { name: "sieve-filters" },
+                    icon: "filter-variant",
+                    iconBg: "tool-card__icon bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-200",
+                    titleKey: "tools.sieve_filters.title",
+                    descriptionKey: "tools.sieve_filters.description",
+                },
+                {
                     name: "documentation",
                     route: { name: "documentation" },
                     icon: "book-open-variant",

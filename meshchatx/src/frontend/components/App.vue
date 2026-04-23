@@ -1119,6 +1119,9 @@ export default {
                     if (this.config?.do_not_disturb_enabled) {
                         break;
                     }
+                    if (json.sieve_suppress_notifications) {
+                        break;
+                    }
 
                     // show notification for new messages if window is not focussed
                     // only for incoming messages from people (with content)
