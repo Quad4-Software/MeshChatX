@@ -12,6 +12,13 @@ vi.mock("@/js/TileCache", () => ({
     },
 }));
 
+vi.mock("ol-mapbox-style", () => ({
+    apply: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("ol/layer/Group", () => ({
+    default: vi.fn(function () {}),
+}));
+
 const viewMock = {
     on: vi.fn(),
     setCenter: vi.fn(),

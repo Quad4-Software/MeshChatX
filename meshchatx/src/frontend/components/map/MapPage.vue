@@ -377,9 +377,10 @@
                             >
                             <div class="h-px flex-1 bg-gray-100 dark:bg-zinc-800 ml-3"></div>
                         </div>
-                        <div class="grid grid-cols-4 gap-1">
+                        <div class="grid grid-cols-5 gap-1">
                             <button
                                 v-for="style in [
+                                    { id: 'openfreemap', label: 'OFM' },
                                     { id: 'osm', label: 'OSM' },
                                     { id: 'carto-dark', label: 'Dark' },
                                     { id: 'carto-voyager', label: 'Voy' },
@@ -388,6 +389,8 @@
                                 :key="style.id"
                                 class="py-1.5 text-[8px] font-bold uppercase rounded-md transition-all border leading-tight"
                                 :class="
+                                    (style.id === 'openfreemap' &&
+                                        tileServerUrl.includes('tiles.openfreemap.org/styles/')) ||
                                     (style.id === 'osm' && tileServerUrl.includes('openstreetmap.org')) ||
                                     (style.id === 'carto-dark' &&
                                         tileServerUrl.includes('basemaps.cartocdn.com/dark_all')) ||
@@ -877,11 +880,14 @@
 
 <script>
 import "ol/ol.css";
+import { apply as applyMapboxStyle } from "ol-mapbox-style";
 import Map from "ol/Map";
 import View from "ol/View";
+import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import XYZ from "ol/source/XYZ";
+import TileState from "ol/TileState";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
@@ -933,6 +939,9 @@ import MapExportProgressPanel from "./internal/MapExportProgressPanel.vue";
 import MapNoMapWarning from "./internal/MapNoMapWarning.vue";
 import MapLoadingOverlay from "./internal/MapLoadingOverlay.vue";
 
+const OPENFREEMAP_DEFAULT_STYLE = "https://tiles.openfreemap.org/styles/bright";
+const LEGACY_DEFAULT_OSM_RASTER = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
 export default {
     name: "MapPage",
     components: {
@@ -981,7 +990,7 @@ export default {
             cachingEnabled: true,
 
             // tile server
-            tileServerUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            tileServerUrl: OPENFREEMAP_DEFAULT_STYLE,
 
             // search
             searchQuery: "",
@@ -1136,7 +1145,7 @@ export default {
             console.warn("Failed to load map state from cache", e);
         }
 
-        this.initMap();
+        await this.initMap();
 
         if (this.telemetryList.length > 0) {
             this.updateMarkers();
@@ -1251,6 +1260,14 @@ export default {
         document.removeEventListener("click", this.handleClickOutside);
         window.removeEventListener("resize", this.checkScreenSize);
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        if (this._pointerMoveRaf != null) {
+            cancelAnimationFrame(this._pointerMoveRaf);
+            this._pointerMoveRaf = null;
+        }
+        if (this.map) {
+            this.map.setTarget(null);
+            this.map = null;
+        }
     },
     methods: {
         saveMapState() {
@@ -1360,17 +1377,7 @@ export default {
                 ToastUtils.error(this.$t("map.failed_save_storage"));
             }
         },
-        initMap() {
-            // Patch canvas getContext to address performance warning
-            const originalGetContext = HTMLCanvasElement.prototype.getContext;
-            HTMLCanvasElement.prototype.getContext = function (type, attributes) {
-                if (type === "2d") {
-                    attributes = attributes || {};
-                    attributes.willReadFrequently = true;
-                }
-                return originalGetContext.call(this, type, attributes);
-            };
-
+        async initMap() {
             const defaultLat = parseFloat(this.config?.map_default_lat || 0);
             const defaultLon = parseFloat(this.config?.map_default_lon || 0);
             const defaultZoom = parseInt(this.config?.map_default_zoom || 2);
@@ -1382,13 +1389,11 @@ export default {
                     : fromLonLat([defaultLon, defaultLat]);
             const startZoom = this.currentZoom !== 2 ? this.currentZoom : defaultZoom;
 
+            const baseLayer = await this.buildBaseMapLayer();
+            const mapPixelRatio = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
             this.map = new Map({
                 target: this.$refs.mapContainer,
-                layers: [
-                    new TileLayer({
-                        source: this.getTileSource(),
-                    }),
-                ],
+                layers: [baseLayer],
                 view: new View({
                     center: startCenter,
                     zoom: startZoom,
@@ -1397,6 +1402,8 @@ export default {
                     attribution: false,
                     rotate: false,
                 }),
+                pixelRatio: mapPixelRatio,
+                maxTilesLoading: 48,
             });
 
             // setup drawing layer
@@ -1648,6 +1655,7 @@ export default {
             if (!url) return false;
             const onlinePatterns = [
                 "openstreetmap.org",
+                "openfreemap.org",
                 "cartocdn.com",
                 "thunderforest.com",
                 "stamen.com",
@@ -1684,9 +1692,49 @@ export default {
                 return false;
             }
         },
+        isOpenFreeMapStyleUrl(url) {
+            return typeof url === "string" && url.includes("tiles.openfreemap.org/styles/");
+        },
+        async buildBaseMapLayer() {
+            const url = (this.tileServerUrl || OPENFREEMAP_DEFAULT_STYLE).trim();
+            if (!this.offlineEnabled && this.isOpenFreeMapStyleUrl(url)) {
+                const group = new LayerGroup();
+                await applyMapboxStyle(group, url);
+                return group;
+            }
+            return new TileLayer({
+                source: this.getTileSource(),
+                preload: 2,
+                transition: 0,
+                cacheSize: 896,
+            });
+        },
+        /**
+         * Decode tile blobs off the critical path where possible (createImageBitmap)
+         * and avoid object URLs when bitmap path succeeds.
+         */
+        async fastApplyBlobToTile(tile, blob) {
+            if (typeof createImageBitmap === "function") {
+                try {
+                    const bitmap = await createImageBitmap(blob);
+                    tile.setImage(bitmap);
+                    return;
+                } catch {
+                    /* fall through */
+                }
+            }
+            const el = tile.getImage();
+            if (el && "src" in el) {
+                const url = URL.createObjectURL(blob);
+                el.src = url;
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
+                return;
+            }
+            tile.setState(TileState.ERROR);
+        },
         getTileSource() {
             const isOffline = this.offlineEnabled;
-            const defaultTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+            const defaultTileUrl = OPENFREEMAP_DEFAULT_STYLE;
             const customTileUrl = this.tileServerUrl || defaultTileUrl;
             const isCustomLocal = this.isLocalUrl(customTileUrl);
             const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl);
@@ -1699,7 +1747,7 @@ export default {
                 } else if (isCustomLocal) {
                     // It's a local/mesh URL, allow it
                     tileUrl = customTileUrl;
-                } else if (customTileUrl !== defaultTileUrl) {
+                } else if (customTileUrl !== defaultTileUrl && customTileUrl !== LEGACY_DEFAULT_OSM_RASTER) {
                     // It's a custom URL that isn't a known online one,
                     // assume it might be a local mesh server with a domain.
                     tileUrl = customTileUrl;
@@ -1714,6 +1762,7 @@ export default {
             const source = new XYZ({
                 url: tileUrl,
                 crossOrigin: "anonymous",
+                transition: 0,
             });
 
             // Track tile load errors to notify user if they appear to be offline
@@ -1742,18 +1791,15 @@ export default {
                         const response = await fetch(src);
                         if (!response.ok) {
                             if (response.status === 404) {
-                                tile.setState(3);
+                                tile.setState(TileState.ERROR);
                                 return;
                             }
                             throw new Error(`HTTP ${response.status}`);
                         }
                         const blob = await response.blob();
-                        const url = URL.createObjectURL(blob);
-                        tile.getImage().src = url;
-                        // Cleanup to prevent memory leaks
-                        setTimeout(() => URL.revokeObjectURL(url), 10000);
+                        await this.fastApplyBlobToTile(tile, blob);
                     } catch {
-                        tile.setState(3);
+                        tile.setState(TileState.ERROR);
                     }
                 });
             } else {
@@ -1766,9 +1812,7 @@ export default {
                     try {
                         const cached = await TileCache.getTile(src);
                         if (cached) {
-                            const url = URL.createObjectURL(cached);
-                            tile.getImage().src = url;
-                            setTimeout(() => URL.revokeObjectURL(url), 10000);
+                            await this.fastApplyBlobToTile(tile, cached);
                             return;
                         }
 
@@ -1777,12 +1821,11 @@ export default {
                             throw new Error(`HTTP ${response.status}`);
                         }
                         const blob = await response.blob();
-                        const url = URL.createObjectURL(blob);
-                        tile.getImage().src = url;
-                        setTimeout(() => URL.revokeObjectURL(url), 10000);
+                        await this.fastApplyBlobToTile(tile, blob);
 
-                        // Background cache write to avoid blocking UI
-                        TileCache.setTile(src, blob).catch(() => {});
+                        queueMicrotask(() => {
+                            TileCache.setTile(src, blob).catch(() => {});
+                        });
                     } catch {
                         originalTileLoadFunction(tile, src);
                     }
@@ -1799,14 +1842,14 @@ export default {
                     this.hasOfflineMap = true;
 
                     if (this.offlineEnabled) {
-                        this.updateMapSource();
+                        await this.updateMapSource();
                     }
                 } else {
                     this.hasOfflineMap = false;
                     this.metadata = null;
                     if (this.offlineEnabled) {
                         this.offlineEnabled = false;
-                        this.updateMapSource();
+                        await this.updateMapSource();
                     }
                 }
             } catch {
@@ -1814,11 +1857,11 @@ export default {
                 this.metadata = null;
                 if (this.offlineEnabled) {
                     this.offlineEnabled = false;
-                    this.updateMapSource();
+                    await this.updateMapSource();
                 }
             }
         },
-        updateMapSource() {
+        async updateMapSource() {
             if (!this.map) return;
             const layers = this.map.getLayers();
 
@@ -1826,12 +1869,7 @@ export default {
             // or just clear and re-add everything correctly
             layers.clear();
 
-            // 1. Tile layer
-            layers.push(
-                new TileLayer({
-                    source: this.getTileSource(),
-                })
-            );
+            layers.push(await this.buildBaseMapLayer());
 
             // 2. Draw layer
             if (this.drawLayer) {
@@ -1853,12 +1891,15 @@ export default {
             this.showOfflineHint = false;
 
             if (enabled) {
-                const defaultTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+                const defaultTileUrl = OPENFREEMAP_DEFAULT_STYLE;
                 const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
 
                 const isCustomTileLocal = this.isLocalUrl(this.tileServerUrl);
                 const isDefaultTileOnline = this.isDefaultOnlineUrl(this.tileServerUrl);
-                const hasCustomTile = this.tileServerUrl && this.tileServerUrl !== defaultTileUrl;
+                const hasCustomTile =
+                    this.tileServerUrl &&
+                    this.tileServerUrl !== defaultTileUrl &&
+                    this.tileServerUrl !== LEGACY_DEFAULT_OSM_RASTER;
 
                 const isCustomNominatimLocal = this.isLocalUrl(this.nominatimApiUrl);
                 const isDefaultNominatimOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl);
@@ -1886,7 +1927,7 @@ export default {
                 this.isExportMode = false;
                 this.clearSearch();
             }
-            this.updateMapSource();
+            await this.updateMapSource();
             await this.saveMapState();
 
             // Persist setting
@@ -2006,7 +2047,7 @@ export default {
                 this.offlineEnabled = true;
                 await this.loadMBTilesList();
                 await this.checkOfflineMap();
-                this.updateMapSource();
+                await this.updateMapSource();
                 ToastUtils.success(this.$t("map.upload_success"));
 
                 // If the map has bounds, we might want to fit to them
@@ -2055,7 +2096,7 @@ export default {
                 await window.api.patch("/api/v1/config", {
                     map_tile_server_url: this.tileServerUrl,
                 });
-                this.updateMapSource();
+                await this.updateMapSource();
                 ToastUtils.success(this.$t("map.tile_server_saved"));
                 await this.saveMapState();
             } catch {
@@ -2065,8 +2106,10 @@ export default {
         setTileServer(type) {
             this.tileErrorCount = 0;
             this.showOfflineHint = false;
-            if (type === "osm") {
-                this.tileServerUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+            if (type === "openfreemap") {
+                this.tileServerUrl = OPENFREEMAP_DEFAULT_STYLE;
+            } else if (type === "osm") {
+                this.tileServerUrl = LEGACY_DEFAULT_OSM_RASTER;
             } else if (type === "carto-dark") {
                 this.tileServerUrl = "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
             } else if (type === "carto-voyager") {
@@ -2667,36 +2710,46 @@ export default {
             if (evt.dragging || this.isDrawing || this.isMeasuring) return;
 
             const pixel = this.map.getEventPixel(evt.originalEvent);
-            const feature = this.map.forEachFeatureAtPixel(pixel, (f) => f);
+            if (this._pointerMoveRaf != null) {
+                this._pendingPointerPixel = pixel;
+                return;
+            }
+            this._pendingPointerPixel = pixel;
+            this._pointerMoveRaf = requestAnimationFrame(() => {
+                this._pointerMoveRaf = null;
+                const p = this._pendingPointerPixel;
+                this._pendingPointerPixel = null;
+                if (!this.map || !p) return;
 
-            if (feature) {
-                const hasNote = feature.get("note") || (feature.get("telemetry") && feature.get("telemetry").note);
-                if (hasNote) {
-                    this.hoveredFeature = feature;
+                const feature = this.map.forEachFeatureAtPixel(p, (f) => f);
+
+                if (feature) {
+                    const hasNote = feature.get("note") || (feature.get("telemetry") && feature.get("telemetry").note);
+                    if (hasNote) {
+                        this.hoveredFeature = feature;
+                    } else {
+                        this.hoveredFeature = null;
+                    }
+
+                    const isMarker = feature.get("telemetry") || feature.get("discovered") || feature.get("cluster");
+                    if (isMarker && this.hoveredMarker !== feature) {
+                        const oldHovered = this.hoveredMarker;
+                        this.hoveredMarker = feature;
+                        feature.changed();
+                        if (oldHovered) oldHovered.changed();
+                    }
+
+                    this.map.getTargetElement().style.cursor = "pointer";
                 } else {
                     this.hoveredFeature = null;
+                    if (this.hoveredMarker) {
+                        const oldHovered = this.hoveredMarker;
+                        this.hoveredMarker = null;
+                        oldHovered.changed();
+                    }
+                    this.map.getTargetElement().style.cursor = "";
                 }
-
-                // Handle marker hover effects
-                const isMarker = feature.get("telemetry") || feature.get("discovered") || feature.get("cluster");
-                if (isMarker && this.hoveredMarker !== feature) {
-                    const oldHovered = this.hoveredMarker;
-                    this.hoveredMarker = feature;
-                    // Trigger style refresh
-                    feature.changed();
-                    if (oldHovered) oldHovered.changed();
-                }
-
-                this.map.getTargetElement().style.cursor = "pointer";
-            } else {
-                this.hoveredFeature = null;
-                if (this.hoveredMarker) {
-                    const oldHovered = this.hoveredMarker;
-                    this.hoveredMarker = null;
-                    oldHovered.changed();
-                }
-                this.map.getTargetElement().style.cursor = "";
-            }
+            });
         },
 
         handleMapClick(evt) {

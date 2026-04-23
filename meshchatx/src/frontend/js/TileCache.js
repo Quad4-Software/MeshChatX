@@ -62,10 +62,11 @@ class TileCache {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], "readwrite");
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.put(data, key);
+            store.put(data, key);
 
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error || new Error("IndexedDB transaction aborted"));
         });
     }
 
@@ -86,10 +87,11 @@ class TileCache {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STATE_STORE], "readwrite");
             const store = transaction.objectStore(STATE_STORE);
-            const request = store.put(data, key);
+            store.put(data, key);
 
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error || new Error("IndexedDB transaction aborted"));
         });
     }
 

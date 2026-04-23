@@ -14,6 +14,13 @@ vi.mock("@/js/TileCache", () => ({
     },
 }));
 
+vi.mock("ol-mapbox-style", () => ({
+    apply: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("ol/layer/Group", () => ({
+    default: vi.fn(function () {}),
+}));
+
 // Mock OpenLayers (Vitest 4: constructor mocks must use function/class, not arrow fns)
 vi.mock("ol/Map", () => ({
     default: vi.fn().mockImplementation(function () {
@@ -313,6 +320,7 @@ describe("MapPage.vue - Drawing and Measurement Tools", () => {
     it("saves a drawing layer", async () => {
         const wrapper = mountMapPage();
         await wrapper.vm.$nextTick();
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         wrapper.vm.showSaveDrawingModal = true;
         wrapper.vm.newDrawingName = "Test Layer";
