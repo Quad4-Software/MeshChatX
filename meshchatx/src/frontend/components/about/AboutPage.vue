@@ -19,7 +19,7 @@
                                 <div
                                     class="text-4xl font-black text-gray-900 dark:text-white leading-none tracking-tight"
                                 >
-                                    MeshChatX
+                                    {{ $t("about.app_name") }}
                                 </div>
                                 <div
                                     class="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-3 sm:gap-y-0"
@@ -72,25 +72,25 @@
                             >
                                 <v-icon icon="mdi-restart-alert" size="20" class="mr-2 shrink-0"></v-icon>
                                 <span class="truncate">{{
-                                    reloadingRns ? $t("app.reloading_rns") : "Restart RNS"
+                                    reloadingRns ? $t("app.reloading_rns") : $t("app.restart_rns")
                                 }}</span>
                             </button>
                             <button type="button" class="about-action-btn danger-chip" @click="shutdown">
                                 <v-icon icon="mdi-power" size="20" class="mr-2 shrink-0"></v-icon>
-                                <span class="truncate">{{ $t("common.shutdown", "Shutdown") }}</span>
+                                <span class="truncate">{{ $t("common.shutdown") }}</span>
                             </button>
                         </div>
                     </div>
 
                     <div class="mt-10 pt-8 border-t border-gray-100 dark:border-zinc-800 flex flex-col gap-6">
                         <div class="text-gray-600 dark:text-zinc-400 max-w-xl text-lg leading-relaxed">
-                            A secure, resilient, and beautiful communications platform powered by the
+                            {{ $t("about.tagline_lead") }}
                             <a
                                 href="https://reticulum.network"
                                 target="_blank"
                                 class="text-blue-500 font-black hover:underline decoration-2 underline-offset-4"
-                                >Reticulum Network Stack</a
-                            >.
+                                >{{ $t("about.tagline_link") }}</a
+                            >{{ $t("about.tagline_after") }}
                         </div>
 
                         <div class="mt-6 pt-6 border-t border-gray-200/70 dark:border-zinc-800/80 space-y-3">
@@ -98,7 +98,7 @@
                                 <div
                                     class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-zinc-500"
                                 >
-                                    Contact Developer
+                                    {{ $t("about.contact_developer") }}
                                 </div>
                                 <v-icon
                                     :icon="showContactDev ? 'mdi-chevron-up' : 'mdi-chevron-down'"
@@ -111,7 +111,9 @@
                             >
                                 <div class="flex items-center gap-2">
                                     <v-icon icon="mdi-account-card-details" size="18"></v-icon>
-                                    <span class="text-xs font-black uppercase tracking-widest">Details</span>
+                                    <span class="text-xs font-black uppercase tracking-widest">{{
+                                        $t("about.contact_details")
+                                    }}</span>
                                 </div>
                             </button>
 
@@ -122,7 +124,7 @@
                                 >
                                     <div class="space-y-1">
                                         <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                            LXMF Address
+                                            {{ $t("about.contact_lxmf_address") }}
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <code
@@ -131,7 +133,12 @@
                                             >
                                             <button
                                                 class="p-1 hover:text-blue-500 transition"
-                                                @click="copyValue('7cc8d66b4f6a0e0e49d34af7f6077b5a', 'LXMF Address')"
+                                                @click="
+                                                    copyValue(
+                                                        '7cc8d66b4f6a0e0e49d34af7f6077b5a',
+                                                        'about.contact_lxmf_address'
+                                                    )
+                                                "
                                             >
                                                 <v-icon icon="mdi-content-copy" size="14"></v-icon>
                                             </button>
@@ -139,7 +146,7 @@
                                     </div>
                                     <div class="space-y-1">
                                         <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                            Alternate
+                                            {{ $t("about.contact_alternate") }}
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <code
@@ -149,7 +156,10 @@
                                             <button
                                                 class="p-1 hover:text-blue-500 transition"
                                                 @click="
-                                                    copyValue('43d3309adf27fc446556121b553b56a6', 'Alternate Address')
+                                                    copyValue(
+                                                        '43d3309adf27fc446556121b553b56a6',
+                                                        'about.contact_alternate'
+                                                    )
                                                 "
                                             >
                                                 <v-icon icon="mdi-content-copy" size="14"></v-icon>
@@ -160,7 +170,7 @@
                                         class="text-xs font-bold text-gray-500 dark:text-white italic bg-blue-500/5 p-3 rounded-xl border border-blue-500/10 flex items-center gap-2"
                                     >
                                         <v-icon icon="mdi-information-outline" size="14" class="text-blue-500"></v-icon>
-                                        Send to propagation node if you cant reach me!
+                                        {{ $t("about.contact_propagation_hint") }}
                                     </div>
                                 </div>
                             </transition>
@@ -171,7 +181,7 @@
                                 <div
                                     class="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-[0.2em] leading-none mb-1"
                                 >
-                                    Database Size
+                                    {{ $t("about.database_size") }}
                                 </div>
                                 <div class="text-2xl font-black text-gray-900 dark:text-white tabular-nums">
                                     {{
@@ -195,7 +205,7 @@
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
                                 <v-icon icon="mdi-shield-lock" size="14"></v-icon>
-                                Security & Integrity
+                                {{ $t("about.security_integrity") }}
                             </div>
                             <div v-if="appInfo.integrity_issues" class="flex flex-wrap gap-2">
                                 <span
@@ -242,7 +252,7 @@
                                 class="text-xs font-black text-red-700 dark:text-red-400 mb-3 uppercase tracking-wider flex items-center gap-2"
                             >
                                 <v-icon icon="mdi-alert-octagon" size="16"></v-icon>
-                                Technical Issues Detected
+                                {{ $t("about.technical_issues_detected") }}
                             </div>
                             <ul class="text-[11px] text-red-600 dark:text-red-300 space-y-2 list-none font-mono">
                                 <li v-for="(issue, index) in appInfo.integrity_issues" :key="index" class="flex gap-2">
@@ -270,15 +280,17 @@
                             class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2"
                         >
                             <v-icon icon="mdi-server" size="14"></v-icon>
-                            Environment Information
+                            {{ $t("about.environment_information") }}
                         </div>
                         <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 text-sm min-w-0">
                             <div>
-                                <div class="glass-label !text-[10px] mb-2 opacity-50">Reticulum Config</div>
+                                <div class="glass-label !text-[10px] mb-2 opacity-50">
+                                    {{ $t("about.reticulum_config") }}
+                                </div>
                                 <div
                                     class="monospace-field !bg-zinc-50 dark:!bg-zinc-950 break-all text-[11px] !p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"
                                 >
-                                    {{ appInfo.reticulum_config_path || "unknown" }}
+                                    {{ appInfo.reticulum_config_path || $t("about.path_unknown") }}
                                 </div>
                                 <button
                                     v-if="isElectron"
@@ -286,15 +298,18 @@
                                     class="secondary-chip mt-3 !px-3 !py-1 !text-[10px]"
                                     @click="showReticulumConfigFile"
                                 >
-                                    <v-icon icon="mdi-folder-open" start size="14"></v-icon> Reveal File
+                                    <v-icon icon="mdi-folder-open" start size="14"></v-icon>
+                                    {{ $t("about.reveal_config_file") }}
                                 </button>
                             </div>
                             <div>
-                                <div class="glass-label !text-[10px] mb-2 opacity-50">Database Path</div>
+                                <div class="glass-label !text-[10px] mb-2 opacity-50">
+                                    {{ $t("about.database_path") }}
+                                </div>
                                 <div
                                     class="monospace-field !bg-zinc-50 dark:!bg-zinc-950 break-all text-[11px] !p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"
                                 >
-                                    {{ appInfo.database_path || "unknown" }}
+                                    {{ appInfo.database_path || $t("about.path_unknown") }}
                                 </div>
                                 <button
                                     v-if="isElectron"
@@ -302,7 +317,8 @@
                                     class="secondary-chip mt-3 !px-3 !py-1 !text-[10px]"
                                     @click="showDatabaseFile"
                                 >
-                                    <v-icon icon="mdi-database-search" start size="14"></v-icon> Reveal DB
+                                    <v-icon icon="mdi-database-search" start size="14"></v-icon>
+                                    {{ $t("about.reveal_database_file") }}
                                 </button>
                             </div>
                             <div
@@ -313,68 +329,68 @@
                                     class="space-y-3 mb-2 pb-3 border-b border-zinc-100 dark:border-zinc-800"
                                 >
                                     <div class="flex flex-col">
-                                        <span class="text-[9px] font-black text-blue-500 uppercase tracking-wider"
-                                            >Identity Hash</span
-                                        >
+                                        <span class="text-[9px] font-black text-blue-500 uppercase tracking-wider">{{
+                                            $t("about.identity_hash")
+                                        }}</span>
                                         <span class="font-mono text-[10px] break-all opacity-70">{{
                                             config.identity_hash
                                         }}</span>
                                     </div>
                                     <div class="flex flex-col">
-                                        <span class="text-[9px] font-black text-blue-500 uppercase tracking-wider"
-                                            >LXMF Address</span
-                                        >
+                                        <span class="text-[9px] font-black text-blue-500 uppercase tracking-wider">{{
+                                            $t("about.lxmf_address")
+                                        }}</span>
                                         <span class="font-mono text-[10px] break-all opacity-70">{{
                                             config.lxmf_address_hash
                                         }}</span>
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-blue-500 uppercase tracking-wider"
-                                        >Python</span
-                                    >
+                                    <span class="text-[10px] font-black text-blue-500 uppercase tracking-wider">{{
+                                        $t("about.env_python")
+                                    }}</span>
                                     <span class="font-mono text-xs font-bold"
-                                        >v{{ appInfo.python_version || "unknown" }}</span
+                                        >v{{ appInfo.python_version || $t("about.path_unknown") }}</span
                                     >
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-purple-500 uppercase tracking-wider"
-                                        >LXMF</span
-                                    >
+                                    <span class="text-[10px] font-black text-purple-500 uppercase tracking-wider">{{
+                                        $t("about.env_lxmf")
+                                    }}</span>
                                     <span class="font-mono text-xs font-bold"
-                                        >v{{ appInfo.lxmf_version || "unknown" }}</span
+                                        >v{{ appInfo.lxmf_version || $t("about.path_unknown") }}</span
                                     >
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-indigo-500 uppercase tracking-wider"
-                                        >RNS</span
-                                    >
+                                    <span class="text-[10px] font-black text-indigo-500 uppercase tracking-wider">{{
+                                        $t("about.env_rns")
+                                    }}</span>
                                     <span class="font-mono text-xs font-bold"
-                                        >v{{ appInfo.rns_version || "unknown" }}</span
+                                        >v{{ appInfo.rns_version || $t("about.path_unknown") }}</span
                                     >
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-emerald-500 uppercase tracking-wider"
-                                        >Platform</span
-                                    >
+                                    <span class="text-[10px] font-black text-emerald-500 uppercase tracking-wider">{{
+                                        $t("about.env_platform")
+                                    }}</span>
                                     <span class="font-mono text-xs font-bold">{{ environmentInfo.platform }}</span>
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-amber-500 uppercase tracking-wider"
-                                        >Language</span
-                                    >
+                                    <span class="text-[10px] font-black text-amber-500 uppercase tracking-wider">{{
+                                        $t("about.env_language")
+                                    }}</span>
                                     <span class="font-mono text-xs font-bold">{{ environmentInfo.language }}</span>
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-fuchsia-500 uppercase tracking-wider"
-                                        >Backend URL</span
-                                    >
+                                    <span class="text-[10px] font-black text-fuchsia-500 uppercase tracking-wider">{{
+                                        $t("about.env_backend_url")
+                                    }}</span>
                                     <span class="font-mono text-xs font-bold">{{ environmentInfo.backendUrl }}</span>
                                 </div>
                                 <div class="flex flex-col gap-1 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider"
-                                        >User Agent</span
-                                    >
+                                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">{{
+                                        $t("about.env_user_agent")
+                                    }}</span>
                                     <span class="font-mono text-[10px] break-all opacity-70">{{
                                         environmentInfo.userAgent
                                     }}</span>
@@ -389,7 +405,7 @@
                             class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-8 flex items-center gap-2"
                         >
                             <v-icon icon="mdi-link-variant" size="14"></v-icon>
-                            Dependency Chain
+                            {{ $t("about.dependency_chain") }}
                         </div>
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 relative min-w-0">
                             <div class="flex flex-col space-y-8 min-w-0">
@@ -403,7 +419,9 @@
                                         />
                                     </div>
                                     <div>
-                                        <div class="text-sm font-black text-gray-900 dark:text-white">MeshChatX</div>
+                                        <div class="text-sm font-black text-gray-900 dark:text-white">
+                                            {{ $t("about.app_name") }}
+                                        </div>
                                         <div class="text-xs font-mono font-bold text-gray-400">
                                             v{{ appInfo.version }}
                                         </div>
@@ -422,7 +440,7 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            LXMF Bot framework
+                                            {{ $t("about.dep_lxmfy_subtitle") }}
                                         </div>
                                         <div class="text-xs font-mono font-bold text-gray-400 mt-1">
                                             v{{ (appInfo.dependencies && appInfo.dependencies.lxmfy) || "unknown" }}
@@ -442,7 +460,7 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            Lightweight Extensible Message Format
+                                            {{ $t("about.dep_lxmf_subtitle") }}
                                         </div>
                                         <div class="text-xs font-mono font-bold text-gray-400 mt-1">
                                             v{{ appInfo.lxmf_version }}
@@ -462,7 +480,7 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            Reticulum Network Stack
+                                            {{ $t("about.dep_rns_subtitle") }}
                                         </div>
                                         <div class="flex flex-wrap items-center gap-2 mt-1 min-w-0">
                                             <div class="text-xs font-mono font-bold text-gray-400 shrink-0">
@@ -478,8 +496,12 @@
                                             >
                                                 {{
                                                     appInfo.is_connected_to_shared_instance
-                                                        ? `Shared Instance: ${appInfo.shared_instance_address || "unknown"}`
-                                                        : "Main Instance"
+                                                        ? $t("about.shared_instance_badge", {
+                                                              address:
+                                                                  appInfo.shared_instance_address ||
+                                                                  $t("about.path_unknown"),
+                                                          })
+                                                        : $t("about.main_instance_badge")
                                                 }}
                                             </div>
                                         </div>
@@ -494,12 +516,13 @@
                                     <div
                                         class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
                                     >
-                                        Core Runtime
+                                        {{ $t("about.core_runtime") }}
                                     </div>
                                     <div class="grid grid-cols-2 gap-x-6 gap-y-4">
                                         <div v-if="appInfo.lxst_version" class="flex flex-col">
-                                            <span class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
-                                                >LXST Engine</span
+                                            <span
+                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                >{{ $t("about.lxst_engine") }}</span
                                             >
                                             <span
                                                 class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
@@ -507,8 +530,9 @@
                                             >
                                         </div>
                                         <div v-if="electronVersion" class="flex flex-col">
-                                            <span class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
-                                                >Electron</span
+                                            <span
+                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                >{{ $t("about.electron_runtime") }}</span
                                             >
                                             <span
                                                 class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
@@ -516,8 +540,9 @@
                                             >
                                         </div>
                                         <div v-if="chromeVersion" class="flex flex-col">
-                                            <span class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
-                                                >Chrome</span
+                                            <span
+                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                >{{ $t("about.chrome_runtime") }}</span
                                             >
                                             <span
                                                 class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
@@ -525,8 +550,9 @@
                                             >
                                         </div>
                                         <div v-if="nodeVersion" class="flex flex-col">
-                                            <span class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
-                                                >Node.js</span
+                                            <span
+                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                >{{ $t("about.nodejs_runtime") }}</span
                                             >
                                             <span
                                                 class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
@@ -540,7 +566,7 @@
                                     <div
                                         class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
                                     >
-                                        Backend Stack
+                                        {{ $t("about.backend_stack") }}
                                     </div>
                                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
                                         <div
@@ -570,7 +596,7 @@
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
                                 <v-icon icon="mdi-database-cog" size="14"></v-icon>
-                                Database Health & Maintenance
+                                {{ $t("about.database_health_maintenance") }}
                             </div>
                             <div class="flex flex-wrap gap-2 w-full md:w-auto">
                                 <button
@@ -580,8 +606,8 @@
                                     @click="getDatabaseHealth(true)"
                                 >
                                     <v-icon icon="mdi-refresh" start size="14"></v-icon>
-                                    <span v-if="healthLoading">Loading...</span>
-                                    <span v-else>Refresh</span>
+                                    <span v-if="healthLoading">{{ $t("common.loading") }}</span>
+                                    <span v-else>{{ $t("common.refresh") }}</span>
                                 </button>
                                 <button
                                     type="button"
@@ -589,7 +615,7 @@
                                     :disabled="databaseActionInProgress"
                                     @click="vacuumDatabase"
                                 >
-                                    <v-icon icon="mdi-broom" start size="14"></v-icon> Vacuum
+                                    <v-icon icon="mdi-broom" start size="14"></v-icon> {{ $t("common.vacuum") }}
                                 </button>
                                 <button
                                     type="button"
@@ -597,7 +623,8 @@
                                     :disabled="databaseActionInProgress"
                                     @click="runRecovery"
                                 >
-                                    <v-icon icon="mdi-medical-bag" start size="14"></v-icon> Recovery
+                                    <v-icon icon="mdi-medical-bag" start size="14"></v-icon>
+                                    {{ $t("about.recovery") }}
                                 </button>
                             </div>
                         </div>
@@ -609,7 +636,7 @@
                                 <div
                                     class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
-                                    Integrity
+                                    {{ $t("about.integrity") }}
                                 </div>
                                 <div
                                     :class="[databaseHealth.quick_check === 'ok' ? 'text-emerald-500' : 'text-red-500']"
@@ -624,7 +651,7 @@
                                 <div
                                     class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
-                                    Journal
+                                    {{ $t("about.journal_short") }}
                                 </div>
                                 <div class="text-lg font-black uppercase text-blue-500 tracking-tight">
                                     {{ databaseHealth.journal_mode }}
@@ -636,7 +663,7 @@
                                 <div
                                     class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
-                                    Page Count
+                                    {{ $t("about.page_count_label") }}
                                 </div>
                                 <div class="text-lg font-black font-mono tracking-tight tabular-nums">
                                     {{ databaseHealth.page_count }}
@@ -648,7 +675,7 @@
                                 <div
                                     class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2 leading-none"
                                 >
-                                    Free Space
+                                    {{ $t("about.free_space") }}
                                 </div>
                                 <div class="text-lg font-black text-amber-500 tracking-tight tabular-nums">
                                     {{ formatBytes(databaseHealth.estimated_free_bytes) }}
@@ -664,10 +691,10 @@
                                         class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
                                     >
                                         <v-icon icon="mdi-content-save-all" size="16" class="text-blue-500"></v-icon>
-                                        Database Backups
+                                        {{ $t("about.database_backups_title") }}
                                     </div>
                                     <div class="text-xs text-gray-500">
-                                        Full snapshots of your communications database.
+                                        {{ $t("about.database_backups_desc") }}
                                     </div>
                                 </div>
                                 <button
@@ -677,8 +704,8 @@
                                     @click="backupDatabase"
                                 >
                                     <v-icon icon="mdi-download" start></v-icon>
-                                    <span v-if="backupInProgress">Downloading...</span>
-                                    <span v-else>Download Backup</span>
+                                    <span v-if="backupInProgress">{{ $t("about.downloading") }}</span>
+                                    <span v-else>{{ $t("about.download_backup") }}</span>
                                 </button>
                             </div>
 
@@ -690,17 +717,17 @@
                                             class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
                                         >
                                             <v-icon icon="mdi-camera" size="16" class="text-purple-500"></v-icon>
-                                            Local Snapshots
+                                            {{ $t("about.local_snapshots_title") }}
                                         </div>
                                         <div class="text-xs text-gray-500">
-                                            Create point-in-time restore points on disk.
+                                            {{ $t("about.local_snapshots_desc") }}
                                         </div>
                                     </div>
                                     <div class="flex gap-2 w-full md:w-auto">
                                         <input
                                             v-model="snapshotName"
                                             type="text"
-                                            placeholder="Snapshot label..."
+                                            :placeholder="$t('about.snapshot_placeholder')"
                                             class="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-xl text-sm border border-zinc-100 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 flex-1 md:min-w-[200px]"
                                         />
                                         <button
@@ -709,8 +736,8 @@
                                             :disabled="snapshotInProgress"
                                             @click="createSnapshot"
                                         >
-                                            <span v-if="snapshotInProgress">Creating...</span>
-                                            <span v-else>Create</span>
+                                            <span v-if="snapshotInProgress">{{ $t("about.creating") }}</span>
+                                            <span v-else>{{ $t("about.snapshot_create") }}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -741,14 +768,14 @@
                                                     @click="downloadSnapshot(snapshot.name)"
                                                 >
                                                     <v-icon icon="mdi-download" size="12" start></v-icon>
-                                                    Download
+                                                    {{ $t("about.snapshot_download") }}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     class="secondary-chip !px-3 !py-1 !text-[10px]"
                                                     @click="restoreFromSnapshot(snapshot.path)"
                                                 >
-                                                    Restore
+                                                    {{ $t("about.snapshot_restore") }}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -767,8 +794,12 @@
                                         class="flex items-center justify-between px-2"
                                     >
                                         <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                            Page {{ Math.floor(snapshotsOffset / snapshotsLimit) + 1 }} of
-                                            {{ Math.ceil(snapshotsTotal / snapshotsLimit) }}
+                                            {{
+                                                $t("about.pagination_page_of", {
+                                                    current: Math.floor(snapshotsOffset / snapshotsLimit) + 1,
+                                                    total: Math.ceil(snapshotsTotal / snapshotsLimit),
+                                                })
+                                            }}
                                         </div>
                                         <div class="flex gap-2">
                                             <button
@@ -798,10 +829,10 @@
                                             class="font-black text-gray-900 dark:text-white text-sm tracking-tight flex items-center gap-2"
                                         >
                                             <v-icon icon="mdi-history" size="16" class="text-blue-500"></v-icon>
-                                            Automatic Backups
+                                            {{ $t("about.automatic_backups_title") }}
                                         </div>
                                         <div class="text-xs text-gray-500">
-                                            Automated daily snapshots of your database.
+                                            {{ $t("about.automatic_backups_desc") }}
                                         </div>
                                     </div>
                                 </div>
@@ -832,14 +863,14 @@
                                                     @click="downloadBackupFile(backup.name)"
                                                 >
                                                     <v-icon icon="mdi-download" size="12" start></v-icon>
-                                                    Download
+                                                    {{ $t("about.snapshot_download") }}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     class="secondary-chip !px-3 !py-1 !text-[10px]"
                                                     @click="restoreFromSnapshot(backup.path)"
                                                 >
-                                                    Restore
+                                                    {{ $t("about.snapshot_restore") }}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -858,8 +889,12 @@
                                         class="flex items-center justify-between px-2"
                                     >
                                         <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                            Page {{ Math.floor(autoBackupsOffset / autoBackupsLimit) + 1 }} of
-                                            {{ Math.ceil(autoBackupsTotal / autoBackupsLimit) }}
+                                            {{
+                                                $t("about.pagination_page_of", {
+                                                    current: Math.floor(autoBackupsOffset / autoBackupsLimit) + 1,
+                                                    total: Math.ceil(autoBackupsTotal / autoBackupsLimit),
+                                                })
+                                            }}
                                         </div>
                                         <div class="flex gap-2">
                                             <button
@@ -1061,9 +1096,9 @@ export default {
                 link.click();
                 link.remove();
                 window.URL.revokeObjectURL(url);
-                ToastUtils.success("Snapshot downloaded");
+                ToastUtils.success(this.$t("about.snapshot_downloaded"));
             } catch {
-                ToastUtils.error("Failed to download snapshot");
+                ToastUtils.error(this.$t("about.snapshot_download_failed"));
             }
         },
         async downloadBackupFile(filename) {
@@ -1079,9 +1114,9 @@ export default {
                 link.click();
                 link.remove();
                 window.URL.revokeObjectURL(url);
-                ToastUtils.success("Backup downloaded");
+                ToastUtils.success(this.$t("about.backup_downloaded"));
             } catch {
-                ToastUtils.error("Failed to download backup");
+                ToastUtils.error(this.$t("about.backup_download_failed"));
             }
         },
         async deleteSnapshot(filename) {
@@ -1302,7 +1337,7 @@ export default {
                 this.databaseRecoveryActions = response.data.database?.actions || [];
                 this.databaseActionMessage = response.data.message || "Database recovery completed";
             } catch (e) {
-                this.databaseActionError = "Recovery failed";
+                this.databaseActionError = this.$t("about.recovery_failed");
                 console.log(e);
             } finally {
                 this.databaseActionInProgress = false;
@@ -1317,15 +1352,16 @@ export default {
                 console.log(e);
             }
         },
-        async copyValue(value, label) {
+        async copyValue(value, labelKey) {
             if (!value) {
                 return;
             }
+            const label = this.$t(labelKey);
             try {
                 await navigator.clipboard.writeText(value);
-                ToastUtils.success(`${label} copied to clipboard`);
+                ToastUtils.success(this.$t("about.copied_label_to_clipboard", { label }));
             } catch {
-                ToastUtils.error(`Failed to copy ${label}`);
+                ToastUtils.error(this.$t("about.failed_to_copy_label", { label }));
             }
         },
         relaunch() {
@@ -1347,11 +1383,7 @@ export default {
             }
         },
         async shutdown() {
-            if (
-                await DialogUtils.confirm(
-                    "Are you sure you want to shutdown the app? This will stop the server and close the application."
-                )
-            ) {
+            if (await DialogUtils.confirm(this.$t("about.shutdown_confirm"))) {
                 try {
                     // try to notify backend first
                     await window.api.post("/api/v1/app/shutdown");
