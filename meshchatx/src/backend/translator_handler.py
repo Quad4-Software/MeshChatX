@@ -8,6 +8,8 @@ import shutil
 import subprocess
 from typing import Any
 
+from meshchatx.src.backend.http_url_guard import UnsafeOutboundUrlError, normalize_loopback_http_service_base
+
 try:
     import aiohttp
 
@@ -99,9 +101,13 @@ class TranslatorHandler:
         self.has_requests = HAS_AIOHTTP
 
     async def _fetch_languages_async(self, url: str):
+        base = url.rstrip("/")
         timeout = aiohttp.ClientTimeout(total=5)
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(f"{url}/languages") as response:
+            async with session.get(
+                f"{base}/languages",
+                allow_redirects=False,
+            ) as response:
                 if response.status == 200:
                     return await response.json()
         return None
@@ -112,6 +118,12 @@ class TranslatorHandler:
             return languages
 
         url = libretranslate_url or self.libretranslate_url
+        if libretranslate_url is not None and str(libretranslate_url).strip():
+            try:
+                url = normalize_loopback_http_service_base(libretranslate_url)
+            except UnsafeOutboundUrlError as e:
+                msg = str(e)
+                raise ValueError(msg) from e
 
         if self.has_requests:
             try:
@@ -178,6 +190,12 @@ class TranslatorHandler:
         if self.has_requests:
             try:
                 url = libretranslate_url or self.libretranslate_url
+                if libretranslate_url is not None and str(libretranslate_url).strip():
+                    try:
+                        url = normalize_loopback_http_service_base(libretranslate_url)
+                    except UnsafeOutboundUrlError as e:
+                        msg = str(e)
+                        raise ValueError(msg) from e
                 return self._translate_libretranslate(
                     text,
                     source_lang=source_lang,
@@ -202,16 +220,18 @@ class TranslatorHandler:
         target_lang: str,
         libretranslate_url: str,
     ) -> dict[str, Any]:
+        base = libretranslate_url.rstrip("/")
         timeout = aiohttp.ClientTimeout(total=30)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
-                f"{libretranslate_url}/translate",
+                f"{base}/translate",
                 json={
                     "q": text,
                     "source": source_lang,
                     "target": target_lang,
                     "format": "text",
                 },
+                allow_redirects=False,
             ) as response:
                 if response.status != 200:
                     body = await response.text()
