@@ -15,7 +15,7 @@ All notable changes to this project will be documented in this file.
 
 - **Boot experience**: **Splash screen** on startup and **Codec2** loader scripts use **retry** logic so transient load failures are less likely to strand voice features.
 - **Developer tools**: **F12** toggles **DevTools**; the menu bar **auto-hides** in main windows for a cleaner ui.
-- **Content Security Policy**: CSP now allows **`wasm-unsafe-eval`** where needed so **WebAssembly** used by the stack (for example audio codec paths) can run under the hardened policy.
+- **Content Security Policy**: CSP now allows **`wasm-unsafe-eval`** and **blob:** where needed so **WebAssembly** used by the stack (for example audio codec paths) can run under the hardened policy.
 
 ### Microphone and translations
 
