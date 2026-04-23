@@ -166,9 +166,7 @@ describe("LinkUtils.js", () => {
 
     describe("httpUrlHrefOrNull", () => {
         it("returns canonical https href", () => {
-            expect(LinkUtils.httpUrlHrefOrNull("https://example.com/path")).toBe(
-                "https://example.com/path"
-            );
+            expect(LinkUtils.httpUrlHrefOrNull("https://example.com/path")).toBe("https://example.com/path");
         });
 
         it("returns null for javascript: payloads that start with https-looking junk", () => {

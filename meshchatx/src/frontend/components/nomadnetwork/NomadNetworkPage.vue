@@ -1626,8 +1626,7 @@ export default {
 
             console.log(fieldData);
 
-            const httpHref =
-                typeof url === "string" ? LinkUtils.httpUrlHrefOrNull(url.trim()) : null;
+            const httpHref = typeof url === "string" ? LinkUtils.httpUrlHrefOrNull(url.trim()) : null;
             if (httpHref) {
                 window.open(httpHref, "_blank", "noopener,noreferrer");
                 return;

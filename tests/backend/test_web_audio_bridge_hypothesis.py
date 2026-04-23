@@ -78,9 +78,17 @@ def test_web_audio_sink_numpy_frame_never_propagates(values, shape):
     if shape == "empty":
         arr = np.zeros((0, 1), dtype=np.float32)
     elif shape == "row":
-        arr = np.array(values, dtype=np.float32).reshape(1, -1) if values else np.zeros((1, 0), dtype=np.float32)
+        arr = (
+            np.array(values, dtype=np.float32).reshape(1, -1)
+            if values
+            else np.zeros((1, 0), dtype=np.float32)
+        )
     else:
-        arr = np.array(values, dtype=np.float32).reshape(-1, 1) if values else np.zeros((0, 1), dtype=np.float32)
+        arr = (
+            np.array(values, dtype=np.float32).reshape(-1, 1)
+            if values
+            else np.zeros((0, 1), dtype=np.float32)
+        )
 
     with patch("meshchatx.src.backend.web_audio_bridge.RNS.log"):
         sink.handle_frame(arr, None)
@@ -120,7 +128,11 @@ async def test_web_audio_sink_running_loop_numpy_never_propagates(values):
         sent.append(data)
 
     sink = WebAudioSink(asyncio.get_running_loop(), _send_bytes)
-    arr = np.array(values, dtype=np.float32).reshape(-1, 1) if values else np.zeros((0, 1), dtype=np.float32)
+    arr = (
+        np.array(values, dtype=np.float32).reshape(-1, 1)
+        if values
+        else np.zeros((0, 1), dtype=np.float32)
+    )
     with patch("meshchatx.src.backend.web_audio_bridge.RNS.log"):
         sink.handle_frame(arr, None)
     await asyncio.sleep(0.05)
