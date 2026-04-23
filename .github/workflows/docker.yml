@@ -1,0 +1,149 @@
+# Build multi-arch image, push to GHCR, and keyless-sign the manifest (Cosign).
+#
+# Pinned third-party actions (bump tag and SHA together when upgrading).
+# Automated check: first step resolves each tag via api.github.com and
+# compares to the commit below. Manual bump helpers (resolve annotated tags):
+#
+#   curl -sSf -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" \
+#     "https://api.github.com/repos/OWNER/REPO/git/refs/tags/TAG" | jq .
+#   # if object.type is "tag", follow object.url and jq -r .object.sha
+#
+# Pinned refs:
+#   actions/checkout@v6.0.1                 8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   docker/setup-qemu-action@v3.7.0        c7c53464625b32c7a7e944ae62b3e17d2b600130
+#   docker/setup-buildx-action@v3.11.1     e468171a9de216ec08956ac3ada2f0791b6bd435
+#   docker/login-action@v3.5.0             184bdaa0721073962dff0199f1fb9940f07167d1
+#   docker/build-push-action@v6.18.0      263435318d21b8e681c14492fe198d362a7d2c83
+#   sigstore/cosign-installer@v3.10.1      7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
+
+name: Docker (GHCR)
+
+on:
+    workflow_dispatch:
+    push:
+        tags:
+            - "*"
+
+permissions:
+    contents: read
+    packages: write
+    id-token: write
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    REGISTRY: ghcr.io
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        timeout-minutes: 120
+        steps:
+            - name: Verify action pins (GitHub API)
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  set -euo pipefail
+                  hdr=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${GH_TOKEN}")
+                  api="https://api.github.com/repos"
+                  resolve() {
+                    local repo="$1" tag="$2" ref typ url
+                    ref=$(curl -sSf "${hdr[@]}" "${api}/${repo}/git/refs/tags/${tag}")
+                    typ=$(printf '%s' "$ref" | jq -r .object.type)
+                    if [ "$typ" = "commit" ]; then
+                      printf '%s' "$ref" | jq -r .object.sha
+                      return
+                    fi
+                    url=$(printf '%s' "$ref" | jq -r .object.url)
+                    curl -sSf "${hdr[@]}" "$url" | jq -r .object.sha
+                  }
+                  check() {
+                    local repo="$1" tag="$2" want="$3" got
+                    got=$(resolve "$repo" "$tag")
+                    if [ "$got" != "$want" ]; then
+                      printf 'Pin mismatch %s@%s: expected %s got %s\n' "$repo" "$tag" "$want" "$got" >&2
+                      exit 1
+                    fi
+                    printf 'OK %s@%s -> %s\n' "$repo" "$tag" "$got"
+                  }
+                  check actions/checkout v6.0.1 8e8c483db84b4bee98b60c0593521ed34d9990e8
+                  check docker/setup-qemu-action v3.7.0 c7c53464625b32c7a7e944ae62b3e17d2b600130
+                  check docker/setup-buildx-action v3.11.1 e468171a9de216ec08956ac3ada2f0791b6bd435
+                  check docker/login-action v3.5.0 184bdaa0721073962dff0199f1fb9940f07167d1
+                  check docker/build-push-action v6.18.0 263435318d21b8e681c14492fe198d362a7d2c83
+                  check sigstore/cosign-installer v3.10.1 7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
+
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: OCI label timestamps and version
+              id: oci
+              run: |
+                  set -euo pipefail
+                  echo "created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
+                  if [ "${{ github.ref_type }}" = "tag" ]; then
+                    echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "version=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Registry image (GHCR lowercase)
+              id: image
+              run: |
+                  set -euo pipefail
+                  lower="$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+                  echo "name=${REGISTRY}/${lower}" >> "$GITHUB_OUTPUT"
+
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+
+            - name: Log in to GHCR
+              uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+              with:
+                  registry: ${{ env.REGISTRY }}
+                  username: ${{ github.actor }}
+                  password: ${{ github.token }}
+
+            - name: Generate Docker tags
+              id: tags
+              env:
+                  GITHUB_REF: ${{ github.ref }}
+                  GITHUB_REF_NAME: ${{ github.ref_name }}
+              run: |
+                  set -euo pipefail
+                  sh scripts/ci/docker-tags.sh "${{ steps.image.outputs.name }}" /tmp/docker-tags.txt
+                  {
+                    echo 'tags<<EOF'
+                    sed 's/^-t //' /tmp/docker-tags.txt
+                    echo 'EOF'
+                  } >> "$GITHUB_OUTPUT"
+
+            - name: Build and push
+              id: build
+              uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+              with:
+                  context: .
+                  file: ./Dockerfile
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  tags: ${{ steps.tags.outputs.tags }}
+                  build-args: |
+                      OCI_REVISION=${{ github.sha }}
+                      OCI_VERSION=${{ steps.oci.outputs.version }}
+                      OCI_CREATED=${{ steps.oci.outputs.created }}
+
+            - name: Install Cosign
+              uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
+
+            - name: Cosign sign (keyless)
+              env:
+                  COSIGN_YES: "true"
+              run: |
+                  set -euo pipefail
+                  test -n "${{ steps.build.outputs.digest }}"
+                  cosign sign "${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}"

@@ -58,6 +58,10 @@ RUN pip install --no-cache-dir . && \
 # ---- STAGE 3: Final Image ----
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
 
+ARG OCI_REVISION=""
+ARG OCI_VERSION=""
+ARG OCI_CREATED=""
+
 RUN apk upgrade --no-cache && \
     apk add --no-cache opusfile libffi espeak-ng su-exec && \
     python -m pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0" && \
@@ -68,6 +72,14 @@ RUN apk upgrade --no-cache && \
 COPY --from=builder --chown=meshchat:meshchat /opt/venv /opt/venv
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
+
+LABEL org.opencontainers.image.source="https://git.quad4.io/RNS-Things/MeshChatX"
+LABEL org.opencontainers.image.description="All in one Reticulum client."
+LABEL org.opencontainers.image.licenses="MIT AND 0BSD"
+LABEL org.opencontainers.image.authors="Quad4"
+LABEL org.opencontainers.image.revision="${OCI_REVISION}"
+LABEL org.opencontainers.image.version="${OCI_VERSION}"
+LABEL org.opencontainers.image.created="${OCI_CREATED}"
 
 ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
