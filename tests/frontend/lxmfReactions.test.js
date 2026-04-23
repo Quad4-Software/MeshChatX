@@ -52,4 +52,58 @@ describe("mergeLxmfReactionRowsIntoMessages", () => {
         const out = mergeLxmfReactionRowsIntoMessages(incoming);
         expect(out[0].reactions).toHaveLength(1);
     });
+
+    it("preserves XSS-like emoji strings as opaque data for UI escaping", () => {
+        const parentHash = "a".repeat(32);
+        const emoji = "<img src=x onerror=1>";
+        const incoming = [
+            { hash: parentHash, content: "x", is_reaction: false },
+            {
+                hash: "r1",
+                is_reaction: true,
+                reaction_to: parentHash,
+                reaction_emoji: emoji,
+                reaction_sender: "e".repeat(32),
+            },
+        ];
+        const out = mergeLxmfReactionRowsIntoMessages(incoming);
+        expect(out[0].reactions[0].emoji).toBe(emoji);
+    });
+
+    it("ignores reactions with missing parent or reaction_to", () => {
+        const incoming = [
+            { hash: "a".repeat(32), content: "x", is_reaction: false },
+            {
+                hash: "r1",
+                is_reaction: true,
+                reaction_to: "no_such_parent_hash_xxxxxxxxxxxxxx",
+                reaction_emoji: "\u{1F44D}",
+                reaction_sender: "e".repeat(32),
+            },
+            {
+                hash: "r2",
+                is_reaction: true,
+                reaction_emoji: "\u{1F602}",
+                reaction_sender: "f".repeat(32),
+            },
+        ];
+        const out = mergeLxmfReactionRowsIntoMessages(incoming);
+        expect(out[0].reactions).toHaveLength(0);
+    });
+
+    it("handles many reactions without throwing", () => {
+        const parentHash = "a".repeat(32);
+        const incoming = [{ hash: parentHash, content: "x", is_reaction: false }];
+        for (let i = 0; i < 200; i++) {
+            incoming.push({
+                hash: `r${i}`.padEnd(32, "0"),
+                is_reaction: true,
+                reaction_to: parentHash,
+                reaction_emoji: String.fromCodePoint(0x1f600 + (i % 16)),
+                reaction_sender: `${i.toString(16)}`.padStart(32, "0"),
+            });
+        }
+        const out = mergeLxmfReactionRowsIntoMessages(incoming);
+        expect(out[0].reactions.length).toBe(200);
+    });
 });

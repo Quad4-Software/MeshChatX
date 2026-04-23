@@ -13,6 +13,13 @@ describe("inViewObserver", () => {
             expect(isAnimatedRasterType("")).toBe(false);
             expect(isAnimatedRasterType(null)).toBe(false);
         });
+
+        it("treats injection-like type strings as non-animated", () => {
+            expect(isAnimatedRasterType("<script>gif</script>")).toBe(false);
+            expect(isAnimatedRasterType("gif\x00evil")).toBe(false);
+            expect(isAnimatedRasterType("image/gif")).toBe(false);
+            expect(isAnimatedRasterType("javascript:alert(1)")).toBe(false);
+        });
     });
 
     describe("attachInView", () => {
