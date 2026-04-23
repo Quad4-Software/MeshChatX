@@ -40,6 +40,7 @@ dependencies = [
 [project.scripts]
 meshchatx = "meshchatx.meshchat:main"
 meshchat = "meshchatx.meshchat:main"
+meshchatx-repository-http = "meshchatx.repository_http_standalone:main"
 
 [project.urls]
 Homepage = "https://git.quad4.io/RNS-Things/MeshChatX"
@@ -67,11 +68,13 @@ pytest-xdist = "^3.8.0"
 [[tool.poetry.include]]
 path = "logo"
 
-[tool.setuptools]
-packages = {find = {}}
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["meshchatx*"]
+namespaces = false
 
 [tool.setuptools.package-data]
-meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json", "src/backend/data/THIRD_PARTY_NOTICES.txt"]
+meshchatx = ["public/**/*", "public/*", "src/backend/data/community_interfaces.json", "src/backend/data/licenses_frontend.json", "src/backend/data/THIRD_PARTY_NOTICES.txt", "src/frontend/public/repository-server-index.html"]
 
 [build-system]
 requires = ["setuptools>=65.0", "wheel"]
