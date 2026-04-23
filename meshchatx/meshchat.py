@@ -5934,10 +5934,17 @@ class ReticulumMeshChat:
                 )
 
                 if success:
+                    display_name = (
+                        self.config.display_name.get()
+                        if hasattr(self, "config")
+                        else "Unknown"
+                    )
                     return web.json_response(
                         {
                             "message": "Identity switched successfully.",
                             "hotswapped": True,
+                            "identity_hash": identity_hash,
+                            "display_name": display_name,
                         },
                     )
                 # fallback to restart if hotswap failed
