@@ -235,6 +235,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/tools/PaperMessagePage.vue")),
         },
         {
+            name: "sieve-filters",
+            path: "/tools/sieve-filters",
+            component: defineAsyncComponent(() => import("./components/tools/SieveFiltersPage.vue")),
+        },
+        {
             name: "rnode-flasher",
             path: "/tools/rnode-flasher",
             component: defineAsyncComponent(() => import("./components/tools/RNodeFlasherPage.vue")),

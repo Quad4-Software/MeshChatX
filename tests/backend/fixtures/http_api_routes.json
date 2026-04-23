@@ -409,6 +409,14 @@
             "path": "/api/v1/lxmf/folders/{id}"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/lxmf/sieve-filters"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/lxmf/sieve-filters"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/lxmf/propagation-node/restart"
         },
