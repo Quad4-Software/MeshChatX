@@ -259,6 +259,7 @@ function snapshotGlobalConfig() {
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import { lxmfConversationListPreview } from "../../js/lxmfReactions";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
@@ -671,12 +672,26 @@ export default {
         peerHashFromMessage(msg) {
             return msg.is_incoming ? msg.source_hash : msg.destination_hash;
         },
+        peerDisplayNameForConversationSidebar(peerHash) {
+            const conv = this.conversations.find((c) => c.destination_hash === peerHash);
+            if (conv) {
+                return conv.custom_display_name ?? conv.display_name ?? "Anonymous Peer";
+            }
+            const peer = this.peers[peerHash];
+            return peer?.custom_display_name ?? peer?.display_name ?? "Anonymous Peer";
+        },
         onOutboundMessageCreated(msg) {
             const peerHash = this.peerHashFromMessage(msg);
+            const peerDisplay = this.peerDisplayNameForConversationSidebar(peerHash);
+            const preview = lxmfConversationListPreview(msg, {
+                myLxmfAddressHash: this.config?.lxmf_address_hash || "",
+                peerDisplayName: peerDisplay,
+                t: this.$t.bind(this),
+            });
             const idx = this.conversations.findIndex((c) => c.destination_hash === peerHash);
             if (idx !== -1) {
                 const conv = this.conversations[idx];
-                conv.latest_message_preview = msg.content;
+                conv.latest_message_preview = preview;
                 conv.latest_message_title = msg.title;
                 conv.latest_message_created_at = msg.timestamp;
                 conv.updated_at = new Date(msg.timestamp * 1000).toISOString();
@@ -692,7 +707,7 @@ export default {
                     is_tracking: peer?.is_tracking ?? false,
                     failed_messages_count: 0,
                     has_attachments: false,
-                    latest_message_preview: msg.content,
+                    latest_message_preview: preview,
                     latest_message_title: msg.title,
                     latest_message_created_at: msg.timestamp,
                     updated_at: new Date(msg.timestamp * 1000).toISOString(),

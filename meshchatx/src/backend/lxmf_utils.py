@@ -95,6 +95,61 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
     return False
 
 
+def _reaction_emoji_from_parsed_lxmf_fields(fields: dict) -> str | None:
+    if not isinstance(fields, dict):
+        return None
+    app = fields.get("app_extensions")
+    if isinstance(app, dict) and "reaction_to" in app:
+        emoji = (app.get("emoji") or "").strip()
+        return emoji or None
+    raw = fields.get(LXMF_APP_EXTENSIONS_FIELD)
+    if isinstance(raw, dict) and "reaction_to" in raw:
+        emoji = (raw.get("emoji") or "").strip()
+        return emoji or None
+    return None
+
+
+def lxmf_sidebar_preview_for_conversation_latest_row(
+    row: dict,
+    *,
+    local_hash: str,
+    peer_display_name: str,
+) -> str:
+    """Single-line preview for conversation list APIs (reactions have empty body)."""
+    content = row.get("content")
+    if content is not None and str(content).strip():
+        return str(content)
+
+    fields_raw = row.get("fields")
+    try:
+        if isinstance(fields_raw, str):
+            fields = json.loads(fields_raw) if fields_raw else {}
+        elif isinstance(fields_raw, dict):
+            fields = fields_raw
+        else:
+            fields = {}
+    except (json.JSONDecodeError, TypeError):
+        fields = {}
+
+    emoji = _reaction_emoji_from_parsed_lxmf_fields(fields)
+    if not emoji:
+        return str(content or "")
+
+    is_incoming = bool(row.get("is_incoming"))
+    if is_incoming:
+        actor = peer_display_name or "Anonymous Peer"
+    else:
+        src = (row.get("source_hash") or "").lower()
+        loc = (local_hash or "").lower()
+        actor = (
+            "You"
+            if src and loc and src == loc
+            else (peer_display_name or "Anonymous Peer")
+        )
+
+    return f"{actor} reacted {emoji}"
+
+
 def convert_lxmf_message_to_dict(
     lxmf_message: LXMF.LXMessage,
     include_attachments: bool = True,

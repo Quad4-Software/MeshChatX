@@ -12,6 +12,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_state_to_string,
+    lxmf_sidebar_preview_for_conversation_latest_row,
 )
 
 
@@ -251,3 +252,55 @@ def test_compute_unread_incoming_newer_than_read_cursor_unread():
         "timestamp": ts,
     }
     assert compute_lxmf_conversation_unread_from_latest_row(row) is True
+
+
+def test_sidebar_preview_reaction_incoming_uses_peer_name():
+    local = "a" * 32
+    row = {
+        "content": "",
+        "fields": json.dumps(
+            {"app_extensions": {"reaction_to": "abc123", "emoji": "\U0001f44d"}},
+        ),
+        "is_incoming": 1,
+        "source_hash": "b" * 32,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash=local,
+        peer_display_name="Charlie",
+    )
+    assert out == "Charlie reacted \U0001f44d"
+
+
+def test_sidebar_preview_reaction_outbound_from_self_is_you():
+    me = "c" * 32
+    row = {
+        "content": "",
+        "fields": json.dumps(
+            {"app_extensions": {"reaction_to": "abc123", "emoji": "\u2764\ufe0f"}},
+        ),
+        "is_incoming": 0,
+        "source_hash": me,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash=me,
+        peer_display_name="Dana",
+    )
+    assert out == "You reacted \u2764\ufe0f"
+
+
+def test_sidebar_preview_prefers_non_empty_content():
+    row = {
+        "content": " hi ",
+        "fields": json.dumps(
+            {"app_extensions": {"reaction_to": "abc123", "emoji": "\U0001f44d"}},
+        ),
+        "is_incoming": 1,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash="a" * 32,
+        peer_display_name="Eve",
+    )
+    assert out == " hi "

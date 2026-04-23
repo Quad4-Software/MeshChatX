@@ -92,6 +92,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_lxmf_state_to_string,
     is_user_facing_lxmf_payload,
     lxmf_fields_are_columba_reaction,
+    lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
@@ -10052,7 +10053,15 @@ class ReticulumMeshChat:
                             row["fields"],
                         ),
                         "latest_message_title": row["title"],
-                        "latest_message_preview": row["content"],
+                        "latest_message_preview": lxmf_sidebar_preview_for_conversation_latest_row(
+                            row,
+                            local_hash=local_hash,
+                            peer_display_name=(
+                                row.get("custom_display_name")
+                                or display_name
+                                or "Anonymous Peer"
+                            ),
+                        ),
                         "latest_message_created_at": row["timestamp"],
                         "lxmf_user_icon": user_icon,
                         "is_contact": bool(row.get("is_contact", 0)),
