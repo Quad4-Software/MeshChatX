@@ -490,6 +490,22 @@ export default {
                     break;
                 }
                 case "lxm.ingest_uri.result": {
+                    if (json.ingest_type === "map_view" && json.map_query) {
+                        const mq = json.map_query;
+                        const query = {
+                            lat: String(mq.lat),
+                            lon: String(mq.lon),
+                            zoom: String(mq.zoom),
+                        };
+                        if (mq.layers) {
+                            query.layers = mq.layers;
+                        }
+                        if (mq.label) {
+                            query.label = mq.label;
+                        }
+                        await this.$router.push({ name: "map", query });
+                        break;
+                    }
                     if (json.status === "success") {
                         this.ingestUri = "";
                         if (json.ingest_type === "lxma_contact" && json.destination_hash) {
