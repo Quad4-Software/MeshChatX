@@ -8,6 +8,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Build;
@@ -149,7 +150,6 @@ public class MainActivity extends AppCompatActivity {
             Python.start(new AndroidPlatform(this));
         }
         requestRuntimePermissionsIfNeeded();
-        requestBatteryOptimizationExemptionIfNeeded();
 
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -286,7 +286,12 @@ public class MainActivity extends AppCompatActivity {
                         missingPermissions.add(Manifest.permission.CAMERA);
                     }
                     if (missingPermissions.isEmpty()) {
-                        request.grant(request.getResources());
+                        String[] allowed = grantableWebPermissionResources(request);
+                        if (allowed.length > 0) {
+                            request.grant(allowed);
+                        } else {
+                            request.deny();
+                        }
                         return;
                     }
 
@@ -296,6 +301,15 @@ public class MainActivity extends AppCompatActivity {
                         missingPermissions.toArray(new String[0]),
                         WEB_MEDIA_PERMISSION_REQUEST_CODE
                     );
+                });
+            }
+
+            @Override
+            public void onPermissionRequestCanceled(PermissionRequest request) {
+                runOnUiThread(() -> {
+                    if (pendingWebPermissionRequest == request) {
+                        pendingWebPermissionRequest = null;
+                    }
                 });
             }
 
@@ -347,6 +361,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        stopService(new Intent(this, MeshChatForegroundService.class));
+    }
+
+    @Override
+    protected void onStop() {
+        if (!isFinishing() && !backendFailed) {
+            ContextCompat.startForegroundService(this, new Intent(this, MeshChatForegroundService.class));
+        }
+        super.onStop();
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
@@ -372,6 +400,8 @@ public class MainActivity extends AppCompatActivity {
                 missingPermissions.toArray(new String[0]),
                 RUNTIME_PERMISSIONS_REQUEST_CODE
             );
+        } else {
+            requestBatteryOptimizationExemptionIfNeeded();
         }
     }
 
@@ -410,6 +440,42 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private String[] grantableWebPermissionResources(PermissionRequest request) {
+        if (request == null) {
+            return new String[0];
+        }
+        List<String> allowed = new ArrayList<>();
+        for (String resource : request.getResources()) {
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED) {
+                    allowed.add(resource);
+                }
+            } else if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED) {
+                    allowed.add(resource);
+                }
+            } else {
+                allowed.add(resource);
+            }
+        }
+        return allowed.toArray(new String[0]);
+    }
+
+    private void completePendingWebPermissionRequestFromRuntimeState() {
+        if (pendingWebPermissionRequest == null) {
+            return;
+        }
+        String[] allowed = grantableWebPermissionResources(pendingWebPermissionRequest);
+        if (allowed.length > 0) {
+            pendingWebPermissionRequest.grant(allowed);
+        } else {
+            pendingWebPermissionRequest.deny();
+        }
+        pendingWebPermissionRequest = null;
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -425,7 +491,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             if (granted) {
-                pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
+                String[] allowed = grantableWebPermissionResources(pendingWebPermissionRequest);
+                if (allowed.length > 0) {
+                    pendingWebPermissionRequest.grant(allowed);
+                } else {
+                    pendingWebPermissionRequest.deny();
+                }
             } else {
                 pendingWebPermissionRequest.deny();
             }
@@ -435,21 +506,8 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode != RUNTIME_PERMISSIONS_REQUEST_CODE) {
             return;
         }
-        for (int i = 0; i < permissions.length; i++) {
-            if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
-                if (Manifest.permission.RECORD_AUDIO.equals(permissions[i]) && pendingWebPermissionRequest != null) {
-                    pendingWebPermissionRequest.deny();
-                    pendingWebPermissionRequest = null;
-                }
-            }
-        }
-        if (
-            pendingWebPermissionRequest != null &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-        ) {
-            pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
-            pendingWebPermissionRequest = null;
-        }
+        requestBatteryOptimizationExemptionIfNeeded();
+        completePendingWebPermissionRequestFromRuntimeState();
     }
 
     private void startMeshChatServer() {
@@ -582,7 +640,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (webView != null) {
+            webView.post(() -> {
+                if (webView != null) {
+                    webView.requestLayout();
+                }
+            });
+        }
+    }
+
+    @Override
     protected void onDestroy() {
+        stopService(new Intent(this, MeshChatForegroundService.class));
         super.onDestroy();
         mainHandler.removeCallbacksAndMessages(null);
         if (pendingWebPermissionRequest != null) {
