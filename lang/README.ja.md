@@ -290,7 +290,7 @@ task build:all
 
 ## バージョン管理
 
-このリポジトリの現在のバージョンは `4.5.1` です。
+このリポジトリの現在のバージョンは `4.6.0` です。
 
 - JavaScript / Electron のバージョンソースは `package.json`。
 - `meshchatx/src/version.py` は次で `package.json` と同期します:

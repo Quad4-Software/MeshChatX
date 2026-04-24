@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.6.0] - 2026-04-24
+
+### TL;DR
+
+- **File downloads**: When you save or export things (including from archives), filenames are **cleaned up** so odd characters are less likely to break saves, and you get **clearer feedback** when a download wraps up.
+- **NomadNet favourites**: You can **import and export** your NomadNet favourites list so you are not stuck re-building it by hand on a new device; **contact sharing** wording is clearer across several languages.
+
+### Downloads, archives, and frontend utilities
+
+- **Downloads**: File download flow adds **persistence**, **user notifications**, and **filename sanitization** so exports land predictably and bad names are rejected or normalized safely.
+- **Refactors**: Download helpers and **time formatting** utilities consolidated; UI elements updated where downloads surface.
+- **Tests**: **`DownloadUtils`** unit tests; **`Utils`** tests updated for formatting helpers; **`ArchivesPage`** test accounts for delayed **`downloadTextAsFile`** behaviour.
+
+### NomadNet and locales
+
+- **Favourites**: **Import/export** for NomadNet favourites from the app.
+- **Locales**: **Contact sharing** options and related strings refreshed across supported languages.
+
+### Android
+
+- **Gradle**: **Product flavors** removed; **Python sync** task simplified to match the single packaging path.
+- **Paths**: **Taskfile** and CI workflows updated for the new **APK** / Python directory layout.
+- **Docs**: Android README sections updated so they no longer talk about removed flavors.
+
+### Repository server and bundled wheels
+
+- **Bundling**: Logic to **stage a local MeshChatX wheel** into the bundled directory and refreshed **download** behaviour for repository assets.
+
+### CI, release automation, and supply chain
+
+- **GitHub Actions**: **Migrated** primary workflows from **Gitea**; obsolete Gitea workflow files removed.
+- **Workflow hygiene**: **Flatpak** CI cleaned up; deprecated **Snap** build scripts removed from the tree.
+- **Caching**: **Node.js** and **Poetry** caches added where workflows install tooling.
+- **Docker publish**: Workflow gains **Docker Hub** integration, **tag generation**, and a **login** fix so credential detection output is used consistently.
+- **Android release**: Workflow updates for **tag handling**, **signing secret** detection, and **APK upload** behaviour.
+- **Benchmarks**: **Taskfile** default **benchmark** task and workflow trigger alignment.
+- **Draft releases**: Script sets **`GH_REPO`** from **`GITHUB_REPOSITORY`** when unset.
+- **Trivy**: Install script gains **upstream verification** and **cosign** integration.
+- **pip-audit**: **`CVE-2026-3219`** ignored temporarily with a documented rationale until an upstream fix lands.
+- **Tests**: Minor **formatting** tidy-ups in the test tree; **`test_app_status_tracking`** uses **`4.6.0`** as the example **`changelog_seen_version`** stamp so it tracks the release.
+
+### Docker, compose, and documentation
+
+- **Dockerfile**: Optional **reproducible native build** target wiring; **OCI**-style metadata and **image source** hints refined; **`docker-compose.yml`** image source updated.
+- **Docs**: **README** and translated READMEs add **Docker Hub** / **GHCR** guidance; **official GitHub mirror** links refreshed; **GitHub Actions** references replace Gitea-era wording; **security policy** and **SECURITY** formatting polish; **Raspberry Pi** install examples use **`bash`** fences consistently.
+
 ## [4.5.1] - 2026-04-24
 
 ### Identity switching

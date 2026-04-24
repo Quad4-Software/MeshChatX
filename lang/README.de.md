@@ -290,7 +290,7 @@ task build:all
 
 ## Versionierung
 
-Aktuelle Version in diesem Repository: `4.5.1`.
+Aktuelle Version in diesem Repository: `4.6.0`.
 
 - `package.json` ist die Quelle fuer die JavaScript/Electron-Version.
 - `meshchatx/src/version.py` wird aus `package.json` synchronisiert mit:

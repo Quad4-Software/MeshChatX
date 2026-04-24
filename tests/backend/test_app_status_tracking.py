@@ -96,8 +96,8 @@ async def test_app_status_endpoints(mock_rns_minimal, temp_dir):
         app_instance.config.set("tutorial_seen", True)
         assert app_instance.config.get("tutorial_seen") == "true"
 
-        app_instance.config.set("changelog_seen_version", "4.5.1")
-        assert app_instance.config.get("changelog_seen_version") == "4.5.1"
+        app_instance.config.set("changelog_seen_version", "4.6.0")
+        assert app_instance.config.get("changelog_seen_version") == "4.6.0"
 
         # Test app_info returns these values
         with ExitStack() as info_stack:
@@ -113,4 +113,4 @@ async def test_app_status_endpoints(mock_rns_minimal, temp_dir):
             assert val == "true"
 
             val = app_instance.config.get("changelog_seen_version")
-            assert val == "4.5.1"
+            assert val == "4.6.0"

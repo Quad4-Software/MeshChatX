@@ -290,7 +290,7 @@ Scorciatoie `Makefile`:
 
 ## Versioning
 
-Versione attuale nel repository: `4.5.1`.
+Versione attuale nel repository: `4.6.0`.
 
 - La fonte della versione JavaScript/Electron e `package.json`.
 - `meshchatx/src/version.py` e sincronizzato da `package.json` con:

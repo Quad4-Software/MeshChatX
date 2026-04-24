@@ -1,6 +1,6 @@
 [project]
 name = "reticulum-meshchatx"
-version = "4.5.1"
+version = "4.6.0"
 description = "A simple mesh network communications app powered by the Reticulum Network Stack"
 authors = [
   {name = "Quad4"}
