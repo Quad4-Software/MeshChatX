@@ -2,12 +2,13 @@
  * Single source of truth: set "version" in package.json, then run:
  *   pnpm run version:sync
  *
- * Writes: meshchatx/src/version.py, pyproject.toml [project].version,
+ * Writes: meshchatx/__init__.py (__version__), meshchatx/src/version.py, pyproject.toml [project].version,
  * meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt (reticulum-meshchatx line only),
  * README + lang README "current version" lines, docs/meshchatx_on_raspberry_pi.md
  * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback.
  *
- * meshchatx/__init__.py reads __version__ from src/version.py without importing meshchatx.src.
+ * __version__ lives in meshchatx/__init__.py so Chaquopy/Android (which may not ship loose .py
+ * data files next to bytecode) always has a resolvable version. src/version.py stays for packaging and tools.
  * The build script runs version:sync automatically.
  */
 
@@ -38,6 +39,8 @@ Run: pnpm run version:sync
 __version__ = "${version}"
 `;
 writeIfChanged(path.join(root, "meshchatx", "src", "version.py"), versionPy);
+
+patchFile("meshchatx/__init__.py", (c) => c.replace(/^__version__\s*=\s*"[^"]*"\s*$/m, `__version__ = "${version}"`));
 
 const pyprojectPath = path.join(root, "pyproject.toml");
 let pyproject = fs.readFileSync(pyprojectPath, "utf8");
