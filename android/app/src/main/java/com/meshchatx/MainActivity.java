@@ -3,6 +3,8 @@ package com.meshchatx;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -10,9 +12,11 @@ import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -35,8 +39,13 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONObject;
@@ -589,11 +598,95 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static String sanitizeDownloadFileName(String name) {
+        if (name == null || name.isEmpty()) {
+            return "download.bin";
+        }
+        int slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+        String base = slash >= 0 ? name.substring(slash + 1) : name;
+        if (base.isEmpty()) {
+            return "download.bin";
+        }
+        base = base.replaceAll("[^A-Za-z0-9._ -]+", "_").trim();
+        if (base.isEmpty()) {
+            return "download.bin";
+        }
+        if (base.length() > 120) {
+            base = base.substring(0, 120);
+        }
+        return base;
+    }
+
+    void persistMeshchatDownload(String fileName, byte[] data) throws IOException {
+        String safe = sanitizeDownloadFileName(fileName);
+        ContentResolver resolver = getContentResolver();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, safe);
+            String mime = URLConnection.guessContentTypeFromName(safe);
+            if (mime == null) {
+                mime = "application/octet-stream";
+            }
+            values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+            values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (uri == null) {
+                throw new IOException("MediaStore insert failed");
+            }
+            try (OutputStream out = resolver.openOutputStream(uri)) {
+                if (out == null) {
+                    throw new IOException("openOutputStream failed");
+                }
+                out.write(data);
+            }
+            values.clear();
+            values.put(MediaStore.MediaColumns.IS_PENDING, 0);
+            resolver.update(uri, values, null, null);
+            Toast.makeText(this, getString(R.string.download_saved_meshchatx, safe), Toast.LENGTH_LONG).show();
+        } else {
+            File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+            if (dir == null) {
+                throw new IOException("no download directory");
+            }
+            if (!dir.exists() && !dir.mkdirs()) {
+                throw new IOException("mkdirs failed");
+            }
+            File target = new File(dir, safe);
+            try (FileOutputStream fos = new FileOutputStream(target)) {
+                fos.write(data);
+            }
+            Toast.makeText(this, getString(R.string.download_saved_app_files, target.getAbsolutePath()), Toast.LENGTH_LONG)
+                .show();
+        }
+    }
+
     private static class MeshChatXAndroidBridge {
         private final MainActivity activity;
 
         MeshChatXAndroidBridge(MainActivity activity) {
             this.activity = activity;
+        }
+
+        @JavascriptInterface
+        public void saveDownload(String fileName, String base64Data) {
+            if (base64Data == null) {
+                return;
+            }
+            activity.runOnUiThread(() -> {
+                try {
+                    byte[] raw = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT);
+                    if (raw.length == 0) {
+                        Toast.makeText(activity, "Empty file", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    activity.persistMeshchatDownload(fileName, raw);
+                } catch (IllegalArgumentException e) {
+                    Toast.makeText(activity, "Invalid download data", Toast.LENGTH_LONG).show();
+                } catch (IOException e) {
+                    Toast.makeText(activity, "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            });
         }
 
         @JavascriptInterface
