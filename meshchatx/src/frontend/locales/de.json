@@ -597,7 +597,13 @@
         "archives_cleared": "Archive erfolgreich gelöscht",
         "docs_cleared": "Reticulum-Dokumentation erfolgreich gelöscht",
         "import_success": "Erfolgreich {count} Nachrichten importiert",
-        "import_failed": "Nachrichten konnten nicht importiert werden"
+        "import_failed": "Nachrichten konnten nicht importiert werden",
+        "export_nomadnet_favourites": "NomadNet-Favoriten exportieren",
+        "import_nomadnet_favourites": "NomadNet-Favoriten importieren",
+        "nomadnet_favourites_exported": "NomadNet-Favoriten-Layout exportiert",
+        "nomadnet_favourites_export_failed": "NomadNet-Favoriten konnten nicht exportiert werden",
+        "nomadnet_favourites_imported": "NomadNet-Favoriten-Layout importiert",
+        "nomadnet_favourites_import_failed": "NomadNet-Favoriten-Datei konnte nicht importiert werden"
     },
     "identities": {
         "title": "Identitäten",
@@ -1106,6 +1112,8 @@
         "telemetry_location_request": "Standortanfrage",
         "start_call": "Anruf",
         "share_contact": "Kontakt teilen",
+        "share_contact_modal_title": "Kontakt teilen",
+        "share_contact_search_placeholder": "Kontakte durchsuchen…",
         "opportunistic_deferred_label": "Wartend",
         "opportunistic_deferred_tooltip": "Die Nachricht wird gesendet, sobald der Nutzer online ist oder eine Ankündigung sendet.",
         "no_messages_in_conversation": "Noch keine Nachrichten in diesem Gespräch.",
@@ -1297,7 +1305,10 @@
         "path_finder_not_found": "Kein Pfad innerhalb des Zeitlimits gefunden",
         "path_finder_dropped_and_requested": "Pfad verworfen, neue Anforderung läuft",
         "path_finder_failed": "Pfadfinder-Anforderung fehlgeschlagen",
-        "path_finder_archive_loading": "Suche nach Archiv-Snapshot..."
+        "path_finder_archive_loading": "Suche nach Archiv-Snapshot...",
+        "export_section_favourites": "Abschnitts-Favoriten exportieren",
+        "section_favourites_exported": "Abschnitts-Favoriten exportiert",
+        "section_favourites_export_failed": "Abschnitts-Favoriten konnten nicht exportiert werden"
     },
     "forwarder": {
         "title": "LXMF-Weiterleiter",

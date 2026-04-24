@@ -150,7 +150,7 @@
         "incoming_message_size_unit_mb": "MB",
         "incoming_message_size_unit_gb": "GB",
         "auto_sync_interval": "Interval automatisch synchroniseren",
-        "last_synced": "Laatst gesynchroniseerd{time}geleden.",
+        "last_synced": "Laatst gesynchroniseerd {time} geleden.",
         "last_synced_never": "Laatst gesynchroniseerd: nooit.",
         "propagation_stamp_cost": "Propagatieknooppunt stempelkosten",
         "propagation_stamp_description": "Vereiste proof-of-work stempels voor berichten gepropageerd via uw knooppunt. Hogere waarden vereisen meer rekenwerk. Bereik: 13-254. Standaard: 16. **Opmerking:** Dit veranderen vereist het herstarten van de app.",
@@ -161,7 +161,7 @@
         "identity": "Identiteit",
         "lxmf_address_hash": "LXMF Adres Hash",
         "propagation_node_status": "Propagatieknooppuntstatus",
-        "last_sync": "Laatste synchronisatie:{time}geleden",
+        "last_sync": "Laatste synchronisatie: {time} geleden",
         "last_sync_never": "Laatste synchronisatie: nooit",
         "syncing": "Synchroniseren...",
         "synced": "Gesynchroniseerd",
@@ -597,7 +597,13 @@
         "archives_cleared": "Archieven succesvol goedgekeurd",
         "docs_cleared": "Reticulum documentatie succesvol gewist",
         "import_success": "Met succes geïmporteerd{count}berichten",
-        "import_failed": "Kon berichten niet importeren"
+        "import_failed": "Kon berichten niet importeren",
+        "export_nomadnet_favourites": "NomadNet-favorieten exporteren",
+        "import_nomadnet_favourites": "NomadNet-favorieten importeren",
+        "nomadnet_favourites_exported": "NomadNet-favorietenindeling geëxporteerd",
+        "nomadnet_favourites_export_failed": "NomadNet-favorieten konden niet worden geëxporteerd",
+        "nomadnet_favourites_imported": "NomadNet-favorietenindeling geïmporteerd",
+        "nomadnet_favourites_import_failed": "NomadNet-favorietenbestand kon niet worden geïmporteerd"
     },
     "identities": {
         "title": "Identiteiten",
@@ -1046,6 +1052,8 @@
         "telemetry_location_request": "Locatieverzoek",
         "start_call": "Oproep",
         "share_contact": "Contact delen",
+        "share_contact_modal_title": "Contact delen",
+        "share_contact_search_placeholder": "Contacten zoeken…",
         "custom_display_name": "Aangepaste schermnaam",
         "stranger_banner_text": "Deze peer staat niet in je contacten. De bijlagen van vreemden zijn geblokkeerd.",
         "add_to_contacts": "Toevoegen aan contacten",
@@ -1318,7 +1326,7 @@
         "no_favourites": "Geen favorieten",
         "add_nodes_from_announces": "Voeg nodes toe vanaf het tabblad kondigt.",
         "search_announces": "Zoekopdracht kondigt aan",
-        "announced_time_ago": "Aangekondigd{time}geleden",
+        "announced_time_ago": "Aangekondigd {time} geleden",
         "block_node": "Knooppunt verwijderen",
         "no_announces_yet": "Nog geen aankondigingen",
         "no_search_results_peers": "Geen peers gevonden die overeenkomen met uw zoekopdracht.",
@@ -1357,7 +1365,10 @@
         "path_finder_not_found": "Geen pad gevonden binnen time-out",
         "path_finder_dropped_and_requested": "Pad verwijderd, nieuwe aanvraag bezig",
         "path_finder_failed": "Padzoeker-aanvraag mislukt",
-        "path_finder_archive_loading": "Zoeken naar archief-snapshot..."
+        "path_finder_archive_loading": "Zoeken naar archief-snapshot...",
+        "export_section_favourites": "Favorieten van sectie exporteren",
+        "section_favourites_exported": "Favorieten van sectie geëxporteerd",
+        "section_favourites_export_failed": "Favorieten van sectie konden niet worden geëxporteerd"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

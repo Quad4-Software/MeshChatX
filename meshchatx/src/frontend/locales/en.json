@@ -597,7 +597,13 @@
         "archives_cleared": "Archives cleared successfully",
         "docs_cleared": "Reticulum documentation cleared successfully",
         "import_success": "Successfully imported {count} messages",
-        "import_failed": "Failed to import messages"
+        "import_failed": "Failed to import messages",
+        "export_nomadnet_favourites": "Export NomadNet favourites",
+        "import_nomadnet_favourites": "Import NomadNet favourites",
+        "nomadnet_favourites_exported": "NomadNet favourites layout exported",
+        "nomadnet_favourites_export_failed": "Could not export NomadNet favourites",
+        "nomadnet_favourites_imported": "NomadNet favourites layout imported",
+        "nomadnet_favourites_import_failed": "Could not import NomadNet favourites file"
     },
     "identities": {
         "title": "Identities",
@@ -1046,6 +1052,8 @@
         "telemetry_location_request": "Location Request",
         "start_call": "Call",
         "share_contact": "Share contact",
+        "share_contact_modal_title": "Share contact",
+        "share_contact_search_placeholder": "Search contacts…",
         "custom_display_name": "Custom Display Name",
         "stranger_banner_text": "This peer is not in your contacts. Attachments from strangers are blocked.",
         "add_to_contacts": "Add to Contacts",
@@ -1357,7 +1365,10 @@
         "path_finder_not_found": "No path found within timeout",
         "path_finder_dropped_and_requested": "Path dropped, requesting again",
         "path_finder_failed": "Path finder request failed",
-        "path_finder_archive_loading": "Looking for archive snapshot..."
+        "path_finder_archive_loading": "Looking for archive snapshot...",
+        "export_section_favourites": "Export section favourites",
+        "section_favourites_exported": "Section favourites exported",
+        "section_favourites_export_failed": "Could not export section favourites"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

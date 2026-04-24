@@ -597,7 +597,13 @@
         "archives_cleared": "Архивы успешно очищены",
         "docs_cleared": "Документация Reticulum успешно очищена",
         "import_success": "Успешно импортировано {count} сообщений",
-        "import_failed": "Не удалось импортировать сообщения"
+        "import_failed": "Не удалось импортировать сообщения",
+        "export_nomadnet_favourites": "Экспорт избранного NomadNet",
+        "import_nomadnet_favourites": "Импорт избранного NomadNet",
+        "nomadnet_favourites_exported": "Макет избранного NomadNet экспортирован",
+        "nomadnet_favourites_export_failed": "Не удалось экспортировать избранное NomadNet",
+        "nomadnet_favourites_imported": "Макет избранного NomadNet импортирован",
+        "nomadnet_favourites_import_failed": "Не удалось импортировать файл избранного NomadNet"
     },
     "identities": {
         "title": "Личности",
@@ -1106,6 +1112,8 @@
         "telemetry_location_request": "Запрос местоположения",
         "start_call": "Звонок",
         "share_contact": "Поделиться контактом",
+        "share_contact_modal_title": "Поделиться контактом",
+        "share_contact_search_placeholder": "Поиск контактов…",
         "opportunistic_deferred_label": "Ожидание",
         "opportunistic_deferred_tooltip": "Сообщение отправится, когда пользователь будет в сети или отправит объявление.",
         "no_messages_in_conversation": "В этом чате пока нет сообщений.",
@@ -1297,7 +1305,10 @@
         "path_finder_not_found": "Маршрут не найден в течение тайм-аута",
         "path_finder_dropped_and_requested": "Маршрут сброшен, выполняется повторный запрос",
         "path_finder_failed": "Запрос поиска маршрута не удался",
-        "path_finder_archive_loading": "Поиск снимка архива..."
+        "path_finder_archive_loading": "Поиск снимка архива...",
+        "export_section_favourites": "Экспорт избранного раздела",
+        "section_favourites_exported": "Избранное раздела экспортировано",
+        "section_favourites_export_failed": "Не удалось экспортировать избранное раздела"
     },
     "forwarder": {
         "title": "LXMF Форвардер",

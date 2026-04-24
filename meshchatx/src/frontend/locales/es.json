@@ -150,7 +150,7 @@
         "incoming_message_size_unit_mb": "MB",
         "incoming_message_size_unit_gb": "GB",
         "auto_sync_interval": "Auto Sync Interval",
-        "last_synced": "Última sincronización hace{time}.",
+        "last_synced": "Última sincronización hace {time}.",
         "last_synced_never": "Última sincronización: nunca.",
         "propagation_stamp_cost": "Propagation Node Stamp Cost",
         "propagation_stamp_description": "Requiere sellos de prueba de trabajo para mensajes propagados a través de su nodo. Los valores superiores requieren un trabajo más computacional. Rango: 13-254. Predeterminado: 16. **Nota:** Cambiar esto requiere reiniciar la aplicación.",
@@ -161,7 +161,7 @@
         "identity": "Identidad",
         "lxmf_address_hash": "LXMF Dirección Hash",
         "propagation_node_status": "Propagation Node Status",
-        "last_sync": "Last Sync:{time}ago",
+        "last_sync": "Último sync: hace {time}",
         "last_sync_never": "Último Sync: nunca",
         "syncing": "Sincronización...",
         "synced": "Sin embargo",
@@ -597,7 +597,13 @@
         "archives_cleared": "Archivos resueltos con éxito",
         "docs_cleared": "Documentación de reticulum con éxito",
         "import_success": "Mensajes{count}importados con éxito",
-        "import_failed": "No importar mensajes"
+        "import_failed": "No importar mensajes",
+        "export_nomadnet_favourites": "Exportar favoritos NomadNet",
+        "import_nomadnet_favourites": "Importar favoritos NomadNet",
+        "nomadnet_favourites_exported": "Diseño de favoritos NomadNet exportado",
+        "nomadnet_favourites_export_failed": "No se pudieron exportar los favoritos NomadNet",
+        "nomadnet_favourites_imported": "Diseño de favoritos NomadNet importado",
+        "nomadnet_favourites_import_failed": "No se pudo importar el archivo de favoritos NomadNet"
     },
     "identities": {
         "title": "Identidades",
@@ -1046,6 +1052,8 @@
         "telemetry_location_request": "Solicitud de ubicación",
         "start_call": "Call",
         "share_contact": "Comparta contacto",
+        "share_contact_modal_title": "Compartir contacto",
+        "share_contact_search_placeholder": "Buscar contactos…",
         "custom_display_name": "Nombre de la pantalla personalizada",
         "stranger_banner_text": "Este pare no está en tus contactos. Los adjuntos de extraños están bloqueados.",
         "add_to_contacts": "Añadir a Contactos",
@@ -1318,7 +1326,7 @@
         "no_favourites": "Sin favoritos",
         "add_nodes_from_announces": "Agregue nodos de la pestaña anuncia.",
         "search_announces": "Búsqueda anuncia",
-        "announced_time_ago": "Announced{time}ago",
+        "announced_time_ago": "Anunciado hace {time}",
         "block_node": "Destierro",
         "no_announces_yet": "No anuncia todavía",
         "no_search_results_peers": "No encontraron pares que coincidan con su búsqueda.",
@@ -1357,7 +1365,10 @@
         "path_finder_not_found": "No se encontró ruta dentro del tiempo de espera",
         "path_finder_dropped_and_requested": "Ruta descartada, solicitando de nuevo",
         "path_finder_failed": "La solicitud del buscador de ruta falló",
-        "path_finder_archive_loading": "Buscando instantánea de archivo..."
+        "path_finder_archive_loading": "Buscando instantánea de archivo...",
+        "export_section_favourites": "Exportar favoritos de la sección",
+        "section_favourites_exported": "Favoritos de la sección exportados",
+        "section_favourites_export_failed": "No se pudieron exportar los favoritos de la sección"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

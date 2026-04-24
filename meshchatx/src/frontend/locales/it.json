@@ -597,7 +597,13 @@
         "archives_cleared": "Archivi cancellati con successo",
         "docs_cleared": "Documentazione Reticulum cancellata con successo",
         "import_success": "Importati con successo {count} messaggi",
-        "import_failed": "Impossibile importare i messaggi"
+        "import_failed": "Impossibile importare i messaggi",
+        "export_nomadnet_favourites": "Esporta preferiti NomadNet",
+        "import_nomadnet_favourites": "Importa preferiti NomadNet",
+        "nomadnet_favourites_exported": "Layout preferiti NomadNet esportato",
+        "nomadnet_favourites_export_failed": "Impossibile esportare i preferiti NomadNet",
+        "nomadnet_favourites_imported": "Layout preferiti NomadNet importato",
+        "nomadnet_favourites_import_failed": "Impossibile importare il file dei preferiti NomadNet"
     },
     "identities": {
         "title": "Identità",
@@ -1106,6 +1112,8 @@
         "telemetry_location_request": "Richiesta posizione",
         "start_call": "Chiama",
         "share_contact": "Condividi contatto",
+        "share_contact_modal_title": "Condividi contatto",
+        "share_contact_search_placeholder": "Cerca contatti…",
         "opportunistic_deferred_label": "In attesa",
         "opportunistic_deferred_tooltip": "Il messaggio verrà inviato quando l'utente sarà online o invierà un annuncio.",
         "no_messages_in_conversation": "Ancora nessun messaggio in questa conversazione.",
@@ -1409,7 +1417,10 @@
         "path_finder_not_found": "Nessun percorso trovato entro il timeout",
         "path_finder_dropped_and_requested": "Percorso annullato, nuova richiesta in corso",
         "path_finder_failed": "Richiesta di ricerca percorso fallita",
-        "path_finder_archive_loading": "Ricerca dello snapshot d'archivio..."
+        "path_finder_archive_loading": "Ricerca dello snapshot d'archivio...",
+        "export_section_favourites": "Esporta preferiti della sezione",
+        "section_favourites_exported": "Preferiti della sezione esportati",
+        "section_favourites_export_failed": "Impossibile esportare i preferiti della sezione"
     },
     "forwarder": {
         "title": "Inoltro LXMF",

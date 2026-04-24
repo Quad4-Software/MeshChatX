@@ -597,7 +597,13 @@
         "archives_cleared": "Archives nettoyées avec succès",
         "docs_cleared": "La documentation du réticulum a été nettoyée avec succès",
         "import_success": "Messages{count}importés avec succès",
-        "import_failed": "Impossible d'importer des messages"
+        "import_failed": "Impossible d'importer des messages",
+        "export_nomadnet_favourites": "Exporter les favoris NomadNet",
+        "import_nomadnet_favourites": "Importer les favoris NomadNet",
+        "nomadnet_favourites_exported": "Disposition des favoris NomadNet exportée",
+        "nomadnet_favourites_export_failed": "Impossible d'exporter les favoris NomadNet",
+        "nomadnet_favourites_imported": "Disposition des favoris NomadNet importée",
+        "nomadnet_favourites_import_failed": "Impossible d'importer le fichier des favoris NomadNet"
     },
     "identities": {
         "title": "Identités",
@@ -1046,6 +1052,8 @@
         "telemetry_location_request": "Demande de localisation",
         "start_call": "Appeler",
         "share_contact": "Partager le contact",
+        "share_contact_modal_title": "Partager le contact",
+        "share_contact_search_placeholder": "Rechercher des contacts…",
         "custom_display_name": "Affichage personnalisé",
         "stranger_banner_text": "Ce pair n'est pas dans vos contacts. Les pièces jointes des étrangers sont bloquées.",
         "add_to_contacts": "Ajouter aux contacts",
@@ -1318,7 +1326,7 @@
         "no_favourites": "Pas de favoris",
         "add_nodes_from_announces": "Ajouter des nœuds de l'onglet Annonces.",
         "search_announces": "La recherche annonce",
-        "announced_time_ago": "Annoncé{time}il y a",
+        "announced_time_ago": "Annoncé il y a {time}",
         "block_node": "Nœud baigné",
         "no_announces_yet": "Pas encore d'annonce",
         "no_search_results_peers": "Aucun pair trouvé correspondant à votre recherche.",
@@ -1357,7 +1365,10 @@
         "path_finder_not_found": "Aucun chemin trouvé dans le délai imparti",
         "path_finder_dropped_and_requested": "Chemin abandonné, nouvelle demande en cours",
         "path_finder_failed": "Échec de la demande du chercheur de chemin",
-        "path_finder_archive_loading": "Recherche d'un instantané d'archive..."
+        "path_finder_archive_loading": "Recherche d'un instantané d'archive...",
+        "export_section_favourites": "Exporter les favoris de la section",
+        "section_favourites_exported": "Favoris de la section exportés",
+        "section_favourites_export_failed": "Impossible d'exporter les favoris de la section"
     },
     "forwarder": {
         "title": "Expéditeur LXMF",

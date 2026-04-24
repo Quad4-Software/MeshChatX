@@ -597,7 +597,13 @@
         "archives_cleared": "存档清除成功",
         "docs_cleared": "文档清除成功",
         "import_success": "成功导入 {count} 条消息",
-        "import_failed": "导入消息失败"
+        "import_failed": "导入消息失败",
+        "export_nomadnet_favourites": "导出 NomadNet 收藏布局",
+        "import_nomadnet_favourites": "导入 NomadNet 收藏布局",
+        "nomadnet_favourites_exported": "NomadNet 收藏布局已导出",
+        "nomadnet_favourites_export_failed": "无法导出 NomadNet 收藏",
+        "nomadnet_favourites_imported": "NomadNet 收藏布局已导入",
+        "nomadnet_favourites_import_failed": "无法导入 NomadNet 收藏文件"
     },
     "identities": {
         "title": "身份",
@@ -1046,6 +1052,8 @@
         "telemetry_location_request": "位置请求",
         "start_call": "开始通话",
         "share_contact": "分享联系人",
+        "share_contact_modal_title": "分享联系人",
+        "share_contact_search_placeholder": "搜索联系人…",
         "custom_display_name": "自定义显示名称",
         "stranger_banner_text": "此端点不在您的联系人中。陌生人附件已被阻止。",
         "add_to_contacts": "添加到联系人",
@@ -1357,7 +1365,10 @@
         "path_finder_not_found": "在超时时间内未找到路径",
         "path_finder_dropped_and_requested": "路径已丢弃，正在重新请求",
         "path_finder_failed": "路径查找请求失败",
-        "path_finder_archive_loading": "正在查找归档快照..."
+        "path_finder_archive_loading": "正在查找归档快照...",
+        "export_section_favourites": "导出此分组的收藏",
+        "section_favourites_exported": "分组收藏已导出",
+        "section_favourites_export_failed": "无法导出分组收藏"
     },
     "forwarder": {
         "title": "LXMF 转发器",
